@@ -705,6 +705,22 @@ func _qa_capture(name_value:String):
  var image=get_viewport().get_texture().get_image()
  image.save_png(qa_path.path_join(name_value+".png"))
 
+func _finish_automation(exit_code:int=0):
+ # Captures resume inside frame_post_draw. Drain renderer/audio ownership before
+ # asking SceneTree to quit; this teardown is only used by QA and benchmarks.
+ paused=true;pending_round=false
+ set_process(false);set_process_unhandled_input(false)
+ if is_instance_valid(jev):jev.invalidate()
+ if is_instance_valid(audio_manager):
+  audio_manager.shutdown()
+ if is_instance_valid(world):world.queue_free()
+ if is_instance_valid(layer):layer.queue_free()
+ world=null;layer=null;ui=null;modal=null;theme_main=null;title_font=null
+ await get_tree().process_frame
+ await RenderingServer.frame_post_draw
+ await get_tree().create_timer(0.12).timeout
+ get_tree().quit(exit_code)
+
 func _qa_run(scenario_name:String):
  # QA automática ejecutada sobre la escena real; no representa una partida humana.
  if qa_path.is_empty():qa_path=OS.get_user_data_dir().path_join("qa")
@@ -755,7 +771,7 @@ func _qa_run(scenario_name:String):
  var output=FileAccess.open(qa_path.path_join(str(rules.state.scenario)+"-render-report.json"),FileAccess.WRITE)
  if output:output.store_string(JSON.stringify(qa_metrics,"\t"));output.close()
  print("QA_RENDER_REPORT "+JSON.stringify(qa_metrics))
- get_tree().quit(0 if rules.state.status=="victory" else 2)
+ await _finish_automation(0 if rules.state.status=="victory" else 2)
 
 func _qa_campaign_orders():
  var a=rules.get_unit("arias");var g=rules.get_unit("guemes");var support=rules.get_unit("zavala")
@@ -799,4 +815,4 @@ func _benchmark_run(scenario_name:String):
  var f=FileAccess.open(qa_path.path_join(scenario_name+"-"+benchmark_quality+"-benchmark.json"),FileAccess.WRITE)
  if f:f.store_string(JSON.stringify(report,"\t"));f.close()
  print(JSON.stringify(report))
- get_tree().quit()
+ await _finish_automation()

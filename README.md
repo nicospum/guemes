@@ -14,6 +14,8 @@ No hace falta instalar el editor de Godot, Blender, REA, Python ni un MCP para j
 
 El destino es Windows x64; la exportación y la evidencia de ejecución se detallan en `docs/VERIFICACION.md`. Una ejecución bajo Wine no equivale a validar una PC Windows nativa.
 
+En el servidor remoto sin GPU acelerada, el perfil bajo midió aproximadamente 18–23 FPS; no alcanzó la meta de 30 FPS. El rendimiento y el audio en tu PC Windows requieren una prueba en ese equipo. El juego permite cambiar el detalle en Ajustes.
+
 ## Los dos escenarios
 
 ### I. Tomar el Justine · 1806
@@ -69,7 +71,7 @@ La matriz histórica separa documento, interpretación, tradición y ficción ju
 
 Jev elige intenciones del adversario entre opciones legales. Las reglas locales controlan movimiento, azar, combate, recursos y victoria. El cliente asíncrono limita la espera a dos segundos, valida estado y respuesta, descarta decisiones viejas y registra la alternativa local de forma explícita.
 
-Para habilitar una clave existente, consultá `docs/CONFIGURAR_JEV_WINDOWS.md` y `configurar_jev.ps1` del paquete Windows (en el código está en `tools/`). No pegues credenciales en el código ni en el chat. La validación viva sigue pendiente.
+Para habilitar una clave existente, consultá `docs/CONFIGURAR_JEV_WINDOWS.md` y `tools/configurar_jev.ps1`, incluidos en ambos paquetes. No pegues credenciales en el código ni en el chat. La validación viva sigue pendiente.
 
 REA 6.8.0 se utilizó realmente para inspección PE del runtime y del ejecutable final. La ruta de Civilization aportada no era accesible desde el entorno Linux remoto. Las conclusiones de interacción se apoyan en documentación pública oficial; no se presentan como observación de esa instalación.
 

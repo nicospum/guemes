@@ -6,3 +6,4 @@ user_data/
 .env
 *.key
 __pycache__/
+*.build_release.bak

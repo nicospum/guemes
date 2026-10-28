@@ -21,6 +21,23 @@ var _scenario: String = ""
 var _initialized: bool = false
 
 
+func shutdown() -> void:
+	## Release playback and stream references on every exit path, including WM close.
+	for player in _players.values():
+		if is_instance_valid(player):
+			player.stop()
+			player.stream = null
+	_players.clear()
+	if is_instance_valid(_ambient):
+		_ambient.stop()
+		_ambient.stream = null
+	_scenario = ""
+
+
+func _exit_tree() -> void:
+	shutdown()
+
+
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_initialize_audio()
