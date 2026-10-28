@@ -6,7 +6,7 @@
   "runtime_source_commit": "4142126",
   "windows_executable": "PatriaGuemes.exe",
   "windows_bytes": 117827280,
-  "windows_sha256": "c25a6a6371040c64a7d41c6ed6dd8246d6a7409f9dec9167c78bec0bc606f757",
+  "windows_sha256": "918494d7e44be00d0d9d7a04b660feb3e66fd959963e18886ec7fb638506c0f8",
   "engine": "Godot 4.7.2 stable ed1daf0bf",
   "native_windows_tested": false,
   "native_windows_human_playtest": false,
