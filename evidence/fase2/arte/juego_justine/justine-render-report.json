@@ -1,0 +1,24 @@
+{
+	"engine": "4.7.2-stable (official)",
+	"external_decisions": [],
+	"first_frame_ms": 179,
+	"frame_ms_median": 4.16666666666667,
+	"frame_ms_p95": 5.49599999999999,
+	"kind": "automated_render_and_simulation",
+	"os": "Windows",
+	"quality": "media",
+	"renderer": "NVIDIA GeForce RTX 3080 Ti",
+	"resolution": "(1440.0, 900.0)",
+	"round": 1.0,
+	"sample_count": 165,
+	"save_load": {
+		"elapsed_after": 280.0,
+		"elapsed_before": 280.0,
+		"ok": true
+	},
+	"scenario": "justine",
+	"scene_build_ms": 97,
+	"simulated_seconds": 473.75,
+	"static_memory_bytes": 71751824,
+	"status": "victory"
+}

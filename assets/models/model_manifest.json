@@ -1,8 +1,8 @@
 {
   "rider_1806": {
     "file": "rider_1806.glb",
-    "bytes": 634956,
-    "triangles_base_mesh": 12941,
+    "bytes": 969196,
+    "triangles_base_mesh": 17389,
     "animations_expected": [
       "trot"
     ],
@@ -10,39 +10,53 @@
       "trot"
     ],
     "mesh_count": 1,
-    "surfaces": 16,
-    "sha256": "c2452d6150fd0fbeb9d39a089085d41112d80b3672087a661da6870cc385af5e",
+    "surfaces": 9,
+    "materials": [
+      "PBR | anchor",
+      "PBR | coat",
+      "PBR | gloss",
+      "PBR | wool",
+      "PBR | leather",
+      "PBR | metal",
+      "PBR | linen",
+      "PBR | skin",
+      "PBR | wood"
+    ],
+    "textures": 27,
+    "vertex_colors": true,
+    "sha256": "8b0e965de44e722f2bb16410217c953542ed1ca946d6d75d2a5553b3bc036d85",
     "blender_bounds": {
       "min": [
         -0.5339672565460205,
-        -1.5200612545013428,
-        -0.014037818647921085
+        -1.539906620979309,
+        0.0010000000474974513
       ],
       "max": [
         0.5339672565460205,
-        1.841221809387207,
-        3.0734081268310547
+        1.850000023841858,
+        3.049999952316284
       ]
     },
     "godot_bounds": {
       "min": [
         -0.5339672565460205,
-        -0.014037818647921085,
-        -1.841221809387207
+        0.0010000000474974513,
+        -1.850000023841858
       ],
       "max": [
         0.5339672565460205,
-        3.0734081268310547,
-        1.5200612545013428
+        3.049999952316284,
+        1.539906620979309
       ]
     },
     "front": "Godot -Z",
-    "provenance": "Own procedural geometry; artistic reconstruction."
+    "provenance": "Own procedural geometry and textures; artistic reconstruction.",
+    "historical_note": "1806: dark coat with facings, bicorne with plain cockade. No Argentine flag, no Infernales."
   },
   "rider_1817": {
     "file": "rider_1817.glb",
-    "bytes": 616596,
-    "triangles_base_mesh": 12769,
+    "bytes": 956812,
+    "triangles_base_mesh": 17585,
     "animations_expected": [
       "trot"
     ],
@@ -50,39 +64,53 @@
       "trot"
     ],
     "mesh_count": 1,
-    "surfaces": 17,
-    "sha256": "1a4e7f878c513cfa7cdfb664214bbbd5c4490cb39039ca885226b95461cf0a1c",
+    "surfaces": 9,
+    "materials": [
+      "PBR | anchor",
+      "PBR | coat",
+      "PBR | gloss",
+      "PBR | wool",
+      "PBR | leather",
+      "PBR | metal",
+      "PBR | linen",
+      "PBR | skin",
+      "PBR | wood"
+    ],
+    "textures": 27,
+    "vertex_colors": true,
+    "sha256": "9f8e6e235ad367f4788be8abbd021b91b2c6f80b1dc9253d79656a43b63ef9fd",
     "blender_bounds": {
       "min": [
         -0.5339672565460205,
-        -1.5200612545013428,
-        -0.014037818647921085
+        -1.539906620979309,
+        0.0010000000474974513
       ],
       "max": [
         0.5339672565460205,
-        1.841221809387207,
-        3.0284082889556885
+        1.850000023841858,
+        3.005000114440918
       ]
     },
     "godot_bounds": {
       "min": [
         -0.5339672565460205,
-        -0.014037818647921085,
-        -1.841221809387207
+        0.0010000000474974513,
+        -1.850000023841858
       ],
       "max": [
         0.5339672565460205,
-        3.0284082889556885,
-        1.5200612545013428
+        3.005000114440918,
+        1.539906620979309
       ]
     },
     "front": "Godot -Z",
-    "provenance": "Own procedural geometry; artistic reconstruction."
+    "provenance": "Own procedural geometry and textures; artistic reconstruction.",
+    "historical_note": "1817: wide-brim hat, garnet poncho, sheepskin recado, gaucho gear. Poncho colour is an artistic reading, no unit insignia."
   },
   "horse_only": {
     "file": "horse_only.glb",
-    "bytes": 396852,
-    "triangles_base_mesh": 8502,
+    "bytes": 612304,
+    "triangles_base_mesh": 11202,
     "animations_expected": [
       "trot"
     ],
@@ -90,39 +118,50 @@
       "trot"
     ],
     "mesh_count": 1,
-    "surfaces": 11,
-    "sha256": "8fb2c8568a12be60e33a98317f2405efa073c7b4caaecdd88f33b239d27e93ab",
+    "surfaces": 7,
+    "materials": [
+      "PBR | anchor",
+      "PBR | coat",
+      "PBR | gloss",
+      "PBR | wool",
+      "PBR | leather",
+      "PBR | metal",
+      "PBR | linen"
+    ],
+    "textures": 21,
+    "vertex_colors": true,
+    "sha256": "fdc193615bbc4559dfd467c442ca1077d21848a28526917737242de28b8a65d2",
     "blender_bounds": {
       "min": [
         -0.5339672565460205,
-        -1.5200612545013428,
-        -0.014037818647921085
+        -1.539906620979309,
+        0.0010000000474974513
       ],
       "max": [
         0.5339672565460205,
-        1.841221809387207,
-        2.4134082794189453
+        1.850000023841858,
+        2.390000104904175
       ]
     },
     "godot_bounds": {
       "min": [
         -0.5339672565460205,
-        -0.014037818647921085,
-        -1.841221809387207
+        0.0010000000474974513,
+        -1.850000023841858
       ],
       "max": [
         0.5339672565460205,
-        2.4134082794189453,
-        1.5200612545013428
+        2.390000104904175,
+        1.539906620979309
       ]
     },
     "front": "Godot -Z",
-    "provenance": "Own procedural geometry; artistic reconstruction."
+    "provenance": "Own procedural geometry and textures; artistic reconstruction."
   },
   "infantry": {
     "file": "infantry.glb",
-    "bytes": 254988,
-    "triangles_base_mesh": 4431,
+    "bytes": 461688,
+    "triangles_base_mesh": 6147,
     "animations_expected": [
       "walk"
     ],
@@ -130,39 +169,107 @@
       "walk"
     ],
     "mesh_count": 1,
-    "surfaces": 11,
-    "sha256": "316161e2b7602c7bb9b0201b49f3c4c9d615544c23ef63a66e6cf105f8453859",
+    "surfaces": 9,
+    "materials": [
+      "PBR | anchor",
+      "PBR | wool",
+      "PBR | skin",
+      "PBR | coat",
+      "PBR | gloss",
+      "PBR | metal",
+      "PBR | linen",
+      "PBR | leather",
+      "PBR | wood"
+    ],
+    "textures": 27,
+    "vertex_colors": true,
+    "sha256": "6fda2961ddade247a73180d4eafa39023bb5dbd76f03e7f9ce55728ff7beee45",
     "blender_bounds": {
       "min": [
         -0.3045799732208252,
-        -0.132999986410141,
-        -1.0430814545436817e-10
+        -0.2199999988079071,
+        -2.3283064365386963e-10
       ],
       "max": [
-        0.36209946870803833,
-        0.23397505283355713,
-        1.940000057220459
+        0.4742874503135681,
+        0.25197505950927734,
+        2.052572727203369
       ]
     },
     "godot_bounds": {
       "min": [
         -0.3045799732208252,
-        -1.0430814545436817e-10,
-        -0.23397505283355713
+        -2.3283064365386963e-10,
+        -0.25197505950927734
       ],
       "max": [
-        0.36209946870803833,
-        1.940000057220459,
-        0.132999986410141
+        0.4742874503135681,
+        2.052572727203369,
+        0.2199999988079071
       ]
     },
     "front": "Godot -Z",
-    "provenance": "Own procedural geometry; artistic reconstruction."
+    "provenance": "Own procedural geometry and textures; artistic reconstruction.",
+    "historical_note": "British line infantry of the Justine crew, 1806; plain stovepipe shako, no regimental badge. Artistic reconstruction."
+  },
+  "royalist_1817": {
+    "file": "royalist_1817.glb",
+    "bytes": 438856,
+    "triangles_base_mesh": 5803,
+    "animations_expected": [
+      "walk"
+    ],
+    "animations_exported": [
+      "walk"
+    ],
+    "mesh_count": 1,
+    "surfaces": 9,
+    "materials": [
+      "PBR | anchor",
+      "PBR | wool",
+      "PBR | skin",
+      "PBR | coat",
+      "PBR | gloss",
+      "PBR | metal",
+      "PBR | linen",
+      "PBR | leather",
+      "PBR | wood"
+    ],
+    "textures": 27,
+    "vertex_colors": true,
+    "sha256": "1137a1bcc32c0fb7556a0aed2029a943595efe65736ebc764b7d182b5fed4cf0",
+    "blender_bounds": {
+      "min": [
+        -0.3045799732208252,
+        -0.2199999988079071,
+        -2.3283064365386963e-10
+      ],
+      "max": [
+        0.4742874503135681,
+        0.25197505950927734,
+        2.052572727203369
+      ]
+    },
+    "godot_bounds": {
+      "min": [
+        -0.3045799732208252,
+        -2.3283064365386963e-10,
+        -0.25197505950927734
+      ],
+      "max": [
+        0.4742874503135681,
+        2.052572727203369,
+        0.2199999988079071
+      ]
+    },
+    "front": "Godot -Z",
+    "provenance": "Own procedural geometry and textures; artistic reconstruction.",
+    "historical_note": "Aggregate royalist figure, 1817. Artistic reconstruction; no verified regimental uniform or British insignia."
   },
   "dismounted_1806": {
     "file": "dismounted_1806.glb",
-    "bytes": 253400,
-    "triangles_base_mesh": 4399,
+    "bytes": 421332,
+    "triangles_base_mesh": 5831,
     "animations_expected": [
       "walk"
     ],
@@ -170,48 +277,75 @@
       "walk"
     ],
     "mesh_count": 1,
-    "surfaces": 11,
-    "sha256": "d20acdd8920f12f1dcb449a5779edcca22dc727c0aec203375a7507e0692bcfd",
+    "surfaces": 9,
+    "materials": [
+      "PBR | anchor",
+      "PBR | wool",
+      "PBR | skin",
+      "PBR | coat",
+      "PBR | gloss",
+      "PBR | linen",
+      "PBR | leather",
+      "PBR | metal",
+      "PBR | wood"
+    ],
+    "textures": 27,
+    "vertex_colors": true,
+    "sha256": "b87e359a08e3aee9375511a41d2c573584efdbb87208d689d7a6244b0ac56434",
     "blender_bounds": {
       "min": [
         -0.3045799732208252,
-        -0.132999986410141,
-        -1.0430814545436817e-10
+        -0.2203311026096344,
+        -2.3283064365386963e-10
       ],
       "max": [
         0.36209946870803833,
-        0.23397505283355713,
+        0.25197505950927734,
         1.940000057220459
       ]
     },
     "godot_bounds": {
       "min": [
         -0.3045799732208252,
-        -1.0430814545436817e-10,
-        -0.23397505283355713
+        -2.3283064365386963e-10,
+        -0.25197505950927734
       ],
       "max": [
         0.36209946870803833,
         1.940000057220459,
-        0.132999986410141
+        0.2203311026096344
       ]
     },
     "front": "Godot -Z",
-    "provenance": "Own procedural geometry; artistic reconstruction."
+    "provenance": "Own procedural geometry and textures; artistic reconstruction.",
+    "historical_note": "Riders of 1806 on foot; bicorne with plain red cockade, no Argentine flag or national cockade."
   },
   "justine": {
     "file": "justine.glb",
-    "bytes": 979720,
-    "triangles_base_mesh": 22976,
+    "bytes": 2033020,
+    "triangles_base_mesh": 27176,
     "animations_expected": [],
     "animations_exported": [],
     "mesh_count": 1,
-    "surfaces": 15,
-    "sha256": "58ff473242f231746d22f160ebd0254487763003e2cb6f65e6f1c3c82558fa3f",
+    "surfaces": 9,
+    "materials": [
+      "PBR | anchor",
+      "PBR | planks",
+      "PBR | deckplanks",
+      "PBR | wool",
+      "PBR | wood",
+      "PBR | gloss",
+      "PBR | metal",
+      "PBR | linen",
+      "PBR | sail"
+    ],
+    "textures": 27,
+    "vertex_colors": true,
+    "sha256": "50f53bcf49cf982a8e13542d1faf3a7e1101fd36177a80e498272949d46495ad",
     "blender_bounds": {
       "min": [
         -3.303999900817871,
-        -7.072228908538818,
+        -7.230000019073486,
         -1.5800000429153442
       ],
       "max": [
@@ -229,52 +363,238 @@
       "max": [
         3.303999900817871,
         11.199999809265137,
-        7.072228908538818
+        7.230000019073486
       ]
     },
     "front": "Godot -Z",
-    "provenance": "Own procedural geometry; artistic reconstruction."
+    "provenance": "Own procedural geometry and textures; artistic reconstruction."
   },
-  "royalist_1817": {
-    "file": "royalist_1817.glb",
-    "bytes": 255136,
-    "triangles_base_mesh": 4431,
-    "animations_expected": [
-      "walk"
-    ],
-    "animations_exported": [
-      "walk"
-    ],
+  "house_colonial": {
+    "file": "house_colonial.glb",
+    "bytes": 512624,
+    "triangles_base_mesh": 3854,
+    "animations_expected": [],
+    "animations_exported": [],
     "mesh_count": 1,
-    "surfaces": 11,
-    "sha256": "c8abc7a2c39e1b6cce421de889a72e20873f98d6b672238570268bfc40ec4f8f",
+    "surfaces": 8,
+    "materials": [
+      "PBR | anchor",
+      "PBR | stone",
+      "PBR | plaster",
+      "PBR | tile",
+      "PBR | wood",
+      "PBR | planks",
+      "PBR | metal",
+      "PBR | gloss"
+    ],
+    "textures": 24,
+    "vertex_colors": true,
+    "sha256": "c5c71b04b8930b0da92d76f342be514adffcedbf6cd48e79b657e11e72fe8f69",
     "blender_bounds": {
       "min": [
-        -0.3045799732208252,
-        -0.132999986410141,
-        -1.0430814545436817e-10
+        -2.8499999046325684,
+        -3.490000009536743,
+        -3.958120942115784e-09
       ],
       "max": [
-        0.36209946870803833,
-        0.23397505283355713,
-        1.940000057220459
+        2.8499999046325684,
+        2.574923515319824,
+        4.789999961853027
       ]
     },
     "godot_bounds": {
       "min": [
-        -0.3045799732208252,
-        -1.0430814545436817e-10,
-        -0.23397505283355713
+        -2.8499999046325684,
+        -3.958120942115784e-09,
+        -2.574923515319824
       ],
       "max": [
-        0.36209946870803833,
-        1.940000057220459,
-        0.132999986410141
+        2.8499999046325684,
+        4.789999961853027,
+        3.490000009536743
       ]
     },
     "front": "Godot -Z",
-    "provenance": "Own geometry; off-white material variant for an aggregate royalist figure in 1817.",
-    "source_variant": "infantry.glb",
-    "historical_note": "Artistic reconstruction; no verified regimental uniform or British insignia."
+    "provenance": "Own procedural geometry and textures; artistic reconstruction.",
+    "historical_note": "NEW in phase 2. Unit footprint 5.0 x 4.0 m, wall 2.7 m, door on the +Z (Godot) face. Not yet referenced by world_view.gd."
+  },
+  "church_colonial": {
+    "file": "church_colonial.glb",
+    "bytes": 318016,
+    "triangles_base_mesh": 1926,
+    "animations_expected": [],
+    "animations_exported": [],
+    "mesh_count": 1,
+    "surfaces": 7,
+    "materials": [
+      "PBR | anchor",
+      "PBR | stone",
+      "PBR | plaster",
+      "PBR | tile",
+      "PBR | gloss",
+      "PBR | metal",
+      "PBR | planks"
+    ],
+    "textures": 21,
+    "vertex_colors": true,
+    "sha256": "9c502a30bc43a6c7d33678e258424ed5d8ae96f52ad6152e845b6c244c6490a0",
+    "blender_bounds": {
+      "min": [
+        -3.823958158493042,
+        -7.5,
+        -3.958120942115784e-09
+      ],
+      "max": [
+        3.823958158493042,
+        5.949999809265137,
+        13.300000190734863
+      ]
+    },
+    "godot_bounds": {
+      "min": [
+        -3.823958158493042,
+        -3.958120942115784e-09,
+        -5.949999809265137
+      ],
+      "max": [
+        3.823958158493042,
+        13.300000190734863,
+        7.5
+      ]
+    },
+    "front": "Godot -Z",
+    "provenance": "Own procedural geometry and textures; artistic reconstruction.",
+    "historical_note": "NEW in phase 2. Nave 6 x 11 m, front bell tower to ~12.9 m, facade towards +Z. Generic Andean-colonial chapel, not a specific church."
+  },
+  "tree_algarrobo": {
+    "file": "tree_algarrobo.glb",
+    "bytes": 160776,
+    "triangles_base_mesh": 3200,
+    "animations_expected": [],
+    "animations_exported": [],
+    "mesh_count": 1,
+    "surfaces": 3,
+    "materials": [
+      "PBR | anchor",
+      "PBR | bark",
+      "PBR | foliage"
+    ],
+    "textures": 9,
+    "vertex_colors": true,
+    "sha256": "832fa3197b4b66afd1cf48c8f436b3d1b46cc52bf60b6925014b55b66bae3e48",
+    "blender_bounds": {
+      "min": [
+        -3.276414394378662,
+        -2.2984094619750977,
+        0.0
+      ],
+      "max": [
+        3.010375499725342,
+        2.4257678985595703,
+        6.335111618041992
+      ]
+    },
+    "godot_bounds": {
+      "min": [
+        -3.276414394378662,
+        0.0,
+        -2.4257678985595703
+      ],
+      "max": [
+        3.010375499725342,
+        6.335111618041992,
+        2.2984094619750977
+      ]
+    },
+    "front": "Godot -Z",
+    "provenance": "Own procedural geometry and textures; artistic reconstruction.",
+    "historical_note": "NEW in phase 2. Height ~6.3 m, canopy radius ~2.6 m, origin at the trunk base."
+  },
+  "tree_cardon": {
+    "file": "tree_cardon.glb",
+    "bytes": 383152,
+    "triangles_base_mesh": 5632,
+    "animations_expected": [],
+    "animations_exported": [],
+    "mesh_count": 1,
+    "surfaces": 3,
+    "materials": [
+      "PBR | anchor",
+      "PBR | cactus",
+      "PBR | wood"
+    ],
+    "textures": 9,
+    "vertex_colors": true,
+    "sha256": "666ec0d438af7a71cbc2f55db6599e925b0ca0e4c7b3fd6ddd211f2a3df8a2b4",
+    "blender_bounds": {
+      "min": [
+        -1.0440117120742798,
+        -0.278067946434021,
+        0.0
+      ],
+      "max": [
+        1.0440117120742798,
+        0.2926260530948639,
+        4.400000095367432
+      ]
+    },
+    "godot_bounds": {
+      "min": [
+        -1.0440117120742798,
+        0.0,
+        -0.2926260530948639
+      ],
+      "max": [
+        1.0440117120742798,
+        4.400000095367432,
+        0.278067946434021
+      ]
+    },
+    "front": "Godot -Z",
+    "provenance": "Own procedural geometry and textures; artistic reconstruction.",
+    "historical_note": "NEW in phase 2. Height ~4.4 m with two arms, origin at the base."
+  },
+  "rock_cluster": {
+    "file": "rock_cluster.glb",
+    "bytes": 32656,
+    "triangles_base_mesh": 356,
+    "animations_expected": [],
+    "animations_exported": [],
+    "mesh_count": 1,
+    "surfaces": 2,
+    "materials": [
+      "PBR | anchor",
+      "PBR | stone"
+    ],
+    "textures": 6,
+    "vertex_colors": true,
+    "sha256": "b0c8bcdea7a05d40ac866b5539335b6ef838b88ed33f8efadaa7060dab99dd69",
+    "blender_bounds": {
+      "min": [
+        -1.1570242643356323,
+        -1.1335463523864746,
+        -0.2622971832752228
+      ],
+      "max": [
+        1.5066490173339844,
+        1.2216417789459229,
+        0.921183705329895
+      ]
+    },
+    "godot_bounds": {
+      "min": [
+        -1.1570242643356323,
+        -0.2622971832752228,
+        -1.2216417789459229
+      ],
+      "max": [
+        1.5066490173339844,
+        0.921183705329895,
+        1.1335463523864746
+      ]
+    },
+    "front": "Godot -Z",
+    "provenance": "Own procedural geometry and textures; artistic reconstruction.",
+    "historical_note": "NEW in phase 2. ~2.5 m cluster of four boulders."
   }
 }
