@@ -60,14 +60,23 @@ func _run() -> void:
 	_check(float(peaks["Efectos"]) > -60.0, "senal en bus Efectos (pico %.1f dB)" % float(peaks["Efectos"]))
 	_check(float(peaks["UI"]) > -60.0, "senal en bus UI (pico %.1f dB)" % float(peaks["UI"]))
 	_check(float(peaks["Master"]) <= -0.5, "Master no supera el techo del limitador (pico %.2f dB)" % float(peaks["Master"]))
-	# Tormenta de pedidos: el tope de voces y las polifonias se mantienen.
+	# Tormenta de pedidos: el tope real de voces (MAX_VOICES, sin holgura) y las polifonias se mantienen.
+	# Incluye avisos de prioridad 2, que desplazan efectos de menor prioridad en lugar de superar el tope.
 	var worst := 0
+	var worst_players := 0
 	for k in 120:
-		for s in ["order", "cannon", "hoof", "dismount", "error"]:
+		for s in ["order", "cannon", "hoof", "dismount", "error", "alert", "bell", "victory"]:
 			mgr.play(s)
-		worst = maxi(worst, mgr._active_voices())
+			worst = maxi(worst, mgr._active_voices())
+		var playing := 0
+		for sound in mgr._players:
+			if (mgr._players[sound] as AudioStreamPlayer).playing:
+				playing += 1
+		worst_players = maxi(worst_players, playing)
 		await process_frame
-	_check(worst <= mgr.MAX_VOICES + 3, "voces simultaneas acotadas (max visto %d)" % worst)
+	_check(worst <= mgr.MAX_VOICES, "voces simultaneas <= MAX_VOICES=%d (max visto %d)" % [mgr.MAX_VOICES, worst])
+	_check(worst >= 2 and worst >= worst_players, "el conteo de voces no queda por debajo de los reproductores activos (voces %d, reproductores %d)" % [worst, worst_players])
+	_check(mgr.dropped_count > 0, "bajo presion se descartan o desplazan voces (descartes %d)" % mgr.dropped_count)
 	_check((mgr._players["cannon"] as AudioStreamPlayer).max_polyphony == 2, "polifonia del canon = 2")
 	mgr.set_environment("norte")
 	await _wait(1.0, peaks)
