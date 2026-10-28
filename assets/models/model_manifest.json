@@ -1,0 +1,280 @@
+{
+  "rider_1806": {
+    "file": "rider_1806.glb",
+    "bytes": 634956,
+    "triangles_base_mesh": 12941,
+    "animations_expected": [
+      "trot"
+    ],
+    "animations_exported": [
+      "trot"
+    ],
+    "mesh_count": 1,
+    "surfaces": 16,
+    "sha256": "c2452d6150fd0fbeb9d39a089085d41112d80b3672087a661da6870cc385af5e",
+    "blender_bounds": {
+      "min": [
+        -0.5339672565460205,
+        -1.5200612545013428,
+        -0.014037818647921085
+      ],
+      "max": [
+        0.5339672565460205,
+        1.841221809387207,
+        3.0734081268310547
+      ]
+    },
+    "godot_bounds": {
+      "min": [
+        -0.5339672565460205,
+        -0.014037818647921085,
+        -1.841221809387207
+      ],
+      "max": [
+        0.5339672565460205,
+        3.0734081268310547,
+        1.5200612545013428
+      ]
+    },
+    "front": "Godot -Z",
+    "provenance": "Own procedural geometry; artistic reconstruction."
+  },
+  "rider_1817": {
+    "file": "rider_1817.glb",
+    "bytes": 616596,
+    "triangles_base_mesh": 12769,
+    "animations_expected": [
+      "trot"
+    ],
+    "animations_exported": [
+      "trot"
+    ],
+    "mesh_count": 1,
+    "surfaces": 17,
+    "sha256": "1a4e7f878c513cfa7cdfb664214bbbd5c4490cb39039ca885226b95461cf0a1c",
+    "blender_bounds": {
+      "min": [
+        -0.5339672565460205,
+        -1.5200612545013428,
+        -0.014037818647921085
+      ],
+      "max": [
+        0.5339672565460205,
+        1.841221809387207,
+        3.0284082889556885
+      ]
+    },
+    "godot_bounds": {
+      "min": [
+        -0.5339672565460205,
+        -0.014037818647921085,
+        -1.841221809387207
+      ],
+      "max": [
+        0.5339672565460205,
+        3.0284082889556885,
+        1.5200612545013428
+      ]
+    },
+    "front": "Godot -Z",
+    "provenance": "Own procedural geometry; artistic reconstruction."
+  },
+  "horse_only": {
+    "file": "horse_only.glb",
+    "bytes": 396852,
+    "triangles_base_mesh": 8502,
+    "animations_expected": [
+      "trot"
+    ],
+    "animations_exported": [
+      "trot"
+    ],
+    "mesh_count": 1,
+    "surfaces": 11,
+    "sha256": "8fb2c8568a12be60e33a98317f2405efa073c7b4caaecdd88f33b239d27e93ab",
+    "blender_bounds": {
+      "min": [
+        -0.5339672565460205,
+        -1.5200612545013428,
+        -0.014037818647921085
+      ],
+      "max": [
+        0.5339672565460205,
+        1.841221809387207,
+        2.4134082794189453
+      ]
+    },
+    "godot_bounds": {
+      "min": [
+        -0.5339672565460205,
+        -0.014037818647921085,
+        -1.841221809387207
+      ],
+      "max": [
+        0.5339672565460205,
+        2.4134082794189453,
+        1.5200612545013428
+      ]
+    },
+    "front": "Godot -Z",
+    "provenance": "Own procedural geometry; artistic reconstruction."
+  },
+  "infantry": {
+    "file": "infantry.glb",
+    "bytes": 254988,
+    "triangles_base_mesh": 4431,
+    "animations_expected": [
+      "walk"
+    ],
+    "animations_exported": [
+      "walk"
+    ],
+    "mesh_count": 1,
+    "surfaces": 11,
+    "sha256": "316161e2b7602c7bb9b0201b49f3c4c9d615544c23ef63a66e6cf105f8453859",
+    "blender_bounds": {
+      "min": [
+        -0.3045799732208252,
+        -0.132999986410141,
+        -1.0430814545436817e-10
+      ],
+      "max": [
+        0.36209946870803833,
+        0.23397505283355713,
+        1.940000057220459
+      ]
+    },
+    "godot_bounds": {
+      "min": [
+        -0.3045799732208252,
+        -1.0430814545436817e-10,
+        -0.23397505283355713
+      ],
+      "max": [
+        0.36209946870803833,
+        1.940000057220459,
+        0.132999986410141
+      ]
+    },
+    "front": "Godot -Z",
+    "provenance": "Own procedural geometry; artistic reconstruction."
+  },
+  "dismounted_1806": {
+    "file": "dismounted_1806.glb",
+    "bytes": 253400,
+    "triangles_base_mesh": 4399,
+    "animations_expected": [
+      "walk"
+    ],
+    "animations_exported": [
+      "walk"
+    ],
+    "mesh_count": 1,
+    "surfaces": 11,
+    "sha256": "d20acdd8920f12f1dcb449a5779edcca22dc727c0aec203375a7507e0692bcfd",
+    "blender_bounds": {
+      "min": [
+        -0.3045799732208252,
+        -0.132999986410141,
+        -1.0430814545436817e-10
+      ],
+      "max": [
+        0.36209946870803833,
+        0.23397505283355713,
+        1.940000057220459
+      ]
+    },
+    "godot_bounds": {
+      "min": [
+        -0.3045799732208252,
+        -1.0430814545436817e-10,
+        -0.23397505283355713
+      ],
+      "max": [
+        0.36209946870803833,
+        1.940000057220459,
+        0.132999986410141
+      ]
+    },
+    "front": "Godot -Z",
+    "provenance": "Own procedural geometry; artistic reconstruction."
+  },
+  "justine": {
+    "file": "justine.glb",
+    "bytes": 979720,
+    "triangles_base_mesh": 22976,
+    "animations_expected": [],
+    "animations_exported": [],
+    "mesh_count": 1,
+    "surfaces": 15,
+    "sha256": "58ff473242f231746d22f160ebd0254487763003e2cb6f65e6f1c3c82558fa3f",
+    "blender_bounds": {
+      "min": [
+        -3.303999900817871,
+        -7.072228908538818,
+        -1.5800000429153442
+      ],
+      "max": [
+        3.303999900817871,
+        9.525256156921387,
+        11.199999809265137
+      ]
+    },
+    "godot_bounds": {
+      "min": [
+        -3.303999900817871,
+        -1.5800000429153442,
+        -9.525256156921387
+      ],
+      "max": [
+        3.303999900817871,
+        11.199999809265137,
+        7.072228908538818
+      ]
+    },
+    "front": "Godot -Z",
+    "provenance": "Own procedural geometry; artistic reconstruction."
+  },
+  "royalist_1817": {
+    "file": "royalist_1817.glb",
+    "bytes": 255136,
+    "triangles_base_mesh": 4431,
+    "animations_expected": [
+      "walk"
+    ],
+    "animations_exported": [
+      "walk"
+    ],
+    "mesh_count": 1,
+    "surfaces": 11,
+    "sha256": "c8abc7a2c39e1b6cce421de889a72e20873f98d6b672238570268bfc40ec4f8f",
+    "blender_bounds": {
+      "min": [
+        -0.3045799732208252,
+        -0.132999986410141,
+        -1.0430814545436817e-10
+      ],
+      "max": [
+        0.36209946870803833,
+        0.23397505283355713,
+        1.940000057220459
+      ]
+    },
+    "godot_bounds": {
+      "min": [
+        -0.3045799732208252,
+        -1.0430814545436817e-10,
+        -0.23397505283355713
+      ],
+      "max": [
+        0.36209946870803833,
+        1.940000057220459,
+        0.132999986410141
+      ]
+    },
+    "front": "Godot -Z",
+    "provenance": "Own geometry; off-white material variant for an aggregate royalist figure in 1817.",
+    "source_variant": "infantry.glb",
+    "historical_note": "Artistic reconstruction; no verified regimental uniform or British insignia."
+  }
+}
