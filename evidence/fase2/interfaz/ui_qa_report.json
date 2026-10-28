@@ -1,0 +1,56 @@
+{
+	"checks": 24,
+	"engine": "4.7.2-stable (official)",
+	"failures": [],
+	"kind": "window_injected_input",
+	"notes": {
+		"buttons_focusable": "22 de 22",
+		"guemes_stage_at": [
+			"waiting_tide",
+			60.0
+		],
+		"hover_land": "Mover aquí · ≈ 02:10 · fuera del alcance de la artillería",
+		"hover_pick": "<null> mouse=(700.0, 380.0) status=playing",
+		"hover_water": "No se puede ordenar mover aquí: agua demasiado profunda u obstáculo con el nivel actual.",
+		"justine_free": {
+			"free_pct": 65.5,
+			"free_px": 849164,
+			"total_px": 1296000
+		},
+		"justine_free_con_ayuda": {
+			"free_pct": 61.8,
+			"free_px": 801284,
+			"total_px": 1296000
+		},
+		"justine_free_parte_abierto": {
+			"free_pct": 64.2,
+			"free_px": 832424,
+			"total_px": 1296000
+		},
+		"justine_overlaps_cerca": 0,
+		"justine_overlaps_inicio": 0,
+		"justine_reason_text": "Abordar: el agua aún cubre el acceso al buque (nivel 0.95). Esperá la bajante; las aproximaciones esperan por vos.",
+		"norte_free": {
+			"free_pct": 66.1,
+			"free_px": 857048,
+			"total_px": 1296000
+		},
+		"norte_free_con_ayuda": {
+			"free_pct": 62.4,
+			"free_px": 809168,
+			"total_px": 1296000
+		},
+		"norte_hover": "Mover no disponible: La agrupación ya se encuentra en ese sector.",
+		"norte_overlaps_inicio": 0,
+		"norte_reason_assault": "Arias coordina Humahuaca desde marzo: afecta artillería, cuartel, arsenal y comunicaciones.\nBloqueada: La operación de Humahuaca corresponde a Manuel Eduardo Arias.",
+		"sector_after_bracket": "rosario",
+		"sector_before_after": [
+			"lerma",
+			"oran"
+		],
+		"wait_forced": true,
+		"wait_seconds_unit0": 85.7777777777778
+	},
+	"renderer": "NVIDIA GeForce RTX 3080 Ti",
+	"suite": "ui_qa_window"
+}
