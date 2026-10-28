@@ -1,0 +1,15 @@
+alert       44100 Hz 1ch  1.65s  pico   -4.0 dBFS  RMS  -13.4 dBFS  recortes 0  DC 0.00000  extremo final 0.00082
+bell        44100 Hz 1ch  4.30s  pico   -4.0 dBFS  RMS  -16.8 dBFS  recortes 0  DC 0.00000  extremo final 0.00046
+cannon      44100 Hz 1ch  3.90s  pico   -1.5 dBFS  RMS  -25.7 dBFS  recortes 0  DC 0.00000  extremo final 0.00037
+dismount    44100 Hz 1ch  1.80s  pico   -6.0 dBFS  RMS  -26.2 dBFS  recortes 0  DC 0.00000  extremo final 0.00098
+error       44100 Hz 1ch  0.47s  pico   -6.0 dBFS  RMS  -19.5 dBFS  recortes 0  DC 0.00000  extremo final 0.00067
+hoof        44100 Hz 1ch  0.70s  pico   -6.0 dBFS  RMS  -24.9 dBFS  recortes 0  DC 0.00000  extremo final 0.00131
+hoof2       44100 Hz 1ch  0.70s  pico   -6.0 dBFS  RMS  -25.9 dBFS  recortes 0  DC 0.00000  extremo final 0.00116
+hoof3       44100 Hz 1ch  0.70s  pico   -6.0 dBFS  RMS  -26.2 dBFS  recortes 0  DC 0.00000  extremo final 0.00156
+order       44100 Hz 1ch  0.42s  pico   -6.0 dBFS  RMS  -20.7 dBFS  recortes 0  DC 0.00000  extremo final 0.00027
+ribera      32000 Hz 2ch 12.00s  pico  -10.2 dBFS  RMS  -26.0 dBFS  recortes 0  DC 0.00000  costura 0.0258 (p99.9 vecinas 0.0517, razon 0.50)
+river       32000 Hz 2ch 10.00s  pico   -8.1 dBFS  RMS  -22.0 dBFS  recortes 0  DC 0.00000  costura 0.0587 (p99.9 vecinas 0.1327, razon 0.44)
+victory     44100 Hz 1ch  5.80s  pico   -3.0 dBFS  RMS  -18.3 dBFS  recortes 0  DC 0.00000  extremo final 0.00003
+wind        22050 Hz 2ch 12.00s  pico   -8.9 dBFS  RMS  -24.0 dBFS  recortes 0  DC 0.00000  costura 0.0093 (p99.9 vecinas 0.0425, razon 0.22)
+wind_north  22050 Hz 2ch 15.00s  pico   -5.6 dBFS  RMS  -24.0 dBFS  recortes 0  DC 0.00000  costura 0.0317 (p99.9 vecinas 0.0939, razon 0.34)
+RESULTADO: OK

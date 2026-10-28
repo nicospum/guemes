@@ -14,10 +14,16 @@ Los modelos, sonidos, geometría de escenario y shaders indicados como propios s
 | `assets/models/dismounted_1806.glb` | Mismo proceso propio. | Igual que el anterior. | Variante a pie de casaca azul, para representar el abordaje después de dejar los caballos. Animación `walk`. |
 | `assets/models/justine.glb` | Mismo proceso propio. | Igual que el anterior. | Mercante armado reconstruido: casco curvo, cubierta y cabina, dos mástiles, vergas, velas de malla, jarcia, barandas, escala de abordaje, carga y 26 portas sugeridas. Malla estática. |
 | Terreno, casas coloniales, rocas, vegetación y agua | Geometría y materiales originales creados por el código de presentación del proyecto (`world_view.gd`). | Recursos originales de esta entrega. | Entornos generados para cada escenario. Relieve, rutas, costas y edificios son simplificaciones artísticas; no son escaneos arqueológicos. |
-| `assets/audio/order.wav` y `error.wav` | Síntesis propia por `tools/generate_audio.py`. | Sonidos originales de esta entrega, sin muestras de terceros. | Avisos breves de orden aceptada/rechazada. |
-| `assets/audio/hoof.wav` y `cannon.wav` | Síntesis propia por el mismo script. | Igual que el anterior. | Pulsos, ruido filtrado y envolventes para pasos y artillería. Son diseño sonoro sintético, no grabaciones históricas. |
-| `assets/audio/river.wav` y `wind.wav` | Síntesis propia por el mismo script. | Igual que el anterior. | Ambientes de 12 segundos. |
-| `assets/audio/victory.wav` | Síntesis propia por el mismo script. | Igual que el anterior. | Secuencia tonal breve de resolución. No incorpora composición o grabación ajena. |
+| `assets/audio/order.wav`, `error.wav`, `alert.wav`, `bell.wav` | Síntesis propia por `tools/generate_audio.py` (numpy/scipy). | Sonidos originales de esta entrega, sin muestras de terceros. | Orden aceptada (dos tonos con reverb), rechazo (dos golpes graves), toque de aviso (dos notas de metal sintético) y campana de ronda (parciales inarmónicos con batido). |
+| `assets/audio/cannon.wav`, `hoof.wav`, `hoof2.wav`, `hoof3.wav`, `dismount.wav` | Mismo script. | Igual que el anterior. | Cañón en capas (chasquido, cuerpo, barrido grave, eco y cola); tres variantes de cascos al trote; desmontaje (botas, espuelas, resoplido). Diseño sonoro sintético, no grabaciones históricas. |
+| `assets/audio/river.wav`, `ribera.wav`, `wind.wav`, `wind_north.wav` | Mismo script. | Igual que el anterior. | Ambientes estéreo en lazo de 10, 12, 12 y 15 s, construidos como señal periódica (fase aleatoria en frecuencia y moduladores de ciclos enteros), sin clic en la costura. Se superponen dos capas por escenario (Justine: río + ribera con grillos; Norte: viento + viento frío con silbido). |
+| `assets/audio/victory.wav` | Mismo script. | Igual que el anterior. | Timbal y fanfarria de metal sintético con acorde sostenido. No incorpora composición ni grabación ajena. |
+
+**Estado de evaluación:** los WAV se analizaron numéricamente (`tools/analyze_audio.py`, resultado en `evidence/fase2/audio/analisis_wav.txt`) y se reprodujeron con el driver real de Windows (WASAPI) en `tests/audio_runtime_test.gd`, que mide señal en los buses. **Nadie los ha escuchado todavía**: la evaluación auditiva humana (timbre, balance, fatiga, claridad de las alertas) sigue pendiente.
+
+**Mezcla:** buses `Musica`, `Ambiente`, `Efectos` y `UI` creados en ejecución por `audio_manager.gd`, con limitador (`AudioEffectHardLimiter`, techo −1 dB) en Master. Variación de tono por reproducción, variantes de cascos, polifonía por efecto (cañón 2, resto 1–2) y tope de 6 voces: sobre el tope se descartan los efectos de prioridad baja. Las alertas (`alert`, `bell`, `error`, `victory`) nunca se descartan por el tope.
+
+**Pendiente de enlazar en `main.gd`** (fuera de esta pista): `play("alert")` ante amenazas, `play("bell")` al resolver una ronda del Norte y `play("dismount")` al pasar la agrupación a la etapa `dismounting`. `ribera.wav` y `wind_north.wav` ya suenan por `set_environment`.
 
 ## Tipografías de terceros
 
