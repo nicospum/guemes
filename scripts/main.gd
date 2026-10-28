@@ -659,7 +659,7 @@ func _unhandled_input(event):
    KEY_F1:_controls_dialog()
    KEY_F5:_save_game()
    KEY_F9:_load_game(str(rules.state.scenario))
-   KEY_R:_start_game(str(rules.state.scenario))
+   KEY_R:_confirm_restart()
    KEY_H:_history_dialog()
  if event is InputEventMouseButton:
   if event.button_index==MOUSE_BUTTON_WHEEL_UP and event.pressed:
@@ -718,6 +718,7 @@ func _save_path(scenario_name:String)->String:
 
 func _save_game(notify_user=true):
  if mode!="play":return
+ if not notify_user and str(rules.state.status)!="playing":return
  if pending_round:
   if notify_user:_toast("Esperá la resolución de la ronda para guardar.",3)
   return
@@ -740,8 +741,24 @@ func _load_game(scenario_name:String):
  _rebuild_world();_build_hud();_update_hud();_toast("Partida recuperada. Las órdenes pendientes conservan su estado.",5)
 
 func _return_menu():
- if not pending_round:_save_game(false)
+ # El autoguardado al salir no pisa un guardado manual con una partida sin avances ni con una ya terminada.
+ if not pending_round and _has_progress():_save_game(false)
  _menu()
+
+func _has_progress()->bool:
+ if rules.state.is_empty() or str(rules.state.status)!="playing":return false
+ return float(rules.state.elapsed)>0.0 or int(rules.state.round)>1 or not rules.state.orders.is_empty()
+
+func _do_restart():
+ var sc=str(rules.state.scenario);_close_modal();_start_game(sc)
+
+func _confirm_restart():
+ if mode!="play":return
+ var box=_open_modal("¿Reiniciar el escenario?",640,300)
+ _rich(box,"Se descarta el progreso actual y el escenario vuelve a empezar. El guardado hecho con F5 no se borra hasta que guardes de nuevo (o termine un autoguardado).",17)
+ var row=_hbox(box)
+ _button(row,"Sí, reiniciar",_do_restart,40)
+ _button(row,"No, seguir jugando",_close_modal,40)
 
 func _open_modal(title:String,width=800,height=600)->VBoxContainer:
  if is_instance_valid(modal):_close_modal()
@@ -1060,7 +1077,8 @@ func _show_campaign_reason(action:String):
 func _readiness_text(action:String)->String:
  # Estimación de interfaz: usa las mismas cuentas que game_rules._resolve_raid, sin ejecutar nada.
  var u=rules.get_unit(selected)
- if action not in ["raid","assault"] or u.is_empty():return "Disponible."
+ if action=="assault":return "Disponible. Resultado fijo: la acción recupera Humahuaca; cuesta 10 de fuerza, 18 de suministros y 22 de fatiga, sin azar."
+ if action!="raid" or u.is_empty():return "Disponible."
  var s=rules.get_sector(sector)
  var informed=int(s.get("intel_until",0))>=int(rules.state.round)
  var effectiveness=maxf(0.45,(float(u.strength)/100.0)*(1.0-float(u.fatigue)*0.003))

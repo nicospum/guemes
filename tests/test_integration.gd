@@ -132,6 +132,10 @@ func _run() -> void:
 	game._resolve_round()
 	var restarted_id: String = str(game.rules.state.game_id)
 	_key(KEY_R)
+	for i in range(3):
+		await process_frame
+	check(is_instance_valid(game.modal) and str(game.rules.state.game_id) == restarted_id, "R asks for confirmation and does not restart by itself")
+	game._do_restart()
 	for i in range(6):
 		await process_frame
 	check(str(game.rules.state.game_id) != restarted_id and int(game.rules.state.round) == 1, "Restart during a pending round begins a clean match")
