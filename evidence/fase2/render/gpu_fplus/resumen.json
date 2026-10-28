@@ -1,0 +1,68 @@
+[
+  {
+    "scenario": "justine",
+    "quality": "baja",
+    "method": "forward_plus",
+    "mean_fps": 1582.2,
+    "gpu_ms": 0.201,
+    "wall_ms": 0.617,
+    "wall_p99": 0.879,
+    "draw_calls": 244,
+    "primitives": 90730
+  },
+  {
+    "scenario": "justine",
+    "quality": "media",
+    "method": "forward_plus",
+    "mean_fps": 999.8,
+    "gpu_ms": 0.74,
+    "wall_ms": 0.974,
+    "wall_p99": 1.307,
+    "draw_calls": 600,
+    "primitives": 247430
+  },
+  {
+    "scenario": "justine",
+    "quality": "alta",
+    "method": "forward_plus",
+    "mean_fps": 895.8,
+    "gpu_ms": 0.887,
+    "wall_ms": 1.046,
+    "wall_p99": 1.607,
+    "draw_calls": 607,
+    "primitives": 303004
+  },
+  {
+    "scenario": "norte",
+    "quality": "baja",
+    "method": "forward_plus",
+    "mean_fps": 1558.2,
+    "gpu_ms": 0.159,
+    "wall_ms": 0.625,
+    "wall_p99": 0.97,
+    "draw_calls": 246,
+    "primitives": 80957
+  },
+  {
+    "scenario": "norte",
+    "quality": "media",
+    "method": "forward_plus",
+    "mean_fps": 818.3,
+    "gpu_ms": 0.622,
+    "wall_ms": 0.968,
+    "wall_p99": 13.601,
+    "draw_calls": 597,
+    "primitives": 217112
+  },
+  {
+    "scenario": "norte",
+    "quality": "alta",
+    "method": "forward_plus",
+    "mean_fps": 956.4,
+    "gpu_ms": 0.758,
+    "wall_ms": 0.994,
+    "wall_p99": 1.475,
+    "draw_calls": 600,
+    "primitives": 242242
+  }
+]

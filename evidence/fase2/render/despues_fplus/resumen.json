@@ -1,0 +1,80 @@
+[
+  {
+    "scenario": "justine",
+    "quality": "baja",
+    "repeat": 3,
+    "mean_fps_mean": 1544.2,
+    "mean_fps_min": 1447.4,
+    "mean_fps_max": 1605.9,
+    "frame_ms_median_mean": 0.625,
+    "frame_ms_p95_mean": 0.765,
+    "scene_build_ms_mean": 56,
+    "renderer": "NVIDIA GeForce RTX 3080 Ti",
+    "viewport": "(1440.0, 900.0)"
+  },
+  {
+    "scenario": "justine",
+    "quality": "media",
+    "repeat": 3,
+    "mean_fps_mean": 965.5,
+    "mean_fps_min": 941.6,
+    "mean_fps_max": 1004.1,
+    "frame_ms_median_mean": 0.998,
+    "frame_ms_p95_mean": 1.277,
+    "scene_build_ms_mean": 101.7,
+    "renderer": "NVIDIA GeForce RTX 3080 Ti",
+    "viewport": "(1440.0, 900.0)"
+  },
+  {
+    "scenario": "justine",
+    "quality": "alta",
+    "repeat": 3,
+    "mean_fps_mean": 920.8,
+    "mean_fps_min": 910.3,
+    "mean_fps_max": 934.5,
+    "frame_ms_median_mean": 0.991,
+    "frame_ms_p95_mean": 1.369,
+    "scene_build_ms_mean": 101.3,
+    "renderer": "NVIDIA GeForce RTX 3080 Ti",
+    "viewport": "(1440.0, 900.0)"
+  },
+  {
+    "scenario": "norte",
+    "quality": "baja",
+    "repeat": 3,
+    "mean_fps_mean": 1627.5,
+    "mean_fps_min": 1622.2,
+    "mean_fps_max": 1637.8,
+    "frame_ms_median_mean": 0.604,
+    "frame_ms_p95_mean": 0.675,
+    "scene_build_ms_mean": 76.7,
+    "renderer": "NVIDIA GeForce RTX 3080 Ti",
+    "viewport": "(1440.0, 900.0)"
+  },
+  {
+    "scenario": "norte",
+    "quality": "media",
+    "repeat": 3,
+    "mean_fps_mean": 1034.8,
+    "mean_fps_min": 991.5,
+    "mean_fps_max": 1059.9,
+    "frame_ms_median_mean": 0.954,
+    "frame_ms_p95_mean": 1.067,
+    "scene_build_ms_mean": 144.7,
+    "renderer": "NVIDIA GeForce RTX 3080 Ti",
+    "viewport": "(1440.0, 900.0)"
+  },
+  {
+    "scenario": "norte",
+    "quality": "alta",
+    "repeat": 3,
+    "mean_fps_mean": 977.7,
+    "mean_fps_min": 960.2,
+    "mean_fps_max": 993.3,
+    "frame_ms_median_mean": 0.992,
+    "frame_ms_p95_mean": 1.216,
+    "scene_build_ms_mean": 145.3,
+    "renderer": "NVIDIA GeForce RTX 3080 Ti",
+    "viewport": "(1440.0, 900.0)"
+  }
+]

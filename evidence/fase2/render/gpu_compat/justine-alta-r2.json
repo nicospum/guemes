@@ -1,0 +1,17 @@
+{
+	"adapter": "NVIDIA GeForce RTX 3080 Ti",
+	"cpu_ms_median": 3.61899995803833,
+	"draw_calls": 600,
+	"frames": 600,
+	"gpu_ms_median": 3.9760000705719,
+	"gpu_ms_p99": 4.65100002288818,
+	"mean_fps": 246.080854786457,
+	"primitives": 247430,
+	"quality": "alta",
+	"rendering_method": "gl_compatibility",
+	"scenario": "justine",
+	"seconds": 2.438223,
+	"viewport": "(1440.0, 900.0)",
+	"wall_ms_median": 4.03,
+	"wall_ms_p99": 4.782
+}
