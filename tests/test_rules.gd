@@ -46,6 +46,12 @@ func _test_tide_and_routes() -> void:
 	for u in r.state.units:
 		check(r.is_walkable(u.x, u.z), "Group stays on traversable terrain")
 	check(r.cancel_order("guemes").ok and r.get_unit("guemes").path.is_empty(), "Cancel clears unresolved route")
+	r.state.units[2].stage = "idle"
+	check(r.is_walkable(-11.3, -19.5) and r.issue_order("zavala", "move", Vector2(-11.3, -19.5)).ok, "Walkable point next to an obstacle cell is routable")
+	var n := Rules.new()
+	n.new_game("norte", 7)
+	n._enemy_moves_to("jujuy")
+	check(not n.get_sector("quebrada").enemy and n.get_sector("jujuy").enemy and n.get_sector("humahuaca").enemy, "Enemy advance clears the sector it left but keeps Humahuaca")
 
 func _test_justine_win_loss() -> void:
 	for approach in ["direct", "flank"]:

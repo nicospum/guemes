@@ -135,16 +135,36 @@ func _route(origin: Vector2, target: Vector2) -> Array:
 	var grid := _nav()
 	var start := Vector2i(roundi(origin.x / 2.0), roundi(origin.y / 2.0))
 	var goal := Vector2i(roundi(target.x / 2.0), roundi(target.y / 2.0))
-	if not grid.is_in_boundsv(start) or not grid.is_in_boundsv(goal) or grid.is_point_solid(goal):
+	if not grid.is_in_boundsv(start) or not grid.is_in_boundsv(goal):
 		return []
+	var end := target
+	if grid.is_point_solid(goal):
+		# La celda de 2 unidades puede ser solida aunque el punto exacto sea transitable
+		# (junto a obstaculos u orillas): se usa la celda libre vecina mas cercana.
+		var best := Vector2i(-99999, -99999)
+		var best_d := INF
+		for dx in range(-1, 2):
+			for dy in range(-1, 2):
+				var c := goal + Vector2i(dx, dy)
+				if (dx == 0 and dy == 0) or not grid.is_in_boundsv(c) or grid.is_point_solid(c):
+					continue
+				var d := Vector2(c.x * 2.0, c.y * 2.0).distance_to(target)
+				if d < best_d:
+					best_d = d
+					best = c
+		if best_d == INF:
+			return []
+		goal = best
+		if not is_walkable(target.x, target.y):
+			end = Vector2(goal.x * 2.0, goal.y * 2.0)
 	if grid.is_point_solid(start):
 		return []
 	var ids := grid.get_id_path(start, goal)
 	var path: Array = []
 	for i in range(1, ids.size()):
 		path.append({"x": float(ids[i].x * 2), "z": float(ids[i].y * 2)})
-	if not ids.is_empty() and (path.is_empty() or Vector2(path[-1].x, path[-1].z).distance_to(target) > 0.1):
-		path.append({"x": target.x, "z": target.y})
+	if not ids.is_empty() and (path.is_empty() or Vector2(path[-1].x, path[-1].z).distance_to(end) > 0.1):
+		path.append({"x": end.x, "z": end.y})
 	return path
 
 func issue_order(group_id: String, action: String, target: Vector2 = Vector2.ZERO) -> Dictionary:
@@ -664,21 +684,25 @@ func _apply_enemy(intent: String, protected_this_round: int) -> void:
 	elif intent == "advance":
 		state.enemy.supply = maxf(0.0, float(state.enemy.supply) - 7.0)
 		if state.enemy.position == "quebrada":
-			state.enemy.position = "jujuy"
-			get_sector("jujuy").enemy = true
+			_enemy_moves_to("jujuy")
 		else:
-			state.enemy.position = "salta"
+			_enemy_moves_to("salta")
 			state.enemy.occupied_salta = true
-			get_sector("salta").enemy = true
 		_event("Avance realista hacia %s: consume 7 abastecimiento adicional." % get_sector(state.enemy.position).name, "enemy")
 	elif intent == "retreat":
 		_event("El mando realista ordena preparar su retirada ante la situación insostenible.", "enemy")
 	if int(state.round) >= 5 and not state.enemy.occupied_salta:
 		state.enemy.occupied_salta = true
-		state.enemy.position = "salta"
-		get_sector("salta").enemy = true
-		get_sector("jujuy").enemy = true
+		_enemy_moves_to("salta")
 		_event("Salta queda temporalmente ocupada (la ocupación real ocurrió el 15 de abril de 1817; aquí su momento es una regla de ritmo de juego). La campaña sigue: el invasor necesita abastecimientos y comunicaciones para sostenerse.", "occupation")
+
+func _enemy_moves_to(sector_id: String) -> void:
+	# Marca solo el sector donde esta el invasor. Humahuaca se conserva como foco hasta que Arias lo recupere.
+	var old := str(state.enemy.position)
+	if old != sector_id and old != "humahuaca":
+		get_sector(old).enemy = false
+	state.enemy.position = sector_id
+	get_sector(sector_id).enemy = true
 
 func record_external_decision(decision: Dictionary) -> bool:
 	var context: Dictionary = decision.get("context", {})
