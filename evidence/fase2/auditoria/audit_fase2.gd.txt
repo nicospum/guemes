@@ -1,0 +1,199 @@
+extends SceneTree
+# Script de auditoria temporal (scratch). Args: --mode=shots|bench|keys --scenario= --quality= --out=
+var args = {}
+func _initialize():
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--") and "=" in a:
+			var kv = a.substr(2).split("=", true, 1)
+			args[kv[0]] = kv[1]
+	call_deferred("_run")
+
+func _stats(main, tag):
+	var w = main.world
+	var meshes = w.find_children("*", "MeshInstance3D", true, false).size()
+	var labels = w.find_children("*", "Label3D", true, false)
+	var vis_labels = 0
+	for l in labels:
+		if l.is_visible_in_tree(): vis_labels += 1
+	var mats = {}
+	for m in w.find_children("*", "MeshInstance3D", true, false):
+		if m.material_override: mats[m.material_override.get_instance_id()] = 1
+	var mm = w.find_children("*", "MultiMeshInstance3D", true, false).size()
+	var lights = w.find_children("*", "Light3D", true, false).size()
+	return {"tag": tag, "nodes": Performance.get_monitor(Performance.OBJECT_NODE_COUNT), "mesh_instances": meshes, "multimeshes": mm,
+		"label3d_total": labels.size(), "label3d_visible": vis_labels, "unique_override_materials": mats.size(),
+		"material_cache": w.material_cache.size(), "lights": lights,
+		"draw_calls": Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME),
+		"objects_in_frame": Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME),
+		"primitives": Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME),
+		"video_mem_mb": Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED) / 1048576.0,
+		"texture_mem_mb": Performance.get_monitor(Performance.RENDER_TEXTURE_MEM_USED) / 1048576.0}
+
+func _shot(main, name):
+	await process_frame
+	await process_frame
+	await RenderingServer.frame_post_draw
+	var img = main.get_viewport().get_texture().get_image()
+	img.save_png(args.out.path_join(name + ".png"))
+	var s = _stats(main, name)
+	s["image"] = str(img.get_size())
+	return s
+
+func _setup(main, scenario, quality):
+	main.settings.quality = quality
+	var t0 = Time.get_ticks_usec()
+	main._start_game(scenario)
+	return (Time.get_ticks_usec() - t0) / 1000.0
+
+func _run():
+	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
+	Engine.max_fps = 0
+	var main = load("res://scenes/main.tscn").instantiate()
+	root.add_child(main)
+	await process_frame
+	await process_frame
+	var mode = args.get("mode", "shots")
+	var out = []
+	DirAccess.make_dir_recursive_absolute(args.out)
+	var gpu = RenderingServer.get_video_adapter_name()
+	if mode == "shots":
+		out.append(await _shot(main, "menu"))
+		for sc in ["justine", "norte"]:
+			var b = _setup(main, sc, args.get("quality","alta"))
+			for i in range(40): await process_frame
+			var s = await _shot(main, sc + "_lejos")
+			s["build_ms"] = b
+			out.append(s)
+			if sc == "justine":
+				main.camera_target = Vector3(10, 0, 0); main.camera_distance = 30; main.camera_pitch = 0.6
+			else:
+				main.camera_target = Vector3(1, 0, 4); main.camera_distance = 30; main.camera_pitch = 0.6
+			for i in range(10): await process_frame
+			out.append(await _shot(main, sc + "_cerca"))
+			if sc == "justine":
+				main._select_unit("all"); main._tactical_order("direct"); main.paused = false
+				for i in range(200): main.rules.tick(1.0)
+				main.camera_target = Vector3(-6, 0, 0); main.camera_distance = 81; main.camera_pitch = 0.91
+				for i in range(20): await process_frame
+				out.append(await _shot(main, "justine_bajante_lejos"))
+				main.camera_target = Vector3(8, 0, 4); main.camera_distance = 28; main.camera_pitch = 0.5
+				for i in range(10): await process_frame
+				out.append(await _shot(main, "justine_bajante_cerca"))
+				main.camera_pitch = 0.25; main.camera_distance = 40
+				for i in range(10): await process_frame
+				out.append(await _shot(main, "justine_rasante"))
+	elif mode == "bench":
+		var sc = args.scenario
+		var q = args.quality
+		var b = _setup(main, sc, q)
+		if args.has("msaa"):
+			main.get_viewport().msaa_3d = int(args.msaa)
+		if args.has("noshadow"):
+			main.world.sun.shadow_enabled = false
+		if args.has("scale"):
+			main.get_viewport().scaling_3d_scale = float(args.scale)
+		if args.has("hideterrain"):
+			for c in main.world.get_children():
+				if c is MeshInstance3D and c.material_override is ShaderMaterial and c != main.world.water:
+					c.visible = false
+		if args.has("hidemm"):
+			for c in main.world.find_children("*", "MultiMeshInstance3D", true, false): c.visible = false
+		if args.has("hidefig"):
+			for u in main.world.unit_nodes.values(): u.figures.visible = false
+			if main.world.ship: main.world.ship.visible = false
+		if args.has("hideship"):
+			main.world.ship.visible = false
+		if args.has("nowater") and is_instance_valid(main.world.water):
+			main.world.water.visible = false
+		if sc == "justine":
+			for unit in main.rules.state.units: main.rules.issue_order(str(unit.id), "flank")
+			for i in range(170): main.rules.tick(1.0)
+			main.paused = false
+		var res = {"scenario": sc, "quality": q, "adapter": gpu, "build_ms": b, "window": str(root.get_window().size), "viewport": str(main.get_viewport().get_visible_rect().size), "scale3d": main.get_viewport().scaling_3d_scale, "vsync": DisplayServer.window_get_vsync_mode(), "cams": {}}
+		var cam_list = ["cerca", "lejos", "cerca"] if args.has("reverse") else ["lejos", "cerca"]
+		var ci = 0
+		for cam0 in cam_list:
+			var cam = cam0 + ("2" if ci == 2 else "")
+			ci += 1
+			if cam0 == "lejos":
+				main.camera_distance = 81 if sc == "justine" else 96
+				main.camera_pitch = 0.91
+				main.camera_target = Vector3(-6, 0, 0) if sc == "justine" else Vector3(1, 0, 4)
+			else:
+				main.camera_distance = 30
+				main.camera_pitch = 0.6
+				main.camera_target = Vector3(10, 0, 0) if sc == "justine" else Vector3(1, 0, 4)
+			for i in range(60): await process_frame
+			var samples = []
+			var t_start = Time.get_ticks_usec()
+			var dc = 0.0
+			var prim = 0.0
+			for i in range(400):
+				var before = Time.get_ticks_usec()
+				await process_frame
+				samples.append((Time.get_ticks_usec() - before) / 1000.0)
+				if i == 200:
+					dc = Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)
+					prim = Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME)
+			var total = (Time.get_ticks_usec() - t_start) / 1e6
+			samples.sort()
+			var n = samples.size()
+			var low1 = 0.0
+			for i in range(int(n * 0.99), n): low1 += samples[i]
+			low1 /= float(n - int(n * 0.99))
+			res.cams[cam] = {"frames": n, "seconds": total, "mean_fps": n / total, "median_ms": samples[n / 2], "p95_ms": samples[int(n * 0.95)], "p99_ms": samples[int(n * 0.99)], "fps_1pct_low": 1000.0 / low1, "draw_calls": dc, "primitives": prim}
+		res["stats"] = _stats(main, "end")
+		var t0 = Time.get_ticks_usec()
+		for i in range(50): main.world.update_state(0.016)
+		res["update_state_ms"] = (Time.get_ticks_usec() - t0) / 50000.0
+		main.world.show_paths = true
+		main._select_unit("all" if sc == "justine" else "guemes")
+		if sc == "justine": main._tactical_order("direct")
+		t0 = Time.get_ticks_usec()
+		for i in range(20): main.world.refresh_paths()
+		res["refresh_paths_ms"] = (Time.get_ticks_usec() - t0) / 20000.0
+		t0 = Time.get_ticks_usec()
+		main._update_hud()
+		res["update_hud_ms"] = (Time.get_ticks_usec() - t0) / 1000.0
+		t0 = Time.get_ticks_usec()
+		main._rebuild_world()
+		res["rebuild_world_ms"] = (Time.get_ticks_usec() - t0) / 1000.0
+		out.append(res)
+	elif mode == "keys":
+		main._start_game("norte")
+		for i in range(10): await process_frame
+		var so = main.sector_option
+		var r = {"focus_mode": so.focus_mode, "item_count": so.item_count, "initial": so.selected, "initial_sector": main.sector}
+		so.grab_focus()
+		await process_frame
+		r["has_focus_after_grab"] = so.has_focus()
+		var seq = []
+		for kc in [KEY_DOWN, KEY_DOWN, KEY_ENTER, KEY_DOWN, KEY_DOWN, KEY_ENTER]:
+			var ev = InputEventKey.new()
+			ev.keycode = kc
+			ev.physical_keycode = kc
+			ev.pressed = true
+			Input.parse_input_event(ev)
+			await process_frame
+			await process_frame
+			var ev2 = InputEventKey.new()
+			ev2.keycode = kc
+			ev2.physical_keycode = kc
+			ev2.pressed = false
+			Input.parse_input_event(ev2)
+			await process_frame
+			seq.append({"key": OS.get_keycode_string(kc), "selected": so.selected, "sector": main.sector, "popup_visible": so.get_popup().visible, "focus_owner": str(root.gui_get_focus_owner()), "camera_target": str(main.camera_target)})
+		r["seq"] = seq
+		var f = 0
+		var tot = 0
+		for c in main.ui.find_children("*", "Button", true, false):
+			tot += 1
+			if c.focus_mode != Control.FOCUS_NONE: f += 1
+		r["buttons_total"] = tot
+		r["buttons_focusable"] = f
+		out.append(r)
+	var fa = FileAccess.open(args.out.path_join("audit_" + mode + "_" + args.get("scenario", "x") + "_" + args.get("quality", "x") + args.get("tag", "") + ".json"), FileAccess.WRITE)
+	fa.store_string(JSON.stringify(out, "\t"))
+	fa.close()
+	print("AUDIT_DONE gpu=", gpu)
+	quit(0)

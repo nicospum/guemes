@@ -9,7 +9,7 @@
       "date": "12 de agosto de 1806",
       "place": "Ribera de Buenos Aires",
       "context": "Durante la Reconquista de Buenos Aires, un mercante armado británico fue tomado por caballería tras una bajante del río.",
-      "notice": "Güemes protagoniza aquí una atribución tradicional. Su intervención personal no está probada: el testimonio de Gillespie no identifica al jefe de la caballería.",
+      "notice": "Güemes protagoniza aquí una atribución tradicional. Su intervención personal no está probada y las versiones difieren sobre su papel: Gillespie no identifica al jefe de la caballería; el relato de Obligado lo muestra transmitiendo una orden; notas posteriores lo hacen jefe del grupo de jinetes.",
       "name_note": "Justine y Justina son variantes presentes en las fuentes. El juego utiliza Justine.",
       "art_note": "Ribera, casco del buque, vestuario y transición de abordaje son reconstrucciones artísticas. En 1806 aún no existían la bandera argentina ni los Infernales.",
       "facts": [
@@ -31,7 +31,7 @@
         },
         {
           "title": "La tradición de Güemes",
-          "text": "Pastor Obligado lo presenta como protagonista en 1920. El Ideario conserva esa tradición y también la reserva sobre su prueba.",
+          "text": "Pastor Obligado (1920) lo presenta como ayudante de Liniers que lleva a la caballería de Pueyrredón la orden de avanzar por la playa. El Ideario conserva ese relato, declara no probada su intervención y registra que ese día regresaba de Córdoba (p. 33).",
           "kind": "tradición discutida",
           "source_ids": [
             "S1",
@@ -51,11 +51,13 @@
       "facts": [
         {
           "title": "Humahuaca: Arias al mando",
-          "text": "El 1 de marzo de 1817, Manuel Eduardo Arias dirigió la acción de Humahuaca. En el juego conserva el mando de campo de la operación.",
-          "kind": "fecha y mando contrastados",
+          "text": "El 1 de marzo de 1817, Manuel Eduardo Arias dirigió la acción de Humahuaca. En el juego conserva el mando de campo de la operación. El Ideario (pp. 41 y 222–223) transcribe fechas de mayo para documentos sobre Humahuaca; el parte de la p. 78 es del 3 de marzo y se interpreta como discrepancia editorial.",
+          "kind": "fecha y mando contrastados; fechas de mayo en el Ideario tratadas como discrepancia editorial",
           "source_ids": [
             "S1",
-            "S8b"
+            "S8a",
+            "S8b",
+            "S8c"
           ]
         },
         {
@@ -132,10 +134,22 @@
       "kind": "interpretación histórica"
     },
     {
+      "id": "S8a",
+      "title": "Gobierno de Jujuy (Prensa): bicentenario de la batalla de Humahuaca, 1 de marzo de 2017",
+      "url": "https://prensa.jujuy.gob.ar/aporte-jujuy/bicentenario-la-batalla-humahuaca-n12897",
+      "kind": "conmemoración institucional"
+    },
+    {
       "id": "S8b",
-      "title": "Cultura de Jujuy: bicentenario de Humahuaca, 2017",
-      "url": "https://cultura.jujuy.gob.ar/2017/03/02/postales-del-bicentenario-de-la-batalla-de-humahuaca-1817-2017/",
-      "kind": "conmemoración con referencia al parte de Arias"
+      "title": "Gobierno de Jujuy (Prensa): «Promueven la Batalla de Humahuaca»",
+      "url": "https://prensa.jujuy.gob.ar/cultura/promueven-la-batalla-humahuaca-n51130",
+      "kind": "nota institucional que fecha el combate el 1 de marzo de 1817 bajo Arias"
+    },
+    {
+      "id": "S8c",
+      "title": "Cámara de Diputados de la Nación: proyecto 1505-D-2022 (Héroe Nacional M. E. Arias)",
+      "url": "https://www4.hcdn.gob.ar/dependencias/dsecretaria/Periodo2022/PDF2022/TP2022/1505-D-2022.pdf",
+      "kind": "fundamentos parlamentarios con relato del ataque"
     }
   ]
 }

@@ -1,0 +1,56 @@
+[
+	{
+		"adapter": "NVIDIA GeForce RTX 3080 Ti",
+		"build_ms": 98.274,
+		"cams": {
+			"cerca": {
+				"draw_calls": 437.0,
+				"fps_1pct_low": 211.797098379752,
+				"frames": 400,
+				"mean_fps": 252.212375430731,
+				"median_ms": 3.935,
+				"p95_ms": 4.314,
+				"p99_ms": 4.597,
+				"primitives": 227138.0,
+				"seconds": 1.585965
+			},
+			"lejos": {
+				"draw_calls": 780.0,
+				"fps_1pct_low": 208.550573514077,
+				"frames": 400,
+				"mean_fps": 249.389618907723,
+				"median_ms": 3.972,
+				"p95_ms": 4.437,
+				"p99_ms": 4.666,
+				"primitives": 202206.0,
+				"seconds": 1.603916
+			}
+		},
+		"quality": "media",
+		"rebuild_world_ms": 91.125,
+		"refresh_paths_ms": 0.37475,
+		"scale3d": 1.0,
+		"scenario": "justine",
+		"stats": {
+			"draw_calls": 437.0,
+			"label3d_total": 7,
+			"label3d_visible": 7,
+			"lights": 2,
+			"material_cache": 13,
+			"mesh_instances": 182,
+			"multimeshes": 2,
+			"nodes": 376.0,
+			"objects_in_frame": 1599.0,
+			"primitives": 227138.0,
+			"tag": "end",
+			"texture_mem_mb": 34.6281881332397,
+			"unique_override_materials": 12,
+			"video_mem_mb": 52.2899007797241
+		},
+		"update_hud_ms": 0.232,
+		"update_state_ms": 0.03164,
+		"viewport": "(1440.0, 900.0)",
+		"vsync": 0,
+		"window": "(1440, 900)"
+	}
+]

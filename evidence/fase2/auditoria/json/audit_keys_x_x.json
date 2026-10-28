@@ -1,0 +1,61 @@
+[
+	{
+		"buttons_focusable": 1,
+		"buttons_total": 22,
+		"focus_mode": 2,
+		"has_focus_after_grab": true,
+		"initial": 4,
+		"initial_sector": "lerma",
+		"item_count": 8,
+		"seq": [
+			{
+				"camera_target": "(0.947357, 0.0, 4.306677)",
+				"focus_owner": "@OptionButton@898:<OptionButton#66253229519>",
+				"key": "Down",
+				"popup_visible": false,
+				"sector": "lerma",
+				"selected": 4
+			},
+			{
+				"camera_target": "(0.895384, 0.0, 4.609449)",
+				"focus_owner": "@OptionButton@898:<OptionButton#66253229519>",
+				"key": "Down",
+				"popup_visible": false,
+				"sector": "lerma",
+				"selected": 4
+			},
+			{
+				"camera_target": "(0.895384, 0.0, 4.609449)",
+				"focus_owner": "@OptionButton@898:<OptionButton#66253229519>",
+				"key": "Enter",
+				"popup_visible": true,
+				"sector": "lerma",
+				"selected": 4
+			},
+			{
+				"camera_target": "(0.843411, 0.0, 4.91222)",
+				"focus_owner": "@OptionButton@898:<OptionButton#66253229519>",
+				"key": "Down",
+				"popup_visible": true,
+				"sector": "lerma",
+				"selected": 4
+			},
+			{
+				"camera_target": "(0.791438, 0.0, 5.214992)",
+				"focus_owner": "@OptionButton@898:<OptionButton#66253229519>",
+				"key": "Down",
+				"popup_visible": true,
+				"sector": "lerma",
+				"selected": 4
+			},
+			{
+				"camera_target": "(0.791438, 0.0, 5.214992)",
+				"focus_owner": "@OptionButton@898:<OptionButton#66253229519>",
+				"key": "Enter",
+				"popup_visible": false,
+				"sector": "oran",
+				"selected": 6
+			}
+		]
+	}
+]

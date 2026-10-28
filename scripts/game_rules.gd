@@ -585,7 +585,7 @@ func resolve_round(enemy_intent: String = "forage") -> Array:
 			u.supply = maxf(0.0, float(u.supply) - 18.0)
 			u.fatigue = minf(100.0, float(u.fatigue) + 22.0)
 			u.revealed_until = int(state.round) + 1
-			_event("Arias recupera Humahuaca: la operación coordinada neutraliza artillería, cuartel y arsenal. −20 comunicaciones realistas.", "humahuaca")
+			_event("Arias recupera Humahuaca: la operación coordinada neutraliza artillería, cuartel y depósito de pólvora. −20 comunicaciones realistas.", "humahuaca")
 	_apply_enemy(enemy_intent, protected_this_round)
 	state.population = maxf(0.0, float(state.population) - (6.0 if state.enemy.occupied_salta else 3.5))
 	state.stores = maxf(0.0, float(state.stores) - 5.0)
@@ -600,8 +600,8 @@ func resolve_round(enemy_intent: String = "forage") -> Array:
 			surviving += 1
 		else:
 			u.stage = "routed"
-	if int(state.round) == 6:
-		_event("Llega una noticia del frente de Chile: Chacabuco da sentido estratégico a sostener el norte. Mensaje dramatizado; San Martín no aparece como refuerzo en Salta.", "history")
+	if int(state.round) == 8:
+		_event("Llega una noticia del frente de Chile: Chacabuco (12 de febrero) da sentido estratégico a sostener el norte. Mensaje dramatizado; San Martín no aparece como refuerzo en Salta.", "history")
 	if surviving == 0 or float(state.population) <= 10.0:
 		_finish("defeat", "La defensa perdió sus agrupaciones o el sostén de las poblaciones. La invasión conserva capacidad de continuar.")
 	elif _enemy_can_retreat():
@@ -678,7 +678,7 @@ func _apply_enemy(intent: String, protected_this_round: int) -> void:
 		state.enemy.position = "salta"
 		get_sector("salta").enemy = true
 		get_sector("jujuy").enemy = true
-		_event("Salta queda temporalmente ocupada. La campaña sigue: el invasor necesita abastecimientos y comunicaciones para sostenerse.", "occupation")
+		_event("Salta queda temporalmente ocupada (la ocupación real ocurrió el 15 de abril de 1817; aquí su momento es una regla de ritmo de juego). La campaña sigue: el invasor necesita abastecimientos y comunicaciones para sostenerse.", "occupation")
 
 func record_external_decision(decision: Dictionary) -> bool:
 	var context: Dictionary = decision.get("context", {})
