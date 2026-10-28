@@ -153,7 +153,9 @@ func play(sound: String) -> void:
 	var stream: AudioStream = _stream_for(sound)
 	if stream == null:
 		return
-	player.stream = stream
+	# Asignar el mismo stream detiene las voces activas y anularia la polifonia.
+	if player.stream != stream and not player.playing:
+		player.stream = stream
 	var range_pitch: Array = def["pitch"]
 	player.pitch_scale = _rng.randf_range(float(range_pitch[0]), float(range_pitch[1]))
 	_last_play_ms[sound] = now
