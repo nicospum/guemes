@@ -469,7 +469,7 @@ func _on_intent(decision:Dictionary):
  if not rules.record_external_decision(decision):pending_round=false;_refresh_actions();return
  var events=rules.resolve_round(str(decision.choice))
  pending_round=false;resolution_remaining=0.75/speed
- _handle_events(events);_refresh_actions();_update_hud()
+ _handle_events(events);_sound("bell");_refresh_actions();_update_hud()
  _save_game(false)
  if rules.state.status=="playing":_toast("Ronda resuelta. Revisá el parte y prepará el siguiente movimiento.",4)
 
@@ -702,6 +702,8 @@ func _handle_events(events:Array):
    "shot":world.cannon_effect();_sound("cannon")
    "victory":_sound("victory")
    "defeat":_sound("error")
+   "warning":_sound("alert")
+   "boarding":_sound("dismount")
    "tide","humahuaca","occupation","history":_toast(str(event.text),7)
 
 func _toast(message:String,duration=4.0,good=true):

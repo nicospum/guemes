@@ -11,3 +11,8 @@ __pycache__/
 *.env
 *.exe
 *.zip
+
+# Derivados del importador de Godot a partir de los GLB
+assets/models/*_alb_*.jpg*
+assets/models/*_nor_*.jpg*
+assets/models/*_rm_*.jpg*
