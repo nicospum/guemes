@@ -1,0 +1,8 @@
+.godot/
+.tools/
+builds/
+*.tmp
+user_data/
+.env
+*.key
+__pycache__/

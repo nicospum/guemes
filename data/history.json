@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "language": "es-AR",
+  "reviewed_on": "2026-10-28",
+  "general_notice": "Recreación histórica. El terreno, los grupos, las rutas, los tiempos y las reglas simplifican acontecimientos reales. Los resultados de tu partida pueden diferir de la historia.",
+  "scenarios": {
+    "justine": {
+      "title": "La toma del Justine",
+      "date": "12 de agosto de 1806",
+      "place": "Ribera de Buenos Aires",
+      "context": "Durante la Reconquista de Buenos Aires, un mercante armado británico fue tomado por caballería tras una bajante del río.",
+      "notice": "Güemes protagoniza aquí una atribución tradicional. Su intervención personal no está probada: el testimonio de Gillespie no identifica al jefe de la caballería.",
+      "name_note": "Justine y Justina son variantes presentes en las fuentes. El juego utiliza Justine.",
+      "art_note": "Ribera, casco del buque, vestuario y transición de abordaje son reconstrucciones artísticas. En 1806 aún no existían la bandera argentina ni los Infernales.",
+      "facts": [
+        {
+          "title": "Una oportunidad del río",
+          "text": "Gillespie relaciona la captura con una bajante. La hora, las rutas y los umbrales de profundidad del juego son una adaptación.",
+          "kind": "testimonio y adaptación",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "title": "Un mercante armado",
+          "text": "El testigo describe un barco mercante con 26 cañones. No se cuenta con un plano verificado de su casco.",
+          "kind": "testimonio y reconstrucción",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "title": "La tradición de Güemes",
+          "text": "Pastor Obligado lo presenta como protagonista en 1920. El Ideario conserva esa tradición y también la reserva sobre su prueba.",
+          "kind": "tradición discutida",
+          "source_ids": [
+            "S1",
+            "S3"
+          ]
+        }
+      ],
+      "reference_outcome": "La captura del buque es el desenlace histórico de referencia. Victoria y derrota de esta partida dependen de tus decisiones."
+    },
+    "norte": {
+      "title": "Sostener el norte",
+      "date": "Diciembre de 1816 — mayo de 1817",
+      "place": "Salta, Jujuy y la Quebrada de Humahuaca",
+      "context": "La defensa conducida por Güemes presionó al ejército de La Serna mediante hostigamiento y una guerra de recursos. Ocupar Salta no bastaba para sostener la invasión.",
+      "notice": "La campaña está comprimida en rondas. Suministros, cohesión, fatiga y grupos son valores de juego, no cifras históricas.",
+      "art_note": "El mapa conserva nombres regionales y simplifica distancias, relieve y rutas. No representa posiciones militares exactas.",
+      "facts": [
+        {
+          "title": "Humahuaca: Arias al mando",
+          "text": "El 1 de marzo de 1817, Manuel Eduardo Arias dirigió la acción de Humahuaca. En el juego conserva el mando de campo de la operación.",
+          "kind": "fecha y mando contrastados",
+          "source_ids": [
+            "S1",
+            "S8b"
+          ]
+        },
+        {
+          "title": "Caballos y abastecimiento",
+          "text": "Los partes describen escasez de monturas, víveres y municiones. Conservar fuerzas y proteger recursos condiciona las operaciones.",
+          "kind": "documentos transcritos",
+          "source_ids": [
+            "S1"
+          ]
+        },
+        {
+          "title": "El frente de Chile",
+          "text": "La defensa del norte apoyó estratégicamente la campaña de San Martín. No hubo una llegada suya con refuerzos para resolver la invasión en Salta. Una noticia recibida en la partida es dramatización.",
+          "kind": "contexto y dramatización",
+          "source_ids": [
+            "S7"
+          ]
+        },
+        {
+          "title": "La retirada",
+          "text": "El parte fechado el 5 de mayo informa la evacuación de Salta al amanecer. Otras síntesis señalan el 4; el Ideario distingue movimientos de ambos días.",
+          "kind": "documento y diferencia cronológica",
+          "source_ids": [
+            "S1",
+            "S4"
+          ]
+        }
+      ],
+      "reference_outcome": "La retirada de La Serna en los primeros días de mayo de 1817 es la referencia histórica. La victoria del jugador exige volver insostenible la invasión."
+    }
+  },
+  "sources": [
+    {
+      "id": "S1",
+      "title": "Ideario de Güemes — Martorell de Laconi, 2018",
+      "url": "https://acaedu.edu.ar/LibrosBD/pdf/IdearioGuemes.pdf",
+      "pages": "33, 39–41, 78, 213, 219–224, 390–392",
+      "kind": "compilación con transcripciones documentales"
+    },
+    {
+      "id": "S2",
+      "title": "Cultura de la Nación: toma del Justine, 2022",
+      "url": "https://www.argentina.gob.ar/noticias/216-anos-de-la-toma-de-la-fragata-justine",
+      "kind": "conmemoración oficial"
+    },
+    {
+      "id": "S3",
+      "title": "Jorge Virgilio Núñez: toma del Justina",
+      "url": "https://www.edisalta.ar/justina11.html",
+      "kind": "interpretación de la tradición"
+    },
+    {
+      "id": "S4",
+      "title": "Gobierno de Salta: biografía de Güemes",
+      "url": "https://www.salta.gob.ar/contenidos/biografia-de-martin-miguel-deguemes-8",
+      "kind": "cronología institucional"
+    },
+    {
+      "id": "S5",
+      "title": "Argentina.gob.ar: Bandera Nacional",
+      "url": "https://www.argentina.gob.ar/pais/simbolos/bandera",
+      "kind": "síntesis institucional"
+    },
+    {
+      "id": "S6",
+      "title": "Cultura de la Nación: los Infernales, 2024",
+      "url": "https://www.argentina.gob.ar/noticias/martin-miguel-de-guemes-y-su-ejercito-de-infernales",
+      "kind": "divulgación institucional"
+    },
+    {
+      "id": "S7",
+      "title": "Instituto Argentino de Historia Militar: Plan Continental, 2021",
+      "url": "https://www.argentina.gob.ar/node/261243",
+      "kind": "interpretación histórica"
+    },
+    {
+      "id": "S8b",
+      "title": "Cultura de Jujuy: bicentenario de Humahuaca, 2017",
+      "url": "https://cultura.jujuy.gob.ar/2017/03/02/postales-del-bicentenario-de-la-batalla-de-humahuaca-1817-2017/",
+      "kind": "conmemoración con referencia al parte de Arias"
+    }
+  ]
+}
