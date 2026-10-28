@@ -224,7 +224,7 @@ func play(sound: String) -> void:
 	player.pitch_scale = _rng.randf_range(float(range_pitch[0]), float(range_pitch[1]))
 	_last_play_ms[sound] = now
 	player.play()
-	ends.append(now + int(stream.get_length() * 1000.0 / maxf(0.01, player.pitch_scale)))
+	ends.append(now + 80 + int(stream.get_length() * 1000.0 / maxf(0.01, player.pitch_scale)))
 	while ends.size() > int(def["poly"]):
 		ends.remove_at(0)
 
