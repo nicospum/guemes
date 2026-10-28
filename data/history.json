@@ -51,8 +51,9 @@
       "facts": [
         {
           "title": "Humahuaca: Arias al mando",
-          "text": "El 1 de marzo de 1817, Manuel Eduardo Arias dirigió la acción de Humahuaca. En el juego conserva el mando de campo de la operación. El Ideario (pp. 41 y 222–223) transcribe fechas de mayo para documentos sobre Humahuaca; el parte de la p. 78 es del 3 de marzo y se interpreta como discrepancia editorial.",
-          "kind": "fecha y mando contrastados; fechas de mayo en el Ideario tratadas como discrepancia editorial",
+          "text": "El 1 de marzo de 1817, Manuel Eduardo Arias dirigió la acción de Humahuaca. En el juego conserva el mando de campo de la operación. El Ideario (pp. 41 y 222–223) transcribe fechas de mayo para documentos sobre Humahuaca; el parte de la p. 78 es del 3 de marzo. Cuál es la fecha correcta de esos documentos queda como no verificado: no se cotejó la edición íntegra de Güemes Documentado (t. 4, pp. 350–359). Se adopta marzo porque tres notas institucionales y el parte de la p. 78 coinciden, sin dar por demostrado que las fechas de mayo sean un error de transcripción.",
+          "kind": "fecha y mando coincidentes en fuentes secundarias; discrepancia marzo/mayo del Ideario no verificada con el documento original",
+          "verification": "parcial",
           "source_ids": [
             "S1",
             "S8a",

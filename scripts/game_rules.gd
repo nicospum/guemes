@@ -7,6 +7,13 @@ const MAX_ROUNDS := 14
 const SHIP := Vector2(16.0, 0.0)
 const BOARD_POINT := Vector2(12.0, 0.0)
 const STEP := 0.25
+const RISE_START := 780.0
+const RISE_DURATION := 120.0
+## Ritmo del norte: la retirada realista solo es posible desde esta ronda y con esta presion acumulada (ver docs/BALANCE_NORTE.md).
+const RETREAT_MIN_ROUND := 10
+const RETREAT_MIN_PRESSURE := 7
+## Ocupacion de Salta: fuente S4 y Ideario p. 40 la ubican el 15/4/1817, dentro de la ronda 10 (12-22 abr).
+const SALTA_OCCUPATION_ROUND := 10
 const DATES := ["15 dic 1816", "29 dic 1816", "12 ene 1817", "26 ene 1817", "9 feb 1817", "23 feb 1817", "1 mar 1817", "15 mar 1817", "29 mar 1817", "12 abr 1817", "22 abr 1817", "30 abr 1817", "4 may 1817", "5 may 1817"]
 const CAMPAIGN_ACTIONS := ["move", "scout", "protect", "raid", "rest", "withdraw", "assault"]
 
@@ -188,17 +195,30 @@ func issue_order(group_id: String, action: String, target: Vector2 = Vector2.ZER
 		return _no("Orden táctica desconocida.")
 	if action in ["direct", "flank"]:
 		target = BOARD_POINT
-		u.order = {"action": action, "x": target.x, "z": target.y}
-		var approach := _approach_path(u, action)
-		if approach.is_empty() and Vector2(u.x, u.z).distance_to(BOARD_POINT) > 0.5:
+		var here := Vector2(u.x, u.z)
+		var at_ship := here.distance_to(BOARD_POINT) <= 0.5
+		var crossing := _approach_path(u, action)
+		var approach := crossing
+		if crossing.is_empty() and not at_ship:
+			# El cruce aun no es posible: esperar en la orilla solo tiene sentido si el agua todavia puede bajar.
+			if str(state.tide_phase) == "subiendo":
+				return _no("El río ya está creciendo y no volverá a bajar: no hay aproximación posible. Mantené la posición en la orilla.")
 			var staging := Vector2(-10.0, 14.0 if action == "flank" else 0.0)
-			approach = _route(Vector2(u.x, u.z), staging)
+			approach = _route(here, staging)
+			if approach.is_empty() and here.distance_to(staging) > 0.5:
+				return _no("No hay una ruta transitable hasta la orilla de espera.")
+		elif not crossing.is_empty() and not _crossing_in_time(u, crossing):
+			return _no("La crecida cerraría el cruce antes de llegar al buque. No se emite la orden.")
+		u.order = {"action": action, "x": target.x, "z": target.y}
 		u.path = approach
 		u.stage = "moving"
 		if approach.is_empty():
 			_arrived(u)
 		_record_order(group_id, action, {"x": target.x, "z": target.y})
-		return {"ok": true, "reason": "Aproximación preparada. La agrupación espera en la orilla si el agua todavía impide cruzar.", "path": u.path.duplicate(true)}
+		var msg := "Aproximación preparada: el cruce es posible con el nivel actual del río."
+		if crossing.is_empty() and not at_ship:
+			msg = "Aproximación preparada: la agrupación espera en la orilla hasta que la bajante permita cruzar."
+		return {"ok": true, "reason": msg, "path": u.path.duplicate(true)}
 	if action == "rally":
 		u.path = []
 		u.stage = "rally"
@@ -238,6 +258,64 @@ func _approach_path(u: Dictionary, action: String) -> Array:
 		complete.append_array(section)
 		origin = point
 	return complete
+
+## Segundo en que el agua cubre `h + 0.55` durante la subida (inicio RISE_START, 120 s de 0,05 a 0,95).
+func _flood_time(bed_height: float) -> float:
+	var limit := bed_height + 0.55
+	if limit >= 0.95:
+		return INF
+	return RISE_START + RISE_DURATION * (maxf(limit, 0.05) - 0.05) / 0.9
+
+## Estima si la agrupación llega a cada punto del trayecto antes de que la crecida lo cubra.
+func _crossing_in_time(u: Dictionary, path: Array) -> bool:
+	var speed := (0.24 if u.mounted else 0.18) * maxf(0.55, 1.0 - float(u.fatigue) * 0.004) * 0.97
+	var distance := 0.0
+	var prev := Vector2(u.x, u.z)
+	for p in path:
+		var point := Vector2(p.x, p.z)
+		distance += prev.distance_to(point)
+		prev = point
+		var arrival := float(state.elapsed) + distance / speed
+		if arrival > _flood_time(terrain_height_at(point.x, point.y)):
+			return false
+	return true
+
+## Punto transitable mas cercano (prefiere la orilla oeste); Vector2(INF, INF) si no hay ninguno.
+func _nearest_dry_point(from: Vector2) -> Vector2:
+	var best := Vector2(INF, INF)
+	var best_d := INF
+	for dx in range(-14, 15):
+		for dz in range(-14, 15):
+			var c := Vector2(from.x + dx, from.y + dz)
+			if not is_walkable(c.x, c.y):
+				continue
+			var d := from.distance_to(c) + (0.0 if c.x <= -8.0 else 6.0)
+			if d < best_d:
+				best_d = d
+				best = c
+	return best
+
+## Una agrupación que queda dentro del agua al subir el río no puede quedar varada: vuelve a la orilla.
+func _rescue_submerged(u: Dictionary) -> bool:
+	if is_walkable(float(u.x), float(u.z)):
+		return false
+	var dry := _nearest_dry_point(Vector2(u.x, u.z))
+	if not is_finite(dry.x):
+		return false
+	u.x = dry.x
+	u.z = dry.y
+	u.path = []
+	u.order = {}
+	u.stage = "ready"
+	u.fatigue = minf(100.0, float(u.fatigue) + 10.0)
+	_event("%s no alcanzó a cruzar antes de la crecida y es llevada de vuelta a un punto seco de la orilla (+10 fatiga). Deberá dar otra orden." % u.name, "warning")
+	return true
+
+func _cancel_closed_crossing(u: Dictionary) -> void:
+	u.order = {}
+	u.path = []
+	u.stage = "ready"
+	_event("%s: la crecida cerró el cruce; la orden de aproximación queda sin efecto y la agrupación espera en seco." % u.name, "warning")
 
 func cancel_order(group_id: String) -> Dictionary:
 	var u := get_unit(group_id)
@@ -298,12 +376,23 @@ func _justine_step(dt: float) -> void:
 		if u.stage == "moving":
 			_move_unit(u, dt)
 		elif u.stage == "waiting_tide":
-			if float(state.water_level) <= (0.28 if u.order.get("action", "direct") == "flank" else 0.39):
-				u.path = _approach_path(u, str(u.order.get("action", "direct")))
-				if not u.path.is_empty():
-					u.stage = "moving"
-					_event("%s aprovecha la bajante y comienza el cruce." % u.name, "tide")
+			if str(state.tide_phase) == "subiendo":
+				_cancel_closed_crossing(u)
+			elif float(state.water_level) <= (0.28 if u.order.get("action", "direct") == "flank" else 0.39):
+				var crossing := _approach_path(u, str(u.order.get("action", "direct")))
+				if not crossing.is_empty():
+					if _crossing_in_time(u, crossing):
+						u.path = crossing
+						u.stage = "moving"
+						_event("%s aprovecha la bajante y comienza el cruce." % u.name, "tide")
+					else:
+						_cancel_closed_crossing(u)
 		elif u.stage == "blocked" and elapsed >= float(u.blocked_until):
+			if _rescue_submerged(u):
+				continue
+			if str(state.tide_phase) == "subiendo" and u.order.get("action", "") in ["direct", "flank", "board"] and not is_walkable(BOARD_POINT.x, BOARD_POINT.y):
+				_cancel_closed_crossing(u)
+				continue
 			var destination := Vector2(float(u.order.get("x", u.x)), float(u.order.get("z", u.z)))
 			u.path = _route(Vector2(u.x, u.z), destination)
 			if not u.path.is_empty():
@@ -490,7 +579,7 @@ func enemy_choices() -> Dictionary:
 		return {}
 	var choices := {"forage": "Buscar víveres en sectores conocidos para sostener al ejército invasor.",
 		"guard": "Proteger comunicaciones y convoyes; reduce el efecto de los hostigamientos de esta ronda."}
-	if not state.enemy.occupied_salta:
+	if _enemy_can_advance():
 		choices["advance"] = "Avanzar hacia Salta: gana presencia, pero consume abastecimientos."
 	if _enemy_can_retreat():
 		choices["retreat"] = "Ordenar una retirada: la combinación de pérdidas, suministros y comunicaciones vuelve inviable la campaña."
@@ -501,7 +590,7 @@ func enemy_fallback() -> String:
 		return "retreat"
 	if float(state.enemy.supply) < 58.0:
 		return "forage"
-	if not state.enemy.occupied_salta and int(state.round) >= 3:
+	if _enemy_can_advance() and int(state.round) >= 3:
 		return "advance"
 	return "guard"
 
@@ -525,8 +614,14 @@ func enemy_observation() -> Dictionary:
 		"goal": "Sostener la invasión; conservar tropas si continuar resulta inviable.",
 		"situation": {"own_communications": state.enemy.communications, "position": state.enemy.position}}
 
+## Avanzar de la Quebrada a Jujuy es libre; entrar en Salta solo desde la ronda de la ocupacion documentada.
+func _enemy_can_advance() -> bool:
+	if state.get("scenario", "") != "norte" or state.enemy.occupied_salta:
+		return false
+	return str(state.enemy.position) == "quebrada" or int(state.round) >= SALTA_OCCUPATION_ROUND
+
 func _enemy_can_retreat() -> bool:
-	if state.get("scenario", "") != "norte" or int(state.round) < 7 or int(state.pressure_actions) < 5:
+	if state.get("scenario", "") != "norte" or int(state.round) < RETREAT_MIN_ROUND or int(state.pressure_actions) < RETREAT_MIN_PRESSURE:
 		return false
 	return (float(state.enemy.supply) <= 22.0 and float(state.enemy.cohesion) <= 42.0 and float(state.enemy.communications) <= 45.0) or (float(state.enemy.cohesion) <= 22.0 and float(state.enemy.supply) <= 38.0)
 
@@ -691,10 +786,10 @@ func _apply_enemy(intent: String, protected_this_round: int) -> void:
 		_event("Avance realista hacia %s: consume 7 abastecimiento adicional." % get_sector(state.enemy.position).name, "enemy")
 	elif intent == "retreat":
 		_event("El mando realista ordena preparar su retirada ante la situación insostenible.", "enemy")
-	if int(state.round) >= 5 and not state.enemy.occupied_salta:
+	if int(state.round) >= SALTA_OCCUPATION_ROUND and not state.enemy.occupied_salta:
 		state.enemy.occupied_salta = true
 		_enemy_moves_to("salta")
-		_event("Salta queda temporalmente ocupada (la ocupación real ocurrió el 15 de abril de 1817; aquí su momento es una regla de ritmo de juego). La campaña sigue: el invasor necesita abastecimientos y comunicaciones para sostenerse.", "occupation")
+		_event("Salta queda ocupada por los realistas (en esta ronda, del 12 al 22 de abril de 1817, se sitúa la ocupación documentada del 15 de abril). La campaña sigue: el invasor necesita abastecimientos y comunicaciones para sostenerse.", "occupation")
 
 func _enemy_moves_to(sector_id: String) -> void:
 	# Marca solo el sector donde esta el invasor. Humahuaca se conserva como foco hasta que Arias lo recupere.
@@ -878,6 +973,114 @@ func validate_snapshot(value: Variant) -> Dictionary:
 		for result in d.last_results:
 			if not result is Dictionary or not result.get("label") is String or not _number_in(result.get("before"), 0, 150) or not _number_in(result.get("after"), 0, 150):
 				return _no("Resumen de ronda corrupto.")
+	return _validate_coherence(d)
+
+## Coherencia entre campos: cada campo puede ser valido por separado y aun asi contradecir a otro.
+func _validate_coherence(d: Dictionary) -> Dictionary:
+	var playing: bool = d.status == "playing"
+	if playing != (d.reason == ""):
+		return _no("Incoherencia: el motivo de cierre no corresponde al estado de la partida.")
+	for event in d.log:
+		if int(event.round) > int(d.round) or float(event.time) > float(d.elapsed) + 0.001:
+			return _no("Incoherencia: el registro contiene acontecimientos posteriores al estado actual.")
+	if d.orders.is_empty() != (float(d.first_order_at) < 0.0):
+		return _no("Incoherencia: la primera orden no concuerda con el historial de órdenes.")
+	if not d.orders.is_empty() and absf(float(d.orders[0].time) - float(d.first_order_at)) > 0.001:
+		return _no("Incoherencia: el momento de la primera orden no coincide con el historial.")
+	for order in d.orders:
+		if int(order.round) > int(d.round) or float(order.time) > float(d.elapsed) + 0.001:
+			return _no("Incoherencia: hay órdenes posteriores al estado actual.")
+	for u in d.units:
+		if u.stage == "routed" and float(u.strength) > 5.0:
+			return _no("Incoherencia: agrupación dispersa con efectivos suficientes.")
+		if u.stage == "dismounting" and not u.mounted:
+			return _no("Incoherencia: agrupación desmontando que ya está desmontada.")
+		if u.stage == "boarding" and u.mounted:
+			return _no("Incoherencia: agrupación abordando que sigue montada.")
+		if float(u.dismount_remaining) > 0.0 and u.stage not in ["dismounting", "routed"]:
+			return _no("Incoherencia: tiempo de desmontaje en una agrupación que no desmonta.")
+		if not playing and (not u.order.is_empty() or not u.path.is_empty()):
+			return _no("Incoherencia: partida terminada con órdenes o trayectos pendientes.")
+	if d.scenario == "justine":
+		return _validate_justine_coherence(d, playing)
+	return _validate_norte_coherence(d, playing)
+
+func _tide_at(elapsed: float) -> Dictionary:
+	if elapsed < 40.0:
+		return {"level": 0.95, "phase": "alta"}
+	if elapsed < 210.0:
+		return {"level": lerpf(0.95, 0.05, (elapsed - 40.0) / 170.0), "phase": "bajando"}
+	if elapsed < RISE_START:
+		return {"level": 0.05, "phase": "baja"}
+	return {"level": lerpf(0.05, 0.95, clampf((elapsed - RISE_START) / RISE_DURATION, 0.0, 1.0)), "phase": "subiendo"}
+
+func _validate_justine_coherence(d: Dictionary, playing: bool) -> Dictionary:
+	var tide := _tide_at(float(d.elapsed))
+	if d.tide_phase != tide.phase or absf(float(d.water_level) - float(tide.level)) > 0.002:
+		return _no("Incoherencia: el nivel y la fase del río no corresponden al tiempo transcurrido.")
+	if d.rising_announced != (float(d.elapsed) >= RISE_START) and playing:
+		return _no("Incoherencia: el aviso de crecida no corresponde al tiempo transcurrido.")
+	if playing:
+		if float(d.capture) >= 100.0 or float(d.elapsed) > float(d.deadline) + 0.001:
+			return _no("Incoherencia: partida en curso con captura completa o plazo vencido.")
+		if float(d.accumulator) >= STEP + 0.001:
+			return _no("Incoherencia: acumulador de tiempo mayor que un paso.")
+		if float(d.next_volley) <= float(d.elapsed):
+			return _no("Incoherencia: la próxima descarga ya debería haber ocurrido.")
+	elif d.status == "victory" and float(d.capture) < 100.0:
+		return _no("Incoherencia: victoria sin captura completa.")
+	for u in d.units:
+		if u.stage == "ordered":
+			return _no("Incoherencia: estado de campaña en el escenario táctico.")
+		if u.stage in ["moving", "waiting_tide", "blocked", "rally"] and u.order.is_empty():
+			return _no("Incoherencia: agrupación en marcha sin orden.")
+		if u.stage == "moving" and u.path.is_empty():
+			return _no("Incoherencia: agrupación en marcha sin trayecto.")
+		if not u.path.is_empty() and u.stage not in ["moving", "blocked"]:
+			return _no("Incoherencia: trayecto pendiente en una agrupación que no avanza.")
+	return {"ok": true, "reason": "Guardado válido."}
+
+func _validate_norte_coherence(d: Dictionary, playing: bool) -> Dictionary:
+	var by_id := {}
+	for sector in d.sectors:
+		by_id[sector.id] = sector
+	for sector in d.sectors:
+		for neighbor in sector.neighbors:
+			if neighbor == sector.id or sector.id not in by_id[neighbor].neighbors:
+				return _no("Incoherencia: la ruta entre sectores no es recíproca.")
+	for u in d.units:
+		var here: Dictionary = by_id[u.sector_id]
+		if absf(float(u.x) - float(here.x)) > 0.001 or absf(float(u.z) - float(here.z)) > 0.001:
+			return _no("Incoherencia: la agrupación no está en las coordenadas de su sector.")
+		if (u.stage == "ordered") == u.order.is_empty() and u.stage != "routed":
+			return _no("Incoherencia: la orden pendiente no concuerda con el estado de la agrupación.")
+		if not u.order.is_empty() and u.order.sector_id != u.sector_id and u.order.sector_id not in here.neighbors:
+			return _no("Incoherencia: orden hacia un sector inalcanzable.")
+		if not u.path.is_empty():
+			return _no("Incoherencia: trayecto táctico en la campaña.")
+	var enemy: Dictionary = d.enemy
+	if not by_id[enemy.position].enemy:
+		return _no("Incoherencia: el sector del invasor no está marcado como ocupado.")
+	if (enemy.position == "salta") != enemy.occupied_salta:
+		return _no("Incoherencia: la ocupación de Salta no concuerda con la posición del invasor.")
+	if playing and int(d.round) > SALTA_OCCUPATION_ROUND and not enemy.occupied_salta:
+		return _no("Incoherencia: Salta debería estar ocupada en esta ronda.")
+	if by_id["humahuaca"].enemy == d.humahuaca:
+		return _no("Incoherencia: la recuperación de Humahuaca no concuerda con el sector.")
+	if d.humahuaca and (int(d.round) < 7 or int(d.pressure_actions) < 2):
+		return _no("Incoherencia: Humahuaca figura recuperada antes de la ronda posible.")
+	if int(d.pressure_actions) > 3 * int(d.round) + 2:
+		return _no("Incoherencia: más acciones de presión que las posibles hasta esta ronda.")
+	if playing:
+		if float(d.population) <= 10.0:
+			return _no("Incoherencia: partida en curso con la población agotada.")
+		var alive := false
+		for u in d.units:
+			alive = alive or float(u.strength) > 5.0
+		if not alive:
+			return _no("Incoherencia: partida en curso sin agrupaciones activas.")
+		if d.last_results.size() != (0 if int(d.round) == 1 else 5):
+			return _no("Incoherencia: el resumen de ronda no concuerda con la ronda actual.")
 	return {"ok": true, "reason": "Guardado válido."}
 
 func _number_in(value: Variant, low: float, high: float) -> bool:
