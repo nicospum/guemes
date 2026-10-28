@@ -1,6 +1,6 @@
 # Güemes — Juegos de la Patria
 
-**Versión 0.2.0-alfa — alfa jugable, 28 de octubre de 2026.** (La entrega 0.1.0 conserva su verificación en `docs/VERIFICACION.md`; la de 0.2.0 está en `docs/VERIFICACION_FASE2.md`.)
+**Versión 0.3.0-alfa — alfa jugable, 28 de octubre de 2026.** Respecto de 0.2.0: casas, iglesias, árboles y rocas 3D ya usados en escena; balance del norte (victoria no antes de la ronda 10); órdenes que no ahogan unidades; validación de coherencia de guardados; interfaz adaptable; sin fugas de recursos al salir. (La entrega 0.1.0 conserva su verificación en `docs/VERIFICACION.md`; la de 0.2.0 está en `docs/VERIFICACION_FASE2.md`.)
 
 Dos escenarios completos en sus reglas, con selección, objetivos, victoria, derrota, reinicio y persistencia. Proyecto independiente en Godot 4.7.2. La entrega incluye código y exportación Windows x64. El acabado es 3D estilizado de detalle medio: la fidelidad cinematográfica solicitada sigue pendiente. Jev está integrado por contrato y alternativa local, pero no se validó una decisión viva por falta de credencial.
 
@@ -14,7 +14,7 @@ No hace falta instalar el editor de Godot, Blender, REA, Python ni un MCP para j
 
 El destino es Windows x64. El EXE de **0.1.0** completó ambos escenarios bajo Wine 11.0 en Linux (`docs/VERIFICACION.md`); esa evidencia y la cifra de 16–20 FPS en un servidor sin GPU **son de 0.1.0 y no cubren** los modelos PBR, la interfaz ni el audio de 0.2.0.
 
-Para **0.2.0-alfa** se midió, en una PC con Windows 11, Ryzen 9 7950X y RTX 3080 Ti a 1440×900, la escena real ejecutada desde el editor con Forward+ (hasta 800–1200 FPS sin V-Sync) y con Compatibilidad, y se recorrieron los dos escenarios hasta su desenlace por script. **No se probó una partida humana en Windows nativo, ni audio audible, ni Jev vivo**; el EXE de 0.2.0 solo pasó una prueba de arranque automática. Detalle y límites en `docs/VERIFICACION_FASE2.md`. Los modelos de casa, iglesia, algarrobo, cardón y roca existen en el repositorio pero todavía no están usados por el juego. El juego permite cambiar el detalle en Ajustes.
+Para **0.2.0-alfa** se midió, en una PC con Windows 11, Ryzen 9 7950X y RTX 3080 Ti a 1440×900, la escena real ejecutada desde el editor con Forward+ (hasta 800–1200 FPS sin V-Sync) y con Compatibilidad, y se recorrieron los dos escenarios hasta su desenlace por script. **No se probó una partida humana en Windows nativo, ni audio audible, ni Jev vivo**; el EXE de 0.2.0 solo pasó una prueba de arranque automática. Detalle y límites en `docs/VERIFICACION_FASE2.md`. El juego permite cambiar el detalle en Ajustes.
 
 ## Los dos escenarios
 

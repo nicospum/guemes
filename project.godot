@@ -3,7 +3,7 @@ config_version=5
 
 [application]
 config/name="Güemes — Juegos de la Patria"
-config/version="0.2.0-alpha"
+config/version="0.3.0-alpha"
 run/main_scene="res://scenes/main.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
 config/description="Dos escenarios de estrategia histórica en 3D. Recreación documentada."

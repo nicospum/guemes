@@ -1,6 +1,6 @@
 # Güemes — Juegos de la Patria (guía para Claude Code)
 
-Juego 3D sobre Güemes: Justine/Justina (1806) y resistencia a La Serna (1816–17). Alfa 0.2.0 (base 0.1.0) en Godot 4.7.2 (GDScript) = semilla; se puede cambiar motor/diseño si mejora el juego.
+Juego 3D sobre Güemes: Justine/Justina (1806) y resistencia a La Serna (1816–17). Alfa 0.3.0 (base 0.1.0) en Godot 4.7.2 (GDScript) = semilla; se puede cambiar motor/diseño si mejora el juego.
 
 - Repo: https://github.com/nicospum/guemes (rama main, tag v0.1.0 = alfa; no moverlo ni reutilizarlo).
 - Raíz Git: esta carpeta. Fuera de Git, en la carpeta padre: `entregas/0.1.0/` (EXE y paquete original), `respaldos/` (bundle y copia sin git), `materiales-privados/` (fuentes sin licencia de redistribución).
