@@ -55,10 +55,10 @@ Tests automáticos tras los cambios de cierre (con `APPDATA` aislado): reglas 82
 
 ## Hallazgos no resueltos o descartados
 
-- **Balance del norte**: tres grupos hostigando Salta/Jujuy en las rondas 3–4 ganan en la ronda 7 (1037 victorias de 1500 partidas al azar con sesgo a hostigar, 828 en la ronda 7). Contradice la duración de 20–35 min y la cronología «ronda 10–11» de la documentación. **No se tocó**: requiere decisión de diseño y sesiones con jugadores.
+- **Balance del norte**: tres grupos hostigando Salta/Jujuy en las rondas 3–4 ganan en la ronda 7 (1037 victorias de 1500 partidas al azar con sesgo a hostigar, 828 en la ronda 7). Contradice la duración de 20–35 min y la cronología «ronda 10–11» de la documentación. **Actualización posterior**: se ajustó el ritmo (retirada realista desde la ronda 10 con presión ≥ 7); ver docs/BALANCE_NORTE.md. Sigue sin validarse con jugadores.
 - **Unidad ahogada a mitad del río** (t=835, `t3.gd`): «Aproximación preparada» devuelve ok sin ruta y la unidad queda inmóvil. Solo cerca del final de la partida; no corregido.
 - **`validate_snapshot` no comprueba coherencia entre campos**: un guardado editado a mano permite hacer trampa (`t11.gd`). Es un guardado local; no corregido.
-- **Fecha de la ocupación de Salta**: la mecánica ocurre en la ronda 5 (9/2/1817) y la ocupación real fue el 15/4/1817. El texto en pantalla lo declara como regla de ritmo; discrepancia abierta, anotada en `docs/historia/REVISION_2026-10-28.md`.
+- **Fecha de la ocupación de Salta**: la mecánica ocurría en la ronda 5 (9/2/1817) y la ocupación real fue el 15/4/1817. Resuelto después: ahora ocurre en la ronda 10 (12–22/4/1817); ver `docs/BALANCE_NORTE.md`.
 - **Fechas de Humahuaca**: se mantiene Arias el 1/3/1817; el Ideario (pp. 41, 222–223) transcribe fechas de mayo. Falta cotejar *Güemes Documentado* t. 4 pp. 350–359.
 - **Polifonía y tope de voces**: el tope de 6 cuenta reproductores, no voces; el test de audio tolera `MAX_VOICES + 3` y observó 7. Solo comprueba `max_polyphony == 2`, no que dos voces suenen a la vez.
 - **Mensajes de recursos al salir**: «4 ObjectDB instances were leaked at exit» persiste también en el EXE de 0.2.0; no hay `SCRIPT ERROR`. Origen no aislado.
