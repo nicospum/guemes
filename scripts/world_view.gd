@@ -32,6 +32,10 @@ var unit_meshes = {}
 var batch_material: StandardMaterial3D
 var path_instances: MultiMeshInstance3D
 var advanced_renderer = false
+## Props GLB (casa, iglesia, algarrobo, cardón, rocas): se instancian con MultiMesh; si el GLB no carga se usa la geometría simple de antes.
+const USE_GLB_PROPS = true
+var glb_parts_cache = {}
+var glb_batches = {}
 ## Tamaño en pantalla de las etiquetas 3D (fixed_size): constante, no depende de la distancia.
 const LABEL_PIXEL_SIZE = 0.0006
 
@@ -136,6 +140,60 @@ func _flush_batches():
   mmi.material_override=batch_material
   add_child(mmi)
  batches.clear()
+ _flush_glb_batches()
+
+## Extrae (una vez) las mallas del GLB con su transformación relativa a la raíz. Vacío si no carga.
+func _glb_parts(model_name:String)->Array:
+ if glb_parts_cache.has(model_name):return glb_parts_cache[model_name]
+ var parts:Array=[]
+ var path="res://assets/models/"+model_name+".glb"
+ if USE_GLB_PROPS and ResourceLoader.exists(path):
+  var packed=load(path)
+  if packed is PackedScene:
+   var root=packed.instantiate()
+   if root!=null:
+    var nodes:Array=[root]
+    nodes.append_array(root.find_children("*","MeshInstance3D",true,false))
+    for n in nodes:
+     if not (n is MeshInstance3D) or n.mesh==null:continue
+     var xf:Transform3D=Transform3D.IDENTITY
+     var cur:Node=n
+     while cur!=null and cur!=root:
+      if cur is Node3D:xf=cur.transform*xf
+      cur=cur.get_parent()
+     var mesh:Mesh=n.mesh
+     # Defecto de Godot 4.7.2: el color de vértice (COLOR_0) no se aplica al albedo en la primera primitiva; se fuerza en todas las superficies.
+     for si in range(mesh.get_surface_count()):
+      var m=mesh.surface_get_material(si)
+      if m is BaseMaterial3D:
+       m.vertex_color_use_as_albedo=true
+     parts.append({"mesh":mesh,"xf":xf})
+    root.free()
+ glb_parts_cache[model_name]=parts
+ return parts
+
+func _glb_ok(model_name:String)->bool:
+ return not _glb_parts(model_name).is_empty()
+
+func _inst_glb(model_name:String,xf:Transform3D):
+ if not glb_batches.has(model_name):glb_batches[model_name]=[]
+ glb_batches[model_name].append(xf)
+
+func _flush_glb_batches():
+ for model_name in glb_batches:
+  var xfs:Array=glb_batches[model_name]
+  for part in _glb_parts(model_name):
+   var mm=MultiMesh.new()
+   mm.transform_format=MultiMesh.TRANSFORM_3D
+   mm.mesh=part.mesh
+   mm.instance_count=xfs.size()
+   for i in range(xfs.size()):
+    mm.set_instance_transform(i,xfs[i]*part.xf)
+   var mmi=MultiMeshInstance3D.new()
+   mmi.name="LoteGLB_"+model_name
+   mmi.multimesh=mm
+   add_child(mmi)
+ glb_batches.clear()
 
 func _lighting():
  environment = WorldEnvironment.new()
@@ -314,7 +372,7 @@ func _north():
    _road(a,b)
  for i in range(70):
   var p=Vector2(decoration_rng.randf_range(-43,43),decoration_rng.randf_range(-34,34))
-  if terrain_height(p.x,p.y)<3.8: _tree(Vector3(p.x,terrain_height(p.x,p.y),p.y),decoration_rng.randf_range(0.6,1.3))
+  if terrain_height(p.x,p.y)<3.8: _tree(Vector3(p.x,terrain_height(p.x,p.y),p.y),decoration_rng.randf_range(0.6,1.3),i%3==0)
  _rocks_and_reeds(70 if quality=="baja" else 140)
  enemy_marker=Node3D.new()
  add_child(enemy_marker)
@@ -333,6 +391,17 @@ func _road(a:Vector2,b:Vector2):
   _inst("cyl8",Vector3(p.x,terrain_height(p.x,p.y)+0.06,p.y),Vector3(0.56,0.045,0.56),Color("b2a17c"))
 
 func _house(pos:Vector3,w:float,d:float,church=false):
+ var glb_name="church_colonial" if church else "house_colonial"
+ if _glb_ok(glb_name):
+  var basis:Basis
+  if church:
+   basis=Basis.from_scale(Vector3.ONE*clampf(w*0.2,0.25,0.6))
+  else:
+   # Huella del GLB ~5.7 x 6.0 m ajustada a w x d; altura con la media para no aplastarla.
+   var sx=w/5.7;var sz=d/6.0
+   basis=Basis.from_scale(Vector3(sx,(sx+sz)*0.5,sz))
+  _inst_glb(glb_name,Transform3D(basis,pos))
+  return
  var h=1.8 if not church else 2.5
  _inst("box",pos+Vector3(0,h/2,0),Vector3(w,h,d),Color("bcb298"))
  _inst("prism",pos+Vector3(0,h+0.38,0),Vector3(w+0.35,0.9,d+0.35),Color("714d3b"))
@@ -344,22 +413,32 @@ func _house(pos:Vector3,w:float,d:float,church=false):
   _inst("box",pos+Vector3(w*0.32,h+1.4,d*0.25),Vector3(0.07,0.6,0.07),Color("5d5442"))
   _inst("box",pos+Vector3(w*0.32,h+1.48,d*0.25),Vector3(0.36,0.07,0.07),Color("5d5442"))
 
-func _tree(pos:Vector3,scale_v:float):
+func _tree(pos:Vector3,scale_v:float,cactus=false):
+ var glb_name="tree_cardon" if cactus else "tree_algarrobo"
+ if _glb_ok(glb_name):
+  _inst_glb(glb_name,Transform3D(Basis.from_scale(Vector3.ONE*scale_v*(0.8 if cactus else 0.7)),pos))
+  return
  _inst("cyl8",pos+Vector3(0,1.45*scale_v,0),Vector3(0.26*scale_v,2.9*scale_v,0.26*scale_v),Color("655642"))
  _inst("sphere",pos+Vector3(0,3.0*scale_v,0),Vector3(2.4*scale_v,2.5*scale_v,2.4*scale_v),Color("4f5d38"))
 
 func _rocks_and_reeds(count:int):
  var rock_mesh=SphereMesh.new();rock_mesh.radius=0.5;rock_mesh.height=0.64;rock_mesh.radial_segments=7;rock_mesh.rings=4
- var multimesh=MultiMesh.new();multimesh.transform_format=MultiMesh.TRANSFORM_3D;multimesh.mesh=rock_mesh;multimesh.instance_count=count
+ var use_glb_rocks=_glb_ok("rock_cluster")
+ var multimesh=MultiMesh.new();multimesh.transform_format=MultiMesh.TRANSFORM_3D;multimesh.mesh=rock_mesh;multimesh.instance_count=0 if use_glb_rocks else count
  for i in range(count):
   var x=decoration_rng.randf_range(-52,48)
   if scenario=="justine":x=decoration_rng.randf_range(-52,-11)
   var z=decoration_rng.randf_range(-40,40)
   var tr=Transform3D(Basis.from_euler(Vector3(0,decoration_rng.randf()*TAU,0)),Vector3(x,terrain_height(x,z)+0.08,z))
   var size_v=decoration_rng.randf_range(0.35,1.5)
+  if use_glb_rocks:
+   tr.basis=tr.basis.scaled(Vector3.ONE*size_v*0.5)
+   _inst_glb("rock_cluster",tr)
+   continue
   tr.basis=tr.basis.scaled(Vector3(size_v,size_v*0.6,size_v))
   multimesh.set_instance_transform(i,tr)
- var rocks=MultiMeshInstance3D.new();rocks.multimesh=multimesh;rocks.material_override=_mat(Color("807b66"));add_child(rocks)
+ if not use_glb_rocks:
+  var rocks=MultiMeshInstance3D.new();rocks.multimesh=multimesh;rocks.material_override=_mat(Color("807b66"));add_child(rocks)
  # Hierba de geometría real: agrupaciones pequeñas e instanciadas.
  var st=SurfaceTool.new();st.begin(Mesh.PRIMITIVE_TRIANGLES)
  for a in [0.0,1.0472,2.0944]:
