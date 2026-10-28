@@ -16,3 +16,7 @@ __pycache__/
 assets/models/*_alb_*.jpg*
 assets/models/*_nor_*.jpg*
 assets/models/*_rm_*.jpg*
+
+# Worktrees de agentes y perfiles temporales de QA
+.claude/
+evidence/fase2/qa/**/_appdata/

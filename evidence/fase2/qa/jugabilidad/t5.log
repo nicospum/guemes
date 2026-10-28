@@ -1,0 +1,4 @@
+
+QA-policy x100 seeds (fallback enemy): {"victory@11":100}  min stores=78
+enemy always guard: {"defeat@14":50}
+enemy always forage: {"defeat@14":45,"victory@14":5}

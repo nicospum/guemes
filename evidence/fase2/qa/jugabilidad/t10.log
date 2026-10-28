@@ -1,0 +1,7 @@
+
+tried=194 rejected_though_target_walkable=16 stuck=0
+REJECT start=(-31.0,3.0) target=(5.6,5.0) No hay una ruta transitable hasta ese punto con el nivel actual del río.
+REJECT start=(-28.0,10.0) target=(17.8,8.1) No hay una ruta transitable hasta ese punto con el nivel actual del río.
+REJECT start=(-31.0,3.0) target=(17.8,8.0) No hay una ruta transitable hasta ese punto con el nivel actual del río.
+REJECT start=(-28.0,10.0) target=(0.7,10.9) No hay una ruta transitable hasta ese punto con el nivel actual del río.
+REJECT start=(-28.0,-3.0) target=(-11.3,-19.5) No hay una ruta transitable hasta ese punto con el nivel actual del río.

@@ -1,0 +1,15 @@
+
+blocked w/o order -> load ok=true Partida recuperada.
+   unit0 stage after 400s: ready status=playing
+waiting_tide w/ empty order -> load ok=true Partida recuperada.
+   unit1 stage: ready x=12.0
+dismounting in justine at wrong place -> load ok=true Partida recuperada.
+   status after boarding far from ship (x=-28): victory capture=100.0
+justine unit sector_id empty ok -> load ok=true Partida recuperada.
+norte stage boarding -> load ok=true Partida recuperada.
+   norte resolved ok round=2
+norte capture field missing ok / state.status victory but round1 -> load ok=true Partida recuperada.
+norte units all strength 0 and playing -> load ok=true Partida recuperada.
+   all-dead resolve: status=defeat
+norte population 0 playing -> load ok=true Partida recuperada.
+   pop0 resolve: status=defeat

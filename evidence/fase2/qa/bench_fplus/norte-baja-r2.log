@@ -1,0 +1,9 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+Vulkan 1.4.341 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce RTX 3080 Ti
+ERROR: Can't create shader cache folder, no shader caching will happen: user://
+   at: RendererCompositorRD (servers/rendering/renderer_rd/renderer_compositor_rd.cpp:337)
+
+QA_READY engine_ms=1681 script_start_ms=895 start_game_to_first_frame_ms=104
+QA_RESULT {"adapter":"NVIDIA GeForce RTX 3080 Ti","cpu_render_ms_median":0.126000002026558,"draw_calls":159,"engine_ms_at_ready":1681,"frames":900,"frames_over_16_7ms":0,"frames_over_33_4ms":0,"gpu_ms_median":0.150000005960464,"gpu_ms_p95":0.155000001192093,"gpu_ms_p99":0.157000005245209,"mean_fps":1187.33195954628,"primitives":99491,"quality":"baja","rendering_method":"forward_plus","scaling_3d":0.5,"scenario":"norte","seconds":0.758002,"start_game_to_first_frame_ms":104,"static_mem_bytes":85831618,"status_end":"playing","texture_mem_bytes":72403968,"video_mem_bytes":170801856,"viewport":"(1440.0, 900.0)","wall_ms_max":2.822,"wall_ms_median":0.816,"wall_ms_p95":0.96,"wall_ms_p99":1.246,"warmup_frames":120}
+WARNING: 4 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2536)

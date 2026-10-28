@@ -1,0 +1,15 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+ERROR: Can't create shader cache folder, no shader caching will happen: user://
+   at: RasterizerGLES3 (drivers/gles3/rasterizer_gles3.cpp:345)
+OpenGL API 3.3.0 NVIDIA 610.88 - Compatibility - Using Device: NVIDIA - NVIDIA GeForce RTX 3080 Ti
+
+QA_READY engine_ms=1192 script_start_ms=555 start_game_to_first_frame_ms=187
+QA_RESULT {"adapter":"NVIDIA GeForce RTX 3080 Ti","cpu_render_ms_median":0.801999986171722,"draw_calls":461,"engine_ms_at_ready":1192,"frames":900,"frames_over_16_7ms":0,"frames_over_33_4ms":0,"gpu_ms_median":0.448000013828278,"gpu_ms_p95":0.765999972820282,"gpu_ms_p99":0.867999970912933,"mean_fps":596.419494965225,"primitives":305884,"quality":"media","rendering_method":"gl_compatibility","scaling_3d":1.0,"scenario":"justine","seconds":1.509005,"start_game_to_first_frame_ms":187,"static_mem_bytes":61174196,"status_end":"playing","texture_mem_bytes":60511678,"video_mem_bytes":70593506,"viewport":"(1440.0, 900.0)","wall_ms_max":4.524,"wall_ms_median":1.621,"wall_ms_p95":1.891,"wall_ms_p99":2.251,"warmup_frames":120}
+ERROR: Texture with GL ID of 127: leaked 349524 bytes.
+   at: ~Utilities (drivers/gles3/storage/utilities.cpp:82)
+ERROR: Texture with GL ID of 128: leaked 349524 bytes.
+   at: ~Utilities (drivers/gles3/storage/utilities.cpp:82)
+WARNING: 6 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2536)
+ERROR: 1 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:822)

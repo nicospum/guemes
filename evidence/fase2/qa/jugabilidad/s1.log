@@ -1,0 +1,15 @@
+
+A manual F5 save: elapsed=300 status=playing
+A after one R press: elapsed=0 game_id changed=true orders=0
+A save slot after Menu from fresh restarted game: elapsed=0 (manual save at 300 lost? true)
+B status=defeat outcome_shown=true
+B slot after Menu: status=defeat elapsed=900
+B Continue enabled=true
+B after Continue: status=defeat outcome modal=true
+C move to deep water: orders=0
+D after Menu during pending: mode=menu round=1 pending=false ext=0
+D new norte game: round=1 pending=false ext=0
+E after key mash during pending: round=2 ext=1 pending=false
+F passivity: status=defeat round=12 presses=12 pop=2
+WARNING: 4 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2536)

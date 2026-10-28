@@ -1,0 +1,9 @@
+
+cancelled at t=181 x=-1.9
+t=835 stage=ready x=-1.9 walk=false water=0.46
+order move -> ok=false 'No hay una ruta transitable hasta ese punto con el nivel actual del río.' stage=ready pathlen=0
+order direct -> ok=true 'Aproximación preparada. La agrupación espera en la orilla si el agua todavía impide cruzar.' stage=waiting_tide pathlen=0
+order flank -> ok=true 'Aproximación preparada. La agrupación espera en la orilla si el agua todavía impide cruzar.' stage=waiting_tide pathlen=0
+order board -> ok=false 'El agua aún es demasiado profunda o hay un obstáculo. Esperá la bajante y usá los bancos señalados.' stage=waiting_tide pathlen=0
+order rally -> ok=true 'Orden recibida.' stage=rally pathlen=0
+after 60s stage=rally x=-1.89 water=0.91
