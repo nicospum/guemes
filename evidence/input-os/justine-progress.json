@@ -1,0 +1,278 @@
+{
+  "accumulator": 0.10843433333333363,
+  "bajante_announced": false,
+  "capture": 0.0,
+  "crew_morale": 100.0,
+  "deadline": 900.0,
+  "elapsed": 2.25,
+  "external_decisions": [],
+  "first_order_at": 0.0,
+  "game_id": "justine-41485365",
+  "historical_note": "Reconquista, 12 de agosto de 1806. La participación personal de Güemes es una atribución tradicional: esta misión la recrea. Rutas, efectivos y tiempos son adaptación jugable.",
+  "log": [
+    {
+      "kind": "objective",
+      "round": 1,
+      "text": "Reconocé la ribera. La ruta central es corta y expuesta; el banco sur conserva mejor tus fuerzas.",
+      "time": 0.0
+    }
+  ],
+  "next_volley": 7.5,
+  "obstacles": [
+    {
+      "d": 7.0,
+      "w": 6.0,
+      "x": -32.0,
+      "z": -16.0
+    },
+    {
+      "d": 6.0,
+      "w": 5.0,
+      "x": -23.0,
+      "z": 21.0
+    },
+    {
+      "d": 5.0,
+      "w": 5.0,
+      "x": -15.0,
+      "z": -19.0
+    }
+  ],
+  "orders": [
+    {
+      "action": "direct",
+      "round": 1,
+      "target": {
+        "x": 12.0,
+        "z": 0.0
+      },
+      "time": 0.0,
+      "unit": "guemes"
+    },
+    {
+      "action": "direct",
+      "round": 1,
+      "target": {
+        "x": 12.0,
+        "z": 0.0
+      },
+      "time": 0.0,
+      "unit": "arias"
+    },
+    {
+      "action": "direct",
+      "round": 1,
+      "target": {
+        "x": 12.0,
+        "z": 0.0
+      },
+      "time": 0.0,
+      "unit": "zavala"
+    },
+    {
+      "action": "flank",
+      "round": 1,
+      "target": {
+        "x": 12.0,
+        "z": 0.0
+      },
+      "time": 0.0,
+      "unit": "guemes"
+    }
+  ],
+  "reason": "",
+  "rising_announced": false,
+  "rng_state": 1806,
+  "round": 1,
+  "scenario": "justine",
+  "schema_version": 1,
+  "seed": 1806,
+  "state_version": 14,
+  "status": "playing",
+  "tide_phase": "alta",
+  "units": [
+    {
+      "blocked_until": 0.0,
+      "dismount_remaining": 0.0,
+      "fatigue": 0.09,
+      "id": "guemes",
+      "mounted": true,
+      "name": "Güemes · vanguardia",
+      "order": {
+        "action": "flank",
+        "x": 12.0,
+        "z": 0.0
+      },
+      "path": [
+        {
+          "x": -26.0,
+          "z": -2.0
+        },
+        {
+          "x": -24.0,
+          "z": 0.0
+        },
+        {
+          "x": -22.0,
+          "z": 2.0
+        },
+        {
+          "x": -20.0,
+          "z": 4.0
+        },
+        {
+          "x": -18.0,
+          "z": 6.0
+        },
+        {
+          "x": -16.0,
+          "z": 8.0
+        },
+        {
+          "x": -14.0,
+          "z": 10.0
+        },
+        {
+          "x": -12.0,
+          "z": 12.0
+        },
+        {
+          "x": -10.0,
+          "z": 14.0
+        }
+      ],
+      "revealed_until": 0,
+      "sector_id": "",
+      "stage": "moving",
+      "strength": 100.0,
+      "supply": 99.95950000000006,
+      "x": -27.517087936401367,
+      "z": -2.7585434913635254
+    },
+    {
+      "blocked_until": 0.0,
+      "dismount_remaining": 0.0,
+      "fatigue": 0.09,
+      "id": "arias",
+      "mounted": true,
+      "name": "Voluntarios de la ribera",
+      "order": {
+        "action": "direct",
+        "x": 12.0,
+        "z": 0.0
+      },
+      "path": [
+        {
+          "x": -30.0,
+          "z": 2.0
+        },
+        {
+          "x": -28.0,
+          "z": 2.0
+        },
+        {
+          "x": -26.0,
+          "z": 2.0
+        },
+        {
+          "x": -24.0,
+          "z": 0.0
+        },
+        {
+          "x": -22.0,
+          "z": 0.0
+        },
+        {
+          "x": -20.0,
+          "z": 0.0
+        },
+        {
+          "x": -18.0,
+          "z": 0.0
+        },
+        {
+          "x": -16.0,
+          "z": 0.0
+        },
+        {
+          "x": -14.0,
+          "z": 0.0
+        },
+        {
+          "x": -12.0,
+          "z": 0.0
+        },
+        {
+          "x": -10.0,
+          "z": 0.0
+        }
+      ],
+      "revealed_until": 0,
+      "sector_id": "",
+      "stage": "moving",
+      "strength": 100.0,
+      "supply": 99.95950000000006,
+      "x": -30.618223190307617,
+      "z": 2.6182234287261963
+    },
+    {
+      "blocked_until": 0.0,
+      "dismount_remaining": 0.0,
+      "fatigue": 0.09,
+      "id": "zavala",
+      "mounted": true,
+      "name": "Reserva de caballería",
+      "order": {
+        "action": "direct",
+        "x": 12.0,
+        "z": 0.0
+      },
+      "path": [
+        {
+          "x": -26.0,
+          "z": 8.0
+        },
+        {
+          "x": -24.0,
+          "z": 6.0
+        },
+        {
+          "x": -22.0,
+          "z": 4.0
+        },
+        {
+          "x": -20.0,
+          "z": 2.0
+        },
+        {
+          "x": -18.0,
+          "z": 0.0
+        },
+        {
+          "x": -16.0,
+          "z": 0.0
+        },
+        {
+          "x": -14.0,
+          "z": 0.0
+        },
+        {
+          "x": -12.0,
+          "z": 0.0
+        },
+        {
+          "x": -10.0,
+          "z": 0.0
+        }
+      ],
+      "revealed_until": 0,
+      "sector_id": "",
+      "stage": "moving",
+      "strength": 100.0,
+      "supply": 99.95950000000006,
+      "x": -27.618223190307617,
+      "z": 9.618223190307617
+    }
+  ],
+  "water_level": 0.95
+}

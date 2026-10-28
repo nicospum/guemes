@@ -1,0 +1,69 @@
+{
+	"checks": 80,
+	"engine": "4.7.2-stable (official)",
+	"failures": [],
+	"ok": true,
+	"results": [
+		{
+			"capture": 100.0,
+			"remaining_strength": 249.594453065177,
+			"scenario": "justine",
+			"simulated_seconds": 473.75,
+			"status": "victory",
+			"strategy": "direct"
+		},
+		{
+			"capture": 100.0,
+			"remaining_strength": 262.49300216547,
+			"scenario": "justine",
+			"simulated_seconds": 547.0,
+			"status": "victory",
+			"strategy": "flank"
+		},
+		{
+			"enemy": {
+				"cohesion": 37.9044491362053,
+				"communications": 31.3566737043079,
+				"intent": "forage",
+				"occupied_salta": true,
+				"position": "salta",
+				"supply": 7.0
+			},
+			"population": 89.0,
+			"round": 11,
+			"scenario": "norte",
+			"status": "victory",
+			"strategy": "scout_raid_protect_humahuaca"
+		},
+		{
+			"enemy": {
+				"cohesion": 31.7399613764077,
+				"communications": 39.6099420646116,
+				"intent": "forage",
+				"occupied_salta": true,
+				"position": "salta",
+				"supply": 11.0
+			},
+			"population": 70.0,
+			"round": 10,
+			"scenario": "norte",
+			"status": "victory",
+			"strategy": "rotating_jujuy_raids"
+		},
+		{
+			"enemy": {
+				"cohesion": 100.0,
+				"communications": 99.5,
+				"intent": "forage",
+				"occupied_salta": true,
+				"position": "salta",
+				"supply": 66.0
+			},
+			"round": 12,
+			"scenario": "norte",
+			"status": "defeat",
+			"strategy": "passive"
+		}
+	],
+	"suite": "authoritative_rules"
+}

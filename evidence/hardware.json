@@ -1,0 +1,14 @@
+{
+  "scope": "remote Linux runner, NOT the user Windows computer",
+  "os": "Linux-6.18.55-x86_64-with-glibc2.39",
+  "cpu_reported": "AMD EPYC 9V74 80-Core Processor",
+  "logical_cpus": 9,
+  "memory_total": "10206484 kB",
+  "renderer": "Mesa 25.2.8 llvmpipe LLVM20.1.2, 256bits",
+  "hardware_accelerated": false,
+  "display": "Xvfb 1440x900x24",
+  "engine": "Godot 4.7.2 stable ed1daf0bf",
+  "civilization_path_accessible": false,
+  "wine_initial": "9.0",
+  "wine_qa_isolated": "11.0"
+}

@@ -1,0 +1,6 @@
+cont
+bt
+info regs
+info share
+kill
+quit

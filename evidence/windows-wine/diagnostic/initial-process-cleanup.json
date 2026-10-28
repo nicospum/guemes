@@ -1,0 +1,36 @@
+[
+  {
+    "pid": 16562,
+    "cmd": "python tools/test_windows_wine.py --binary builds/windows/PatriaGuemes.exe --prefix /workspace/scratch/f2211c286bae/.runtime/wine --output evidence/windows-wine ",
+    "action": "SIGTERM",
+    "context": [
+      "DISPLAY=:99"
+    ]
+  },
+  {
+    "pid": 16658,
+    "cmd": "/workspace/scratch/f2211c286bae/patria-guemes/builds/windows/PatriaGuemes.exe --resolution 1440x900 --audio-driver Dummy -- --qa=justine --qa-path=Z:\\workspace\\scratch\\f2211c286bae\\patria-guemes\\evidence\\windows-wine\\justine                      ",
+    "action": "SIGTERM",
+    "context": [
+      "DISPLAY=:99",
+      "WINEPREFIX=/workspace/scratch/f2211c286bae/.runtime/wine",
+      "WINEDEBUG=-all"
+    ]
+  },
+  {
+    "pid": 16720,
+    "cmd": "winedbg --auto 32 176                      ",
+    "action": "SIGTERM",
+    "context": [
+      "DISPLAY=:99",
+      "WINEPREFIX=/workspace/scratch/f2211c286bae/.runtime/wine",
+      "WINEDEBUG=-all"
+    ]
+  },
+  {
+    "pid": 16547,
+    "cmd": "/bin/sh /usr/bin/xvfb-run -a -s -screen 0 1440x900x24 python tools/test_windows_wine.py --binary builds/windows/PatriaGuemes.exe --prefix /workspace/scratch/f2211c286bae/.runtime/wine --output evidence/windows-wine ",
+    "action": "SIGTERM",
+    "context": []
+  }
+]

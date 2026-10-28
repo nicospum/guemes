@@ -1,0 +1,3 @@
+APPDATA=C:\users\root\AppData\Roaming
+wine: failed to open L"C:\\windows\\syswow64\\rundll32.exe": c0000135
+wine: configuration in L"/workspace/scratch/f2211c286bae/.runtime/wine" has been updated.

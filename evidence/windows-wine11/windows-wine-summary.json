@@ -1,0 +1,36 @@
+{
+  "scope": "Windows x64 executable run under Wine on Linux; not native Windows",
+  "binary": "PatriaGuemes.exe",
+  "binary_bytes": 111740368,
+  "binary_sha256": "c2608e42b9e752231515b97fce20bdb8f8ec08ae8dc878e17a01f34aa710c462",
+  "wine_version": "wine-11.0",
+  "started_at_utc": "2026-10-28T14:14:22.225890+00:00",
+  "native_windows_tested": false,
+  "resolution": "1440x900",
+  "quality": "baja",
+  "audio_driver": "Dummy",
+  "input": "automated scene methods; OS input tested separately on Linux",
+  "scenarios": [
+    {
+      "scenario": "justine",
+      "exit_code": 0,
+      "wall_seconds": 13.123,
+      "report_present": true,
+      "status": "victory",
+      "os_reported_by_engine": "Windows",
+      "quality": "baja",
+      "passed": true
+    },
+    {
+      "scenario": "norte",
+      "exit_code": 0,
+      "wall_seconds": 45.321,
+      "report_present": true,
+      "status": "victory",
+      "os_reported_by_engine": "Windows",
+      "quality": "baja",
+      "passed": true
+    }
+  ],
+  "finished_at_utc": "2026-10-28T14:15:26.260420+00:00"
+}

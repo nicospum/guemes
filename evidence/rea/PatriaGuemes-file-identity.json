@@ -1,0 +1,533 @@
+{
+  "observed_utc": "2026-10-28T14:07:22.411197+00:00",
+  "mode": "static_file_inspection",
+  "provider": "Python standard library; independent of REA operations",
+  "file": "builds/windows/PatriaGuemes.exe",
+  "build_log": "builds/logs/20261028T140621216473Z",
+  "source_commit": "a246cdd",
+  "bytes": 111740368,
+  "sha256": "c2608e42b9e752231515b97fce20bdb8f8ec08ae8dc878e17a01f34aa710c462",
+  "modified_utc": "2026-10-28T14:06:27.426621+00:00",
+  "sources": [
+    "https://github.com/godotengine/godot/blob/4.7.2-stable/core/io/file_access_pack.cpp",
+    "https://github.com/godotengine/godot/blob/4.7.2-stable/core/io/file_access_pack.h",
+    "https://github.com/godotengine/godot/blob/4.7.2-stable/editor/export/editor_export_platform.cpp"
+  ],
+  "pe_header": {
+    "offset": 128,
+    "signature_hex": "50450000",
+    "machine_hex": "0x8664"
+  },
+  "embedded_pck": {
+    "magic_ascii": "GDPC",
+    "file_offset": 109268480,
+    "size_excluding_footer": 2471876,
+    "footer_bytes": 12,
+    "sha256": "1cb9aa78b23a623e70ce83209ffd9725d29a64c1e4404c34ac13818f4c1ab6d6",
+    "format_version": 4,
+    "engine_version": [
+      4,
+      7,
+      2
+    ],
+    "flags": 2,
+    "directory_encrypted": false,
+    "relative_filebase": true,
+    "file_base_relative": 112,
+    "directory_offset_relative": 2467456,
+    "declared_file_count": 54,
+    "all_entry_checksums_match": true,
+    "entries": [
+      {
+        "path": ".godot/exported/133200997/export-3ad5c15c4f3250da0cc7c1af1770d85f-main.scn",
+        "bytes": 685,
+        "flags": 0,
+        "file_offset": 111625872,
+        "declared_md5": "24c2fdbbd5cfa24544e036f4ca5a94bf",
+        "measured_md5": "24c2fdbbd5cfa24544e036f4ca5a94bf",
+        "checksum_matches": true
+      },
+      {
+        "path": ".godot/global_script_class_cache.cfg",
+        "bytes": 172,
+        "flags": 0,
+        "file_offset": 111733248,
+        "declared_md5": "ae3b9188354f0e6d02c0f5aa50750510",
+        "measured_md5": "ae3b9188354f0e6d02c0f5aa50750510",
+        "checksum_matches": true
+      },
+      {
+        "path": ".godot/imported/Cinzel.ttf-1e003c02bd9f5caf99829299b24c9916.fontdata",
+        "bytes": 68280,
+        "flags": 0,
+        "file_offset": 109539680,
+        "declared_md5": "59bc16bf9a1ea4df459333da490acd44",
+        "measured_md5": "59bc16bf9a1ea4df459333da490acd44",
+        "checksum_matches": true
+      },
+      {
+        "path": ".godot/imported/Inter.ttf-48d80b607bc8c026a4a7deff5f7e1456.fontdata",
+        "bytes": 507698,
+        "flags": 0,
+        "file_offset": 109608144,
+        "declared_md5": "e5413e3c13d1dcf9c68b2de1fd026ac4",
+        "measured_md5": "e5413e3c13d1dcf9c68b2de1fd026ac4",
+        "checksum_matches": true
+      },
+      {
+        "path": ".godot/imported/cannon.wav-38078ec7dbd89e6ce8a071f066e4cec0.sample",
+        "bytes": 20039,
+        "flags": 0,
+        "file_offset": 109268592,
+        "declared_md5": "96c12104cf033a1f5d13db67a0934ecc",
+        "measured_md5": "96c12104cf033a1f5d13db67a0934ecc",
+        "checksum_matches": true
+      },
+      {
+        "path": ".godot/imported/dismounted_1806.glb-1c03a535189ed5a04bf3b713daeeb3df.scn",
+        "bytes": 89779,
+        "flags": 0,
+        "file_offset": 110116032,
+        "declared_md5": "cd34771ea802f61a17ea0b627c62caa3",
+        "measured_md5": "cd34771ea802f61a17ea0b627c62caa3",
+        "checksum_matches": true
+      },
+      {
+        "path": ".godot/imported/error.wav-99844ed22afbc0c517ece11da3662cae.sample",
+        "bytes": 2559,
+        "flags": 0,
+        "file_offset": 109288800,
+        "declared_md5": "90826c92b0d265503dfff260e2b03caf",
+        "measured_md5": "90826c92b0d265503dfff260e2b03caf",
+        "checksum_matches": true
+      },
+      {
+        "path": ".godot/imported/hoof.wav-7f6a55aec6bdd7ccba495b36e5f30978.sample",
+        "bytes": 2647,
+        "flags": 0,
+        "file_offset": 109291520,
+        "declared_md5": "c69509e4c5e1634f70bb218a594b9b66",
+        "measured_md5": "c69509e4c5e1634f70bb218a594b9b66",
+        "checksum_matches": true
+      },
+      {
+        "path": ".godot/imported/horse_only.glb-7ad8220abd025bd81f12dae8655e61b8.scn",
+        "bytes": 157568,
+        "flags": 0,
+        "file_offset": 110206016,
+        "declared_md5": "57ba5641330a9c6002d7c861e3bdfa11",
+        "measured_md5": "57ba5641330a9c6002d7c861e3bdfa11",
+        "checksum_matches": true
+      },
+      {
+        "path": ".godot/imported/icon.svg-56083ea2a1f1a4f1e49773bdc6d7826c.ctex",
+        "bytes": 2714,
+        "flags": 0,
+        "file_offset": 111613968,
+        "declared_md5": "c2501d5c696818f7a6dc08867e406ebd",
+        "measured_md5": "c2501d5c696818f7a6dc08867e406ebd",
+        "checksum_matches": true
+      },
+      {
+        "path": ".godot/imported/infantry.glb-8785affe3b5b3b47d1dfce4d8b459554.scn",
+        "bytes": 89351,
+        "flags": 0,
+        "file_offset": 110363760,
+        "declared_md5": "1a7c006fa7e593a8d1e133029217c9ec",
+        "measured_md5": "1a7c006fa7e593a8d1e133029217c9ec",
+        "checksum_matches": true
+      },
+      {
+        "path": ".godot/imported/justine.glb-487342bea62165b0988a3ef458a9236c.scn",
+        "bytes": 582031,
+        "flags": 0,
+        "file_offset": 110453296,
+        "declared_md5": "fc56841840a0cc53c9a7a388bb141e05",
+        "measured_md5": "fc56841840a0cc53c9a7a388bb141e05",
+        "checksum_matches": true
+      },
+      {
+        "path": ".godot/imported/order.wav-b072dbcadaff706d899a1f201b15913e.sample",
+        "bytes": 2559,
+        "flags": 0,
+        "file_offset": 109294336,
+        "declared_md5": "1a431fc9a666e8c779e531be4a11a11b",
+        "measured_md5": "1a431fc9a666e8c779e531be4a11a11b",
+        "checksum_matches": true
+      },
+      {
+        "path": ".godot/imported/rider_1806.glb-ca86b89d4655e49e1b29b7255d984ba7.scn",
+        "bytes": 242230,
+        "flags": 0,
+        "file_offset": 111042096,
+        "declared_md5": "ef8b67c52f0843bfb44a9581c74832db",
+        "measured_md5": "ef8b67c52f0843bfb44a9581c74832db",
+        "checksum_matches": true
+      },
+      {
+        "path": ".godot/imported/rider_1817.glb-693ee190359046e1a04355487fc70604.scn",
+        "bytes": 239742,
+        "flags": 0,
+        "file_offset": 111284512,
+        "declared_md5": "7f8bc097c3225d0974a88009c739003e",
+        "measured_md5": "7f8bc097c3225d0974a88009c739003e",
+        "checksum_matches": true
+      },
+      {
+        "path": ".godot/imported/river.wav-62b260924b79976f42f0b5ed172a6ca3.sample",
+        "bytes": 107479,
+        "flags": 0,
+        "file_offset": 109297056,
+        "declared_md5": "d65dfc55f799b0f0905b576886cf3a01",
+        "measured_md5": "d65dfc55f799b0f0905b576886cf3a01",
+        "checksum_matches": true
+      },
+      {
+        "path": ".godot/imported/royalist_1817.glb-0cc6980262093d6b896f7fee8f40cee5.scn",
+        "bytes": 89354,
+        "flags": 0,
+        "file_offset": 111524432,
+        "declared_md5": "f5f749753f9e2b25d4ec10b32cd9ab23",
+        "measured_md5": "f5f749753f9e2b25d4ec10b32cd9ab23",
+        "checksum_matches": true
+      },
+      {
+        "path": ".godot/imported/victory.wav-d893d32ad919f27e15cf04d35e288b78.sample",
+        "bytes": 27167,
+        "flags": 0,
+        "file_offset": 109404704,
+        "declared_md5": "9a7bd616ca7ee8282ead2b79b39f889b",
+        "measured_md5": "9a7bd616ca7ee8282ead2b79b39f889b",
+        "checksum_matches": true
+      },
+      {
+        "path": ".godot/imported/wind.wav-26bd3f95e99896071b625821c2f0df7a.sample",
+        "bytes": 107479,
+        "flags": 0,
+        "file_offset": 109432032,
+        "declared_md5": "9b2a02685f4dd3b9737b8d49381f027c",
+        "measured_md5": "9b2a02685f4dd3b9737b8d49381f027c",
+        "checksum_matches": true
+      },
+      {
+        "path": ".godot/uid_cache.bin",
+        "bytes": 996,
+        "flags": 0,
+        "file_offset": 111733776,
+        "declared_md5": "89d5548f1ed6ced10a75da9662922a34",
+        "measured_md5": "89d5548f1ed6ced10a75da9662922a34",
+        "checksum_matches": true
+      },
+      {
+        "path": "assets/audio/cannon.wav.import",
+        "bytes": 153,
+        "flags": 0,
+        "file_offset": 109288640,
+        "declared_md5": "21e7b9c799aae2d393bed05c80cb119b",
+        "measured_md5": "21e7b9c799aae2d393bed05c80cb119b",
+        "checksum_matches": true
+      },
+      {
+        "path": "assets/audio/error.wav.import",
+        "bytes": 151,
+        "flags": 0,
+        "file_offset": 109291360,
+        "declared_md5": "868fbf278cce3046b0c505c5313ab9da",
+        "measured_md5": "868fbf278cce3046b0c505c5313ab9da",
+        "checksum_matches": true
+      },
+      {
+        "path": "assets/audio/hoof.wav.import",
+        "bytes": 151,
+        "flags": 0,
+        "file_offset": 109294176,
+        "declared_md5": "e005f5344ccce936cc795674bea69874",
+        "measured_md5": "e005f5344ccce936cc795674bea69874",
+        "checksum_matches": true
+      },
+      {
+        "path": "assets/audio/order.wav.import",
+        "bytes": 152,
+        "flags": 0,
+        "file_offset": 109296896,
+        "declared_md5": "65a0d068a07b3cbbd3a3271140123178",
+        "measured_md5": "65a0d068a07b3cbbd3a3271140123178",
+        "checksum_matches": true
+      },
+      {
+        "path": "assets/audio/river.wav.import",
+        "bytes": 151,
+        "flags": 0,
+        "file_offset": 109404544,
+        "declared_md5": "390975608982c9ad7c5d0b41a9f7608e",
+        "measured_md5": "390975608982c9ad7c5d0b41a9f7608e",
+        "checksum_matches": true
+      },
+      {
+        "path": "assets/audio/victory.wav.import",
+        "bytes": 154,
+        "flags": 0,
+        "file_offset": 109431872,
+        "declared_md5": "d238d6f37bcd947e5960f81dcc0bfe0b",
+        "measured_md5": "d238d6f37bcd947e5960f81dcc0bfe0b",
+        "checksum_matches": true
+      },
+      {
+        "path": "assets/audio/wind.wav.import",
+        "bytes": 150,
+        "flags": 0,
+        "file_offset": 109539520,
+        "declared_md5": "b6340b94af824b6f0a6dde8b2bbaada9",
+        "measured_md5": "b6340b94af824b6f0a6dde8b2bbaada9",
+        "checksum_matches": true
+      },
+      {
+        "path": "assets/fonts/Cinzel.ttf.import",
+        "bytes": 162,
+        "flags": 0,
+        "file_offset": 109607968,
+        "declared_md5": "7fcc6c0601e0bd700f16de2ae1f72c08",
+        "measured_md5": "7fcc6c0601e0bd700f16de2ae1f72c08",
+        "checksum_matches": true
+      },
+      {
+        "path": "assets/fonts/Inter.ttf.import",
+        "bytes": 162,
+        "flags": 0,
+        "file_offset": 110115856,
+        "declared_md5": "e2f1097bcf944fdfb4e45c5470c9d2c9",
+        "measured_md5": "e2f1097bcf944fdfb4e45c5470c9d2c9",
+        "checksum_matches": true
+      },
+      {
+        "path": "assets/icon.svg",
+        "bytes": 350,
+        "flags": 0,
+        "file_offset": 111733424,
+        "declared_md5": "7eae26d670f255eba560f488a025c0c4",
+        "measured_md5": "7eae26d670f255eba560f488a025c0c4",
+        "checksum_matches": true
+      },
+      {
+        "path": "assets/icon.svg.import",
+        "bytes": 193,
+        "flags": 0,
+        "file_offset": 111616688,
+        "declared_md5": "51a51b2fafd4c8ef3409c06ba6f1a7d9",
+        "measured_md5": "51a51b2fafd4c8ef3409c06ba6f1a7d9",
+        "checksum_matches": true
+      },
+      {
+        "path": "assets/models/dismounted_1806.glb.import",
+        "bytes": 177,
+        "flags": 0,
+        "file_offset": 110205824,
+        "declared_md5": "6e6fb445b354a57597da81784adee694",
+        "measured_md5": "6e6fb445b354a57597da81784adee694",
+        "checksum_matches": true
+      },
+      {
+        "path": "assets/models/horse_only.glb.import",
+        "bytes": 172,
+        "flags": 0,
+        "file_offset": 110363584,
+        "declared_md5": "10842a8f844da306d3098a178dfcd93f",
+        "measured_md5": "10842a8f844da306d3098a178dfcd93f",
+        "checksum_matches": true
+      },
+      {
+        "path": "assets/models/infantry.glb.import",
+        "bytes": 170,
+        "flags": 0,
+        "file_offset": 110453120,
+        "declared_md5": "90ba2e3ab8f41c0dfa3b3d2c71625642",
+        "measured_md5": "90ba2e3ab8f41c0dfa3b3d2c71625642",
+        "checksum_matches": true
+      },
+      {
+        "path": "assets/models/justine.glb.import",
+        "bytes": 169,
+        "flags": 0,
+        "file_offset": 111035328,
+        "declared_md5": "654bb4f22e344616b898ee093b5a56e6",
+        "measured_md5": "654bb4f22e344616b898ee093b5a56e6",
+        "checksum_matches": true
+      },
+      {
+        "path": "assets/models/model_manifest.json",
+        "bytes": 6577,
+        "flags": 0,
+        "file_offset": 111035504,
+        "declared_md5": "fdff5d8962a0e048036a1e5cdbe88ff5",
+        "measured_md5": "fdff5d8962a0e048036a1e5cdbe88ff5",
+        "checksum_matches": true
+      },
+      {
+        "path": "assets/models/rider_1806.glb.import",
+        "bytes": 172,
+        "flags": 0,
+        "file_offset": 111284336,
+        "declared_md5": "dbf7a1f8aeb97ed23e38f6de6b46cc41",
+        "measured_md5": "dbf7a1f8aeb97ed23e38f6de6b46cc41",
+        "checksum_matches": true
+      },
+      {
+        "path": "assets/models/rider_1817.glb.import",
+        "bytes": 172,
+        "flags": 0,
+        "file_offset": 111524256,
+        "declared_md5": "4ef3152f51b7edaabb8c94a4f6070159",
+        "measured_md5": "4ef3152f51b7edaabb8c94a4f6070159",
+        "checksum_matches": true
+      },
+      {
+        "path": "assets/models/royalist_1817.glb.import",
+        "bytes": 175,
+        "flags": 0,
+        "file_offset": 111613792,
+        "declared_md5": "55dbb360e8a5ff5b8906c11ef508394a",
+        "measured_md5": "55dbb360e8a5ff5b8906c11ef508394a",
+        "checksum_matches": true
+      },
+      {
+        "path": "assets/terrain.gdshader",
+        "bytes": 571,
+        "flags": 0,
+        "file_offset": 111616896,
+        "declared_md5": "7ec0bc61881b001a484cba85fcb75ed4",
+        "measured_md5": "7ec0bc61881b001a484cba85fcb75ed4",
+        "checksum_matches": true
+      },
+      {
+        "path": "assets/water.gdshader",
+        "bytes": 2045,
+        "flags": 0,
+        "file_offset": 111617472,
+        "declared_md5": "97a882b5f8255efdec1088452fae5181",
+        "measured_md5": "97a882b5f8255efdec1088452fae5181",
+        "checksum_matches": true
+      },
+      {
+        "path": "data/history.json",
+        "bytes": 6342,
+        "flags": 0,
+        "file_offset": 111619520,
+        "declared_md5": "3a4e7ba328577d22b7b2aeddf11918c0",
+        "measured_md5": "3a4e7ba328577d22b7b2aeddf11918c0",
+        "checksum_matches": true
+      },
+      {
+        "path": "project.binary",
+        "bytes": 1151,
+        "flags": 0,
+        "file_offset": 111734784,
+        "declared_md5": "d04f4abe56e79c60e2e79dd9b0b1dec1",
+        "measured_md5": "d04f4abe56e79c60e2e79dd9b0b1dec1",
+        "checksum_matches": true
+      },
+      {
+        "path": "scenes/main.tscn.remap",
+        "bytes": 97,
+        "flags": 0,
+        "file_offset": 111732896,
+        "declared_md5": "0ab3b58be7f208f78c8c53387aea9d73",
+        "measured_md5": "0ab3b58be7f208f78c8c53387aea9d73",
+        "checksum_matches": true
+      },
+      {
+        "path": "scripts/audio_manager.gd.remap",
+        "bytes": 48,
+        "flags": 0,
+        "file_offset": 111733008,
+        "declared_md5": "f6772c259e1de2635248bd6adfc3b107",
+        "measured_md5": "f6772c259e1de2635248bd6adfc3b107",
+        "checksum_matches": true
+      },
+      {
+        "path": "scripts/audio_manager.gdc",
+        "bytes": 3319,
+        "flags": 0,
+        "file_offset": 111626560,
+        "declared_md5": "3a6b5a0ffb70056d30065debb4658b29",
+        "measured_md5": "3a6b5a0ffb70056d30065debb4658b29",
+        "checksum_matches": true
+      },
+      {
+        "path": "scripts/game_rules.gd.remap",
+        "bytes": 45,
+        "flags": 0,
+        "file_offset": 111733056,
+        "declared_md5": "ee5f887d39def7a7979410d671cf758e",
+        "measured_md5": "ee5f887d39def7a7979410d671cf758e",
+        "checksum_matches": true
+      },
+      {
+        "path": "scripts/game_rules.gdc",
+        "bytes": 35160,
+        "flags": 0,
+        "file_offset": 111629888,
+        "declared_md5": "d7bc347b81dbe17585c7db07674e7df4",
+        "measured_md5": "d7bc347b81dbe17585c7db07674e7df4",
+        "checksum_matches": true
+      },
+      {
+        "path": "scripts/jev_client.gd.remap",
+        "bytes": 45,
+        "flags": 0,
+        "file_offset": 111733104,
+        "declared_md5": "af1cb702b6609df8f48e45fa52ba7128",
+        "measured_md5": "af1cb702b6609df8f48e45fa52ba7128",
+        "checksum_matches": true
+      },
+      {
+        "path": "scripts/jev_client.gdc",
+        "bytes": 7626,
+        "flags": 0,
+        "file_offset": 111665056,
+        "declared_md5": "eab907e1ec92a0bdddc17c54de6116ae",
+        "measured_md5": "eab907e1ec92a0bdddc17c54de6116ae",
+        "checksum_matches": true
+      },
+      {
+        "path": "scripts/main.gd.remap",
+        "bytes": 39,
+        "flags": 0,
+        "file_offset": 111733152,
+        "declared_md5": "2b5c3955728b84207f9ad8272930fb6a",
+        "measured_md5": "2b5c3955728b84207f9ad8272930fb6a",
+        "checksum_matches": true
+      },
+      {
+        "path": "scripts/main.gdc",
+        "bytes": 40176,
+        "flags": 0,
+        "file_offset": 111672688,
+        "declared_md5": "087bf0e09ceb8c86fbe372f2ef2041d6",
+        "measured_md5": "087bf0e09ceb8c86fbe372f2ef2041d6",
+        "checksum_matches": true
+      },
+      {
+        "path": "scripts/world_view.gd.remap",
+        "bytes": 45,
+        "flags": 0,
+        "file_offset": 111733200,
+        "declared_md5": "7b8bec8aaf7e4443d0eda6e7b7ccfbd0",
+        "measured_md5": "7b8bec8aaf7e4443d0eda6e7b7ccfbd0",
+        "checksum_matches": true
+      },
+      {
+        "path": "scripts/world_view.gdc",
+        "bytes": 20019,
+        "flags": 0,
+        "file_offset": 111712864,
+        "declared_md5": "27a4ab783b9f6af5a04fced51d2f7bbf",
+        "measured_md5": "27a4ab783b9f6af5a04fced51d2f7bbf",
+        "checksum_matches": true
+      }
+    ]
+  },
+  "limitations": [
+    "Static headers and directory hashes do not prove Windows runtime compatibility or gameplay.",
+    "This PCK inspection is an independent byte check, not a REA-supported PCK parser."
+  ]
+}

@@ -1,0 +1,141 @@
+WineDbg starting on pid 0110
+0x006fffffca59c1 ntdll+0x559c1: ret
+Unhandled exception: page fault on read access to 0x0000000000000000 in 64-bit code (0x006fffff4b0608).
+Register dump:
+ rip:00006fffff4b0608 rsp:00007ffffe8ff890 rbp:00007ffffe8ff8e0 eflags:00010286 (  R- --  I S - -P- )
+ rax:0000000000000000 rbx:0000000000000000 rcx:00000000c0000005 rdx:00000000000003e6
+ rsi:00000000c0000005 rdi:00006fffffa902bc  r8:000000000000002a  r9:0000000000000000 r10:00000000c0000001
+ r11:00006fffffcc3b00 r12:00006ffff8a80000 r13:00006ffff8ab503c r14:00007ffffe8ff9f8 r15:0000000000000001
+Stack dump:
+0x007ffffe8ff890:  00007ffffeea6698 00007ffffeea00d0
+0x007ffffe8ff8a0:  00007ffffeee5500 00001002fe8ff940
+0x007ffffe8ff8b0:  0000000000000000 00007ffffe8ff940
+0x007ffffe8ff8c0:  00006ffff8ab5240 00007ffffe8ff938
+0x007ffffe8ff8d0:  00006ffff8ab56f0 0000000000000008
+0x007ffffe8ff8e0:  00006fffffa98cf0 00006ffff8ab56f0
+0x007ffffe8ff8f0:  00007ffffe8ff930 00000001400059e0
+0x007ffffe8ff900:  00007ffffe8ff940 00007ffffe8ff9e8
+0x007ffffe8ff910:  00007ffffe8ffc28 0000000143043154
+0x007ffffe8ff920:  00000000000351b8 000356680000000a
+0x007ffffe8ff930:  0000000000000000 0000000000000000
+0x007ffffe8ff940:  0000000000000004 000000000000000e
+Backtrace:
+=>0 0x006fffff4b0608 VirtualProtect+0x50(addr=<internal error>, size=<internal error>, new_prot=<internal error>, old_prot=0x00000000000000000) [/usr/src/wine-9.0~repack-4build3/dlls/kernelbase/memory.c:485] in kernelbase (0x007ffffe8ff8e0)
+  1 0x000001400059e0 in windows_release_x86_64 (+0x59e0) (0x007ffffe8ff930)
+  2 0x0000014000e90a in windows_release_x86_64 (+0xe90a) (0x007ffffe8ff9f8)
+  3 0x0000014005e1dc in windows_release_x86_64 (+0x5e1dc) (0x007ffffeee4350)
+  4 0x0000014005e46e in windows_release_x86_64 (+0x5e46e) (0x0000014691e2a8)
+  5 0x000001400010c9 in windows_release_x86_64 (+0x10c9) (0x0000014691e2a8)
+  6 0x000001400013f6 in windows_release_x86_64 (+0x13f6) (0x007ffffe8fffa0)
+  7 0x006fffffaa93d1 BaseThreadInitThunk+0x11(unknown=<internal error>, entry=<internal error>, arg=<internal error>) [/usr/src/wine-9.0~repack-4build3/dlls/kernel32/thread.c:61] in kernel32 (0x007ffffe8fffa0)
+  8 0x006fffffca598b in ntdll (+0x5598b) (0000000000000000)
+0x006fffff4b0608 VirtualProtect+0x50 [/usr/src/wine-9.0~repack-4build3/dlls/kernelbase/memory.c:485] in kernelbase: cmpl $0x08, (%rbx)
+Unable to access file '/usr/src/wine-9.0~repack-4build3/dlls/kernelbase/memory.c'
+Backtrace:
+=>0 0x006fffff4b0608 VirtualProtect+0x50(addr=<internal error>, size=<internal error>, new_prot=<internal error>, old_prot=0x00000000000000000) [/usr/src/wine-9.0~repack-4build3/dlls/kernelbase/memory.c:485] in kernelbase (0x007ffffe8ff8e0)
+  1 0x000001400059e0 in windows_release_x86_64 (+0x59e0) (0x007ffffe8ff930)
+  2 0x0000014000e90a in windows_release_x86_64 (+0xe90a) (0x007ffffe8ff9f8)
+  3 0x0000014005e1dc in windows_release_x86_64 (+0x5e1dc) (0x007ffffeee4350)
+  4 0x0000014005e46e in windows_release_x86_64 (+0x5e46e) (0x0000014691e2a8)
+  5 0x000001400010c9 in windows_release_x86_64 (+0x10c9) (0x0000014691e2a8)
+  6 0x000001400013f6 in windows_release_x86_64 (+0x13f6) (0x007ffffe8fffa0)
+  7 0x006fffffaa93d1 BaseThreadInitThunk+0x11(unknown=<internal error>, entry=<internal error>, arg=<internal error>) [/usr/src/wine-9.0~repack-4build3/dlls/kernel32/thread.c:61] in kernel32 (0x007ffffe8fffa0)
+  8 0x006fffffca598b in ntdll (+0x5598b) (0000000000000000)
+Register dump:
+ rip:00006fffff4b0608 rsp:00007ffffe8ff890 rbp:00007ffffe8ff8e0 eflags:00010286 (  R- --  I S - -P- )
+ rax:0000000000000000 rbx:0000000000000000 rcx:00000000c0000005 rdx:00000000000003e6
+ rsi:00000000c0000005 rdi:00006fffffa902bc  r8:000000000000002a  r9:0000000000000000 r10:00000000c0000001
+ r11:00006fffffcc3b00 r12:00006ffff8a80000 r13:00006ffff8ab503c r14:00007ffffe8ff9f8 r15:0000000000000001
+Module  Address                                 Debug info      Name (91 modules)
+PE-Wine         7ba60000-        7bfe6000       Deferred        opengl32
+PE             140000000-       1469b7000       Export          windows_release_x86_64
+ELF         560d4c14c000-    560d4c151000       Deferred        <wine-loader>
+PE-Wine     6ffff84e0000-    6ffff8a68000       Deferred        comctl32
+PE-Wine     6ffff8a80000-    6ffff8ba8000       Deferred        dinput8
+PE-Wine     6ffff8bc0000-    6ffff8d75000       Deferred        winmm
+PE-Wine     6ffff8d90000-    6ffffa38f000       Deferred        wined3d
+PE-Wine     6ffffa3a0000-    6ffffa4e7000       Deferred        dxgi
+PE-Wine     6ffffa500000-    6ffffa821000       Deferred        dwrite
+PE-Wine     6ffffab30000-    6ffffab54000       Deferred        nsi
+PE-Wine     6ffffab70000-    6ffffabbc000       Deferred        dnsapi
+PE-Wine     6ffffabd0000-    6ffffac5e000       Deferred        iphlpapi
+PE-Wine     6ffffb3a0000-    6ffffb468000       Deferred        uxtheme
+PE-Wine     6ffffb4c0000-    6ffffb519000       Deferred        winex11
+PE-Wine     6ffffb6f0000-    6ffffb76d000       Deferred        imm32
+PE-Wine     6ffffb810000-    6ffffb83e000       Deferred        wsock32
+PE-Wine     6ffffb850000-    6ffffba25000       Deferred        setupapi
+PE-Wine     6ffffba40000-    6ffffbf0a000       Deferred        oleaut32
+PE-Wine     6ffffbf30000-    6ffffbfab000       Deferred        msacm32
+PE-Wine     6ffffbfc0000-    6ffffbff5000       Deferred        hid
+PE-Wine     6ffffc010000-    6ffffc035000       Deferred        dwmapi
+PE-Wine     6ffffc050000-    6ffffc40a000       Deferred        crypt32
+PE-Wine     6ffffc420000-    6ffffc47b000       Deferred        bcrypt
+PE-Wine     6ffffc490000-    6ffffc4ad000       Deferred        avrt
+PE-Wine     6ffffc4c0000-    6ffffc5b0000       Deferred        oleacc
+PE-Wine     6ffffc5c0000-    6ffffc767000       Deferred        uiautomationcore
+PE-Wine     6ffffc780000-    6ffffc7d3000       Deferred        shcore
+PE-Wine     6ffffc7f0000-    6ffffc907000       Deferred        shlwapi
+PE-Wine     6ffffc920000-    6ffffd69b000       Deferred        shell32
+PE-Wine     6ffffd6b0000-    6ffffd6fd000       Deferred        coml2
+PE-Wine     6ffffd710000-    6ffffd999000       Deferred        rpcrt4
+PE-Wine     6ffffd9b0000-    6ffffd9ee000       Deferred        win32u
+PE-Wine     6ffffda00000-    6ffffda2a000       Deferred        zlib1
+PE-Wine     6ffffda40000-    6ffffdfe5000       Deferred        user32
+PE-Wine     6ffffe000000-    6ffffe2c9000       Deferred        gdi32
+PE-Wine     6ffffe2e0000-    6ffffe475000       Deferred        combase
+PE-Wine     6ffffe490000-    6ffffea06000       Deferred        ole32
+PE-Wine     6ffffea20000-    6ffffeacd000       Deferred        ws2_32
+PE-Wine     6ffffeae0000-    6ffffeed6000       Deferred        ucrtbase
+PE-Wine     6ffffeef0000-    6ffffefad000       Deferred        sechost
+PE-Wine     6ffffefc0000-    6fffff317000       Deferred        msvcrt
+PE-Wine     6fffff330000-    6fffff45c000       Deferred        advapi32
+PE-Wine     6fffff470000-    6fffffa6c000       Dwarf-4         kernelbase
+PE-Wine     6fffffa80000-    6fffffc38000       Dwarf-4         kernel32
+PE-Wine     6fffffc50000-    6ffffffeb000       Dwarf-4         ntdll
+ELF         7f6c63adb000-    7f6c63ae2000       Deferred        ws2_32.so
+ELF         7f6c63c4a000-    7f6c63c52000       Deferred        libxfixes.so.3
+ELF         7f6c63c52000-    7f6c63c5e000       Deferred        libxcursor.so.1
+ELF         7f6c63c5e000-    7f6c63c71000       Deferred        libxi.so.6
+ELF         7f6c63c71000-    7f6c63c7e000       Deferred        libxrandr.so.2
+ELF         7f6c63c7e000-    7f6c63c8a000       Deferred        libxrender.so.1
+ELF         7f6c63c8a000-    7f6c63c91000       Deferred        libxxf86vm.so.1
+ELF         7f6c63c91000-    7f6c63ca0000       Deferred        libmd.so.0
+ELF         7f6c63ca0000-    7f6c63cb6000       Deferred        libbsd.so.0
+ELF         7f6c63cb6000-    7f6c63cbe000       Deferred        libxdmcp.so.6
+ELF         7f6c63cbe000-    7f6c63cc4000       Deferred        libxau.so.6
+ELF         7f6c63cc4000-    7f6c63ced000       Deferred        libxcb.so.1
+ELF         7f6c63ced000-    7f6c63e2a000       Deferred        libx11.so.6
+ELF         7f6c63e2a000-    7f6c63e3e000       Deferred        libxext.so.6
+ELF         7f6c63e44000-    7f6c63e49000       Deferred        dnsapi.so
+ELF         7f6c63e49000-    7f6c63ecf000       Deferred        winex11.so
+ELF         7f6c63ecf000-    7f6c6400f000       Deferred        opengl32.so
+ELF         7f6c6400f000-    7f6c64015000       Deferred        dwrite.so
+ELF         7f6c64015000-    7f6c64021000       Deferred        libffi.so.8
+ELF         7f6c64021000-    7f6c640a5000       Deferred        libgmp.so.10
+ELF         7f6c640a5000-    7f6c640ed000       Deferred        libhogweed.so.6
+ELF         7f6c640ed000-    7f6c64142000       Deferred        libnettle.so.8
+ELF         7f6c64142000-    7f6c64158000       Deferred        libtasn1.so.6
+ELF         7f6c64158000-    7f6c64305000       Deferred        libunistring.so.5
+ELF         7f6c64305000-    7f6c64327000       Deferred        libidn2.so.0
+ELF         7f6c64327000-    7f6c644cb000       Deferred        libp11-kit.so.0
+ELF         7f6c644cb000-    7f6c646c5000       Deferred        libgnutls.so.30
+ELF         7f6c646c5000-    7f6c646ca000       Deferred        libxcomposite.so.1
+ELF         7f6c646ca000-    7f6c646d0000       Deferred        crypt32.so
+ELF         7f6c646d0000-    7f6c646dc000       Deferred        bcrypt.so
+ELF         7f6c64748000-    7f6c64774000       Deferred        libexpat.so.1
+ELF         7f6c64774000-    7f6c647c5000       Deferred        libfontconfig.so.1
+ELF         7f6c647c5000-    7f6c647e8000       Deferred        libbrotlicommon.so.1
+ELF         7f6c647e8000-    7f6c647f6000       Deferred        libbrotlidec.so.1
+ELF         7f6c647f6000-    7f6c6482e000       Deferred        libpng16.so.16
+ELF         7f6c6482e000-    7f6c64842000       Deferred        libbz2.so.1.0
+ELF         7f6c64842000-    7f6c6485e000       Deferred        libz.so.1
+ELF         7f6c6485e000-    7f6c6492a000       Deferred        libfreetype.so.6
+ELF         7f6c6492a000-    7f6c64a13000       Deferred        libm.so.6
+ELF         7f6c64a13000-    7f6c64a18000       Deferred        libxinerama.so.1
+ELF         7f6c64a1e000-    7f6c64bbd000       Deferred        win32u.so
+ELF         7f6c65308000-    7f6c6533a000       Deferred        liblzma.so.5
+ELF         7f6c6533a000-    7f6c65355000       Deferred        libunwind.so.8
+ELF         7f6c65355000-    7f6c65410000       Export          ntdll.so
+ELF         7f6c65413000-    7f6c65625000       Deferred        libc.so.6
+ELF         7f6c6563a000-    7f6c65674000       Deferred        ld-linux-x86-64.so.2
+X connection to :101 broken (explicit kill or server shutdown).

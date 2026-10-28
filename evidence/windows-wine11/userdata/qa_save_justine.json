@@ -1,0 +1,323 @@
+{
+	"accumulator": 0.0,
+	"bajante_announced": true,
+	"capture": 12.332630991498952,
+	"crew_morale": 92.21096990010594,
+	"deadline": 900.0,
+	"elapsed": 280.0,
+	"external_decisions": [],
+	"first_order_at": 0.0,
+	"game_id": "justine-2071473",
+	"historical_note": "Reconquista, 12 de agosto de 1806. La participación personal de Güemes es una atribución tradicional: esta misión la recrea. Rutas, efectivos y tiempos son adaptación jugable.",
+	"log": [
+		{
+			"kind": "objective",
+			"round": 1,
+			"text": "Reconocé la ribera. La ruta central es corta y expuesta; el banco sur conserva mejor tus fuerzas.",
+			"time": 0.0
+		},
+		{
+			"kind": "tide",
+			"round": 1,
+			"text": "Güemes · vanguardia aguarda en la ribera hasta que su aproximación sea transitable.",
+			"time": 81.0
+		},
+		{
+			"kind": "tide",
+			"round": 1,
+			"text": "Reserva de caballería aguarda en la ribera hasta que su aproximación sea transitable.",
+			"time": 94.0
+		},
+		{
+			"kind": "tide",
+			"round": 1,
+			"text": "Voluntarios de la ribera aguarda en la ribera hasta que su aproximación sea transitable.",
+			"time": 94.5
+		},
+		{
+			"kind": "tide",
+			"round": 1,
+			"text": "¡El banco central ya es transitable! El sur abrirá poco después. La oportunidad del río es una regla del juego, no una predicción histórica.",
+			"time": 133.5
+		},
+		{
+			"kind": "tide",
+			"round": 1,
+			"text": "Güemes · vanguardia aprovecha la bajante y comienza el cruce.",
+			"time": 146.5
+		},
+		{
+			"kind": "tide",
+			"round": 1,
+			"text": "Voluntarios de la ribera aprovecha la bajante y comienza el cruce.",
+			"time": 146.5
+		},
+		{
+			"kind": "tide",
+			"round": 1,
+			"text": "Reserva de caballería aprovecha la bajante y comienza el cruce.",
+			"time": 146.5
+		},
+		{
+			"kind": "shot",
+			"round": 1,
+			"text": "Artillería sobre Güemes · vanguardia: −4.2 efectivos. Exposición alta.",
+			"time": 165.0
+		},
+		{
+			"kind": "shot",
+			"round": 1,
+			"text": "Artillería sobre Güemes · vanguardia: −3.6 efectivos. Exposición alta.",
+			"time": 172.5
+		},
+		{
+			"kind": "shot",
+			"round": 1,
+			"text": "Artillería sobre Güemes · vanguardia: −4.2 efectivos. Exposición alta.",
+			"time": 180.0
+		},
+		{
+			"kind": "shot",
+			"round": 1,
+			"text": "Artillería sobre Güemes · vanguardia: −4.6 efectivos. Exposición alta.",
+			"time": 187.5
+		},
+		{
+			"kind": "shot",
+			"round": 1,
+			"text": "Artillería sobre Reserva de caballería: −4.6 efectivos. Exposición alta.",
+			"time": 195.0
+		},
+		{
+			"kind": "shot",
+			"round": 1,
+			"text": "Artillería sobre Reserva de caballería: −3.3 efectivos. Exposición alta.",
+			"time": 202.5
+		},
+		{
+			"kind": "shot",
+			"round": 1,
+			"text": "Artillería sobre Voluntarios de la ribera: −3.3 efectivos. Exposición alta.",
+			"time": 210.0
+		},
+		{
+			"kind": "shot",
+			"round": 1,
+			"text": "Artillería sobre Güemes · vanguardia: −3.5 efectivos. Exposición alta.",
+			"time": 217.5
+		},
+		{
+			"kind": "shot",
+			"round": 1,
+			"text": "Artillería sobre Güemes · vanguardia: −3.4 efectivos. Exposición alta.",
+			"time": 225.0
+		},
+		{
+			"kind": "shot",
+			"round": 1,
+			"text": "Artillería sobre Voluntarios de la ribera: −4.5 efectivos. Exposición alta.",
+			"time": 232.5
+		},
+		{
+			"kind": "shot",
+			"round": 1,
+			"text": "Artillería sobre Voluntarios de la ribera: −4.0 efectivos. Exposición alta.",
+			"time": 240.0
+		},
+		{
+			"kind": "boarding",
+			"round": 1,
+			"text": "Voluntarios de la ribera llegó al buque y prepara el desmontaje (12 s).",
+			"time": 241.25
+		},
+		{
+			"kind": "boarding",
+			"round": 1,
+			"text": "Reserva de caballería llegó al buque y prepara el desmontaje (12 s).",
+			"time": 241.5
+		},
+		{
+			"kind": "boarding",
+			"round": 1,
+			"text": "Güemes · vanguardia llegó al buque y prepara el desmontaje (12 s).",
+			"time": 241.75
+		},
+		{
+			"kind": "shot",
+			"round": 1,
+			"text": "Artillería sobre Voluntarios de la ribera: −0.3 efectivos. Exposición baja.",
+			"time": 247.5
+		},
+		{
+			"kind": "boarding",
+			"round": 1,
+			"text": "Voluntarios de la ribera desmontó. Los caballos quedan en el banco mientras la partida exige la rendición.",
+			"time": 253.25
+		},
+		{
+			"kind": "boarding",
+			"round": 1,
+			"text": "Reserva de caballería desmontó. Los caballos quedan en el banco mientras la partida exige la rendición.",
+			"time": 253.5
+		},
+		{
+			"kind": "boarding",
+			"round": 1,
+			"text": "Güemes · vanguardia desmontó. Los caballos quedan en el banco mientras la partida exige la rendición.",
+			"time": 253.75
+		},
+		{
+			"kind": "shot",
+			"round": 1,
+			"text": "Artillería sobre Güemes · vanguardia: −0.3 efectivos. Exposición baja.",
+			"time": 255.0
+		},
+		{
+			"kind": "shot",
+			"round": 1,
+			"text": "Artillería sobre Voluntarios de la ribera: −0.3 efectivos. Exposición baja.",
+			"time": 262.5
+		},
+		{
+			"kind": "shot",
+			"round": 1,
+			"text": "Artillería sobre Reserva de caballería: −0.2 efectivos. Exposición baja.",
+			"time": 270.0
+		},
+		{
+			"kind": "shot",
+			"round": 1,
+			"text": "Artillería sobre Reserva de caballería: −0.4 efectivos. Exposición baja.",
+			"time": 277.5
+		}
+	],
+	"next_volley": 285.0,
+	"obstacles": [
+		{
+			"d": 7.0,
+			"w": 6.0,
+			"x": -32.0,
+			"z": -16.0
+		},
+		{
+			"d": 6.0,
+			"w": 5.0,
+			"x": -23.0,
+			"z": 21.0
+		},
+		{
+			"d": 5.0,
+			"w": 5.0,
+			"x": -15.0,
+			"z": -19.0
+		}
+	],
+	"orders": [
+		{
+			"action": "direct",
+			"round": 1,
+			"target": {
+				"x": 12.0,
+				"z": 0.0
+			},
+			"time": 0.0,
+			"unit": "guemes"
+		},
+		{
+			"action": "direct",
+			"round": 1,
+			"target": {
+				"x": 12.0,
+				"z": 0.0
+			},
+			"time": 0.0,
+			"unit": "arias"
+		},
+		{
+			"action": "direct",
+			"round": 1,
+			"target": {
+				"x": 12.0,
+				"z": 0.0
+			},
+			"time": 0.0,
+			"unit": "zavala"
+		}
+	],
+	"reason": "",
+	"rising_announced": false,
+	"rng_state": 1821300356,
+	"round": 1,
+	"scenario": "justine",
+	"schema_version": 1,
+	"seed": 1806,
+	"state_version": 1124,
+	"status": "playing",
+	"tide_phase": "baja",
+	"units": [
+		{
+			"blocked_until": 0.0,
+			"dismount_remaining": 0.0,
+			"fatigue": 12.504106769278962,
+			"id": "guemes",
+			"mounted": false,
+			"name": "Güemes · vanguardia",
+			"order": {
+				"action": "direct",
+				"x": 12.0,
+				"z": 0.0
+			},
+			"path": [],
+			"revealed_until": 0,
+			"sector_id": "",
+			"stage": "boarding",
+			"strength": 76.01071615360446,
+			"supply": 96.82750000000489,
+			"x": 12.0,
+			"z": 0.0
+		},
+		{
+			"blocked_until": 0.0,
+			"dismount_remaining": 0.0,
+			"fatigue": 10.724710736351808,
+			"id": "arias",
+			"mounted": false,
+			"name": "Voluntarios de la ribera",
+			"order": {
+				"action": "direct",
+				"x": 12.0,
+				"z": 0.0
+			},
+			"path": [],
+			"revealed_until": 0,
+			"sector_id": "",
+			"stage": "boarding",
+			"strength": 87.57019631824016,
+			"supply": 96.59350000000525,
+			"x": 12.0,
+			"z": 0.0
+		},
+		{
+			"blocked_until": 0.0,
+			"dismount_remaining": 0.0,
+			"fatigue": 9.926980084509632,
+			"id": "zavala",
+			"mounted": false,
+			"name": "Reserva de caballería",
+			"order": {
+				"action": "direct",
+				"x": 12.0,
+				"z": 0.0
+			},
+			"path": [],
+			"revealed_until": 0,
+			"sector_id": "",
+			"stage": "boarding",
+			"strength": 91.47759957745106,
+			"supply": 96.59800000000524,
+			"x": 12.0,
+			"z": 0.0
+		}
+	],
+	"water_level": 0.05
+}

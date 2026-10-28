@@ -1,0 +1,1742 @@
+{
+	"accumulator": 0.0,
+	"date": "22 abr 1817",
+	"elapsed": 0.0,
+	"enemy": {
+		"cohesion": 37.90444913620531,
+		"communications": 31.356673704307937,
+		"intent": "forage",
+		"occupied_salta": true,
+		"position": "salta",
+		"supply": 7.0
+	},
+	"external_decisions": [
+		{
+			"choice": "guard",
+			"confidence": null,
+			"context": {
+				"game_id": "norte-1802717",
+				"round": 1,
+				"state_version": 4
+			},
+			"generation": 3,
+			"latency_ms": 2,
+			"model": "local-rules-v1",
+			"payload_sha256": "0cbe1367125db5530566a7549e310a990b8a0336489fe186a0dabe844ec9887c",
+			"probabilities": {},
+			"reason": "offline_selected",
+			"request_id": 1,
+			"request_payload": {
+				"model": "jev-latest",
+				"questions": {
+					"intent": {
+						"criteria": {
+							"advance": "Avanzar hacia Salta: gana presencia, pero consume abastecimientos.",
+							"forage": "Buscar víveres en sectores conocidos para sostener al ejército invasor.",
+							"guard": "Proteger comunicaciones y convoyes; reduce el efecto de los hostigamientos de esta ronda."
+						},
+						"instructions": "¿Qué intención legal responde mejor a la situación observada de este actor para conservar su capacidad operativa?",
+						"type": "choice"
+					}
+				},
+				"state": {
+					"actor": "ejercito_realista",
+					"goal": "Sostener la invasión; conservar tropas si continuar resulta inviable.",
+					"known_sectors": [
+						{
+							"id": "humahuaca",
+							"occupied": true
+						},
+						{
+							"id": "quebrada",
+							"occupied": true
+						},
+						{
+							"id": "oran",
+							"occupied": true
+						}
+					],
+					"public_events": {
+						"humahuaca_lost": false,
+						"salta_occupied": false
+					},
+					"round": 1,
+					"scenario": "norte",
+					"self_cohesion": 88.0,
+					"self_forces": "agrupaciones agregadas",
+					"self_supplies": 88.0,
+					"situation": {
+						"own_communications": 90.0,
+						"position": "quebrada"
+					},
+					"visible_enemies": [],
+					"visible_resources": [
+						{
+							"foraging_blocked": false,
+							"sector": "humahuaca"
+						},
+						{
+							"foraging_blocked": false,
+							"sector": "quebrada"
+						},
+						{
+							"foraging_blocked": false,
+							"sector": "oran"
+						}
+					]
+				}
+			},
+			"source": "local_fallback"
+		},
+		{
+			"choice": "guard",
+			"confidence": null,
+			"context": {
+				"game_id": "norte-1802717",
+				"round": 2,
+				"state_version": 8
+			},
+			"generation": 4,
+			"latency_ms": 0,
+			"model": "local-rules-v1",
+			"payload_sha256": "6298e7a90337b58fc8ecf69530a697300095b4d8180616c345138aa48cc5fa7c",
+			"probabilities": {},
+			"reason": "offline_selected",
+			"request_id": 2,
+			"request_payload": {
+				"model": "jev-latest",
+				"questions": {
+					"intent": {
+						"criteria": {
+							"advance": "Avanzar hacia Salta: gana presencia, pero consume abastecimientos.",
+							"forage": "Buscar víveres en sectores conocidos para sostener al ejército invasor.",
+							"guard": "Proteger comunicaciones y convoyes; reduce el efecto de los hostigamientos de esta ronda."
+						},
+						"instructions": "¿Qué intención legal responde mejor a la situación observada de este actor para conservar su capacidad operativa?",
+						"type": "choice"
+					}
+				},
+				"state": {
+					"actor": "ejercito_realista",
+					"goal": "Sostener la invasión; conservar tropas si continuar resulta inviable.",
+					"known_sectors": [
+						{
+							"id": "humahuaca",
+							"occupied": true
+						},
+						{
+							"id": "quebrada",
+							"occupied": true
+						},
+						{
+							"id": "oran",
+							"occupied": true
+						}
+					],
+					"public_events": {
+						"humahuaca_lost": false,
+						"salta_occupied": false
+					},
+					"round": 2,
+					"scenario": "norte",
+					"self_cohesion": 89.0,
+					"self_forces": "agrupaciones agregadas",
+					"self_supplies": 82.0,
+					"situation": {
+						"own_communications": 92.5,
+						"position": "quebrada"
+					},
+					"visible_enemies": [],
+					"visible_resources": [
+						{
+							"foraging_blocked": false,
+							"sector": "humahuaca"
+						},
+						{
+							"foraging_blocked": false,
+							"sector": "quebrada"
+						},
+						{
+							"foraging_blocked": false,
+							"sector": "oran"
+						}
+					]
+				}
+			},
+			"source": "local_fallback"
+		},
+		{
+			"choice": "advance",
+			"confidence": null,
+			"context": {
+				"game_id": "norte-1802717",
+				"round": 3,
+				"state_version": 12
+			},
+			"generation": 5,
+			"latency_ms": 1,
+			"model": "local-rules-v1",
+			"payload_sha256": "2e69160b35e053c5dad2819906a9820e3918e1f1f1aa64e67107e9055f72dab6",
+			"probabilities": {},
+			"reason": "offline_selected",
+			"request_id": 3,
+			"request_payload": {
+				"model": "jev-latest",
+				"questions": {
+					"intent": {
+						"criteria": {
+							"advance": "Avanzar hacia Salta: gana presencia, pero consume abastecimientos.",
+							"forage": "Buscar víveres en sectores conocidos para sostener al ejército invasor.",
+							"guard": "Proteger comunicaciones y convoyes; reduce el efecto de los hostigamientos de esta ronda."
+						},
+						"instructions": "¿Qué intención legal responde mejor a la situación observada de este actor para conservar su capacidad operativa?",
+						"type": "choice"
+					}
+				},
+				"state": {
+					"actor": "ejercito_realista",
+					"goal": "Sostener la invasión; conservar tropas si continuar resulta inviable.",
+					"known_sectors": [
+						{
+							"id": "humahuaca",
+							"occupied": true
+						},
+						{
+							"id": "quebrada",
+							"occupied": true
+						},
+						{
+							"id": "oran",
+							"occupied": true
+						}
+					],
+					"public_events": {
+						"humahuaca_lost": false,
+						"salta_occupied": false
+					},
+					"round": 3,
+					"scenario": "norte",
+					"self_cohesion": 86.06,
+					"self_forces": "agrupaciones agregadas",
+					"self_supplies": 62.604,
+					"situation": {
+						"own_communications": 89.09,
+						"position": "quebrada"
+					},
+					"visible_enemies": [
+						{
+							"force_estimate": 100,
+							"last_observed_round": 3,
+							"sector": "jujuy"
+						}
+					],
+					"visible_resources": [
+						{
+							"foraging_blocked": false,
+							"sector": "humahuaca"
+						},
+						{
+							"foraging_blocked": false,
+							"sector": "quebrada"
+						},
+						{
+							"foraging_blocked": false,
+							"sector": "oran"
+						}
+					]
+				}
+			},
+			"source": "local_fallback"
+		},
+		{
+			"choice": "forage",
+			"confidence": null,
+			"context": {
+				"game_id": "norte-1802717",
+				"round": 4,
+				"state_version": 16
+			},
+			"generation": 6,
+			"latency_ms": 1,
+			"model": "local-rules-v1",
+			"payload_sha256": "528f1110da2c974096d0915d06f3371db5a67ae103e33ef570949de9736118c6",
+			"probabilities": {},
+			"reason": "offline_selected",
+			"request_id": 4,
+			"request_payload": {
+				"model": "jev-latest",
+				"questions": {
+					"intent": {
+						"criteria": {
+							"advance": "Avanzar hacia Salta: gana presencia, pero consume abastecimientos.",
+							"forage": "Buscar víveres en sectores conocidos para sostener al ejército invasor.",
+							"guard": "Proteger comunicaciones y convoyes; reduce el efecto de los hostigamientos de esta ronda."
+						},
+						"instructions": "¿Qué intención legal responde mejor a la situación observada de este actor para conservar su capacidad operativa?",
+						"type": "choice"
+					}
+				},
+				"state": {
+					"actor": "ejercito_realista",
+					"goal": "Sostener la invasión; conservar tropas si continuar resulta inviable.",
+					"known_sectors": [
+						{
+							"id": "humahuaca",
+							"occupied": true
+						},
+						{
+							"id": "quebrada",
+							"occupied": true
+						},
+						{
+							"id": "jujuy",
+							"occupied": true
+						},
+						{
+							"id": "oran",
+							"occupied": true
+						}
+					],
+					"public_events": {
+						"humahuaca_lost": false,
+						"salta_occupied": false
+					},
+					"round": 4,
+					"scenario": "norte",
+					"self_cohesion": 87.06,
+					"self_forces": "agrupaciones agregadas",
+					"self_supplies": 49.604,
+					"situation": {
+						"own_communications": 88.59,
+						"position": "jujuy"
+					},
+					"visible_enemies": [],
+					"visible_resources": [
+						{
+							"foraging_blocked": false,
+							"sector": "humahuaca"
+						},
+						{
+							"foraging_blocked": false,
+							"sector": "quebrada"
+						},
+						{
+							"foraging_blocked": false,
+							"sector": "jujuy"
+						},
+						{
+							"foraging_blocked": false,
+							"sector": "oran"
+						}
+					]
+				}
+			},
+			"source": "local_fallback"
+		},
+		{
+			"choice": "forage",
+			"confidence": null,
+			"context": {
+				"game_id": "norte-1802717",
+				"round": 5,
+				"state_version": 20
+			},
+			"generation": 7,
+			"latency_ms": 1,
+			"model": "local-rules-v1",
+			"payload_sha256": "ad2a727c3622ce9dcfc3f56e9d1fd929b3157ed592a9b2f62785eb047ea912ef",
+			"probabilities": {},
+			"reason": "offline_selected",
+			"request_id": 5,
+			"request_payload": {
+				"model": "jev-latest",
+				"questions": {
+					"intent": {
+						"criteria": {
+							"advance": "Avanzar hacia Salta: gana presencia, pero consume abastecimientos.",
+							"forage": "Buscar víveres en sectores conocidos para sostener al ejército invasor.",
+							"guard": "Proteger comunicaciones y convoyes; reduce el efecto de los hostigamientos de esta ronda."
+						},
+						"instructions": "¿Qué intención legal responde mejor a la situación observada de este actor para conservar su capacidad operativa?",
+						"type": "choice"
+					}
+				},
+				"state": {
+					"actor": "ejercito_realista",
+					"goal": "Sostener la invasión; conservar tropas si continuar resulta inviable.",
+					"known_sectors": [
+						{
+							"id": "humahuaca",
+							"occupied": true
+						},
+						{
+							"id": "quebrada",
+							"occupied": true
+						},
+						{
+							"id": "jujuy",
+							"occupied": true
+						},
+						{
+							"id": "oran",
+							"occupied": true
+						}
+					],
+					"public_events": {
+						"humahuaca_lost": false,
+						"salta_occupied": false
+					},
+					"round": 5,
+					"scenario": "norte",
+					"self_cohesion": 80.63618507228342,
+					"self_forces": "agrupaciones agregadas",
+					"self_supplies": 39.984925361417105,
+					"situation": {
+						"own_communications": 82.95427760842513,
+						"position": "jujuy"
+					},
+					"visible_enemies": [
+						{
+							"force_estimate": 80,
+							"last_observed_round": 5,
+							"sector": "jujuy"
+						}
+					],
+					"visible_resources": [
+						{
+							"foraging_blocked": false,
+							"sector": "humahuaca"
+						},
+						{
+							"foraging_blocked": false,
+							"sector": "quebrada"
+						},
+						{
+							"foraging_blocked": false,
+							"sector": "jujuy"
+						},
+						{
+							"foraging_blocked": false,
+							"sector": "oran"
+						}
+					]
+				}
+			},
+			"source": "local_fallback"
+		},
+		{
+			"choice": "forage",
+			"confidence": null,
+			"context": {
+				"game_id": "norte-1802717",
+				"round": 6,
+				"state_version": 24
+			},
+			"generation": 8,
+			"latency_ms": 1,
+			"model": "local-rules-v1",
+			"payload_sha256": "33baffd9e351edadc7607e1d3025f79fcc920f9742ae264ebb7e5ae33e06c0b2",
+			"probabilities": {},
+			"reason": "offline_selected",
+			"request_id": 6,
+			"request_payload": {
+				"model": "jev-latest",
+				"questions": {
+					"intent": {
+						"criteria": {
+							"forage": "Buscar víveres en sectores conocidos para sostener al ejército invasor.",
+							"guard": "Proteger comunicaciones y convoyes; reduce el efecto de los hostigamientos de esta ronda."
+						},
+						"instructions": "¿Qué intención legal responde mejor a la situación observada de este actor para conservar su capacidad operativa?",
+						"type": "choice"
+					}
+				},
+				"state": {
+					"actor": "ejercito_realista",
+					"goal": "Sostener la invasión; conservar tropas si continuar resulta inviable.",
+					"known_sectors": [
+						{
+							"id": "humahuaca",
+							"occupied": true
+						},
+						{
+							"id": "quebrada",
+							"occupied": true
+						},
+						{
+							"id": "jujuy",
+							"occupied": true
+						},
+						{
+							"id": "salta",
+							"occupied": true
+						},
+						{
+							"id": "oran",
+							"occupied": true
+						}
+					],
+					"public_events": {
+						"humahuaca_lost": false,
+						"salta_occupied": true
+					},
+					"round": 6,
+					"scenario": "norte",
+					"self_cohesion": 74.70581025436564,
+					"self_forces": "agrupaciones agregadas",
+					"self_supplies": 27.833051271828193,
+					"situation": {
+						"own_communications": 78.05871538154845,
+						"position": "salta"
+					},
+					"visible_enemies": [
+						{
+							"force_estimate": 80,
+							"last_observed_round": 6,
+							"sector": "jujuy"
+						}
+					],
+					"visible_resources": [
+						{
+							"foraging_blocked": false,
+							"sector": "humahuaca"
+						},
+						{
+							"foraging_blocked": false,
+							"sector": "quebrada"
+						},
+						{
+							"foraging_blocked": false,
+							"sector": "jujuy"
+						},
+						{
+							"foraging_blocked": false,
+							"sector": "salta"
+						},
+						{
+							"foraging_blocked": false,
+							"sector": "oran"
+						}
+					]
+				}
+			},
+			"source": "local_fallback"
+		},
+		{
+			"choice": "forage",
+			"confidence": null,
+			"context": {
+				"game_id": "norte-1802717",
+				"round": 7,
+				"state_version": 28
+			},
+			"generation": 9,
+			"latency_ms": 1,
+			"model": "local-rules-v1",
+			"payload_sha256": "3d9e544a946f33fa895e827b8d0feaa19cb4bc34bc85198262d6dab1ec29e6eb",
+			"probabilities": {},
+			"reason": "offline_selected",
+			"request_id": 7,
+			"request_payload": {
+				"model": "jev-latest",
+				"questions": {
+					"intent": {
+						"criteria": {
+							"forage": "Buscar víveres en sectores conocidos para sostener al ejército invasor.",
+							"guard": "Proteger comunicaciones y convoyes; reduce el efecto de los hostigamientos de esta ronda."
+						},
+						"instructions": "¿Qué intención legal responde mejor a la situación observada de este actor para conservar su capacidad operativa?",
+						"type": "choice"
+					}
+				},
+				"state": {
+					"actor": "ejercito_realista",
+					"goal": "Sostener la invasión; conservar tropas si continuar resulta inviable.",
+					"known_sectors": [
+						{
+							"id": "humahuaca",
+							"occupied": true
+						},
+						{
+							"id": "quebrada",
+							"occupied": true
+						},
+						{
+							"id": "jujuy",
+							"occupied": true
+						},
+						{
+							"id": "salta",
+							"occupied": true
+						},
+						{
+							"id": "oran",
+							"occupied": true
+						}
+					],
+					"public_events": {
+						"humahuaca_lost": false,
+						"salta_occupied": true
+					},
+					"round": 7,
+					"scenario": "norte",
+					"self_cohesion": 71.70581025436564,
+					"self_forces": "agrupaciones agregadas",
+					"self_supplies": 32.8330512718282,
+					"situation": {
+						"own_communications": 77.55871538154845,
+						"position": "salta"
+					},
+					"visible_enemies": [],
+					"visible_resources": [
+						{
+							"foraging_blocked": false,
+							"sector": "humahuaca"
+						},
+						{
+							"foraging_blocked": false,
+							"sector": "quebrada"
+						},
+						{
+							"foraging_blocked": false,
+							"sector": "jujuy"
+						},
+						{
+							"foraging_blocked": false,
+							"sector": "salta"
+						},
+						{
+							"foraging_blocked": false,
+							"sector": "oran"
+						}
+					]
+				}
+			},
+			"source": "local_fallback"
+		},
+		{
+			"choice": "forage",
+			"confidence": null,
+			"context": {
+				"game_id": "norte-1802717",
+				"round": 8,
+				"state_version": 32
+			},
+			"generation": 10,
+			"latency_ms": 1,
+			"model": "local-rules-v1",
+			"payload_sha256": "a0ad7ce5fb59b25602295a712ce3b9404601010deded38620c7b3d06432afe7d",
+			"probabilities": {},
+			"reason": "offline_selected",
+			"request_id": 8,
+			"request_payload": {
+				"model": "jev-latest",
+				"questions": {
+					"intent": {
+						"criteria": {
+							"forage": "Buscar víveres en sectores conocidos para sostener al ejército invasor.",
+							"guard": "Proteger comunicaciones y convoyes; reduce el efecto de los hostigamientos de esta ronda."
+						},
+						"instructions": "¿Qué intención legal responde mejor a la situación observada de este actor para conservar su capacidad operativa?",
+						"type": "choice"
+					}
+				},
+				"state": {
+					"actor": "ejercito_realista",
+					"goal": "Sostener la invasión; conservar tropas si continuar resulta inviable.",
+					"known_sectors": [
+						{
+							"id": "quebrada",
+							"occupied": true
+						},
+						{
+							"id": "jujuy",
+							"occupied": true
+						},
+						{
+							"id": "salta",
+							"occupied": true
+						},
+						{
+							"id": "oran",
+							"occupied": true
+						}
+					],
+					"public_events": {
+						"humahuaca_lost": true,
+						"salta_occupied": true
+					},
+					"round": 8,
+					"scenario": "norte",
+					"self_cohesion": 58.11212594767473,
+					"self_forces": "agrupaciones agregadas",
+					"self_supplies": 12.755156198409981,
+					"situation": {
+						"own_communications": 51.66818892151207,
+						"position": "salta"
+					},
+					"visible_enemies": [
+						{
+							"force_estimate": 60,
+							"last_observed_round": 8,
+							"sector": "jujuy"
+						},
+						{
+							"force_estimate": 100,
+							"last_observed_round": 8,
+							"sector": "humahuaca"
+						}
+					],
+					"visible_resources": [
+						{
+							"foraging_blocked": false,
+							"sector": "quebrada"
+						},
+						{
+							"foraging_blocked": false,
+							"sector": "jujuy"
+						},
+						{
+							"foraging_blocked": false,
+							"sector": "salta"
+						},
+						{
+							"foraging_blocked": false,
+							"sector": "oran"
+						}
+					]
+				}
+			},
+			"source": "local_fallback"
+		},
+		{
+			"choice": "forage",
+			"confidence": null,
+			"context": {
+				"game_id": "norte-1802717",
+				"round": 9,
+				"state_version": 35
+			},
+			"generation": 11,
+			"latency_ms": 1,
+			"model": "local-rules-v1",
+			"payload_sha256": "c497c896661af3c14a457c3e4e4c0e0ab514b5863c6ba6f1472683ad5b632a5c",
+			"probabilities": {},
+			"reason": "offline_selected",
+			"request_id": 9,
+			"request_payload": {
+				"model": "jev-latest",
+				"questions": {
+					"intent": {
+						"criteria": {
+							"forage": "Buscar víveres en sectores conocidos para sostener al ejército invasor.",
+							"guard": "Proteger comunicaciones y convoyes; reduce el efecto de los hostigamientos de esta ronda."
+						},
+						"instructions": "¿Qué intención legal responde mejor a la situación observada de este actor para conservar su capacidad operativa?",
+						"type": "choice"
+					}
+				},
+				"state": {
+					"actor": "ejercito_realista",
+					"goal": "Sostener la invasión; conservar tropas si continuar resulta inviable.",
+					"known_sectors": [
+						{
+							"id": "quebrada",
+							"occupied": true
+						},
+						{
+							"id": "jujuy",
+							"occupied": true
+						},
+						{
+							"id": "salta",
+							"occupied": true
+						},
+						{
+							"id": "oran",
+							"occupied": true
+						}
+					],
+					"public_events": {
+						"humahuaca_lost": true,
+						"salta_occupied": true
+					},
+					"round": 9,
+					"scenario": "norte",
+					"self_cohesion": 52.09532594767472,
+					"self_forces": "agrupaciones agregadas",
+					"self_supplies": 9.5,
+					"situation": {
+						"own_communications": 45.14298892151207,
+						"position": "salta"
+					},
+					"visible_enemies": [
+						{
+							"force_estimate": 80,
+							"last_observed_round": 9,
+							"sector": "quebrada"
+						}
+					],
+					"visible_resources": [
+						{
+							"foraging_blocked": false,
+							"sector": "quebrada"
+						},
+						{
+							"foraging_blocked": false,
+							"sector": "jujuy"
+						},
+						{
+							"foraging_blocked": false,
+							"sector": "salta"
+						},
+						{
+							"foraging_blocked": false,
+							"sector": "oran"
+						}
+					]
+				}
+			},
+			"source": "local_fallback"
+		},
+		{
+			"choice": "forage",
+			"confidence": null,
+			"context": {
+				"game_id": "norte-1802717",
+				"round": 10,
+				"state_version": 38
+			},
+			"generation": 12,
+			"latency_ms": 1,
+			"model": "local-rules-v1",
+			"payload_sha256": "d0af156c0c8bddb2c6614f36c64209bea2d8af6470cea645a27c55e7f7e4d226",
+			"probabilities": {},
+			"reason": "offline_selected",
+			"request_id": 10,
+			"request_payload": {
+				"model": "jev-latest",
+				"questions": {
+					"intent": {
+						"criteria": {
+							"forage": "Buscar víveres en sectores conocidos para sostener al ejército invasor.",
+							"guard": "Proteger comunicaciones y convoyes; reduce el efecto de los hostigamientos de esta ronda."
+						},
+						"instructions": "¿Qué intención legal responde mejor a la situación observada de este actor para conservar su capacidad operativa?",
+						"type": "choice"
+					}
+				},
+				"state": {
+					"actor": "ejercito_realista",
+					"goal": "Sostener la invasión; conservar tropas si continuar resulta inviable.",
+					"known_sectors": [
+						{
+							"id": "quebrada",
+							"occupied": true
+						},
+						{
+							"id": "jujuy",
+							"occupied": true
+						},
+						{
+							"id": "salta",
+							"occupied": true
+						},
+						{
+							"id": "oran",
+							"occupied": true
+						}
+					],
+					"public_events": {
+						"humahuaca_lost": true,
+						"salta_occupied": true
+					},
+					"round": 10,
+					"scenario": "norte",
+					"self_cohesion": 49.09532594767472,
+					"self_forces": "agrupaciones agregadas",
+					"self_supplies": 8.0,
+					"situation": {
+						"own_communications": 43.14298892151207,
+						"position": "salta"
+					},
+					"visible_enemies": [],
+					"visible_resources": [
+						{
+							"foraging_blocked": false,
+							"sector": "quebrada"
+						},
+						{
+							"foraging_blocked": false,
+							"sector": "jujuy"
+						},
+						{
+							"foraging_blocked": false,
+							"sector": "salta"
+						},
+						{
+							"foraging_blocked": false,
+							"sector": "oran"
+						}
+					]
+				}
+			},
+			"source": "local_fallback"
+		},
+		{
+			"choice": "forage",
+			"confidence": null,
+			"context": {
+				"game_id": "norte-1802717",
+				"round": 11,
+				"state_version": 41
+			},
+			"generation": 13,
+			"latency_ms": 1,
+			"model": "local-rules-v1",
+			"payload_sha256": "7bb2c8479f3ab28ab403dcae453dfba2d742939b6c8cb47e154a32b7f9002d29",
+			"probabilities": {},
+			"reason": "offline_selected",
+			"request_id": 11,
+			"request_payload": {
+				"model": "jev-latest",
+				"questions": {
+					"intent": {
+						"criteria": {
+							"forage": "Buscar víveres en sectores conocidos para sostener al ejército invasor.",
+							"guard": "Proteger comunicaciones y convoyes; reduce el efecto de los hostigamientos de esta ronda."
+						},
+						"instructions": "¿Qué intención legal responde mejor a la situación observada de este actor para conservar su capacidad operativa?",
+						"type": "choice"
+					}
+				},
+				"state": {
+					"actor": "ejercito_realista",
+					"goal": "Sostener la invasión; conservar tropas si continuar resulta inviable.",
+					"known_sectors": [
+						{
+							"id": "quebrada",
+							"occupied": true
+						},
+						{
+							"id": "jujuy",
+							"occupied": true
+						},
+						{
+							"id": "salta",
+							"occupied": true
+						},
+						{
+							"id": "oran",
+							"occupied": true
+						}
+					],
+					"public_events": {
+						"humahuaca_lost": true,
+						"salta_occupied": true
+					},
+					"round": 11,
+					"scenario": "norte",
+					"self_cohesion": 43.213890734137586,
+					"self_forces": "agrupaciones agregadas",
+					"self_supplies": 7.0,
+					"situation": {
+						"own_communications": 36.82083610120636,
+						"position": "salta"
+					},
+					"visible_enemies": [
+						{
+							"force_estimate": 60,
+							"last_observed_round": 11,
+							"sector": "jujuy"
+						}
+					],
+					"visible_resources": [
+						{
+							"foraging_blocked": false,
+							"sector": "quebrada"
+						},
+						{
+							"foraging_blocked": false,
+							"sector": "jujuy"
+						},
+						{
+							"foraging_blocked": false,
+							"sector": "salta"
+						},
+						{
+							"foraging_blocked": false,
+							"sector": "oran"
+						}
+					]
+				}
+			},
+			"source": "local_fallback"
+		}
+	],
+	"first_order_at": 0.0,
+	"game_id": "norte-1802717",
+	"historical_note": "Campaña de 1816–1817. Las agrupaciones, rutas y cifras son una abstracción. Humahuaca se atribuye a Arias. El desenlace histórico fue la retirada realista a comienzos de mayo; tus resultados pueden producir otra cronología.",
+	"humahuaca": true,
+	"last_results": [
+		{
+			"after": 7.0,
+			"before": 7.0,
+			"label": "Abastecimiento realista"
+		},
+		{
+			"after": 37.90444913620531,
+			"before": 43.213890734137586,
+			"label": "Cohesión realista"
+		},
+		{
+			"after": 31.356673704307937,
+			"before": 36.82083610120636,
+			"label": "Comunicaciones realistas"
+		},
+		{
+			"after": 89.0,
+			"before": 86.0,
+			"label": "Apoyo de la población"
+		},
+		{
+			"after": 145.0,
+			"before": 145.0,
+			"label": "Reservas propias"
+		}
+	],
+	"log": [
+		{
+			"kind": "objective",
+			"round": 1,
+			"text": "Sostené a la población y cortá los abastecimientos. Ocupar Salta no decide por sí solo la campaña.",
+			"time": 0.0
+		},
+		{
+			"kind": "scout",
+			"round": 1,
+			"text": "Exploradores de Güemes reconocen Jujuy. Inteligencia útil durante tres rondas.",
+			"time": 0.0
+		},
+		{
+			"kind": "scout",
+			"round": 1,
+			"text": "Exploradores de Manuel Eduardo Arias reconocen Quebrada. Inteligencia útil durante tres rondas.",
+			"time": 0.0
+		},
+		{
+			"kind": "protect",
+			"round": 1,
+			"text": "Víveres y animales de Chicoana a resguardo: +18 reservas y +9 apoyo. El enemigo encontrará menos recursos.",
+			"time": 0.0
+		},
+		{
+			"kind": "enemy",
+			"round": 1,
+			"text": "El invasor escolta sus convoyes. Los hostigamientos causaron menos daño y mayor riesgo.",
+			"time": 0.0
+		},
+		{
+			"kind": "raid",
+			"round": 2,
+			"text": "Güemes hostiga Jujuy: −13.4 abastecimiento enemigo; pierde 7.2 efectivos. La exploración redujo el riesgo.",
+			"time": 0.0
+		},
+		{
+			"kind": "move",
+			"round": 2,
+			"text": "Manuel Eduardo Arias se desplaza a Quebrada.",
+			"time": 0.0
+		},
+		{
+			"kind": "protect",
+			"round": 2,
+			"text": "Víveres y animales de Chicoana a resguardo: +18 reservas y +9 apoyo. El enemigo encontrará menos recursos.",
+			"time": 0.0
+		},
+		{
+			"kind": "enemy",
+			"round": 2,
+			"text": "El invasor escolta sus convoyes. Los hostigamientos causaron menos daño y mayor riesgo.",
+			"time": 0.0
+		},
+		{
+			"kind": "scout",
+			"round": 3,
+			"text": "Exploradores de Güemes reconocen Jujuy. Inteligencia útil durante tres rondas.",
+			"time": 0.0
+		},
+		{
+			"kind": "scout",
+			"round": 3,
+			"text": "Exploradores de Manuel Eduardo Arias reconocen Humahuaca. Inteligencia útil durante tres rondas.",
+			"time": 0.0
+		},
+		{
+			"kind": "protect",
+			"round": 3,
+			"text": "Víveres y animales de Chicoana a resguardo: +18 reservas y +9 apoyo. El enemigo encontrará menos recursos.",
+			"time": 0.0
+		},
+		{
+			"kind": "enemy",
+			"round": 3,
+			"text": "Avance realista hacia Jujuy: consume 7 abastecimiento adicional.",
+			"time": 0.0
+		},
+		{
+			"kind": "raid",
+			"round": 4,
+			"text": "Güemes hostiga Jujuy: −17.1 abastecimiento enemigo; pierde 9.0 efectivos. La exploración redujo el riesgo.",
+			"time": 0.0
+		},
+		{
+			"kind": "scout",
+			"round": 4,
+			"text": "Exploradores de Manuel Eduardo Arias reconocen Humahuaca. Inteligencia útil durante tres rondas.",
+			"time": 0.0
+		},
+		{
+			"kind": "move",
+			"round": 4,
+			"text": "Partida del valle se desplaza a Rosario de la Frontera.",
+			"time": 0.0
+		},
+		{
+			"kind": "enemy",
+			"round": 4,
+			"text": "Los realistas buscan víveres: recuperan 14 abastecimiento. La protección de recursos limita esa recuperación.",
+			"time": 0.0
+		},
+		{
+			"kind": "raid",
+			"round": 5,
+			"text": "Güemes hostiga Jujuy: −14.7 abastecimiento enemigo; pierde 9.6 efectivos. La exploración redujo el riesgo.",
+			"time": 0.0
+		},
+		{
+			"kind": "scout",
+			"round": 5,
+			"text": "Exploradores de Manuel Eduardo Arias reconocen Humahuaca. Inteligencia útil durante tres rondas.",
+			"time": 0.0
+		},
+		{
+			"kind": "protect",
+			"round": 5,
+			"text": "Víveres y animales de Rosario de la Frontera a resguardo: +18 reservas y +9 apoyo. El enemigo encontrará menos recursos.",
+			"time": 0.0
+		},
+		{
+			"kind": "enemy",
+			"round": 5,
+			"text": "Los realistas buscan víveres: recuperan 9 abastecimiento. La protección de recursos limita esa recuperación.",
+			"time": 0.0
+		},
+		{
+			"kind": "occupation",
+			"round": 5,
+			"text": "Salta queda temporalmente ocupada. La campaña sigue: el invasor necesita abastecimientos y comunicaciones para sostenerse.",
+			"time": 0.0
+		},
+		{
+			"kind": "withdraw",
+			"round": 6,
+			"text": "Güemes se repliega a Valle de Lerma y conserva sus fuerzas.",
+			"time": 0.0
+		},
+		{
+			"kind": "scout",
+			"round": 6,
+			"text": "Exploradores de Manuel Eduardo Arias reconocen Humahuaca. Inteligencia útil durante tres rondas.",
+			"time": 0.0
+		},
+		{
+			"kind": "protect",
+			"round": 6,
+			"text": "Víveres y animales de Rosario de la Frontera a resguardo: +18 reservas y +9 apoyo. El enemigo encontrará menos recursos.",
+			"time": 0.0
+		},
+		{
+			"kind": "enemy",
+			"round": 6,
+			"text": "Los realistas buscan víveres: recuperan 11 abastecimiento. La protección de recursos limita esa recuperación.",
+			"time": 0.0
+		},
+		{
+			"kind": "history",
+			"round": 6,
+			"text": "Llega una noticia del frente de Chile: Chacabuco da sentido estratégico a sostener el norte. Mensaje dramatizado; San Martín no aparece como refuerzo en Salta.",
+			"time": 0.0
+		},
+		{
+			"kind": "raid",
+			"round": 7,
+			"text": "Güemes hostiga Jujuy: −9.1 abastecimiento enemigo; pierde 8.2 efectivos. Sin reconocimiento reciente, el riesgo fue mayor.",
+			"time": 0.0
+		},
+		{
+			"kind": "humahuaca",
+			"round": 7,
+			"text": "Arias recupera Humahuaca: la operación coordinada neutraliza artillería, cuartel y arsenal. −20 comunicaciones realistas.",
+			"time": 0.0
+		},
+		{
+			"kind": "protect",
+			"round": 7,
+			"text": "Víveres y animales de Rosario de la Frontera a resguardo: +18 reservas y +9 apoyo. El enemigo encontrará menos recursos.",
+			"time": 0.0
+		},
+		{
+			"kind": "enemy",
+			"round": 7,
+			"text": "Los realistas buscan víveres: recuperan 7 abastecimiento. La protección de recursos limita esa recuperación.",
+			"time": 0.0
+		},
+		{
+			"kind": "withdraw",
+			"round": 8,
+			"text": "Güemes se repliega a Valle de Lerma y conserva sus fuerzas.",
+			"time": 0.0
+		},
+		{
+			"kind": "raid",
+			"round": 8,
+			"text": "Manuel Eduardo Arias hostiga Quebrada: −10.6 abastecimiento enemigo; pierde 11.1 efectivos. Sin reconocimiento reciente, el riesgo fue mayor.",
+			"time": 0.0
+		},
+		{
+			"kind": "move",
+			"round": 8,
+			"text": "Partida del valle se desplaza a Valle de Lerma.",
+			"time": 0.0
+		},
+		{
+			"kind": "enemy",
+			"round": 8,
+			"text": "Los realistas buscan víveres: recuperan 10 abastecimiento. La protección de recursos limita esa recuperación.",
+			"time": 0.0
+		},
+		{
+			"kind": "rest",
+			"round": 9,
+			"text": "Güemes repone caballos y fuerzas: +27 suministros, −34 fatiga; cuesta 8 reservas.",
+			"time": 0.0
+		},
+		{
+			"kind": "protect",
+			"round": 9,
+			"text": "Víveres y animales de Valle de Lerma a resguardo: +18 reservas y +9 apoyo. El enemigo encontrará menos recursos.",
+			"time": 0.0
+		},
+		{
+			"kind": "enemy",
+			"round": 9,
+			"text": "Los realistas buscan víveres: recuperan 5 abastecimiento. La protección de recursos limita esa recuperación.",
+			"time": 0.0
+		},
+		{
+			"kind": "raid",
+			"round": 10,
+			"text": "Güemes hostiga Jujuy: −10.1 abastecimiento enemigo; pierde 10.7 efectivos. Sin reconocimiento reciente, el riesgo fue mayor.",
+			"time": 0.0
+		},
+		{
+			"kind": "protect",
+			"round": 10,
+			"text": "Víveres y animales de Valle de Lerma a resguardo: +18 reservas y +9 apoyo. El enemigo encontrará menos recursos.",
+			"time": 0.0
+		},
+		{
+			"kind": "enemy",
+			"round": 10,
+			"text": "Los realistas buscan víveres: recuperan 7 abastecimiento. La protección de recursos limita esa recuperación.",
+			"time": 0.0
+		},
+		{
+			"kind": "raid",
+			"round": 11,
+			"text": "Güemes hostiga Jujuy: −8.1 abastecimiento enemigo; pierde 10.8 efectivos. Sin reconocimiento reciente, el riesgo fue mayor.",
+			"time": 0.0
+		},
+		{
+			"kind": "protect",
+			"round": 11,
+			"text": "Víveres y animales de Valle de Lerma a resguardo: +18 reservas y +9 apoyo. El enemigo encontrará menos recursos.",
+			"time": 0.0
+		},
+		{
+			"kind": "enemy",
+			"round": 11,
+			"text": "Los realistas buscan víveres: recuperan 7 abastecimiento. La protección de recursos limita esa recuperación.",
+			"time": 0.0
+		},
+		{
+			"kind": "victory",
+			"round": 11,
+			"text": "La presión volvió insostenible la invasión y forzó su retirada. Desenlace alternativo anticipado: la retirada histórica ocurrió a comienzos de mayo.",
+			"time": 0.0
+		}
+	],
+	"orders": [
+		{
+			"action": "scout",
+			"round": 1,
+			"target": {
+				"sector_id": "quebrada"
+			},
+			"time": 0.0,
+			"unit": "arias"
+		},
+		{
+			"action": "scout",
+			"round": 1,
+			"target": {
+				"sector_id": "jujuy"
+			},
+			"time": 0.0,
+			"unit": "guemes"
+		},
+		{
+			"action": "protect",
+			"round": 1,
+			"target": {
+				"sector_id": "chicoana"
+			},
+			"time": 0.0,
+			"unit": "zavala"
+		},
+		{
+			"action": "move",
+			"round": 2,
+			"target": {
+				"sector_id": "quebrada"
+			},
+			"time": 0.0,
+			"unit": "arias"
+		},
+		{
+			"action": "raid",
+			"round": 2,
+			"target": {
+				"sector_id": "jujuy"
+			},
+			"time": 0.0,
+			"unit": "guemes"
+		},
+		{
+			"action": "protect",
+			"round": 2,
+			"target": {
+				"sector_id": "chicoana"
+			},
+			"time": 0.0,
+			"unit": "zavala"
+		},
+		{
+			"action": "scout",
+			"round": 3,
+			"target": {
+				"sector_id": "humahuaca"
+			},
+			"time": 0.0,
+			"unit": "arias"
+		},
+		{
+			"action": "scout",
+			"round": 3,
+			"target": {
+				"sector_id": "jujuy"
+			},
+			"time": 0.0,
+			"unit": "guemes"
+		},
+		{
+			"action": "protect",
+			"round": 3,
+			"target": {
+				"sector_id": "chicoana"
+			},
+			"time": 0.0,
+			"unit": "zavala"
+		},
+		{
+			"action": "scout",
+			"round": 4,
+			"target": {
+				"sector_id": "humahuaca"
+			},
+			"time": 0.0,
+			"unit": "arias"
+		},
+		{
+			"action": "raid",
+			"round": 4,
+			"target": {
+				"sector_id": "jujuy"
+			},
+			"time": 0.0,
+			"unit": "guemes"
+		},
+		{
+			"action": "move",
+			"round": 4,
+			"target": {
+				"sector_id": "rosario"
+			},
+			"time": 0.0,
+			"unit": "zavala"
+		},
+		{
+			"action": "scout",
+			"round": 5,
+			"target": {
+				"sector_id": "humahuaca"
+			},
+			"time": 0.0,
+			"unit": "arias"
+		},
+		{
+			"action": "raid",
+			"round": 5,
+			"target": {
+				"sector_id": "jujuy"
+			},
+			"time": 0.0,
+			"unit": "guemes"
+		},
+		{
+			"action": "protect",
+			"round": 5,
+			"target": {
+				"sector_id": "rosario"
+			},
+			"time": 0.0,
+			"unit": "zavala"
+		},
+		{
+			"action": "scout",
+			"round": 6,
+			"target": {
+				"sector_id": "humahuaca"
+			},
+			"time": 0.0,
+			"unit": "arias"
+		},
+		{
+			"action": "withdraw",
+			"round": 6,
+			"target": {
+				"sector_id": "lerma"
+			},
+			"time": 0.0,
+			"unit": "guemes"
+		},
+		{
+			"action": "protect",
+			"round": 6,
+			"target": {
+				"sector_id": "rosario"
+			},
+			"time": 0.0,
+			"unit": "zavala"
+		},
+		{
+			"action": "assault",
+			"round": 7,
+			"target": {
+				"sector_id": "humahuaca"
+			},
+			"time": 0.0,
+			"unit": "arias"
+		},
+		{
+			"action": "raid",
+			"round": 7,
+			"target": {
+				"sector_id": "jujuy"
+			},
+			"time": 0.0,
+			"unit": "guemes"
+		},
+		{
+			"action": "protect",
+			"round": 7,
+			"target": {
+				"sector_id": "rosario"
+			},
+			"time": 0.0,
+			"unit": "zavala"
+		},
+		{
+			"action": "raid",
+			"round": 8,
+			"target": {
+				"sector_id": "quebrada"
+			},
+			"time": 0.0,
+			"unit": "arias"
+		},
+		{
+			"action": "withdraw",
+			"round": 8,
+			"target": {
+				"sector_id": "lerma"
+			},
+			"time": 0.0,
+			"unit": "guemes"
+		},
+		{
+			"action": "move",
+			"round": 8,
+			"target": {
+				"sector_id": "lerma"
+			},
+			"time": 0.0,
+			"unit": "zavala"
+		},
+		{
+			"action": "rest",
+			"round": 9,
+			"target": {
+				"sector_id": "lerma"
+			},
+			"time": 0.0,
+			"unit": "guemes"
+		},
+		{
+			"action": "protect",
+			"round": 9,
+			"target": {
+				"sector_id": "lerma"
+			},
+			"time": 0.0,
+			"unit": "zavala"
+		},
+		{
+			"action": "raid",
+			"round": 10,
+			"target": {
+				"sector_id": "jujuy"
+			},
+			"time": 0.0,
+			"unit": "guemes"
+		},
+		{
+			"action": "protect",
+			"round": 10,
+			"target": {
+				"sector_id": "lerma"
+			},
+			"time": 0.0,
+			"unit": "zavala"
+		},
+		{
+			"action": "raid",
+			"round": 11,
+			"target": {
+				"sector_id": "jujuy"
+			},
+			"time": 0.0,
+			"unit": "guemes"
+		},
+		{
+			"action": "protect",
+			"round": 11,
+			"target": {
+				"sector_id": "lerma"
+			},
+			"time": 0.0,
+			"unit": "zavala"
+		}
+	],
+	"population": 89.0,
+	"pressure_actions": 9,
+	"reason": "La presión volvió insostenible la invasión y forzó su retirada. Desenlace alternativo anticipado: la retirada histórica ocurrió a comienzos de mayo.",
+	"rng_state": 1527016592,
+	"round": 11,
+	"scenario": "norte",
+	"schema_version": 1,
+	"sectors": [
+		{
+			"crates": 1,
+			"enemy": false,
+			"id": "humahuaca",
+			"intel_until": 9,
+			"known": true,
+			"name": "Humahuaca",
+			"neighbors": [
+				"quebrada"
+			],
+			"protected_until": 0,
+			"x": 5.0,
+			"z": -27.0
+		},
+		{
+			"crates": 1,
+			"enemy": true,
+			"id": "quebrada",
+			"intel_until": 4,
+			"known": true,
+			"name": "Quebrada",
+			"neighbors": [
+				"humahuaca",
+				"jujuy"
+			],
+			"protected_until": 0,
+			"x": -1.0,
+			"z": -21.0
+		},
+		{
+			"crates": 2,
+			"enemy": true,
+			"id": "jujuy",
+			"intel_until": 6,
+			"known": true,
+			"name": "Jujuy",
+			"neighbors": [
+				"quebrada",
+				"salta",
+				"oran",
+				"lerma"
+			],
+			"protected_until": 0,
+			"x": 1.0,
+			"z": -13.0
+		},
+		{
+			"crates": 3,
+			"enemy": true,
+			"id": "salta",
+			"intel_until": 0,
+			"known": true,
+			"name": "Salta",
+			"neighbors": [
+				"jujuy",
+				"lerma",
+				"rosario"
+			],
+			"protected_until": 0,
+			"x": 0.0,
+			"z": 8.0
+		},
+		{
+			"crates": 0,
+			"enemy": false,
+			"id": "lerma",
+			"intel_until": 0,
+			"known": true,
+			"name": "Valle de Lerma",
+			"neighbors": [
+				"jujuy",
+				"salta",
+				"chicoana",
+				"rosario"
+			],
+			"protected_until": 13,
+			"x": -7.0,
+			"z": 6.0
+		},
+		{
+			"crates": 0,
+			"enemy": false,
+			"id": "chicoana",
+			"intel_until": 0,
+			"known": true,
+			"name": "Chicoana",
+			"neighbors": [
+				"lerma",
+				"rosario"
+			],
+			"protected_until": 5,
+			"x": -9.0,
+			"z": 18.0
+		},
+		{
+			"crates": 2,
+			"enemy": true,
+			"id": "oran",
+			"intel_until": 0,
+			"known": true,
+			"name": "Orán",
+			"neighbors": [
+				"jujuy"
+			],
+			"protected_until": 0,
+			"x": 23.0,
+			"z": -12.0
+		},
+		{
+			"crates": 0,
+			"enemy": false,
+			"id": "rosario",
+			"intel_until": 0,
+			"known": true,
+			"name": "Rosario de la Frontera",
+			"neighbors": [
+				"salta",
+				"lerma",
+				"chicoana"
+			],
+			"protected_until": 9,
+			"x": 8.0,
+			"z": 22.0
+		}
+	],
+	"seed": 1817,
+	"state_version": 42,
+	"status": "victory",
+	"stores": 145.0,
+	"units": [
+		{
+			"blocked_until": 0.0,
+			"dismount_remaining": 0.0,
+			"fatigue": 55.0,
+			"id": "guemes",
+			"mounted": true,
+			"name": "Güemes",
+			"order": {},
+			"path": [],
+			"revealed_until": 12,
+			"sector_id": "jujuy",
+			"stage": "ready",
+			"strength": 53.449741073627834,
+			"supply": 16.0,
+			"x": 1.0,
+			"z": -13.0
+		},
+		{
+			"blocked_until": 0.0,
+			"dismount_remaining": 0.0,
+			"fatigue": 66.0,
+			"id": "arias",
+			"mounted": true,
+			"name": "Manuel Eduardo Arias",
+			"order": {},
+			"path": [],
+			"revealed_until": 9,
+			"sector_id": "quebrada",
+			"stage": "ready",
+			"strength": 78.89795808535905,
+			"supply": 19.0,
+			"x": -1.0,
+			"z": -21.0
+		},
+		{
+			"blocked_until": 0.0,
+			"dismount_remaining": 0.0,
+			"fatigue": 59.0,
+			"id": "zavala",
+			"mounted": true,
+			"name": "Partida del valle",
+			"order": {},
+			"path": [],
+			"revealed_until": 0,
+			"sector_id": "lerma",
+			"stage": "ready",
+			"strength": 100.0,
+			"supply": 59.0,
+			"x": -7.0,
+			"z": 6.0
+		}
+	]
+}

@@ -1,0 +1,218 @@
+{
+  "accumulator": 0.0,
+  "date": "15 dic 1816",
+  "elapsed": 0.0,
+  "enemy": {
+    "cohesion": 88.0,
+    "communications": 90.0,
+    "intent": "forage",
+    "occupied_salta": false,
+    "position": "quebrada",
+    "supply": 88.0
+  },
+  "external_decisions": [],
+  "first_order_at": -1.0,
+  "game_id": "norte-133349966",
+  "historical_note": "Campaña de 1816–1817. Las agrupaciones, rutas y cifras son una abstracción. Humahuaca se atribuye a Arias. El desenlace histórico fue la retirada realista a comienzos de mayo; tus resultados pueden producir otra cronología.",
+  "humahuaca": false,
+  "last_results": [],
+  "log": [
+    {
+      "kind": "objective",
+      "round": 1,
+      "text": "Sostené a la población y cortá los abastecimientos. Ocupar Salta no decide por sí solo la campaña.",
+      "time": 0.0
+    }
+  ],
+  "orders": [],
+  "population": 82.0,
+  "pressure_actions": 0,
+  "reason": "",
+  "rng_state": 1817,
+  "round": 1,
+  "scenario": "norte",
+  "schema_version": 1,
+  "sectors": [
+    {
+      "crates": 1,
+      "enemy": true,
+      "id": "humahuaca",
+      "intel_until": 0,
+      "known": false,
+      "name": "Humahuaca",
+      "neighbors": [
+        "quebrada"
+      ],
+      "protected_until": 0,
+      "x": 5.0,
+      "z": -27.0
+    },
+    {
+      "crates": 1,
+      "enemy": true,
+      "id": "quebrada",
+      "intel_until": 0,
+      "known": false,
+      "name": "Quebrada",
+      "neighbors": [
+        "humahuaca",
+        "jujuy"
+      ],
+      "protected_until": 0,
+      "x": -1.0,
+      "z": -21.0
+    },
+    {
+      "crates": 2,
+      "enemy": false,
+      "id": "jujuy",
+      "intel_until": 0,
+      "known": true,
+      "name": "Jujuy",
+      "neighbors": [
+        "quebrada",
+        "salta",
+        "oran",
+        "lerma"
+      ],
+      "protected_until": 0,
+      "x": 1.0,
+      "z": -13.0
+    },
+    {
+      "crates": 3,
+      "enemy": false,
+      "id": "salta",
+      "intel_until": 0,
+      "known": true,
+      "name": "Salta",
+      "neighbors": [
+        "jujuy",
+        "lerma",
+        "rosario"
+      ],
+      "protected_until": 0,
+      "x": 0.0,
+      "z": 8.0
+    },
+    {
+      "crates": 3,
+      "enemy": false,
+      "id": "lerma",
+      "intel_until": 0,
+      "known": true,
+      "name": "Valle de Lerma",
+      "neighbors": [
+        "jujuy",
+        "salta",
+        "chicoana",
+        "rosario"
+      ],
+      "protected_until": 0,
+      "x": -7.0,
+      "z": 6.0
+    },
+    {
+      "crates": 3,
+      "enemy": false,
+      "id": "chicoana",
+      "intel_until": 0,
+      "known": true,
+      "name": "Chicoana",
+      "neighbors": [
+        "lerma",
+        "rosario"
+      ],
+      "protected_until": 0,
+      "x": -9.0,
+      "z": 18.0
+    },
+    {
+      "crates": 2,
+      "enemy": true,
+      "id": "oran",
+      "intel_until": 0,
+      "known": false,
+      "name": "Orán",
+      "neighbors": [
+        "jujuy"
+      ],
+      "protected_until": 0,
+      "x": 23.0,
+      "z": -12.0
+    },
+    {
+      "crates": 3,
+      "enemy": false,
+      "id": "rosario",
+      "intel_until": 0,
+      "known": true,
+      "name": "Rosario de la Frontera",
+      "neighbors": [
+        "salta",
+        "lerma",
+        "chicoana"
+      ],
+      "protected_until": 0,
+      "x": 8.0,
+      "z": 22.0
+    }
+  ],
+  "seed": 1817,
+  "state_version": 1,
+  "status": "playing",
+  "stores": 65.0,
+  "units": [
+    {
+      "blocked_until": 0.0,
+      "dismount_remaining": 0.0,
+      "fatigue": 0.0,
+      "id": "guemes",
+      "mounted": true,
+      "name": "Güemes",
+      "order": {},
+      "path": [],
+      "revealed_until": 0,
+      "sector_id": "lerma",
+      "stage": "ready",
+      "strength": 100.0,
+      "supply": 100.0,
+      "x": -7.0,
+      "z": 6.0
+    },
+    {
+      "blocked_until": 0.0,
+      "dismount_remaining": 0.0,
+      "fatigue": 0.0,
+      "id": "arias",
+      "mounted": true,
+      "name": "Manuel Eduardo Arias",
+      "order": {},
+      "path": [],
+      "revealed_until": 0,
+      "sector_id": "jujuy",
+      "stage": "ready",
+      "strength": 100.0,
+      "supply": 100.0,
+      "x": 1.0,
+      "z": -13.0
+    },
+    {
+      "blocked_until": 0.0,
+      "dismount_remaining": 0.0,
+      "fatigue": 0.0,
+      "id": "zavala",
+      "mounted": true,
+      "name": "Partida del valle",
+      "order": {},
+      "path": [],
+      "revealed_until": 0,
+      "sector_id": "chicoana",
+      "stage": "ready",
+      "strength": 100.0,
+      "supply": 100.0,
+      "x": -9.0,
+      "z": 18.0
+    }
+  ]
+}

@@ -1,0 +1,348 @@
+{
+  "accumulator": 0.0,
+  "date": "29 dic 1816",
+  "elapsed": 0.0,
+  "enemy": {
+    "cohesion": 89.0,
+    "communications": 92.5,
+    "intent": "guard",
+    "occupied_salta": false,
+    "position": "quebrada",
+    "supply": 82.0
+  },
+  "external_decisions": [
+    {
+      "choice": "guard",
+      "confidence": null,
+      "context": {
+        "game_id": "norte-133349966",
+        "round": 1.0,
+        "state_version": 1.0
+      },
+      "generation": 6.0,
+      "latency_ms": 1.0,
+      "model": "local-rules-v1",
+      "payload_sha256": "0cbe1367125db5530566a7549e310a990b8a0336489fe186a0dabe844ec9887c",
+      "probabilities": {},
+      "reason": "offline_selected",
+      "request_id": 1.0,
+      "request_payload": {
+        "model": "jev-latest",
+        "questions": {
+          "intent": {
+            "criteria": {
+              "advance": "Avanzar hacia Salta: gana presencia, pero consume abastecimientos.",
+              "forage": "Buscar víveres en sectores conocidos para sostener al ejército invasor.",
+              "guard": "Proteger comunicaciones y convoyes; reduce el efecto de los hostigamientos de esta ronda."
+            },
+            "instructions": "¿Qué intención legal responde mejor a la situación observada de este actor para conservar su capacidad operativa?",
+            "type": "choice"
+          }
+        },
+        "state": {
+          "actor": "ejercito_realista",
+          "goal": "Sostener la invasión; conservar tropas si continuar resulta inviable.",
+          "known_sectors": [
+            {
+              "id": "humahuaca",
+              "occupied": true
+            },
+            {
+              "id": "quebrada",
+              "occupied": true
+            },
+            {
+              "id": "oran",
+              "occupied": true
+            }
+          ],
+          "public_events": {
+            "humahuaca_lost": false,
+            "salta_occupied": false
+          },
+          "round": 1.0,
+          "scenario": "norte",
+          "self_cohesion": 88.0,
+          "self_forces": "agrupaciones agregadas",
+          "self_supplies": 88.0,
+          "situation": {
+            "own_communications": 90.0,
+            "position": "quebrada"
+          },
+          "visible_enemies": [],
+          "visible_resources": [
+            {
+              "foraging_blocked": false,
+              "sector": "humahuaca"
+            },
+            {
+              "foraging_blocked": false,
+              "sector": "quebrada"
+            },
+            {
+              "foraging_blocked": false,
+              "sector": "oran"
+            }
+          ]
+        }
+      },
+      "source": "local_fallback"
+    }
+  ],
+  "first_order_at": 0.0,
+  "game_id": "norte-180507839",
+  "historical_note": "Campaña de 1816–1817. Las agrupaciones, rutas y cifras son una abstracción. Humahuaca se atribuye a Arias. El desenlace histórico fue la retirada realista a comienzos de mayo; tus resultados pueden producir otra cronología.",
+  "humahuaca": false,
+  "last_results": [
+    {
+      "after": 82.0,
+      "before": 88.0,
+      "label": "Abastecimiento realista"
+    },
+    {
+      "after": 89.0,
+      "before": 88.0,
+      "label": "Cohesión realista"
+    },
+    {
+      "after": 92.5,
+      "before": 90.0,
+      "label": "Comunicaciones realistas"
+    },
+    {
+      "after": 78.5,
+      "before": 82.0,
+      "label": "Apoyo de la población"
+    },
+    {
+      "after": 60.0,
+      "before": 65.0,
+      "label": "Reservas propias"
+    }
+  ],
+  "log": [
+    {
+      "kind": "objective",
+      "round": 1.0,
+      "text": "Sostené a la población y cortá los abastecimientos. Ocupar Salta no decide por sí solo la campaña.",
+      "time": 0.0
+    },
+    {
+      "kind": "enemy",
+      "round": 1.0,
+      "text": "El invasor escolta sus convoyes. Los hostigamientos causaron menos daño y mayor riesgo.",
+      "time": 0.0
+    },
+    {
+      "kind": "load",
+      "round": 2.0,
+      "text": "Partida recuperada. Las respuestas externas de la sesión anterior quedan invalidadas.",
+      "time": 0.0
+    }
+  ],
+  "orders": [
+    {
+      "action": "scout",
+      "round": 2.0,
+      "target": {
+        "sector_id": "quebrada"
+      },
+      "time": 0.0,
+      "unit": "arias"
+    }
+  ],
+  "population": 78.5,
+  "pressure_actions": 0.0,
+  "previous_game_id": "norte-133349966",
+  "reason": "",
+  "rng_state": 1817.0,
+  "round": 2.0,
+  "scenario": "norte",
+  "schema_version": 1.0,
+  "sectors": [
+    {
+      "crates": 1.0,
+      "enemy": true,
+      "id": "humahuaca",
+      "intel_until": 0.0,
+      "known": false,
+      "name": "Humahuaca",
+      "neighbors": [
+        "quebrada"
+      ],
+      "protected_until": 0.0,
+      "x": 5.0,
+      "z": -27.0
+    },
+    {
+      "crates": 1.0,
+      "enemy": true,
+      "id": "quebrada",
+      "intel_until": 0.0,
+      "known": false,
+      "name": "Quebrada",
+      "neighbors": [
+        "humahuaca",
+        "jujuy"
+      ],
+      "protected_until": 0.0,
+      "x": -1.0,
+      "z": -21.0
+    },
+    {
+      "crates": 2.0,
+      "enemy": false,
+      "id": "jujuy",
+      "intel_until": 0.0,
+      "known": true,
+      "name": "Jujuy",
+      "neighbors": [
+        "quebrada",
+        "salta",
+        "oran",
+        "lerma"
+      ],
+      "protected_until": 0.0,
+      "x": 1.0,
+      "z": -13.0
+    },
+    {
+      "crates": 3.0,
+      "enemy": false,
+      "id": "salta",
+      "intel_until": 0.0,
+      "known": true,
+      "name": "Salta",
+      "neighbors": [
+        "jujuy",
+        "lerma",
+        "rosario"
+      ],
+      "protected_until": 0.0,
+      "x": 0.0,
+      "z": 8.0
+    },
+    {
+      "crates": 3.0,
+      "enemy": false,
+      "id": "lerma",
+      "intel_until": 0.0,
+      "known": true,
+      "name": "Valle de Lerma",
+      "neighbors": [
+        "jujuy",
+        "salta",
+        "chicoana",
+        "rosario"
+      ],
+      "protected_until": 0.0,
+      "x": -7.0,
+      "z": 6.0
+    },
+    {
+      "crates": 3.0,
+      "enemy": false,
+      "id": "chicoana",
+      "intel_until": 0.0,
+      "known": true,
+      "name": "Chicoana",
+      "neighbors": [
+        "lerma",
+        "rosario"
+      ],
+      "protected_until": 0.0,
+      "x": -9.0,
+      "z": 18.0
+    },
+    {
+      "crates": 2.0,
+      "enemy": true,
+      "id": "oran",
+      "intel_until": 0.0,
+      "known": false,
+      "name": "Orán",
+      "neighbors": [
+        "jujuy"
+      ],
+      "protected_until": 0.0,
+      "x": 23.0,
+      "z": -12.0
+    },
+    {
+      "crates": 3.0,
+      "enemy": false,
+      "id": "rosario",
+      "intel_until": 0.0,
+      "known": true,
+      "name": "Rosario de la Frontera",
+      "neighbors": [
+        "salta",
+        "lerma",
+        "chicoana"
+      ],
+      "protected_until": 0.0,
+      "x": 8.0,
+      "z": 22.0
+    }
+  ],
+  "seed": 1817.0,
+  "state_version": 4,
+  "status": "playing",
+  "stores": 60.0,
+  "units": [
+    {
+      "blocked_until": 0.0,
+      "dismount_remaining": 0.0,
+      "fatigue": 0.0,
+      "id": "guemes",
+      "mounted": true,
+      "name": "Güemes",
+      "order": {},
+      "path": [],
+      "revealed_until": 0.0,
+      "sector_id": "lerma",
+      "stage": "ready",
+      "strength": 100.0,
+      "supply": 97.0,
+      "x": -7.0,
+      "z": 6.0
+    },
+    {
+      "blocked_until": 0.0,
+      "dismount_remaining": 0.0,
+      "fatigue": 0.0,
+      "id": "arias",
+      "mounted": true,
+      "name": "Manuel Eduardo Arias",
+      "order": {
+        "action": "scout",
+        "sector_id": "quebrada"
+      },
+      "path": [],
+      "revealed_until": 0.0,
+      "sector_id": "jujuy",
+      "stage": "ordered",
+      "strength": 100.0,
+      "supply": 97.0,
+      "x": 1.0,
+      "z": -13.0
+    },
+    {
+      "blocked_until": 0.0,
+      "dismount_remaining": 0.0,
+      "fatigue": 0.0,
+      "id": "zavala",
+      "mounted": true,
+      "name": "Partida del valle",
+      "order": {},
+      "path": [],
+      "revealed_until": 0.0,
+      "sector_id": "chicoana",
+      "stage": "ready",
+      "strength": 100.0,
+      "supply": 97.0,
+      "x": -9.0,
+      "z": 18.0
+    }
+  ]
+}

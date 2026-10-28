@@ -1,0 +1,26 @@
+{
+  "source_packages": "https://dl.winehq.org/wine-builds/ubuntu/dists/noble/main/binary-amd64/Packages.gz",
+  "installation": "isolated extraction; no package scripts or system installation",
+  "packages": [
+    {
+      "Package": "wine-stable",
+      "Version": "11.0.0.0~noble-1",
+      "Depends": "libc6 (>= 2.38), wine-stable-i386 (= 11.0.0.0~noble-1), wine-stable-amd64 (= 11.0.0.0~noble-1)",
+      "Filename": "pool/main/w/wine/wine-stable_11.0.0.0~noble-1_amd64.deb",
+      "Size": "2917734",
+      "SHA256": "04e7b4b995262c734019099d93277d8f219f7d180ebb65b5ccb3df7f97be1078",
+      "url": "https://dl.winehq.org/wine-builds/ubuntu/pool/main/w/wine/wine-stable_11.0.0.0~noble-1_amd64.deb",
+      "sha256_verified": true
+    },
+    {
+      "Package": "wine-stable-amd64",
+      "Version": "11.0.0.0~noble-1",
+      "Depends": "libasound2t64 (>= 1.0.16), libc6 (>= 2.38), libglib2.0-0t64 (>= 2.79.0), libgphoto2-6t64 (>= 2.5.10), libgphoto2-port12t64 (>= 2.5.10), libgstreamer-plugins-base1.0-0 (>= 1.8.0), libgstreamer1.0-0 (>= 1.14.0), libpcap0.8t64 (>= 1.10.0), libpulse0 (>= 0.99.1), libsane1 (>= 1.0.27), libudev1 (>= 183), libunwind8, libusb-1.0-0 (>= 2:1.0.21), libwayland-client0 (>= 1.20.0), libwayland-egl1 (>= 1.15.0), libx11-6, libxext6, libxkbcommon0 (>= 0.5.0), libxkbregistry0 (>= 1.0.0), ocl-icd-libopencl1 | libopencl1, ocl-icd-libopencl1 (>= 1.0) | libopencl-1.2-1, libasound2-plugins, libncurses6 | libncurses5 | libncurses",
+      "Filename": "pool/main/w/wine/wine-stable-amd64_11.0.0.0~noble-1_amd64.deb",
+      "Size": "122823532",
+      "SHA256": "6cb835e2171b5572b17f1c06729735c2c7e40178239d7fa6c29ef14bd9b40d16",
+      "url": "https://dl.winehq.org/wine-builds/ubuntu/pool/main/w/wine/wine-stable-amd64_11.0.0.0~noble-1_amd64.deb",
+      "sha256_verified": true
+    }
+  ]
+}

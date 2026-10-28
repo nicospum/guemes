@@ -1,0 +1,13 @@
+{
+  "command": [
+    "/workspace/scratch/f2211c286bae/.tools/wine11/opt/wine-stable/bin/wine",
+    "/workspace/scratch/f2211c286bae/.tools/templates/templates/windows_release_x86_64.exe",
+    "--headless",
+    "--version"
+  ],
+  "prefix": "/workspace/scratch/f2211c286bae/.runtime/wine11",
+  "wine_version": "wine-11.0",
+  "exit_code": 0,
+  "timed_out": false,
+  "elapsed_seconds": 3.276
+}

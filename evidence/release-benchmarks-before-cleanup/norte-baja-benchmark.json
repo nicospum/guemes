@@ -1,0 +1,19 @@
+{
+  "engine": "4.7.2-stable (official)",
+  "engine_static_memory_bytes": 0,
+  "frame_ms_median": 43.153,
+  "frame_ms_p95": 50.218,
+  "frames": 180,
+  "mean_fps": 23.0160014914369,
+  "measurement_seconds": 7.820646,
+  "os": "Linux",
+  "pid": 14449,
+  "quality": "baja",
+  "render_3d_scale": 0.5,
+  "renderer": "llvmpipe (LLVM 20.1.2, 256 bits)",
+  "scenario": "norte",
+  "scene_build_ms": 88,
+  "scope": "isolated automated local rendering; not the user PC",
+  "viewport": "(1440.0, 900.0)",
+  "observed_process_peak_rss_bytes": 392290304
+}

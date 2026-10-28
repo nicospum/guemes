@@ -12,9 +12,9 @@ Dos escenarios completos en sus reglas, con selección, objetivos, victoria, der
 
 No hace falta instalar el editor de Godot, Blender, REA, Python ni un MCP para jugar. No hace falta una clave de Jev para completar los escenarios. Los guardados y ajustes se escriben en `%APPDATA%\Godot\app_userdata\Güemes — Juegos de la Patria`, fuera de la carpeta del ejecutable. La instalación de Civilization VII no forma parte del proyecto.
 
-El destino es Windows x64; la exportación y la evidencia de ejecución se detallan en `docs/VERIFICACION.md`. Una ejecución bajo Wine no equivale a validar una PC Windows nativa.
+El destino es Windows x64. El EXE final completó ambos escenarios hasta la victoria bajo Wine 11.0 en Linux; la exportación y las evidencias se detallan en `docs/VERIFICACION.md`. Todavía no se validó su ejecución en una PC Windows nativa.
 
-En el servidor remoto sin GPU acelerada, el perfil bajo midió aproximadamente 18–23 FPS; no alcanzó la meta de 30 FPS. El rendimiento y el audio en tu PC Windows requieren una prueba en ese equipo. El juego permite cambiar el detalle en Ajustes.
+En el servidor remoto sin GPU acelerada, el perfil bajo midió aproximadamente 16–20 FPS; no alcanzó la meta de 30 FPS. El rendimiento y el audio en tu PC Windows requieren una prueba en ese equipo. El juego permite cambiar el detalle en Ajustes.
 
 ## Los dos escenarios
 
@@ -83,6 +83,7 @@ REA 6.8.0 se utilizó realmente para inspección PE del runtime y del ejecutable
 - `docs/ASSETS.md`: geometría, animación, audio y licencias.
 - `docs/REA.md`, `docs/JEV.md`, `docs/HERRAMIENTAS.md`: integraciones y límites.
 - `docs/VERIFICACION.md`: pruebas, rendimiento, hardware y aceptación.
+- `docs/WINE_QA.md`: ejecución del EXE final y diagnóstico de compatibilidad de Wine.
 - `docs/RECONSTRUIR.md`: reconstruir con Godot 4.7.2.
 - `evidence/`: registros, resultados y capturas de ejecución real.
 

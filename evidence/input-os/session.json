@@ -1,0 +1,14 @@
+{
+  "display": ":105",
+  "xvfb_pid": 9534,
+  "game_pid": 9538,
+  "start_utc": "2026-10-28T13:35:14.700012+00:00",
+  "resolution": "1280x800",
+  "quality": "baja",
+  "max_fps": 30,
+  "profile": ".runtime/inputqa",
+  "last_input_utc": "2026-10-28T13:39:37.020163+00:00",
+  "end_checked_utc": "2026-10-28T13:39:38.815113+00:00",
+  "game_alive": false,
+  "xvfb_alive": false
+}

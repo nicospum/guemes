@@ -1,0 +1,34 @@
+{
+  "started_utc": "2026-10-28T14:06:21+00:00",
+  "godot_version": "4.7.2.stable.official.ed1daf0bf",
+  "godot_executable": "/workspace/scratch/f2211c286bae/.tools/godot/godot",
+  "templates": "/workspace/scratch/f2211c286bae/.tools/templates/templates",
+  "host": "linux",
+  "requested_targets": [
+    "windows",
+    "linux"
+  ],
+  "status": "exported",
+  "exports": [
+    {
+      "target": "windows",
+      "preset": "Windows Desktop",
+      "output": "builds/windows/PatriaGuemes.exe",
+      "bytes": 111740368,
+      "sha256": "c2608e42b9e752231515b97fce20bdb8f8ec08ae8dc878e17a01f34aa710c462",
+      "status": "exported"
+    },
+    {
+      "target": "linux",
+      "preset": "Linux QA",
+      "output": "builds/linux/PatriaGuemes.x86_64",
+      "bytes": 75991296,
+      "sha256": "859cab6acf7caa850ba704156ab64818871ada23c65637ebb41888023f66a3c8",
+      "status": "exported"
+    }
+  ],
+  "native_execution_tested": false,
+  "note": "Este proceso importa y exporta. No ejecuta ni mide los juegos resultantes.",
+  "finished_utc": "2026-10-28T14:06:31+00:00",
+  "presets_restored": true
+}

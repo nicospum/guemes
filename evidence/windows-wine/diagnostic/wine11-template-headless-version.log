@@ -1,0 +1,5 @@
+wine: created the configuration directory '/workspace/scratch/f2211c286bae/.runtime/wine11'
+error: XDG_RUNTIME_DIR is invalid or not set in the environment.
+error: XDG_RUNTIME_DIR is invalid or not set in the environment.
+wine: failed to start L"C:\\windows\\syswow64\\rundll32.exe": c0000135
+4.7.2.stable.official.ed1daf0bf

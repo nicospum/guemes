@@ -1,0 +1,50 @@
+WorkerThreadPool: 9 threads, 2 max low-priority.
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+TextServer: Added interface "Dummy"
+TextServer: Added interface "ICU / HarfBuzz / Graphite (Built-in)"
+SDL: Init OK!
+Accessibility: AccessKit driver loaded.
+Xshape 1.1 detected.
+Xinerama 1.1 detected.
+Xrandr 1.6 detected.
+Xrender 0.11 detected.
+Xinput 2.2 detected.
+XInput: Refreshing devices.
+XInput: No touch devices found.
+Input method started.
+Detecting GPUs, set DRI_PRIME in the environment to override GPU detection logic.
+Only one GPU found, using default.
+Accessibility: window 0 adapter created.
+WARNING: Could not set V-Sync mode, as changing V-Sync mode is not supported by the graphics driver.
+     at: set_use_vsync (platform/linuxbsd/x11/gl_manager_x11.cpp:372)
+XcursorGetTheme could not get cursor theme
+Failed loading custom cursor: crossed_circle
+DBus 1.14.10 detected.
+Using "default" pen tablet driver...
+Shader 'CanvasSdfShaderGLES3' SHA256: abf356c5c158e897c1737becd3e6532eb221c967f6121798daab7bfe96f2ce42
+Shader 'SkeletonShaderGLES3' SHA256: b724bbf96cb191c3ae0b22461482bd5d8f988f0884b3957c98bc8282be770042
+Shader 'ParticlesShaderGLES3' SHA256: e395289efaf6eb901f37fa52ee46789f3fed87c5d9721839dd1efbd72c3654f8
+Shader 'ParticlesCopyShaderGLES3' SHA256: 22a76bde134d7d817978f4d1aff359654d43eeaafe93ce29c4b2479f08797240
+Shader 'CopyShaderGLES3' SHA256: b0faebd6925ff1c833511b8c8f5903495c10d50a2e0380eccc8928f02753a292
+Shader 'CubemapFilterShaderGLES3' SHA256: b609d6da4f54d6088e153d0529646c1ae7652585a5cfd976768f9045952120e2
+Shader 'GlowShaderGLES3' SHA256: 8f5fe5d3855cfde58ee491780c7ef8f87450649ccee7c499d11dac3127823727
+Shader 'PostShaderGLES3' SHA256: bc75cc50626db27e4022969ac2e0db5def83d6ef6bad584c4e142e19decd1e6c
+Shader 'FeedShaderGLES3' SHA256: 91c6c80fb626be963e0d35c9015450afdb94c21a9a5a724e204bb741159a3006
+Shader 'CanvasShaderGLES3' SHA256: 50e14a659485d647a4c471ff8cdd8c47a4c9f524840fd40fea402971ed8505c1
+Shader 'CanvasOcclusionShaderGLES3' SHA256: 6ae9571e2fd4347046b3e02c28910aa22c11964bfb6632690d8a04a5a3830b2d
+Shader 'SceneShaderGLES3' SHA256: 7d48dc451e6650f858cdcfe9b203ad43b4ba2a776d56dc49d3fb1ecc58b81b7d
+Shader 'SkyShaderGLES3' SHA256: 08e30f232d8d7c6701b8679fcb635418b8bf98a70969a29aad4fcff8eb5e115f
+Shader 'TexBlitShaderGLES3' SHA256: 0b620eaf8020cc83aa48c482a62589eab6cc981c4ab72fd0d99898a3c1811cfa
+OpenGL API 4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.2 - Compatibility - Using Device: Mesa - llvmpipe (LLVM 20.1.2, 256 bits)
+
+TextServer: Primary interface set to: "ICU / HarfBuzz / Graphite (Built-in)".
+CORE API HASH: 2004498165
+EDITOR API HASH: 1696660745
+Loading resource: res://sky.gd remapped: res://sky.gd
+Completed load for: 'res://sky.gd' remapped 'res://sky.gd' at thread -1
+SceneTreeFTI: traversal method DEFAULT
+Loaded system CA certificates
+XR: Clearing primary interface
+XR: Removed interface "Native mobile"
+XR: Removed interface "OpenXR"
+Accessibility: window 0 adapter destroyed.

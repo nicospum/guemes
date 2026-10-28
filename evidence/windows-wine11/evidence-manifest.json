@@ -1,0 +1,83 @@
+{
+  "recorded_at_utc": "2026-10-28T14:17:43.196812+00:00",
+  "files": [
+    {
+      "path": "evidence/windows-wine11/justine/justine-bajante.png",
+      "bytes": 541373,
+      "sha256": "e0911e757a3f570e31ebb7a9cc66c459ede6d4bba6d946a48f4d3c86ee32f53f",
+      "width": 1404,
+      "height": 878
+    },
+    {
+      "path": "evidence/windows-wine11/justine/justine-inicio.png",
+      "bytes": 497772,
+      "sha256": "46022b28c85b82627137dba1fec0ee822bb011d87a014076faeda58676305aa6",
+      "width": 1404,
+      "height": 878
+    },
+    {
+      "path": "evidence/windows-wine11/justine/justine-victoria.png",
+      "bytes": 258340,
+      "sha256": "482a4f915c82f5029099650eed38ed1f7b15608ed9298b4d235f2a06eb145011",
+      "width": 1404,
+      "height": 878
+    },
+    {
+      "path": "evidence/windows-wine11/justine/menu.png",
+      "bytes": 504178,
+      "sha256": "fd11bc8cde0250c78aad6c3c3df84fc7f0259b08af8a64405e60d05cf0c03013",
+      "width": 1404,
+      "height": 878
+    },
+    {
+      "path": "evidence/windows-wine11/norte/menu.png",
+      "bytes": 503868,
+      "sha256": "aca61bc4937486858607f936c6a92f9a9aa91bade6f3285b0414b0513ba83555",
+      "width": 1404,
+      "height": 878
+    },
+    {
+      "path": "evidence/windows-wine11/norte/norte-desenlace.png",
+      "bytes": 281339,
+      "sha256": "ad1230241c2b1cd07c78db1a3074ee11ce39202e8cdd939867593c5df958232f",
+      "width": 1404,
+      "height": 878
+    },
+    {
+      "path": "evidence/windows-wine11/norte/norte-humahuaca.png",
+      "bytes": 695499,
+      "sha256": "2429c6b3a231b4959cedeae9b0ed2a16bc3216b67634d20803761d2a3e063db9",
+      "width": 1404,
+      "height": 878
+    },
+    {
+      "path": "evidence/windows-wine11/norte/norte-inicio.png",
+      "bytes": 668119,
+      "sha256": "12d7df3dab4009f6c1e3dc5697bb273a53233f80e31265d7b2d9d47f846dc804",
+      "width": 1404,
+      "height": 878
+    },
+    {
+      "path": "evidence/windows-wine11/userdata/jev_decisions.jsonl",
+      "bytes": 17612,
+      "sha256": "64de86ef4f2b7964f4e1499e2eba61dcb91e973bf31442b6a8abc4de08f53e7d"
+    },
+    {
+      "path": "evidence/windows-wine11/userdata/qa_save_justine.json",
+      "bytes": 7356,
+      "sha256": "623cc3c195c0feb7762434cc931348888cca0a8e7d4fa8d5c8fd33f69e8b4104"
+    },
+    {
+      "path": "evidence/windows-wine11/userdata/qa_save_norte.json",
+      "bytes": 40160,
+      "sha256": "c04474a070904ebb8b40896d4c816d4e3c03e4b9668f554ffa4a7a0b01d07e55"
+    },
+    {
+      "path": "evidence/windows-wine11/userdata/settings.cfg",
+      "bytes": 153,
+      "sha256": "07026040c4df0dafaa154437fe70e98d31cb8190b7e77ccbc6f6196d4e25018e"
+    }
+  ],
+  "native_windows_tested": false,
+  "live_jev_tested": false
+}

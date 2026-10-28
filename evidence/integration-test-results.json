@@ -1,0 +1,10 @@
+{
+	"checks": 61,
+	"engine": "4.7.2-stable (official)",
+	"failures": [],
+	"final_scenario": "justine",
+	"final_status": "defeat",
+	"kind": "headless_scene_integration",
+	"ok": true,
+	"suite": "main_scene_player_flow"
+}

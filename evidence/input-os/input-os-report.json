@@ -1,0 +1,175 @@
+{
+  "kind": "actual_OS_input_on_Godot_window",
+  "environment": "Linux remote; Xvfb; Mesa llvmpipe software rendering",
+  "session": {
+    "display": ":105",
+    "xvfb_pid": 9534,
+    "game_pid": 9538,
+    "start_utc": "2026-10-28T13:35:14.700012+00:00",
+    "resolution": "1280x800",
+    "quality": "baja",
+    "max_fps": 30,
+    "profile": ".runtime/inputqa",
+    "last_input_utc": "2026-10-28T13:39:37.020163+00:00",
+    "end_checked_utc": "2026-10-28T13:39:38.815113+00:00",
+    "game_alive": false,
+    "xvfb_alive": false
+  },
+  "game_exit_code": 0,
+  "without_qa_argument": true,
+  "without_headless_argument": true,
+  "input": "xdotool focused X11 game window",
+  "capture": "PIL.ImageGrab from display :105",
+  "screenshots": 21,
+  "checks": [
+    {
+      "name": "Select-all and direct-route click queue all three groups",
+      "passed": true,
+      "evidence": [
+        "05-all-direct.png",
+        "justine-all-direct.json"
+      ]
+    },
+    {
+      "name": "Select-one and flank click change only Guemes",
+      "passed": true,
+      "evidence": [
+        "06-mixed-routes.png",
+        "justine-mixed-routes.json"
+      ]
+    },
+    {
+      "name": "Space resumes actual tactical simulation",
+      "passed": true,
+      "evidence": [
+        "justine-progress.json"
+      ]
+    },
+    {
+      "name": "F9 restores tactical orders and positions",
+      "passed": true,
+      "evidence": [
+        "justine-progress.json",
+        "justine-loaded.json"
+      ],
+      "numeric_tolerance": 1e-06,
+      "maximum_observed_position_difference": 1.7763568394002505e-15
+    },
+    {
+      "name": "Tactical load changes request identity",
+      "passed": true,
+      "evidence": [
+        "justine-progress.json",
+        "justine-loaded.json"
+      ]
+    },
+    {
+      "name": "Mouse wheel and Q visibly change camera framing",
+      "passed": true,
+      "evidence": [
+        "08-camera-before.png",
+        "09-camera-zoom-turn.png",
+        "camera-observation.json"
+      ]
+    },
+    {
+      "name": "Arias reconnaissance targets Quebrada after mouse selection",
+      "passed": true,
+      "evidence": [
+        "18-scout-confirmed.png",
+        "norte-scout-corrected.json"
+      ]
+    },
+    {
+      "name": "Resolve button advances exactly one campaign round",
+      "passed": true,
+      "evidence": [
+        "norte-scout-corrected.json",
+        "norte-scout-resolved.json"
+      ]
+    },
+    {
+      "name": "Reconnaissance discovers Quebrada and sets valid intelligence",
+      "passed": true,
+      "evidence": [
+        "19-scout-resolved.png",
+        "norte-scout-resolved.json"
+      ]
+    },
+    {
+      "name": "Reconnaissance has real fatigue and supply consequences",
+      "passed": true,
+      "evidence": [
+        "norte-scout-corrected.json",
+        "norte-scout-resolved.json"
+      ]
+    },
+    {
+      "name": "One applied external-contract decision per resolved round",
+      "passed": true,
+      "evidence": [
+        "norte-scout-resolved.json"
+      ]
+    },
+    {
+      "name": "Offline decision accurately records local fallback",
+      "passed": true,
+      "evidence": [
+        "norte-scout-resolved.json"
+      ]
+    },
+    {
+      "name": "Campaign F9 preserves units, resources and intelligence",
+      "passed": true,
+      "evidence": [
+        "20-norte-scout-loaded.png",
+        "norte-scout-loaded.json"
+      ]
+    },
+    {
+      "name": "Campaign F9 changes request identity",
+      "passed": true,
+      "evidence": [
+        "norte-scout-loaded.json"
+      ]
+    },
+    {
+      "name": "Loading does not duplicate applied decisions",
+      "passed": true,
+      "evidence": [
+        "norte-scout-loaded.json"
+      ]
+    },
+    {
+      "name": "Game and isolated X server closed",
+      "passed": true,
+      "evidence": [
+        "session.json"
+      ]
+    },
+    {
+      "name": "No runtime script or engine errors during OS session",
+      "passed": true,
+      "evidence": [
+        "game.log"
+      ]
+    }
+  ],
+  "passed": 17,
+  "total": 17,
+  "all_passed": true,
+  "known_limitations": [
+    "No native Windows or user hardware validation",
+    "The first arrow/Enter attempt in the dropdown selected Rosario; direct mouse selection of Quebrada was subsequently verified",
+    "Labels overlap at the initial northern camera framing; this was reported to the integrator",
+    "Low-quality river appeared muddy and nearly flat in this session; this was reported for visual review",
+    "Configured max_fps=30 is a cap, not a measured framerate"
+  ],
+  "source_sha256_at_report_time": {
+    "scripts/main.gd": "3a20e3031cb9d408706eaeb40afdd16d4b2c6edc54c06ba0797f1a208e9a5cc4",
+    "scripts/world_view.gd": "316b3f6235b3eeb4987741e6b0a13c5c224ce16edfa2840d47ae608732a1aa08",
+    "scripts/game_rules.gd": "c4ef29f7090e5febd5b8d80d471e5a36595b3c862e9fb1272f0d62b38f2784ea",
+    "scripts/jev_client.gd": "e963161e4f4a92c6e662e4b0c63cb1fea76b9f0acde9988da006aaaaae2bf9a0"
+  },
+  "source_hash_note": "Fingerprints gathered after the session, not at process launch; runtime screenshots and saves are the primary evidence."
+}

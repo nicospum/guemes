@@ -1,0 +1,19 @@
+{
+  "command": [
+    "xvfb-run",
+    "-a",
+    "-s",
+    "-screen 0 800x600x24",
+    "/usr/lib/wine/wine64",
+    "winedbg",
+    "--file",
+    "Z:\\workspace\\scratch\\f2211c286bae\\patria-guemes\\evidence\\windows-wine\\diagnostic\\wine9-debugger-commands.txt",
+    "/workspace/scratch/f2211c286bae/.tools/templates/templates/windows_release_x86_64.exe",
+    "--headless",
+    "--version"
+  ],
+  "exit_code": 0,
+  "timed_out": false,
+  "elapsed_seconds": 2.35,
+  "purpose": "Official Godot template without project PCK; debugger backtrace"
+}

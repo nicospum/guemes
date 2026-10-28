@@ -1,0 +1,55 @@
+{
+  "version": "0.1.0",
+  "recorded_utc": "2026-10-28T14:17:06.344809+00:00",
+  "windows_binary_sha256": "c2608e42b9e752231515b97fce20bdb8f8ec08ae8dc878e17a01f34aa710c462",
+  "runtime_source_commit": "a246cdd",
+  "rules": {
+    "checks": 80,
+    "ok": true
+  },
+  "scene_integration": {
+    "checks": 61,
+    "ok": true
+  },
+  "jev_contract": {
+    "checks": 15,
+    "failures": [],
+    "live_api_tested": false
+  },
+  "os_input_linux": {
+    "passed": 17,
+    "total": 17
+  },
+  "windows_wine11": [
+    {
+      "scenario": "justine",
+      "exit_code": 0,
+      "wall_seconds": 13.123,
+      "report_present": true,
+      "status": "victory",
+      "os_reported_by_engine": "Windows",
+      "quality": "baja",
+      "passed": true
+    },
+    {
+      "scenario": "norte",
+      "exit_code": 0,
+      "wall_seconds": 45.321,
+      "report_present": true,
+      "status": "victory",
+      "os_reported_by_engine": "Windows",
+      "quality": "baja",
+      "passed": true
+    }
+  ],
+  "native_windows_tested": false,
+  "historical_assets": "Originals preserved outside distribution; matrix and references included",
+  "known_limits": [
+    "Stylized alpha, cinematic fidelity pending",
+    "Native target hardware and auditory validation pending",
+    "Live Jev call unavailable without credential",
+    "Measured software rendering below30FPS",
+    "Two GL textures reported retained at Linux process exit; not reproduced in final Wine11 runs",
+    "Human play duration not yet measured"
+  ]
+}

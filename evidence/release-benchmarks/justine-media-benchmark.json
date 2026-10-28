@@ -1,0 +1,23 @@
+{
+  "engine": "4.7.2-stable (official)",
+  "engine_static_memory_bytes": 0,
+  "frame_ms_median": 245.752,
+  "frame_ms_p95": 358.046,
+  "frames": 180,
+  "mean_fps": 3.87618884326902,
+  "measurement_seconds": 46.437366,
+  "os": "Linux",
+  "pid": 17516,
+  "quality": "media",
+  "render_3d_scale": 1.0,
+  "renderer": "llvmpipe (LLVM 20.1.2, 256 bits)",
+  "scenario": "justine",
+  "scene_build_ms": 101,
+  "scope": "isolated automated local rendering; not the user PC",
+  "viewport": "(1440.0, 900.0)",
+  "observed_process_peak_rss_bytes": 529657856,
+  "binary_sha256": "859cab6acf7caa850ba704156ab64818871ada23c65637ebb41888023f66a3c8",
+  "binary_bytes": 75991296,
+  "run_started_utc": "2026-10-28T14:11:23.479019+00:00",
+  "run_finished_utc": "2026-10-28T14:12:19.778359+00:00"
+}

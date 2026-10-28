@@ -1,0 +1,105 @@
+WorkerThreadPool: 9 threads, 2 max low-priority.
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+TextServer: Added interface "Dummy"
+TextServer: Added interface "ICU / HarfBuzz / Graphite (Built-in)"
+SDL: Init OK!
+Accessibility: AccessKit driver loaded.
+Xshape 1.1 detected.
+Xinerama 1.1 detected.
+Xrandr 1.6 detected.
+Xrender 0.11 detected.
+Xinput 2.2 detected.
+XInput: Refreshing devices.
+XInput: No touch devices found.
+Input method started.
+Detecting GPUs, set DRI_PRIME in the environment to override GPU detection logic.
+Only one GPU found, using default.
+Accessibility: window 0 adapter created.
+WARNING: Could not set V-Sync mode, as changing V-Sync mode is not supported by the graphics driver.
+     at: set_use_vsync (platform/linuxbsd/x11/gl_manager_x11.cpp:372)
+XcursorGetTheme could not get cursor theme
+Failed loading custom cursor: crossed_circle
+DBus 1.14.10 detected.
+Using "default" pen tablet driver...
+Shader 'CanvasSdfShaderGLES3' SHA256: abf356c5c158e897c1737becd3e6532eb221c967f6121798daab7bfe96f2ce42
+Shader 'SkeletonShaderGLES3' SHA256: b724bbf96cb191c3ae0b22461482bd5d8f988f0884b3957c98bc8282be770042
+Shader 'ParticlesShaderGLES3' SHA256: e395289efaf6eb901f37fa52ee46789f3fed87c5d9721839dd1efbd72c3654f8
+Shader 'ParticlesCopyShaderGLES3' SHA256: 22a76bde134d7d817978f4d1aff359654d43eeaafe93ce29c4b2479f08797240
+Shader 'CopyShaderGLES3' SHA256: b0faebd6925ff1c833511b8c8f5903495c10d50a2e0380eccc8928f02753a292
+Shader 'CubemapFilterShaderGLES3' SHA256: b609d6da4f54d6088e153d0529646c1ae7652585a5cfd976768f9045952120e2
+Shader 'GlowShaderGLES3' SHA256: 8f5fe5d3855cfde58ee491780c7ef8f87450649ccee7c499d11dac3127823727
+Shader 'PostShaderGLES3' SHA256: bc75cc50626db27e4022969ac2e0db5def83d6ef6bad584c4e142e19decd1e6c
+Shader 'FeedShaderGLES3' SHA256: 91c6c80fb626be963e0d35c9015450afdb94c21a9a5a724e204bb741159a3006
+Shader 'CanvasShaderGLES3' SHA256: 50e14a659485d647a4c471ff8cdd8c47a4c9f524840fd40fea402971ed8505c1
+Shader 'CanvasOcclusionShaderGLES3' SHA256: 6ae9571e2fd4347046b3e02c28910aa22c11964bfb6632690d8a04a5a3830b2d
+Shader 'SceneShaderGLES3' SHA256: 7d48dc451e6650f858cdcfe9b203ad43b4ba2a776d56dc49d3fb1ecc58b81b7d
+Shader 'SkyShaderGLES3' SHA256: 08e30f232d8d7c6701b8679fcb635418b8bf98a70969a29aad4fcff8eb5e115f
+Shader 'TexBlitShaderGLES3' SHA256: 0b620eaf8020cc83aa48c482a62589eab6cc981c4ab72fd0d99898a3c1811cfa
+OpenGL API 4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.2 - Compatibility - Using Device: Mesa - llvmpipe (LLVM 20.1.2, 256 bits)
+
+TextServer: Primary interface set to: "ICU / HarfBuzz / Graphite (Built-in)".
+CORE API HASH: 2004498165
+EDITOR API HASH: 1696660745
+SceneTreeFTI: traversal method DEFAULT
+Loaded system CA certificates
+Loading resource: res://scenes/main.tscn remapped: res://scenes/main.tscn
+Loading resource: res://scripts/main.gd remapped: res://scripts/main.gd
+Completed load for: 'res://scripts/main.gd' remapped 'res://scripts/main.gd' at thread -1
+Completed load for: 'res://scenes/main.tscn' remapped 'res://scenes/main.tscn' at thread -1
+Loading resource: res://assets/fonts/Inter.ttf remapped: res://assets/fonts/Inter.ttf
+Loading resource: res://.godot/imported/Inter.ttf-48d80b607bc8c026a4a7deff5f7e1456.fontdata remapped: res://.godot/imported/Inter.ttf-48d80b607bc8c026a4a7deff5f7e1456.fontdata
+Completed load for: 'res://assets/fonts/Inter.ttf' remapped 'res://assets/fonts/Inter.ttf' at thread -1
+Loading resource: res://assets/fonts/Cinzel.ttf remapped: res://assets/fonts/Cinzel.ttf
+Loading resource: res://.godot/imported/Cinzel.ttf-1e003c02bd9f5caf99829299b24c9916.fontdata remapped: res://.godot/imported/Cinzel.ttf-1e003c02bd9f5caf99829299b24c9916.fontdata
+Completed load for: 'res://assets/fonts/Cinzel.ttf' remapped 'res://assets/fonts/Cinzel.ttf' at thread -1
+Loading resource: res://scripts/audio_manager.gd remapped: res://scripts/audio_manager.gd
+Completed load for: 'res://scripts/audio_manager.gd' remapped 'res://scripts/audio_manager.gd' at thread -1
+Loading resource: res://assets/audio/order.wav remapped: res://assets/audio/order.wav
+Loading resource: res://.godot/imported/order.wav-b072dbcadaff706d899a1f201b15913e.sample remapped: res://.godot/imported/order.wav-b072dbcadaff706d899a1f201b15913e.sample
+Completed load for: 'res://assets/audio/order.wav' remapped 'res://assets/audio/order.wav' at thread -1
+Loading resource: res://assets/audio/error.wav remapped: res://assets/audio/error.wav
+Loading resource: res://.godot/imported/error.wav-99844ed22afbc0c517ece11da3662cae.sample remapped: res://.godot/imported/error.wav-99844ed22afbc0c517ece11da3662cae.sample
+Completed load for: 'res://assets/audio/error.wav' remapped 'res://assets/audio/error.wav' at thread -1
+Loading resource: res://assets/audio/cannon.wav remapped: res://assets/audio/cannon.wav
+Loading resource: res://.godot/imported/cannon.wav-38078ec7dbd89e6ce8a071f066e4cec0.sample remapped: res://.godot/imported/cannon.wav-38078ec7dbd89e6ce8a071f066e4cec0.sample
+Completed load for: 'res://assets/audio/cannon.wav' remapped 'res://assets/audio/cannon.wav' at thread -1
+Loading resource: res://assets/audio/hoof.wav remapped: res://assets/audio/hoof.wav
+Loading resource: res://.godot/imported/hoof.wav-7f6a55aec6bdd7ccba495b36e5f30978.sample remapped: res://.godot/imported/hoof.wav-7f6a55aec6bdd7ccba495b36e5f30978.sample
+Completed load for: 'res://assets/audio/hoof.wav' remapped 'res://assets/audio/hoof.wav' at thread -1
+Loading resource: res://assets/audio/victory.wav remapped: res://assets/audio/victory.wav
+Loading resource: res://.godot/imported/victory.wav-d893d32ad919f27e15cf04d35e288b78.sample remapped: res://.godot/imported/victory.wav-d893d32ad919f27e15cf04d35e288b78.sample
+Completed load for: 'res://assets/audio/victory.wav' remapped 'res://assets/audio/victory.wav' at thread -1
+Loading resource: res://assets/terrain.gdshader remapped: res://assets/terrain.gdshader
+Completed load for: 'res://assets/terrain.gdshader' remapped 'res://assets/terrain.gdshader' at thread -1
+Loading resource: res://assets/water.gdshader remapped: res://assets/water.gdshader
+Completed load for: 'res://assets/water.gdshader' remapped 'res://assets/water.gdshader' at thread -1
+Loading resource: res://assets/models/justine.glb remapped: res://assets/models/justine.glb
+Loading resource: res://.godot/imported/justine.glb-487342bea62165b0988a3ef458a9236c.scn remapped: res://.godot/imported/justine.glb-487342bea62165b0988a3ef458a9236c.scn
+Completed load for: 'res://assets/models/justine.glb' remapped 'res://assets/models/justine.glb' at thread -1
+Loading resource: res://assets/models/infantry.glb remapped: res://assets/models/infantry.glb
+Loading resource: res://.godot/imported/infantry.glb-8785affe3b5b3b47d1dfce4d8b459554.scn remapped: res://.godot/imported/infantry.glb-8785affe3b5b3b47d1dfce4d8b459554.scn
+Completed load for: 'res://assets/models/infantry.glb' remapped 'res://assets/models/infantry.glb' at thread -1
+Loading resource: res://assets/models/rider_1806.glb remapped: res://assets/models/rider_1806.glb
+Loading resource: res://.godot/imported/rider_1806.glb-ca86b89d4655e49e1b29b7255d984ba7.scn remapped: res://.godot/imported/rider_1806.glb-ca86b89d4655e49e1b29b7255d984ba7.scn
+Completed load for: 'res://assets/models/rider_1806.glb' remapped 'res://assets/models/rider_1806.glb' at thread -1
+Loading resource: res://assets/audio/river.wav remapped: res://assets/audio/river.wav
+Loading resource: res://.godot/imported/river.wav-62b260924b79976f42f0b5ed172a6ca3.sample remapped: res://.godot/imported/river.wav-62b260924b79976f42f0b5ed172a6ca3.sample
+Completed load for: 'res://assets/audio/river.wav' remapped 'res://assets/audio/river.wav' at thread -1
+Loading resource: res://assets/models/royalist_1817.glb remapped: res://assets/models/royalist_1817.glb
+Loading resource: res://.godot/imported/royalist_1817.glb-0cc6980262093d6b896f7fee8f40cee5.scn remapped: res://.godot/imported/royalist_1817.glb-0cc6980262093d6b896f7fee8f40cee5.scn
+Completed load for: 'res://assets/models/royalist_1817.glb' remapped 'res://assets/models/royalist_1817.glb' at thread -1
+Loading resource: res://assets/models/rider_1817.glb remapped: res://assets/models/rider_1817.glb
+Loading resource: res://.godot/imported/rider_1817.glb-693ee190359046e1a04355487fc70604.scn remapped: res://.godot/imported/rider_1817.glb-693ee190359046e1a04355487fc70604.scn
+Completed load for: 'res://assets/models/rider_1817.glb' remapped 'res://assets/models/rider_1817.glb' at thread -1
+Loading resource: res://assets/audio/wind.wav remapped: res://assets/audio/wind.wav
+Loading resource: res://.godot/imported/wind.wav-26bd3f95e99896071b625821c2f0df7a.sample remapped: res://.godot/imported/wind.wav-26bd3f95e99896071b625821c2f0df7a.sample
+Completed load for: 'res://assets/audio/wind.wav' remapped 'res://assets/audio/wind.wav' at thread -1
+{"engine":"4.7.2-stable (official)","engine_static_memory_bytes":57775411,"frame_ms_median":48.352,"frame_ms_p95":56.392,"frames":180,"mean_fps":20.552379451731,"measurement_seconds":8.75811,"os":"Linux","pid":15206,"quality":"baja","render_3d_scale":0.5,"renderer":"llvmpipe (LLVM 20.1.2, 256 bits)","scenario":"norte","scene_build_ms":132,"scope":"isolated automated local rendering; not the user PC","viewport":"(1440.0, 900.0)"}
+ERROR: Texture with GL ID of 24: leaked 349524 bytes.
+   at: ~Utilities (drivers/gles3/storage/utilities.cpp:82)
+ERROR: Texture with GL ID of 25: leaked 349524 bytes.
+   at: ~Utilities (drivers/gles3/storage/utilities.cpp:82)
+XR: Clearing primary interface
+XR: Removed interface "Native mobile"
+XR: Removed interface "OpenXR"
+Accessibility: window 0 adapter destroyed.

@@ -1,0 +1,17 @@
+{
+  "failure": "Wine 9 kernelbase VirtualProtect dereferences NULL old_prot before Godot startup",
+  "control_binary": "Official Godot 4.7.2 Windows release template, without project PCK",
+  "old_wine_template_exit_code": 5,
+  "old_wine_debugger_exit_code": 0,
+  "debugger_exit_code_is_not_template_success": true,
+  "backtrace": "wine9-template-backtrace.log",
+  "fault_address": "0x00006fffff4b0608",
+  "source_location": "dlls/kernelbase/memory.c:485",
+  "upstream_issue": "https://github.com/godotengine/godot/issues/119140",
+  "related_patch": "https://github.com/wine-staging/wine-staging/commit/b98458cad",
+  "solution": "Isolated WineHQ 11.0 and a new prefix, no game changes",
+  "wine11_template_exit_code": 0,
+  "wine11_final_exe_version_exit_code": 0,
+  "wine11_graphical_summary": "../../windows-wine11/windows-wine-summary.json",
+  "native_windows_tested": false
+}

@@ -1,0 +1,15 @@
+{
+  "method": "OS mouse wheel and held Q/E keys",
+  "region": [
+    290,
+    160,
+    1010,
+    555
+  ],
+  "mean_absolute_rgb_change": [
+    20.901269338959214,
+    17.377862165963432,
+    13.369268635724332
+  ],
+  "metric_is_image_difference_not_camera_transform": true
+}

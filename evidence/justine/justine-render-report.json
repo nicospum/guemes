@@ -1,0 +1,23 @@
+{
+	"engine": "4.7.2-stable (official)",
+	"external_decisions": [],
+	"frame_ms_median": 133.488,
+	"frame_ms_p95": 142.578333333333,
+	"kind": "automated_render_and_simulation",
+	"load_to_scene_ms": 32055,
+	"os": "Linux",
+	"quality": "media",
+	"renderer": "llvmpipe (LLVM 20.1.2, 256 bits)",
+	"resolution": "(1440.0, 900.0)",
+	"round": 1.0,
+	"sample_count": 165,
+	"save_load": {
+		"elapsed_after": 280.0,
+		"elapsed_before": 280.0,
+		"ok": true
+	},
+	"scenario": "justine",
+	"simulated_seconds": 473.75,
+	"static_memory_bytes": 68707991,
+	"status": "victory"
+}

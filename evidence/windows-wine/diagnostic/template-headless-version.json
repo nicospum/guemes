@@ -1,0 +1,13 @@
+{
+  "command": [
+    "/usr/lib/wine/wine64",
+    "/workspace/scratch/f2211c286bae/.tools/templates/templates/windows_release_x86_64.exe",
+    "--headless",
+    "--version"
+  ],
+  "exit_code": 5,
+  "timeout": false,
+  "seconds": 3.067,
+  "log_bytes": 36270,
+  "template_not_game": true
+}

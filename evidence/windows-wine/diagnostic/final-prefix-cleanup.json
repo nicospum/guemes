@@ -1,0 +1,24 @@
+{
+  "utc": "2026-10-28T14:18:08.842254+00:00",
+  "actions": [
+    {
+      "prefix": "/workspace/scratch/f2211c286bae/.runtime/wine",
+      "server": "/usr/lib/wine/wineserver64",
+      "action": "stop only this Wine prefix server",
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "prefix": "/workspace/scratch/f2211c286bae/.runtime/wine11",
+      "server": "/workspace/scratch/f2211c286bae/.tools/wine11/opt/wine-stable/bin/wineserver",
+      "action": "stop only this Wine prefix server",
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": ""
+    }
+  ],
+  "verified_at_utc": "2026-10-28T14:18:27.283426+00:00",
+  "remaining_processes_with_test_prefix": [],
+  "note": "Both wineserver -k calls returned 1 without stderr; scoped process inspection found no active Wine processes with either test prefix."
+}
