@@ -1,0 +1,112 @@
+WorkerThreadPool: 32 threads, 9 max low-priority.
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+TextServer: Added interface "Dummy"
+TextServer: Added interface "ICU / HarfBuzz / Graphite (Built-in)"
+Accessibility: AccessKit driver loaded.
+Native OpenGL API detected: 3.3: NVIDIA - NVIDIA GeForce RTX 3080 Ti
+NVAPI: Init OK!
+NVAPI: Disabled OpenGL threaded optimization successfully
+NVAPI: Disabled G-SYNC for windowed mode successfully
+Accessibility: window 0 adapter created.
+SDL: Init OK!
+Using "winink" pen tablet driver...
+Shader 'CanvasSdfShaderGLES3' SHA256: ead369f88b725c2cc553a17e812dac895583f7507955bb370db56e2854f65877
+Shader 'SkeletonShaderGLES3' SHA256: 07f681faf21c94a10fd67ff7d5f9975b0856fd302fefac5c72b493c1e5e756e3
+Shader 'ParticlesShaderGLES3' SHA256: 86a03a0dd0d04603a4753a26a6a30e6eed39bff34d00c36fb8e0c3ef07166a99
+Shader 'ParticlesCopyShaderGLES3' SHA256: 2febd88812d30bd84c983a848eaec1c54d89744079a2b87f3fe70cfa220fe1ad
+Shader 'CopyShaderGLES3' SHA256: d63d3f47fa994d6b28f6a376b816d95f18edd9ee615db4773b892234c602298b
+Shader 'CubemapFilterShaderGLES3' SHA256: a2fc37f7e34745c7d9c8677882fa7ce881bf94d4814e81929ccc1666372606b8
+Shader 'GlowShaderGLES3' SHA256: 2917d3319aaaa75c287af2ced235ac2d6528d525ad3900cdc09280616f14105c
+Shader 'PostShaderGLES3' SHA256: 9528b4dce462e89c1ec56d4c5c681ed855ab4c1e3cb1518c6bba9796774387ad
+Shader 'FeedShaderGLES3' SHA256: 4ca00057d800fb68ec21a0688ed900d366648ce8a97c30e7bc8eac67e52165b6
+Shader 'CanvasShaderGLES3' SHA256: 1048cb716dd012f30208e27b1fad5d47748bdf62dc8ff417e7b64b3c571fcb59
+Shader 'CanvasOcclusionShaderGLES3' SHA256: e4137c2afdff9a2fb98dffa50725b34f27db5ae94c9b4dda24b12b339455f531
+Shader 'SceneShaderGLES3' SHA256: 1658040e9ff0a073d40dfb0440335ea00a28801cc7ede0dab9da6390e4d03d4b
+Shader 'SkyShaderGLES3' SHA256: 8bfdfa9ada7a3722570c228be361653112eccf66132c047151e98b0952ecdab1
+Shader 'TexBlitShaderGLES3' SHA256: 67073c3a6bd6cb01f3d792eacd3b2e8c42a7beb9b70bfcfc82a3ff78da5058e0
+OpenGL API 3.3.0 NVIDIA 610.88 - Compatibility - Using Device: NVIDIA - NVIDIA GeForce RTX 3080 Ti
+WASAPI: Activated output_device using IAudioClient3 interface
+WASAPI: wFormatTag = 65534
+WASAPI: nChannels = 2
+WASAPI: nSamplesPerSec = 48000
+WASAPI: nAvgBytesPerSec = 384000
+WASAPI: nBlockAlign = 8
+WASAPI: wBitsPerSample = 32
+WASAPI: cbSize = 22
+WASAPI: mix_rate = 48000
+WASAPI: fundamental_period_frames = 480
+WASAPI: min_period_frames = 480
+WASAPI: max_period_frames = 480
+WASAPI: selected a period frame size of 480
+WASAPI: detected 2 channels
+WASAPI: audio buffer frames: 480 calculated latency: 10ms
+
+TextServer: Primary interface set to: "ICU / HarfBuzz / Graphite (Built-in)".
+CORE API HASH: 2004498165
+EDITOR API HASH: 1696660745
+Loading resource: res://tests/audio_runtime_test.gd remapped: res://tests/audio_runtime_test.gd
+Completed load for: 'res://tests/audio_runtime_test.gd' remapped 'res://tests/audio_runtime_test.gd' at thread -1
+SceneTreeFTI: traversal method DEFAULT
+Loaded system CA certificates
+Driver de audio: WASAPI | mix_rate 48000.0 | latencia salida 10.0 ms
+ok: driver de audio real (no Dummy)
+Loading resource: res://scripts/audio_manager.gd remapped: res://scripts/audio_manager.gd
+Completed load for: 'res://scripts/audio_manager.gd' remapped 'res://scripts/audio_manager.gd' at thread -1
+ok: bus Musica existe
+ok: bus Ambiente existe
+ok: bus Efectos existe
+ok: bus UI existe
+ok: limitador en Master
+Loading resource: res://assets/audio/river.wav remapped: res://assets/audio/river.wav
+Loading resource: res://.godot/imported/river.wav-62b260924b79976f42f0b5ed172a6ca3.sample remapped: res://.godot/imported/river.wav-62b260924b79976f42f0b5ed172a6ca3.sample
+Completed load for: 'res://assets/audio/river.wav' remapped 'res://assets/audio/river.wav' at thread -1
+Loading resource: res://assets/audio/ribera.wav remapped: res://assets/audio/ribera.wav
+Loading resource: res://.godot/imported/ribera.wav-b4b3d667a09935f0511273a216be0804.sample remapped: res://.godot/imported/ribera.wav-b4b3d667a09935f0511273a216be0804.sample
+Completed load for: 'res://assets/audio/ribera.wav' remapped 'res://assets/audio/ribera.wav' at thread -1
+ok: justine arranca 2 capas ambientales
+ok: senal en bus Ambiente (pico -25.3 dB)
+Loading resource: res://assets/audio/order.wav remapped: res://assets/audio/order.wav
+Loading resource: res://.godot/imported/order.wav-b072dbcadaff706d899a1f201b15913e.sample remapped: res://.godot/imported/order.wav-b072dbcadaff706d899a1f201b15913e.sample
+Completed load for: 'res://assets/audio/order.wav' remapped 'res://assets/audio/order.wav' at thread -1
+Loading resource: res://assets/audio/error.wav remapped: res://assets/audio/error.wav
+Loading resource: res://.godot/imported/error.wav-99844ed22afbc0c517ece11da3662cae.sample remapped: res://.godot/imported/error.wav-99844ed22afbc0c517ece11da3662cae.sample
+Completed load for: 'res://assets/audio/error.wav' remapped 'res://assets/audio/error.wav' at thread -1
+Loading resource: res://assets/audio/alert.wav remapped: res://assets/audio/alert.wav
+Loading resource: res://.godot/imported/alert.wav-fb62dc472b15c790b1647b45dcb4c793.sample remapped: res://.godot/imported/alert.wav-fb62dc472b15c790b1647b45dcb4c793.sample
+Completed load for: 'res://assets/audio/alert.wav' remapped 'res://assets/audio/alert.wav' at thread -1
+Loading resource: res://assets/audio/bell.wav remapped: res://assets/audio/bell.wav
+Loading resource: res://.godot/imported/bell.wav-c9e8b15c72938ff0cc4247d900f73a2f.sample remapped: res://.godot/imported/bell.wav-c9e8b15c72938ff0cc4247d900f73a2f.sample
+Completed load for: 'res://assets/audio/bell.wav' remapped 'res://assets/audio/bell.wav' at thread -1
+Loading resource: res://assets/audio/cannon.wav remapped: res://assets/audio/cannon.wav
+Loading resource: res://.godot/imported/cannon.wav-38078ec7dbd89e6ce8a071f066e4cec0.sample remapped: res://.godot/imported/cannon.wav-38078ec7dbd89e6ce8a071f066e4cec0.sample
+Completed load for: 'res://assets/audio/cannon.wav' remapped 'res://assets/audio/cannon.wav' at thread -1
+Loading resource: res://assets/audio/hoof3.wav remapped: res://assets/audio/hoof3.wav
+Loading resource: res://.godot/imported/hoof3.wav-db61b014a1301ffd019c594d08e40f88.sample remapped: res://.godot/imported/hoof3.wav-db61b014a1301ffd019c594d08e40f88.sample
+Completed load for: 'res://assets/audio/hoof3.wav' remapped 'res://assets/audio/hoof3.wav' at thread -1
+Loading resource: res://assets/audio/dismount.wav remapped: res://assets/audio/dismount.wav
+Loading resource: res://.godot/imported/dismount.wav-64d590ffc6dda06dd5a33c5bd95329b8.sample remapped: res://.godot/imported/dismount.wav-64d590ffc6dda06dd5a33c5bd95329b8.sample
+Completed load for: 'res://assets/audio/dismount.wav' remapped 'res://assets/audio/dismount.wav' at thread -1
+Loading resource: res://assets/audio/victory.wav remapped: res://assets/audio/victory.wav
+Loading resource: res://.godot/imported/victory.wav-d893d32ad919f27e15cf04d35e288b78.sample remapped: res://.godot/imported/victory.wav-d893d32ad919f27e15cf04d35e288b78.sample
+Completed load for: 'res://assets/audio/victory.wav' remapped 'res://assets/audio/victory.wav' at thread -1
+ok: senal en bus Efectos (pico -15.1 dB)
+ok: senal en bus UI (pico -8.5 dB)
+ok: Master no supera el techo del limitador (pico -6.53 dB)
+Loading resource: res://assets/audio/hoof2.wav remapped: res://assets/audio/hoof2.wav
+Loading resource: res://.godot/imported/hoof2.wav-9c07f0ceb89d9ee67d54320cb12b78a0.sample remapped: res://.godot/imported/hoof2.wav-9c07f0ceb89d9ee67d54320cb12b78a0.sample
+Completed load for: 'res://assets/audio/hoof2.wav' remapped 'res://assets/audio/hoof2.wav' at thread -1
+ok: voces simultaneas acotadas (max visto 7)
+ok: polifonia del canon = 2
+Loading resource: res://assets/audio/wind.wav remapped: res://assets/audio/wind.wav
+Loading resource: res://.godot/imported/wind.wav-26bd3f95e99896071b625821c2f0df7a.sample remapped: res://.godot/imported/wind.wav-26bd3f95e99896071b625821c2f0df7a.sample
+Completed load for: 'res://assets/audio/wind.wav' remapped 'res://assets/audio/wind.wav' at thread -1
+Loading resource: res://assets/audio/wind_north.wav remapped: res://assets/audio/wind_north.wav
+Loading resource: res://.godot/imported/wind_north.wav-6f029c59e3a435599717c7f62592b4cc.sample remapped: res://.godot/imported/wind_north.wav-6f029c59e3a435599717c7f62592b4cc.sample
+Completed load for: 'res://assets/audio/wind_north.wav' remapped 'res://assets/audio/wind_north.wav' at thread -1
+ok: norte arranca 2 capas
+ok: silencio detiene efectos
+RESULTADO: 15 comprobaciones, 0 fallas
+XR: Clearing primary interface
+XR: Removed interface "Native mobile"
+XR: Removed interface "OpenXR"
+Accessibility: window 0 adapter destroyed.
