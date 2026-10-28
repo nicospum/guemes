@@ -1,5 +1,6 @@
 # Verificación de la entrega 0.1.0
-n> Documento histórico de 0.1.0. La verificación de 0.2.0-alfa (modelos, interfaz y audio de la fase 2, mediciones en RTX 3080 Ti) está en `docs/VERIFICACION_FASE2.md`.
+
+> Documento histórico de 0.1.0. La verificación de 0.2.0-alfa (modelos, interfaz y audio de la fase 2, mediciones en RTX 3080 Ti) está en `docs/VERIFICACION_FASE2.md`.
 
 Fecha de cierre: **28 de octubre de 2026**. Estado: **alfa 3D jugable con dos escenarios**. Las reglas y los recorridos funcionales se comprobaron; la calidad cinematográfica, la decisión viva de Jev y la validación en la PC Windows de destino no se declaran aceptadas.
 
