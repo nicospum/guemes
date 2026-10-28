@@ -22,6 +22,12 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 PRESETS = ROOT / "export_presets.cfg"
+VERSION_FILE = ROOT / "VERSION.json"
+PROJECT_FILE = ROOT / "project.godot"
+# Campos de VERSION.json que describen el EXE ya construido. Un archivo embebido en el EXE
+# no puede contener el hash ni el tamano de su propio contenedor, y cualquier valor previo
+# seria de otra construccion: se omiten y constan solo en el VERSION.json de la entrega.
+BUILD_RESULT_KEYS = ("windows_bytes", "windows_sha256", "windows_exe_smoke_test")
 REQUIRED_VERSION = "4.7.2"
 TARGETS = {
     "windows": {
@@ -189,6 +195,86 @@ def patch_options(text: str, section: str, values: dict[str, str]) -> str:
     return text[:body_start] + body + text[end:]
 
 
+def project_version() -> str:
+    match = re.search(r'(?m)^config/version="([^"\r\n]+)"', PROJECT_FILE.read_text(encoding="utf-8-sig"))
+    if not match:
+        raise BuildError("project.godot no declara config/version.")
+    return match.group(1)
+
+
+def vcs_output(*args: str) -> str:
+    try:
+        result = subprocess.run(["git", *args], cwd=ROOT, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE, text=True, encoding="utf-8", errors="replace",
+                                check=False, timeout=30)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise BuildError(f"No se pudo consultar el control de versiones: {exc}") from exc
+    if result.returncode:
+        raise BuildError(f"git {' '.join(args)} fallo: {result.stderr.strip()}")
+    return result.stdout.strip()
+
+
+def embedded_version(godot_version: str, targets: list[str]) -> dict:
+    """VERSION.json que viaja dentro del EXE: describe esta construccion, no una anterior.
+
+    Parte del VERSION.json versionado (estado, banderas de verificacion, motor) y lo
+    corrige con lo que este proceso comprueba: la version de project.godot, el commit
+    exacto desde el que se exporta y si el arbol tenia cambios sin commitear.
+    """
+    base = json.loads(VERSION_FILE.read_text(encoding="utf-8-sig")) if VERSION_FILE.is_file() else {}
+    for key in BUILD_RESULT_KEYS:
+        base.pop(key, None)
+    declared = base.get("version")
+    actual = project_version()
+    if declared is not None and declared != actual:
+        raise BuildError(
+            f"VERSION.json declara {declared!r} pero project.godot declara {actual!r}. "
+            "Corregí la incoherencia antes de construir."
+        )
+    commit = vcs_output("rev-parse", "HEAD")
+    dirty = bool(vcs_output("status", "--porcelain", "--untracked-files=no"))
+    base.update({
+        "version": actual,
+        "runtime_source_commit": commit,
+        "runtime_source_commit_short": commit[:7],
+        "build_tree_dirty": dirty,
+        "engine_build": godot_version,
+        "build_targets": targets,
+        "built_utc": utc_now(),
+        "embedded_in_build": True,
+        "embedded_note": "Describe esta construccion. El tamano y el SHA-256 del ejecutable no pueden "
+                         "estar dentro de si mismo: constan en el VERSION.json de la entrega.",
+    })
+    return base
+
+
+@contextmanager
+def temporary_version(content: dict):
+    """Sustituye VERSION.json durante la exportacion y restaura sus bytes originales."""
+    replacement = (json.dumps(content, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+    original = VERSION_FILE.read_bytes() if VERSION_FILE.is_file() else None
+    backup = VERSION_FILE.with_name(VERSION_FILE.name + ".build_release.bak")
+    if original is not None:
+        try:
+            with backup.open("xb") as file:
+                file.write(original)
+        except FileExistsError as exc:
+            raise BuildError(
+                f"Ya existe {backup.name}, posiblemente por una interrupcion anterior. "
+                "Recuperá VERSION.json desde esa copia antes de reintentar."
+            ) from exc
+    try:
+        VERSION_FILE.write_bytes(replacement)
+        yield
+    finally:
+        if original is None:
+            VERSION_FILE.unlink(missing_ok=True)
+        else:
+            VERSION_FILE.write_bytes(original)
+            backup.unlink()
+        print("VERSION.json restaurado a sus bytes originales.", flush=True)
+
+
 @contextmanager
 def temporary_presets(original: bytes, replacement: bytes):
     if replacement == original:
@@ -294,7 +380,10 @@ def main() -> int:
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
     logs = ROOT / "builds" / "logs" / stamp
     logs.mkdir(parents=True, exist_ok=False)
+    embedded = embedded_version(version, targets)
     report = {
+        "embedded_version": {key: embedded[key] for key in
+                             ("version", "runtime_source_commit", "build_tree_dirty")},
         "started_utc": utc_now(), "godot_version": version, "godot_executable": str(godot),
         "templates": str(folder) if folder else "preset o ubicación estándar de Godot",
         "host": sys.platform, "requested_targets": targets, "status": "running", "exports": [],
@@ -304,7 +393,7 @@ def main() -> int:
     report_path = logs / "build-report.json"
     print(f"Godot {version}; destino: {', '.join(targets)}", flush=True)
     try:
-        with temporary_presets(original, replacement):
+        with temporary_presets(original, replacement), temporary_version(embedded):
             run_logged([str(godot), "--headless", "--path", str(ROOT), "--editor", "--import"], logs / "import.log")
             for target in targets:
                 output = ROOT / "builds" / target / TARGETS[target]["output"]

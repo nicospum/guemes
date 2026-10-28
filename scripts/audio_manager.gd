@@ -36,25 +36,42 @@ const AMBIENTS := {
 	]
 }
 const MAX_VOICES := 6
+## Espera al salir para que la hebra de audio retire las reproducciones detenidas.
+const DRAIN_MS := 150
 
 var _volume: float = 0.65
 var _muted: bool = false
 var _players: Dictionary = {}
 var _last_play_ms: Dictionary = {}
+## sound -> instantes (ms) en que termina cada voz activa; su suma es el conteo real de voces.
+var _voice_ends: Dictionary = {}
 var _ambient_players: Array = []
 var _scenario: String = ""
 var _initialized: bool = false
 var _rng := RandomNumberGenerator.new()
 var dropped_count: int = 0
+var _drained: bool = false
 
 
 func shutdown() -> void:
 	## Libera reproductores y referencias en toda salida, incluido el cierre de ventana.
+	## Detener un reproductor solo marca su reproduccion para borrado: la hebra de mezcla
+	## la retira en su proximo paso. Si el proceso termina antes, el AudioStreamWAV y su
+	## AudioStreamPlaybackWAV quedan vivos (ObjectDB filtrados al salir). Por eso se espera
+	## a que la mezcla drene lo detenido antes de devolver el control.
+	var had_audio := false
+	for player in _players.values():
+		if is_instance_valid(player) and player.playing:
+			had_audio = true
+	for player in _ambient_players:
+		if is_instance_valid(player):
+			had_audio = true
 	for player in _players.values():
 		if is_instance_valid(player):
 			player.stop()
 			player.stream = null
 	_players.clear()
+	_voice_ends.clear()
 	for player in _ambient_players:
 		if is_instance_valid(player):
 			player.stop()
@@ -62,6 +79,9 @@ func shutdown() -> void:
 	_ambient_players.clear()
 	_variant_cache.clear()
 	_scenario = ""
+	if had_audio and not _drained:
+		_drained = true
+		OS.delay_msec(DRAIN_MS)
 
 
 var _variant_cache: Dictionary = {}
@@ -115,6 +135,7 @@ func _initialize_audio() -> void:
 		player.process_mode = Node.PROCESS_MODE_ALWAYS
 		add_child(player)
 		_players[sound] = player
+		_voice_ends[sound] = []
 	_apply_volume()
 
 
@@ -126,13 +147,48 @@ func _stream_for(sound: String) -> AudioStream:
 	return _variant_cache[path]
 
 
-func _active_voices() -> int:
-	var count := 0
-	for sound in _players:
+func _prune_voices(now: int) -> void:
+	## Descarta voces cuya reproduccion ya termino (o cuyo reproductor se detuvo).
+	for sound in _voice_ends:
+		var ends: Array = _voice_ends[sound]
 		var player: AudioStreamPlayer = _players[sound]
-		if player.playing:
-			count += 1
+		if not player.playing:
+			ends.clear()
+			continue
+		var i := 0
+		while i < ends.size():
+			if int(ends[i]) <= now:
+				ends.remove_at(i)
+			else:
+				i += 1
+
+
+func _active_voices() -> int:
+	## Voces reales: cada reproduccion simultanea de un efecto cuenta una (no un reproductor).
+	_prune_voices(Time.get_ticks_msec())
+	var count := 0
+	for sound in _voice_ends:
+		count += (_voice_ends[sound] as Array).size()
 	return count
+
+
+func _steal_voice(min_prio: int) -> bool:
+	## Libera lugar para un aviso (prio 2) deteniendo el efecto activo de menor prioridad.
+	var victim := ""
+	var victim_prio := min_prio
+	for sound in _voice_ends:
+		if (_voice_ends[sound] as Array).is_empty():
+			continue
+		var prio: int = int(EFFECTS[sound]["prio"])
+		if prio < victim_prio:
+			victim = str(sound)
+			victim_prio = prio
+	if victim.is_empty():
+		return false
+	(_players[victim] as AudioStreamPlayer).stop()
+	(_voice_ends[victim] as Array).clear()
+	dropped_count += 1
+	return true
 
 
 func play(sound: String) -> void:
@@ -146,10 +202,18 @@ func play(sound: String) -> void:
 	var player: AudioStreamPlayer = _players[sound]
 	if player.playing and not bool(def["retrigger"]):
 		return
-	# Tope global: bajo presion se descartan los sonidos de baja prioridad.
-	if _active_voices() >= MAX_VOICES and int(def["prio"]) < 2:
-		dropped_count += 1
-		return
+	# Tope global real de voces: bajo presion se descartan los sonidos de baja prioridad y
+	# un aviso (prio 2) desplaza al efecto activo de menor prioridad. Reiniciar un efecto
+	# no retrigerable de una sola voz no suma una voz nueva.
+	var ends: Array = _voice_ends[sound]
+	var reuses_slot: bool = player.playing and ends.size() >= int(def["poly"])
+	if not reuses_slot and _active_voices() >= MAX_VOICES:
+		if int(def["prio"]) < 2:
+			dropped_count += 1
+			return
+		if not _steal_voice(2):
+			dropped_count += 1
+			return
 	var stream: AudioStream = _stream_for(sound)
 	if stream == null:
 		return
@@ -160,6 +224,9 @@ func play(sound: String) -> void:
 	player.pitch_scale = _rng.randf_range(float(range_pitch[0]), float(range_pitch[1]))
 	_last_play_ms[sound] = now
 	player.play()
+	ends.append(now + int(stream.get_length() * 1000.0 / maxf(0.01, player.pitch_scale)))
+	while ends.size() > int(def["poly"]):
+		ends.remove_at(0)
 
 
 func set_environment(scenario: String) -> void:
@@ -218,6 +285,7 @@ func set_muted(muted: bool) -> void:
 	if muted:
 		for sound in _players:
 			(_players[sound] as AudioStreamPlayer).stop()
+			(_voice_ends[sound] as Array).clear()
 
 
 func _apply_volume() -> void:

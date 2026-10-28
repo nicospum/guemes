@@ -108,6 +108,9 @@ var last_overlay_rects: Array = []
 func _ready():
  start_msec = Time.get_ticks_msec()
  log_regex=RegEx.new();log_regex.compile("[0-9]+([.,][0-9]+)?")
+ # La base de diseño es 1440x900; con "expand" la ventana más ancha o más alta gana espacio
+ # (las anclas lo reparten) en lugar de barras negras.
+ get_window().content_scale_aspect=Window.CONTENT_SCALE_ASPECT_EXPAND
  _load_settings()
  _make_theme()
  if FileAccess.file_exists("res://data/history.json"):
@@ -186,6 +189,11 @@ func _panel(parent:Control,pos:Vector2,size_v:Vector2,bg=Color(0.055,0.105,0.12,
  panel.add_theme_stylebox_override("panel",_style(bg,border,1,7,pad))
  parent.add_child(panel);return panel
 
+func _anchor(c:Control,a_left:float,a_top:float,a_right:float,a_bottom:float,o_left:float,o_top:float,o_right:float,o_bottom:float):
+ # Interfaz responsiva: la posición se expresa como ancla (fracción de la ventana) más un margen fijo.
+ c.anchor_left=a_left;c.anchor_top=a_top;c.anchor_right=a_right;c.anchor_bottom=a_bottom
+ c.offset_left=o_left;c.offset_top=o_top;c.offset_right=o_right;c.offset_bottom=o_bottom
+
 func _label(parent:Node,text_value:String,font_size=16,color:Color=PAPER,serif=false)->Label:
  var label=Label.new();label.text=text_value
  label.add_theme_font_size_override("font_size",font_size);label.add_theme_color_override("font_color",color)
@@ -237,8 +245,8 @@ func _menu():
  selected="guemes";_rebuild_world();_new_ui()
  camera_target=Vector3(3,1,0);camera_distance=42;camera_pitch=0.43;camera_yaw=-0.55
  for label_3d in world.find_children("*","Label3D",true,false):label_3d.visible=false
- var tint=ColorRect.new();tint.color=Color(0.025,0.05,0.055,0.80);tint.position=Vector2(0,0);tint.size=Vector2(655,900);ui.add_child(tint)
- var box=VBoxContainer.new();box.position=Vector2(64,66);box.size=Vector2(510,750);box.add_theme_constant_override("separation",12);ui.add_child(box)
+ var tint=ColorRect.new();tint.color=Color(0.025,0.05,0.055,0.80);ui.add_child(tint);_anchor(tint,0,0,0,1,0,0,655,0)
+ var box=VBoxContainer.new();box.add_theme_constant_override("separation",12);ui.add_child(box);_anchor(box,0,0,0,1,64,66,574,-84)
  _label(box,"J U E G O S   D E   L A   P A T R I A",17,GOLD)
  _spacer(box,24)
  _label(box,"GÜEMES",78,PAPER,true)
@@ -260,10 +268,10 @@ func _menu():
  _button(options,"Historia",_history_dialog)
  _spacer(box,6)
  _rich(box,"[color=#aab7b5]Recreación histórica documentada. La intervención personal de Güemes en el Justine pertenece a una tradición no probada.[/color]",13)
- _label(box,"VERSIÓN 0.1  ·  3D LOCAL  ·  SE PUEDE JUGAR SIN CONEXIÓN",11,MUTED)
+ _label(box,"VERSIÓN "+str(ProjectSettings.get_setting("application/config/version","?")).to_upper()+"  ·  3D LOCAL  ·  SE PUEDE JUGAR SIN CONEXIÓN",11,MUTED)
  var credit=_label(ui,"RÍO DE LA PLATA\n12 DE AGOSTO DE 1806",16,Color("e6ceb0"),true)
- credit.position=Vector2(1040,700)
- _button_at(ui,"Salir",Vector2(1280,28),Vector2(124,42),func():get_tree().quit())
+ _anchor(credit,1,1,1,1,-400,-200,-20,-100)
+ var quit_button=_button(ui,"Salir",func():get_tree().quit());_anchor(quit_button,1,0,1,0,-160,28,-36,70)
 
 func _button_at(parent,text_value,pos,size_v,fn):
  var b=_button(parent,text_value,fn);b.position=pos;b.size=size_v;return b
@@ -285,7 +293,7 @@ func _build_hud():
  overlay=Control.new();overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  overlay.mouse_filter=Control.MOUSE_FILTER_IGNORE;ui.add_child(overlay);overlay.draw.connect(_draw_overlay)
  # Cabecera de una sola línea: el control de tiempo vive aquí, siempre visible.
- var header=_panel(ui,Vector2(20,10),Vector2(1400,0),Color(0.055,0.105,0.12,0.94),Color("394c49"),8);hud_panels.append(header)
+ var header=_panel(ui,Vector2(20,10),Vector2(1400,0),Color(0.055,0.105,0.12,0.94),Color("394c49"),8);hud_panels.append(header);_anchor(header,0,0,1,0,20,10,-20,10)
  var hv=_hbox(header,10)
  var mark=_vbox(hv,0);mark.custom_minimum_size.x=150
  _label(mark,"JUEGOS DE LA PATRIA",10,GOLD)
@@ -314,7 +322,7 @@ func _build_hud():
  capture_bar=ProgressBar.new();capture_bar.custom_minimum_size.y=8;capture_bar.show_percentage=false;left_body.add_child(capture_bar)
  info_label=_rich(left_body,"",14)
  # Columna derecha: situación y parte, apiladas por un contenedor para no pisarse.
- var column=_vbox(ui,6);column.position=Vector2(1168,70);column.custom_minimum_size.x=252;column.size=Vector2(252,0)
+ var column=_vbox(ui,6);column.custom_minimum_size.x=252;_anchor(column,1,0,1,0,-272,70,-20,70)
  column.mouse_filter=Control.MOUSE_FILTER_IGNORE
  right_panel=_panel(column,Vector2.ZERO,Vector2(252,0),Color(0.055,0.105,0.12,0.92),Color("394c49"),12);hud_panels.append(right_panel)
  var rv=_vbox(right_panel,6)
@@ -334,7 +342,7 @@ func _build_hud():
  log_label=RichTextLabel.new();log_label.bbcode_enabled=true;log_label.custom_minimum_size=Vector2(226,170);log_label.scroll_following=true;log_label.add_theme_font_size_override("normal_font_size",13);jv.add_child(log_label)
  # Panel inferior: agrupaciones, estado con barras y bandeja de órdenes.
  var bottom=_panel(ui,Vector2(100,890),Vector2(1240,0),Color(0.055,0.105,0.12,0.94),Color("394c49"),10);hud_panels.append(bottom)
- bottom.grow_vertical=Control.GROW_DIRECTION_BEGIN;bottom_panel=bottom
+ bottom.grow_vertical=Control.GROW_DIRECTION_BEGIN;bottom_panel=bottom;_anchor(bottom,0.5,1,0.5,1,-620,-10,620,-10)
  var br=_hbox(bottom,16)
  var groups=_vbox(br,3);groups.custom_minimum_size.x=262
  _label(groups,"AGRUPACIONES  ·  TECLAS 1 / 2 / 3",11,GOLD)
@@ -365,9 +373,10 @@ func _build_hud():
  _refresh_actions()
  # Ayuda contextual: franja con fondo propio, anclada sobre el panel inferior.
  hint_panel=_panel(ui,Vector2(310,722),Vector2(840,0),Color(0.035,0.075,0.09,0.93),Color("7c7653"),9)
+ hint_panel.grow_vertical=Control.GROW_DIRECTION_BEGIN;_anchor(hint_panel,0.5,1,0.5,1,-410,-178,430,-178)
  tutorial_label=_label(hint_panel,"",14,Color("f4e9c8"))
  tutorial_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;tutorial_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
- toast_label=_label(ui,"",16,PAPER);toast_label.position=Vector2(310,70);toast_label.size=Vector2(840,56)
+ toast_label=_label(ui,"",16,PAPER);_anchor(toast_label,0.5,0,0.5,0,-410,70,430,126)
  toast_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;toast_label.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;toast_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
  toast_label.add_theme_stylebox_override("normal",_style(Color(0.04,0.09,0.11,0.94),Color("7c7653"),1,5,13))
  overlay_top=Control.new();overlay_top.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -504,7 +513,9 @@ func _update_hud():
   if tutorial_label.text!=last_hint_text:
    last_hint_text=tutorial_label.text;hint_timer=18.0
   hint_panel.visible=not tutorial_label.text.is_empty() and hint_timer>0
-  if is_instance_valid(bottom_panel):hint_panel.position.y=bottom_panel.get_global_rect().position.y-8.0-hint_panel.size.y
+  if is_instance_valid(bottom_panel):
+   var hint_bottom=bottom_panel.get_global_rect().position.y-8.0-get_viewport().get_visible_rect().size.y
+   hint_panel.offset_bottom=hint_bottom;hint_panel.offset_top=hint_bottom
  for u in state.units:
   var id=str(u.id)
   if not unit_buttons.has(id):continue
@@ -765,7 +776,8 @@ func _open_modal(title:String,width=800,height=600)->VBoxContainer:
  modal_paused=paused;paused=true
  modal=Control.new();modal.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);ui.add_child(modal)
  var shade=ColorRect.new();shade.color=Color(0.015,0.03,0.035,0.82);shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);modal.add_child(shade)
- var panel=_panel(modal,Vector2((1440-width)/2.0,(900-height)/2.0),Vector2(width,height),Color("101f25"),Color("887750"))
+ var panel=_panel(modal,Vector2.ZERO,Vector2(width,height),Color("101f25"),Color("887750"))
+ _anchor(panel,0.5,0.5,0.5,0.5,-width/2.0,-height/2.0,width/2.0,height/2.0)
  var box=_vbox(panel,14)
  var header=_hbox(box);var label=_label(header,title,27,GOLD,true);label.size_flags_horizontal=Control.SIZE_EXPAND_FILL
  _button(header,"Cerrar · Esc",_close_modal,36)
