@@ -26,10 +26,19 @@ var fire_flash: OmniLight3D
 var last_path_signature = ""
 var path_timer = 0.0
 var parked_horses = {}
+# Lotes instanciados: casas, árboles y caminos se dibujan con pocos MultiMesh (menos draw calls y nodos).
+var batches = {}
+var unit_meshes = {}
+var batch_material: StandardMaterial3D
+var path_instances: MultiMeshInstance3D
+var advanced_renderer = false
+## Tamaño en pantalla de las etiquetas 3D (fixed_size): constante, no depende de la distancia.
+const LABEL_PIXEL_SIZE = 0.0006
 
 func build(game_rules, quality_name = "media"):
  rules = game_rules
  quality = quality_name
+ advanced_renderer = RenderingServer.get_current_rendering_method() != "gl_compatibility"
  scenario = str(rules.state.scenario)
  terrain_noise.seed = 1817
  terrain_noise.frequency = 0.052
@@ -41,6 +50,7 @@ func build(game_rules, quality_name = "media"):
   _coast()
  else:
   _north()
+ _flush_batches()
  route_root = Node3D.new()
  add_child(route_root)
  for u in rules.state.units:
@@ -82,6 +92,51 @@ func _cylinder(pos, radius, height_v, color, parent: Node3D = self):
  m.radial_segments = 12
  return _mesh(m, pos, color, parent)
 
+func _unit_mesh(kind:String)->Mesh:
+ if unit_meshes.has(kind):return unit_meshes[kind]
+ var m:Mesh
+ match kind:
+  "box":
+   var b=BoxMesh.new();b.size=Vector3.ONE;m=b
+  "prism":
+   var pr=PrismMesh.new();pr.size=Vector3.ONE;m=pr
+  "cyl8":
+   var c=CylinderMesh.new();c.top_radius=0.5;c.bottom_radius=0.5;c.height=1.0;c.radial_segments=8;m=c
+  "cyl12":
+   var c2=CylinderMesh.new();c2.top_radius=0.5;c2.bottom_radius=0.5;c2.height=1.0;c2.radial_segments=12;m=c2
+  "sphere":
+   var sp=SphereMesh.new();sp.radius=0.5;sp.height=1.0;sp.radial_segments=10;sp.rings=6;m=sp
+ unit_meshes[kind]=m
+ return m
+
+func _inst(kind:String,pos:Vector3,size_v:Vector3,color:Color):
+ if not batches.has(kind):batches[kind]={"xf":[],"col":[]}
+ batches[kind].xf.append(Transform3D(Basis.from_scale(size_v),pos))
+ batches[kind].col.append(color)
+
+func _flush_batches():
+ if batch_material==null:
+  batch_material=StandardMaterial3D.new()
+  batch_material.vertex_color_use_as_albedo=true
+  batch_material.vertex_color_is_srgb=true
+  batch_material.roughness=0.8
+ for kind in batches:
+  var data=batches[kind]
+  var mm=MultiMesh.new()
+  mm.transform_format=MultiMesh.TRANSFORM_3D
+  mm.use_colors=true
+  mm.mesh=_unit_mesh(kind)
+  mm.instance_count=data.xf.size()
+  for i in range(data.xf.size()):
+   mm.set_instance_transform(i,data.xf[i])
+   mm.set_instance_color(i,data.col[i])
+  var mmi=MultiMeshInstance3D.new()
+  mmi.name="Lote_"+kind
+  mmi.multimesh=mm
+  mmi.material_override=batch_material
+  add_child(mmi)
+ batches.clear()
+
 func _lighting():
  environment = WorldEnvironment.new()
  var env = Environment.new()
@@ -105,6 +160,27 @@ func _lighting():
  env.fog_light_color = Color("9baeb0") if scenario == "justine" else Color("bccad0")
  env.fog_light_energy = 0.3
  env.fog_density = 0.0018
+ if advanced_renderer and quality != "baja":
+  # Solo Forward+/Mobile: oclusión ambiental y brillo suave. El perfil alto agrega niebla volumétrica leve.
+  env.glow_enabled = true
+  env.glow_intensity = 0.5
+  env.glow_hdr_threshold = 1.1
+  env.glow_blend_mode = Environment.GLOW_BLEND_MODE_SOFTLIGHT
+  env.ssao_enabled = true
+  env.ssao_radius = 1.4
+  env.ssao_intensity = 1.5
+  env.ssao_power = 1.6
+  env.adjustment_enabled = true
+  env.adjustment_saturation = 1.06
+  env.adjustment_contrast = 1.04
+  if quality == "alta":
+   env.volumetric_fog_enabled = true
+   env.volumetric_fog_density = 0.0035
+   env.volumetric_fog_albedo = Color("c9d4d2")
+   env.volumetric_fog_emission = Color("2c3a3d")
+   env.volumetric_fog_emission_energy = 0.4
+   env.volumetric_fog_length = 120.0
+   env.volumetric_fog_anisotropy = 0.35
  environment.environment = env
  add_child(environment)
  sun = DirectionalLight3D.new()
@@ -113,7 +189,9 @@ func _lighting():
  sun.light_energy = 0.96
  sun.shadow_enabled = quality != "baja"
  sun.directional_shadow_max_distance = 130
- sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
+ sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS if (advanced_renderer and quality == "alta") else DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
+ sun.shadow_blur = 1.4
+ if advanced_renderer and quality == "alta":sun.light_volumetric_fog_energy = 1.0
  add_child(sun)
 
 func terrain_height(x: float, z: float) -> float:
@@ -151,11 +229,13 @@ func _ground():
     st.set_color(color)
     st.set_uv(Vector2(xx,zz)*0.14)
     st.add_vertex(Vector3(xx,h,zz))
+ st.index()
  st.generate_normals()
  var m = MeshInstance3D.new()
  m.mesh = st.commit()
  var mat = ShaderMaterial.new()
  mat.shader = load("res://assets/terrain.gdshader")
+ mat.set_shader_parameter("color_gamma",2.6 if advanced_renderer else 1.9)
  m.material_override = mat
  add_child(m)
  m.create_trimesh_collision()
@@ -214,7 +294,7 @@ func _north():
    _house(point+Vector3((j%2)*1.8-0.9,0,(j/2)*1.9-0.9),1.15,1.45,j==0)
   if str(s.id)=="salta":
    _house(point+Vector3(0,0,-2.0),2.5,1.8,true)
-   _cylinder(point+Vector3(-1.2,2.2,-1.7),0.35,3.7,Color("d3c4a3"))
+   _inst("cyl12",point+Vector3(-1.2,2.2,-1.7),Vector3(0.7,3.7,0.7),Color("d3c4a3"))
   for t in range(2):
    _tree(point+Vector3(3.2,0,float(t)*2.0-1),0.6)
  var sectors = rules.state.sectors
@@ -250,28 +330,23 @@ func _road(a:Vector2,b:Vector2):
  var count=int(a.distance_to(b)/0.9)
  for i in range(1,count):
   var p=a.lerp(b,float(i)/maxi(1,count))
-  var disc=CylinderMesh.new()
-  disc.top_radius=0.28;disc.bottom_radius=0.28;disc.height=0.045;disc.radial_segments=8
-  _mesh(disc,Vector3(p.x,terrain_height(p.x,p.y)+0.06,p.y),Color("b2a17c"))
+  _inst("cyl8",Vector3(p.x,terrain_height(p.x,p.y)+0.06,p.y),Vector3(0.56,0.045,0.56),Color("b2a17c"))
 
 func _house(pos:Vector3,w:float,d:float,church=false):
- var parent=Node3D.new();parent.position=pos;add_child(parent)
  var h=1.8 if not church else 2.5
- _box(Vector3(0,h/2,0),Vector3(w,h,d),Color("bcb298"),parent)
- var roof=PrismMesh.new();roof.size=Vector3(w+0.35,0.9,d+0.35)
- _mesh(roof,Vector3(0,h+0.38,0),Color("714d3b"),parent)
+ _inst("box",pos+Vector3(0,h/2,0),Vector3(w,h,d),Color("bcb298"))
+ _inst("prism",pos+Vector3(0,h+0.38,0),Vector3(w+0.35,0.9,d+0.35),Color("714d3b"))
  for side in [-1,1]:
-  _box(Vector3(side*w*0.5,h*0.55,0),Vector3(0.04,0.65,0.45),Color("393b31"),parent)
- _box(Vector3(0,0.62,d*0.5+0.02),Vector3(0.6,1.23,0.035),Color("534b37"),parent)
+  _inst("box",pos+Vector3(side*w*0.5,h*0.55,0),Vector3(0.04,0.65,0.45),Color("393b31"))
+ _inst("box",pos+Vector3(0,0.62,d*0.5+0.02),Vector3(0.6,1.23,0.035),Color("534b37"))
  if church:
-  _box(Vector3(w*0.32,h+0.5,d*0.25),Vector3(0.55,1.2,0.55),Color("bfb69b"),parent)
-  _box(Vector3(w*0.32,h+1.4,d*0.25),Vector3(0.07,0.6,0.07),Color("5d5442"),parent)
-  _box(Vector3(w*0.32,h+1.48,d*0.25),Vector3(0.36,0.07,0.07),Color("5d5442"),parent)
+  _inst("box",pos+Vector3(w*0.32,h+0.5,d*0.25),Vector3(0.55,1.2,0.55),Color("bfb69b"))
+  _inst("box",pos+Vector3(w*0.32,h+1.4,d*0.25),Vector3(0.07,0.6,0.07),Color("5d5442"))
+  _inst("box",pos+Vector3(w*0.32,h+1.48,d*0.25),Vector3(0.36,0.07,0.07),Color("5d5442"))
 
 func _tree(pos:Vector3,scale_v:float):
- _cylinder(pos+Vector3(0,1.45*scale_v,0),0.13*scale_v,2.9*scale_v,Color("655642"))
- var mesh=SphereMesh.new();mesh.radius=1.2*scale_v;mesh.height=2.5*scale_v;mesh.radial_segments=10;mesh.rings=6
- _mesh(mesh,pos+Vector3(0,3.0*scale_v,0),Color("4f5d38"))
+ _inst("cyl8",pos+Vector3(0,1.45*scale_v,0),Vector3(0.26*scale_v,2.9*scale_v,0.26*scale_v),Color("655642"))
+ _inst("sphere",pos+Vector3(0,3.0*scale_v,0),Vector3(2.4*scale_v,2.5*scale_v,2.4*scale_v),Color("4f5d38"))
 
 func _rocks_and_reeds(count:int):
  var rock_mesh=SphereMesh.new();rock_mesh.radius=0.5;rock_mesh.height=0.64;rock_mesh.radial_segments=7;rock_mesh.rings=4
@@ -324,7 +399,7 @@ func _ring(radius:float,color:Color,parent:Node3D):
 func _world_label(text_value:String,pos:Vector3,color:Color,font_size=32,parent:Node3D=self):
  var label=Label3D.new()
  label.text=text_value;label.position=pos
- label.font_size=font_size;label.pixel_size=0.038
+ label.font_size=font_size;label.pixel_size=LABEL_PIXEL_SIZE;label.fixed_size=true
  label.modulate=color;label.outline_size=8;label.outline_modulate=Color(0.07,0.10,0.09,0.9)
  label.billboard=BaseMaterial3D.BILLBOARD_ENABLED
  label.no_depth_test=true
@@ -348,7 +423,7 @@ func _create_group(unit:Dictionary):
    for anim in list:
     if "trot" in anim or "walk" in anim:
      player.get_animation(anim).loop_mode=Animation.LOOP_LINEAR
-     player.play(anim);player.seek(float(i)*0.14,true);player.speed_scale=0.0;anims.append(player);break
+     player.play(anim);player.seek(float(i)*0.14,true);player.pause();player.speed_scale=0.75;anims.append(player);break
  var ring=_ring(2.65,Color("e2bc72"),root)
  selected_rings[str(unit.id)]=ring
  var label=_world_label(str(unit.name),Vector3(0,4.0,0),Color("e9d4aa"),30,root)
@@ -405,7 +480,12 @@ func update_state(delta:float):
   if moving:
     entry.figures.rotation.y=lerp_angle(entry.figures.rotation.y,atan2(-movement.x,-movement.z),minf(1,delta*5))
   var animating=(str(u.stage)=="moving" and not u.path.is_empty()) if scenario=="justine" else dist>0.05
-  for ap in entry.anims:ap.speed_scale=0.75 if animating else 0.0
+  if entry.get("animating",false)!=animating:
+   entry["animating"]=animating
+   for ap in entry.anims:
+    ap.speed_scale=0.75
+    if animating:ap.play()
+    else:ap.pause()
   entry.last=goal
   root.visible=float(u.strength)>0.0
   selected_rings[id].visible=id==selected or selected=="all"
@@ -413,8 +493,9 @@ func update_state(delta:float):
   var index=rules.state.units.find(u)
   var short_name="Güemes" if id=="guemes" else ("Voluntarios" if id=="arias" else "Reserva")
   if scenario=="norte":short_name="Güemes" if id=="guemes" else ("Arias" if id=="arias" else "Partida del valle")
-  unit_labels[id].text=marker+str(index+1)+" · "+(short_name+" · " if id==selected else "")+str(int(u.strength))+"%"
-  unit_labels[id].font_size=26
+  var label_text=marker+str(index+1)+" · "+(short_name+" · " if id==selected else "")+str(int(u.strength))+"%"
+  if unit_labels[id].text!=label_text:unit_labels[id].text=label_text
+  if unit_labels[id].font_size!=26:unit_labels[id].font_size=26
   unit_labels[id].position.y=4.0+(float(index)*2.1 if nearby else 0.0)
   unit_labels[id].modulate=Color("f1d290") if id==selected else Color("ddd7bf")
  if scenario=="norte":
@@ -423,7 +504,8 @@ func update_state(delta:float):
    if entry.is_empty():continue
    entry.ring.visible=str(sector.id)==selected_sector or int(sector.get("intel_until",0))>=int(rules.state.round)
    entry.label.modulate=Color("f6d794") if str(sector.id)==selected_sector else (Color("dfd8bf") if bool(sector.get("known",false)) else Color("7c8d8d"))
-   entry.label.text=str(sector.name).to_upper()+(" · ?" if not bool(sector.get("known",false)) else (" · ◇" if int(sector.get("intel_until",0))>=int(rules.state.round) else ""))
+   var sector_text=str(sector.name).to_upper()+(" · ?" if not bool(sector.get("known",false)) else (" · ◇" if int(sector.get("intel_until",0))>=int(rules.state.round) else ""))
+   if entry.label.text!=sector_text:entry.label.text=sector_text
   if is_instance_valid(enemy_marker):
    var position_id=str(rules.state.enemy.get("position","jujuy"))
    if sector_nodes.has(position_id):
@@ -433,18 +515,27 @@ func update_state(delta:float):
 
 func refresh_paths():
  if not is_instance_valid(route_root):return
- for child in route_root.get_children():child.queue_free()
- if not show_paths:return
- for u in rules.state.units:
-  if str(u.id)!=selected and selected!="all":continue
-  var points=u.get("path",[])
-  for i in range(points.size()):
-   if i%3!=0 and i!=points.size()-1:continue
-   var p=points[i]
-   var x=float(p[0]) if p is Array else float(p.get("x",0))
-   var z=float(p[1]) if p is Array else float(p.get("z",0))
-   var disc=CylinderMesh.new();disc.top_radius=0.16;disc.bottom_radius=0.16;disc.height=0.06;disc.radial_segments=8
-   _mesh(disc,Vector3(x,maxf(terrain_height(x,z),float(rules.state.get("water_level",0)))+0.12,z),Color("e9c678"),route_root)
+ if path_instances==null:
+  var mm0=MultiMesh.new();mm0.transform_format=MultiMesh.TRANSFORM_3D
+  var disc=CylinderMesh.new();disc.top_radius=0.16;disc.bottom_radius=0.16;disc.height=0.06;disc.radial_segments=8
+  mm0.mesh=disc
+  path_instances=MultiMeshInstance3D.new();path_instances.multimesh=mm0
+  path_instances.material_override=_mat(Color("e9c678"))
+  route_root.add_child(path_instances)
+ var xf=[]
+ if show_paths:
+  for u in rules.state.units:
+   if str(u.id)!=selected and selected!="all":continue
+   var points=u.get("path",[])
+   for i in range(points.size()):
+    if i%3!=0 and i!=points.size()-1:continue
+    var p=points[i]
+    var x=float(p[0]) if p is Array else float(p.get("x",0))
+    var z=float(p[1]) if p is Array else float(p.get("z",0))
+    xf.append(Transform3D(Basis.IDENTITY,Vector3(x,maxf(terrain_height(x,z),float(rules.state.get("water_level",0)))+0.12,z)))
+ var mm:MultiMesh=path_instances.multimesh
+ mm.instance_count=xf.size()
+ for i in range(xf.size()):mm.set_instance_transform(i,xf[i])
 
 func cannon_effect():
  if is_instance_valid(fire_flash):fire_flash.light_energy=4.0

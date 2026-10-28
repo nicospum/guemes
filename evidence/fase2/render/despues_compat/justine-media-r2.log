@@ -1,0 +1,8 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+OpenGL API 3.3.0 NVIDIA 610.88 - Compatibility - Using Device: NVIDIA - NVIDIA GeForce RTX 3080 Ti
+
+{"engine":"4.7.2-stable (official)","engine_static_memory_bytes":59501313,"frame_ms_median":3.966,"frame_ms_p95":4.628,"frames":180,"mean_fps":248.246414908025,"measurement_seconds":0.725086,"os":"Windows","pid":54588,"quality":"media","render_3d_scale":1.0,"renderer":"NVIDIA GeForce RTX 3080 Ti","scenario":"justine","scene_build_ms":102,"scope":"isolated automated local rendering; not the user PC","viewport":"(1440.0, 900.0)"}
+ERROR: Texture with GL ID of 24: leaked 349524 bytes.
+   at: ~Utilities (drivers/gles3/storage/utilities.cpp:82)
+ERROR: Texture with GL ID of 25: leaked 349524 bytes.
+   at: ~Utilities (drivers/gles3/storage/utilities.cpp:82)

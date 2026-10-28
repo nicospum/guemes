@@ -5,7 +5,7 @@ config_version=5
 config/name="Güemes — Juegos de la Patria"
 config/version="0.1.0"
 run/main_scene="res://scenes/main.tscn"
-config/features=PackedStringArray("4.7", "GL Compatibility")
+config/features=PackedStringArray("4.7", "Forward Plus")
 config/description="Dos escenarios de estrategia histórica en 3D. Recreación documentada."
 config/icon="res://assets/icon.svg"
 
@@ -20,8 +20,10 @@ window/size/min_width=1024
 window/size/min_height=640
 
 [rendering]
-renderer/rendering_method="gl_compatibility"
+rendering_device/fallback_to_opengl3=true
+renderer/rendering_method="forward_plus"
 renderer/rendering_method.mobile="gl_compatibility"
+renderer/rendering_method.web="gl_compatibility"
 textures/default_filters/use_nearest_mipmap_filter=false
 anti_aliasing/quality/msaa_3d=2
 environment/defaults/default_clear_color=Color(0.08,0.12,0.13,1)
