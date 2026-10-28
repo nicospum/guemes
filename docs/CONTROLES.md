@@ -37,12 +37,12 @@ En el norte, al seleccionar otra agrupación, el sector elegido vuelve a ser el 
 | F5 o botón **Guardar** | Guardar el progreso del escenario actual. Si se está resolviendo una ronda, esperá a que termine. |
 | F9 | Cargar el guardado del escenario actual. En el Justine vuelve pausado para que puedas revisar la situación. |
 | **Continuar**, en el menú | Abrir el escenario del último guardado disponible. |
-| R | Reiniciar inmediatamente el escenario actual. El progreso no guardado se pierde. |
+| R | Pedir confirmación para reiniciar el escenario actual. Solo reinicia si se acepta; el progreso no guardado se pierde. El guardado de F5 no se borra al reiniciar. |
 | F1 o Esc durante la partida | Abrir los controles. |
 | Esc con un panel abierto | Cerrar ese panel y recuperar el estado anterior de pausa. |
 | H o **Fuentes** | Abrir el contexto histórico y las fuentes. |
 | F11 | Alternar pantalla completa. |
-| **Menú** | Volver a la selección de escenarios. Guarda antes de salir si no hay una ronda pendiente de resolución. |
+| **Menú** | Volver a la selección de escenarios. Autoguarda al salir solo si la partida está en curso, tiene avances (tiempo, ronda u órdenes) y no hay una ronda pendiente. Una partida recién reiniciada o ya terminada no pisa el guardado anterior. |
 
 La campaña del norte guarda automáticamente después de cada ronda resuelta. Hay un guardado independiente para cada escenario; F5 actualiza el correspondiente a la partida actual. Los ajustes se conservan por separado.
 

@@ -1,6 +1,6 @@
 # Güemes — Juegos de la Patria
 
-**Versión 0.1.0 — alfa jugable, 28 de octubre de 2026.**
+**Versión 0.2.0-alfa — alfa jugable, 28 de octubre de 2026.** (La entrega 0.1.0 conserva su verificación en `docs/VERIFICACION.md`; la de 0.2.0 está en `docs/VERIFICACION_FASE2.md`.)
 
 Dos escenarios completos en sus reglas, con selección, objetivos, victoria, derrota, reinicio y persistencia. Proyecto independiente en Godot 4.7.2. La entrega incluye código y exportación Windows x64. El acabado es 3D estilizado de detalle medio: la fidelidad cinematográfica solicitada sigue pendiente. Jev está integrado por contrato y alternativa local, pero no se validó una decisión viva por falta de credencial.
 
@@ -12,9 +12,9 @@ Dos escenarios completos en sus reglas, con selección, objetivos, victoria, der
 
 No hace falta instalar el editor de Godot, Blender, REA, Python ni un MCP para jugar. No hace falta una clave de Jev para completar los escenarios. Los guardados y ajustes se escriben en `%APPDATA%\Godot\app_userdata\Güemes — Juegos de la Patria`, fuera de la carpeta del ejecutable. La instalación de Civilization VII no forma parte del proyecto.
 
-El destino es Windows x64. El EXE final completó ambos escenarios hasta la victoria bajo Wine 11.0 en Linux; la exportación y las evidencias se detallan en `docs/VERIFICACION.md`. Todavía no se validó su ejecución en una PC Windows nativa.
+El destino es Windows x64. El EXE de **0.1.0** completó ambos escenarios bajo Wine 11.0 en Linux (`docs/VERIFICACION.md`); esa evidencia y la cifra de 16–20 FPS en un servidor sin GPU **son de 0.1.0 y no cubren** los modelos PBR, la interfaz ni el audio de 0.2.0.
 
-En el servidor remoto sin GPU acelerada, el perfil bajo midió aproximadamente 16–20 FPS; no alcanzó la meta de 30 FPS. El rendimiento y el audio en tu PC Windows requieren una prueba en ese equipo. El juego permite cambiar el detalle en Ajustes.
+Para **0.2.0-alfa** se midió, en una PC con Windows 11, Ryzen 9 7950X y RTX 3080 Ti a 1440×900, la escena real ejecutada desde el editor con Forward+ (hasta 800–1200 FPS sin V-Sync) y con Compatibilidad, y se recorrieron los dos escenarios hasta su desenlace por script. **No se probó una partida humana en Windows nativo, ni audio audible, ni Jev vivo**; el EXE de 0.2.0 solo pasó una prueba de arranque automática. Detalle y límites en `docs/VERIFICACION_FASE2.md`. Los modelos de casa, iglesia, algarrobo, cardón y roca existen en el repositorio pero todavía no están usados por el juego. El juego permite cambiar el detalle en Ajustes.
 
 ## Los dos escenarios
 
@@ -82,7 +82,8 @@ REA 6.8.0 se utilizó realmente para inspección PE del runtime y del ejecutable
 - `docs/historia/MATRIZ_HISTORICA.md` y `FUENTES.md`: evidencia y decisiones históricas.
 - `docs/ASSETS.md`: geometría, animación, audio y licencias.
 - `docs/REA.md`, `docs/JEV.md`, `docs/HERRAMIENTAS.md`: integraciones y límites.
-- `docs/VERIFICACION.md`: pruebas, rendimiento, hardware y aceptación.
+- `docs/VERIFICACION.md`: pruebas, rendimiento, hardware y aceptación de 0.1.0.
+- `docs/VERIFICACION_FASE2.md`: mediciones, recorridos, hallazgos y pendientes de 0.2.0-alfa.
 - `docs/WINE_QA.md`: ejecución del EXE final y diagnóstico de compatibilidad de Wine.
 - `docs/RECONSTRUIR.md`: reconstruir con Godot 4.7.2.
 - `evidence/`: registros, resultados y capturas de ejecución real.

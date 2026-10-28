@@ -1,19 +1,17 @@
 {
   "project": "Güemes — Juegos de la Patria",
-  "version": "0.1.0",
+  "version": "0.2.0-alpha",
   "status": "playable_alpha",
-  "source_snapshot_commit": "f804201b736bb6b15a297f9712c14c16a1826f34",
-  "runtime_source_commit": "a246cdd",
+  "previous_release": "0.1.0",
+  "runtime_source_commit": "PENDIENTE",
   "windows_executable": "PatriaGuemes.exe",
-  "windows_bytes": 111740368,
-  "windows_sha256": "c2608e42b9e752231515b97fce20bdb8f8ec08ae8dc878e17a01f34aa710c462",
+  "windows_bytes": null,
+  "windows_sha256": null,
   "engine": "Godot 4.7.2 stable ed1daf0bf",
   "native_windows_tested": false,
+  "native_windows_human_playtest": false,
+  "windows_exe_smoke_test": "pendiente",
   "jev_live_tested": false,
-  "windows_wine_version": "wine-11.0",
-  "windows_wine_scenarios_passed": [
-    "justine",
-    "norte"
-  ],
-  "verification": "docs/VERIFICACION.md"
+  "audio_audible_tested": false,
+  "verification": "docs/VERIFICACION_FASE2.md"
 }

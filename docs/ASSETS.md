@@ -19,11 +19,11 @@ Los modelos, sonidos, geometría de escenario y shaders indicados como propios s
 | `assets/audio/river.wav`, `ribera.wav`, `wind.wav`, `wind_north.wav` | Mismo script. | Igual que el anterior. | Ambientes estéreo en lazo de 10, 12, 12 y 15 s, construidos como señal periódica (fase aleatoria en frecuencia y moduladores de ciclos enteros), sin clic en la costura. Se superponen dos capas por escenario (Justine: río + ribera con grillos; Norte: viento + viento frío con silbido). |
 | `assets/audio/victory.wav` | Mismo script. | Igual que el anterior. | Timbal y fanfarria de metal sintético con acorde sostenido. No incorpora composición ni grabación ajena. |
 
-**Estado de evaluación:** los WAV se analizaron numéricamente (`tools/analyze_audio.py`, resultado en `evidence/fase2/audio/analisis_wav.txt`) y se reprodujeron con el driver real de Windows (WASAPI) en `tests/audio_runtime_test.gd`, que mide señal en los buses. **Nadie los ha escuchado todavía**: la evaluación auditiva humana (timbre, balance, fatiga, claridad de las alertas) sigue pendiente.
+**Estado de evaluación:** los WAV se analizaron numéricamente (`tools/analyze_audio.py`, resultado en `evidence/fase2/audio/analisis_wav.txt`) y se reprodujeron con el driver real de Windows (WASAPI; el log `audio_runtime_log.txt` lo registra: «Driver de audio: WASAPI», latencia de salida 10 ms) en `tests/audio_runtime_test.gd`, que mide señal en los buses. **Nadie los ha escuchado todavía**: la evaluación auditiva humana (timbre, balance, fatiga, claridad de las alertas) sigue pendiente.
 
 **Mezcla:** buses `Musica`, `Ambiente`, `Efectos` y `UI` creados en ejecución por `audio_manager.gd`, con limitador (`AudioEffectHardLimiter`, techo −1 dB) en Master. Variación de tono por reproducción, variantes de cascos, polifonía por efecto (cañón 2, resto 1–2) y tope de 6 voces: sobre el tope se descartan los efectos de prioridad baja. Las alertas (`alert`, `bell`, `error`, `victory`) nunca se descartan por el tope.
 
-**Pendiente de enlazar en `main.gd`** (fuera de esta pista): `play("alert")` ante amenazas, `play("bell")` al resolver una ronda del Norte y `play("dismount")` al pasar la agrupación a la etapa `dismounting`. `ribera.wav` y `wind_north.wav` ya suenan por `set_environment`.
+**Enlazado en `main.gd`** (integración 963c3a5): `alert` ante amenazas, `bell` al resolver una ronda del Norte y `dismount` al pasar la agrupación a la etapa `dismounting`. `ribera.wav` y `wind_north.wav` suenan por `set_environment`. Corrección posterior: `play()` ya no reasigna el stream mientras el reproductor suena; antes lo hacía y cortaba la voz anterior, con lo que la polifonía 2 del cañón no funcionaba. El tope de 6 cuenta reproductores, no voces: con polifonía el recuento puede superar 6 (el test tolera `MAX_VOICES + 3` y llegó a 7).
 
 ## Tipografías de terceros
 
@@ -56,7 +56,7 @@ Todo es propio y generado por `tools/create_models.py` (Blender 4.4.3 en línea 
 - Proporciones de caballo y persona aún estilizadas (extremidades tubulares, manos y rostro simples, sin dedos ni expresión).
 - Texturas procedurales de 256-512 px: dan relieve y variación, no detalle fotográfico. La proyección es por caja, con costuras visibles de cerca en piezas redondas.
 - Uniformes y ropas son interpretaciones; el color del poncho y las vueltas no están verificados para ninguna unidad.
-- Casa, iglesia y vegetación nuevas no están integradas en el juego; el terreno y la hierba siguen siendo geometría de `world_view.gd`.
+- Casa, iglesia, algarrobo, cardón y roca (`house_colonial`, `church_colonial`, `tree_algarrobo`, `tree_cardon`, `rock_cluster`) están versionados y registrados en el manifiesto, pero `world_view.gd` no los usa: **no están en el juego**; el terreno y la hierba siguen siendo geometría de `world_view.gd`.
 - Sin LOD, sin impostores, sin mediciones de rendimiento con la geometría nueva.
 - Comprobación visual hecha con el visor `evidence/fase2/arte/viewer.gd` y las capturas del juego en `evidence/fase2/arte/`; no se probó en GPU integrada.
 
@@ -72,7 +72,7 @@ Todo es propio y generado por `tools/create_models.py` (Blender 4.4.3 en línea 
 
 ## Reproducción
 
-Desde la carpeta del proyecto, con Blender 4.0.2 o compatible disponible:
+Desde la carpeta del proyecto, con Blender 4.4.3 (versión de la fase 2) o compatible disponible; la ruta local en esta PC es `C:/Program Files/Blender Foundation/Blender 4.4`:
 
 ```sh
 blender --background --factory-startup --python tools/create_models.py
@@ -92,7 +92,7 @@ Blender, Python, NumPy y SciPy son herramientas de desarrollo. El ejecutable del
 
 ## Verificación y límites visuales
 
-Se ejecutó Blender 4.0.2 en Linux remoto, se exportaron seis GLB y se creó una séptima variante de materiales, `royalist_1817.glb`, a partir de la infantería propia. Se analizaron las cabeceras JSON para verificar las animaciones y superficies; la variante conserva intactos los buffers de geometría y la animación del original. Se volvieron a importar los GLB de los dos jinetes y del barco en Blender y se inspeccionaron renders reales de esos archivos. Se ajustaron normales de malla, transición de hombros, forma de los cascos y el poncho tras la revisión. Las pruebas de importación en Godot, interacción y rendimiento pertenecen al informe de QA de la versión.
+Versión 0.1.0: se ejecutó Blender 4.0.2 en Linux remoto y se exportaron seis GLB; el séptimo, `royalist_1817.glb`, fue entonces una variante de materiales de la infantería. En la fase 2 se regeneró todo con Blender 4.4.3 y `royalist_1817` pasó a ser una malla propia (12 GLB en total, ver la tabla y la sección de la fase 2). Lo que sigue describe la verificación de 0.1.0. Se analizaron las cabeceras JSON para verificar las animaciones y superficies; la variante conserva intactos los buffers de geometría y la animación del original. Se volvieron a importar los GLB de los dos jinetes y del barco en Blender y se inspeccionaron renders reales de esos archivos. Se ajustaron normales de malla, transición de hombros, forma de los cascos y el poncho tras la revisión. Las pruebas de importación en Godot, interacción y rendimiento pertenecen al informe de QA de la versión.
 
 La dirección es **3D de detalle medio con estilización visible**. Hay siluetas y equipamiento reconocibles, rig y articulaciones, materiales naturales de color y geometría propia. No son personajes fotogramétricos, reconstrucciones arqueológicas ni assets de fidelidad cinematográfica demostrada. Los uniformes son interpretaciones de época: no se verificó un uniforme individual de cada personaje. El modelo del barco no reproduce un plano original; la descripción de mercante y la referencia a 26 cañones proceden del testimonio reproducido en el *Ideario*, p. 390.
 
