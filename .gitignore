@@ -7,3 +7,7 @@ user_data/
 *.key
 __pycache__/
 *.build_release.bak
+.env.*
+*.env
+*.exe
+*.zip
