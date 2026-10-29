@@ -1,18 +1,18 @@
 {
-	"defeats": 2,
+	"defeats": 4,
 	"engine": "4.7.2-stable (official)",
 	"kind": "scene_automation_not_human",
 	"results": [
 		{
-			"capture_pct": 75.0,
+			"capture_pct": 29.9,
 			"outcome_shown": true,
-			"outcome_title": "Plazo agotado",
+			"outcome_title": "Grupos dispersos",
 			"policy": "rush_central",
 			"report_modal_open": true,
 			"route": "central",
 			"status": "defeat",
 			"stumbles": 2,
-			"t_s": 900.0
+			"t_s": 795.25
 		},
 		{
 			"capture_pct": 100.0,
@@ -22,30 +22,30 @@
 			"report_modal_open": true,
 			"route": "central",
 			"status": "victory",
-			"stumbles": 0,
-			"t_s": 675.25
+			"stumbles": 2,
+			"t_s": 976.75
 		},
 		{
-			"capture_pct": 100.0,
+			"capture_pct": 0.0,
 			"outcome_shown": true,
-			"outcome_title": "Buque capturado",
+			"outcome_title": "Plazo agotado",
 			"policy": "recon_south",
 			"report_modal_open": true,
 			"route": "sur",
-			"status": "victory",
+			"status": "defeat",
 			"stumbles": 0,
-			"t_s": 860.5
+			"t_s": 1080.0
 		},
 		{
-			"capture_pct": 100.0,
+			"capture_pct": 0.0,
 			"outcome_shown": true,
-			"outcome_title": "Buque capturado",
+			"outcome_title": "Plazo agotado",
 			"policy": "mixed",
 			"report_modal_open": true,
 			"route": "mixta",
-			"status": "victory",
-			"stumbles": 0,
-			"t_s": 842.5
+			"status": "defeat",
+			"stumbles": 2,
+			"t_s": 1080.0
 		},
 		{
 			"capture_pct": 0.0,
@@ -53,10 +53,10 @@
 			"outcome_title": "Plazo agotado",
 			"policy": "late",
 			"report_modal_open": true,
-			"route": "central",
+			"route": "ninguna",
 			"status": "defeat",
-			"stumbles": 1,
-			"t_s": 900.0
+			"stumbles": 0,
+			"t_s": 1080.0
 		},
 		{
 			"capture_pct": 100.0,
@@ -67,8 +67,8 @@
 			"route": "central",
 			"status": "victory",
 			"stumbles": 0,
-			"t_s": 801.75,
-			"ui_inputs": 36,
+			"t_s": 728.75,
+			"ui_inputs": 437,
 			"ui_log": [
 				"0 s: clic en «Entendido» (cerrar el briefing)",
 				"0 s: clic en «Iniciar» (arrancar el tiempo)",
@@ -76,23 +76,20 @@
 				"0 s: clic en «2×» (velocidad x4)",
 				"0 s: clic en «Señalar a Liniers» (dar la orden de avance)",
 				"1 s: clic en «Reunir» (reunir jinetes)",
-				"54 s: clic en «Abastecer» (reponer munición)",
+				"52 s: clic en «Abastecer» (reponer munición)",
 				"101 s: clic en «Reunir» (reunir jinetes)",
 				"180 s: clic derecho en el terreno (255, 244)",
-				"281 s: ruta con dos waypoints y Enter",
-				"305 s: clic en «Distraer» (fuego de distracción)",
-				"396 s: clic en «Distraer» (fuego de distracción)",
-				"467 s: clic en «Cargar y abordar» (abordar)",
-				"467 s: clic en «Cargar y abordar» (confirmar el tramo sin reconocer)",
-				"486 s: clic en «Distraer» (fuego de distracción)"
+				"182 s: ruta con dos waypoints y Enter",
+				"337 s: clic en «Cargar y abordar» (abordar)",
+				"337 s: clic en «Cargar y abordar» (confirmar el tramo sin reconocer)",
+				"401 s: clic en «Distraer» (fuego de distracción)",
+				"493 s: clic en «Distraer» (fuego de distracción)"
 			]
 		}
 	],
 	"ui_real_victory": true,
-	"victories": 4,
+	"victories": 2,
 	"victory_routes": [
-		"central",
-		"sur",
-		"mixta"
+		"central"
 	]
 }

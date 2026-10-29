@@ -368,7 +368,7 @@ func _run() -> void:
 	game._update_hud()
 	await _frames(20)
 	await _shot("justina-cruce")
-	for s in range(500):
+	for s in range(1100):
 		if game.rules.state.status != "playing":
 			break
 		game._handle_events(game.rules.tick(1.0))
