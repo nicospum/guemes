@@ -4,24 +4,24 @@ Fecha: 28 de octubre de 2026. Este documento recoge solo lo que se ejecutó. La 
 
 ## Equipo y condiciones de las mediciones
 
-AMD Ryzen 9 7950X, 63 GB de RAM, NVIDIA GeForce RTX 3080 Ti de 12 GB (driver 610.88), Windows 11 Pro 10.0.26300, Godot 4.7.2 estable (ed1daf0bf). Escena `main` real lanzada desde Godot (no desde el EXE), 1440×900, V-Sync apagado (`--disable-vsync`), audio Dummy, perfil `APPDATA` aislado. Método: 120 cuadros de calentamiento y 900 medidos por corrida, tres repeticiones por combinación (dos en Compatibilidad), media de las repeticiones. Justine: las tres agrupaciones con rodeo sur, 170 s simulados. Norte: ronda 1 sin resolver. RSS/USS con psutil cada 100 ms (pico). Scripts y salidas: `evidence/fase2/qa/` (`bench_qa.gd`, `run_bench.py`).
+AMD Ryzen 9 7950X, 63 GB de RAM, NVIDIA GeForce RTX 3080 Ti de 12 GB (driver 610.88), Windows 11 Pro 10.0.26300, Godot 4.7.2 estable (ed1daf0bf). Escena `main` real lanzada desde Godot (no desde el EXE), 1440×900, V-Sync apagado (`--disable-vsync`), audio Dummy, perfil `APPDATA` aislado. Método: 120 cuadros de calentamiento y 900 medidos por corrida, tres repeticiones por combinación (dos en Compatibilidad), media de las repeticiones. Justina: las tres agrupaciones con rodeo sur, 170 s simulados. Norte: ronda 1 sin resolver. RSS/USS con psutil cada 100 ms (pico). Scripts y salidas: `evidence/fase2/qa/` (`bench_qa.gd`, `run_bench.py`).
 
 ### Forward+ (Vulkan), configuración por defecto del proyecto
 
 | Escenario y detalle | FPS | Cuadro mediana / p95 / p99 / máx. (ms) | GPU mediana (ms) | RSS / USS pico (MB) | Draw calls | Primitivas | Arranque |
 | --- | ---: | --- | ---: | --- | ---: | ---: | ---: |
-| Justine baja | 909 | 1,06 / 1,24 / 1,67 / 3,7 | 0,21 | 765 / 642 | 174 | 112 mil | 1,79 s |
-| Justine media | 826 | 1,17 / 1,37 / 1,83 / 3,8 | 0,71 | 757 / 637 | 211 | 306 mil | 1,74 s |
-| Justine alta | 804 | 1,21 / 1,39 / 1,57 / 3,6 | 0,87 | 750 / 630 | 227 | 361 mil | 1,70 s |
+| Justina baja | 909 | 1,06 / 1,24 / 1,67 / 3,7 | 0,21 | 765 / 642 | 174 | 112 mil | 1,79 s |
+| Justina media | 826 | 1,17 / 1,37 / 1,83 / 3,8 | 0,71 | 757 / 637 | 211 | 306 mil | 1,74 s |
+| Justina alta | 804 | 1,21 / 1,39 / 1,57 / 3,6 | 0,87 | 750 / 630 | 227 | 361 mil | 1,70 s |
 | Norte baja | 1196 | 0,82 / 0,92 / 1,10 / 2,8 | 0,15 | 747 / 627 | 159 | 99 mil | 1,72 s |
 | Norte media | 1037 | 0,95 / 1,10 / 1,35 / 3,2 | 0,61 | 759 / 638 | 209 | 278 mil | 1,83 s |
 | Norte alta | 991 | 0,99 / 1,15 / 1,43 / 3,1 | 0,74 | 746 / 626 | 213 | 303 mil | 1,81 s |
 
-El FPS mínimo entre repeticiones fue 798 (Justine) y 975 (norte); el mayor cuadro individual, 3,8 ms.
+El FPS mínimo entre repeticiones fue 798 (Justina) y 975 (norte); el mayor cuadro individual, 3,8 ms.
 
 ### Compatibilidad (`gl_compatibility`), dos repeticiones
 
-Justine 675 / 601 / 605 FPS (baja / media / alta); norte 844 / 728 / 718 FPS. Cuadro mediano 1,17–1,62 ms, p99 1,5–2,5 ms, RSS 253–285 MB, arranque 1,22–1,38 s.
+Justina 675 / 601 / 605 FPS (baja / media / alta); norte 844 / 728 / 718 FPS. Cuadro mediano 1,17–1,62 ms, p99 1,5–2,5 ms, RSS 253–285 MB, arranque 1,22–1,38 s.
 
 ### Memoria
 
@@ -31,7 +31,7 @@ Forward+ pico 746–765 MB de RSS (USS 626–642 MB); Compatibilidad 253–285 M
 
 `evidence/fase2/qa/journeys.gd`, capturas en `evidence/fase2/qa/journeys/`. Todos los desenlaces llegaron, con su ventana de desenlace y el botón «Volver a jugar» (que deja captura y tiempo en 0):
 
-- Justine, banco directo con orden en t=0: victoria, 473,75 s simulados. Rodeo sur: victoria, 547 s. Sin orden: derrota a los 900 s.
+- Justina, banco directo con orden en t=0: victoria, 473,75 s simulados. Rodeo sur: victoria, 547 s. Sin orden: derrota a los 900 s.
 - Orden tardía: a los 400 s ganan ambos (822 s y 873 s); a los 600 s pierden ambos (captura 46 y 0); a 700 y 800 s pierden. El corte está entre 400 y 600 s y no se acotó.
 - Norte con las órdenes del QA automático: victoria en 11 decisiones. Norte pasivo: derrota; en la escena real (`jugabilidad/s1.log`, bloque F) en la ronda 12.
 - Fuzz y pruebas de jugabilidad con reglas (`evidence/fase2/qa/jugabilidad/`): sin cuelgues ni recursos negativos.

@@ -43,14 +43,14 @@ El **EXE final de Windows**, SHA-256 `c2608e42b9e752231515b97fce20bdb8f8ec08ae8d
 
 | Recorrido automático del EXE | Resultado | Tiempo real de la automatización |
 | --- | --- | ---: |
-| Justine, guardar/cargar y completar captura | Victoria; 473,75 s simulados. Guardado recuperado en 280 → 280 s. Código de salida 0. | **13,123 s** |
+| Justina, guardar/cargar y completar captura | Victoria; 473,75 s simulados. Guardado recuperado en 280 → 280 s. Código de salida 0. | **13,123 s** |
 | Norte, Humahuaca y retirada | Victoria en ronda 11. Once decisiones `local_fallback` aplicadas: dos de proteger, una de avanzar y ocho de buscar víveres. Código de salida 0. | **45,321 s** |
 
-Se usaron 1440×900, perfil bajo, render por software y audio Dummy. Estos segundos miden el recorrido acelerado de QA, **no una partida humana ni el tiempo de arranque**. La primera imagen posterior a construir cada escena tardó 201 ms en Justine y 183 ms en el norte; tampoco incluye el inicio completo del proceso. Los logs de este EXE no mostraron errores de GDScript ni avisos de texturas/ObjectDB. Sí registraron advertencias EGL/DRI3 y de nivel blanco SDR del entorno virtual; Justine dejó además un mensaje de conexión X cerrada al terminar. Los avisos de texturas descritos en la sección anterior corresponden a las ejecuciones Linux, no se generalizan a este recorrido de Windows/Wine. Ver `docs/WINE_QA.md`.
+Se usaron 1440×900, perfil bajo, render por software y audio Dummy. Estos segundos miden el recorrido acelerado de QA, **no una partida humana ni el tiempo de arranque**. La primera imagen posterior a construir cada escena tardó 201 ms en Justina y 183 ms en el norte; tampoco incluye el inicio completo del proceso. Los logs de este EXE no mostraron errores de GDScript ni avisos de texturas/ObjectDB. Sí registraron advertencias EGL/DRI3 y de nivel blanco SDR del entorno virtual; Justina dejó además un mensaje de conexión X cerrada al terminar. Los avisos de texturas descritos en la sección anterior corresponden a las ejecuciones Linux, no se generalizan a este recorrido de Windows/Wine. Ver `docs/WINE_QA.md`.
 
 ## Resultados de decisiones distintas
 
-Con la semilla fija de las pruebas, las aproximaciones del Justine producen resultados diferentes:
+Con la semilla fija de las pruebas, las aproximaciones de la Justina producen resultados diferentes:
 
 | Estrategia | Desenlace | Tiempo de simulación | Fuerza final agregada |
 | --- | --- | --- | --- |
@@ -83,8 +83,8 @@ Cada benchmark calienta 30 cuadros y mide 180 cuadros con el reloj real. Se ejec
 
 | Escenario | Perfil | FPS medios | Cuadro mediano | Percentil 95 | RSS máxima del proceso |
 | --- | --- | ---: | ---: | ---: | ---: |
-| Justine | Baja | **16,48** | 55,88 ms | 103,97 ms | 392,96 MiB |
-| Justine | Media | **3,88** | 245,75 ms | 358,05 ms | 505,12 MiB |
+| Justina | Baja | **16,48** | 55,88 ms | 103,97 ms | 392,96 MiB |
+| Justina | Media | **3,88** | 245,75 ms | 358,05 ms | 505,12 MiB |
 | Norte | Baja | **19,38** | 49,64 ms | 67,26 ms | 381,89 MiB |
 | Norte | Media | **5,21** | 175,54 ms | 308,67 ms | 489,86 MiB |
 
@@ -92,7 +92,7 @@ La RSS se obtiene con GNU `time -v`, no con el contador de memoria estática de 
 
 **No se alcanzó la meta de 30/60 FPS en este servidor.** La ausencia de GPU impide extrapolar estas cifras a una PC Windows con aceleración gráfica. El perfil medio resulta lento en este entorno. La entrega permite seleccionar baja, media o alta, pero no promete fluidez no medida.
 
-La construcción de la escena con recursos ya cargados midió 56/101 ms para Justine y 85/168 ms para el norte, en baja/media respectivamente. Ese campo no incluye inicio del proceso, importación ni primera compilación de shaders: **no es tiempo total de arranque**. Las capturas y reportes de QA registran por separado el primer cuadro cuando está disponible. No se validó un arranque en frío del equipo destino.
+La construcción de la escena con recursos ya cargados midió 56/101 ms para Justina y 85/168 ms para el norte, en baja/media respectivamente. Ese campo no incluye inicio del proceso, importación ni primera compilación de shaders: **no es tiempo total de arranque**. Las capturas y reportes de QA registran por separado el primer cuadro cuando está disponible. No se validó un arranque en frío del equipo destino.
 
 ## REA, Jev e integraciones
 

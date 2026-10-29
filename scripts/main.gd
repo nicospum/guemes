@@ -358,7 +358,7 @@ func _menu():
  _button(options,"Ajustes",_settings_dialog)
  _button(options,"Historia",_history_dialog)
  _spacer(box,6)
- _rich(box,"[color=#aab7b5]Recreación histórica con diseño propio: el juego distingue lo documentado, la tradición y el diseño (en «Historia» y en cada etiqueta). Que Güemes mandara en la Justina es una tradición no probada.[/color]",13)
+ _rich(box,"[color=#aab7b5]Recreación histórica con diseño propio: el juego distingue lo documentado, la tradición, la reconstrucción y el diseño (en «Historia» y en cada etiqueta). Que Güemes mandara en la Justina es una tradición no probada.[/color]",13)
  _label(box,"VERSIÓN "+str(ProjectSettings.get_setting("application/config/version","?")).to_upper()+"  ·  3D LOCAL  ·  SE PUEDE JUGAR SIN CONEXIÓN",11,MUTED)
  var credit=_label(ui,"RÍO DE LA PLATA\n12 DE AGOSTO DE 1806",16,Color("e6ceb0"),true)
  _anchor(credit,1,1,1,1,-400,-200,-20,-100)
@@ -400,7 +400,7 @@ func _build_hud():
  title_label=_label(heading,"",19,PAPER,true)
  phase_label=_label(heading,"",12,MUTED)
  pause_button=_button(hv,"▶  Iniciar",_toggle_pause,36);pause_button.custom_minimum_size.x=128
- pause_button.tooltip_text="Espacio. En el Justine pausa o reanuda el tiempo; en el norte resuelve la ronda."
+ pause_button.tooltip_text="Espacio. En la Justina pausa o reanuda el tiempo; en el norte resuelve la ronda."
  speed_button=_button(hv,"1×",_cycle_speed,36);speed_button.custom_minimum_size.x=48
  speed_button.tooltip_text="T. Alterna velocidad normal y acelerada."
  _button(hv,"Guardar · F5",func():_save_game(),36)
@@ -452,7 +452,7 @@ func _build_hud():
   button.alignment=HORIZONTAL_ALIGNMENT_LEFT
   unit_buttons[id]=button
  if rules.state.scenario=="justine":
-  _button(groups,"4 · Seleccionar todas",func():_select_unit("all"),25)
+  _button(groups,"Seleccionar todas",func():_select_unit("all"),25)
  var middle=_vbox(br,4);middle.custom_minimum_size.x=330
  selected_label=_label(middle,"",17,PAPER)
  status_label=_label(middle,"",13,MUTED);status_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
@@ -850,7 +850,7 @@ func _simple_dialog(title:String,text_value:String):
 
 func _controls_dialog():
  var box=_open_modal("Cómo jugar",840,650)
- _rich(box,"[b]Cámara[/b]   WASD o flechas desplazan. Q/E giran. La rueda acerca hacia el cursor. Botón central gira e inclina. O enfoca el objetivo y F la selección. I pliega la información, P abre el parte.\n\n[b]Agrupaciones[/b]   Clic sobre un grupo, o teclas 1, 2 y 3. En el Justine, 4 selecciona a todos. Clic derecho ordena mover. X cancela la orden pendiente.\n\n[b]Justina[/b]   Tiene su propia ayuda (botón «Ayuda · F1» dentro de la partida) y su tabla de teclas en docs/CONTROLES.md.
+ _rich(box,"[b]Cámara[/b]   WASD o flechas desplazan. Q/E giran. La rueda acerca hacia el cursor. Botón central gira e inclina. O enfoca el objetivo y F la selección. I pliega la información, P abre el parte.\n\n[b]Agrupaciones[/b]   Clic sobre un grupo, o teclas 1, 2 y 3. En la Justina, 4 y 5 seleccionan a los exploradores, y Mayús+clic o un recuadro suman agrupaciones. Clic derecho ordena mover. X cancela la orden pendiente.\n\n[b]Justina[/b]   Tiene su propia ayuda (botón «Ayuda · F1» dentro de la partida) y su tabla de teclas en docs/CONTROLES.md.
 
 [b]Norte[/b]   Elegí grupo y sector con el mapa o el selector. Prepará una orden por grupo; luego resolvé la ronda. Las órdenes se pueden cambiar antes de resolver. Los botones deshabilitados explican el motivo debajo de la bandeja. [ y ] cambian de sector.
 

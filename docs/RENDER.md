@@ -35,19 +35,19 @@ Datos crudos en `evidence/fase2/render/`.
 ## Resultados (FPS medios, `benchmark.py`, 3 repeticiones)
 | Escenario / perfil | Antes (Compat, código 0.1.0) | Después Compat | Después Forward+ |
 |---|---|---|---|
-| Justine baja | 478 | 489 | 1544 |
-| Justine media | 245 | 248 | 966 |
-| Justine alta | 243 | 245 | 921 |
+| Justina baja | 478 | 489 | 1544 |
+| Justina media | 245 | 248 | 966 |
+| Justina alta | 243 | 245 | 921 |
 | Norte baja | 450 | 461 | 1628 |
 | Norte media | 235 | 286 | 1035 |
 | Norte alta | 233 | 283 | 978 |
 
-Con `bench_gpu` (600 cuadros): Forward+ tiempo de GPU mediano 0,16-0,89 ms; en Compatibility Justine media/alta 3,96 ms (las figuras con piel dominan, como en la auditoría). Draw calls contados por el motor (incluye pasadas de sombra): 244-246 en baja, ~600 en media/alta; primitivas 81k-303k.
+Con `bench_gpu` (600 cuadros): Forward+ tiempo de GPU mediano 0,16-0,89 ms; en Compatibility Justina media/alta 3,96 ms (las figuras con piel dominan, como en la auditoría). Draw calls contados por el motor (incluye pasadas de sombra): 244-246 en baja, ~600 en media/alta; primitivas 81k-303k.
 
 Metas: 60 FPS en alta y 30+ en baja se cumplen con amplio margen en esta GPU. No se midió GPU integrada ni hardware modesto: no hay evidencia para ese caso.
 
 ## Límites conocidos
-- Ganancia grande de Forward+ sobre Compat en Justine: viene del renderer, no de los lotes (con Compat Justine no mejora; Norte sí, por menos draw calls).
+- Ganancia grande de Forward+ sobre Compat en Justina: viene del renderer, no de los lotes (con Compat Justina no mejora; Norte sí, por menos draw calls).
 - No se reemplazaron las figuras con piel (12 jinetes ~12.900 triángulos cada uno): sigue siendo el costo dominante en Compatibility. LOD o modelos más livianos requieren cambiar los GLB.
 - El fallo de fuga de texturas GL al cerrar en Compatibility ya existía; no se investigó.
 - El ajuste de brillo entre renderers y los colores del agua son criterio visual, comparado sobre capturas, no medido colorimétricamente. Las etiquetas pueden seguir solapándose cuando hay unidades juntas.

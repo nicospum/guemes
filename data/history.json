@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "language": "es-AR",
-  "reviewed_on": "2026-10-28",
-  "general_notice": "Recreación histórica. El terreno, los grupos, las rutas, los tiempos y las reglas simplifican acontecimientos reales. Los resultados de tu partida pueden diferir de la historia.",
+  "reviewed_on": "2026-10-29",
+  "general_notice": "Recreación histórica. El terreno, los grupos, las rutas, los tiempos y las reglas simplifican acontecimientos reales. Los resultados de tu partida pueden diferir de la historia. Las etiquetas significan: Documentado, un hecho que consta en un testimonio o documento de época (a veces solo en su transcripción) o en un plano de época; Tradición, una atribución transmitida y no probada; Reconstrucción, algo que se apoya en fuentes secundarias o divulgativas, o que se infiere de planos y vistas posteriores, y cuyo detalle exacto no está comprobado; Diseño, una regla, cifra o geografía inventada para que el juego funcione, que no es dato histórico.",
   "scenarios": {
     "justine": {
       "title": "La toma de la Justina",
@@ -10,44 +10,48 @@
       "place": "Frente al Retiro, Buenos Aires",
       "context": "Durante la Reconquista de Buenos Aires, un mercante armado británico de 26 cañones, que había combatido el día de la rendición, fue tomado por caballería cuando el río bajó de golpe. Gillespie no dice dónde estaba; fuentes divulgativas lo sitúan varado frente al Retiro, junto a la Plaza de Toros.",
       "notice": "Reconstrucción jugable, no crónica. Güemes protagoniza aquí una atribución tradicional: su intervención personal no está probada y las versiones difieren. Gillespie no identifica al jefe de la caballería; el relato de Obligado (1920) lo muestra transmitiendo una orden de Liniers a Pueyrredón; notas posteriores lo hacen jefe del grupo de jinetes.",
-      "name_note": "Justina y Justine son variantes presentes en las fuentes. El juego usa Justina; el identificador interno del escenario sigue siendo «justine».",
+      "name_note": "Justina y Justine son variantes presentes en las fuentes (Gillespie escribe «Justinia»). El juego usa Justina; el identificador interno del escenario sigue siendo «justine».",
       "art_note": "Ribera, casco del buque, vestuario y transición de abordaje son reconstrucciones artísticas. El buque era británico: no se dibuja bandera argentina (en 1806 no existía) ni Infernales. Sin tipo, tonelaje ni capitán documentados.",
       "facts": [
         {
           "title": "Una oportunidad del río",
-          "text": "Gillespie relaciona la captura con una súbita bajada del río, al terminar el 12 de agosto. La hora, las rutas, los umbrales de profundidad, las mareas y la geografía de bancos y vados del juego son una adaptación: no existe sondeo de 1806 del Retiro.",
+          "text": "Gillespie relaciona la captura con una súbita bajada del río, al terminar el 12 de agosto. La hora, las rutas, los umbrales de profundidad, las mareas y la geografía de bancos y vados del juego son una adaptación: no existe sondeo de 1806 del Retiro. En su pilotaje, Gillespie describe caídas repentinas e inexplicables del Plata, de siete u ocho pies (unos 2,1-2,4 m); ese pasaje no las atribuye al viento, y el viento del 12 de agosto no está documentado.",
           "kind": "testimonio y adaptación",
           "source_ids": [
-            "S1"
+            "S1",
+            "S9"
           ]
         },
         {
           "title": "Un mercante británico armado que combatió",
-          "text": "El testigo describe un barco mercante de 26 cañones, británico, que combatió el día de la rendición. No se cuenta con un plano verificado de su casco ni con tipo, tonelaje o capitán.",
+          "text": "Gillespie describe un barco de 26 cañones, aligerado y tripulado con oficiales y cien marineros de la escuadra además de su dotación, que combatió bien el día de la rendición y fue abordado y tomado por caballería. Que fuera un mercante británico lo dicen Gillespie y las fuentes posteriores. No se cuenta con un plano verificado de su casco ni con tipo, tonelaje o capitán.",
           "kind": "testimonio y reconstrucción",
           "source_ids": [
+            "S9",
             "S1",
             "S3"
           ]
         },
         {
           "title": "Dónde varó",
-          "text": "Gillespie no da el lugar. Que varó frente al Retiro, cerca de la Plaza de Toros y de la batería de Abascal, lo sostienen fuentes divulgativas (edisalta, La Nación, Recalada), de confianza media: se usa como reconstrucción. La costa de 1806 estaba al pie de la barranca; los ~390 m al buque son una cifra divulgativa que el juego mide desde el pie de la barranca.",
+          "text": "Gillespie no da el lugar. Que varó frente al Retiro, cerca de la Plaza de Toros y de la batería de Abascal, lo sostienen fuentes divulgativas (edisalta, La Nación, Recalada Náutica), de confianza media: se usa como reconstrucción. La costa de 1806 estaba al pie de la barranca; los ~390 m al buque son una cifra divulgativa que el juego mide desde el pie de la barranca. La existencia y posición de la batería de Abascal no se cotejó con un documento primario.",
           "kind": "fuentes secundarias divulgativas; reconstrucción",
           "verification": "parcial",
           "source_ids": [
-            "S2",
-            "S3"
+            "S3",
+            "S10",
+            "S11"
           ]
         },
         {
           "title": "La caballería de Pueyrredón",
-          "text": "Gillespie habla de caballería sin nombrar al jefe. Que fuera la de Pueyrredón, y que Liniers ordenara avanzar, viene de relatos secundarios (Obligado 1920). Las cantidades y la fuerza relativa de cada grupo del juego son diseño.",
-          "kind": "relato secundario",
+          "text": "Gillespie habla de caballería sin nombrar al jefe. Que fuera la vanguardia de Pueyrredón consta en documentos de época que cita la investigación del proyecto: el parte de Concha del 15 de agosto de 1806 (40 a 60 jinetes en la avanzada) y un oficio de Liniers (Archivo Pueyrredón, t. I, p. 54); no se cotejaron con sus originales. La orden de avance de Liniers y los detalles del relato (anteojo, mensajero por la Alameda, rendición con pañuelo) vienen de Obligado (1920) y de la divulgación: son tradición, no documento. Las cantidades y la fuerza relativa de cada grupo del juego son diseño.",
+          "kind": "documental (Concha, Liniers, citados por la investigación) con detalles de relato secundario",
           "source_ids": [
-            "S1",
+            "S9",
             "S3"
-          ]
+          ],
+          "verification": "parcial"
         },
         {
           "title": "La tradición de Güemes",
@@ -112,6 +116,12 @@
   },
   "sources": [
     {
+      "id": "S9",
+      "title": "Alexander Gillespie, Gleanings and Remarks (Leeds, 1818): pilotaje del Plata y p. 94 (la «Justinia»)",
+      "url": "https://archive.org/stream/gleaningsremarks00gillrich/gleaningsremarks00gillrich_djvu.txt",
+      "kind": "testimonio de un participante; texto OCR de Internet Archive, sin cotejar con el escaneo"
+    },
+    {
       "id": "S1",
       "title": "Ideario de Güemes — Martorell de Laconi, 2018",
       "url": "https://acaedu.edu.ar/LibrosBD/pdf/IdearioGuemes.pdf",
@@ -171,6 +181,24 @@
       "title": "Cámara de Diputados de la Nación: proyecto 1505-D-2022 (Héroe Nacional M. E. Arias)",
       "url": "https://www4.hcdn.gob.ar/dependencias/dsecretaria/Periodo2022/PDF2022/TP2022/1505-D-2022.pdf",
       "kind": "fundamentos parlamentarios con relato del ataque"
+    },
+    {
+      "id": "S10",
+      "title": "Recalada Náutica: «La Justine», blog (reproduce un texto del Bicentenario, 2010)",
+      "url": "http://recaladanautica.blogspot.com/2010/05/la-justine.html",
+      "kind": "divulgación; fuente secundaria de confianza media"
+    },
+    {
+      "id": "S11",
+      "title": "La Nación: «Una hazaña poco recordada de Güemes en las invasiones inglesas», A. R. Jacquelin, 18-07-2020",
+      "url": "https://www.lanacion.com.ar/economia/campo/una-hazana-poco-recordada-de-guemes-en-las-invasiones-inglesas-nid2398721/",
+      "kind": "divulgación periodística; fuente secundaria de confianza media"
+    },
+    {
+      "id": "S12",
+      "title": "Infobae: reconquista de Buenos Aires, 12-08-2024",
+      "url": "https://www.infobae.com/historia/2024/08/12/como-fue-la-operacion-de-reconquista-de-buenos-aires-del-plan-de-liniers-a-la-desconfianza-de-los-ingleses/",
+      "kind": "divulgación periodística; contexto cronológico de los días 10 a 12 de agosto"
     }
   ]
 }
