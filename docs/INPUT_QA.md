@@ -20,7 +20,7 @@ Las acciones se contrastaron con capturas y con los archivos JSON que el propio 
 
 | Recorrido | Acción real | Evidencia observada |
 | --- | --- | --- |
-| Abrir Justine | Clic en el botón del menú | Se muestra la misión pausada con tres agrupaciones, objetivo y controles. |
+| Abrir Justina | Clic en el botón del menú | Se muestra la misión pausada con tres agrupaciones, objetivo y controles. |
 | Seleccionar y ordenar a todos | Tecla **4** y clic en **Banco directo** | Las tres órdenes guardadas tienen `action: direct`. |
 | Cambiar una sola agrupación | Tecla **1** y clic en **Rodeo sur** | Güemes cambia a `flank`; los otros dos grupos conservan `direct`. |
 | Avanzar y pausar | **Espacio**, espera breve, **Espacio** | El tiempo real de la simulación guardada alcanza **2,25 s**, con desplazamiento de las agrupaciones. |

@@ -10,13 +10,13 @@ Godot 4.7.2 estable, GDScript, renderer Compatibility. Permite implementar regla
 
 ## Alcance de implementación
 1. Base y exportación verificable.
-2. Justine: tres grupos, tiempo real con pausa, tránsito dependiente de bajante, dos aproximaciones, desmontaje y captura.
+2. Justina: tres grupos, tiempo real con pausa, tránsito dependiente de bajante, dos aproximaciones, desmontaje y captura.
 3. Norte: campaña de sectores por rondas, exploración, recursos, apoyo civil, hostigamiento, Humahuaca con Arias y retirada.
 4. Jev selector de intención realista por contrato validado; alternativa local y trazas. REA investigación verificable en superficies accesibles.
 5. Arte, audio, persistencia, QA visual y empaquetado Windows.
 
 ## Historia
-La participación de Güemes en el Justine es tradición no probada. El buque se representa como mercante armado de aspecto reconstruido. No bandera argentina ni Infernales en 1806. Humahuaca 1 de marzo de 1817 con Arias; retirada de Salta 4/5 de mayo. San Martín es contexto estratégico, no refuerzo físico.
+La participación de Güemes en la Justina es tradición no probada. El buque se representa como mercante armado de aspecto reconstruido. No bandera argentina ni Infernales en 1806. Humahuaca 1 de marzo de 1817 con Arias; retirada de Salta 4/5 de mayo. San Martín es contexto estratégico, no refuerzo físico.
 
 ## Criterios de reporte
 Distinguir exportado, ejecutado en Linux, ejecutado bajo Wine y verificado en Windows nativo. No afirmar rendimiento de la PC del usuario ni decisión real de Jev sin evidencia.

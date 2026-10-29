@@ -18,13 +18,13 @@ Para **0.2.0-alfa** se midió, en una PC con Windows 11, Ryzen 9 7950X y RTX 308
 
 ## Los dos escenarios
 
-### I. Tomar el Justine · 1806
+### I. Tomar la Justina · 1806
 
 Tiempo real con pausa. Tres agrupaciones de caballería parten de la ribera. La bajante cambia la profundidad y el tránsito. Podés elegir el banco central, más corto y expuesto, o el rodeo sur, más largo y protegido. Las órdenes de aproximación preparan el movimiento, esperan en la ribera si hace falta y reanudan el cruce al habilitarse.
 
 Al llegar al buque se representa un desmontaje de 12 segundos y la resolución de la captura; los caballos quedan fuera de la cubierta. La fuerza conservada afecta el progreso. Perdés si las agrupaciones se dispersan o se cierra la oportunidad sin capturar. No se simula combate individual en cubierta.
 
-**Para empezar:** tecla 4, elegí una aproximación y pulsá Espacio. Podés cambiar órdenes por grupo con 1/2/3, cancelar con X, reagruparte o mover con clic derecho. Tab alterna 1× y 3×.
+**Para empezar:** seleccioná una agrupación (Mayús+clic suma otras, o arrastrá una caja), elegí una aproximación y pulsá Espacio. Podés cambiar órdenes por grupo con 1/2/3 (4 y 5 son los exploradores), cancelar con X, reagruparte o mover con clic derecho. + y − cambian la velocidad.
 
 En recorridos automatizados, la vía directa ganó en 7 min 53,75 s simulados y el rodeo sur en 9 min 7 s. Son resultados del balance actual, no mediciones de jugadores.
 
@@ -46,10 +46,11 @@ Las pruebas comprobaron dos estrategias ganadoras distintas, en rondas 10 y 11, 
 | Acercar / alejar | Rueda |
 | Girar | Q / E; arrastrar con botón central |
 | Seleccionar grupo | Clic o teclas 1, 2, 3 |
-| Seleccionar todos, Justine | 4 |
+| Seleccionar las tres agrupaciones, Justina | Mayús+clic suma, Ctrl+clic alterna, o arrastrar una caja |
+| Seleccionar explorador, Justina | 4 y 5 (Explorador 1 y 2) |
 | Mover | Clic derecho |
 | Pausa / resolver ronda | Espacio |
-| Velocidad 1× / 3× | Tab |
+| Velocidad (Justina: ×1, ×2, ×4) | + / − ; Tab cicla la selección |
 | Cancelar orden | X |
 | Guardar / cargar | F5 / F9 |
 | Reiniciar escenario | R |
@@ -61,7 +62,7 @@ El detalle, la ayuda contextual y el sonido se cambian en Ajustes. El perfil baj
 
 ## Historia y límites
 
-La participación personal de Güemes en la toma del Justine es una atribución tradicional no probada, explicitada en el juego. Se usa Justine como denominación consistente y se explica la variante Justina. El buque es un mercante armado reconstruido, no el HMS Leander. No se trasladan banderas argentinas ni Infernales a 1806.
+La participación personal de Güemes en la toma de la Justina es una atribución tradicional no probada, explicitada en el juego. Se usa Justina como denominación consistente y se explica la variante Justine (presente en las fuentes). El buque es un mercante armado reconstruido, no el HMS Leander. No se trasladan banderas argentinas ni Infernales a 1806.
 
 Humahuaca corresponde a Manuel Eduardo Arias, el 1 de marzo de 1817. La salida histórica de Salta se sitúa en los primeros días de mayo, distinguiendo movimientos del 4 y el parte del 5. San Martín aparece como contexto de la campaña continental; no llega como refuerzo a Salta.
 

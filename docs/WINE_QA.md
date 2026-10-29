@@ -20,7 +20,7 @@ La prueba arrancó el PE de Windows, leyó su PCK incluido y produjo capturas e 
 
 ## Resultados
 
-| Comprobación | Justine | Campaña del norte |
+| Comprobación | Justina | Campaña del norte |
 | --- | --- | --- |
 | Estado final | `victory` | `victory` |
 | Código de salida | 0 | 0 |
@@ -33,7 +33,7 @@ La prueba arrancó el PE de Windows, leyó su PCK incluido y produjo capturas e 
 
 Los tiempos de proceso corresponden al recorrido automatizado, que adelanta la simulación. No representan la duración de una partida humana ni un benchmark comparable a las mediciones sostenidas de `VERIFICACION.md`.
 
-En Justine, la prueba ordenó la ruta directa a las tres agrupaciones, avanzó hasta la bajante, guardó y volvió a cargar en 280 s. Después alcanzó la victoria. La captura final muestra 250 de 300 de fuerza conservada y los caballos fuera de cubierta.
+En Justina, la prueba ordenó la ruta directa a las tres agrupaciones, avanzó hasta la bajante, guardó y volvió a cargar en 280 s. Después alcanzó la victoria. La captura final muestra 250 de 300 de fuerza conservada y los caballos fuera de cubierta.
 
 En el norte, las once decisiones aplicadas fueron dos `guard`, una `advance` y ocho `forage`, todas de la alternativa local. El informe conserva por decisión la observación enviada al cliente, opciones legales, contexto de partida/ronda/versión, fuente, identificador y latencia. El desenlace corresponde a la ronda 11, 22 de abril de 1817: la pantalla lo identifica expresamente como retirada anticipada alternativa y distingue la retirada histórica de comienzos de mayo. Humahuaca figura recuperada por Arias. Esta ejecución no valida el servicio Jev vivo.
 
@@ -48,19 +48,19 @@ Evidencia principal:
 
 ## Revisión de capturas y avisos
 
-Se revisaron visualmente el menú, los dos inicios, la bajante del Justine, Humahuaca y ambos desenlaces. La interfaz, botones, indicadores y textos de resultado se dibujan y se leen. La escena 3D de detalle bajo conserva pixelado visible y menor legibilidad de algunas etiquetas del terreno; las etiquetas próximas a las agrupaciones quedan densas en los puntos de reunión. Las capturas documentan ese aspecto real de la calidad baja, sin atribuirle la nitidez de perfiles superiores.
+Se revisaron visualmente el menú, los dos inicios, la bajante de la Justina, Humahuaca y ambos desenlaces. La interfaz, botones, indicadores y textos de resultado se dibujan y se leen. La escena 3D de detalle bajo conserva pixelado visible y menor legibilidad de algunas etiquetas del terreno; las etiquetas próximas a las agrupaciones quedan densas en los puntos de reunión. Las capturas documentan ese aspecto real de la calidad baja, sin atribuirle la nitidez de perfiles superiores.
 
 | Imagen | Ruta |
 | --- | --- |
 | Menú | `evidence/windows-wine11/justine/menu.png` |
-| Justine al inicio | `evidence/windows-wine11/justine/justine-inicio.png` |
+| Justina al inicio | `evidence/windows-wine11/justine/justine-inicio.png` |
 | Bajante y aproximación | `evidence/windows-wine11/justine/justine-bajante.png` |
-| Victoria del Justine | `evidence/windows-wine11/justine/justine-victoria.png` |
+| Victoria de la Justina | `evidence/windows-wine11/justine/justine-victoria.png` |
 | Norte al inicio | `evidence/windows-wine11/norte/norte-inicio.png` |
 | Humahuaca recuperada | `evidence/windows-wine11/norte/norte-humahuaca.png` |
 | Desenlace del norte | `evidence/windows-wine11/norte/norte-desenlace.png` |
 
-Los dos logs contienen avisos de EGL/DRI3 y de imposibilidad de obtener el nivel blanco SDR del monitor virtual. El log de Justine también registra el cierre de la conexión X. Ambos procesos devolvieron 0 y generaron informes y capturas. No aparecen errores de GDScript, errores `ERROR:`, avisos de `ObjectDB` ni fugas de texturas en estos dos logs Windows/Wine. Esta observación es específica de esta ejecución; no borra los avisos de cierre registrados en otras pruebas Linux. El audio se silenció mediante Dummy y no se evaluó su reproducción audible aquí.
+Los dos logs contienen avisos de EGL/DRI3 y de imposibilidad de obtener el nivel blanco SDR del monitor virtual. El log de Justina también registra el cierre de la conexión X. Ambos procesos devolvieron 0 y generaron informes y capturas. No aparecen errores de GDScript, errores `ERROR:`, avisos de `ObjectDB` ni fugas de texturas en estos dos logs Windows/Wine. Esta observación es específica de esta ejecución; no borra los avisos de cierre registrados en otras pruebas Linux. El audio se silenció mediante Dummy y no se evaluó su reproducción audible aquí.
 
 ## Diagnóstico del intento inicial con Wine 9
 

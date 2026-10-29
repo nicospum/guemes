@@ -44,7 +44,7 @@ Fuentes: Gobierno de Salta [S4], 15 de abril; *Ideario* [S1], p. 40 y parte del 
 
 Lo que no se pudo precisar: el día exacto dentro de la ronda no se simula. La ronda 10 representa un tramo de diez días.
 
-## Crecida del río (Justine)
+## Crecida del río (Justina)
 
 Reproducción con `Aproximación preparada` en t ≥ 700: una orden de aproximación directa o por el sur emitida con la bajante ya cerrándose devolvía siempre «Aproximación preparada…», aunque la agrupación no llegara antes de que el agua cubriera el banco. A partir de t = 780 s el agua sube hasta 0,95 en 120 s; el banco central deja de ser transitable hacia t ≈ 829 s. Sin camino hasta el buque, la agrupación quedaba en `blocked` dentro del agua (por ejemplo en (2, 0) a profundidad 1,05 en t = 900), sin salir nunca.
 

@@ -25,7 +25,7 @@ Nota de nombres: el repo usa "Justine". Las fuentes usan Justina o Justinia. Se 
 - El lugar es **frente al Retiro**, cerca de la batería Abascal, la Plaza de Toros (hoy Plaza San Martín) y la Alameda sobre la barranca. No es Quilmes ni Barragán, que son hechos anteriores y separados. Confianza alta en el Retiro. La equivalencia con la Torre Monumental es de confianza media/baja.
 - Era un mercante de 26 cañones (Gillespie, 1818, dominio público). La caballería de Pueyrredón lo tomó al cierre del día "por una súbita bajada del río".
 - La distancia a la orilla suele darse como menos de 400 m, y es una cifra de divulgación sin cita primaria. La profundidad final llegaba al pecho o cuello de los caballos, es decir 1-1,5 m. Tampoco tiene sondeo de época.
-- Hidrografía (Gillespie): el Plata puede subir o bajar 2,1-2,4 m de golpe por el viento. Hoy los vientos del oeste de 40-60 km/h causan bajantes de unos 1,65 m. El viento del 12 de agosto no está documentado.
+- Hidrografía (Gillespie): el Plata puede subir o bajar 2,1-2,4 m (siete u ocho pies) de golpe; Gillespie lo llama «very sudden and unaccountable» y en ese pasaje no lo atribuye al viento (corregido el 29/10/2026). Hoy los vientos del oeste de 40-60 km/h causan bajantes de unos 1,65 m. El viento del 12 de agosto no está documentado.
 - La captura por caballería de Pueyrredón es documental. **Güemes como jefe es tradición, no documento** (Obligado 1920 y Güemes Documentado, no Gillespie ni Concha). Se mantiene la regla actual: tradición no probada.
 
 **Escala y dimensiones propuestas** (1 unidad = 1 m):
