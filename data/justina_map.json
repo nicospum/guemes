@@ -62,7 +62,7 @@
     "note": "Fondo base por x (igual para todo z) desde el pie de la barranca hasta el borde este. Pendiente media mar adentro ~0,004 m/m (síntesis 1.1); los bancos y canales la modifican. Sin sondeo de época (Arrowsmith 1806 y Gillespie 1818 solo orientan).",
     "points_x_elev": [[170,3.0],[196,3.0],[203,2.4],[210,1.65],[222,1.2],[245,0.5],[270,0.0],[330,-0.35],[420,-0.7],[500,-1.05],[580,-1.5],[700,-2.2],[900,-3.0]]
   },
-  "bed_layers_order": ["base", "banks (modo max)", "channels (modo set)", "fords (modo max)", "hazards (modo set)", "hull (modo set)"],
+  "bed_layers_order": ["base", "banks (modo max)", "channels (modo set)", "fords (modo set)", "hazards (modo set)", "hull (modo set)"],
   "banks": [
     { "id": "banco_central", "name": "Banco central", "tag": "diseno", "centerline": [[272,266],[500,264]], "half_width_m": 20.0, "top_m": -0.25, "blend_m": 18.0,
       "note": "Ruta directa: corta y expuesta; contiene el pozo oculto." },
@@ -78,9 +78,9 @@
   ],
   "fords": [
     { "id": "vado_sur", "name": "Vado de la ribera (sur)", "tag": "diseno", "centerline": [[268,400],[342,406]], "half_width_m": 10.0, "top_m": -0.9, "blend_m": 6.0, "hidden": true,
-      "note": "Único paso al banco sur. Abre con nivel <= 0,4 m (t >= ~295 s). Oculto hasta explorarlo." },
+      "note": "Único paso al banco sur. Abre con nivel <= 0,4 m (t >= ~355 s). Oculto hasta explorarlo." },
     { "id": "vado_buque", "name": "Vado junto al buque", "tag": "diseno", "center": [548,262], "radius_m": 22.0, "top_m": -1.0, "blend_m": 8.0, "hidden": false,
-      "note": "Zona de abordaje: profundidad 1,0 m con el río en mínimo (caballo hasta el pecho); transitable para caballos con nivel <= 0,3 m (t ~321 a ~678 s)." }
+      "note": "Zona de abordaje: profundidad 1,0 m con el río en mínimo (caballo hasta el pecho); transitable para caballos con nivel <= 0,3 m (t ~379 a ~982 s; a pie, hasta ~t 974 s)." }
   ],
   "hazards": [
     { "id": "pozo_central", "name": "Pozo del banco central", "kind": "pozo", "tag": "diseno", "center": [415,264], "radius_m": 11.0, "bed_m": -1.9, "hidden": true,

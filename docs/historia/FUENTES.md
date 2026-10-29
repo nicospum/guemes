@@ -34,4 +34,6 @@ La verificación de integridad demuestra correspondencia con el paquete, no verd
 
 ## Pendientes de investigación delimitados
 
+Revisión del 29/10/2026: el lugar del varado (frente al Retiro) se apoya en fuentes divulgativas —edisalta (S3), La Nación y Recalada— y **no en Gillespie**; los enlaces exactos y la fecha de consulta de La Nación y Recalada no están registrados en esta tabla y deben incorporarse y cotejarse. Ver `REVISION_2026-10-29.md`.
+
 No se comprobó un plano técnico del Justine, su arqueo ni el diseño exacto del casco; tampoco un levantamiento de la ribera de 1806 ni posiciones tácticas exactas de Humahuaca. Falta cotejar los documentos de Humahuaca en *Güemes Documentado*, tomo 4, pp. 353–359, con originales o edición íntegra para resolver la discordancia editorial marzo/mayo. Esa incertidumbre se documenta y no cambia la fecha y el mando adoptados para el juego. Una revisión especializada de vestuario, armas e insignias permitiría mejorar la fidelidad del arte.

@@ -1329,7 +1329,8 @@ func ship_state() -> Dictionary:
 		"fire_support_ready_in": maxf(0.0, float(state.get("fire_support", {}).get("ready_at", 0.0)) - float(state.get("elapsed", 0.0)))}
 
 func resources() -> Dictionary:
-	return {"ammo": int(state.ammo), "ammo_max": int(state.ammo_max), "balizas": int(state.balizas), "volunteers_pool": float(state.volunteers_pool), "advance_authorized": bool(state.advance_authorized)}
+	return {"ammo": int(state.ammo), "ammo_max": int(state.ammo_max), "balizas": int(state.balizas), "volunteers_pool": float(state.volunteers_pool), "advance_authorized": bool(state.advance_authorized),
+		"advance_remaining_s": maxf(0.0, float(state.get("advance_until", -1.0)) - float(state.get("elapsed", 0.0))) if bool(state.advance_authorized) and float(state.get("advance_until", -1.0)) >= 0.0 else 0.0}
 
 func scouts() -> Array:
 	return state.get("scouts", []).duplicate(true)

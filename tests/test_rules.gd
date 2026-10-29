@@ -910,23 +910,34 @@ func _test_strategies() -> void:
 	var cf: Array = all.probed_central_full
 	var s_exp := 0.0
 	var c_exp := 0.0
+	var s_cross := 0.0
+	var c_cross := 0.0
 	var s_t := 0.0
 	var c_t := 0.0
 	var sn := 0
 	var cn := 0
 	for res in sf:
+		s_cross += float(res.exposure.central) + float(res.exposure.sur)
 		s_exp += float(res.exposure.central) + float(res.exposure.sur) + float(res.exposure.otra)
 		if res.status == "victory":
 			s_t += res.t
 			sn += 1
 	for res in cf:
+		c_cross += float(res.exposure.central) + float(res.exposure.sur)
 		c_exp += float(res.exposure.central) + float(res.exposure.sur) + float(res.exposure.otra)
 		if res.status == "victory":
 			c_t += res.t
 			cn += 1
 	check(sn >= seeds.size() / 2, "La ruta sur con reconocimiento gana en la mitad o más de las semillas (%d/%d)" % [sn, seeds.size()])
+	var sur_margin := 1e9
+	for res in sf:
+		if res.status == "victory":
+			sur_margin = minf(sur_margin, 960.0 - float(res.t))
+	check(sn == 0 or sur_margin >= 60.0, "La victoria sur deja al menos 60 s de margen antes de que el agua alcance a la gente a pie (margen %.0f s)" % sur_margin)
 	if sn > 0 and cn > 0:
-		check(s_exp < c_exp, "La ruta sur recibe menos fuego acumulado que la central (%.0f vs %.0f s expuestos en total)" % [s_exp, c_exp])
+		var ratio_min := float(Rules.new().map_data().play_targets.recon_then_south.central_vs_south_exposure_ratio_min)
+		check(s_exp < c_exp and c_cross >= ratio_min * s_cross, "En el cruce la exposición de la central es ≥ %.1f × la de la sur con los mismos recursos (%.0f vs %.0f s; con el abordaje, %.0f vs %.0f)" % [ratio_min, c_cross, s_cross, c_exp, s_exp])
+		check(c_t / cn < s_t / sn, "El intercambio es real: la central gana antes (%.0f s) y la sur después (%.0f s) con menos bajas" % [c_t / cn, s_t / sn])
 		report.results.append({"scenario": "justine", "strategy": "sur_vs_centro", "sur_victoria_media_s": s_t / sn, "centro_victoria_media_s": c_t / cn, "exposicion_sur": s_exp / seeds.size(), "exposicion_centro": c_exp / seeds.size()})
 		check(s_t / sn < float(Rules.new().map_data().play_targets.recon_then_south.victory_before_s), "La victoria sur llega antes del objetivo de diseño (%.0f s)" % (s_t / sn))
 	# parte de campaña de una victoria
