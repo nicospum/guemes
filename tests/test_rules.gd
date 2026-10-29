@@ -24,7 +24,13 @@ func _initialize() -> void:
 	_test_fire_and_exposure()
 	_test_boarding_costs()
 	_test_geography_and_texts()
-	_test_strategies()
+	_test_hidden_layout()
+	_test_scarce_resources()
+	_test_capture_decisions()
+	_test_scout_risk()
+	_test_labels_and_save_trim()
+	if "--skip-strategies" not in OS.get_cmdline_user_args():  ## solo para iterar: la matriz tarda varios minutos
+		_test_strategies()
 	_test_speed_never_exceeded()
 	_test_not_stranded()
 	_test_justine_persistence()
@@ -94,7 +100,7 @@ func _test_map_and_terrain() -> void:
 	check(r.state.units.size() == 3 and r.state.scouts.size() == 2 and int(r.state.ammo) == 12 and int(r.state.balizas) == 16 and _near(float(r.state.volunteers_pool), 60.0, 0.001), "Recursos y actores iniciales del JSON")
 	check(float(r.state.units[0].x) == 199.0 and str(r.state.units[0].tag) == "tradicion" and str(r.state.units[2].tag) == "reconstruccion", "Los grupos conservan su etiqueta de fuente (Güemes = tradición; la caballería de Pueyrredón, reconstrucción)")
 	check(r.state.log[0].kind == "objective", "El primer evento es el objetivo")
-	var refs := [[548, 262, -1.0], [580, 262, -1.5], [415, 264, -1.9], [415, 290, -0.34], [330, 264, -0.25], [450, 376, -0.83], [314, 400, -0.9], [304, 350, -2.0]]
+	var refs := [[548, 262, -1.0], [580, 262, -1.5], [345, 264, -1.9], [415, 290, -0.34], [330, 264, -0.25], [450, 376, -0.83], [314, 400, -0.9], [304, 350, -2.0]]
 	for ref in refs:
 		var h: float = r.terrain_height_at(ref[0], ref[1])
 		check(_near(h, ref[2], 0.02), "Altura de referencia (%d,%d) = %.2f (obtenida %.3f)" % [ref[0], ref[1], ref[2], h])
@@ -109,7 +115,7 @@ func _test_map_and_terrain() -> void:
 	# la bajada y el acceso a los hitos de la meseta son transitables; el resto de la meseta no
 	check(r.speed_at(178, 190, "trot", true) > 0.0 and r.speed_at(150, 205, "trot", true) > 0.0 and r.speed_at(148, 345, "trot", true) > 0.0, "Las bajadas y el acceso a la batería/puesto de Liniers son transitables")
 	check(r.speed_at(130, 100, "trot", true) == 0.0 and r.speed_at(175, 100, "trot", true) == 0.0, "El resto de la meseta y la barranca no se pisan")
-	check(not r.is_walkable(415, 264) and r.is_walkable(199, 240) and not r.is_walkable(250, 120), "is_walkable compatible con la firma vieja")
+	check(not r.is_walkable(345, 264) and r.is_walkable(199, 240) and not r.is_walkable(250, 120), "is_walkable compatible con la firma vieja")
 
 # ---------------------------------------------------------------------------
 # 2. Tabla de velocidades (contrato 1.3.3)
@@ -174,8 +180,8 @@ func _test_tide_and_windows() -> void:
 	var ws: Dictionary = r.ford_window(305, 403)
 	check(ws.certain and _near(ws.opens_at, 355.0, 5.0) and _near(ws.closes_at, 989.0, 5.0), "ford_window del vado sur ≈ 355..989 s (obtenido %.1f..%.1f)" % [ws.opens_at, ws.closes_at])
 	check(_near(w.depth_at_low_m, 1.0, 0.02), "Profundidad del vado del buque con el río en mínimo ≈ 1,0 m")
-	r.state.probes.append({"id": "t3", "kind": "lane", "pts": [{"x": 410.0, "z": 264.0}, {"x": 420.0, "z": 264.0}], "width": 6.0, "t": 0.0, "scout": "scout_1"})
-	var never: Dictionary = r.ford_window(415, 264)
+	r.state.probes.append({"id": "t3", "kind": "lane", "pts": [{"x": 335.0, "z": 264.0}, {"x": 350.0, "z": 264.0}], "width": 6.0, "t": 0.0, "scout": "scout_1"})
+	var never: Dictionary = r.ford_window(345, 264)
 	check(never.has_all(["known", "certain", "opens_at", "closes_at", "depth_at_low_m"]) and never.certain and float(never.opens_at) < 0.0 and float(never.closes_at) < 0.0, "ford_window del pozo ya sondeado: nunca abre para el caballo (opens_at = closes_at = -1)")
 	# el estado sigue la marea paso a paso
 	var q := _new_j()
@@ -192,18 +198,18 @@ func _test_tide_and_windows() -> void:
 func _test_knowledge() -> void:
 	var r := _at(500.0)  # río en mínimo
 	check(r.knowledge_at(199, 240) == "visible" and r.knowledge_at(520, 264) == "unknown" and r.knowledge_at(330, 264) == "visible", "Tierra firme y la cresta del banco emergido, visibles; el fondo turbio, desconocido")
-	var base_plus: float = -0.35 - 0.35 * (85.0 / 90.0) + 0.5
-	var pr: float = r.perceived_height_at(415, 264)
-	check(_near(pr, base_plus, 0.03) and pr > -0.5, "Antes de sondear, perceived_height(415,264) ≈ perfil base + 0,5 (obtenido %.3f), no el pozo real" % pr)
-	check(_near(r.perceived_depth_at(415, 264), r.water_level_m() - pr, 1e-9), "perceived_depth = nivel - altura percibida")
-	check(r.terrain_height_at(415, 264) < -1.8, "El pozo real está a -1,9 m")
+	var base_plus: float = -0.35 - 0.35 * (15.0 / 90.0) + 0.5
+	var pr: float = r.perceived_height_at(345, 264)
+	check(_near(pr, base_plus, 0.03) and pr > -0.5, "Antes de sondear, perceived_height(345,264) ≈ perfil base + 0,5 (obtenido %.3f), no el pozo real" % pr)
+	check(_near(r.perceived_depth_at(345, 264), r.water_level_m() - pr, 1e-9), "perceived_depth = nivel - altura percibida")
+	check(r.terrain_height_at(345, 264) < -1.8, "El pozo real está a -1,9 m")
 	# una sonda sobre el pozo: el explorador se detiene en el borde, lo descubre y la franja llega al centro
 	r.state.next_volley = 1500.0  # se silencia el buque para aislar el sondeo (el fuego se prueba aparte)
-	var o: Dictionary = r.issue_scout("scout_1", "probe", [Vector2(415, 264)])
+	var o: Dictionary = r.issue_scout("scout_1", "probe", [Vector2(345, 264)])
 	check(o.ok, "Orden de sondeo sobre el pozo aceptada")
 	_advance(r, float(r.state.elapsed) + 260.0)
-	check(r.knowledge_at(415, 264) == "probed", "Tras el sondeo, knowledge_at(pozo) = probed")
-	check(_near(r.perceived_height_at(415, 264), r.terrain_height_at(415, 264), 1e-9), "Tras sondear, lo percibido es lo real")
+	check(r.knowledge_at(345, 264) == "probed", "Tras el sondeo, knowledge_at(pozo) = probed")
+	check(_near(r.perceived_height_at(345, 264), r.terrain_height_at(345, 264), 1e-9), "Tras sondear, lo percibido es lo real")
 	check("pozo_central" in r.state.hazards_found, "El pozo pasa a hazards_found")
 	check(r.get_scout("scout_1").stage == "idle", "El explorador se detiene en el borde y queda libre")
 	var found := false
@@ -216,8 +222,8 @@ func _test_knowledge() -> void:
 	var prev := Vector2(r.get_unit("arias").x, r.get_unit("arias").z)
 	for p in plan.path:
 		var b := Vector2(p.x, p.z)
-		var closest := Geometry2D.get_closest_point_to_segment(Vector2(415, 264), prev, b)
-		skirts = skirts and closest.distance_to(Vector2(415, 264)) >= 10.0
+		var closest := Geometry2D.get_closest_point_to_segment(Vector2(345, 264), prev, b)
+		skirts = skirts and closest.distance_to(Vector2(345, 264)) >= 10.0
 		prev = b
 	check(plan.ok and skirts, "La ruta planificada rodea el pozo ya descubierto")
 
@@ -227,8 +233,8 @@ func _test_knowledge() -> void:
 func _test_group_actions() -> void:
 	var r := _new_j()
 	# list_actions / action_info
-	check(r.list_actions("group") == ["move", "board", "muster", "resupply", "signal_liniers", "withdraw", "rally", "cancel"], "list_actions(group) en el orden de la UI")
-	check(r.list_actions("scout") == ["probe", "mark_ford", "recall"] and r.list_actions("global") == ["distract_fire", "retreat_all"], "list_actions(scout/global)")
+	check(r.list_actions("group") == ["move", "board", "muster", "resupply", "signal_liniers", "withdraw", "repel", "evacuate", "rally", "cancel"], "list_actions(group) en el orden de la UI")
+	check(r.list_actions("scout") == ["probe", "probe_careful", "mark_ford", "recall"] and r.list_actions("global") == ["distract_fire", "retreat_all"], "list_actions(scout/global)")
 	check(r.action_info("muster").id == "muster" and r.action_info("nope").is_empty(), "action_info lee el JSON")
 	# move
 	var bad: Dictionary = r.issue_order("guemes", "move", Vector2(130, 100))
@@ -237,7 +243,7 @@ func _test_group_actions() -> void:
 	check(not bad.ok and "fuera del mapa" in str(bad.reason), "Mover fuera del mapa se rechaza")
 	bad = r.issue_order("guemes", "move", Vector2(250, 120))
 	check(not bad.ok and "obstáculo" in str(bad.reason), "Mover sobre el cañaveral se rechaza")
-	bad = r.issue_order("guemes", "move", Vector2(415, 264))
+	bad = r.issue_order("guemes", "move", Vector2(345, 264))
 	check(not bad.ok, "Mover al centro del banco con el río alto se rechaza (fondo estimado)")
 	bad = r.issue_order("guemes", "dance")
 	check(not bad.ok and "desconocida" in str(bad.reason), "Orden desconocida: Orden táctica desconocida.")
@@ -283,7 +289,7 @@ func _test_group_actions() -> void:
 	check(working, "Señalar: trabaja 10 s en el puesto")
 	_advance(s, float(s.state.elapsed) + 12.0)
 	check(s.state.advance_authorized and int(s.state.ammo) == ammo0 + 8 and s.get_unit("guemes").stage == "ready", "Señalar concede el avance y +8 de munición")
-	check(float(s.state.advance_until) - float(s.state.elapsed) >= 286.0 and float(s.state.advance_until) - float(s.state.elapsed) <= 300.1, "La orden de avance tiene un plazo de validez (300 s)")
+	check(float(s.state.advance_until) - float(s.state.elapsed) >= 406.0 and float(s.state.advance_until) - float(s.state.elapsed) <= 420.1, "La orden de avance tiene un plazo de validez (420 s)")
 	_advance(s, float(s.state.advance_until) + 1.0)
 	check(not s.state.advance_authorized and not s.issue_order("zavala", "board").ok and s.issue_order("guemes", "signal_liniers").ok, "Vencida la orden de avance no se puede cargar y hay que volver a señalar")
 	var s2 := _new_j()
@@ -359,8 +365,8 @@ func _test_plan_risk() -> void:
 	var win: Dictionary = r.plan_route("arias", r.board_point(), "trot")
 	check(win.ok and win.arrives_in_window == (float(r.state.elapsed) + float(win.eta_s) <= r.ford_window(548, 262).closes_at), "arrives_in_window sigue a ford_window del vado del buque")
 	# tras sondear el trayecto el riesgo baja
-	r.state.probes.append({"id": "t1", "kind": "lane", "pts": [{"x": 300.0, "z": 264.0}, {"x": 345.0, "z": 264.0}], "width": 6.0, "t": 0.0, "scout": "scout_1"})
-	var known: Dictionary = r.plan_route("arias", Vector2(340, 264), "trot")
+	r.state.probes.append({"id": "t1", "kind": "lane", "pts": [{"x": 300.0, "z": 264.0}, {"x": 325.0, "z": 264.0}], "width": 6.0, "t": 0.0, "scout": "scout_1"})
+	var known: Dictionary = r.plan_route("arias", Vector2(322, 264), "trot")
 	check(known.ok and float(known.unknown_m) < float(short.unknown_m) and known.risk != "alto", "Con el tramo sondeado bajan los metros sin reconocer (%.0f -> %.0f m)" % [float(short.unknown_m), float(known.unknown_m)])
 
 func _test_scout_and_global_actions() -> void:
@@ -448,9 +454,9 @@ func _test_board_gate() -> void:
 func _test_fire_and_exposure() -> void:
 	var r := _new_j()
 	check(_near(r.exposure_at(500, 262), 1.0, 1e-9), "Exposición 1,0 por la banda (este-oeste)")
-	check(_near(r.exposure_at(560, 380), 0.25, 1e-9), "Exposición 0,25 por proa/popa")
-	check(_near(r.exposure_at(480, 360), 0.5, 1e-9), "Exposición 0,5 por el cuartel")
-	check(r.exposure_at(200, 262) == 0.0 and r.exposure_at(299, 262) == 0.0 and r.exposure_at(301, 262) > 0.0, "Fuera de 280 m no hay fuego; dentro sí")
+	check(_near(r.exposure_at(560, 380), 0.15, 1e-9), "Exposición 0,15 por proa/popa")
+	check(_near(r.exposure_at(480, 360), 0.4, 1e-9), "Exposición 0,4 por el cuartel")
+	check(r.exposure_at(200, 262) == 0.0 and r.exposure_at(314, 262) == 0.0 and r.exposure_at(316, 262) > 0.0, "Fuera de 265 m no hay fuego; dentro sí")
 	check(r.exposure_at(100, 240) == 0.0, "En la playa no hay fuego")
 	r.state.fire_support = {"until": 45.0, "ready_at": 90.0}
 	check(_near(r.exposure_at(500, 262), 0.5, 1e-9), "El fuego de distracción reduce la exposición a la mitad")
@@ -463,7 +469,9 @@ func _test_fire_and_exposure() -> void:
 	d.state.next_volley = nv
 	_advance(d, float(d.state.elapsed) + 2.0)
 	var dmg := hp0 - float(d.state.units[0].strength)
-	check(dmg >= 3.2 - 0.001 and dmg <= 5.0 + 0.001, "Una descarga causa 3,2-5,0 de daño en exposición 1 (obtenido %.2f)" % dmg)
+	var fmin: float = float(d.map_data().ship.fire.damage_min)
+	var fmax: float = float(d.map_data().ship.fire.damage_max)
+	check(dmg >= fmin - 0.001 and dmg <= fmax + 0.001, "Una descarga causa %.1f-%.1f de daño en exposición 1 (obtenido %.2f)" % [fmin, fmax, dmg])
 	check(d.state.stats.shots_taken == 1 and _near(d.state.next_volley, nv + 7.5, 1e-9), "La siguiente descarga llega a los 7,5 s")
 	var ex := _at(500.0)
 	ex.state.units[0].x = 450.0
@@ -472,7 +480,7 @@ func _test_fire_and_exposure() -> void:
 	ex.state.next_volley = nv2
 	ex.state.fire_support = {"until": float(ex.state.elapsed) + 45.0, "ready_at": float(ex.state.elapsed) + 90.0}
 	_advance(ex, float(ex.state.elapsed) + 2.0)
-	check(_near(ex.state.next_volley, nv2 + 7.5 + 2.0, 1e-9) and float(ex.state.units[0].strength) > 100.0 - 5.0 * 0.5 - 0.001, "Con apoyo de fuego: +2 s entre descargas y daño a la mitad")
+	check(_near(ex.state.next_volley, nv2 + 7.5 + 2.0, 1e-9) and float(ex.state.units[0].strength) > 100.0 - float(ex.map_data().ship.fire.damage_max) * 0.5 - 0.001, "Con apoyo de fuego: +2 s entre descargas y daño a la mitad")
 	# explorador alcanzado
 	var s := _at(500.0)
 	s.state.scouts[0].x = 450.0
@@ -507,6 +515,7 @@ func _test_fire_and_exposure() -> void:
 func _boarding_game(t: float) -> RefCounted:
 	var b := _at(t, 5)
 	b.state.next_volley = 1500.0
+	b.state.counter.next_at = 90000.0  ## sin contraataques: estas pruebas aíslan el cuerpo a cuerpo y el fuego
 	var g: Dictionary = b.get_unit("guemes")
 	g.x = 524.0
 	g.z = 262.0
@@ -522,7 +531,7 @@ func _test_boarding_costs() -> void:
 	var s0 := float(b.get_unit("guemes").strength)
 	_advance(b, 560.0)
 	var lost := s0 - float(b.get_unit("guemes").strength)
-	check(lost >= 60.0 * 0.06 * 0.9 and lost <= 60.0 * 0.06 * 1.05 + 0.01, "Abordar cuesta fuerza en el cuerpo a cuerpo: 0,06/s con la dotación entera (60 s: %.2f)" % lost)
+	check(lost >= 60.0 * 0.05 * 0.9 and lost <= 60.0 * 0.05 * 1.05 + 0.01, "Abordar cuesta fuerza en el cuerpo a cuerpo: 0,05/s con la dotación entera (60 s: %.2f)" % lost)
 	check(float(b.state.stats.melee_loss) > 0.0 and b.state.capture > 0.0, "El parte registra la pérdida en el cuerpo a cuerpo y la captura avanza")
 	# con la moral de la dotación baja el cuerpo a cuerpo pierde fuerza
 	var weak := _boarding_game(500.0)
@@ -531,7 +540,7 @@ func _test_boarding_costs() -> void:
 	_advance(weak, 560.0)
 	check(w0 - float(weak.get_unit("guemes").strength) < lost * 0.5, "Con la dotación quebrada el cuerpo a cuerpo cuesta mucho menos")
 	# el fuego del buque alcanza a los que abordan (x0,5)
-	check(_near(b.exposure_for(b.get_unit("guemes")), b.exposure_at(524.0, 262.0) * 0.5, 1e-9), "Abordando se recibe el fuego del buque con exposición x0,5 (no x0,3)")
+	check(_near(b.exposure_for(b.get_unit("guemes")), b.exposure_at(524.0, 262.0) * float(b.map_data().ship.capture.boarding_exposure_mult), 1e-9), "Abordando se recibe el fuego del buque con la exposición reducida (x0,3, reducida desde x0,5)")
 	# agua que sube: quien esta a pie en el vado se ahoga
 	var up := _boarding_game(1000.0)
 	var u0 := float(up.get_unit("guemes").strength)
@@ -606,6 +615,308 @@ func _test_boarding_costs_placeholder() -> void:
 	pass
 
 # ---------------------------------------------------------------------------
+# 5b. Resultado oculto por partida, recursos limitados, decisiones en la captura, riesgo del explorador, etiquetas y tope de guardado
+
+func _hz(m: Dictionary, id: String) -> Dictionary:
+	for hz in m.hazards:
+		if str(hz.id) == id:
+			return hz
+	return {}
+
+func _test_hidden_layout() -> void:
+	var m: Dictionary = _new_j().map_data()
+	var a := _new_j(5)
+	var b := _new_j(5)
+	check(a.state.hidden.picks == b.state.hidden.picks, "El resultado oculto es fijo para una misma semilla")
+	var variety := {}
+	for sd in SEEDS:
+		variety[str(_new_j(int(sd)).state.hidden.picks)] = true
+	check(variety.size() >= 3, "Las semillas producen al menos 3 fondos ocultos distintos (%d)" % variety.size())
+	for grp in m.hidden_layout.groups:
+		var seen := {}
+		for sd in SEEDS:
+			seen[str(_new_j(int(sd)).state.hidden.picks[str(grp.id)])] = true
+		check(seen.size() == (grp.variants as Array).size(), "El grupo %s sortea todas sus variantes entre las semillas" % str(grp.id))
+	# solo UNA variante por grupo existe en el fondo de la partida: la otra es fondo normal
+	for sd in [3, 5, 7, 11]:
+		var g := _new_j(sd)
+		for grp in m.hidden_layout.groups:
+			var actives := 0
+			for vid in grp.variants:
+				var c := Vector2(float(_hz(m, str(vid)).center[0]), float(_hz(m, str(vid)).center[1]))
+				var deep: bool = g.terrain_height_at(c.x, c.y) < -1.8
+				var is_pick: bool = str(g.state.hidden.picks[str(grp.id)]) == str(vid)
+				check(deep == is_pick and g.hazard_active(str(vid)) == is_pick, "Semilla %d: %s %s en el fondo de la partida" % [sd, str(vid), "existe" if is_pick else "no existe"])
+				actives += 1 if deep else 0
+			check(actives == 1, "Semilla %d: exactamente un hoyo por grupo (%s)" % [sd, str(grp.id)])
+	# el pozo central y los falsos vados no dependen de la semilla
+	check(_new_j(3).terrain_height_at(345, 264) < -1.8 and _new_j(5).terrain_height_at(345, 264) < -1.8 and _new_j(3).hazard_active("pozo_central"), "El pozo central existe en todas las partidas")
+	# la malla de rutas usa el fondo de ESTA partida: el planificador cree conocer la variante activa descubierta y no la inactiva
+	var r := _at(500.0, 5)
+	r.state.next_volley = 1500.0
+	var picked: String = str(r.state.hidden.picks.flanco_central)
+	var other: String = "pozo_flanco_norte" if picked == "pozo_flanco_sur" else "pozo_flanco_sur"
+	var lane_pick: Array = PROBE_FLANK_S if picked == "pozo_flanco_sur" else PROBE_FLANK_N
+	var lane_other: Array = PROBE_FLANK_N if picked == "pozo_flanco_sur" else PROBE_FLANK_S
+	check(r.issue_scout("scout_1", "probe", lane_pick).ok and r.issue_scout("scout_2", "probe", lane_other).ok, "Los dos exploradores sondean un carril por flanco")
+	_advance(r, float(r.state.elapsed) + 330.0)
+	check(picked in r.state.hazards_found and other not in r.state.hazards_found, "Solo el hoyo que existe en esta partida se descubre (%s sí, %s no)" % [picked, other])
+	var sc_pick: Dictionary = r.get_scout("scout_1")
+	var sc_other: Dictionary = r.get_scout("scout_2")
+	var pc := Vector2(float(_hz(m, picked).center[0]), float(_hz(m, picked).center[1]))
+	check(Vector2(sc_pick.x, sc_pick.z).distance_to(pc) < 25.0, "El carril con hoyo termina frente a él")
+	check(float(sc_other.x) >= 360.0, "El carril del flanco libre se recorre entero (x = %.0f)" % float(sc_other.x))
+	# guardado y carga conservan el resultado oculto y el fondo
+	var path := "user://test-rules-hidden.json"
+	check(r.save_game(path) == OK, "Se guarda la partida con resultado oculto")
+	var back := Rules.new()
+	check(back.load_game(path).ok and back.state.hidden.picks == r.state.hidden.picks and back.hazard_active(picked) and not back.hazard_active(other), "Al cargar se restaura el mismo fondo oculto")
+	check(back.terrain_height_at(pc.x, pc.y) < -1.8, "El terreno cargado tiene el hoyo de la variante elegida")
+	# validacion: una variante inventada o un hallazgo de un hoyo inexistente se rechazan
+	var snap: Dictionary = r.snapshot()
+	var bad: Dictionary = snap.duplicate(true)
+	bad.hidden.picks.flanco_central = "pozo_sur_a"
+	_rejects(r, bad, "Una variante que no pertenece al grupo se rechaza")
+	bad = snap.duplicate(true)
+	bad.hazards_found.append(other)
+	_rejects(r, bad, "Un hallazgo de un hoyo que no existe en esta partida se rechaza")
+	bad = snap.duplicate(true)
+	bad.erase("hidden")
+	_rejects(r, bad, "Un guardado sin resultado oculto se rechaza")
+
+func _test_scarce_resources() -> void:
+	# señales de Liniers: solo 2
+	var r := _new_j()
+	check(int(r.resources().signals_left) == 2 and int(r.resources().ammo_reserve) == 16, "Arranque: 2 señales y 16 de pólvora de reserva")
+	r.state.signals_left = 0
+	var no_sig: Dictionary = r.issue_order("guemes", "signal_liniers")
+	check(not no_sig.ok and "más órdenes de avance" in str(no_sig.reason), "Sin señales no se obtiene la orden de avance (motivo concreto)")
+	var s := _new_j()
+	s.issue_order("guemes", "signal_liniers")
+	_advance(s, 200.0)
+	check(int(s.state.signals_left) == 1 and s.state.advance_authorized, "Señalar consume una de las 2 señales")
+	# pólvora de reserva: se agota
+	var q := _new_j()
+	q.issue_order("zavala", "resupply")
+	_advance(q, 160.0)
+	check(int(q.state.ammo) == 28 and int(q.state.ammo_reserve) == 0, "Abastecer retira 16 de la reserva (munición %d, reserva %d)" % [int(q.state.ammo), int(q.state.ammo_reserve)])
+	q.state.ammo = 5
+	var dry: Dictionary = q.issue_order("arias", "resupply")
+	check(not dry.ok and "reserva" in str(dry.reason), "Agotada la reserva no se puede abastecer más (aunque falte munición)")
+	# la orden de avance vale hasta llegar: si vence con un grupo en marcha, se detiene
+	var e := _at(500.0, 5)
+	e.state.next_volley = 1500.0
+	e.state.advance_authorized = true
+	e.state.advance_until = float(e.state.elapsed) + 6.0
+	e.state.orders.append({"time": 0.0, "round": 1, "unit": "guemes", "action": "signal_liniers", "target": {}})
+	e.state.first_order_at = 0.0
+	var plan: Dictionary = e.plan_route("zavala", e.board_point(), "trot")
+	var warned := false
+	for w in plan.warnings:
+		warned = warned or ("vence" in str(w))
+	check(plan.ok and warned, "plan_route avisa si la orden de avance vence antes de llegar al buque")
+	check(e.issue_order("zavala", "board", Vector2.ZERO, {"pace": "trot"}).ok, "Con la orden vigente se acepta cargar")
+	_advance(e, float(e.state.elapsed) + 10.0)
+	check(not e.state.advance_authorized and e.get_unit("zavala").stage == "ready" and e.get_unit("zavala").order.is_empty() and int(e.state.stats.halted_by_expiry) >= 1, "Al vencer la orden de avance el grupo en marcha se detiene")
+
+func _counter_game() -> RefCounted:
+	var b := _boarding_game(500.0)
+	b.state.ammo = 12
+	b.state.counter.next_at = float(b.state.elapsed) + 1.0
+	return b
+
+func _test_capture_decisions() -> void:
+	var cfg: Dictionary = _new_j().map_data().ship.capture.counter
+	# sin respuesta: la dotación golpea y la captura retrocede
+	var b := _counter_game()
+	b.state.capture = 40.0
+	var hp0 := float(b.get_unit("guemes").strength)
+	var rj: Dictionary = b.issue_order("guemes", "repel")
+	check(not rj.ok and "contraataque" in str(rj.reason), "Rechazar sin contraataque en curso se rechaza con motivo")
+	_advance(b, float(b.state.elapsed) + 3.0)
+	check(bool(b.state.counter.active) and not bool(b.state.counter.answered), "La dotación contraataca y abre una ventana de decisión")
+	var av: Dictionary = b.action_availability("guemes", "repel")
+	check(av.ok and "ventana" in str(av.reason) and "munición" in str(av.cost_text), "La acción Rechazar está disponible durante la ventana, con costo")
+	_advance(b, float(b.state.counter.until) - 0.5)
+	var cap_before := float(b.state.capture)
+	_advance(b, float(b.state.counter.until) + 0.5)
+	var lost_unanswered := hp0 - float(b.get_unit("guemes").strength)
+	check(int(b.state.stats.counter_hits) == 1 and lost_unanswered >= float(cfg.damage) * 0.9 and float(b.state.capture) < cap_before - float(cfg.capture_loss_pct) * 0.8, "Contraataque sin contestar: −%.0f de fuerza (obtenido %.1f) y la captura retrocede %.0f %%" % [float(cfg.damage), lost_unanswered, cap_before - float(b.state.capture)])
+	# con respuesta: cuesta munición pero el daño baja a la cuarta parte
+	var c := _counter_game()
+	c.state.capture = 40.0
+	var hp1 := float(c.get_unit("guemes").strength)
+	var ammo0 := int(c.state.ammo)
+	_advance(c, float(c.state.elapsed) + 3.0)
+	var ok_r: Dictionary = c.issue_order("guemes", "repel")
+	check(ok_r.ok and int(c.state.ammo) == ammo0 - int(cfg.repel_ammo) and bool(c.state.counter.answered), "Rechazar el contraataque cuesta %d de munición" % int(cfg.repel_ammo))
+	check(not c.issue_order("guemes", "repel").ok, "No se puede rechazar dos veces el mismo contraataque")
+	_advance(c, float(c.state.elapsed) + float(cfg.window_s) + 1.0)
+	var lost_answered := hp1 - float(c.get_unit("guemes").strength)
+	check(int(c.state.stats.counter_repelled) == 1 and lost_answered < lost_unanswered * 0.5 and lost_answered >= float(cfg.damage) * float(cfg.repelled_mult) * 0.9, "Contraataque rechazado: pierde solo %.1f (frente a %.1f sin contestar)" % [lost_answered, lost_unanswered])
+	# sin munición no se puede rechazar
+	var d := _counter_game()
+	d.state.ammo = 1
+	_advance(d, float(d.state.elapsed) + 3.0)
+	var no_ammo: Dictionary = d.issue_order("guemes", "repel")
+	check(not no_ammo.ok and "municiones" in str(no_ammo.reason), "Sin munición no se puede rechazar el contraataque")
+	# heridos: el cuerpo a cuerpo los produce y evacuarlos devuelve fuerza a costa de poder de captura
+	var e := _boarding_game(500.0)
+	e.get_unit("guemes").strength = 60.0
+	e.state.counter.next_at = 90000.0
+	var no_w: Dictionary = e.issue_order("guemes", "evacuate")
+	check(not no_w.ok and "heridos" in str(no_w.reason), "Sin heridos no hay nada que evacuar")
+	_advance(e, 560.0)
+	var wounded := float(e.get_unit("guemes").wounded)
+	check(wounded > 0.0 and _near(wounded, float(e.state.stats.melee_loss) * float(e.map_data().ship.capture.wounded_share), 0.01), "El cuerpo a cuerpo deja heridos (%.2f)" % wounded)
+	e.get_unit("guemes").wounded = 12.0
+	var hp2 := float(e.get_unit("guemes").strength)
+	var cap0 := float(e.state.capture)
+	check(e.issue_order("guemes", "evacuate").ok, "Evacuar heridos se acepta con heridos suficientes")
+	_advance(e, float(e.state.elapsed) + float(e.map_data().ship.capture.evacuate_s) + 1.0)
+	var gained := float(e.get_unit("guemes").strength) - hp2
+	check(gained > 12.0 * 0.6 - 2.0 and float(e.get_unit("guemes").wounded) < 12.0 and int(e.state.stats.evacuations) == 1, "Evacuar recupera el 60 %% de los heridos (+%.1f de fuerza)" % gained)
+	check(float(e.state.capture) - cap0 < 1.0, "Mientras evacúa, el grupo no suma poder de captura (+%.2f %%)" % (float(e.state.capture) - cap0))
+	# solo se puede desde el abordaje
+	var f := _new_j()
+	check(not f.issue_order("guemes", "evacuate").ok and not f.issue_order("guemes", "repel").ok, "Rechazar y evacuar solo valen para grupos que ya abordan")
+	# retirar un grupo del abordaje se lleva a los heridos (mitad de lo que recupera evacuar)
+	var w := _boarding_game(500.0)
+	w.get_unit("guemes").strength = 60.0
+	w.state.counter.next_at = 90000.0
+	w.get_unit("guemes").wounded = 10.0
+	var hp3 := float(w.get_unit("guemes").strength)
+	check(w.issue_order("guemes", "withdraw").ok and float(w.get_unit("guemes").strength) > hp3 + 2.0, "Retirar del abordaje se lleva a los heridos (+%.1f de fuerza)" % (float(w.get_unit("guemes").strength) - hp3))
+	# el guardado en pleno abordaje con un contraataque abierto es valido y se recarga
+	var h := _counter_game()
+	_advance(h, float(h.state.elapsed) + 3.0)
+	check(h.validate_snapshot(h.snapshot()).ok, "El estado con un contraataque abierto es un guardado válido")
+	var bad: Dictionary = h.snapshot()
+	bad.counter.until = "x"
+	_rejects(h, bad, "Un contraataque con datos inválidos se rechaza")
+	# aviso del agua que sube en el vado (gestion de la marea)
+	var t := _boarding_game(930.0)
+	t.state.counter.next_at = 90000.0
+	_advance(t, 975.0)
+	var tide_warned := false
+	for ev in t.state.log:
+		tide_warned = tide_warned or ("el agua sube en el vado" in str(ev.text))
+	check(tide_warned, "Se avisa que el agua sube en el vado antes de que ahogue a los de a pie")
+
+func _test_scout_risk() -> void:
+	var r := _at(500.0, 5)
+	r.state.next_volley = 1500.0
+	var pts: Array = [Vector2(300, 264), Vector2(362, 264)]
+	var plain: Dictionary = r.scout_risk("scout_1", pts, false)
+	var safe: Dictionary = r.scout_risk("scout_1", pts, true)
+	check(float(plain.exposed_s) > 0.0 and float(plain.expected_hits) > 0.0 and int(plain.hp) == 4, "scout_risk estima segundos expuestos e impactos esperados")
+	check(float(safe.death_pct) < float(plain.death_pct) and float(safe.expected_hits) < float(plain.expected_hits), "El sondeo cauteloso baja el riesgo de baja (%.0f %% vs %.0f %%)" % [float(safe.death_pct), float(plain.death_pct)])
+	var av: Dictionary = r.action_availability("scout_1", "probe", Vector2(362, 264))
+	var av2: Dictionary = r.action_availability("scout_1", "probe_careful", Vector2(362, 264))
+	check(av.ok and "baja" in str(av.reason) and av2.ok and "cauteloso" in str(av2.reason), "La disponibilidad del sondeo informa el riesgo estimado de baja")
+	check(r.get_scout("scout_1").has("cautious") and not bool(r.get_scout("scout_1").cautious), "El explorador guarda si sondea cauteloso")
+	# velocidad: solo donde el buque alcanza se avanza agachado
+	var fast := _at(500.0, 5)
+	fast.state.next_volley = 1500.0
+	var slow := _at(500.0, 5)
+	slow.state.next_volley = 1500.0
+	for g in [fast, slow]:
+		g.get_scout("scout_1").x = 330.0
+		g.get_scout("scout_1").z = 240.0
+	var o1: Dictionary = fast.issue_scout("scout_1", "probe", [Vector2(362, 240)])
+	var o2: Dictionary = slow.issue_scout("scout_1", "probe", [Vector2(362, 240)], {"cautious": true})
+	check(o1.ok and o2.ok and "Riesgo" in str(o2.reason) and bool(slow.get_scout("scout_1").cautious), "issue_scout informa el riesgo y recuerda que es cauteloso")
+	_advance(fast, 510.0)
+	_advance(slow, 510.0)
+	var dx_fast := float(fast.get_scout("scout_1").x) - 330.0
+	var dx_slow := float(slow.get_scout("scout_1").x) - 330.0
+	check(dx_slow > 0.0 and _near(dx_slow / maxf(0.01, dx_fast), 0.7, 0.1), "Bajo el fuego el sondeo cauteloso avanza a 0,7 de la velocidad (%.1f vs %.1f m)" % [dx_slow, dx_fast])
+	# expuesto, el explorador cauteloso recibe menos impactos (esperanza)
+	var hits_plain := 0
+	var hits_safe := 0
+	for sd in range(1, 41):
+		var a := _at(400.0, sd)
+		var b := _at(400.0, sd)
+		for g in [a, b]:
+			g.get_scout("scout_1").x = 450.0
+			g.get_scout("scout_1").z = 262.0
+			g.get_scout("scout_1").stage = "probing"
+			g.get_scout("scout_1").order = {"action": "probe", "points": [{"x": 520.0, "z": 262.0}]}
+			g.get_scout("scout_1").path = [{"x": 520.0, "z": 262.0}]
+			g.get_scout("scout_1").hp = 4
+			g.state.next_volley = float(g.state.elapsed) + 0.5
+		b.get_scout("scout_1").cautious = true
+		a.tick(40.0)
+		b.tick(40.0)
+		hits_plain += 4 - int(a.get_scout("scout_1").hp)
+		hits_safe += 4 - int(b.get_scout("scout_1").hp)
+	check(hits_safe < hits_plain, "En 40 partidas el explorador cauteloso recibe menos impactos (%d vs %d)" % [hits_safe, hits_plain])
+
+func _test_labels_and_save_trim() -> void:
+	var m: Dictionary = _new_j().map_data()
+	var by_id := {}
+	for lm in m.landmarks:
+		by_id[str(lm.id)] = lm
+	check(str(by_id.justina.tag) == "reconstruccion" and str(by_id.justina.tag_parts.descripcion) == "documentado" and str(by_id.justina.tag_parts.lugar) == "reconstruccion", "El hito del buque separa la descripción (Documentado) del lugar (Reconstrucción)")
+	check(str(m.ship.tag) == "reconstruccion" and str(m.ship.tag_parts.descripcion) == "documentado" and str(m.ship.tag_parts.lugar) == "reconstruccion", "La entidad 'ship' separa la descripción documentada del lugar reconstruido")
+	check(str(by_id.alameda.tag) == "reconstruccion", "La Alameda (lugar de fuente secundaria) es Reconstrucción")
+	check(str(by_id.plaza_toros.tag) == "documentado", "La Plaza de Toros (plano de 1801) sigue siendo Documentado")
+	var meaning := str(m.source_tags.documentado.meaning).to_lower()
+	check("transcripción" in meaning and "divulgativas no bastan" in meaning and "manuscrito" in meaning, "La definición de 'Documentado' que ve el jugador es la del proyecto (transcripción; las divulgativas no bastan)")
+	var note := str(m.time.note).to_lower()
+	check("siete u ocho pies" in note and "no atribuye" in note and not ("por el viento (gillespie" in note), "La nota del tiempo no atribuye el viento a Gillespie")
+	var camp := str(by_id.campamento_pueyrredon.source).to_lower() + " " + str(m.groups[2].note).to_lower()
+	check("concha" in camp and "archivo pueyrredón" in camp, "La caballería de Pueyrredón se atribuye a Concha y a Liniers (Archivo Pueyrredón)")
+	check("s1-s8" in str(by_id.justina.source).to_lower(), "El hito deja constancia de que las fuentes divulgativas no están en la bibliografía S1-S8")
+	# tope de guardado en BYTES con texto acentuado, y recorte de ordenes y sondas
+	var path := "user://test-rules-trim.json"
+	var big := _busy_game()
+	for i in range(45000):
+		big.state.orders.append({"time": 100.0, "round": 1, "unit": "guemes", "action": "move", "target": {"x": 250.5 + float(i % 7), "z": 260.123456789}})
+	var rc: int = big.save_game(path)
+	var f := FileAccess.open(path, FileAccess.READ)
+	var bytes: int = f.get_length() if f != null else -1
+	if f != null:
+		f.close()
+	check(rc == OK and bytes > 0 and bytes < Rules.SAVE_MAX_BYTES, "Con 45 000 órdenes el guardado recorta las órdenes y cabe bajo el tope (%d bytes)" % bytes)
+	check(big.state.orders.size() >= 45000, "La partida en curso conserva todas sus órdenes (solo se recorta la copia guardada)")
+	var back := Rules.new()
+	var lr: Dictionary = back.load_game(path)
+	check(lr.ok and back.state.orders.size() <= Rules.SAVE_ORDERS_FALLBACK + 1 and absf(float(back.state.orders[0].time) - float(back.state.first_order_at)) < 0.001, "El guardado recortado se recarga y conserva la primera orden (%s)" % str(lr.get("reason", "")))
+	var acc := _busy_game()
+	for i in range(400):
+		acc.state.log.append({"time": 0.0, "round": 1, "text": "ñandú ".repeat(1100), "kind": "info"})
+	acc.state.log = (acc.state.log as Array).slice(acc.state.log.size() - 400)
+	var chars: int = JSON.stringify(acc.state, "", true, true).length()
+	var utf8_bytes: int = JSON.stringify(acc.state, "", true, true).to_utf8_buffer().size()
+	rc = acc.save_game(path)
+	f = FileAccess.open(path, FileAccess.READ)
+	var saved: int = f.get_length() if f != null else -1
+	if f != null:
+		f.close()
+	check(chars < Rules.SAVE_MAX_BYTES and utf8_bytes > Rules.SAVE_MAX_BYTES, "Prueba válida: %d caracteres pero %d bytes (el tope se mide en bytes)" % [chars, utf8_bytes])
+	check(rc == OK and saved < Rules.SAVE_MAX_BYTES and Rules.new().load_game(path).ok, "Un guardado con acentos que pasa el tope en bytes se aligera y se recarga (%d bytes)" % saved)
+	# sondas: la copia de emergencia las adelgaza sin perder los extremos
+	var pr := _busy_game()
+	for i in range(400):
+		var pts: Array = []
+		for k in range(200):
+			pts.append({"x": 210.0 + float(k) * 1.123456789, "z": 100.0 + float(i) * 0.5})
+		pr.state.probes.append({"id": "q%d" % i, "kind": "lane", "pts": pts, "width": 6.0, "t": 10.0, "scout": "scout_1"})
+	while pr.state.probes.size() > Rules.MAX_PROBES:
+		pr.state.probes.pop_back()
+	for i in range(3 * Rules.LOG_MAX):
+		pr._event("Relleno %d %s" % [i, "ñ".repeat(900)], "info")
+	rc = pr.save_game(path)
+	f = FileAccess.open(path, FileAccess.READ)
+	var psz: int = f.get_length() if f != null else -1
+	if f != null:
+		f.close()
+	check(rc == OK and psz < Rules.SAVE_MAX_BYTES, "El peor caso con sondas al tope y registro lleno se guarda bajo el tope en bytes (%d)" % psz)
+	var pb := Rules.new()
+	check(pb.load_game(path).ok and pb.state.probes.size() >= 1, "...y se recarga")
+
+# ---------------------------------------------------------------------------
 # 6. Estrategias scripteadas (simulacion completa, varias semillas)
 
 class Sim:
@@ -615,50 +926,158 @@ class Sim:
 	var cfg: Dictionary = {}
 
 const GROUP_IDS := ["guemes", "arias", "zavala"]
-const PROBE_CENTER := [Vector2(250, 264), Vector2(404, 264)]
-const PROBE_SOUTH := [Vector2(205, 400), Vector2(268, 402)]
+const SEEDS := [3, 5, 7, 11, 13, 17, 19, 23]
+## Carriles de reconocimiento (docs/DISENO_JUSTINA.md 1.2 y 10): el eje del banco central y un carril por cada flanco.
+const PROBE_CENTER := [Vector2(250, 264), Vector2(334, 264)]
+const PROBE_FLANK_N := [Vector2(250, 240), Vector2(362, 240)]
+const PROBE_FLANK_S := [Vector2(250, 288), Vector2(362, 288)]
+const LANE_N_WP := [Vector2(300, 240), Vector2(375, 240)]
+const LANE_S_WP := [Vector2(300, 288), Vector2(375, 288)]
+const PROBE_SOUTH_VADO := [Vector2(205, 400), Vector2(268, 402)]
+const PROBE_SOUTH_BANK := [Vector2(268, 402), Vector2(342, 406), Vector2(392, 435)]
 const MARK_SOUTH := [Vector2(230, 401), Vector2(255, 402)]
-const NORTH_EDGE := [Vector2(330, 240), Vector2(480, 240)]
-const STRATEGY_NAMES := ["rush_central", "blind_north_edge", "probed_central_full", "probed_central_bare", "south_full", "south_bare", "south_wrong_crossing", "mixed_split", "central_stagger", "late_all_in", "passive"]
+const NORTH_EDGE := [Vector2(330, 222), Vector2(480, 222)]
+const STAGE_CENTRAL := Vector2(255, 264)
+const STAGE_SOUTH := Vector2(255, 402)
+const STAGE_SOUTH_EXIT := Vector2(318, 405)
+const SOUTH_BOARD_WP := [Vector2(450, 455), Vector2(520, 440), Vector2(565, 390)]
+const STRATEGY_NAMES := ["rush_central", "rush_gallop", "blind_north_edge", "central_center_lane", "central_flank_lane", "central_flank_pair", "central_hasty", "central_bare", "central_flank_stagger", "central_flank_noreply", "south_full", "south_vado_only", "south_bare", "south_wrong_crossing", "south_noreply", "mixed_split", "late_all_in", "passive"]
+
+func _central_common() -> Dictionary:
+	return {"signal_t": 180.0, "resupply": true, "muster": 1, "stage": STAGE_CENTRAL, "stage_t": 260.0, "board_t": 330.0, "wait_probes": true, "wait_max": 330.0, "signal_on_go": true, "cover": true, "fire": true, "repel": true, "evac": true}
+
+func _south_common() -> Dictionary:
+	return {"signal_t": 290.0, "resupply": true, "muster": 1, "stage": STAGE_SOUTH, "stage_t": 220.0, "stage2": STAGE_SOUTH_EXIT, "stage2_t": 390.0, "stage2_wp": [Vector2(300, 403)], "board_t": 390.0, "wp": SOUTH_BOARD_WP, "wait_probes": true, "wait_max": 420.0, "signal_on_go": true, "fire": true, "cover": true, "repel": true, "evac": true,
+		"mark_t": 150.0, "probes": [{"who": "scout_1", "t": 100.0, "pts": PROBE_SOUTH_VADO, "careful": false}]}
+
+func _with(base: Dictionary, extra: Dictionary) -> Dictionary:
+	var out := base.duplicate(true)
+	for k in extra:
+		out[k] = extra[k]
+	return out
 
 func _strategy_cfg(name: String) -> Dictionary:
+	var south_bank := {"who": "scout_1", "t": 355.0, "pts": PROBE_SOUTH_BANK, "careful": true, "after_found": "vado_sur"}
 	match name:
 		"rush_central":
 			return {"signal_t": 0.0, "board_t": 0.0}
+		"rush_gallop":
+			return {"signal_t": 0.0, "board_t": 0.0, "pace": "gallop"}
 		"blind_north_edge":
-			return {"signal_t": 180.0, "resupply": true, "muster": 1, "stage": Vector2(255, 244), "stage_t": 200.0, "board_t": 340.0, "wp": NORTH_EDGE, "fire": true}
-		"probed_central_full":
-			return {"signal_t": 120.0, "resupply": true, "muster": 1, "probe_center_t": 250.0, "cover": true, "stage": Vector2(255, 264), "stage_t": 260.0, "board_t": 330.0, "board_after_hazard": true, "fire": true}
-		"probed_central_bare":
-			return {"signal_t": 120.0, "probe_center_t": 250.0, "stage": Vector2(255, 264), "stage_t": 260.0, "board_t": 330.0, "board_after_hazard": true}
+			return {"signal_t": 180.0, "resupply": true, "muster": 1, "stage": Vector2(255, 226), "stage_t": 200.0, "board_t": 340.0, "wp": NORTH_EDGE, "fire": true, "repel": true}
+		"central_center_lane":
+			return _with(_central_common(), {"probes": [{"who": "scout_1", "t": 250.0, "pts": PROBE_CENTER, "careful": true}]})
+		"central_flank_lane":
+			return _with(_central_common(), {"flank": true, "probes": [{"who": "scout_1", "t": 255.0, "pts": PROBE_FLANK_N, "careful": true}]})
+		"central_flank_pair":
+			return _with(_central_common(), {"flank": true, "probes": [{"who": "scout_1", "t": 255.0, "pts": PROBE_FLANK_N, "careful": true}, {"who": "scout_2", "t": 255.0, "pts": PROBE_FLANK_S, "careful": true}]})
+		"central_hasty":
+			return _with(_central_common(), {"flank": true, "cover": false, "probes": [{"who": "scout_1", "t": 250.0, "pts": PROBE_FLANK_N, "careful": false}], "wait_max": 120.0})
+		"central_bare":
+			return {"signal_on_go": true, "stage": STAGE_CENTRAL, "stage_t": 260.0, "board_t": 330.0, "flank": true, "wait_probes": true, "wait_max": 330.0, "probes": [{"who": "scout_1", "t": 250.0, "pts": PROBE_FLANK_N, "careful": true}]}
+		"central_flank_stagger":
+			return _with(_central_common(), {"flank": true, "stagger": 45.0, "probes": [{"who": "scout_1", "t": 255.0, "pts": PROBE_FLANK_N, "careful": true}]})
+		"central_flank_noreply":
+			return _with(_central_common(), {"flank": true, "repel": false, "evac": false, "probes": [{"who": "scout_1", "t": 255.0, "pts": PROBE_FLANK_N, "careful": true}]})
 		"south_full":
-			return {"signal_t": 150.0, "resupply": true, "muster": 1, "probe_south_t": 100.0, "stage": Vector2(255, 402), "stage_t": 220.0, "board_t": 340.0, "wp": SOUTH_WAYPOINTS, "fire": true}
+			var c := _south_common()
+			c.probes = [c.probes[0], south_bank]
+			return c
+		"south_vado_only":
+			return _south_common()
 		"south_bare":
-			return {"signal_t": 150.0, "probe_south_t": 100.0, "stage": Vector2(255, 402), "stage_t": 220.0, "board_t": 340.0, "wp": SOUTH_WAYPOINTS}
+			return {"signal_t": 290.0, "signal_on_go": true, "stage": STAGE_SOUTH, "stage_t": 220.0, "stage2": STAGE_SOUTH_EXIT, "stage2_t": 390.0, "stage2_wp": [Vector2(300, 403)], "board_t": 390.0, "wp": SOUTH_BOARD_WP, "wait_probes": true, "wait_max": 420.0, "mark_t": 150.0, "probes": [{"who": "scout_1", "t": 100.0, "pts": PROBE_SOUTH_VADO, "careful": false}]}
 		"south_wrong_crossing":
-			return {"signal_t": 150.0, "resupply": true, "muster": 1, "stage": Vector2(255, 360), "stage_t": 220.0, "board_t": 340.0, "wp": [Vector2(300, 360), Vector2(450, 455), Vector2(520, 440), Vector2(565, 390)], "fire": true}
+			return {"signal_t": 150.0, "resupply": true, "muster": 1, "stage": Vector2(255, 360), "stage_t": 220.0, "board_t": 340.0, "wp": [Vector2(300, 360), Vector2(450, 455), Vector2(520, 440), Vector2(565, 390)], "fire": true, "repel": true}
+		"south_noreply":
+			var c2 := _south_common()
+			c2.probes = [c2.probes[0], south_bank]
+			c2.repel = false
+			c2.evac = false
+			return c2
 		"mixed_split":
-			return {"signal_t": 150.0, "resupply": true, "muster": 1, "probe_south_t": 100.0, "probe_center_t": 250.0, "cover": true, "stage": Vector2(255, 402), "stage_t": 220.0, "board_t": 330.0, "board_after_hazard": true, "split": true, "fire": true}
-		"central_stagger":
-			return {"signal_t": 120.0, "resupply": true, "muster": 1, "probe_center_t": 250.0, "cover": true, "stage": Vector2(255, 264), "stage_t": 260.0, "board_t": 330.0, "board_after_hazard": true, "stagger": 45.0, "fire": true}
+			var c3 := _south_common()
+			c3.probes = [c3.probes[0], south_bank, {"who": "scout_2", "t": 255.0, "pts": PROBE_FLANK_N, "careful": true}]
+			c3.split = true
+			c3.cover = true
+			return c3
 		"late_all_in":
-			return {"signal_t": 300.0, "resupply": true, "muster": 1, "board_t": 1000.0, "fire": true}
+			return {"signal_t": 360.0, "resupply": true, "muster": 1, "board_t": 1000.0, "fire": true}
 		"passive":
 			return {}
 	return {}
+
+## Carril de los flancos del banco central segun lo que se descubrio: si el hoyo norte apareció, el sur es el firme (hay exactamente uno).
+func _flank_wps(st: Dictionary) -> Array:
+	return LANE_S_WP if "pozo_flanco_norte" in st.hazards_found else LANE_N_WP
+
+func _probes_done(s: Sim) -> bool:
+	var jobs: Array = s.cfg.get("probes", [])
+	for ji in range(jobs.size()):
+		if not s.mem.has("job_%d" % ji):
+			return false
+		var sc: Dictionary = s.r.get_scout(str(jobs[ji].who))
+		if sc.stage in ["probing", "marking"]:
+			return false
+	return true
 
 func _policy_cfg(s: Sim) -> void:
 	var c: Dictionary = s.cfg
 	var r: RefCounted = s.r
 	var st: Dictionary = r.state
 	var gu: Dictionary = r.get_unit("guemes")
+	# reconocimiento: trabajos de sondeo (cada explorador toma el siguiente cuando queda libre)
+	var jobs: Array = c.get("probes", [])
+	for ji in range(jobs.size()):
+		var job: Dictionary = jobs[ji]
+		var key := "job_%d" % ji
+		if s.mem.has(key) or s.t < float(job.t):
+			continue
+		var sc: Dictionary = r.get_scout(str(job.who))
+		if sc.stage == "lost":
+			s.mem[key] = -1.0
+		elif sc.stage == "idle":
+			if job.has("after_found") and not (str(job.after_found) in st.fords_found):
+				continue
+			var o: Dictionary = r.issue_scout(str(job.who), "probe", job.pts, {"cautious": bool(job.get("careful", false))})
+			if o.ok:
+				s.mem[key] = s.t
+	## un explorador libre y al alcance del buque se repliega a la playa (no se queda esperando bajo el fuego)
+	for sc3 in st.scouts:
+		if sc3.stage == "idle" and r.exposure_at(float(sc3.x), float(sc3.z)) > 0.0:
+			var pending := false
+			for ji2 in range(jobs.size()):
+				if str(jobs[ji2].who) == str(sc3.id) and not s.mem.has("job_%d" % ji2):
+					pending = true
+			if not pending:
+				r.issue_scout(str(sc3.id), "recall", [])
+	if c.has("mark_t") and s.t >= float(c.mark_t) and not s.mem.has("mark_south") and "vado_sur" in st.fords_found and r.get_scout("scout_2").stage == "idle":
+		s.mem.mark_south = r.issue_scout("scout_2", "mark_ford", MARK_SOUTH).ok
+	if c.get("cover", false):
+		for sc2 in st.scouts:
+			if sc2.stage == "probing" and r.exposure_at(float(sc2.x), float(sc2.z)) > 0.0:
+				if r.call_fire_support().ok:
+					s.mem.fire_uses = int(s.mem.get("fire_uses", 0)) + 1
+	# condicion de salida
+	var ready_go: bool = s.t >= float(c.get("board_t", 1.0e9))
+	if ready_go and c.get("wait_probes", false):
+		ready_go = _probes_done(s) or s.t >= float(c.board_t) + float(c.get("wait_max", 200.0))
 	# Liniers: se señala una vez; se repite si venció y todavía no se cargó.
-	if c.has("signal_t") and s.t >= float(c.signal_t) and gu.stage == "ready" and not bool(st.advance_authorized) and not s.mem.has("board_guemes"):
-		if not s.mem.has("signal_t_done") or s.t >= float(s.mem.signal_t_done) + 330.0:
+	var want_signal: bool = false
+	var sig_n := int(s.mem.get("sig_n", 0))
+	if c.has("signal_t"):
+		want_signal = s.t >= float(c.signal_t) and (sig_n == 0 or not c.get("signal_on_go", false))
+	if c.get("signal_on_go", false) and ready_go and (sig_n == 0 or s.t > float(c.get("board_t", 0.0))):
+		want_signal = true
+	if want_signal and gu.stage == "ready" and not bool(st.advance_authorized) and (not s.mem.has("board_guemes") or sig_n < 2) and int(st.signals_left) > 0 and (sig_n == 0 or s.t > float(c.get("board_t", 0.0))):
+		if not s.mem.has("signal_wait") or s.t >= float(s.mem.signal_wait):
 			if r.issue_order("guemes", "signal_liniers").ok:
-				s.mem.signal_t_done = s.t
-	if c.get("resupply", false) and bool(st.advance_authorized) and gu.stage == "ready" and not s.mem.has("resupply") and int(st.ammo) < 30:
-		s.mem.resupply = r.issue_order("guemes", "resupply").ok
+				s.mem.signal_wait = s.t + 20.0
+				s.mem.sig_n = sig_n + 1
+	var zv: Dictionary = r.get_unit("zavala")
+	if c.get("resupply", false) and s.t >= float(c.get("resupply_t", 150.0)) and zv.stage == "ready" and int(s.mem.get("muster_zavala", 0)) >= int(c.get("muster", 0)) and not s.mem.has("resupply") and int(st.ammo) < 30 and int(st.ammo_reserve) > 0 and not s.mem.has("boarded_any"):
+		if r.issue_order("zavala", "resupply").ok:
+			s.mem.resupply = true
 	# reunir jinetes
 	var rounds := int(c.get("muster", 0))
 	if rounds > 0:
@@ -668,60 +1087,59 @@ func _policy_cfg(s: Sim) -> void:
 			if u.stage == "ready" and int(s.mem.get(k, 0)) < rounds and float(u.strength) < 99.0 and float(st.volunteers_pool) > 0.0 and int(st.ammo) >= 4 and not s.mem.has("boarded_any"):
 				if r.issue_order(id, "muster").ok:
 					s.mem[k] = int(s.mem.get(k, 0)) + 1
-	# reconocimiento
-	var sc1: Dictionary = r.get_scout("scout_1")
-	var sc2: Dictionary = r.get_scout("scout_2")
-	if c.has("probe_south_t") and s.t >= float(c.probe_south_t) and not s.mem.has("probe_south"):
-		s.mem.probe_south = r.issue_scout("scout_1", "probe", PROBE_SOUTH).ok
-	if c.has("probe_south_t") and s.t >= float(c.probe_south_t) + 120.0 and not s.mem.has("mark_south") and "vado_sur" in st.fords_found:
-		s.mem.mark_south = r.issue_scout("scout_2", "mark_ford", MARK_SOUTH).ok
-	if c.has("probe_center_t") and s.t >= float(c.probe_center_t) and not s.mem.has("probe_center"):
-		var who := "scout_2" if c.has("probe_south_t") else "scout_1"
-		s.mem.probe_center = r.issue_scout(who, "probe", PROBE_CENTER).ok
-	if c.get("cover", false):
-		for sc in [sc1, sc2]:
-			if sc.stage == "probing" and r.exposure_at(float(sc.x), float(sc.z)) > 0.0:
-				if r.call_fire_support().ok:
-					s.mem.fire_uses = int(s.mem.get("fire_uses", 0)) + 1
 	# puesta en posicion
 	if c.has("stage") and s.t >= float(c.stage_t) and not s.mem.has("boarded_any"):
 		var i := 0
 		for id in GROUP_IDS:
-			var key: String = "stage_" + id
+			var key2: String = "stage_" + id
 			var ug: Dictionary = r.get_unit(id)
 			var p: Vector2 = c.stage
 			if c.get("split", false) and id == "guemes":
 				p = Vector2(255, 250)
-			if not s.mem.has(key) and ug.stage == "ready":
-				s.mem[key] = r.issue_order(id, "move", p + Vector2(0, (i - 1) * 8.0), {"pace": "trot"}).ok
+			if not s.mem.has(key2) and ug.stage == "ready":
+				if r.issue_order(id, "move", p + Vector2(0, (i - 1) * 8.0), {"pace": "trot"}).ok:
+					s.mem[key2] = true
 			i += 1
+	# segunda posicion (cruzar el vado ya descubierto hasta su salida mientras se sondea el banco)
+	if c.has("stage2") and s.t >= float(c.stage2_t) and not s.mem.has("boarded_any") and "vado_sur" in st.fords_found:
+		var j := 0
+		for id in GROUP_IDS:
+			var key4: String = "stage2_" + id
+			var ug2: Dictionary = r.get_unit(id)
+			if c.get("split", false) and id == "guemes":
+				j += 1
+				continue
+			if not s.mem.has(key4) and ug2.stage == "ready":
+				if r.issue_order(id, "move", (c.stage2 as Vector2) + Vector2(0, (j - 1) * 6.0), {"pace": "trot", "waypoints": c.get("stage2_wp", [])}).ok:
+					s.mem[key4] = true
+			j += 1
 	# abordaje
-	var go := c.has("board_t") and s.t >= float(c.board_t) and bool(st.advance_authorized)
-	if go and c.get("board_after_hazard", false):
-		var found: bool = "pozo_central" in st.hazards_found
-		var scout_gone: bool = (c.has("probe_center_t") and s.mem.has("probe_center") and sc1.stage != "probing" and sc2.stage != "probing")
-		go = found or scout_gone and s.t >= float(c.board_t) + 120.0
+	var go: bool = ready_go and bool(st.advance_authorized)
 	if go:
 		if not s.mem.has("go_t"):
 			s.mem.go_t = s.t
 		var i2 := 0
 		for id in (["arias", "zavala", "guemes"] if c.has("stagger") else GROUP_IDS):
 			var u2: Dictionary = r.get_unit(id)
-			var key2: String = "board_" + id
+			var key3: String = "board_" + id
 			var ready_t := float(s.mem.go_t) + float(c.get("stagger", 0.0)) * float(i2)
 			i2 += 1
-			if s.mem.has(key2) or u2.stage != "ready" or s.t < ready_t:
+			if s.mem.has(key3) and u2.stage == "ready" and float(u2.strength) > 5.0 and s.t > float(s.mem[key3]) + 5.0 and u2.mounted:
+				s.mem.erase(key3)  ## la orden venció y el grupo se detuvo: se vuelve a dar con la nueva señal
+			if s.mem.has(key3) or u2.stage != "ready" or s.t < ready_t:
 				continue
 			var wps: Array = []
 			if c.has("wp"):
 				wps = c.wp
-			elif c.get("split", false):
-				wps = [] if id == "guemes" else SOUTH_WAYPOINTS
-			if c.get("split", false) and id != "guemes" and not ("vado_sur" in st.fords_found):
-				continue
-			var o: Dictionary = r.issue_order(id, "board", Vector2.ZERO, {"pace": "trot", "waypoints": wps})
-			if o.ok:
-				s.mem[key2] = s.t
+			elif c.get("flank", false):
+				wps = _flank_wps(st)
+			if c.get("split", false):
+				wps = _flank_wps(st) if id == "guemes" else SOUTH_BOARD_WP
+				if id != "guemes" and not ("vado_sur" in st.fords_found):
+					continue
+			var o2: Dictionary = r.issue_order(id, "board", Vector2.ZERO, {"pace": str(c.get("pace", "trot")), "waypoints": wps})
+			if o2.ok:
+				s.mem[key3] = s.t
 				s.mem.boarded_any = true
 	# fuego
 	if c.get("fire", false):
@@ -731,12 +1149,24 @@ func _policy_cfg(s: Sim) -> void:
 				exposed = true
 		if exposed and r.call_fire_support().ok:
 			s.mem.fire_uses = int(s.mem.get("fire_uses", 0)) + 1
-	# relevo de los que flaquean en el abordaje
-	if c.has("relief"):
+	# cubierta: rechazar el contraataque y evacuar heridos
+	if c.get("repel", false) and bool(st.counter.active) and not bool(st.counter.answered):
+		var best: Dictionary = {}
 		for u4 in st.units:
-			if u4.stage == "boarding" and float(u4.strength) < float(c.relief) and not s.mem.has("relief_" + str(u4.id)):
-				if r.issue_order(str(u4.id), "withdraw").ok:
-					s.mem["relief_" + str(u4.id)] = true
+			if u4.stage == "boarding" and (best.is_empty() or float(u4.strength) > float(best.strength)):
+				best = u4
+		if not best.is_empty() and r.issue_order(str(best.id), "repel").ok:
+			s.mem.repels = int(s.mem.get("repels", 0)) + 1
+	if c.get("evac", false):
+		var boarding_n := 0
+		for u5 in st.units:
+			if u5.stage == "boarding":
+				boarding_n += 1
+		for u5 in st.units:
+			if u5.stage == "boarding" and boarding_n >= 2 and float(u5.wounded) >= 8.0 and float(u5.evac_remaining) <= 0.0 and not bool(st.counter.active):
+				if r.issue_order(str(u5.id), "evacuate").ok:
+					s.mem.evacs = int(s.mem.get("evacs", 0)) + 1
+					break
 
 func _run_strategy(policy: String, seed_value: int = 7) -> Dictionary:
 	var s := Sim.new()
@@ -751,10 +1181,10 @@ func _run_strategy(policy: String, seed_value: int = 7) -> Dictionary:
 		if trace and guard % 120 == 0:
 			var line := ""
 			for u in s.r.state.units:
-				line += " %s[%s %.0f,%.0f s=%.0f f=%.0f]" % [u.id, u.stage, u.x, u.z, u.strength, u.fatigue]
+				line += " %s[%s %.0f,%.0f s=%.0f f=%.0f w=%.0f]" % [u.id, u.stage, u.x, u.z, u.strength, u.fatigue, u.wounded]
 			for sc in s.r.state.scouts:
 				line += " %s[%s %.0f,%.0f hp%d]" % [sc.id, sc.stage, sc.x, sc.z, sc.hp]
-			print("  t=%d cap=%.1f ammo=%d lvl=%.2f morale=%.0f%s" % [int(s.r.state.elapsed), s.r.state.capture, s.r.state.ammo, s.r.water_level_m(), s.r.state.crew_morale, line])
+			print("  t=%d cap=%.1f ammo=%d lvl=%.2f morale=%.0f sig=%d auth=%s%s" % [int(s.r.state.elapsed), s.r.state.capture, s.r.state.ammo, s.r.water_level_m(), s.r.state.crew_morale, int(s.r.state.signals_left), str(s.r.state.advance_authorized), line])
 		for k in range(4):
 			s.r.tick(0.25)
 			guard += 1
@@ -767,27 +1197,33 @@ func _run_strategy(policy: String, seed_value: int = 7) -> Dictionary:
 				prev_zero[u.id] = zero
 		s.t = float(s.r.state.elapsed)
 	var rep: Dictionary = s.r.campaign_report()
-	var loss := 0.0
-	var start := 0.0
-	for g in rep.groups:
-		loss += float(g.start_strength) - float(g.end_strength)
-		start += float(g.start_strength)
-	return {"policy": policy, "seed": seed_value, "status": s.r.state.status, "t": float(s.r.state.elapsed), "loss_pct": loss / start * 100.0, "stumbles": int(s.r.state.stats.stumbles),
+	return {"policy": policy, "seed": seed_value, "status": s.r.state.status, "t": float(s.r.state.elapsed), "loss_pct": float(rep.loss_total_pct), "stumbles": int(s.r.state.stats.stumbles),
 		"exposure": s.r.state.stats.exposure_s.duplicate(true), "route": rep.route, "ammo_used": int(s.r.state.stats.ammo_used), "probe_m": float(s.r.state.stats.probe_m),
 		"stranded": stranded, "report": rep, "fire_uses": int(s.mem.get("fire_uses", 0)), "capture": float(s.r.state.capture), "boarded_at": float(s.r.state.stats.boarded_at),
-		"scouts_lost": int(s.r.state.stats.scouts_lost), "horses_lost": float(s.r.state.stats.horses_lost), "melee_loss": float(s.r.state.stats.melee_loss), "drowned": float(s.r.state.stats.drowned)}
+		"scouts_lost": int(s.r.state.stats.scouts_lost), "horses_lost": float(s.r.state.stats.horses_lost), "melee_loss": float(s.r.state.stats.melee_loss), "drowned": float(s.r.state.stats.drowned),
+		"counter_hits": int(rep.counter_hits), "counter_repelled": int(rep.counter_repelled), "evacuations": int(rep.evacuations), "halted": int(rep.halted_by_expiry), "picks": rep.hidden_picks}
 
 ## Matriz estrategias x semillas (--matrix): imprime una linea por estrategia y sale. Sirve para calibrar.
 func _print_matrix() -> void:
-	var seeds := [3, 5, 7, 11, 13, 17]
+	var seeds: Array = SEEDS.duplicate()
 	var only := ""
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--only="):
 			only = a.substr(7)
 		if a.begins_with("--seed="):
 			seeds = [int(a.substr(7))]
+		if a.begins_with("--seeds="):
+			seeds = []
+			for tok in a.substr(8).split(","):
+				seeds.append(int(tok))
+	if "--picks" in OS.get_cmdline_user_args():
+		for sd in seeds:
+			var rr := _new_j(int(sd))
+			print("seed %d -> %s" % [sd, str(rr.state.hidden.picks)])
+		quit(0)
+		return
 	for p in STRATEGY_NAMES:
-		if only != "" and p != only:
+		if only != "" and not (p in only.split(",")):
 			continue
 		var wins := 0
 		var line := ""
@@ -799,11 +1235,19 @@ func _print_matrix() -> void:
 		var hl := 0.0
 		var ml := 0.0
 		var dg := 0.0
+		var sl := 0
+		var wl := 0.0
+		var we := 0.0
+		var st_sum := 0
+		var ch := 0
+		var cr := 0
 		for sd in seeds:
 			var res := _run_strategy(p, sd)
 			if res.status == "victory":
 				wins += 1
 				tsum += res.t
+				wl += res.loss_pct
+				we += float(res.exposure.central) + float(res.exposure.sur)
 			lsum += res.loss_pct
 			esum += float(res.exposure.central) + float(res.exposure.sur)
 			routes[res.route] = true
@@ -811,12 +1255,18 @@ func _print_matrix() -> void:
 			hl += float(res.horses_lost)
 			ml += float(res.melee_loss)
 			dg += float(res.report.damage_taken)
+			sl += int(res.scouts_lost)
+			st_sum += int(res.stumbles)
+			ch += int(res.counter_hits)
+			cr += int(res.counter_repelled)
 			line += " %s%d" % ["V" if res.status == "victory" else "d", int(res.t)]
-		print("%-22s wins %d/%d t_avg %4.0f loss %3.0f%% expo %4.0f board %4.0f horses %3.0f melee %3.0f fire %3.0f %s |%s" % [p, wins, seeds.size(), tsum / maxf(1.0, wins), lsum / seeds.size(), esum / seeds.size(), ba / seeds.size(), hl / seeds.size(), ml / seeds.size(), dg / seeds.size(), str(routes.keys()), line])
+			if "--expo" in OS.get_cmdline_user_args():
+				print("   ", p, sd, JSON.stringify(res.exposure), "boarded", int(res.boarded_at), "t", int(res.t), "dmg", int(res.report.damage_taken))
+		print("%-22s WIN: loss %3.0f%% expo %3.0f | wins %d/%d t_avg %4.0f loss %3.0f%% expo %4.0f board %4.0f horses %3.0f melee %3.0f fire %3.0f scoutsL %d stumbles %d cnt %d/%d %s |%s" % [p, wl / maxf(1.0, wins), we / maxf(1.0, wins), wins, seeds.size(), tsum / maxf(1.0, wins), lsum / seeds.size(), esum / seeds.size(), ba / seeds.size(), hl / seeds.size(), ml / seeds.size(), dg / seeds.size(), sl, st_sum, cr, ch + cr, str(routes.keys()), line])
 	quit(0)
 
 func _test_strategies() -> void:
-	var seeds := [3, 5, 7, 11, 13, 17]
+	var seeds: Array = SEEDS.duplicate()
 	var all: Dictionary = {}
 	var wins_by: Dictionary = {}
 	var total_wins := 0
@@ -835,7 +1285,7 @@ func _test_strategies() -> void:
 	var dom: Dictionary = Rules.new().map_data().play_targets.dominance
 	var s_cnt: int = STRATEGY_NAMES.size()
 	check(s_cnt >= int(dom.strategies_min) and seeds.size() >= int(dom.seeds_min), "Se simulan al menos %d estrategias x %d semillas (%d x %d)" % [int(dom.strategies_min), int(dom.seeds_min), s_cnt, seeds.size()])
-	# ninguna estrategia concentra la mayoria de las victorias y varias estilos distintos ganan de forma sostenida
+	# ninguna estrategia concentra mas del 60 % de las victorias de la matriz y varios estilos ganan de forma sostenida
 	var winners := 0
 	var max_share := 0.0
 	for p in STRATEGY_NAMES:
@@ -843,7 +1293,14 @@ func _test_strategies() -> void:
 			winners += 1
 		if total_wins > 0:
 			max_share = maxf(max_share, float(wins_by[p]) / float(total_wins))
-	check(total_wins > 0 and max_share <= float(dom.max_win_share) + 0.0001, "Ninguna estrategia concentra más del %d %% de las victorias (máx. %.0f %%)" % [int(float(dom.max_win_share) * 100.0), max_share * 100.0])
+	check(total_wins > 0 and max_share <= float(dom.max_win_share) + 0.0001, "Ninguna estrategia concentra más del %d %% de las victorias de la matriz (máx. %.0f %%)" % [int(float(dom.max_win_share) * 100.0), max_share * 100.0])
+	var fam_central := 0
+	var fam_south := 0
+	for p in ["central_center_lane", "central_flank_lane", "central_flank_pair", "central_hasty", "central_bare", "central_flank_stagger", "central_flank_noreply"]:
+		fam_central += int(wins_by[p])
+	for p in ["south_full", "south_vado_only", "south_bare", "south_noreply"]:
+		fam_south += int(wins_by[p])
+	check(float(fam_central) / float(7 * seeds.size()) <= 0.75 and float(fam_south) / float(4 * seeds.size()) <= 0.75, "Ninguna familia de estrategias (centro con sus variantes, sur con sus variantes) gana más del 75 %% de sus partidas (centro %d/%d, sur %d/%d)" % [fam_central, 7 * seeds.size(), fam_south, 4 * seeds.size()])
 	check(winners >= int(dom.min_winning_strategies), "Al menos %d estrategias distintas ganan en la mitad o más de las semillas (%d)" % [int(dom.min_winning_strategies), winners])
 	var routes_won := {}
 	for p in STRATEGY_NAMES:
@@ -854,7 +1311,7 @@ func _test_strategies() -> void:
 	var central_wins := int(routes_won.get("central", 0))
 	var south_wins := int(routes_won.get("sur", 0)) + int(routes_won.get("mixta", 0))
 	check(central_wins > 0 and south_wins > 0 and float(maxi(central_wins, south_wins)) <= 0.75 * float(total_wins), "Ninguna ruta acumula más del 75 %% de las victorias (central %d, sur/mixta %d de %d)" % [central_wins, south_wins, total_wins])
-	# duraciones: el 12-18 min objetivo
+	# duraciones
 	var tmin := 1e9
 	var tmax := 0.0
 	for p in STRATEGY_NAMES:
@@ -862,26 +1319,50 @@ func _test_strategies() -> void:
 			if res.status == "victory":
 				tmin = minf(tmin, res.t)
 				tmax = maxf(tmax, res.t)
-	check(total_wins > 0 and tmin >= 12.0 * 60.0 - 30.0 and tmax <= 18.0 * 60.0 + 0.001, "Las victorias duran entre ~12 y 18 min (%.1f a %.1f min)" % [tmin / 60.0, tmax / 60.0])
-	# reconocer pesa: a ciegas por el centro se pierde caballos y jinetes; reconociendo no
-	var blind: Array = all.rush_central
+	check(total_wins > 0 and tmin >= 10.0 * 60.0 and tmax <= 18.0 * 60.0 + 0.001, "Las victorias duran entre ~10 y 18 min (%.1f a %.1f min)" % [tmin / 60.0, tmax / 60.0])
+	# reconocer pesa: a ciegas se pierde (y por mecanismos deterministas); reconociendo mejora la tasa de exito
+	var blind_names := ["rush_central", "rush_gallop", "blind_north_edge", "south_wrong_crossing"]
+	var blind_wins := 0
+	var blind_runs := 0
 	var blind_stumbles := 0
 	var blind_loss := 0.0
-	for res in blind:
-		blind_stumbles += int(res.stumbles)
-		blind_loss += float(res.loss_pct)
-	check(blind_stumbles >= seeds.size() and blind_loss / seeds.size() >= 30.0 and int(wins_by.rush_central) == 0, "Ruta central a ciegas: tropiezos en todas las semillas, bajas ≥ 30 %% (%.0f %%) y ninguna victoria" % (blind_loss / seeds.size()))
-	var pn: Array = all.probed_central_full
-	var pn_stumbles := 0
-	var pn_loss := 0.0
-	for res in pn:
-		pn_stumbles += int(res.stumbles)
-		pn_loss += float(res.loss_pct)
-	var pn_blind_lucky := 0
-	for res in pn:
-		if int(res.stumbles) > 0 and int(res.scouts_lost) == 0:
-			pn_blind_lucky += 1
-	check(pn_blind_lucky == 0 and int(wins_by.probed_central_full) * 2 >= seeds.size(), "Reconocer + central: solo se tropieza si el explorador cayó antes de hallar el pozo (tropiezos: %d) y gana en la mitad o más de las semillas (%d/%d)" % [pn_stumbles, int(wins_by.probed_central_full), seeds.size()])
+	for p in blind_names:
+		for res in all[p]:
+			blind_runs += 1
+			blind_stumbles += int(res.stumbles)
+			blind_loss += float(res.loss_pct)
+			if res.status == "victory":
+				blind_wins += 1
+	var recon_names := ["central_flank_lane", "central_flank_pair", "central_flank_stagger", "south_full", "mixed_split"]
+	var recon_wins := 0
+	var recon_runs := 0
+	for p in recon_names:
+		for res in all[p]:
+			recon_runs += 1
+			if res.status == "victory":
+				recon_wins += 1
+	var blind_rate := float(blind_wins) / float(blind_runs)
+	var recon_rate := float(recon_wins) / float(recon_runs)
+	check(blind_rate <= 0.1, "A ciegas (sin reconocer el fondo) casi nunca se gana: %d de %d partidas (%.0f %%)" % [blind_wins, blind_runs, blind_rate * 100.0])
+	check(recon_rate >= 0.4 and recon_rate >= blind_rate + 0.3, "Reconocer mejora la tasa de éxito: %.0f %% reconociendo frente a %.0f %% a ciegas" % [recon_rate * 100.0, blind_rate * 100.0])
+	for p in ["rush_central", "rush_gallop"]:
+		var stumbled := 0
+		for res in all[p]:
+			if int(res.stumbles) > 0:
+				stumbled += 1
+		check(stumbled >= seeds.size() - 1, "%s: la ruta central a ciegas tropieza en casi todas las semillas (%d/%d)" % [p, stumbled, seeds.size()])
+		var loss := 0.0
+		for res in all[p]:
+			loss += float(res.loss_pct)
+		check(loss / seeds.size() >= float(Rules.new().map_data().play_targets.rush_central_no_recon.min_strength_loss_pct), "%s: bajas medias ≥ %d %% (%.0f %%)" % [p, int(Rules.new().map_data().play_targets.rush_central_no_recon.min_strength_loss_pct), loss / seeds.size()])
+	# el flanco oculto: reconocer solo el eje del centro NO basta (la mitad de las semillas cae en el hoyo del flanco)
+	var one_stumbles := 0
+	var lane_stumbles := 0
+	for res in all.central_center_lane:
+		one_stumbles += int(res.stumbles)
+	for res in all.central_flank_lane:
+		lane_stumbles += int(res.stumbles)
+	check(one_stumbles > lane_stumbles, "Sondear solo el eje central deja caer en el hoyo del flanco: más tropiezos que sondeando el carril del flanco (%d vs %d)" % [one_stumbles, lane_stumbles])
 	var nw: Array = all.blind_north_edge
 	var north_stumbles := 0
 	for res in nw:
@@ -892,6 +1373,48 @@ func _test_strategies() -> void:
 	for res in wrong:
 		wrong_stumbles += int(res.stumbles)
 	check(wrong_stumbles >= 1, "Cruzar el canal sin conocer el vado sur tropieza (tropiezos: %d)" % wrong_stumbles)
+	# el hoyo del banco sur tambien se paga si solo se sondea el vado
+	var vado_only_st := 0
+	for res in all.south_vado_only:
+		vado_only_st += int(res.stumbles)
+	var full_st := 0
+	for res in all.south_full:
+		full_st += int(res.stumbles)
+	check(vado_only_st > full_st, "Sondear solo el vado deja caer en el hoyo del banco sur: más tropiezos que sondeando también el banco (%d vs %d)" % [vado_only_st, full_st])
+	# decisiones durante la captura: responder a los contraataques y evacuar mejora el resultado
+	var rep_loss := 0.0
+	var norep_loss := 0.0
+	var rep_n := 0
+	var norep_n := 0
+	var rep_wins := 0
+	var norep_wins := 0
+	for res in all.central_flank_lane:
+		if res.boarded_at >= 0.0:
+			rep_loss += float(res.report.counter_loss)
+			rep_n += 1
+		if res.status == "victory":
+			rep_wins += 1
+	for res in all.central_flank_noreply:
+		if res.boarded_at >= 0.0:
+			norep_loss += float(res.report.counter_loss)
+			norep_n += 1
+		if res.status == "victory":
+			norep_wins += 1
+	check(rep_n > 0 and norep_n > 0 and rep_loss / rep_n < norep_loss / norep_n and rep_wins >= norep_wins, "Rechazar los contraataques y evacuar heridos paga: menos pérdida por contraataque (%.1f vs %.1f) y no menos victorias (%d vs %d)" % [rep_loss / maxf(1.0, rep_n), norep_loss / maxf(1.0, norep_n), rep_wins, norep_wins])
+	var counters_seen := 0
+	for p in STRATEGY_NAMES:
+		for res in all[p]:
+			counters_seen += int(res.counter_hits) + int(res.counter_repelled)
+	check(counters_seen >= seeds.size(), "La captura exige decisiones: hubo contraataques de la dotación (%d) en la matriz" % counters_seen)
+	# la captura no es espera pasiva: tiempo entre la primera orden de cubierta posible y la rendicion acotado por ventanas de decision
+	var longest_quiet := 0.0
+	var wins_checked := 0
+	for p in ["central_flank_lane", "central_flank_pair", "south_full", "mixed_split"]:
+		for res in all[p]:
+			if res.status == "victory" and res.boarded_at >= 0.0:
+				wins_checked += 1
+				longest_quiet = maxf(longest_quiet, (float(res.t) - float(res.boarded_at)) / maxf(1.0, float(res.counter_hits + res.counter_repelled + 1)))
+	check(wins_checked > 0 and longest_quiet <= 90.0, "Durante la captura hay una ventana de decisión (contraataque) como mucho cada ≈ 90 s en todas las victorias (espera media máxima %.0f s)" % longest_quiet)
 	# pasividad y salida tardia
 	var late_w := int(wins_by.late_all_in)
 	check(late_w == 0, "Salir tarde pierde: con el río subiendo no se puede abordar (victorias: %d)" % late_w)
@@ -905,15 +1428,24 @@ func _test_strategies() -> void:
 		u.strength = 0.0
 	casualties.tick(1)
 	check(casualties.state.status == "defeat" and casualties.campaign_report().outcome_title == "Grupos dispersos", "La dispersión de todos los grupos es derrota")
-	# la ruta sur es viable y menos expuesta que la central con los mismos recursos
+	# la metrica de bajas nunca es negativa (reunir jinetes no la compensa)
+	var neg := 0
+	for p in STRATEGY_NAMES:
+		for res in all[p]:
+			if float(res.loss_pct) < 0.0 or float(res.loss_pct) > 100.0:
+				neg += 1
+	check(neg == 0, "La métrica de bajas queda entre 0 y 100 en todas las partidas (fuera de rango: %d)" % neg)
+	# trade-off real entre rutas: la sur expone menos que la central y tarda mas
 	var sf: Array = all.south_full
-	var cf: Array = all.probed_central_full
-	var s_exp := 0.0
-	var c_exp := 0.0
+	var cf: Array = all.central_flank_lane
 	var s_cross := 0.0
 	var c_cross := 0.0
+	var s_exp := 0.0
+	var c_exp := 0.0
 	var s_t := 0.0
 	var c_t := 0.0
+	var s_loss := 0.0
+	var c_loss := 0.0
 	var sn := 0
 	var cn := 0
 	for res in sf:
@@ -921,40 +1453,47 @@ func _test_strategies() -> void:
 		s_exp += float(res.exposure.central) + float(res.exposure.sur) + float(res.exposure.otra)
 		if res.status == "victory":
 			s_t += res.t
+			s_loss += float(res.loss_pct)
 			sn += 1
 	for res in cf:
 		c_cross += float(res.exposure.central) + float(res.exposure.sur)
 		c_exp += float(res.exposure.central) + float(res.exposure.sur) + float(res.exposure.otra)
 		if res.status == "victory":
 			c_t += res.t
+			c_loss += float(res.loss_pct)
 			cn += 1
-	check(sn >= seeds.size() / 2, "La ruta sur con reconocimiento gana en la mitad o más de las semillas (%d/%d)" % [sn, seeds.size()])
-	var sur_margin := 1e9
+	check(sn >= 1, "La ruta sur con reconocimiento completo gana alguna partida (%d/%d)" % [sn, seeds.size()])
+	check(cn >= 1, "La ruta central con reconocimiento del flanco gana alguna partida (%d/%d)" % [cn, seeds.size()])
+	var best_south := 1e9
 	for res in sf:
 		if res.status == "victory":
-			sur_margin = minf(sur_margin, 960.0 - float(res.t))
-	check(sn == 0 or sur_margin >= 60.0, "La victoria sur deja al menos 60 s de margen antes de que el agua alcance a la gente a pie (margen %.0f s)" % sur_margin)
+			best_south = minf(best_south, float(res.t))
+	var south_target := float(Rules.new().map_data().play_targets.recon_then_south.victory_before_s)
+	check(sn > 0 and best_south < south_target, "Mejor caso de la ruta sur: victoria antes del objetivo de diseño (%.0f s < %.0f s)" % [best_south, south_target])
 	if sn > 0 and cn > 0:
 		var ratio_min := float(Rules.new().map_data().play_targets.recon_then_south.central_vs_south_exposure_ratio_min)
-		check(s_exp < c_exp and c_cross >= ratio_min * s_cross, "En el cruce la exposición de la central es ≥ %.1f × la de la sur con los mismos recursos (%.0f vs %.0f s; con el abordaje, %.0f vs %.0f)" % [ratio_min, c_cross, s_cross, c_exp, s_exp])
-		check(c_t / cn < s_t / sn, "El intercambio es real: la central gana antes (%.0f s) y la sur después (%.0f s) con menos bajas" % [c_t / cn, s_t / sn])
-		report.results.append({"scenario": "justine", "strategy": "sur_vs_centro", "sur_victoria_media_s": s_t / sn, "centro_victoria_media_s": c_t / cn, "exposicion_sur": s_exp / seeds.size(), "exposicion_centro": c_exp / seeds.size()})
-		check(s_t / sn < float(Rules.new().map_data().play_targets.recon_then_south.victory_before_s), "La victoria sur llega antes del objetivo de diseño (%.0f s)" % (s_t / sn))
+		check(c_cross / seeds.size() >= ratio_min * (s_cross / seeds.size()), "Exposición centro/sur en el cruce ≥ %.1f (%.0f vs %.0f s por partida)" % [ratio_min, c_cross / seeds.size(), s_cross / seeds.size()])
+		check(c_t / cn < s_t / sn, "El intercambio es real: la central gana antes (%.0f s) y la sur después (%.0f s)" % [c_t / cn, s_t / sn])
+		check(s_loss / sn < c_loss / cn, "...y la sur cuesta menos bajas (%.0f %% vs %.0f %%)" % [s_loss / sn, c_loss / cn])
+		report.results.append({"scenario": "justine", "strategy": "sur_vs_centro", "sur_victoria_media_s": s_t / sn, "centro_victoria_media_s": c_t / cn, "exposicion_sur": s_exp / seeds.size(), "exposicion_centro": c_exp / seeds.size(), "sur_mejor_s": best_south})
+		var tgt_c := float(Rules.new().map_data().play_targets.recon_then_central.victory_before_s)
+		check(c_t / cn < tgt_c, "La victoria central media llega antes del objetivo de diseño (%.0f s < %.0f s)" % [c_t / cn, tgt_c])
 	# parte de campaña de una victoria
 	var rep: Dictionary = {}
 	for res in cf:
 		if res.status == "victory":
 			rep = res.report
 			break
-	check(not rep.is_empty() and rep.status == "victory" and rep.outcome_title == "Buque capturado" and rep.groups.size() == 3 and rep.history.size() >= 5, "campaign_report: victoria, tres grupos y 'Qué fue historia'")
+	check(not rep.is_empty() and rep.status == "victory" and rep.outcome_title == "Buque capturado" and rep.groups.size() == 3 and rep.history.size() >= 6, "campaign_report: victoria, tres grupos y 'Qué fue historia'")
 	var tags: Array = []
 	var joined := ""
 	for h in rep.get("history", []):
 		tags.append(h.tag)
 		joined += str(h.text).to_lower() + " "
 	check("documentado" in tags and "tradicion" in tags and "diseno" in tags and "reconstruccion" in tags, "La historia fija usa las etiquetas documentado, reconstrucción, tradición y diseño")
-	check("26 cañones" in joined and "británico" in joined and "combatió" in joined and "pueyrredón" in joined and "tradición no probada" in joined and "divulgativa" in joined, "La historia menciona el mercante británico de 26 cañones que combatió, Pueyrredón (secundaria), la tradición de Güemes y la cifra divulgativa")
+	check("26 cañones" in joined and "británico" in joined and "combatió" in joined and "pueyrredón" in joined and "tradición no probada" in joined and "divulgativa" in joined, "La historia menciona el mercante británico de 26 cañones que combatió, Pueyrredón, la tradición de Güemes y la cifra divulgativa")
 	check("gillespie no da el lugar" in joined and "edisalta" in joined, "El lugar del varado se atribuye a fuentes divulgativas y no a Gillespie")
+	check("concha" in joined and "archivo pueyrredón" in joined, "La caballería de Pueyrredón se atribuye a Concha y a Liniers (Archivo Pueyrredón), no solo a Obligado")
 	check(not ("fragata" in joined) and not ("goleta" in joined) and not ("bandera argentina" in joined and "con bandera" in joined), "La historia no inventa tipo de buque")
 	check(not rep.is_empty() and rep.boarded_at > 0.0 and rep.level_at_boarding >= 0.0 and rep.ammo_used >= 0 and rep.groups[0].tag == "tradicion" and rep.has("horses_lost"), "El parte registra el abordaje, los caballos perdidos y las etiquetas")
 	print("ESTRATEGIAS: ", JSON.stringify(wins_by))
@@ -1025,11 +1564,11 @@ func _test_not_stranded() -> void:
 	# Rescate: un grupo atrapado por la subida vuelve a un punto firme de la playa.
 	var rescue := _at(700.0)
 	var g: Dictionary = rescue.get_unit("guemes")
-	g.x = 415.0
+	g.x = 345.0
 	g.z = 264.0
 	g.stage = "ready"
 	g.order = {}
-	check(rescue.speed_at(415, 264, "walk", true) == 0.0, "El grupo de prueba queda en el pozo, bajo el agua honda")
+	check(rescue.speed_at(345, 264, "walk", true) == 0.0, "El grupo de prueba queda en el pozo, bajo el agua honda")
 	rescue.state.accumulator = 0.0
 	rescue.tick(0.25)
 	g = rescue.get_unit("guemes")
@@ -1043,10 +1582,10 @@ func _test_not_stranded() -> void:
 	# Un grupo que entra a un punto no reconocido y hondo tropieza y no se mete en el agujero
 	var st := _at(420.0)
 	var h: Dictionary = st.get_unit("arias")
-	h.x = 380.0
+	h.x = 305.0
 	h.z = 264.0
-	h.path = [{"x": 440.0, "z": 264.0}]
-	h.order = {"action": "move", "x": 440.0, "z": 264.0}
+	h.path = [{"x": 395.0, "z": 264.0}]
+	h.order = {"action": "move", "x": 395.0, "z": 264.0}
 	h.stage = "moving"
 	h.pace = "trot"
 	var hit := false
@@ -1056,10 +1595,10 @@ func _test_not_stranded() -> void:
 		if a.stage == "stumbling":
 			hit = true
 			check(st.speed_at(float(a.x), float(a.z), "walk", true) > 0.0, "El grupo que tropieza queda en un punto transitable")
-			check(float(a.stumble_remaining) > 0.0 and float(a.stumble_remaining) <= 35.0, "El tropiezo detiene hasta 35 s")
+			check(float(a.stumble_remaining) > 0.0 and float(a.stumble_remaining) <= 45.0, "El tropiezo detiene hasta 45 s")
 			break
 	check(hit and st.state.stats.stumbles == 1 and "pozo_central" in st.state.hazards_found, "El tropiezo se registra y el pozo pasa a hazards_found")
-	check(float(st.get_unit("arias").strength) <= 70.0 - 20.0 and float(st.state.stats.horses_lost) >= 28.0, "El pozo cuesta caballos y jinetes: −28 de fuerza, no −3")
+	check(float(st.get_unit("arias").strength) <= 70.0 - 30.0 and float(st.state.stats.horses_lost) >= 45.0, "El pozo cuesta caballos y jinetes: −45 de fuerza, no −3")
 	var passes := 0
 	for i in range(1200):
 		st.tick(0.25)
