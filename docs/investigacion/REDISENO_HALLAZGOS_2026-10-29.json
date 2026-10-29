@@ -1,0 +1,766 @@
+[
+ {
+  "hallazgos": [
+   {
+    "dato": "Lugar del varado: frente al Retiro, no en Quilmes/Barragán/Banco Ortiz. Quilmes (desembarco británico 25-jun-1806) y Ensenada de Barragán son hechos anteriores y separados. La varada fue ante la costa del Retiro, junto a la batería Abascal y cerca de la Plaza de Toros (hoy Plaza San Martín). El sitio es hoy tierra firme; varias fuentes secundarias lo ubican donde hoy está la Torre Monumental (ex 'de los Ingleses'), lo que implica que la costa de 1806 estaba mucho más adentro (rellenos posteriores).",
+    "fuente": "Recalada Náutica (blog, reproduce texto de Bicentenario 2010); La Nación (nota 2026 y nota 'hazaña poco recordada'); Infobae 12/8/2024 (Pignatelli); edisalta.ar/justina11.html",
+    "confianza": "Media (Retiro: alta; equivalencia exacta con la Torre: media/baja, fuentes secundarias sin plano de costa)",
+    "url": "http://recaladanautica.blogspot.com/2010/05/la-justine.html",
+    "licencia_o_derechos": "Texto con copyright de cada medio; solo parafrasear"
+   },
+   {
+    "dato": "Fuente primaria clave (Gillespie, Gleanings and Remarks, 1818, p. 94 según texto OCR de archive.org): la 'Justinia/Justina' era un mercante de 26 cañones, 'de uso esencial' para los británicos; una vez aligerada se la tripuló con oficiales y unos 100 marineros de la escuadra además de su propia dotación; combatió bien el día de la rendición y con sus cañones estorbó los movimientos españoles en la playa y calles; fue abordada y tomada por caballería al cierre del 12 de agosto 'por una súbita bajada del río'. Gillespie no nombra al jefe de la caballería ni a Güemes, ni da distancia o profundidad.",
+    "fuente": "Alexander Gillespie, Gleanings and Remarks (Leeds, 1818), cap. VI, p. 94; scan Internet Archive gleaningsremarks00gillrich",
+    "confianza": "Alta (contenido); media en paginación exacta, leída vía OCR resumido por herramienta",
+    "url": "https://archive.org/stream/gleaningsremarks00gillrich/gleaningsremarks00gillrich_djvu.txt",
+    "licencia_o_derechos": "Dominio público (1818)"
+   },
+   {
+    "dato": "Origen y dotación: en Santa Elena, Popham tomó guarnición de la Compañía de Indias. Gillespie (pp. 28-29) dice que 180 hombres de esa guarnición se embarcaron en el mercante 'Justinia' (26 cañones, propiedad de Princeps y Saunders, Londres), desviado del Cabo hacia Sudamérica; el gobernador Patten perdió el cargo por liberar tropas. Fuentes populares hablan de 100 hombres de Santa Elena. Orden de magnitud para el juego: ~100 marinos de escuadra + tripulación propia + parte de la tropa de Santa Elena (cifra total no verificada; 'más de 100' en fuentes populares; 150-250 sería una estimación, NO un dato).",
+    "fuente": "Gillespie pp. 28-29 (OCR); La Nación 'hazaña poco recordada'; edisalta.ar",
+    "confianza": "Media (180 vs 100 discrepan; no confirmé el pasaje original, solo el resumen del OCR)",
+    "url": "https://archive.org/stream/gleaningsremarks00gillrich/gleaningsremarks00gillrich_djvu.txt",
+    "licencia_o_derechos": "Dominio público (Gillespie)"
+   },
+   {
+    "dato": "Tipo y tamaño del buque: la fuente primaria dice 'merchant ship' de 26 cañones. Las fuentes secundarias la llaman fragata mercante armada, sumaca, goleta o bergantín (inconsistente); una fuente dice 18 cañones. Un solo palo: mesana (mástil de popa) derribada el día 11 por fuego de la batería del Retiro (Liniers); Bauzá dice 'desarbolada'. NO hallé tonelaje ni nombre del capitán en ninguna fuente. Un mercante armado de 26 cañones suele rondar 300-500 t, pero es inferencia mía, no dato.",
+    "fuente": "Gillespie p. 94; Bauzá (cit. en edisalta); Lobo t. I p. 432 (cit.); La Nación; Recalada Náutica",
+    "confianza": "Media (cañones: alta; tipo: baja; tonelaje y capitán: no encontrados)",
+    "url": "https://www.edisalta.ar/justina11.html",
+    "licencia_o_derechos": "Fuentes modernas con copyright; datos de Gillespie, dominio público"
+   },
+   {
+    "dato": "Distancia a la orilla: la cifra repetida es 'menos de 400 metros' (La Nación) o 'unos 400 m de las barrancas de la Plaza de Toros' (Recalada Náutica). La cifra proviene de textos divulgativos, sin cita primaria; Gillespie no da distancia. Los jinetes entraron al agua 'hasta el cuello/pecho de los caballos' (Obligado, 1920, tradición) o 'hasta las ancas' según otra versión: sugiere fondo de ~1-1,5 m en el tramo final, lo cual es plausible y coherente con una bajante de pampero, pero no hay sondeo de la época del lugar.",
+    "fuente": "La Nación; Recalada Náutica; edisalta.ar (cita a Pastor Obligado, La Razón, 12/8/1920)",
+    "confianza": "Media para 400 m; baja para profundidad",
+    "url": "https://www.lanacion.com.ar/economia/campo/una-hazana-poco-recordada-de-guemes-en-las-invasiones-inglesas-nid2398721/",
+    "licencia_o_derechos": "Copyright del medio; parafrasear"
+   },
+   {
+    "dato": "Hidrografía y mareas (Gillespie, pilotaje): el Plata puede subir o bajar 7-8 pies (~2,1-2,4 m) de forma repentina por el viento; marea de 4-7 pies (1,2-2,1 m) en Montevideo según brisa; la rada de Buenos Aires: salvo embarcaciones menores, nada puede fondear a menos de ~4 millas; en Ensenada de Barragán no más de ~13 pies (~4 m), solo entran buques chicos; en Quilmes el desembarco fue el 25-jun en una punta baja a 12 millas de Buenos Aires y la fragata Encounter no pudo acercarse a menos de una milla; la Narcissus varó en el Banco Ortiz y se salvó aligerándola; canales medios con 4,5-7 brazas, evitar menos de 3 brazas cerca del Banco Chico. Fenómeno moderno corroborado: vientos del oeste de 40-60 km/h causan bajantes de ~1,65 m en Buenos Aires (SMN/AySA); la marea astronómica real es pequeña, el efecto dominante es el viento (pampero). Gillespie y otros mencionan una sudestada previa; el viento de 12-ago-1806 no está documentado en lo que hallé.",
+    "fuente": "Gillespie (OCR, caps. IV-VI, pp. 32-43); nota AySA/SMN vía búsqueda; estudio de Stagnaro de Etcheverry sobre bajantes por pampero",
+    "confianza": "Media (cifras de Gillespie por OCR resumido; amplitud actual del Plata no confirmada con SHN)",
+    "url": "https://archive.org/stream/gleaningsremarks00gillrich/gleaningsremarks00gillrich_djvu.txt",
+    "licencia_o_derechos": "Dominio público (Gillespie)"
+   },
+   {
+    "dato": "Quién capturó y cómo: documentalmente (Gillespie, Concha 15-ago-1806, Liniers en Archivo Pueyrredón t. I p. 54) la captura fue por caballería/gauchos de la vanguardia de Pueyrredón (40-60 jinetes en avanzada según Concha). La participación de Güemes como jefe procede de Pastor Obligado (1920), Güemes Documentado (t. I) y tradición salteña; NO figura en Gillespie ni en Concha. Detalles narrativos (Liniers observando con anteojo, orden vía jinete por la Alameda, rendición con pañuelo blanco desde la popa, 'dos horas de combate', tarde fría y lluviosa, 30/40-60 jinetes) provienen de Obligado y divulgación: tradición, no documento. No encontré a un 'Ocampo' ligado a la Justina en ninguna fuente.",
+    "fuente": "edisalta.ar/justina11.html (análisis documental vs tradición); Recalada Náutica; La Nación; invasionesinglesas.blogspot.com",
+    "confianza": "Alta en 'caballería de Pueyrredón'; media en cifras; baja en Güemes como jefe (coincide con CLAUDE.md: tradición no probada)",
+    "url": "https://www.edisalta.ar/justina11.html",
+    "licencia_o_derechos": "Parafrasear"
+   },
+   {
+    "dato": "Contexto cronológico: Liniers batió con artillería del Retiro buques británicos el 11-ago (lancha cañonera y fragata); el 12-ago Beresford capituló en el Fuerte (marcharon al Cabildo ~15 h) y la caballería tomó la Justina 'al cierre del día'. Sudestada del 4-ago destruyó seis cañoneras británicas (Infobae). Trofeos: 4 banderas inglesas se depositaron en Santo Domingo el 24-ago-1806; la 'bandera del Retiro' se asocia a la Justina por Güemes Documentado pero su identificación es discutida. Húsares de Pueyrredón se crean oficialmente el 14-ago-1806. Bauzá y Lobo cuentan como único botín mercante una fragata y un bergantín con trigo.",
+    "fuente": "Infobae 12/8/2024; invasionesinglesas.blogspot.com; edisalta.ar; Wikipedia en inglés (Húsares)",
+    "confianza": "Media",
+    "url": "https://www.infobae.com/historia/2024/08/12/como-fue-la-operacion-de-reconquista-de-buenos-aires-del-plan-de-liniers-a-la-desconfianza-de-los-ingleses/",
+    "licencia_o_derechos": "Parafrasear"
+   },
+   {
+    "dato": "Cartografía de época hallada: Aaron Arrowsmith, 'Chart of the Rio de la Plata: the coast line from the Spanish survey; the banks and soundings principally from a MS chart communicated by Capt. Donnelly R.N.', Londres, 1-oct-1807 (2ª ed. 1809), 1:560.000, derivada de una carta española capturada en Buenos Aires en 1806. Cubre Buenos Aires hasta Maldonado con insets de Maldonado y Montevideo. Es la mejor fuente para bancos (Ortiz, Chico, canales) y sondeos de la época. También: Gillespie 1818 trae una carta del Río de la Plata con instrucciones de pilotaje; plano de Buenos Aires de Cabrer (c.1782), Boneo (1800, copia 1803 en AGN) y Cerviño (1801/1814).",
+    "fuente": "Crouch Rare Books; David Rumsey (registro RUMSEY~8~1~351151, no pude abrirlo); Old Maps Online/British Library; raremaps.com y catálogo de planos 1782-1817 (FADU-UBA)",
+    "confianza": "Media-alta en existencia y fecha; baja en que las demás sean de uso libre",
+    "url": "https://www.davidrumsey.com/luna/servlet/detail/RUMSEY~8~1~351151~90118696:Chart-of-the-Rio-de-la-Plata--The-C",
+    "licencia_o_derechos": "Rumsey: CC BY-NC-SA 3.0 (política habitual de la colección; verificar en el registro); Arrowsmith 1807 es dominio público"
+   },
+   {
+    "dato": "Plaza de Toros del Retiro: obras desde 1800, inaugurada oct-1801 según Wikipedia en inglés, ubicada en el actual predio de la Plaza San Martín (terrenos de Miguel de Riglos). La batería Abascal y el campamento de Pueyrredón estaban en esa zona. Útil para ubicar el Retiro en el mapa del juego: barranca sobre el río con la Plaza de Toros, y el agua llegando al pie de la barranca.",
+    "fuente": "Wikipedia en inglés 'Plaza de Toros del Retiro'; GCBA historia de Retiro; Recalada Náutica",
+    "confianza": "Media",
+    "url": "https://en.wikipedia.org/wiki/Plaza_de_Toros_del_Retiro",
+    "licencia_o_derechos": "CC BY-SA 4.0 (texto de Wikipedia)"
+   }
+  ],
+  "imagenes": [
+   {
+    "descripcion": "Arrowsmith, 'Chart of the Rio de la Plata' (1807): costa, bancos y sondeos entre Buenos Aires y Maldonado, basada en carta española capturada en 1806. Mejor referencia de bancos Ortiz/Chico y canales.",
+    "url": "https://www.davidrumsey.com/luna/servlet/detail/RUMSEY~8~1~351151~90118696:Chart-of-the-Rio-de-la-Plata--The-C",
+    "licencia": "Mapa de dominio público; imagen digital Rumsey normalmente CC BY-NC-SA (verificar)",
+    "fecha_autor": "Aaron Arrowsmith, Londres, 1-oct-1807 (2ª ed. 1809)",
+    "utilidad_para_el_juego": "Trazar el borde costero, bancos de arena y la distancia entre el fondeadero exterior y la orilla; referencia para texturas de mapa antiguo en el menú o briefing."
+   },
+   {
+    "descripcion": "Alexander Gillespie, Gleanings and Remarks (1818), con carta del Río de la Plata y pilotaje; escaneo completo en Internet Archive / Commons.",
+    "url": "https://commons.wikimedia.org/wiki/File:Gleanings_and_remarks-_collected_during_many_months_of_residence_at_Buenos_Ayres,_and_within_the_upper_country;_(IA_gleaningsremarks00gillrich).pdf",
+    "licencia": "Dominio público (1818)",
+    "fecha_autor": "Alexander Gillespie, 1818",
+    "utilidad_para_el_juego": "Fuente testimonial del episodio; su carta y las ilustraciones sirven de referencia visual y para citar en el juego."
+   },
+   {
+    "descripcion": "Vista de Buenos Aires desde el río, expedición Malaspina, c.1789-1794, atribuida a Fernando Brambila (gouache c.1794 'Vista de Buenos Ayres desde el camino de las Carretas'; grabado posterior). Vista panorámica desde el río con barrancas y ribera, la más cercana a 1806.",
+    "url": "https://europeana.eu/item/499/https___hispana_mcu_es_lod_oai_larramendi_es_15291_ent0",
+    "licencia": "Fundación Larramendi/Hispana: CC BY-SA 4.0 declarada para esos ítems (confirmar en el registro concreto)",
+    "fecha_autor": "Atribuido a Brambila, ca. 1789-1794",
+    "utilidad_para_el_juego": "Referencia de silueta de ciudad, barranca y ribera baja antes de 1806 (12 años antes); no es del Retiro específicamente."
+   },
+   {
+    "descripcion": "Emeric Essex Vidal, acuarelas de Buenos Aires 1816-1818 (libro Picturesque Illustrations, Londres 1820), incluye 'Landing place', 'Fuerte de Buenos Aires, rivera norte' y 'General view of Buenos Ayres from the Plaza de Toros'. Posteriores a 1806 (10-14 años) pero son la documentación visual más detallada de la ribera.",
+    "url": "https://wiki.riteme.site/wiki/File:Landing_place_by_E.E._Vidal.png",
+    "licencia": "Dominio público (Getty Research Institute vía Commons)",
+    "fecha_autor": "E. E. Vidal, 1816-1818; edición 1820",
+    "utilidad_para_el_juego": "Muestra carretas entrando al agua, ribera baja y barrancas; ideal para el aspecto de la costa y de caballos en el agua."
+   },
+   {
+    "descripcion": "Grabado de 1807 en el Museo Naval de Madrid sobre el ejército británico rechazado en Buenos Aires (metadata Artres, no lo vi).",
+    "url": "https://www.artres.com/asset-management/2UN39YTCSYH",
+    "licencia": "Artres: comercial con derechos; no usable sin licencia",
+    "fecha_autor": "1807, Museo Naval Madrid",
+    "utilidad_para_el_juego": "Posible testimonio gráfico coetáneo; solo como referencia o para pedir licencia."
+   },
+   {
+    "descripcion": "Charles Fouqueray, 'Reconquista de Buenos Ayres. 1806' (1909), óleo en el Museo Histórico Nacional. NO es de época (posterior en un siglo), pero es la imagen canónica del episodio.",
+    "url": "https://digital-collections.princeton.edu/i/reconquista-de-buenos-ayres-1806/item/cd380a6e-e640-4c93-8412-37582a62b738/metadata",
+    "licencia": "Dominio público probable (autor fallecido 1956: en Argentina la obra puede estar en dominio público por ser de 1909 publicada; verificar)",
+    "fecha_autor": "Fouqueray, 1909",
+    "utilidad_para_el_juego": "Solo referencia de composición, no como fuente histórica."
+   }
+  ],
+  "huecos": "1) Tonelaje, tipo exacto (fragata/bergantín/sumaca) y nombre del capitán del Justina: NO encontrados en ninguna fuente. Las fuentes secundarias contradicen el tipo; solo 'merchant ship, 26 cañones' (Gillespie) es sólido. 2) Distancia orilla-buque (400 m) y profundidad del agua: solo en divulgación sin cita primaria; no hallé sondeo de la época del lugar exacto. 3) Viento y nivel del río del 12-ago-1806: no documentados en lo hallado (solo una sudestada el 4-ago). 4) El papel de Güemes: no figura en Gillespie ni en Concha; viene de Obligado (1920) y Güemes Documentado. 5) 'Ocampo' no aparece vinculado al episodio: no confirmar. 6) No pude abrir el registro de David Rumsey ni leer los pasajes de Gillespie en el texto original: las páginas citadas (28-29, 94) y las cifras se basan en resúmenes de una herramienta sobre el OCR de archive.org; conviene verificarlas con el scan. 7) No encontré grabados, vistas ni planos específicos del Retiro de agosto de 1806; lo más cercano son Brambila (c.1794) y Vidal (1816-18). No verifiqué obras de Pellegrini (Carlos Enrique, años 1830, posteriores), 'Mrs. Mawe' ni Prilidiano; no hay evidencia de época para ellos en lo que busqué. 8) No hallé plano de la línea de costa de 1806 en el Retiro: la equivalencia 'Torre de los Ingleses = lugar de la varada' es afirmada por fuentes divulgativas, sin plano. 9) Una búsqueda devolvió un espejo de Wikipedia con texto incrustado que pedía ignorar instrucciones; se descartó y no afecta los datos.\""
+ },
+ {
+  "hallazgos": [
+   {
+    "dato": "CAMINO REAL, jornadas en leguas (Concolorcorvo, c. 1771-73), tramo Salta a Jujuy: Salta a Las Tres Cruces 9 leguas; Tres Cruces a La Cabaña (posta, sobre el río Perico) 3; La Cabaña a Jujuy 6. Total Salta a Jujuy 18 leguas. El camino sale de Salta cruzando una zanja/sequión, tres leguas llanas y luego monte, remontando 'cajas' de ríos (Vaqueros, Ubierna, Caldera, Los Sauces) que se vadean 'más de cuarenta veces' en un día. Las Tres Cruces es el límite entre las jurisdicciones de Salta y Jujuy. Los carreteros cortaban desde Cobos directo a Jujuy sin pasar por Salta.",
+    "fuente": "Concolorcorvo (Alonso Carrió de la Vandera), El Lazarillo de ciegos caminantes, caps. VI-VIII, tablas de leguas por posta (leído en el PDF completo del texto, líneas del cap. VI y VIII). https://www.biblioteca-antologica.org/es/wp-content/uploads/2019/09/CONCOLORCORVO-Lazarillo-de-ciegos-caminantes.pdf",
+    "confianza": "alta (cifras textuales de la tabla); ojo: es de 1773, 44 años antes de la guerra",
+    "url": "https://www.biblioteca-antologica.org/es/wp-content/uploads/2019/09/CONCOLORCORVO-Lazarillo-de-ciegos-caminantes.pdf",
+    "licencia_o_derechos": "Obra de dominio público (s. XVIII); edición digital de Biblioteca Antológica, uso para consulta"
+   },
+   {
+    "dato": "CAMINO REAL, Jujuy a la frontera con Charcas (Concolorcorvo): Jujuy a Guájara 10 leguas; Guájara a Los Hornillos 7; Hornillos a Humahuaca 11; Humahuaca a La Cueva 8; La Cueva a Cangrejos Grandes 12; Cangrejos Grandes a La Quiaca 9. Total Tres Cruces a La Quiaca: 66 leguas. Jujuy a Humahuaca = 28 leguas por posta. Desde Cangrejos Grandes se desvía a Yavi (tierras del marqués del Valle de Tojo) y Mojo; Yavi NO está sobre la línea principal de postas, que sigue a La Quiaca. Hornillos (posta histórica, hoy museo entre Maimará y Purmamarca) confirma el trazado por la quebrada.",
+    "fuente": "Concolorcorvo, cap. VIII 'Jujuy', tabla de leguas y texto sobre Cangrejos Grandes y Yavi.",
+    "confianza": "alta para las cifras textuales; media para equivalencias a km",
+    "url": "https://www.biblioteca-antologica.org/es/wp-content/uploads/2019/09/CONCOLORCORVO-Lazarillo-de-ciegos-caminantes.pdf",
+    "licencia_o_derechos": "Dominio público"
+   },
+   {
+    "dato": "CAMINO REAL, tramo sur (Tucumán a Salta) para anclar el borde sur del mapa: Pozo del Pescado a El Rosario 13 leguas; a estancia de Concha 10; al río del Pasaje 15; al fuerte de Cobos 16; a Salta 9; a Las Cruces 9. Total del capítulo 72 leguas. Lectura: Pasaje a Salta = 25 leguas por Cobos. Un documento de 1811 citado por Luis Güemes ('Distribución de las leguas, Salta 6/XI/1811', Archivo y Biblioteca Históricos de Salta) menciona dos postas contiguas al Pasaje: la del Pasaje y la de Los Algarrobos; no se pudo leer ese documento original.",
+    "fuente": "Concolorcorvo cap. VI; nota 1 en Güemes Documentado t. 5 (Plus Ultra, 1980), a propósito de las conferencias Belgrano-Güemes en El Pasaje, 1817.",
+    "confianza": "alta (Concolorcorvo); media (nota sobre 1811, indirecta)",
+    "url": "https://www.edisalta.ar/libros/guemes/g5.pdf",
+    "licencia_o_derechos": "Concolorcorvo: dominio público. Güemes Documentado: obra con derechos (Luis Güemes, Plus Ultra 1980) alojada por edisalta.ar; citar, no redistribuir"
+   },
+   {
+    "dato": "EQUIVALENCIA LEGUA-KM: Concolorcorvo da 28 leguas Jujuy-Humahuaca; la ruta moderna Jujuy-Humahuaca mide 128 km por carretera (4,6 km por legua); Humahuaca a La Quiaca da 29 leguas por posta frente a 157 km (5,4 km por legua); Salta a Jujuy da 18 leguas frente a 125 km por Ruta 9 (la ruta moderna rodea por Yala/Lagunas, más larga que el cauce de ríos colonial). Conclusión práctica: usar 1 legua = 4,6 a 5,4 km según tramo, y no un valor fijo de 5,57 km. Para escala de juego conviene fijar el mapa por distancia real (km) y usar las leguas históricas solo como etiqueta.",
+    "fuente": "Cálculo propio: tabla de leguas de Concolorcorvo contra Google Maps Distance Matrix (distancias por carretera actuales, consultadas en esta sesión).",
+    "confianza": "media (el valor de la legua colonial varía; las rutas modernas no coinciden con las coloniales)",
+    "url": "",
+    "licencia_o_derechos": "Datos de Google Maps: solo consulta, no redistribuir"
+   },
+   {
+    "dato": "DISTANCIAS MODERNAS POR CARRETERA (verificadas con Google Distance Matrix en esta sesión): Salta a Jujuy 125 km; Jujuy a Humahuaca 128 km; Salta a Humahuaca 251 km; Jujuy a Tilcara 85 km; Tilcara a Humahuaca 45 km; Humahuaca a La Quiaca 157 km (la Quiaca está junto a Yavi); Jujuy a La Quiaca 284 km; Salta a La Quiaca 407 km; Salta a Cerrillos (casco, ~) 24 km; Salta a Chicoana 51 km. Distancia en línea recta Salta-Jujuy es de unos 67 km (calculada con coordenadas), así que el eje Salta-Jujuy real está cerca de 70 km en línea recta aunque el camino de a caballo es mucho más largo.",
+    "fuente": "Google Maps Distance Matrix API (herramienta mcp google-maps), consultada hoy.",
+    "confianza": "alta (para la geometría actual); media como proxy de 1817",
+    "url": "",
+    "licencia_o_derechos": "Solo uso de consulta"
+   },
+   {
+    "dato": "ALTITUDES (SRTM/Google Elevation, verificadas en esta sesión; resolución 300-600 m, así que son orientativas): Salta 1187 m; Jujuy 1272 m; Cerrillos ~1252 m; Chicoana ~1231 m; Volcán ~2118 m; Purmamarca ~2332 m; Maimará ~2416 m; Tilcara ~2471 m; Huacalera ~2653 m; Humahuaca ~2959 m; Tupiza ~2971 m; La Quiaca ~3452 m; Yavi ~3462 m; Cachi ~2379 m; Rosario de la Frontera ~791 m; Cobos/Gral. Güemes ~744 m. Gradiente clave para el juego: de Jujuy (1270 m) a Humahuaca (2960 m) se suben ~1700 m en ~128 km; el Valle de Lerma (Salta-Cerrillos-Chicoana) queda plano a ~1200 m; Yavi/La Quiaca es altiplano a ~3450 m.",
+    "fuente": "Google Maps Elevation API consultada en esta sesión, con coordenadas de localidades introducidas desde memoria (comprobadas por el resultado de altitud coherente).",
+    "confianza": "media (coordenadas aproximadas del casco urbano; altitudes redondeadas)",
+    "url": "",
+    "licencia_o_derechos": "Solo consulta"
+   },
+   {
+    "dato": "INVASIÓN DE LA SERNA, MARCHA JUJUY-SALTA (parte del propio La Serna, publicado en la Gaceta del Gobierno de Lima, 8/8/1817): salió de Jujuy el 13 de abril con 1000 infantes, 320 caballos y 4 piezas; el 14 hicieron noche en La Caldera; hostigado por guerrillas gauchas 'a palmos' en cada bosque, río y desfiladero hasta la ciudad. Antes de las 2 pm del 15 estaba en la entrada de la 'gran pampa de Castañares', donde Güemes había formado una línea de 400-500 caballos frente a las casas; el escuadrón de húsares y dragones del coronel Sardina rodeó por la derecha y los cañones los dispersaron. Ocupó la ciudad al anochecer del 15 ('tres días de continuo fuego'); encontró 'algunas familias, harinas y aguardiente'. Los oficios llevan fecha de 17 de abril. Refiere que el 5 de abril llegaron a Jujuy los cuerpos de Centeno y vanguardia, y que la expedición a Orán se hizo por 'la ocurrencia de Humahuaca'.",
+    "fuente": "Güemes Documentado, t. 5 (L. Güemes), transcripción del oficio de La Serna al virrey, 'Cuartel general en Salta, 17 de abril de 1817', pp. iniciales del t. 5 (documento realista).",
+    "confianza": "alta (fuente primaria realista, transcrita); la fecha de entrada (15 de abril) es deducción de '3 días' desde el 13, concuerda con la matriz del repo (ronda 10, 12-22 de abril)",
+    "url": "https://www.edisalta.ar/libros/guemes/g5.pdf",
+    "licencia_o_derechos": "Obra con derechos (Plus Ultra 1980); el documento original del siglo XIX es de dominio público. Citar sin copiar texto largo"
+   },
+   {
+    "dato": "COMBATE DE LOS CERRILLOS, 22-23 de abril de 1817 (parte de La Serna del 24 de abril): el 21 por la tarde salió de Salta una expedición de 400 infantes del batallón Gerona y 180 caballos al mando del coronel Vicente Sardina hacia 'el Bañado'; el 22 por la mañana atacó y empujó a los gauchos, que se defendían desde cuatro leguas antes; a las 3 pm marchó a la quebrada de Escoipe donde acampó; Güemes juntó gente de noche para envolverla; al amanecer del 23 la columna fue rodeada por 700-800 caballos en 'la gran pampa de los Cerrillos'. Vigil (Sardina herido) hizo formar al batallón en cuadrilongo con línea circular de tiradores y caballería en martillo y regresó a Salta con 3 muertos y 27 heridos de Gerona más bajas de caballería. Es la mejor descripción primaria de un combate de campo abierto en el Valle de Lerma: gauchos en caballadas grandes (700-800) con 'falsas huidas', infantería en cuadro.",
+    "fuente": "Güemes Documentado t. 5, oficio de La Serna, Cuartel general en Salta, 24 de abril de 1817.",
+    "confianza": "alta (fuente realista primaria; versión del bando derrotado de forma parcial, minimiza sus bajas)",
+    "url": "https://www.edisalta.ar/libros/guemes/g5.pdf",
+    "licencia_o_derechos": "Obra con derechos; documento primario antiguo"
+   },
+   {
+    "dato": "CORRECCIÓN IMPORTANTE DE FECHA: el oficio con 'miércoles 21 del corriente quedó enteramente evacuada esta plaza... por espacio de cinco meses' describe la evacuación de JUJUY (no de Salta) el 21 de mayo de 1817 (el 21/5/1817 fue miércoles); Gorriti con su división de gauchos entra primero; los realistas esperaron en Los Sauces (3,5 leguas) y avanzaron muy despacio. Otro oficio (Güemes a Belgrano, Jujuy, 27/5/1817) dice que desde el 21 que se retiró de Jujuy hasta el 29 no llegó a Tumbaya, 'once leguas en nueve días'. Las evacuaciones de Salta (4-5 de mayo según el repo) y de Jujuy (21 de mayo) son hechos separados; la 'Wikipedia' que ubica la salida de Salta el 21 de mayo mezcla ambas.",
+    "fuente": "Güemes Documentado t. 5, oficio de la conferencia Belgrano-Güemes (doc. 66) y parte de Güemes a Belgrano del 27 de mayo (doc. 65).",
+    "confianza": "media-alta (lectura del texto transcrito; el autor del primer oficio no se pudo identificar con seguridad en el texto OCR)",
+    "url": "https://www.edisalta.ar/libros/guemes/g5.pdf",
+    "licencia_o_derechos": "Obra con derechos; citar"
+   },
+   {
+    "dato": "RETIRADA POR LA QUEBRADA, 21-29 de mayo de 1817: La Serna retrocede desde Jujuy hacia el norte cuesta arriba; Arias (22 de mayo, desde Las Cieneguillas) informa que el enemigo está aislado en el pueblo de Tilcara con fuerza doble de la suya, Belmonte en 'las caídas de la Negra Muerta'; desde el 19 de mayo capturó 20 prisioneros partidarios, 9 fusiles, 12 mulas y burros. El 23 de mayo hay guerrilla en 'El Perchel' (norte de Tilcara): carga de caballería, enemigo responde con infantería y dos piezas; Arias se retira por falta de municiones y 'piedras' (para chispa) y bestias en mal estado, pero logra quitar 70 mulas/caballos y 15 burros. El 29 de mayo José Apolinar de Saravia, desde León, describe combate de 9 am al ocaso en la posta del Volcán (quebrada del Volcán, Arroyo del Medio, el enemigo incendia el cerro con humo para cubrirse), enemigo con unos 1000 hombres y 4 piezas, 'un infernal herido'; los realistas llegaron a Tumbaya el 29; Saravia planea llegar hasta Purmamarca y dejar los infernales de avanzada con el mayor Rojas.",
+    "fuente": "Güemes Documentado t. 5, doc. 65 'Guerrilla de El Perchel (23 de mayo de 1817)'; fundamentos del proyecto 1625-D-2022 (Cámara de Diputados) reproducen el parte de Arias del 22 y 24 de mayo.",
+    "confianza": "alta para la secuencia de lugares (varios partes coinciden); media para número de efectivos",
+    "url": "https://www4.hcdn.gob.ar/dependencias/dsecretaria/Periodo2022/PDF2022/TP2022/1625-D-2022.pdf",
+    "licencia_o_derechos": "Documentos públicos del Congreso (consulta); Güemes Documentado con derechos"
+   },
+   {
+    "dato": "HUMAHUACA 1/3/1817 (Arias): fuentes institucionales concuerdan en 150 gauchos jujeños, ataque al cuartel realista, rendición tras 'una hora y media', 6 oficiales y 86 soldados prisioneros, cañones, fusiles y vituallas capturados; La Serna había ocupado Humahuaca en enero y ordenó fortificarla dejando parte de un batallón. Belgrano escribió del 'brillante hecho de armas de Humahuaca'; en 1917 el gobierno premió a Arias con medalla de oro. Un proyecto parlamentario precisa que Arias salió el 27 de febrero con 150 gauchos desde San Andrés hacia el Abra de Zenta. La propia carta de La Serna al virrey (Gaceta de Lima, 8/8/1817) menciona 'la ocurrencia de Humahuaca' como motivo de enviar tropas a Orán y de suspender el movimiento a Salta, y que se 'represaron' piezas de cañón y fusiles perdidos 'en aquella sorpresa'. El plano del cuartel (tres posiciones: artillería en Santa Bárbara, cuartel, pólvora) sigue sin documento primario.",
+    "fuente": "Todo Jujuy (nota de aniversario 200 años); proyectos 1625-D-2022 y 2985-D-2022 (HCDN); Güemes Documentado t. 5 (carta de La Serna).",
+    "confianza": "media-alta (fecha y jefe concordantes entre 3 fuentes institucionales y el oficio realista); baja para detalles tácticos y para la ruta exacta",
+    "url": "https://www.todojujuy.com/jujuy/a-200-anos-la-batalla-humahuaca-n58049",
+    "licencia_o_derechos": "Consulta"
+   },
+   {
+    "dato": "OTRAS ACCIONES EN LA QUEBRADA tras 1817 (útiles para eventos adicionales): 15 de agosto de 1817 segundo combate de Humahuaca, Arias abandona el pueblo ante la invasión de Olañeta (~1000 hombres); 12 de septiembre de 1817 combate de Huacalera, Arias toma prisioneros; 28 de noviembre Arias combate en la Casa de Adobe y se retira a Tilcara; el campo del Perchel; 29 de diciembre los realistas salen de Tilcara hasta los Hornillos y regresan; 31 de diciembre repliegan a Huacalera y luego a Uquía; 3 de enero de 1818 se retiran a Yavi y luego al Alto Perú. Arias estaba en Uquía el 29 de noviembre de 1817 (necesita infantería, 'una infantería que me hace falta para operar'). Este patrón (Tilcara, Maimará, Huacalera, Perchel, Uquía, Hornillos, Negra Muerta, Cieneguillas) arma una cadena de posiciones a lo largo de la quebrada.",
+    "fuente": "Wikipedia en español sobre la Guerra Gaucha (resumen secundario) y Güemes Documentado t. 5 (partes de Arias, índices de docs. 64-70).",
+    "confianza": "media (Wikipedia secundaria; partes citados por Luis Güemes más sólidos)",
+    "url": "https://es.wikipedia.org/wiki/Guerra_Gaucha",
+    "licencia_o_derechos": "Wikipedia CC BY-SA; Güemes Documentado con derechos"
+   },
+   {
+    "dato": "Cifras de fuerzas (secundaria, a verificar): ejército realista 2780 infantes, 700 jinetes, 130 artilleros (otras fuentes dan 5400 hombres); Güemes movilizó 4500-5000 gauchos; Belgrano en Tucumán 3027 hombres (2595 útiles). Organización gaucha: grupos de 20 bajo un oficial, un oficial superior cada 4 grupos; combates breves de hostigamiento y retirada, tierra arrasada (los habitantes se llevan comida y ganado). La Serna en marcha a Salta: 1000 infantes, 320 caballos, 4 piezas (cifra propia del 13 de abril); en la retirada de mayo, Güemes y Saravia reportan ~1000 enemigos con 4 piezas.",
+    "fuente": "Wikipedia ES 'Guerra Gaucha' (secundaria); parte de La Serna del 17/4/1817 (primaria).",
+    "confianza": "baja para totales de Wikipedia, alta para las cifras de La Serna en su parte",
+    "url": "https://es.wikipedia.org/wiki/Guerra_Gaucha",
+    "licencia_o_derechos": "CC BY-SA"
+   },
+   {
+    "dato": "TÁCTICA Y TERRENO observables en partes primarios: (1) los gauchos defienden cada 'bosque, río y desfiladero' entre La Caldera y Salta y los realistas los desalojan con cazadores a paso de carrera; (2) el gaucho no ataca la artillería de frente: se dispersa con falsas huidas y rodea; (3) problema permanente: faltan municiones, 'piedras' (chispas), sables, y sobre todo caballos y mulas ('mi gente va casi a pie'); (4) el realista también sufre por caballos 'mal montados' y faltas de víveres, quema fusiles, vestuarios y municiones al retirarse de Jujuy; (5) deserción: Belgrano cuenta 60 pasados, muchos europeos; (6) los incendios de pastizal/cerro se usan para cubrir el repliegue (Volcán, 29/5). Todo esto fundamenta mecánicas de fatiga de monturas, munición, quemar el campo y emboscadas en quebradas.",
+    "fuente": "Güemes Documentado t. 5, partes de La Serna (17 y 24 de abril), Belgrano (a Pueyrredón), Saravia (29 de mayo), Arias (22 y 24 de mayo).",
+    "confianza": "alta (convergencia de partes de ambos bandos)",
+    "url": "https://www.edisalta.ar/libros/guemes/g5.pdf",
+    "licencia_o_derechos": "Con derechos; citar"
+   },
+   {
+    "dato": "INFERNALES, vestimenta: no hay documento de época localizado sobre su uniforme. Secundarias dicen: (a) poncho rojo con listas negras es símbolo actual; las listas negras se habrían agregado en 1931 (monumento) y el 'Uniforme Histórico de Infernal' se institucionalizó en 1971 (La Nación); otra versión dice franjas por luto tras la muerte de Güemes (1821); (b) Rogelio Saravia Toledo (citado en un proyecto de la HCDN) dice que antes eran comunes los ponchos blancos, pardos y azules de vicuña, y que el poncho rojo con listas es de comienzos del siglo XX; (c) el diseñador de un videojuego afirma que el uniforme era azul como el de todo el Ejército del Norte (Tiempo Argentino, sin fuente documental visible); (d) algunas notas hablan de 'regimiento vestido de rojo punzó' (sin cita). Hay también el texto de Solá, Las milicias de Güemes, citado como excepción a la falta de uniforme, que no se pudo leer. En los partes aparecen 'infernales' como tropa de línea de avanzada: Rojas y Saravia dejan 'infernales' montados en la quebrada y Güemes ordena dejar diez o doce en Tilcara.",
+    "fuente": "La Nación (columna), Todo Jujuy y Tiempo Argentino (notas), HCDN 6083-D-2020 (no se pudo extraer texto del PDF), Güemes Documentado t. 5.",
+    "confianza": "baja para el color; alta para la contradicción entre fuentes; media para que 'infernales' era una unidad con función de vanguardia",
+    "url": "https://www.lanacion.com.ar/opinion/el-poncho-que-san-martin-llevo-consigo-hasta-boulogne-sur-mer-nid14082022/",
+    "licencia_o_derechos": "Notas periodísticas con derechos; solo referencia"
+   },
+   {
+    "dato": "EL DESASTRE DE LA RUTA REAL COMO ESPINA DORSAL DEL MAPA: la secuencia de postas-hitos de norte a sur con leguas acumuladas desde La Quiaca hacia el sur (usando Concolorcorvo): La Quiaca 0; Cangrejos Grandes 9; La Cueva 21; Humahuaca 29; Los Hornillos 40; Guájara 47; Jujuy 57; La Cabaña 63; Tres Cruces 66; Salta 75; Cobos 84; Pasaje 100. Con 4,6-5,4 km por legua, de Humahuaca a Jujuy (28 leguas por posta) se tiene ~130-150 km y de Jujuy a Salta (18 leguas) ~70-100 km en línea de camino colonial; la distancia total La Quiaca-Salta ronda 400 km por carretera actual (407 km). Propuesta de escala: 1 unidad de mapa = 1 km real. Una jornada de caballería con monturas castigadas es de 8 a 10 leguas (La Serna se movió 11 leguas en 9 días hostigado).",
+    "fuente": "Concolorcorvo (tabla de postas) más distancias de carretera de Google; el dato 'once leguas en nueve días' proviene de oficio de Güemes/Belgrano del 27/5/1817.",
+    "confianza": "media (acumulados calculados por mí; la tabla es de 1773)",
+    "url": "",
+    "licencia_o_derechos": "Cálculo propio sobre fuentes citadas"
+   },
+   {
+    "dato": "Museo y posta de Hornillos: estancia de la familia Álvarez Prado del siglo XVIII que funcionó como posta del camino entre los virreinatos del Río de la Plata y del Perú; está entre Tilcara y Purmamarca sobre la Ruta 9. Manuel Álvarez Prado operó junto a Arias en mayo de 1817. Es el único edificio de posta colonial que sobrevive en la quebrada y una referencia visual (casa baja de adobe con patio y corral).",
+    "fuente": "Museo Posta de Hornillos (sitio institucional); Güemes Documentado t. 5 (parte de Güemes del 27/5/1817).",
+    "confianza": "media-alta",
+    "url": "https://seahorse-kale-w8rz.squarespace.com/museo-posta-english",
+    "licencia_o_derechos": "Consulta; fotos del museo no verificadas para uso"
+   }
+  ],
+  "imagenes": [
+   {
+    "descripcion": "Carte des provinces de Salta et de Jujuy et d'une partie de la Bolivie, plancha XVI del Atlas de V. Martin de Moussy, grabada por Kautz (Paris). Mapa regional del siglo XIX que muestra Salta, Jujuy, Quebrada de Humahuaca, caminos y relieve esquemático. Es posterior a 1817 (1860-64), pero es la mejor cartografía de dominio público con escala utilizable para ubicar poblaciones, ríos y pasos.",
+    "url": "https://commons.wikimedia.org/wiki/File:Carte_des_provinces_de_Salta_et_de_Jujuy_et_d%27une_partie_de_la_Bolivie.jpg",
+    "licencia": "Dominio público (autor fallecido hace más de 70 años; edición anterior a 1931). Marca CC Public Domain Mark 1.0",
+    "fecha_autor": "Martin de Moussy, Description géographique et statistique de la Confédération Argentine, Paris, Firmin Didot, 1860-64 (Commons indica 1866 para esta versión); grabado Kautz. 3594x2835 px",
+    "utilidad_para_el_juego": "Calcar o georreferenciar la red de caminos, ríos (Pasaje/Juramento, Rosario, Perico, Grande de Jujuy) y localidades para el mapa jugable; usarla para validar el ordenamiento norte-sur y la posición relativa de Tilcara, Purmamarca, Humahuaca, Yavi. No usarla como si fuera de 1817 (no muestra el estado de las postas de esa fecha)."
+   },
+   {
+    "descripcion": "Mapa 'Tucuman' de Pierre Duval, grabado en cobre, 13x10 cm, de la Gobernación del Tucumán con Andes, ríos y asentamientos españoles (incluye geografía especulativa). Es del siglo XVII y su valor es histórico-contextual, no operativo.",
+    "url": "https://commons.wikimedia.org/wiki/File:Gobernaci%C3%B3n_del_Tucum%C3%A1n_mapa.jpg",
+    "licencia": "Dominio público (Duval murió en 1683). CC Public Domain Mark 1.0",
+    "fecha_autor": "Pierre Duval, 1682, París; fuente David Rumsey Map Collection",
+    "utilidad_para_el_juego": "Solo ornamento en pantalla de carga o menú; no sirve para escala."
+   },
+   {
+    "descripcion": "Óleo 'El Gral. Martín Miguel de Güemes y sus Gauchos', pintura al óleo de 1912, atribuida a Antoni Estruch (el campo autor dice 'Estrauch'), colección del Museo Histórico del Norte (Cabildo de Salta). Referencia visual del imaginario del gaucho güemesiano de comienzos del siglo XX, no de la época.",
+    "url": "https://commons.wikimedia.org/wiki/File:El_Gral._Mart%C3%ADn_Miguel_de_G%C3%BCemes_y_sus_Gauchos.jpg",
+    "licencia": "Dominio público marcado en Commons (CC Public Domain Mark 1.0); recomendable confirmar el fallecimiento del autor antes de redistribuir",
+    "fecha_autor": "Antoni Estruch/Estrauch, 1912; Museo Histórico del Norte, Salta",
+    "utilidad_para_el_juego": "Referencia de pose y atmósfera para retratos o ilustración de menú; advertir que el vestuario es una convención de 1912 (poncho, chambergo) y no prueba el uniforme de 1817."
+   },
+   {
+    "descripcion": "Óleo 'Entrevista en Yatasto entre San Martín, Belgrano y Güemes' de Manuel Francisco Yglesias (Iglesias), 1951, reproducción JPEG. Escena conmemorativa del siglo XX, de una entrevista cuya historicidad es discutida (Luis Güemes duda de la 'conferencia de Yatasto'; sí hubo conferencias Belgrano-Güemes en El Pasaje en junio de 1817).",
+    "url": "https://commons.wikimedia.org/wiki/File:Entrevista_en_Yatasto_entre_San_Mart%C3%ADn_-_Manuel_Belgrano_y_G%C3%BCemes.jpg",
+    "licencia": "Marcada como dominio público en Commons (CC Public Domain Mark 1.0), pero el autor es de mediados del siglo XX: la condición de dominio público depende del país; riesgo ALTO, no usar sin confirmar fecha de fallecimiento del autor",
+    "fecha_autor": "Manuel Francisco Yglesias, 1951",
+    "utilidad_para_el_juego": "Ninguna directa; mejor evitarla salvo como referencia privada."
+   },
+   {
+    "descripcion": "Mapa 'Salta Argentina 1901' (4400x3466 px) en la categoría de mapas antiguos de la provincia de Salta de Commons. No se abrió la ficha: autor y licencia sin verificar.",
+    "url": "https://commons.wikimedia.org/wiki/File:Salta_Argentina_1901.jpg",
+    "licencia": "Sin verificar (ficha no abierta)",
+    "fecha_autor": "1901 (por el nombre del archivo); autor desconocido",
+    "utilidad_para_el_juego": "Posible referencia de trazado de ciudad/provincia a comienzos del siglo XX; verificar antes de usar."
+   },
+   {
+    "descripcion": "Categoría de Commons 'Old maps of Salta Province' y 'Old maps of Jujuy Province' (4 y 2 archivos respectivamente) con las láminas de Moussy y Duval ya descritas; no hay mapas anteriores a 1817 de la zona de operaciones en esas categorías.",
+    "url": "https://commons.wikimedia.org/wiki/Category:Old_maps_of_Salta_Province",
+    "licencia": "Variable por archivo",
+    "fecha_autor": "varios",
+    "utilidad_para_el_juego": "Punto de partida para rastrear más mapas; completar con búsquedas en David Rumsey, Biblioteca Nacional de España y Gallica."
+   },
+   {
+    "descripcion": "Atlas del Voyage dans l'Amérique méridionale de Alcide d'Orbigny (1835-47), ítem t. 9 Atlas en Biodiversity Heritage Library. D'Orbigny viajó en 1826-33 por Bolivia y Argentina; el Atlas histórico incluye láminas de paisajes y tipos del Alto Perú. Aún no se verificó qué láminas muestran Tupiza/Humahuaca/Salta/Jujuy.",
+    "url": "https://www.biodiversitylibrary.org/item/50740",
+    "licencia": "Dominio público (obra de 1835-47; digitalización BHL/Internet Archive)",
+    "fecha_autor": "A. d'Orbigny, 1835-47",
+    "utilidad_para_el_juego": "Mejor candidata de grabados de época cercana (1830) para vestuario, paisaje altiplánico y gente del Alto Perú; revisar plancha por plancha."
+   },
+   {
+    "descripcion": "Journey from Buenos Ayres through the provinces of Cordova, Tucuman and Salta to Potosi (Joseph Andrews, Londres, John Murray, 1827), viaje de 1825-26 por la ruta de las postas; hay una copia en Internet Archive/Commons. Texto de viajero (10 años después de la guerra) con descripción de Salta y Jujuy; traducido parcialmente en 1915 (Universidad de Tucumán, 'Las provincias del Norte en 1825').",
+    "url": "https://openlibrary.org/works/OL7026192W",
+    "licencia": "Dominio público (1827)",
+    "fecha_autor": "Joseph Andrews, 1827",
+    "utilidad_para_el_juego": "Descripción verbal del paisaje, fortificaciones, ganado, vestimenta y casas de Salta y Jujuy cercanas a 1817; no se leyó el contenido en esta sesión."
+   }
+  ],
+  "huecos": "No se verificó: (1) mapas o cartas de época (1810-1820) de la zona: no apareció ninguno en Commons ni en las búsquedas; faltan cartas de Haenke (no se encontraron), la 'Carta de las Provincias del Río de la Plata' de Cabrera/Arrowsmith, mapas de Rumsey o Library of Congress de 1810-20; la lámina de Moussy es de 1860-64. (2) Grabados o acuarelas de Rugendas, Bonpland o Arnaud sobre Salta/Jujuy/Humahuaca: la búsqueda en Commons de Rugendas solo devolvió gauchos y Mendoza, ninguno de Salta/Jujuy; D'Orbigny: no se identificó qué láminas son de la región; sin evidencia de acuarelas de Arnaud. (3) Uniforme de los Infernales: sin documento de época; el color (rojo, azul, poncho blanco/pardo) está en disputa; no se pudo leer el libro de Solá ni extraer texto del PDF 6083-D-2020. (4) Distancias en leguas para Rosario de Lerma, Cerrillos, Chicoana, Campo de la Cruz, Cuesta del Obispo, Valles Calchaquíes y Yavi: no hay cifras de época localizadas; los 'cuatro leguas' del Bañado y 'tres leguas y media' de Los Sauces son datos sueltos de partes. Campo de la Cruz y Chicoana no aparecieron como escenarios de 1817 en las fuentes leídas (Campo de la Cruz no se encontró). (5) Fecha y ruta exacta de la evacuación de Salta (4-5 de mayo): no pude releer el Ideario p. 223 y el t. 5 de Güemes Documentado solo la confirma indirectamente; la evacuación de Jujuy es el 21 de mayo (medio-alta confianza). (6) El detalle táctico del 1/3/1817 (tres columnas, Santa Bárbara, cuartel, pólvora) no tiene fuente primaria leída; solo informes institucionales. El Güemes Documentado t. 4 (páginas 350-359, donde estaría el parte de Arias) no se obtuvo; solo el t. 5. (7) Las coordenadas de las localidades fueron puestas por mí de memoria y chequeadas por altitud, no por geocodificación oficial; antes de construir el mapa conviene geocodificar con OSM/IGN y descargar un DEM (SRTM/ASTER/Copernicus 30 m) para construir el terreno. (8) El documento 'Distribución de las leguas, Salta 6/XI/1811' (Archivo y Biblioteca Históricos de Salta) y la edición completa de Concolorcorvo con notas (Junta de Historia, 1908) serían fuentes ideales y no se leyeron. (9) Sin fotos de época del siglo XIX; las únicas imágenes verificadas son óleos del siglo XX y mapas de 1860-64. (10) Publicaciones sobre infraestructura del camino real (Qhapaq Ñan en la Quebrada) no se consultaron más allá de un resumen CONICET.\""
+ },
+ {
+  "hallazgos": [
+   {
+    "dato": "Poncho salteño: tonalidad roja con franjas negras, telar criollo, dos paños unidos por costura central. Origen del rojo y del negro es tradición, no hecho probado: una versión dice que el rojo fue marca de los gauchos y el negro (luto) se añadió tras la muerte de Güemes en 1821; otra lo liga a los tintes disponibles en el sur de Bolivia y el norte argentino. Para 1817 conviene un poncho rojo liso o con franjas discretas, sin la franja negra de luto como regla.",
+    "fuente": "Canal26 (nota divulgativa); Billiken; Cámara de Diputados HCDN 3100-D-2024; foro Liberators 1810-1830 citado por balagan.info",
+    "url": "https://www.canal26.com/historia/2026/09/06/es-anterior-a-la-revolucion-de-mayo-lo-usaron-san-martin-y-guemes-y-hoy-es-reivindicado-por-soledad-pastorutti/",
+    "confianza": "media (el rojo es consistente; el negro como posterior a 1821 es tradición)",
+    "licencia_o_derechos": "Texto de prensa, solo referencia; no reproducir"
+   },
+   {
+    "dato": "Vestimenta del gaucho del norte: sombrero de ala ancha (cuero o lana), poncho, guardamontes (cueros amplios sobre las piernas, parecidos a los zahones andaluces, por la vegetación espinosa), lanza como arma principal de los Infernales. Una descripción española de los gauchos de Tucumán 1812 menciona calzoncillo simple, poncho fino, coleto de cuero de ternero, pañuelo de algodón al cuello, sombrero de lana y guardamonte. Los Infernales sí estaban uniformados; la mayoría de las partidas gauchas no.",
+    "fuente": "Documento HCDN sobre los Infernales; foro Liberators 1810-1830 citado en balagan.info (opinión de foristas, no fuente primaria directa)",
+    "url": "https://balagan.info/painting-guide-for-the-south-american-wars-of-liberation",
+    "confianza": "media (la parte del guardamonte es alta; el uniforme de Infernales es media-baja)",
+    "licencia_o_derechos": "Referencia textual, no copiar"
+   },
+   {
+    "dato": "Chiripá y botas de potro: NO se encontró fuente verificable en esta búsqueda que los documente para el gauchaje salteño de 1817. La bota de potro es típica del gaucho pampeano; para el norte hay que verificar.",
+    "fuente": "Búsquedas web sin resultados útiles",
+    "url": "",
+    "confianza": "baja",
+    "licencia_o_derechos": ""
+   },
+   {
+    "dato": "Justina (12 agosto 1806): buque mercante inglés armado con 26 cañones, reforzado con unos 100 hombres de la guarnición de Santa Elena por orden de Popham. Varó por una bajante a menos de 400 m de la costa frente al Retiro (Alameda, hoy Alem, y Plaza de Toros del Retiro, hoy Plaza San Martín; batería de Abascal cerca). Güemes, cadete de 21 años, llevó una orden de Liniers a Pueyrredón (Húsares) y comandó 40 a 60 jinetes con sables y pistolas de chispa que abordaron a caballo con agua hasta el cuello de los caballos; combate de unas dos horas. La bandera capturada está en el Museo Histórico Nacional. Detalle de la anécdota procede de una columna de opinión que cita a Gillespie.",
+    "fuente": "La Nación, columna de Andrés R. Jacquelin, 18-07-2020; Canal26",
+    "url": "https://www.lanacion.com.ar/economia/campo/una-hazana-poco-recordada-de-guemes-en-las-invasiones-inglesas-nid2398721/",
+    "confianza": "media (episodio confirmado por dos medios; cifras y detalles son de columna divulgativa)",
+    "licencia_o_derechos": "Solo referencia"
+   },
+   {
+    "dato": "71st (Highland) Regiment en 1806: llegó al Cabo de Buena Esperanza y de ahí a Buenos Aires; capturado en la rendición de Beresford (agosto 1806); dos banderas del regimiento fueron capturadas. Sobre vestimenta: fuentes de blog/foro sugieren que pudo usar trews de tartán en el Cabo en 1806 y luego pantalón gris reglamentario; NO usaba kilt. No está bien documentado: no dibujar kilt.",
+    "fuente": "Blogs de miniaturas (blundersonthedanube) y foro; Wikipedia espejo; Canal26",
+    "url": "https://blundersonthedanube.blogspot.com/2014/11/british-71st-regiment-highland-light.html",
+    "confianza": "baja (fuente no académica)",
+    "licencia_o_derechos": "Referencia"
+   },
+   {
+    "dato": "Estandartes y banderas británicas capturadas en 1806-07 (hay SVG y fotos en Commons): colores del 1.er y 2.º Bn del 71st, guion del 71st en el Museo del Cabildo, bandera del Royal Marines Battalion, bandera de St Helena Regiment, Red Ensign naval 1807 y bandera del Reino Unido 1806 (Union Jack sin cruz de San Patricio, ya que la Unión con Irlanda es de 1801: verificar el diseño en el SVG). Seis banderas y un guion fueron tomados según Canal26. Útil para banderas del juego con precisión.",
+    "fuente": "Wikimedia Commons Category: British flags from the invasions of the Río de la Plata",
+    "url": "https://commons.wikimedia.org/wiki/Category:British_flags_from_the_invasions_of_the_Río_de_la_Plata",
+    "confianza": "alta (existencia de archivos); media (exactitud de cada SVG)",
+    "licencia_o_derechos": "Variada por archivo, verificar cada ficha (el JPG del guion del 71st es CC BY-SA 4.0, GNC1808)"
+   },
+   {
+    "dato": "Uniforme de los Patricios (Buenos Aires, 1806-07): casaca azul con cuello y vivos encarnados, pantalón blanco, sombrero de copa alta con penacho y presillas en azul y blanco; corte francés; los cuerpos se distinguían por penachos y vueltas. Hay láminas de Cazador del Regimiento n.° 4 (milicianos montañeses de Oyuela) y de otros cuerpos.",
+    "fuente": "Láminas históricas de defensa.com (texto secundario)",
+    "url": "https://www.defensa.com/laminas-historicas/cazador-regimiento-infanteria-no4-lancero-guardia-nacional-1810",
+    "confianza": "media-baja",
+    "licencia_o_derechos": "Láminas comerciales con derechos, no usar imagen"
+   },
+   {
+    "dato": "Realistas 1817: Talavera, Carabineros de Abascal, Dragones de la Frontera y Concepción son tropas del EJÉRCITO REALISTA DE CHILE (Chacabuco 1817), no del ejército del Alto Perú que invadió Salta. Para el juego de Salta 1817 no usar Talavera como unidad salteña sin verificar. Talavera de Chile: casaca azul, cuello y puños verdes, vueltas rojas, pantalón blanco (Fletcher 2005; otra versión, blanco con verde: memorias de Pueyrredón; disputa abierta). Carabineros de Abascal: jaqueta celeste; Húsares de la Concordia: rojo.",
+    "fuente": "balagan.info (síntesis citando Fletcher 2005/2006, Luqui Lagleyze y Manzano 1998 'Los Realistas', Pueyrredón Memorias)",
+    "url": "https://balagan.info/stevens-1817-royalist-army-on-big-bases",
+    "confianza": "media (citas indirectas de autores serios)",
+    "licencia_o_derechos": "Referencia"
+   },
+   {
+    "dato": "Artillería realista: el color de las cureñas está en disputa (gris azulado según reglamento citado por Costa Simón; celeste pálido según Puliafito; ocre según estimación de foristas). No hay uniforme verificable del Real Cuerpo de Artillería en esta búsqueda.",
+    "fuente": "balagan.info citando foro Liberators 1810-1830 (31-07-2011)",
+    "url": "https://balagan.info/painting-guide-for-the-south-american-wars-of-liberation",
+    "confianza": "baja",
+    "licencia_o_derechos": "Referencia"
+   },
+   {
+    "dato": "Bibliografía de uniformes a consultar (no accesible en esta búsqueda): Luqui Lagleyze y Manzano Lahoz, 'Los Realistas (1810-1826)', Quirón 1998; Luqui Lagleyze, 'Por el Rey, la fe y la patria'; Fletcher, 'Liberators! vol. 1'; láminas Museo Histórico Nacional / Instituto Nacional Belgraniano.",
+    "fuente": "Citas cruzadas en balagan.info y resultados de búsqueda",
+    "url": "",
+    "confianza": "media (bibliografía referida por terceros)",
+    "licencia_o_derechos": "Libros con derechos"
+   },
+   {
+    "dato": "Arquitectura salteña: Cabildo de Salta es sede de autoridades 1626-1888, hoy dos museos; es uno de los pocos cabildos casi completos del país (fechas de construcción a verificar, la fuente turística da 'siglo XVIII'). Casa de Arias Rengel (mediados s. XVIII): tres patios, muros de adobe de más de 1,50 m de espesor, techos de madera, tejuela y teja colonial, Monumento Histórico Nacional 1946. Tipología general: patio con galerías perimetrales, arcos de medio punto, pilastras toscanas, balcones de madera, influencia del Alto Perú. Iglesia de San Francisco: el edificio actual y su torre son del siglo XIX (fachada 1872, torre desde 1877), por lo que NO representa el aspecto de 1817. Colonial anterior fue reconstruido en 1759 tras incendio.",
+    "fuente": "Cámara de Diputados HCDN 3777-D-2023; Decreto 95687/1941; FADU-UBA (construcción con tierra)",
+    "url": "https://www4.hcdn.gob.ar/dependencias/dsecretaria/Periodo2023/PDF2023/TP2023/3777-D-2023.pdf",
+    "confianza": "media-alta (documentos oficiales); la datación exacta del Cabildo es baja",
+    "licencia_o_derechos": "Documentos oficiales"
+   },
+   {
+    "dato": "Buenos Aires 1806-07: guerra urbana, vecinos combatiendo desde balcones, azoteas e iglesias (Lazzari). La ciudad: Fuerte, Plaza Mayor/de la Victoria con Cabildo y Recova, Catedral, Santo Domingo, Retiro con Plaza de Toros y Alameda sobre la barranca, playa baja de barro frente al Fuerte. Vidal (1816-1818) es la mejor fuente iconográfica y es de dominio público.",
+    "fuente": "Canal26 citando a Lazzari; acuarelas de Vidal en Commons; Plano de Boneo y Villalonga 1801 (AGN)",
+    "url": "https://commons.wikimedia.org/wiki/Category:Buenos_Aires_in_the_1810s",
+    "confianza": "media-alta",
+    "licencia_o_derechos": "Ver imágenes"
+   },
+   {
+    "dato": "Vegetación: el Valle de Lerma (ciudad de Salta) se divide en bosque chaqueño serrano, selva pedemontana, selva montana, bosque montano y pastizal de altura (yungas); clima serrano subandino con estación seca de mayo a noviembre. Una ficha no botánica menciona cebil, algarrobo, mistol, quebracho y guayacán en La Viña. El cardón (Trichocereus/Echinopsis atacamensis o pasacana) es emblema del Parque Nacional Los Cardones (Recta del Tin-Tin, entre Salta y Cachi, hasta unos 15 m): se asocia a los valles áridos y la Puna, NO al fondo húmedo del valle de Lerma ni a la Pampa. Churqui no pudo verificarse en el Valle de Lerma. Tala, ceibo, ombú y pastizal pampeano corresponden a Buenos Aires y la Pampa (no verificado con fuente en esta búsqueda).",
+    "fuente": "Estudio de flora de helechos del Valle de Lerma (Polibotánica); Administración de Parques Nacionales (argentina.gob.ar); fichas inmobiliarias (débil)",
+    "url": "https://www.argentina.gob.ar/node/391642",
+    "confianza": "media (zonas); baja (churqui, tala, ceibo)",
+    "licencia_o_derechos": "Referencia"
+   },
+   {
+    "dato": "Alerta de iconografía: el óleo 'El Gral. Martín Miguel de Güemes y sus Gauchos' es de Antoni Estruch, 1912 (Museo Histórico del Norte), NO es una imagen de época; usarlo solo como tradición iconográfica. El 'Rugendas' (1846) y 'Bacle' son posteriores a 1817 pero representan bien al gaucho rioplatense; Vidal 1816-1820 es contemporáneo.",
+    "fuente": "Metadatos de Wikimedia Commons",
+    "url": "https://commons.wikimedia.org/wiki/File:El_Gral._Martín_Miguel_de_Güemes_y_sus_Gauchos.jpg",
+    "confianza": "alta",
+    "licencia_o_derechos": "Dominio público"
+   }
+  ],
+  "imagenes": [
+   {
+    "descripcion": "Emeric Essex Vidal, 'The Plaza or Big Square of Buenos Aires': Cabildo vista desde la Recova (1817).",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/8/82/Emeric_Essex_Vidal_-_Vista_del_Cabildo_desde_la_Recova_-_1817.jpg",
+    "licencia": "Dominio público (Commons)",
+    "fecha_autor": "1817, Emeric Essex Vidal",
+    "utilidad_para_el_juego": "Referencia directa de plaza, Cabildo, recova, carros, vestimenta y arquitectura de Buenos Aires para el primer escenario."
+   },
+   {
+    "descripcion": "Vidal, 'El Fuerte y la playa baja' (fragmento): Fuerte y orilla del Río de la Plata.",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/d/d9/Emeric_Essex_Vidal_El_Fuerte_y_la_playa_baja.jpg",
+    "licencia": "Dominio público (Commons)",
+    "fecha_autor": "1816, Emeric Essex Vidal",
+    "utilidad_para_el_juego": "Costa baja y barrancas frente al Fuerte; sirve para el combate del Justina y el terreno ribereño."
+   },
+   {
+    "descripcion": "Vidal, 'The town square, Buenos Aires 1818' (Plaza de la Victoria desde una recova, con el Cabildo).",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/d/d5/The_town_square%2C_Buenos_Aires_1818.jpg",
+    "licencia": "Dominio público (Commons)",
+    "fecha_autor": "Publicado 1820, Emeric Essex Vidal",
+    "utilidad_para_el_juego": "Segunda vista de la plaza para escala, techos y fachadas."
+   },
+   {
+    "descripcion": "Vidal, aguatero con carro en Buenos Aires.",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/7/73/Aguatero_%28water_cart%29%2C_Buenos_Aires.jpg",
+    "licencia": "Dominio público (Commons)",
+    "fecha_autor": "c. 1818, Emeric Essex Vidal",
+    "utilidad_para_el_juego": "Props de vida cotidiana (carro, caballo, vestimenta de oficios)."
+   },
+   {
+    "descripcion": "Vidal, 'Fuerte de Buenos Aires' (acuarela reproducida en Monumenta Iconographica).",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/3/3d/Fuerte_de_Buenos_Aires%2C_seg%C3%BAn_Vidal.tif",
+    "licencia": "Dominio público (Commons)",
+    "fecha_autor": "1816-1817, Emeric Essex Vidal",
+    "utilidad_para_el_juego": "Forma del Fuerte."
+   },
+   {
+    "descripcion": "Vidal, soldado/escolta ('Captaz - Escolta - Soldado').",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/Captaz_-_Escolta_-_Soldado%2C_seg%C3%BAn_Vidal.tif",
+    "licencia": "Dominio público (Commons)",
+    "fecha_autor": "1818, Emeric Essex Vidal",
+    "utilidad_para_el_juego": "Vestimenta de soldado criollo contemporánea; confirmar contra otras fuentes."
+   },
+   {
+    "descripcion": "Catedral de Buenos Aires, acuarela contemporánea.",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/3/39/Catedral_de_Buenos_Aires%2C_1817.jpg",
+    "licencia": "Dominio público (Commons)",
+    "fecha_autor": "1817, autor desconocido",
+    "utilidad_para_el_juego": "Fachada de la Catedral antes de las reformas posteriores."
+   },
+   {
+    "descripcion": "Plano de Buenos Aires de 1801 por Martín Boneo y Villalonga (AGN, Mapoteca II, 54).",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/9/96/Plano_de_Buenos_Aires_de_1801_por_Boneo_y_Villalonga.jpg",
+    "licencia": "Dominio público (Commons)",
+    "fecha_autor": "1801, Martín Boneo y Villalonga",
+    "utilidad_para_el_juego": "Trazado de manzanas y calles de la ciudad cinco años antes de 1806: la base para el mapa del primer escenario."
+   },
+   {
+    "descripcion": "Plano de la Reconquista, esquemas SVG/PNG y mapa 'Rio de la Plata 1806'.",
+    "url": "https://commons.wikimedia.org/wiki/Category:British_invasions_of_the_Río_de_la_Plata",
+    "licencia": "Verificar por archivo (SVG elaborados por usuarios, probablemente CC)",
+    "fecha_autor": "Varios",
+    "utilidad_para_el_juego": "Rutas de marcha y despliegue de la Reconquista. Archivos: Plano reconquista.svg, Plano reconquista 2.svg, Rio de la Plata 1806.gif."
+   },
+   {
+    "descripcion": "'Asalto de los Ingleses a la brecha de la Ciudadela', detalle de E. F. Burney (toma de Montevideo, 3-2-1807).",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/8/83/Asalto_de_los_Ingleses_a_la_brecha_de_la_Ciudadela.jpg",
+    "licencia": "Dominio público (Commons)",
+    "fecha_autor": "Siglo XIX, E. F. Burney (1760-1848)",
+    "utilidad_para_el_juego": "Uniformes británicos de 1807 en acción (referencia, es otra ciudad)."
+   },
+   {
+    "descripcion": "'Recapture of Buenos Aires by the Spanish, 1807' (grabado de 1844; el título dice 1807 pero la fecha del archivo es 1844; hecho del 1806 por cierto).",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/2/2f/Recapture_of_Buenos_Aires_by_the_Spanish%2C_1807.jpg",
+    "licencia": "Dominio público (Commons)",
+    "fecha_autor": "1844, autor desconocido",
+    "utilidad_para_el_juego": "Representación de combate urbano y uniformes (posterior; contrastar)."
+   },
+   {
+    "descripcion": "Caras y Caretas, 11-8-1906, 'El centenario de las invasiones inglesas' (4 variantes) y MULHALL (1878) p.153 'English attack on Buenos Ayres'.",
+    "url": "https://commons.wikimedia.org/wiki/Category:Siege_of_Buenos_Aires_(1806)",
+    "licencia": "Dominio público probable (verificar ficha)",
+    "fecha_autor": "1906 / 1878",
+    "utilidad_para_el_juego": "Reconstrucciones posteriores del asedio; no son fuente de época."
+   },
+   {
+    "descripcion": "Bandera del 71st Highland Regiment capturada en 1806, Museo del Cabildo.",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/e/e0/71st_Highland_Regiment.jpg",
+    "licencia": "CC BY-SA 4.0 (GNC1808, 2021): requiere atribución y compartir igual",
+    "fecha_autor": "Foto 2021, GNC1808",
+    "utilidad_para_el_juego": "Textura exacta de la bandera del 71st."
+   },
+   {
+    "descripcion": "Rugendas, 'Gauchos and feral horses' (1846).",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/3/3d/Gauchos_and_feral_horses_by_Rugendas.jpg",
+    "licencia": "Dominio público (Commons)",
+    "fecha_autor": "1846, Johann Moritz Rugendas",
+    "utilidad_para_el_juego": "Aparejo y vestimenta del gaucho rioplatense: posterior a 1817, uso solo orientativo."
+   },
+   {
+    "descripcion": "Rugendas, 'Gauchos resting in the pampas' (1846).",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/6/66/Gauchos_resting_in_the_pampas_by_Rugendas.jpg",
+    "licencia": "Dominio público (Commons)",
+    "fecha_autor": "1846, Johann Moritz Rugendas",
+    "utilidad_para_el_juego": "Poses y monturas, campamento gaucho (orientativo)."
+   },
+   {
+    "descripcion": "Rugendas, 'Soldado de frente - San Luis' (acuarela 1838).",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/6/6d/Soldado_de_frente_-_San_Luis%2C_seg%C3%BAn_Rugendas.tif",
+    "licencia": "Dominio público (Commons)",
+    "fecha_autor": "1838, Johann Moritz Rugendas",
+    "utilidad_para_el_juego": "Soldado de milicia provincial, muy posterior a 1817; usar con cautela."
+   },
+   {
+    "descripcion": "Óleo de Antoni Estruch, 'El Gral. Martín Miguel de Güemes y sus Gauchos' (Museo Histórico del Norte). NO es de época.",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/4/42/El_Gral._Mart%C3%ADn_Miguel_de_G%C3%BCemes_y_sus_Gauchos.jpg",
+    "licencia": "Dominio público (Commons)",
+    "fecha_autor": "1912, Antoni Estruch",
+    "utilidad_para_el_juego": "Iconografía tradicional del poncho rojo y los gauchos; reconstrucción, no testimonio."
+   },
+   {
+    "descripcion": "Cabildo de Salta, foto c. 1890 del Álbum Aficionados (AGN, inv. 213332).",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/3/3d/Cabildo_de_Salta_siglo_XIX.jpg",
+    "licencia": "Dominio público (Commons)",
+    "fecha_autor": "c. 1890, autor desconocido",
+    "utilidad_para_el_juego": "Aspecto del Cabildo de Salta ~70 años después de 1817, más cercano que las fotos actuales."
+   },
+   {
+    "descripcion": "Cabildo de Salta, foto moderna (fachada con arcadas).",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/2/23/Salta-Cabildo1.jpg",
+    "licencia": "CC BY-SA 3.0 (Fulviusbsas, 2007)",
+    "fecha_autor": "2007, Fulviusbsas",
+    "utilidad_para_el_juego": "Proporciones y arcadas del Cabildo; el edificio fue restaurado, verificar vs. 1817."
+   },
+   {
+    "descripcion": "Gauchos de Salta con ponchos rojos (fotografía moderna).",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/7/71/Poncho_argentino.jpg",
+    "licencia": "CC BY-SA 2.0 (magical-world, 2008)",
+    "fecha_autor": "2008, magical-world",
+    "utilidad_para_el_juego": "Referencia de color y caída del poncho rojo salteño (moderna)."
+   },
+   {
+    "descripcion": "Cardones del Parque Nacional Los Cardones, Salta (Ruta Provincial 33).",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/9/94/Los_cardones_%28Salta%29.jpg",
+    "licencia": "CC BY-SA 4.0 (Bachelot Pierre, 2012)",
+    "fecha_autor": "2012, Bachelot Pierre J-P",
+    "utilidad_para_el_juego": "Referencia de cardonal: usar solo en zonas áridas de valle alto (Cachi/Tin-Tin), no en el valle de Lerma."
+   },
+   {
+    "descripcion": "Parque Nacional Los Cardones 01.",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/3/38/Parque_nacional_los_cardones_01.jpg",
+    "licencia": "CC BY-SA 2.0 (jikatu, 2012)",
+    "fecha_autor": "2012, jikatu",
+    "utilidad_para_el_juego": "Paisaje del cardonal."
+   },
+   {
+    "descripcion": "Algarrobo blanco (Prosopis/Neltuma alba): archivos Porte, aspecto, hojas, frutos, corteza.",
+    "url": "https://commons.wikimedia.org/wiki/Category:Prosopis_alba",
+    "licencia": "Verificar por archivo (varios CC)",
+    "fecha_autor": "Varios",
+    "utilidad_para_el_juego": "Silueta, hoja y vaina del algarrobo para modelar."
+   }
+  ],
+  "huecos": "1) No se verificó, con fuente primaria o académica, el uniforme de Cazadores, Dragones y Real Cuerpo de Artillería realista en el Alto Perú 1817: solo hay referencias indirectas a Luqui Lagleyze y Manzano 1998 y Fletcher 2005. Talavera y Carabineros de Abascal son del ejército realista de Chile, no de Salta. 2) No se halló ninguna lámina de época de los uniformes ingleses de 1806 (71st, 20th Light Dragoons, Royal Navy, Royal Marines, St Helena Regiment). Si los 20th Light Dragoons estuvieron realmente en Buenos Aires 1806 no se confirmó (en 1806 la fuerza de Beresford era el 71st, St Helena y marinos; los dragones llegaron en 1807 como 17th Light Dragoons: verificar). El 71st: kilt vs trews vs pantalón gris sigue sin verificarse. 3) No se halló ninguna imagen de época de Salta (planos o vistas de 1800-1820): el Cabildo de Salta aparece solo en fotos c. 1890 y modernas, y el plano colonial de Salta no se encontró (se sugiere buscar en el AGN Mapoteca, Museo Histórico del Norte o archivo de la provincia). Tampoco hallé en LoC ni David Rumsey mapas de Salta de 1810-20 (Rumsey tiene atlas de Paz Soldán de 1888, posterior). 4) Armas (lanza, sable, escopeta, fusil), monturas, botas de potro, chiripá: sin fuentes verificables. No se verificó el pretal de plata de Güemes más allá de que está en el museo del RCE 5. 5) Flora/fauna: no hay verificación de churqui en el Valle de Lerma, ni de tala, ceibo, ombú ni pastizal pampeano con fuentes; la categoría Commons de ombú no devolvió archivos. Fauna no investigada (ñandú aparece en Vidal 'Balling ostriches' y Rugendas 'Boleando avestruces'). 6) Las categorías de Commons Cabildo de Salta (89 archivos) y Museo Histórico del Norte (51 archivos MHNS) existen pero no se inspeccionaron las fotos individuales ni su licencia; el Museo del Norte puede tener objetos de época (ponchos, armas), por revisar. 7) Los Commons de Rugendas, Bacle y Pellegrini son posteriores a 1817 (1830-1846): sirven de contexto pero no de testimonio de 1806 o 1817. 8) El Cabildo de Salta y otras fachadas actuales fueron restauradas: no asumir que coinciden con 1817.\""
+ },
+ {
+  "medidas": "METODO: lectura de scripts/main.gd, game_rules.gd (hasta la línea 921 y el resto por búsqueda), world_view.gd, docs/DISENO_REGLAS.md. Con Godot 4.7.2 (APPDATA aislado) corrí un script de medición en solo lectura (scratchpad, fuera del proyecto) y tools/ui_qa.gd en ventana real 1440x900: 47 checks, 0 fallos. No corrí los tests de reglas. Que ui_qa pase sin fallos es justo el problema: mide solapes de paneles, no si el juego se siente bien. Supuesto: 1 unidad ≈ 1 m (la casa GLB mide 5,7x6 m y se ajusta a obstáculos de 5-7 unidades).\n\nJUSTINE\n- Área jugable: x -38..38, z -28..28 = 76x56 u = 4.256 u² (4.389 celdas de 1 m). El terreno dibujado mide 110x90 u. La grilla de rutas es de 2 u (39x29 = 1.131 celdas; 517 libres con el río en 0,05).\n- Transitable al inicio (agua 0,95): 1.565 celdas (35,7 %), todas en la ribera oeste (x ≤ -8, una franja de 30x56 u). Al este no se puede pisar nada.\n- Transitable con el río bajo (0,05): 2.030 celdas (46 %). De ellas 1.584 son ribera y solo 446 (≈10 % del mapa) son bancos en el agua. Con agua 0,39 hay 180 celdas al este; con 0,28, 418.\n- El buque está en x=16 y el punto de abordaje en x=12; la orilla está en x≈-8: 20-24 u de agua.\n- Velocidad: 0,24 u/s montado (0,18 a pie), el 3x lo lleva a 0,72. Eso son ≈0,86 km/h, unas 6 veces más lento que un caballo al paso o una persona caminando.\n- Rutas medidas desde las posiciones iniciales: banco directo 41-44 u = 171-184 s; rodeo sur 56-62 u = 232-260 s.\n- El cruce directo se habilita en t=146 s (agua ≤0,39) y el sur en t=167 s (≤0,28). La crecida empieza en 780 s y el plazo es 900 s.\n- Duración de una victoria: 473,75 s directo y 547 s sur (docs/DISENO_REGLAS.md). El jugador da 1 orden por grupo y apreta Espacio.\n- Acciones tácticas distintas: 6 (direct, flank, move, rally, board, cancel) más la selección \"todas\". Solo 2 son decisiones reales (directo o sur). Victoria con 249,6/300 efectivos (directo) y 262,5/300 (sur): las dos rutas ganan con 83-87 % de fuerza, sin dilema real.\n- Artillería: una descarga cada 7,5 s a un blanco al azar, daño 3,2-5,0 × exposición.\n- Cámara inicial: distancia 81, pitch 0,91 rad, FOV 46°. Por mi cuenta, la vista cubre ≈110x69 u, es decir el mapa jugable entero (76x56) en pantalla desde el segundo 0. Zoom 18..125 (6,9x). Paneo por teclado = 0,32·distancia u/s ≈ 26 u/s a 81, unas 108 veces la velocidad de una unidad. Límites duros: objetivo ±40 en x, ±32 en z.\n\nNORTE\n- Terreno 110x90 u = 9.900 u². Los 8 sectores ocupan una caja de 32x49 u = 1.568 u² (15,8 %). Sectores: Humahuaca, Quebrada, Jujuy, Salta, Lerma, Chicoana, Orán y Rosario; 10 aristas no dirigidas.\n- Distancias entre sectores: 7,3 u (Salta-Lerma) a 22 u (Jujuy-Orán). Contrastadas con coordenadas geográficas aproximadas (de memoria, no están en el repo; hay que verificarlas), la escala implícita varía de ≈3 a ≈12 km/u: es incoherente.\n- Las unidades no se desplazan por el mapa. Al resolver la ronda se les asigna x,z del sector (game_rules.gd:653-656) y la vista las suaviza con lerp 4,2/s. La \"transición\" dura 0,75 s/velocidad.\n- 14 rondas x 3 agrupaciones = máximo 42 órdenes por partida. Acciones distintas: 7 (move, scout, protect, raid, rest, withdraw, assault) más cancelar.\n- Disponibles al inicio: Güemes 3 (scout, protect, rest), Arias 4, Partida del valle 3. Combinaciones acción-sector legales: 17 / 15 / 9. \"Operar en Humahuaca\" está bloqueada hasta la ronda 7 y \"raid\" solo vale en 5 de 8 sectores.\n- Dos estrategias ganan en las rondas 10-11; la pasividad pierde en la 14 (docs/DISENO_REGLAS.md:94).\n\nINTERFAZ (ui_qa 1440x900)\n- Espacio 3D libre sin paneles: 65,5 % (Justine) y 66,1 % (Norte); con la ayuda abierta 61,8 % y 62,4 %. La interfaz tapa el 34-38 % de la vista.\n- La cabecera tiene 9 botones y hay 22 controles enfocables. No existen minimapa, brújula ni escala (búsqueda en scripts/: solo coincidencias ajenas a la interfaz).\n- Etiquetas de lugar en Justine: 4 (JUSTINE, BANCO CENTRAL, RODEO SUR, RIBERA DE BUENOS AIRES · 1806). El overlay oculta las que chocan con paneles u otras.\n- Imágenes de referencia en el repo (fuera de evidence/ y de texturas generadas): ninguna. Todo es procedural (docs/ASSETS.md). docs/historia/FUENTES.md:37 admite que no hay levantamiento de la ribera de 1806 ni de Humahuaca. La crítica del usuario es correcta: el mapa no se basa en material de época ni de la zona.",
+  "problemas": [
+   {
+    "problema": "1. El mapa de Justine es una caja inventada de 76x56 m sin referencia histórica ni geográfica. Costa recta con una sola curva senoidal, 3 casas-obstáculo y un buque a 24 m de la orilla. No hay lugares reconocibles (ribera porteña, barrancas, Retiro/Barracas, Río de la Plata abierto).",
+    "evidencia": "Área jugable 76x56 u. Cero imágenes de época en el repo. FUENTES.md:37 admite que no hay levantamiento. La captura justine-inicio.png muestra un rectángulo ocre, árboles iguales y un banco sin forma. terrain_height_at define la costa como x≈-8+0,6·sin(z·0,2).",
+    "impacto": "Crítico. Es la causa raíz de 'no se entiende dónde estoy': no hay geografía que entender.",
+    "ubicacion": "scripts/game_rules.gd:92-114 (terrain_height_at), 117 (límites), 50-56; scripts/world_view.gd:302-339 (_coast), 265-298 (_ground)"
+   },
+   {
+    "problema": "2. El espacio de movimiento es mínimo y casi todo está bloqueado al empezar. Con el río alto solo se puede pisar la franja oeste (35,7 % de las celdas). Los bancos del agua son 446 celdas (≈10 % del mapa) y no se abren hasta t≥146 s.",
+    "evidencia": "Medido: 1.565/4.389 celdas con agua 0,95; 2.030 con 0,05; 180 celdas al este con 0,39. Los 3 grupos arrancan en x=-28..-31, es decir en un rectángulo de 30x56 con 13 casas y 38 árboles decorativos.",
+    "impacto": "Crítico. 'Te podés mover por muy poco espacio' queda comprobado: el 90 % del terreno nunca es transitable.",
+    "ubicacion": "scripts/game_rules.gd:116-122 (is_walkable, profundidad máxima 0,55), 362-367, 125-139 (_nav); scripts/world_view.gd:318-323"
+   },
+   {
+    "problema": "3. Hay muy pocas decisiones en Justine. Se juega con una orden por grupo y Espacio. Ambas rutas ganan con 83-87 % de fuerza, así que no hay dilema. La única forma de perder es la inacción o ignorar la crecida.",
+    "evidencia": "6 acciones tácticas, 2 reales. Victoria en 473,75 s (directo, 249,59/300 efectivos) o 547 s (sur, 262,49/300). Artillería: 1 blanco aleatorio cada 7,5 s con 3,2-5,0 de daño × exposición.",
+    "impacto": "Muy alto. Es lo que hace que se sienta 'básico': no hay táctica, terreno que usar ni riesgo que administrar.",
+    "ubicacion": "scripts/game_rules.gd:177-242 (issue_order), 480-491 (_artillery), 472-478 (exposure_for); tests/test_rules.gd"
+   },
+   {
+    "problema": "4. Ritmo y velocidad poco creíbles. Las unidades se arrastran a 0,24 u/s (≈0,86 km/h). Hay unos 2,5 min de espera obligatoria por la marea y 3 min de caminata sin intervención. Se arranca en pausa.",
+    "evidencia": "Directo 171-184 s, sur 232-260 s. Habilitación a 146 s (directo) y 167 s (sur). El único acelerador es 1x↔3x (0,72 u/s). El paneo de cámara es ≈108 veces más rápido que una unidad.",
+    "impacto": "Alto. Es tiempo muerto: el jugador mira avanzar un punto casi sin cambio.",
+    "ubicacion": "scripts/game_rules.gd:430-455 (_move_unit, speed 0,24/0,18), 350-361 (marea); scripts/main.gd:703-704 (_cycle_speed)"
+   },
+   {
+    "problema": "5. El Norte no tiene movimiento ni mapa operativo: es un grafo de 8 nodos con unidades que se teletransportan al resolver. Las distancias son incoherentes (7,3 a 22 u; ≈3-12 km por unidad). Se hacen ≤3 órdenes por ronda y ≤42 por partida.",
+    "evidencia": "game_rules.gd:653-656 asigna x,z del sector al ejecutar 'move'. La Marcha dura 0,75 s de interpolación. Una captura de norte-inicio.png muestra 8 casitas con un camino de puntos. Salta-Lerma = 7,3 u y Salta-Rosario = 16,1 u.",
+    "impacto": "Muy alto. Para el usuario es 'el primer escenario... mal': no se siente una campaña de guerra gaucha en un territorio.",
+    "ubicacion": "scripts/game_rules.gd:62-78 (_setup_norte), 653-656, 493-509; scripts/world_view.gd:341-385 (_north), 387-391 (_road), 541-555"
+   },
+   {
+    "problema": "6. El terreno del Norte es ruido procedural genérico, sin relación con la Quebrada de Humahuaca, el valle de Lerma ni las Yungas: no hay ríos, quebradas, pasos ni cerros nombrados. Cada sector es un círculo aplanado a 0,45 de altura con 4 casas idénticas y 2 árboles.",
+    "evidencia": "terrain_height usa FastNoiseLite (seed 1817, freq 0,052) con h = 0,4+|ruido|^1,4·17 y aplana a 0,45 dentro de 2,8-7 u de cada sector. MATRIZ_HISTORICA.md:37 dice que el mapa no es cartografía ni relevamiento.",
+    "impacto": "Alto. Sin identidad geográfica el jugador no puede orientarse ni reconocer los lugares de las batallas (Humahuaca, Salta, Jujuy).",
+    "ubicacion": "scripts/world_view.gd:255-263 (terrain_height), 341-385, 373-376; docs/historia/MATRIZ_HISTORICA.md:37"
+   },
+   {
+    "problema": "7. Falta total de ayudas de orientación: no hay minimapa, brújula, escala ni nombre de zona, y las pocas etiquetas se ocultan por colisión con la interfaz. En Justine 'BANCO CENTRAL' flota sobre agua sin banco visible mientras el río está alto.",
+    "evidencia": "Búsqueda de minimap/compass en scripts/: sin implementación. 4 etiquetas en Justine. En justine-inicio.png, 'BANCO CENTRAL' y la etiqueta del buque quedan en pleno agua oscura; el bajo no se ve hasta que baja el río.",
+    "impacto": "Alto. Es la queja directa 'no se entiende bien dónde estás'.",
+    "ubicacion": "scripts/world_view.gd:336-339 (etiquetas); scripts/main.gd:1447-1474 (_draw_map_labels, filtrado por _blocked_rects); ausente en _build_hud (main.gd:290-384)"
+   },
+   {
+    "problema": "8. Cámara limitada. No hay paneo con el mouse ni por borde de pantalla (el botón derecho es orden, el medio orbita; sin botón medio no se orbita). El objetivo está fijo en y=0 y se recorta a ±40/±32. Desde el inicio la vista abarca todo el mapa jugable.",
+    "evidencia": "AUDITORIA_FASE2.md:113 ya lo señalaba (UI-9). Código: camera_target.y nunca sigue el relieve; el Norte tiene cerros de hasta ≈17+ u que tapan sectores. Vista inicial ≈110x69 u contra 76x56 jugables. Zoom 18-125.",
+    "impacto": "Alto. No hay nada que explorar con la cámara y la lectura del relieve es mala en el Norte.",
+    "ubicacion": "scripts/main.gd:622-637 (_camera_keys), 676-697 (rueda y órbita), 1188-1222 (clamp y zoom); 28-32 y 284-285 (vista inicial)"
+   },
+   {
+    "problema": "9. Presentación visual plana y poco legible. El terreno de Justine son zonas de color casi planas (ocre/verde), con la costa recta. El agua es de un solo tono. En el Norte hay sombras muy duras y cerros que se leen como masa oscura. Poca vida: 3 grupos (4 jinetes cada uno) y 4 marineros.",
+    "evidencia": "Colores por umbral de x en _ground: x>-10 / x<-22 / h<0,3. Capturas norte-inicio.png y justine-espera-bajante.png. AUDITORIA_FASE2.md:118 (ART-2: agua sin espuma ni orilla). Decoración: 13 casas, 38 árboles y 180 rocas en Justine; 70 árboles en el Norte.",
+    "impacto": "Alto. Contribuye a la impresión de prototipo.",
+    "ubicacion": "scripts/world_view.gd:265-298, 198-253 (iluminación), 318-335, 373-385; assets/water.gdshader"
+   },
+   {
+    "problema": "10. La interfaz tapa el 34-38 % de la vista y es densa en texto, con paneles encima de lo que importa. Hay 9 botones en la cabecera, un tutorial en banner, un toast y 22 controles enfocables. El jugador lee texto en vez de leer el mapa.",
+    "evidencia": "ui_qa: espacio libre 65,5 % (Justine) / 66,1 % (Norte); 61,8 / 62,4 % con ayuda. Capturas: cuatro paneles más banners ocupan los bordes.",
+    "impacto": "Medio-alto. Reduce el espacio del mapa y confunde la jerarquía.",
+    "ubicacion": "scripts/main.gd:290-384 (_build_hud), 485-510 (_update_hud), 566-578 y 1178-1186 (tips)"
+   },
+   {
+    "problema": "11. El control de unidades es tosco. No hay selección por caja ni formación. Solo existe 'todas' (tecla 4) en Justine. Un clic derecho = un destino puntual. Las rutas son poligonales de 8 direcciones sobre celdas de 2 u sin suavizado. El hover puede caer en el plano y=0 si el rayo no toca colisión.",
+    "evidencia": "ui_qa registra hover_pick=<null> en (700,380) y main.gd:1210-1215 usa el plano y=0 como respaldo. Rutas A* DIAGONAL_MODE_ONLY_IF_NO_OBSTACLES con nodos en múltiplos de 2. En el Norte, el botón 1x/3x y T solo acortan 0,75 s.",
+    "impacto": "Medio-alto. Contribuye al 'funciona mal': las órdenes no se corresponden con lo que se ve.",
+    "ubicacion": "scripts/main.gd:642-697 (_unhandled_input), 1210-1215 (_ground_point), 1239-1277 (_update_hover), 703-704; scripts/game_rules.gd:124-175 (_nav, _route); scripts/world_view.gd:622-646 (pick_*)"
+   },
+   {
+    "problema": "12. El abanico de acciones del Norte es corto y casi con estrategia dominante. Hay 7 acciones; al inicio 3-4 por grupo y 9-17 combinaciones. Mover y Hostigar aparecen deshabilitadas en la primera captura. Explorar + hostigar (+ proteger) gana en rondas 10-11 y la pasividad pierde en la 14.",
+    "evidencia": "Disponibles al inicio: Güemes [scout, protect, rest], Arias [scout, protect, raid, rest], Partida [scout, protect, rest]. 'assault' solo Arias en Humahuaca y desde la ronda 7. 'raid' limitado a 5 sectores. Intención enemiga con 2-4 opciones.",
+    "impacto": "Medio-alto. Poca profundidad y rejugabilidad.",
+    "ubicacion": "scripts/game_rules.gd:511-575 (_validate_campaign_order), 577-595 (enemy_choices), 628-738 (resolve_round); docs/BALANCE_NORTE.md"
+   },
+   {
+    "problema": "13. Las batallas no se ven. Humahuaca, la artillería del Justine y los hostigamientos son líneas de texto en el parte y un destello de luz. Hay un marcador de bandera para el ejército realista, sin escena, tropas en combate ni consecuencias en el lugar.",
+    "evidencia": "world_view.gd solo tiene cannon_effect() (OmniLight a energía 4) y 3 figuras 'royalist_1817' junto a una bandera. El resultado de una ronda es la lista 'last_results' con 5 indicadores. Los lugares de batalla no tienen características propias.",
+    "impacto": "Medio-alto. El usuario pide 'los lugares de las batallas' y hoy no los hay.",
+    "ubicacion": "scripts/world_view.gd:619-620, 377-385; scripts/game_rules.gd:690-703, 729-733; scripts/main.gd:710-718 (_handle_events)"
+   },
+   {
+    "problema": "14. La verificación no mide lo que importa. Hay 47 checks de interfaz y pruebas de reglas en verde, pero ninguna mide legibilidad del lugar, ritmo ni diversión. La documentación se contradice con el código: ASSETS.md dice que world_view no usa las casas y árboles GLB y world_view los usa (USE_GLB_PROPS = true).",
+    "evidencia": "ui_qa: failures [] con 47 checks en este análisis. DISENO_REGLAS.md:96 reconoce que las pruebas no demuestran usabilidad. ASSETS.md afirma 'no están en el juego' mientras world_view.gd:36 los instancia.",
+    "impacto": "Medio. Explica cómo se llegó a entregar algo que 'pasa' pero no funciona bien.",
+    "ubicacion": "tools/ui_qa.gd; tests/test_rules.gd; docs/ASSETS.md; docs/DISENO_REGLAS.md:94-96; scripts/world_view.gd:36"
+   },
+   {
+    "problema": "15. Los parámetros de escala y tiempo están acoplados y son difíciles de cambiar. Hay números mágicos duplicados entre reglas, vista y cámara: ±38/±28 en reglas, ±40/±32 en cámara, 110x90 de terreno, 0,32 de paneo, 2 u de grilla y puntos fijos (BOARD_POINT, SHIP, (-10,0)). Ampliar el mapa obliga a tocar 3 archivos. Además la grilla se reconstruye cada vez que el nivel del agua cambia (1.131 celdas con is_walkable cada una).",
+    "evidencia": "game_rules.gd:117, 129-137; main.gd:635, 1193; world_view.gd:268-275; game_rules.gd:206, 247. Los datos del escenario están en código, no en un recurso o archivo de datos.",
+    "impacto": "Medio. No se ve en pantalla, pero es lo que va a encarecer el rediseño.",
+    "ubicacion": "scripts/game_rules.gd:5-17, 50-78, 124-139; scripts/main.gd:28-34, 622-637; scripts/world_view.gd:265-275"
+   }
+  ],
+  "conservar": "Conservar el núcleo, que funciona y está probado: la separación reglas/vista (GameRules sin dependencias de presentación, JSON-serializable, paso fijo de 0,25 s, generador propio), el guardado validado con game_id nuevo al cargar, la validación de órdenes con motivo legible (campaign_order_reason y los textos de rechazo), la lógica de Jev/TypeSafe con alternativa local y rechazo de respuestas viejas, el balance del Norte y sus pruebas (BALANCE_NORTE.md), las reglas históricas (Güemes en el Justine como tradición no probada, Humahuaca = Arias, San Martín solo como contexto), el sistema de audio, el pipeline de modelos GLB y la grilla A* como idea. También sirven los patrones de interfaz que ya existen: anillo de selección, chips por unidad con barras, vista previa por hover (ruta, tiempo, exposición), foco con F, zoom hacia el cursor, tooltips con la causa de un bloqueo, y el arnés de capturas tools/ui_qa.gd (conviene ampliarlo).",
+  "reescribir": "REESCRIBIR, en este orden:\n(1) Datos de mapa. Mover escenarios a recursos o JSON (tamaño, costa, bancos, obstáculos, sectores, rutas, escala en metros) y derivar límites de reglas, cámara y vista de una sola fuente (game_rules.gd:117, main.gd:635, world_view.gd:268). Definir una escala explícita (m/unidad) y velocidades en m/s coherentes.\n(2) Justine. Mapa mucho mayor (cientos de metros, no 76x56) con ribera, barranca, bañado, bancos y canales visibles como relieve, banco y espuma. Varios caminos con riesgo distinto, terreno que dé cobertura, grupos con funciones distintas (flanquear, distraer, abordar), la artillería y la crecida como fuerzas que se ven, y un ritmo que no obligue a mirar 3 minutos de caminata. Rehacer terrain_height_at y _coast.\n(3) Norte. Pasar del grafo teletransportado a un mapa de operaciones: terreno con valles y ríos de la Quebrada de Humahuaca y el valle de Lerma, rutas con distancia real y tiempo, unidades que se desplazan y se ven en el camino, y escenas o resolución visual en Humahuaca, Salta y Jujuy. Ampliar las acciones (emboscar, cortar puentes, requisar, mensajeros, milicias locales, fortificar) para que la decisión no se reduzca a explorar y hostigar.\n(4) Orientación. Minimapa con cuadro de cámara, brújula, escala, nombres de lugar permanentes, líneas de ruta y alcance al seleccionar, y una capa de exposición a la artillería sobre el mapa.\n(5) Cámara. Paneo por arrastre y por borde de pantalla, rotación con una tecla o con el botón derecho si no hay botón medio, objetivo que siga el relieve, límites según el mapa nuevo y zoom/LOD sin ver todo desde el inicio.\n(6) Control. Selección por caja y por grupos, formaciones, órdenes con cola (shift) y suavizado de rutas (string pulling) sobre una malla más fina.\n(7) Interfaz. Reducir el 34-38 % que hoy tapa el 3D: menos botones en la cabecera, tutorial contextual en vez de banners y paneles plegables por defecto.\n(8) Arte. Rehacer terreno y agua (texturas por zona, orillas, espuma, vegetación y edificios de la zona) y agregar vida: multitudes, animales, humo, tropas enemigas visibles.\n\nCÓMO PUEDE AYUDAR EL USUARIO: (a) aportar o autorizar material de referencia real, como grabados y planos de la Reconquista de 1806 en la costa de Buenos Aires, cartas y planos del norte (Salta, Jujuy, Humahuaca, Valle de Lerma) y fotos actuales de la Quebrada de Humahuaca (por ejemplo del Museo Histórico Nacional, el Archivo General de la Nación o el Museo Mitre), con su licencia, para que las usemos como guía y no como texturas ajenas sin permiso; (b) decidir cuánta fidelidad histórica prefiere frente a jugabilidad (mapa a escala real o una abstracción reconocible); (c) jugar una vez cada escenario y marcar en qué momento se pierde o aburre, algo que ninguna prueba automática mide; (d) priorizar si quiere primero Justine o Norte. Sin referencias propias puedo trabajar con fuentes públicas que hay que verificar una por una; no inventaría la geografía de 1806."
+ },
+ {
+  "sistemas": [
+   {
+    "nombre": "1. Presupuesto de órdenes por turno (Old World)",
+    "descripcion": "Pool compartido de 'órdenes' por turno en vez de que cada unidad actúe siempre. Cada acción compite con otras, lo que da decisiones con peso y evita el 'mover todo todos los turnos'. Johnson probó unas 99 variantes; terminó con un pool más fatiga (marcha forzada cara). Trae Undo porque el combate es determinista. Aplicación: 'Disposiciones' del jefe por jornada (4-6), gastadas en explorar, emboscar, requisar, enviar chasqui, fortificar. Muy barato en Godot: un contador y costos por acción.",
+    "coste": "Bajo (1-2 días de código)",
+    "referencia": "https://www.designer-notes.com/my-elephant-in-the-room-part-1/ (confianza alta; resumen leído en la fuente). Charla GDC 2022 'My Elephant in the Room: An Old World Postmortem' (mencionada por prensa, no la vi directamente: https://gamespress.com/Soren-Johnson-GDC-2022-Talk)"
+   },
+   {
+    "nombre": "2. Mapa en dos capas: operativo (regional) y táctico (escaramuza)",
+    "descripcion": "Modelo Total War / Ultimate General: un mapa estratégico legible donde se mueven las partidas y se toman decisiones, y una escena de batalla que se carga solo cuando hay contacto. Ultimate General hereda bajas y estado de unidades de una batalla a la siguiente y deja llegar refuerzos antes o después de lo histórico. Para el problema de 'no se entiende dónde estás': el mapa operativo debe ser un tablero de pocas decenas de nodos/hexágonos nombrados (Salta, Cerrillos, Chicoana, Quebrada de Humahuaca, pasos, vados), con ruta, distancia en jornadas y sellos de lugares reales. La batalla táctica es chica (un paso, un vado, una pulpería) y se resuelve en 1-3 min.",
+    "coste": "Medio (el mapa regional es el trabajo grande; tiles/hex con vecinos propios)",
+    "referencia": "https://pcgamer.com/ultimate-general-gettysburg-advances-into-full-release-on-steam y https://ultimategeneral.com/blog/october-update (el mapa de batalla usó datos satelitales de altura y topografía de 1863; confianza alta). Total War: https://gamesbeat.com/total-war-rome-ii-interview (cobertura de prensa, confianza media; no hallé charla GDC de CA sobre este tema)"
+   },
+   {
+    "nombre": "3. Información incompleta por reconocimiento (spotting), no niebla total",
+    "descripcion": "Wargame: Red Dragon no usa niebla clásica sino línea de vista + Optics del que mira vs Stealth del que se oculta, con 'ruido' al disparar que baja el sigilo. Traducido: cada partida tiene alcance de vista según terreno, hora y clima; el enemigo aparece como 'rumor' con rango de error (cantidad aproximada, lugar probable) y se refina con baqueanos o espías. Es la mecánica que más valor da a una guerrilla. En Godot basta una matriz de visibilidad por nodo con tres estados (desconocido, visto-antes, visible).",
+    "coste": "Medio",
+    "referencia": "Guía comunitaria y foros de Steam (confianza media-baja, no hay fuente oficial de Eugen hallada): https://steamcommunity.com/app/251060/discussions/0/617328967244461319 . Para estados de niebla por jugador existe un addon hex gratuito de referencia: https://dimcairion.itch.io/hex-strategy-map-free (confianza baja, página comercial)"
+   },
+   {
+    "nombre": "4. Emboscada como acción central (preparar, esperar, gatillar)",
+    "descripcion": "Se elige nodo con terreno propicio (quebrada, monte, vado), se gasta una orden en preparar y se espera que el enemigo pase por ahí. El resultado depende de: info previa correcta, terreno, moral y si fue detectada. Si la partida fue vista antes, la emboscada falla y se vuelve choque desfavorable. Inspirado en el ruido/sigilo de Wargame y en los conos de visión/sonido de Partisans 1941. Se resuelve en mapa táctico corto o con resolución abstracta + una decisión clave.",
+    "coste": "Medio",
+    "referencia": "Partisans 1941 (reseñas, confianza media): https://www.thesixthaxis.com/2020/12/03/partisans-1941-review/ ; Wargame ver sistema 3"
+   },
+   {
+    "nombre": "5. Suministros y requisa (con costo político)",
+    "descripcion": "Battle Brothers: dinero, raciones, repuestos, municiones y medicinas; si faltan, no se curan heridos y hay deserción. The Banner Saga: un recurso que baja cada día, con eventos de revuelta si se agota. Para la guerrilla gaucha: 3 recursos máximo (víveres, caballadas/monturas, municiones/pólvora). Requisar da recurso inmediato pero baja el apoyo local del pueblo; comprar o recibir donación lo sube. Un solo bucle económico simple.",
+    "coste": "Bajo-medio",
+    "referencia": "https://battlebrothersgame.com/strategic-worldmap (confianza alta, página oficial) ; https://bannersaga.fandom.com/wiki/Caravan (wiki de fans, confianza media; los números exactos varían entre fuentes)"
+   },
+   {
+    "nombre": "6. Apoyo del pueblo (coordinación con comunidades)",
+    "descripcion": "Rebel Inc: el 'Support' de la población y una hostilidad oculta, que se propagan entre zonas; sirve para mostrar que ganar la guerra es también ganar al vecindario. Cada nodo habitado tiene Apoyo (0-100) que determina: cuánta info te dan (rumores), cuánta comida/caballos aportan, si avisan del enemigo o te delatan. Se sube con acciones (ayudar, cumplir, pagar) y se baja con requisas y represalias del enemigo.",
+    "coste": "Bajo",
+    "referencia": "https://rebelinc.wiki.gg/wiki/Mechanics y https://rebelinc.wiki.gg/wiki/Rebel_Inc (wiki de fans, confianza media); reflexiones de Ndemic: https://ndemiccreations.com/en/news/167-rebel-inc-escalation-release-reflections"
+   },
+   {
+    "nombre": "7. Moral y cohesión de la partida",
+    "descripcion": "Banner Saga: la moral sube por descanso y victorias, baja por marchas largas, hambre y derrotas; con moral alta mejora el desempeño en batalla, con baja hay eventos de revuelta. Para el juego: moral por partida (0-5), con umbrales que desbloquean o bloquean acciones (con moral baja no se acepta emboscada arriesgada). Es el 'termómetro' que obliga a alternar acción y descanso.",
+    "coste": "Bajo",
+    "referencia": "https://bannersaga.fandom.com/wiki/Caravan y https://gamepressure.com/thebannersaga/morale/zf5d0f (guía/wiki, confianza media)"
+   },
+   {
+    "nombre": "8. Chasquis y mensajeros a caballo (latencia de la información)",
+    "descripcion": "Las órdenes y las noticias viajan como objetos en el mapa con tiempo de viaje en jornadas. Un mensaje puede llegar tarde, ser interceptado o no llegar. Esto produce coordinación real entre columnas (Güemes, Arias, Uriondo, etc., a verificar con docs/historia) sin simular todo. Técnicamente es una cola de eventos con retardo. No tengo una fuente de diseño específica de juego para este sistema: es síntesis propia a partir de Total War (movimiento con tiempo) y órdenes diferidas.",
+    "coste": "Bajo-medio",
+    "referencia": "Sin fuente de diseño directa; confianza baja como referencia (propuesta original)"
+   },
+   {
+    "nombre": "9. Fortificar y cortar pasos / ríos y vados",
+    "descripcion": "Una acción de bajo costo que modifica un nodo-borde: trincheras y 'cortes' en quebradas, destruir un puente o vigilar un vado. Aplica el principio de Old World: rutas y caminos importan porque el movimiento tiene costo. Los ríos crecidos en verano (lluvia) cierran vados y cambian la geografía táctica de la campaña; da identidad regional.",
+    "coste": "Bajo",
+    "referencia": "Roads/terreno como multiplicador de movimiento: https://www.designer-notes.com/my-elephant-in-the-room-part-1/ (confianza alta en el principio general). Datos de clima/ríos de Salta: requieren fuente histórica y geográfica, no verificada aquí"
+   },
+   {
+    "nombre": "10. Clima y estación como modificador global",
+    "descripcion": "Una tirada o calendario por jornada (lluvia, frío de altura, creciente de ríos) que modifica visibilidad, movimiento y moral. Banner Saga y Battle Brothers usan eventos en la ruta; Pikmin usa el ciclo del día como tensión: el reloj de atardecer fija el ritmo de cada salida, y Pikmin 4 mantuvo el reloj diario pero quitó el límite global. Es un recurso de ritmo gratis.",
+    "coste": "Bajo",
+    "referencia": "https://game-wisdom.com/series/5-interesting-takes-on-japanese-game-design-pikmin y https://www.gamerevolution.com/guides/942845-pikmin-4-time-limit-how-long-each-day (confianza media; duración exacta del día difiere entre fuentes)"
+   },
+   {
+    "nombre": "11. Eventos de ruta y contratos/misiones del pueblo",
+    "descripcion": "Battle Brothers genera contratos desde la simulación del mundo y no al azar, y hay eventos aleatorios que fuerzan decisiones. Para el juego: lista corta de 30-40 eventos escritos a mano ligados a lugares y a hechos documentados (pulperos, mujeres que avisan, desertores, espías), disparados por umbrales de recursos o apoyo. Esto aporta contenido de 'historia viva' sin escribir una campaña lineal enorme.",
+    "coste": "Medio (es trabajo de escritura, no de código)",
+    "referencia": "https://battlebrothersgame.com/strategic-worldmap (confianza alta); https://www.moddb.com/news/dev-blog-26-contracts-and-greenlight-update (blog de desarrollo)"
+   },
+   {
+    "nombre": "12. Legibilidad del mapa y UI de interacción",
+    "descripcion": "Kingdom Rush es legible por rutas fijas y niveles hechos a mano, no por procedural. Civ VII sirve como contraejemplo de interfaz: la prensa y los jugadores criticaron que los efectos de decisiones están en subpantallas y el mapa es hermoso pero poco claro. Reglas para el juego: ruta visible con distancia en jornadas, etiquetas de lugares reales, 'dónde estoy' siempre fijo en pantalla (brújula, nombre del paraje, minimapa), previsualizar consecuencias antes de confirmar, Undo antes de cerrar jornada.",
+    "coste": "Medio",
+    "referencia": "https://sites.google.com/view/brookspweaver/other-projects/interviews/kingdom-rush-by-ironhide-game-studio (entrevista de fan, confianza media); https://www.techgoondu.com/2025/02/18/civilization-vii-review-addictive-grand-strategy-with-a-quirky-interface/ y hilos de Steam (opinión de jugadores, confianza media-baja)"
+   }
+  ],
+  "bucle_propuesto": "BUCLE DE JORNADA (cada 'turno' = 1 jornada; partida de 20-35 min = 12-18 jornadas más 2-4 escaramuzas tácticas de 1-3 min).\n\nEstructura de la partida (objetivo 28 min):\n- Prólogo 2 min: mapa regional visible, objetivo claro, tutorial integrado en las 2 primeras jornadas.\n- Campaña 22 min: 14-16 jornadas de ~1,2-1,5 min cada una.\n- Cierre 2-4 min: resumen histórico y puntuación.\n\nCada jornada, en orden:\n1. Amanecer (10 s): clima del día, estado de ríos/pasos, rumores nuevos (con fiabilidad), llegada de chasquis.\n2. Disposiciones (45-60 s): el jugador tiene 4-6 órdenes (Old World) y las gasta en: explorar un nodo, mover una partida (costo según terreno/camino), preparar emboscada, requisar o pedir ayuda al pueblo, fortificar o cortar un paso, enviar chasqui, descansar. Con Undo hasta confirmar.\n3. Resolución (15-30 s): se mueven los enemigos según lo que sabe el enemigo (IA simple por rutas hacia objetivos), se resuelven contactos. Si hay contacto relevante, se carga una escaramuza táctica corta (1-3 min); si no, resolución abstracta con aviso del resultado.\n4. Anochecer (10 s): consumo de víveres y caballadas, cambio de moral y de apoyo del pueblo, evento de ruta eventual (1 cada 2-3 jornadas), pasa la jornada.\n\nReglas de pacing:\n- Reloj de campaña con fecha histórica final (estilo Pikmin 1: tensión global), pero sin castigo extremo (lección Pikmin 2/4: quitar el límite global asustó menos). Recomiendo límite de jornadas suave: fallar no termina la partida, cambia el desenlace.\n- Máximo 8 sistemas visibles en la primera partida; los otros se desbloquean por escenario (Old World mueve poderes fuertes a fases avanzadas).\n- Cada escenario es un mapa regional de 15-25 nodos hechos a mano (como Kingdom Rush: diseño manual, no procedural).\n- Plan de escenarios sugerido (a validar con docs/historia, no es dato verificado aquí): 1) tutorial local con 3-5 nodos y solo 3 acciones; 2) escenario de campaña con info incompleta; 3) escenario con logística y apoyo del pueblo; 4) escenario con clima y ríos.\n\nRecortes de alcance para un desarrollador con Godot: IA de enemigo por rutas y reglas simples; combate táctico en una escena reutilizable con 3-4 variantes de terreno; eventos en JSON; un mapa 2D (o 3D simple fijo) para el nivel operativo, no 3D libre.",
+  "huecos": "No verificado ni encontrado: (1) No hallé postmortems GDC con contenido leído de Ultimate General, Battle Brothers, Foxhole, Total War, Wargame, Kingdom Rush ni Field of Glory sobre mapas/orientación; las referencias son páginas oficiales, blogs de desarrollo, wikis de fans y prensa (confianza media o baja según cada fila). La charla de Johnson sobre Old World la cité por la prensa, no la vi; sí leí su blog. (2) De Foxhole solo hallé comunicados y prensa, sin diseño de logística de primera mano. (3) Pax Historia: solo fuentes promocionales, usuarios y números auto-reportados (confianza baja); es un juego de lenguaje natural con IA y no sirve como modelo de mapa legible. (4) 'Frontlines' no se pudo identificar con certeza (la búsqueda devolvió Frontline Logistics, Quartermaster y Frontline WWII, sin evidencia de ser el juego pensado); no lo usé como referencia. (5) Civilization VII: solo opiniones de jugadores y reseñas de acceso anticipado de 2025, sin estudio de usabilidad; parches posteriores pueden haber cambiado el estado. (6) Field of Glory: solo foros y un manual; nada confiable sobre supply/fog de diseño. (7) Pikmin: no encontré cita directa de Miyamoto sobre por qué se eligió el reloj; la duración del día varía entre fuentes (15 vs ~20 min). (8) Todo lo histórico (nombres de lugares, vados, pasos, clima y crecidas de ríos del valle de Lerma y Quebrada de Humahuaca, quiénes actuaban en cada zona) NO fue investigado en esta tarea de diseño: cualquier uso en el juego debe validarse contra docs/historia, fuentes primarias (AGN, Museo Mitre, Biblioteca Nacional, etc.) y la regla de CLAUDE.md sobre Humahuaca/Arias 1/3/1817. (9) Los tiempos de partida y la cantidad de órdenes por jornada son propuestas mías, no datos de fuentes; hay que playtestear. (10) No hay evidencia en estas fuentes sobre el costo real de desarrollo en Godot; las estimaciones 'Bajo/Medio' son criterio propio. No descargué archivos ni toqué el repo (solo leí CLAUDE.md).\"",
+  "referencias": [
+   "https://www.designer-notes.com/my-elephant-in-the-room-part-1/",
+   "https://gamespress.com/Soren-Johnson-GDC-2022-Talk",
+   "https://battlebrothersgame.com/strategic-worldmap",
+   "https://www.moddb.com/news/dev-blog-26-contracts-and-greenlight-update",
+   "https://ultimategeneral.com/blog/october-update",
+   "https://pcgamer.com/ultimate-general-gettysburg-advances-into-full-release-on-steam",
+   "https://gamesbeat.com/total-war-rome-ii-interview",
+   "https://steamcommunity.com/app/251060/discussions/0/617328967244461319",
+   "https://rebelinc.wiki.gg/wiki/Mechanics",
+   "https://ndemiccreations.com/en/news/167-rebel-inc-escalation-release-reflections",
+   "https://bannersaga.fandom.com/wiki/Caravan",
+   "https://gamepressure.com/thebannersaga/morale/zf5d0f",
+   "https://www.thesixthaxis.com/2020/12/03/partisans-1941-review/",
+   "https://game-wisdom.com/series/5-interesting-takes-on-japanese-game-design-pikmin",
+   "https://www.gamerevolution.com/guides/942845-pikmin-4-time-limit-how-long-each-day",
+   "https://sites.google.com/view/brookspweaver/other-projects/interviews/kingdom-rush-by-ironhide-game-studio",
+   "https://www.techgoondu.com/2025/02/18/civilization-vii-review-addictive-grand-strategy-with-a-quirky-interface/",
+   "https://dimcairion.itch.io/hex-strategy-map-free",
+   "https://www.startuphub.ai/news/claudes-corner-pax-historia-yc-w2026",
+   "https://en.wikipedia.org/wiki/Foxhole_(video_game)"
+  ]
+ }
+]
