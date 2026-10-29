@@ -62,6 +62,7 @@ var update_timer = 0.0
 var history_data = {}
 var qa_mode = false
 var qa_path = ""
+var qa_size = Vector2i.ZERO
 var qa_metrics = {}
 var frame_samples: Array = []
 var start_msec = 0
@@ -77,6 +78,30 @@ const GROUP_IDS = ["guemes","arias","zavala"]
 const SCOUT_IDS = ["scout_1","scout_2"]
 const ALL_ACTORS = ["guemes","arias","zavala","scout_1","scout_2"]
 const ACTION_KEYS = {"move":KEY_V,"board":KEY_N,"muster":KEY_U,"resupply":KEY_J,"signal_liniers":KEY_K,"withdraw":KEY_L,"rally":KEY_Y,"cancel":KEY_X,"probe":KEY_Z,"mark_ford":KEY_H,"recall":KEY_I,"distract_fire":KEY_O}
+# Tabla única de teclas de Justina (fuente de verdad; docs/CONTROLES.md la repite y tests/test_integration.gd la contrasta:
+# sin teclas repetidas entre filas ni con ACTION_KEYS, y cada etiqueta debe figurar en el documento).
+const J_KEY_TABLE = [
+ {"label":"WASD","keys":[KEY_W,KEY_A,KEY_S,KEY_D,KEY_UP,KEY_DOWN,KEY_LEFT,KEY_RIGHT],"desc":"mover la cámara (también flechas y borde de pantalla; Mayús = más rápido)"},
+ {"label":"Q / E","keys":[KEY_Q,KEY_E],"desc":"girar la cámara"},
+ {"label":"RePág / AvPág","keys":[KEY_PAGEUP,KEY_PAGEDOWN],"desc":"inclinar la cámara"},
+ {"label":"1-5","keys":[KEY_1,KEY_2,KEY_3,KEY_4,KEY_5],"desc":"seleccionar grupos (1-3) y exploradores (4-5)"},
+ {"label":"Tab","keys":[KEY_TAB],"desc":"ciclar la selección"},
+ {"label":"Espacio","keys":[KEY_SPACE],"desc":"iniciar, pausar o reanudar el tiempo"},
+ {"label":"Inicio","keys":[KEY_HOME,KEY_F],"desc":"centrar la cámara en la selección (también F)"},
+ {"label":"B","keys":[KEY_B],"desc":"ir al buque"},
+ {"label":"0","keys":[KEY_0,KEY_KP_0],"desc":"ver todo el mapa"},
+ {"label":"M","keys":[KEY_M],"desc":"minimapa grande o normal"},
+ {"label":"P","keys":[KEY_P],"desc":"parte de campaña"},
+ {"label":"G / T / C","keys":[KEY_G,KEY_T,KEY_C],"desc":"ritmo: galope, trote, paso"},
+ {"label":"Enter","keys":[KEY_ENTER,KEY_KP_ENTER],"desc":"confirmar la orden o la ruta en curso"},
+ {"label":"+ / -","keys":[KEY_EQUAL,KEY_KP_ADD,KEY_MINUS,KEY_KP_SUBTRACT],"desc":"velocidad del tiempo (x1, x2, x4)"},
+ {"label":"R","keys":[KEY_R],"desc":"reiniciar la partida (pide confirmación)"},
+ {"label":"F1","keys":[KEY_F1],"desc":"ayuda y briefing"},
+ {"label":"F5","keys":[KEY_F5],"desc":"guardar"},
+ {"label":"F9","keys":[KEY_F9],"desc":"cargar"},
+ {"label":"F11","keys":[KEY_F11],"desc":"pantalla completa"},
+ {"label":"Esc","keys":[KEY_ESCAPE],"desc":"cancelar la orden, soltar el foco o cerrar el panel"},
+]
 const ACTION_FALLBACK = {"recall":{"label":"Volver","tag":"diseno","effect":"El explorador vuelve a la playa seca."},"retreat_all":{"label":"Retirada general","tag":"diseno","effect":"Termina la partida como derrota ordenada."}}
 const RISK_COLORS = {"bajo":Color("a6e3b8"),"medio":Color("e0bf81"),"alto":Color("f4a58d"),"desconocido":Color("aab7b5")}
 const KIND_ICON = {"objective":"◎","tide":"≈","warning":"!","shot":"✸","boarding":"■","recon":"◈","ford":"≈","stumble":"!","muster":"+","ammo":"•","signal":"◆","fire_support":"✸","victory":"★","defeat":"✕","load":"↻","info":"i"}
@@ -182,6 +207,9 @@ func _ready():
  for arg in OS.get_cmdline_user_args():
   if arg.begins_with("--qa="):qa_mode=true;auto_scenario=arg.trim_prefix("--qa=")
   if arg.begins_with("--qa-path="):qa_path=arg.trim_prefix("--qa-path=")
+  if arg.begins_with("--qa-size="):
+   var wh=arg.trim_prefix("--qa-size=").split("x")
+   if wh.size()==2:qa_size=Vector2i(int(wh[0]),int(wh[1]))
   if arg.begins_with("--scenario="):auto_scenario=arg.trim_prefix("--scenario=")
   if arg.begins_with("--benchmark="):benchmark_mode=true;auto_scenario=arg.trim_prefix("--benchmark=")
   if arg.begins_with("--quality="):benchmark_quality=arg.trim_prefix("--quality=")
@@ -287,9 +315,15 @@ func _rebuild_world():
  var skip={}
  for entry in world.sector_nodes.values():skip[entry.label]=true
  for label_3d in world.unit_labels.values():skip[label_3d]=true
- for label_3d in world.find_children("*","Label3D",true,false):
-  label_3d.visible=false
-  if not skip.has(label_3d) and not _is_j():overlay_labels.append(label_3d)
+ if _is_j() and world.has_method("set_layer_visible"):
+  # Justina: la interfaz dibuja sus propios rótulos (hitos y fichas). La capa 'labels' de la vista se apaga
+  # para no duplicarlos; los rótulos de unidades (cuelgan de cada figura) se mantienen ocultos en _process.
+  world.set_layer_visible("labels",false)
+  for label_3d in world.unit_labels.values():label_3d.visible=false
+ else:
+  for label_3d in world.find_children("*","Label3D",true,false):
+   label_3d.visible=false
+   if not skip.has(label_3d):overlay_labels.append(label_3d)
  if audio_manager:audio_manager.set_environment(str(rules.state.scenario))
  get_viewport().msaa_3d=Viewport.MSAA_DISABLED if settings.quality=="baja" else (Viewport.MSAA_4X if settings.quality=="alta" else Viewport.MSAA_2X)
  get_viewport().scaling_3d_scale=0.5 if settings.quality=="baja" else 1.0
@@ -324,7 +358,7 @@ func _menu():
  _button(options,"Ajustes",_settings_dialog)
  _button(options,"Historia",_history_dialog)
  _spacer(box,6)
- _rich(box,"[color=#aab7b5]Recreación histórica documentada. La intervención personal de Güemes en la Justina pertenece a una tradición no probada.[/color]",13)
+ _rich(box,"[color=#aab7b5]Recreación histórica con diseño propio: el juego distingue lo documentado, la tradición y el diseño (en «Historia» y en cada etiqueta). Que Güemes mandara en la Justina es una tradición no probada.[/color]",13)
  _label(box,"VERSIÓN "+str(ProjectSettings.get_setting("application/config/version","?")).to_upper()+"  ·  3D LOCAL  ·  SE PUEDE JUGAR SIN CONEXIÓN",11,MUTED)
  var credit=_label(ui,"RÍO DE LA PLATA\n12 DE AGOSTO DE 1806",16,Color("e6ceb0"),true)
  _anchor(credit,1,1,1,1,-400,-200,-20,-100)
@@ -816,7 +850,9 @@ func _simple_dialog(title:String,text_value:String):
 
 func _controls_dialog():
  var box=_open_modal("Cómo jugar",840,650)
- _rich(box,"[b]Cámara[/b]   WASD o flechas desplazan. Q/E giran. La rueda acerca hacia el cursor. Botón central gira e inclina. O enfoca el objetivo y F la selección. I pliega la información, P abre el parte.\n\n[b]Agrupaciones[/b]   Clic sobre un grupo, o teclas 1, 2 y 3. En el Justine, 4 selecciona a todos. Clic derecho ordena mover. X cancela la orden pendiente.\n\n[b]Justine[/b]   Elegí banco directo o rodeo sur. La agrupación espera la bajante si hace falta. Al llegar desmonta y resuelve la captura. Espacio pausa/reanuda; T alterna 1× / 3×. «Reagrupar» y «Abordar» piden un segundo clic.\n\n[b]Norte[/b]   Elegí grupo y sector con el mapa o el selector. Prepará una orden por grupo; luego resolvé la ronda. Las órdenes se pueden cambiar antes de resolver. Los botones deshabilitados explican el motivo debajo de la bandeja. [ y ] cambian de sector.
+ _rich(box,"[b]Cámara[/b]   WASD o flechas desplazan. Q/E giran. La rueda acerca hacia el cursor. Botón central gira e inclina. O enfoca el objetivo y F la selección. I pliega la información, P abre el parte.\n\n[b]Agrupaciones[/b]   Clic sobre un grupo, o teclas 1, 2 y 3. En el Justine, 4 selecciona a todos. Clic derecho ordena mover. X cancela la orden pendiente.\n\n[b]Justina[/b]   Tiene su propia ayuda (botón «Ayuda · F1» dentro de la partida) y su tabla de teclas en docs/CONTROLES.md.
+
+[b]Norte[/b]   Elegí grupo y sector con el mapa o el selector. Prepará una orden por grupo; luego resolvé la ronda. Las órdenes se pueden cambiar antes de resolver. Los botones deshabilitados explican el motivo debajo de la bandeja. [ y ] cambian de sector.
 
 [b]Teclado[/b]   Tab entra a la interfaz; Tab y Mayús+Tab recorren los controles; Enter o Espacio activan; Esc suelta el foco.\n\n[b]Continuidad[/b]   F5 guarda. F9 carga. R reinicia el escenario. Cada ronda se guarda automáticamente. H abre las fuentes. F11 alterna pantalla completa.\n\n[b]Consejo[/b]   Explorá antes de hostigar y alterná acciones de presión con protección de recursos y descanso. Esperar pasivamente permite sostener la invasión.",16)
  var check=CheckButton.new();check.text="Mostrar ayudas contextuales";check.button_pressed=bool(settings.tutorial)
@@ -945,6 +981,10 @@ func _qa_run(scenario_name:String):
  if qa_path.is_empty():qa_path=OS.get_user_data_dir().path_join("qa")
  DirAccess.make_dir_recursive_absolute(qa_path)
  for i in range(20):await get_tree().process_frame
+ if qa_size!=Vector2i.ZERO:
+  # Ventana sin bordes cuyo tamaño se fija tras el arranque: el SO no la recorta a la altura útil del monitor.
+  var w=get_window();w.mode=Window.MODE_WINDOWED;w.borderless=true;w.size=qa_size;w.position=Vector2i.ZERO
+  for i in range(12):await get_tree().process_frame
  await _qa_capture("menu")
  _start_game(scenario_name if scenario_name in ["justine","norte"] else "justine")
  var first_frame_start=Time.get_ticks_msec()
@@ -1431,6 +1471,8 @@ var hover_action = ""
 var hover_stamp = 0
 var ford_cache = []
 var last_report = {}
+var clock_label: Label
+var state_label: RichTextLabel
 
 func _is_j()->bool:
  return str(rules.state.get("scenario",""))=="justine"
@@ -1483,13 +1525,47 @@ func _sel_scouts()->Array:
 
 func _reset_camera_j():
  cam_cfg=_jmap().get("camera",{})
- var f=cam_cfg.get("focus_start",[140,265])
- camera_distance=float(cam_cfg.get("initial_height_m",90.0))
  camera_pitch=deg_to_rad(float(cam_cfg.get("pitch_deg_default",55.0)))
  camera_yaw=0.0
  camera.far=float(cam_cfg.get("far_m",4000.0))
- camera_target=Vector3(float(f[0]),rules.terrain_height_at(float(f[0]),float(f[1])),float(f[1]))
+ # Vista inicial con contexto: grupos, barranca, orilla y buque en el mismo cuadro.
+ var pts=[]
+ for g in _jmap().get("groups",[]):pts.append(Vector2(float(g.x),float(g.z)))
+ var sp=rules.ship_position();pts.append(sp)
+ var r=Rect2(pts[0],Vector2.ZERO)
+ for q in pts:r=r.expand(q)
+ _fit_rect(r.grow(46.0),false)
  cam_goal_active=false
+
+# Encuadra un rectángulo del mundo (centro, distancia y inclinación) de modo que sus cuatro esquinas entren
+# en la pantalla, sin pasar el máximo de zoom. Con smooth=true el movimiento es suave.
+func _fit_rect(r:Rect2,smooth:bool,pitch_deg:float=-1.0):
+ if pitch_deg>0:camera_pitch=deg_to_rad(pitch_deg)
+ var c=r.get_center()
+ var tgt=Vector3(c.x,0,c.y)
+ var view=get_viewport().get_visible_rect().size
+ var inner=Rect2(Vector2(24,64),view-Vector2(48,64+120))
+ var save_t=camera_target;var save_d=camera_distance
+ var d=float(cam_cfg.get("min_distance_m",25.0))
+ var maxd=float(cam_cfg.get("max_distance_m",900.0))
+ camera_target=tgt
+ while d<maxd:
+  camera_distance=d;_apply_camera()
+  var ok=true
+  for corner in [r.position,Vector2(r.end.x,r.position.y),r.end,Vector2(r.position.x,r.end.y)]:
+   var wp=Vector3(corner.x,_ground_y(corner.x,corner.y),corner.y)
+   if camera.is_position_behind(wp) or not inner.has_point(camera.unproject_position(wp)):ok=false;break
+  if ok:break
+  d*=1.06
+ d=minf(d,maxd)
+ camera_target=save_t;camera_distance=save_d
+ if smooth:_focus_to(tgt,d)
+ else:
+  camera_target=tgt;camera_distance=d;cam_goal_active=false;_apply_camera()
+
+func _view_all():
+ var sz=rules.map_size()
+ _fit_rect(Rect2(Vector2.ZERO,sz),true,62.0)
 
 func _apply_camera():
  var offset=Vector3(sin(camera_yaw)*cos(camera_pitch),sin(camera_pitch),cos(camera_yaw)*cos(camera_pitch))*camera_distance
@@ -1547,8 +1623,8 @@ func _camera_keys_j(delta):
   camera_target+=dir3*spd*delta
  if _key_down(KEY_Q):camera_yaw+=delta*0.8
  if _key_down(KEY_E):camera_yaw-=delta*0.8
- if _key_down(KEY_R):camera_pitch=minf(PITCH_MAX,camera_pitch+delta*0.7)
- if _key_down(KEY_F):camera_pitch=maxf(PITCH_MIN,camera_pitch-delta*0.7)
+ if _key_down(KEY_PAGEUP):camera_pitch=minf(PITCH_MAX,camera_pitch+delta*0.7)
+ if _key_down(KEY_PAGEDOWN):camera_pitch=maxf(PITCH_MIN,camera_pitch-delta*0.7)
  camera_target=world.clamp_camera_target(camera_target)
 
 func _clamp_zoom():
@@ -1613,7 +1689,9 @@ func _compact(b:Button,pad_h:int=6,pad_v:int=3):
 func _mm_size()->Vector2:
  var m=_jmap().get("minimap",{})
  var a=m.get("large_size_px" if mm_big else "default_size_px",[260,150])
- return Vector2(float(a[0]),float(a[1]))
+ # Más grande que el mínimo del JSON: 300x173 lógicos (360 px a 1080p); 600x347 al ampliar, con la proporción del mapa 900x520.
+ var mine=Vector2(600,347) if mm_big else Vector2(300,173)
+ return Vector2(maxf(float(a[0]),mine.x),maxf(float(a[1]),mine.y))
 
 func _build_hud_j():
  _new_ui();unit_buttons={};action_buttons={};stat_bars={};hud_panels=[];roster_buttons={};pace_buttons={}
@@ -1628,15 +1706,19 @@ func _build_hud_j():
  var heading=_vbox(hv,0);heading.size_flags_horizontal=Control.SIZE_EXPAND_FILL
  title_label=_label(heading,"",15,PAPER,true)
  phase_label=_label(heading,"",10,MUTED)
+ clock_label=_label(hv,"",20,GOLD,true);clock_label.custom_minimum_size.x=150;clock_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+ clock_label.tooltip_text="Tiempo que queda hasta el plazo de la misión.";clock_label.mouse_filter=Control.MOUSE_FILTER_PASS
  pause_button=_button(hv,"▶  Iniciar",_toggle_pause,26);pause_button.custom_minimum_size.x=112;_compact(pause_button)
  pause_button.tooltip_text="Espacio. Pausa o reanuda el tiempo."
  speed_button=_button(hv,"1×",_cycle_speed,26);speed_button.custom_minimum_size.x=44;_compact(speed_button)
  speed_button.tooltip_text="+ y − cambian la velocidad: ×1, ×2, ×4."
- for spec in [["Parte · P",_toggle_report],["Guardar · F5",func():_save_game()],["Fuentes",_history_dialog],["Ajustes",_settings_dialog],["Ayuda · F1",_briefing_dialog],["Menú",_return_menu]]:
+ for spec in [["Ver todo · 0",_view_all],["Reiniciar · R",_confirm_restart],["Parte · P",_toggle_report],["Guardar · F5",func():_save_game()],["Fuentes",_history_dialog],["Ajustes",_settings_dialog],["Ayuda · F1",_briefing_dialog],["Menú",_return_menu]]:
   var hb=_button(hv,str(spec[0]),spec[1],26);hb.add_theme_font_size_override("font_size",13);_compact(hb)
  # Nombre del paraje (arriba a la izquierda)
- place_panel=_panel(ui,Vector2(20,56),Vector2(300,0),Color(0.055,0.105,0.12,0.9),Color("394c49"),4);hud_panels.append(place_panel);_anchor(place_panel,0,0,0,0,12,54,330,54)
- place_label=_label(place_panel,"",12,PAPER);place_label.clip_text=true
+ # Sin panel de fondo (no tapa la vista): texto con contorno sobre el paisaje.
+ place_label=_label(ui,"",13,PAPER);place_label.clip_text=true;place_label.mouse_filter=Control.MOUSE_FILTER_IGNORE
+ place_label.add_theme_color_override("font_outline_color",Color(0.02,0.04,0.05,0.95));place_label.add_theme_constant_override("outline_size",6)
+ _anchor(place_label,0,0,0,0,16,54,340,74)
  # Columna derecha: río, tiempo, recursos, captura
  right_panel=_panel(ui,Vector2.ZERO,Vector2(272,0),Color(0.055,0.105,0.12,0.92),Color("394c49"),8);hud_panels.append(right_panel);_anchor(right_panel,1,0,1,0,-284,54,-12,54)
  var rv=_vbox(right_panel,3)
@@ -1644,8 +1726,9 @@ func _build_hud_j():
  var rt=_label(rh,"RÍO Y TIEMPO  ·  I",11,GOLD);rt.size_flags_horizontal=Control.SIZE_EXPAND_FILL
  var rbtn=_button(rh,"▾",_toggle_info,20);rbtn.custom_minimum_size.x=26;_compact(rbtn,4,0);rbtn.tooltip_text="Plegar o desplegar (I)"
  right_body=_vbox(rv,3)
+ state_label=_rich(right_body,"",12)
  river_ctl=Control.new();river_ctl.custom_minimum_size=Vector2(254,34);river_ctl.mouse_filter=Control.MOUSE_FILTER_IGNORE;right_body.add_child(river_ctl);river_ctl.draw.connect(_draw_river)
- time_ctl=Control.new();time_ctl.custom_minimum_size=Vector2(254,50);time_ctl.mouse_filter=Control.MOUSE_FILTER_IGNORE;right_body.add_child(time_ctl);time_ctl.draw.connect(_draw_timeline)
+ time_ctl=Control.new();time_ctl.custom_minimum_size=Vector2(254,38);time_ctl.mouse_filter=Control.MOUSE_FILTER_IGNORE;right_body.add_child(time_ctl);time_ctl.draw.connect(_draw_timeline)
  res_label=_rich(right_body,"",12)
  info_label=_rich(right_body,"",12)
  capture_bar=ProgressBar.new();capture_bar.custom_minimum_size.y=7;capture_bar.show_percentage=false;right_body.add_child(capture_bar)
@@ -1661,7 +1744,7 @@ func _build_hud_j():
  var br=_hbox(bottom,8)
  var roster=_vbox(br,2);roster.custom_minimum_size.x=172
  for id in ALL_ACTORS:
-  var rb=_button(roster,"",func():_roster_click(id),23);rb.add_theme_font_size_override("font_size",12);rb.alignment=HORIZONTAL_ALIGNMENT_LEFT;_compact(rb,6,2);rb.clip_text=true
+  var rb=_button(roster,"",func():_roster_click(id),20);rb.add_theme_font_size_override("font_size",12);rb.alignment=HORIZONTAL_ALIGNMENT_LEFT;_compact(rb,6,0);rb.clip_text=true
   roster_buttons[id]=rb
  var right_col=_vbox(br,3);right_col.size_flags_horizontal=Control.SIZE_EXPAND_FILL
  var info_row=_hbox(right_col,4)
@@ -1673,7 +1756,7 @@ func _build_hud_j():
   pace_buttons[pid]=pb
  action_box=_vbox(right_col,3)
  hint_panel=_panel(ui,Vector2.ZERO,Vector2(620,0),Color(0.035,0.075,0.09,0.93),Color("7c7653"),6)
- _anchor(hint_panel,0.5,0,0.5,0,-300,54,320,54)
+ _anchor(hint_panel,0.5,0,0.5,0,-240,54,240,54)
  tutorial_label=_label(hint_panel,"",12,Color("f4e9c8"))
  tutorial_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;tutorial_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
  toast_label=_label(ui,"",15,PAPER);_anchor(toast_label,0.5,0,0.5,0,-330,112,330,164)
@@ -1689,8 +1772,8 @@ func _build_hud_j():
 func _layout_j():
  if not is_instance_valid(map_widget):return
  var sz=_mm_size()
- map_widget.custom_minimum_size=Vector2(sz.x,sz.y+22)
- _anchor(map_widget,0,1,0,1,12,-(sz.y+22+10),12+sz.x,-10)
+ map_widget.custom_minimum_size=Vector2(sz.x,sz.y)
+ _anchor(map_widget,0,1,0,1,12,-(sz.y+10),12+sz.x,-10)
  map_widget.queue_redraw()
  if is_instance_valid(bottom_panel):_anchor(bottom_panel,0,1,0,1,12+sz.x+8,-10,12+sz.x+8+780,-10)
 
@@ -1704,7 +1787,7 @@ func compass_rect()->Rect2:
 func scale_rect()->Rect2:
  var r=minimap_rect()
  var info=_scale_info()
- return Rect2(r.position.x+8,r.end.y+5,float(info.px),12)
+ return Rect2(r.end.x-8-float(info.px),r.end.y-34,float(info.px),12)
 
 func _scale_info()->Dictionary:
  var mpp=maxf(0.0001,world.meters_per_pixel(camera))
@@ -1757,7 +1840,17 @@ func _draw_map_widget():
  # buque
  var ss=rules.ship_state()
  var sp=_m2px(Vector2(float(ss.x),float(ss.z)))
- w.draw_circle(sp,3.6,Color("e9e3d4"));w.draw_arc(sp,5.5,0,TAU,16,Color(0.03,0.06,0.07),1.2)
+ w.draw_circle(sp,5.0,Color("e9e3d4"));w.draw_arc(sp,7.5,0,TAU,20,Color(0.03,0.06,0.07),1.6)
+ w.draw_string(font,sp+Vector2(-16,-11),"Buque",HORIZONTAL_ALIGNMENT_LEFT,-1,11,Color("f4efe0"))
+ # leyenda del minimapa
+ var lg=[[Color("5e5a45"),"barranca"],[Color("c8b88a"),"orilla"],[Color("4a5d63"),"agua turbia"],[Color("6fb8a6"),"fondo conocido"]]
+ var lx=6.0;var ly=msz.y-16.0
+ w.draw_rect(Rect2(0,ly-3,msz.x,19),Color(0.03,0.06,0.07,0.6))
+ for e in lg:
+  w.draw_rect(Rect2(lx,ly+2,9,9),e[0]);w.draw_rect(Rect2(lx,ly+2,9,9),Color(0,0,0,0.5),false,1.0)
+  var tw=font.get_string_size(str(e[1]),HORIZONTAL_ALIGNMENT_LEFT,-1,10).x
+  w.draw_string(font,Vector2(lx+12,ly+11),str(e[1]),HORIZONTAL_ALIGNMENT_LEFT,-1,10,Color("e9e3d4"))
+  lx+=tw+22.0
  # grupos y exploradores
  for id in ALL_ACTORS:
   var a=_actor(id)
@@ -1783,10 +1876,12 @@ func _draw_map_widget():
  w.draw_string(font,cc+ed*17-Vector2(3,-4),"E",HORIZONTAL_ALIGNMENT_LEFT,-1,10,Color("8fb4d9"))
  # escala gráfica
  var si=_scale_info()
- var y=msz.y+11.0
- w.draw_line(Vector2(8,y),Vector2(8+float(si.px),y),PAPER,2.0)
- w.draw_line(Vector2(8,y-4),Vector2(8,y+4),PAPER,2.0);w.draw_line(Vector2(8+float(si.px),y-4),Vector2(8+float(si.px),y+4),PAPER,2.0)
- w.draw_string(font,Vector2(14+float(si.px),y+4),"%d m" % int(si.m),HORIZONTAL_ALIGNMENT_LEFT,-1,12,PAPER)
+ var y=msz.y-28.0
+ var x0=msz.x-8.0-float(si.px)
+ w.draw_rect(Rect2(x0-4,y-9,float(si.px)+8,20),Color(0.03,0.06,0.07,0.6))
+ w.draw_line(Vector2(x0,y+4),Vector2(x0+float(si.px),y+4),PAPER,2.0)
+ w.draw_line(Vector2(x0,y),Vector2(x0,y+8),PAPER,2.0);w.draw_line(Vector2(x0+float(si.px),y),Vector2(x0+float(si.px),y+8),PAPER,2.0)
+ w.draw_string(font,Vector2(x0,y-1),"%d m" % int(si.m),HORIZONTAL_ALIGNMENT_LEFT,-1,11,PAPER)
 
 func _map_gui_input(event):
  if mode!="play" or not _is_j() or not is_instance_valid(world):return
@@ -1886,18 +1981,18 @@ func _refresh_actions_j():
  var ids=[]
  if kind!="none":ids=rules.list_actions(kind)
  ids=ids+rules.list_actions("global")
- var grid=GridContainer.new();grid.columns=5;grid.add_theme_constant_override("h_separation",4);grid.add_theme_constant_override("v_separation",4);action_box.add_child(grid)
+ var grid=GridContainer.new();grid.columns=6;grid.add_theme_constant_override("h_separation",4);grid.add_theme_constant_override("v_separation",4);action_box.add_child(grid)
  for a in ids:
   var act=str(a)
-  var b=_button(grid,"",func():_do_action(act),36)
-  b.add_theme_font_size_override("font_size",11);b.size_flags_horizontal=Control.SIZE_EXPAND_FILL;b.custom_minimum_size.x=122
-  b.clip_text=true;_compact(b,5,2)
+  var b=_button(grid,"",func():_do_action(act),30)
+  b.add_theme_font_size_override("font_size",10);b.size_flags_horizontal=Control.SIZE_EXPAND_FILL;b.custom_minimum_size.x=114
+  b.clip_text=true;_compact(b,3,2)
   b.mouse_entered.connect(func():_show_action_info(act))
   b.focus_entered.connect(func():_show_action_info(act))
   b.mouse_exited.connect(func():_show_action_info(""))
   action_buttons[act]=b
  reason_label=_label(action_box,"",11,MUTED);reason_label.clip_text=true;reason_label.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
- reason_label.custom_minimum_size=Vector2(560,15)
+ reason_label.custom_minimum_size=Vector2(600,15)
  hover_action=""
  _update_action_states()
 
@@ -2216,7 +2311,9 @@ func _j_input(event):
    KEY_1,KEY_2,KEY_3,KEY_4,KEY_5:_select_ids([ALL_ACTORS[k-KEY_1]],_mods_how(shift,ctrl))
    KEY_TAB:_cycle_selection()
    KEY_SPACE:_toggle_pause()
-   KEY_HOME:_center_selection()
+   KEY_HOME,KEY_F:_center_selection()
+   KEY_R:_confirm_restart()
+   KEY_0,KEY_KP_0:_view_all()
    KEY_B:_center_ship()
    KEY_M:_toggle_minimap()
    KEY_P:_toggle_report()
@@ -2314,13 +2411,18 @@ func _left_click(pos:Vector2,shift:bool,ctrl:bool):
 func _update_hud_j():
  var st=rules.state
  title_label.text="JUSTINA  ·  RETIRO"
- phase_label.text="12 AGO 1806   /   %s de %s   /   río %s" % [_clock(float(st.elapsed)),_clock(float(st.deadline)),str(st.tide_phase)]
+ var left=maxf(0.0,float(st.deadline)-float(st.elapsed))
+ phase_label.text="12 AGO 1806   /   transcurrido %s de %s   /   río %s" % [_clock(float(st.elapsed)),_clock(float(st.deadline)),str(st.tide_phase)]
+ clock_label.text="Quedan "+_clock(left)
+ clock_label.add_theme_color_override("font_color",RED if left<180.0 else GOLD)
+ _update_fords()
+ state_label.text=_state_text(left)
  pause_button.text="▶  Reanudar" if paused else "Ⅱ  Pausar"
  if float(st.elapsed)<0.5 and paused:pause_button.text="▶  Iniciar"
  speed_button.text=str(int(speed))+"×"
  var res=rules.resources()
  var ss=rules.ship_state()
- res_label.text="Munición [b]%d/%d[/b] · Balizas [b]%d[/b] · Voluntarios [b]%d[/b]\nAvance: [b]%s[/b] · buque %d cañones (doc.) · descarga en %d s" % [int(res.ammo),int(res.ammo_max),int(res.balizas),int(res.volunteers_pool),"concedido" if bool(res.advance_authorized) else "pendiente",int(ss.guns_total),int(ceil(float(ss.next_volley_in)))]
+ res_label.text="Munición [b]%d/%d[/b] · Balizas [b]%d[/b] · Voluntarios [b]%d[/b]\nAvance: [b]%s[/b] · buque %d cañones (Gillespie) · descarga en %d s" % [int(res.ammo),int(res.ammo_max),int(res.balizas),int(res.volunteers_pool),"concedido" if bool(res.advance_authorized) else "pendiente",int(ss.guns_total),int(ceil(float(ss.next_volley_in)))]
  capture_bar.value=float(st.capture);moral_bar.value=float(ss.crew_morale)
  info_label.text="Captura [b]%d %%[/b]   ·   Moral de la dotación [b]%d %%[/b]" % [int(st.capture),int(ss.crew_morale)]
  _update_fords()
@@ -2334,20 +2436,20 @@ func _update_hud_j():
   if id in SCOUT_IDS:
    b.text=("▸ " if is_sel else "   ")+"◈ %d %s  ♥%d %s" % [_actor_number(id),_short_name(id),int(a.hp),stage_g]
   else:
-   b.text=("▸ " if is_sel else "   ")+"%s %d %s  %d%% %s" % [str(UNIT_GLYPHS[id]),_actor_number(id),_short_name(id),int(a.strength),stage_g]
+   b.text=("▸ " if is_sel else "   ")+"%s %d %s %s %d%% %s" % [str(UNIT_GLYPHS[id]),_actor_number(id),_short_name(id),_tag_glyph(str(a.get("tag","diseno"))),int(a.strength),stage_g]
   var tg=str(a.get("tag","diseno"))
   b.tooltip_text="%s — %s\nFuente: %s %s" % [str(a.name),str(STAGE_TEXT.get(str(a.stage),["",str(a.stage)])[1]),_tag_glyph(tg),_tag_label(tg)]
   b.add_theme_color_override("font_color",UNIT_COLORS[id]);b.add_theme_color_override("font_hover_color",UNIT_COLORS[id])
   if is_sel:
-   b.add_theme_stylebox_override("normal",_cm_style("rosel"+id,Color("29454c"),UNIT_COLORS[id],2,6,2))
+   b.add_theme_stylebox_override("normal",_cm_style("rosel"+id,Color("29454c"),UNIT_COLORS[id],2,6,0))
   else:
-   b.add_theme_stylebox_override("normal",_cm_style("cmnormal66",Color("1a3037"),Color("455753"),1,6,2))
+   b.add_theme_stylebox_override("normal",_cm_style("cmnormal66",Color("1a3037"),Color("455753"),1,6,0))
  for pid in pace_buttons:
   pace_buttons[pid].set_pressed_no_signal(pid==pace)
  sel_info.text=_selection_text()
  _update_action_states()
  var lines=[]
- for entry in _grouped_log(2):
+ for entry in _grouped_log(1):
   var icon=str(KIND_ICON.get(str(entry.get("kind","info")),"•"))
   lines.append("[color=#d9b576]%s[/color] %s%s" % [icon,str(entry.text),(" (×%d)" % int(entry.count)) if int(entry.count)>1 else ""])
  log_label.text="\n".join(lines)
@@ -2393,6 +2495,46 @@ func _tutorial_j()->String:
  if float(st.capture)<=0.0:
   return "4/4 · Cruzá con clic derecho (la vista previa muestra el riesgo) y usá «Cargar y abordar». Vigilá el río."
  return "Los jinetes desmontaron: la captura avanza. Cuidá la fuerza restante hasta rendir al buque."
+
+# Estado de la partida: cuenta regresiva, ventanas de vado y riesgo actual (texto, junto a la barra de tiempo).
+func _risk_now()->Dictionary:
+ var ids=_sel_groups()
+ if ids.is_empty():ids=GROUP_IDS
+ var best=0.0
+ for id in ids:
+  var u=rules.get_unit(id)
+  if u.is_empty() or float(u.strength)<=0.0:continue
+  best=maxf(best,rules.exposure_for(u))
+ var lvl="bajo" if best<0.15 else ("medio" if best<0.5 else "alto")
+ return {"level":lvl,"exposure":best}
+
+func _ford_line(f:Dictionary,t:float)->String:
+ var w:Dictionary=f.win
+ var nm=str(f.name).split(" (")[0]
+ var est="" if bool(w.certain) else " [color=#e0bf81](estimado, sin reconocer)[/color]"
+ var opens=float(w.opens_at);var closes=float(w.closes_at)
+ if opens<0.0:return "• %s: [color=#f4a58d]no abre con este nivel[/color]" % nm
+ if t<opens:return "• %s: [color=#e0bf81]abre en %s[/color]%s" % [nm,_clock(opens-t),est]
+ if t<=closes:
+  var rest=closes-t
+  return "• %s: [color=%s][b]ABIERTO[/b] · cierra en %s[/color]%s" % [nm,"#f4a58d" if rest<60.0 else "#a6e3b8",_clock(rest),est]
+ return "• %s: [color=#f4a58d]cerrado[/color]" % nm
+
+func _state_text(left:float)->String:
+ var st=rules.state
+ var t=float(st.elapsed)
+ var lines=[]
+ var c="#f4a58d" if left<180.0 else "#f4efe0"
+ var status=str(st.status)
+ if status!="playing":lines.append("[b]Partida terminada[/b]: "+("victoria" if status=="victory" else "derrota"))
+ else:lines.append("[b][color=%s]Quedan %s[/color][/b] · río %s (%s m)" % [c,_clock(left),str(st.tide_phase),("%.2f" % rules.water_level_m()).replace(".",",")])
+ if ford_cache.is_empty():lines.append("Vados: ninguno conocido todavía. Reconocé el fondo.")
+ else:
+  for f in ford_cache:lines.append(_ford_line(f,t))
+ var rk=_risk_now()
+ var col={"bajo":"#a6e3b8","medio":"#e0bf81","alto":"#f4a58d"}[str(rk.level)]
+ lines.append("Riesgo de fuego ahora: [b][color=%s]%s[/color][/b] (%d %%)" % [col,str(rk.level).to_upper(),int(float(rk.exposure)*100.0)])
+ return "\n".join(lines)
 
 func _update_fords():
  ford_cache=[]
@@ -2463,7 +2605,6 @@ func _draw_timeline():
  c.draw_line(Vector2(nx,by-3),Vector2(nx,by+bh+3),Color.WHITE,2.0)
  for tm in [0,5,10,15]:
   c.draw_string(font,Vector2(minf(4.0+w*float(tm*60)/dl-8,w-26),by+bh+12),"%d min" % tm if tm>0 else "0",HORIZONTAL_ALIGNMENT_LEFT,-1,10,MUTED)
- c.draw_string(font,Vector2(4,by+bh+24),"Vados: "+(" · ".join(legend) if not legend.is_empty() else "ninguno"),HORIZONTAL_ALIGNMENT_LEFT,246,10,Color("a6e3b8"))
 
 func _toggle_report():
  if is_instance_valid(modal):_close_modal()
@@ -2524,7 +2665,7 @@ func _draw_overlay_j(font,blocked:Array,placed:Array):
    overlay.draw_circle(pm,8.0,Color(0.03,0.06,0.07,0.9));overlay.draw_circle(pm,6.0,Color("e9e3d4"))
    overlay.draw_string(font,pm+Vector2(-3,4),str(i+1),HORIZONTAL_ALIGNMENT_LEFT,-1,10,Color(0.03,0.06,0.07))
  _draw_marks_j()
- _draw_chips_j(font,placed)
+ _draw_chips_j(font,placed,blocked)
  _draw_landmarks_j(font,blocked,placed)
 
 func _draw_marks_j():
@@ -2543,7 +2684,7 @@ func _draw_marks_j():
   else:
    overlay.draw_arc(pr,10.0,0,TAU,20,Color(c.r,c.g,c.b,0.55),1.5)
 
-func _draw_chips_j(font,placed:Array):
+func _draw_chips_j(font,placed:Array,blocked:Array=[]):
  var view=get_viewport().get_visible_rect().size
  var order=[]
  for id in ALL_ACTORS:
@@ -2560,10 +2701,16 @@ func _draw_chips_j(font,placed:Array):
   var c:Color=UNIT_COLORS[id]
   var chip=Vector2(104,22) if is_scout else (Vector2(168,54) if is_sel else Vector2(112,24))
   var rect=Rect2(anchor-Vector2(chip.x*0.5,chip.y+6),chip)
+  rect.position.x=clampf(rect.position.x,4.0,view.x-chip.x-4.0)
+  var base_y=rect.position.y
   var tries=0
-  while tries<6 and _overlaps_any(rect.grow(2),placed):
-   rect.position.y-=chip.y+4.0;tries+=1
-  rect.position.x=clampf(rect.position.x,4.0,view.x-chip.x-4.0);rect.position.y=clampf(rect.position.y,60.0,view.y-chip.y-4.0)
+  # Desplazamientos verticales alternados (arriba, abajo, más arriba...) hasta no pisar nada ya colocado.
+  for k in range(0,14):
+   var step=(k+1)/2
+   var off=-float(step) if k%2==1 else float(step)
+   rect.position.y=clampf(base_y+off*(chip.y+4.0),60.0,view.y-chip.y-4.0)
+   tries=k
+   if not _overlaps_any(rect.grow(2),placed) and not _overlaps_any(rect,blocked):break
   placed.append(rect)
   if rect.end.y<anchor.y-8.0 or tries>0:overlay.draw_line(Vector2(rect.position.x+chip.x*0.5,rect.end.y),anchor,Color(c.r,c.g,c.b,0.8),1.5,true)
   overlay.draw_style_box(_cached_style("chipj"+str(is_sel)+c.to_html(),Color(0.035,0.075,0.09,0.9),c if is_sel else Color(c.r,c.g,c.b,0.6),3 if is_sel else 1,5),rect)
@@ -2573,6 +2720,8 @@ func _draw_chips_j(font,placed:Array):
   var strength=float(u.strength)
   var bar_color=GREEN if strength>=60 else (GOLD if strength>=35 else RED)
   var title=str(UNIT_GLYPHS[id])+" "+str(_actor_number(id))+" "+_short_name(id)
+  var tg_mark=_tag_glyph(str(u.get("tag","diseno")))
+  title+=" "+tg_mark
   if is_sel:
    overlay.draw_string(font,rect.position+Vector2(8,17),title,HORIZONTAL_ALIGNMENT_LEFT,100,13,c)
    overlay.draw_string(font,rect.position+Vector2(chip.x-60,17),"%d %%" % int(strength),HORIZONTAL_ALIGNMENT_RIGHT,52,13,Color("f4efe0"))
@@ -2581,7 +2730,7 @@ func _draw_chips_j(font,placed:Array):
    overlay.draw_rect(Rect2(rect.position+Vector2(8,30),Vector2((chip.x-16)*clampf(float(u.fatigue)/100.0,0,1),2)),Color("c9b6a0"))
    overlay.draw_string(font,rect.position+Vector2(8,46),_stage_badge(str(u.stage)),HORIZONTAL_ALIGNMENT_LEFT,chip.x-14,11,Color("e9e3d4"))
   else:
-   overlay.draw_string(font,rect.position+Vector2(7,16),str(UNIT_GLYPHS[id])+" "+str(_actor_number(id))+"  %d %%" % int(strength),HORIZONTAL_ALIGNMENT_LEFT,chip.x-10,12,c)
+   overlay.draw_string(font,rect.position+Vector2(7,16),str(UNIT_GLYPHS[id])+" "+str(_actor_number(id))+" "+tg_mark+" %d %%" % int(strength),HORIZONTAL_ALIGNMENT_LEFT,chip.x-10,12,c)
    overlay.draw_rect(Rect2(rect.position+Vector2(6,19),Vector2(chip.x-12,3)),Color("31433e"))
    overlay.draw_rect(Rect2(rect.position+Vector2(6,19),Vector2((chip.x-12)*clampf(strength/100.0,0,1),3)),bar_color)
 
@@ -2645,7 +2794,7 @@ func _briefing_dialog():
  text+="\n[b]Tres consejos[/b]\n"
  var tips=m.get("texts",{}).get("tips",[])
  for i in range(mini(3,tips.size())):text+="• "+str(tips[i])+"\n"
- text+="\n[b]Controles[/b]  WASD/flechas y borde de pantalla: mover · botón derecho o central arrastrado: agarrar el mapa · rueda: zoom · Q/E giran · R/F inclinan · Inicio: centrar selección · B: buque · M: minimapa grande · 1-5: seleccionar · Tab: ciclar · arrastre izquierdo: caja · clic derecho: mover · G/T/C: ritmo · Espacio: pausa · +/−: velocidad · P: parte · F1: esta ayuda."
+ text+="\n[b]Controles[/b]  WASD/flechas y borde de pantalla: mover · botón derecho o central arrastrado: agarrar el mapa · rueda: zoom · Q/E giran · RePág/AvPág inclinan · Inicio: centrar selección · B: buque · 0: ver todo el mapa · R: reiniciar (pide confirmación) · F: centrar selección · M: minimapa grande · 1-5: seleccionar · Tab: ciclar · arrastre izquierdo: caja · clic derecho: mover · G/T/C: ritmo · Espacio: pausa · +/−: velocidad · P: parte · F1: esta ayuda."
  _rich(content,text,15).custom_minimum_size.x=820
  var row=_hbox(box)
  var go=_button(row,"Entendido · empezar",_close_modal,42);go.size_flags_horizontal=Control.SIZE_EXPAND_FILL

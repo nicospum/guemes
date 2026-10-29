@@ -7,9 +7,19 @@ if sys.platform.startswith("linux"):
  runtime=root.parent/".runtime"
  for k,n in [("XDG_DATA_HOME","data"),("XDG_CONFIG_HOME","config"),("XDG_CACHE_HOME","cache")]:
   d=runtime/n;d.mkdir(parents=True,exist_ok=True);env[k]=str(d)
-cmd=[args.engine,"--path",str(root),"--resolution",args.size,"--audio-driver","Dummy","--","--qa="+args.scenario,"--qa-path="+str(out)]
+cmd=[args.engine,"--path",str(root),"--resolution",args.size,"--audio-driver","Dummy","--","--qa="+args.scenario,"--qa-path="+str(out),"--qa-size="+args.size]
 if sys.platform.startswith("linux") and not env.get("DISPLAY"):
  cmd=["xvfb-run","-a","-s","-screen 0 "+args.size+"x24"]+cmd
 with open(out/"execution.log","w") as log:
  result=subprocess.run(cmd,env=env,stdout=log,stderr=subprocess.STDOUT)
-print("QA exit",result.returncode,"evidence",out);sys.exit(result.returncode)
+# Verifica que las capturas tengan el tamaño pedido (un monitor mas chico puede recortarlas: se informa, no se oculta).
+import struct
+code=result.returncode
+want=tuple(int(v) for v in args.size.split("x"))
+shot=out/"menu.png"
+if shot.exists():
+ got=struct.unpack(">II",shot.read_bytes()[16:24])
+ print("Captura",got,"pedida",want)
+ if got!=want:
+  print("ADVERTENCIA: el monitor o el SO no permitio capturar a",args.size,"- se obtuvo %dx%d"%got);code=code or 3
+print("QA exit",code,"evidence",out);sys.exit(code)

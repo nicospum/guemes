@@ -1,74 +1,113 @@
 {
-	"checks": 48,
+	"checks": 61,
 	"engine": "4.7.2-stable (official)",
 	"failures": [],
 	"kind": "window_injected_input",
 	"notes": {
+		"captura_px": [
+			2560,
+			1440
+		],
 		"justina_escala": {
 			"m": 10,
 			"mpp": 0.0855255126953125,
 			"px": 116.924174843889
 		},
 		"justina_free_con_ayuda": {
-			"free_pct": 82.0,
-			"free_px": 1599966,
-			"total_px": 1952100
+			"free_pct": 77.4,
+			"free_px": 1115266,
+			"total_px": 1440000
 		},
 		"justina_free_sin_ayuda": {
-			"free_pct": 83.4,
-			"free_px": 1627866,
-			"total_px": 1952100
+			"free_pct": 78.9,
+			"free_px": 1136866,
+			"total_px": 1440000
 		},
 		"justina_layout_Justina inicio": {
 			"minimapa": [
-				260.0,
-				150.0
+				300.0,
+				173.0
 			],
-			"paneles": 5,
+			"paneles": 4,
 			"viewport": [
-				2169.0,
+				1600.0,
 				900.0
 			]
 		},
 		"justina_layout_Justina parte": {
 			"minimapa": [
-				260.0,
-				150.0
+				300.0,
+				173.0
 			],
-			"paneles": 5,
+			"paneles": 4,
 			"viewport": [
-				2169.0,
+				1600.0,
 				900.0
 			]
 		},
 		"justina_overlaps_inicio": 0,
+		"justina_overlay_rects_inicio": [
+			"[P: (188.7706, 332.2036), S: (168.0, 54.0)]",
+			"[P: (209.8853, 413.5119), S: (112.0, 24.0)]",
+			"[P: (166.224, 468.3404), S: (112.0, 24.0)]",
+			"[P: (245.415, 443.4327), S: (104.0, 22.0)]",
+			"[P: (227.3979, 496.6127), S: (104.0, 22.0)]",
+			"[P: (1296.781, 419.2009), S: (115.0, 23.0)]",
+			"[P: (68.82352, 301.7333), S: (124.0, 23.0)]",
+			"[P: (160.1354, 184.4812), S: (147.0, 23.0)]"
+		],
+		"monitor_px": [
+			1920,
+			1080
+		],
 		"norte_free": {
-			"free_pct": 75.3,
-			"free_px": 1469408,
-			"total_px": 1952100
+			"free_pct": 68.9,
+			"free_px": 991448,
+			"total_px": 1440000
 		},
 		"norte_free_con_ayuda": {
-			"free_pct": 72.8,
-			"free_px": 1421528,
-			"total_px": 1952100
+			"free_pct": 65.5,
+			"free_px": 943568,
+			"total_px": 1440000
 		},
 		"norte_hover": "Mover no disponible: La agrupación ya se encuentra en ese sector.",
 		"norte_overlaps_inicio": 0,
 		"norte_reason_assault": "Arias coordina Humahuaca desde marzo: afecta artillería, cuartel, depósito de pólvora y comunicaciones.\nBloqueada: La operación de Humahuaca corresponde a Manuel Eduardo Arias.",
-		"preview_ruta_sin_reconocer": "48 m · 00:21 · riesgo bajo",
+		"preview_ruta_sin_reconocer": "121 m · 01:20 · riesgo bajo",
 		"preview_sondeo": "",
+		"rects_Justina inicio": [
+			"[P: (12.0, 6.0), S: (1576.0, 40.0)]",
+			"[P: (1316.0, 54.0), S: (272.0, 266.0)]",
+			"[P: (12.0, 717.0), S: (300.0, 173.0)]",
+			"[P: (320.0, 761.0), S: (898.0, 129.0)]"
+		],
+		"rects_Justina parte": [
+			"[P: (12.0, 6.0), S: (1576.0, 40.0)]",
+			"[P: (1316.0, 54.0), S: (272.0, 266.0)]",
+			"[P: (12.0, 717.0), S: (300.0, 173.0)]",
+			"[P: (320.0, 761.0), S: (898.0, 129.0)]"
+		],
+		"resolucion_real": true,
 		"rules_stub": false,
 		"sector_after_bracket": "rosario",
 		"sector_before_after": [
 			"lerma",
 			"oran"
 		],
+		"tamano_pedido": [
+			2560,
+			1440
+		],
 		"ventana_px": [
 			2560,
-			1062
+			1440
+		],
+		"ventana_px_tras_ajuste": [
+			2560,
+			1440
 		],
 		"viewport_logico": [
-			2169.0,
+			1600.0,
 			900.0
 		],
 		"world_stub": false

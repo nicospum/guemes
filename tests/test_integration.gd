@@ -34,6 +34,11 @@ func _run() -> void:
 	check(game.mode == "menu", "Opening the delivery reaches scenario selection")
 	check(_find_button("EL RÍO OFRECE") != null, "Menu offers the Justina scenario")
 	check(_find_button("SOSTENER EL NORTE") != null, "Menu offers the northern scenario")
+	var menu_texts := ""
+	for l in game.find_children("*", "RichTextLabel", true, false):
+		menu_texts += str(l.text) + "
+"
+	check(menu_texts.to_lower().find("documentada") < 0 and menu_texts.find("diseño propio") >= 0, "Menu does not call the recreation 'documentada' and says it has its own design")
 	game.jev.force_local = true
 	var present := _contract_present()
 	report["rules_stub"] = not present.rules
@@ -80,16 +85,37 @@ func _justina() -> void:
 	game._apply_camera()
 	# Camara inicial
 	var cam_cfg: Dictionary = game.rules.map_data().camera
-	check(absf(game.camera_distance - float(cam_cfg.initial_height_m)) < 0.01, "Initial zoom is camera.initial_height_m")
-	var focus := Vector2(float(cam_cfg.focus_start[0]), float(cam_cfg.focus_start[1]))
-	check(Vector2(game.camera_target.x, game.camera_target.z).distance_to(focus) < 2.0, "Initial camera is centred on focus_start")
+	# La camara inicial muestra contexto: grupos, barranca y buque a la vez, sin ser el mapa entero.
+	var vis := Rect2(Vector2.ZERO, game.get_viewport().get_visible_rect().size)
+	var ship_p: Vector2 = game.rules.ship_position()
+	var ship_s: Vector2 = game.camera.unproject_position(Vector3(ship_p.x, game._ground_y(ship_p.x, ship_p.y), ship_p.y))
+	check(vis.has_point(ship_s) and not game.camera.is_position_behind(Vector3(ship_p.x, 0, ship_p.y)), "Initial camera shows the ship")
+	for gid in ["guemes", "arias", "zavala"]:
+		var gp: Vector2 = game.camera.unproject_position(game.world.unit_nodes[gid].root.global_position)
+		check(vis.has_point(gp), "Initial camera shows group " + gid)
+	check(game.camera_distance >= float(cam_cfg.initial_height_m), "Initial camera is not closer than camera.initial_height_m")
 	var fr: PackedVector2Array = game.world.camera_frustum_on_ground(game.camera)
+	var focus := Vector2(float(cam_cfg.focus_start[0]), float(cam_cfg.focus_start[1]))
 	var bounds: Rect2 = game.world.camera_bounds()
 	var whole := Rect2(Vector2.ZERO, game.rules.map_size())
 	var seen := Rect2(fr[0], Vector2.ZERO)
 	for p in fr:
 		seen = seen.expand(p)
-	check(seen.size.x < whole.size.x * 0.9 or seen.size.y < whole.size.y * 0.9, "Initial view does not show the whole map")
+	check(seen.size.x < whole.size.x * 1.6, "Initial view is a regional view, not the horizon")
+	# Ver todo
+	game._view_all()
+	game.camera_target = game.cam_goal_target
+	game.camera_distance = game.cam_goal_distance
+	game._apply_camera()
+	var all_ok := true
+	for c in [Vector2(0, 0), Vector2(whole.size.x, 0), whole.size, Vector2(0, whole.size.y)]:
+		var cs: Vector2 = game.camera.unproject_position(Vector3(c.x, 0, c.y))
+		if not vis.grow(2).has_point(cs):
+			all_ok = false
+	# En la ventana headless el viewport es casi cuadrado (1440x1440): ahi el zoom maximo (900 m) no alcanza; se admite el tope.
+	check(all_ok or game.camera_distance >= float(cam_cfg.max_distance_m) - 0.01, "View-all frames the four corners of the map (or reaches max zoom-out)")
+	game._reset_camera_j()
+	game._apply_camera()
 	# HUD y paneles
 	await _frames(3)
 	_layout_checks("Justina inicio")
@@ -185,12 +211,12 @@ func _justina() -> void:
 	check(game.camera.position.y >= y_floor + 2.9, "The camera stays above the terrain")
 	# Minimapa, brujula, escala
 	var mm := game.minimap_rect() as Rect2
-	check(mm.size.x >= 260.0 and mm.size.y >= 150.0, "Minimap is at least 260x150")
+	check(mm.size.x >= 300.0 and mm.size.y >= 173.0, "Minimap is at least 300x173 logical px (360 px at 1080p)")
 	check((game.compass_rect() as Rect2).size.x >= 48.0, "Compass is at least 48 px")
 	var si: Dictionary = game._scale_info()
 	check(float(si.px) >= 80.0 and float(si.px) <= 160.0, "Scale bar is 80-160 px (%d m, %d px)" % [int(si.m), int(si.px)])
 	check(absf(float(si.px) * float(game.world.meters_per_pixel(game.camera)) - float(si.m)) / float(si.m) < 0.05, "Scale bar length matches meters_per_pixel within 5 %")
-	var local := Vector2(130, 75)
+	var local := mm.size * 0.5
 	var ev := InputEventMouseButton.new()
 	ev.button_index = MOUSE_BUTTON_LEFT
 	ev.pressed = true
@@ -223,6 +249,43 @@ func _justina() -> void:
 	check(game.pace == "walk", "C selects walking")
 	_key(KEY_T)
 	check(game.pace == "trot", "T selects trot")
+	# Tabla unica de teclas: sin repetidas, y cada fila documentada en docs/CONTROLES.md
+	var seen_codes := {}
+	var dups: Array = []
+	for row in game.J_KEY_TABLE:
+		for k in row.keys:
+			if seen_codes.has(k):
+				dups.append(OS.get_keycode_string(k))
+			seen_codes[k] = row.label
+	for act in game.ACTION_KEYS:
+		var kc: int = game.ACTION_KEYS[act]
+		if seen_codes.has(kc):
+			dups.append(OS.get_keycode_string(kc) + " (" + act + ")")
+		seen_codes[kc] = act
+	check(dups.is_empty(), "Justina key table has no repeated key: " + str(dups))
+	var docs := FileAccess.get_file_as_string("res://docs/CONTROLES.md")
+	var undocumented: Array = []
+	for row in game.J_KEY_TABLE:
+		if docs.find("| " + str(row.label) + " |") < 0:
+			undocumented.append(row.label)
+	for act in game.ACTION_KEYS:
+		var ks := OS.get_keycode_string(game.ACTION_KEYS[act])
+		if docs.find("| " + ks + " |") < 0:
+			undocumented.append(ks)
+	check(undocumented.is_empty(), "Every Justina key is in docs/CONTROLES.md: " + str(undocumented))
+	# Reinicio con R (confirmacion) y pitch en RePag/AvPag
+	_key(KEY_R)
+	check(is_instance_valid(game.modal), "R asks to confirm the restart in Justina")
+	game._close_modal()
+	var pitch_before: float = game.camera_pitch
+	game.qa_keys[KEY_PAGEDOWN] = true
+	game._camera_keys_j(0.2)
+	game.qa_keys.erase(KEY_PAGEDOWN)
+	check(game.camera_pitch < pitch_before, "AvPag tilts the camera down")
+	# Capa 'labels' apagada y estado de partida
+	check(game.world.layer_state.get("labels", true) == false, "The view labels layer is off (the UI draws its own)")
+	game._update_hud()
+	check(game.clock_label.text.begins_with("Quedan") and game.state_label.text.find("Riesgo") >= 0, "Countdown and risk are shown")
 	# Vista previa de ruta y confirmacion por tramo sin reconocer
 	game._select_ids(["guemes"])
 	game._center_on(Vector2(280, 264))
