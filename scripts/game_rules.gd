@@ -27,7 +27,10 @@ const ROUTE_BANK_MIN_S := 10.0         ## segundos sobre un banco para contarlo 
 const PROBE_POINT_SPACING := 4.0       ## cada cuantos metros el sondeo agrega un punto
 const MARK_POINT_SPACING := 2.0
 const BEACH_MARGIN_M := 40.0           ## playa seca = x <= shore_high + 40 (texto de actions.rally.regen_requires, JSON)
-const BOARDING_EXPOSURE_MULT := 0.3    ## contrato 1.3: desmontando/abordando => exposicion x0,3
+const BOARDING_EXPOSURE_MULT := 0.6    ## valor por defecto; el escenario lo fija en ship.capture.boarding_exposure_mult
+const LOG_MAX := 400                   ## tope del registro de acontecimientos en el estado
+const SAVE_MAX_BYTES := 3000000        ## tope del guardado (load_game rechaza > 4 MB)
+const SAVE_LOG_FALLBACK := 60          ## si aun asi se pasa, se recorta el registro a esto al guardar
 const JUSTINE_GROUPS :=["guemes", "arias", "zavala"]
 const JUSTINE_STAGES := ["ready", "moving", "working", "stumbling", "rally", "blocked", "dismounting", "boarding", "routed"]
 const JUSTINE_ORDER_ACTIONS := ["move", "board", "rally", "withdraw", "muster", "resupply", "signal_liniers"]
@@ -258,10 +261,10 @@ func _setup_justine() -> void:
 		"capture": 0.0, "crew_morale": float(m.ship.crew.morale), "next_volley": float(m.ship.fire.volley_interval_s),
 		"deadline": float(m.time.deadline_s), "bajante_announced": false, "rising_announced": false,
 		"ammo": int(res.ammo_start), "ammo_max": int(res.ammo_max), "balizas": int(res.balizas_start), "volunteers_pool": float(res.volunteers_pool),
-		"advance_authorized": false, "fire_support": {"until": 0.0, "ready_at": 0.0},
+		"advance_authorized": false, "advance_until": -1.0, "fire_support": {"until": 0.0, "ready_at": 0.0},
 		"probes": [], "scouts": scouts, "hazards_found": [], "fords_found": [], "defeat_cause": "",
 		"stats": {"start_strength": start_strength, "shots_taken": 0, "damage_taken": 0.0, "stumbles": 0, "probe_m": 0.0, "marked_m": 0.0,
-			"ammo_used": 0, "balizas_used": 0, "fire_support_uses": 0, "muster_gain": 0.0, "scouts_lost": 0,
+			"ammo_used": 0, "balizas_used": 0, "fire_support_uses": 0, "muster_gain": 0.0, "scouts_lost": 0, "horses_lost": 0.0, "melee_loss": 0.0, "drowned": 0.0,
 			"exposure_s": {"central": 0.0, "sur": 0.0, "otra": 0.0}, "bank_s": {"central": 0.0, "sur": 0.0},
 			"stumble_at": {}, "boarded_at": -1.0, "level_at_boarding": -1.0, "first_water_entry_at": -1.0},
 		"historical_note": str(m.texts.historical_note), "briefing": str(m.texts.briefing)})
@@ -663,7 +666,7 @@ func exposure_for(u: Dictionary) -> float:
 		return 0.0
 	var e := exposure_at(float(u.x), float(u.z))
 	if u.stage in ["boarding", "dismounting"]:
-		e *= BOARDING_EXPOSURE_MULT
+		e *= float(map_data().ship.capture.get("boarding_exposure_mult", BOARDING_EXPOSURE_MULT))
 	return e
 
 
@@ -1036,8 +1039,8 @@ func _check_group_action(u: Dictionary, action: String) -> Dictionary:
 		return _no("Esa agrupación ya no puede recibir órdenes.")
 	if action == "cancel":
 		return {"ok": true, "reason": "Disponible."}
-	if u.stage in ["dismounting", "boarding"]:
-		return _no("El grupo ya desmontó y está abordando el buque: no recibe otras órdenes.")
+	if u.stage == "dismounting" or (u.stage == "boarding" and action != "withdraw"):
+		return _no("El grupo ya desmontó y está abordando el buque: solo puede retirarse.")
 	if u.stage == "stumbling":
 		return _no(_stumble_stop(u))
 	var m := map_data()
@@ -1059,6 +1062,8 @@ func _check_group_action(u: Dictionary, action: String) -> Dictionary:
 				return _no("No quedan voluntarios en el reservorio de la Plaza de Toros.")
 			if float(u.strength) >= 100.0 - 0.001:
 				return _no("El grupo ya tiene toda su fuerza (100).")
+			if int(state.ammo) < int(m.actions.muster.get("ammo_cost", 0)):
+				return _no("Faltan municiones para armar a los reclutas: hacen falta %d y quedan %d." % [int(m.actions.muster.ammo_cost), int(state.ammo)])
 		"resupply":
 			if int(state.ammo) >= int(state.ammo_max):
 				return _no("El depósito de munición está lleno (%d/%d)." % [int(state.ammo), int(state.ammo_max)])
@@ -1093,6 +1098,9 @@ func issue_order(group_id: String, action: String, target: Vector2 = Vector2.ZER
 	var chk := _check_group_action(u, action)
 	if not chk.ok:
 		return chk
+	if action == "withdraw" and u.stage == "boarding":
+		u.mounted = true  ## los caballos esperaban en el vado
+		_clear_motion(u)
 	var pace := str(opts.get("pace", u.pace))
 	if pace not in PACES:
 		pace = "trot"
@@ -1321,7 +1329,8 @@ func ship_state() -> Dictionary:
 		"fire_support_ready_in": maxf(0.0, float(state.get("fire_support", {}).get("ready_at", 0.0)) - float(state.get("elapsed", 0.0)))}
 
 func resources() -> Dictionary:
-	return {"ammo": int(state.ammo), "ammo_max": int(state.ammo_max), "balizas": int(state.balizas), "volunteers_pool": float(state.volunteers_pool), "advance_authorized": bool(state.advance_authorized)}
+	return {"ammo": int(state.ammo), "ammo_max": int(state.ammo_max), "balizas": int(state.balizas), "volunteers_pool": float(state.volunteers_pool), "advance_authorized": bool(state.advance_authorized),
+		"advance_remaining_s": maxf(0.0, float(state.get("advance_until", -1.0)) - float(state.get("elapsed", 0.0))) if bool(state.advance_authorized) and float(state.get("advance_until", -1.0)) >= 0.0 else 0.0}
 
 func scouts() -> Array:
 	return state.get("scouts", []).duplicate(true)
@@ -1487,6 +1496,9 @@ func _justine_step(dt: float) -> void:
 	if not state.rising_announced and elapsed >= marks.low_hold_end:
 		state.rising_announced = true
 		_event("El agua vuelve a subir: quedan %d s para asegurar la captura." % roundi(marks.deadline - elapsed), "warning")
+	if bool(state.advance_authorized) and float(state.get("advance_until", -1.0)) >= 0.0 and elapsed >= float(state.advance_until):
+		state.advance_authorized = false
+		_event("La orden de avance de Liniers venció: hay que volver a señalar para cargar.", "warning")
 	var board_power := 0.0
 	var alive := 0
 	var routed_hp: float = float(m.outcome.routed_strength_threshold)
@@ -1572,6 +1584,7 @@ func _step_group(u: Dictionary, dt: float) -> float:
 			if elapsed >= float(u.blocked_until):
 				_replan(u, false)
 		"dismounting":
+			_boarding_hazards(u, dt)
 			u.dismount_remaining = maxf(0.0, float(u.dismount_remaining) - dt)
 			if float(u.dismount_remaining) <= 0.0:
 				u.mounted = false
@@ -1582,13 +1595,32 @@ func _step_group(u: Dictionary, dt: float) -> float:
 					state.stats.level_at_boarding = water_level_m()
 				_event("%s desmontó. Los caballos quedan en el vado mientras la partida exige la rendición." % u.name, "boarding", {"unit": u.id, "pos": {"x": u.x, "z": u.z}})
 		"boarding":
-			return (float(u.strength) / 100.0) * maxf(0.35, 1.0 - float(u.fatigue) * 0.004)
+			_boarding_hazards(u, dt)
+			u.fatigue = minf(100.0, float(u.fatigue) + 0.05 * dt)
+			if float(u.strength) <= float(map_data().outcome.routed_strength_threshold):
+				return 0.0
+			return (float(u.strength) / 100.0) * maxf(0.4, 1.0 - float(u.fatigue) * 0.004)
 		"rally":
 			if _on_dry_beach(here):
 				var rally: Dictionary = map_data().actions.rally
 				u.fatigue = maxf(0.0, float(u.fatigue) - float(rally.regen_fatigue_per_s) * dt)
 				u.strength = minf(100.0, float(u.strength) + float(rally.regen_strength_per_s) * dt)
 	return 0.0
+
+## Costo de abordar: cuerpo a cuerpo con la dotación (mientras conserve moral) y el agua que sube sobre quien esta a pie en el vado.
+func _boarding_hazards(u: Dictionary, dt: float) -> void:
+	var cap: Dictionary = map_data().ship.capture
+	if u.stage == "boarding":
+		var melee := float(cap.get("melee_loss_per_s", 0.0)) * (float(state.crew_morale) / 100.0) * dt
+		u.strength = maxf(0.0, float(u.strength) - melee)
+		state.stats.melee_loss = float(state.stats.melee_loss) + melee
+	var excess := water_depth_at(float(u.x), float(u.z)) - _foot_limit()
+	if excess > 0.0:
+		var loss := float(cap.get("drown_loss_per_m_s", 0.0)) * (excess + 0.1) * dt
+		u.strength = maxf(0.0, float(u.strength) - loss)
+		state.stats.drowned = float(state.stats.drowned) + loss
+		if int(float(state.elapsed) * 4.0) % 80 == 0:
+			_event("%s lucha con el agua que sube en el vado: el río supera lo que un hombre a pie puede vadear y se pierden jinetes." % u.name, "warning", {"unit": u.id, "pos": {"x": u.x, "z": u.z}})
 
 func _fatigue_rate(pace: String, d: float, h_mud: bool) -> float:
 	var f: Dictionary = _mv().fatigue_per_s
@@ -1702,7 +1734,12 @@ func _finish_work(u: Dictionary) -> void:
 			u.strength = float(u.strength) + gain
 			state.volunteers_pool = float(state.volunteers_pool) - gain
 			state.stats.muster_gain = float(state.stats.muster_gain) + gain
-			_event("%s reúne jinetes en la Plaza de Toros: +%.0f de fuerza." % [u.name, gain], "muster", {"unit": u.id, "pos": pos})
+			var raw_fat := float(a.get("fatigue_gain", 0.0)) * (gain / maxf(0.001, float(a.strength_gain)))
+			u.fatigue = minf(100.0, float(u.fatigue) + raw_fat)
+			var ac := mini(int(a.get("ammo_cost", 0)), int(state.ammo))
+			state.ammo = int(state.ammo) - ac
+			state.stats.ammo_used = int(state.stats.ammo_used) + ac
+			_event("%s reúne jinetes en la Plaza de Toros: +%.0f de fuerza (reclutas sin entrenar: +%.0f de fatiga, −%d de munición)." % [u.name, gain, raw_fat, ac], "muster", {"unit": u.id, "pos": pos})
 		"resupply":
 			a = map_data().actions.resupply
 			var got := mini(int(a.ammo_gain), int(state.ammo_max) - int(state.ammo))
@@ -1711,9 +1748,10 @@ func _finish_work(u: Dictionary) -> void:
 		"signal":
 			a = map_data().actions.signal_liniers
 			state.advance_authorized = true
+			state.advance_until = float(state.elapsed) + float(a.get("valid_s", 1.0e9))
 			var got2 := mini(int(a.ammo_gain), int(state.ammo_max) - int(state.ammo))
 			state.ammo = int(state.ammo) + got2
-			_event("Liniers concede la orden de avanzar (tradición: la lleva la vanguardia de Güemes). +%d de munición." % got2, "signal", {"unit": u.id, "pos": pos, "tag": str(a.tag)})
+			_event("Liniers concede la orden de avanzar (vale %d s). Regla del juego: el relato de Obligado (1920) la hace partir de Liniers hacia la caballería de Pueyrredón. +%d de munición." % [roundi(float(a.get("valid_s", 0.0))), got2], "signal", {"unit": u.id, "pos": pos, "tag": str(a.tag)})
 
 func _touch_hazards(p: Vector2, reach: float) -> void:
 	var m := map_data()
@@ -1780,6 +1818,15 @@ func _stumble(u: Dictionary, cur: Vector2, nxt: Vector2) -> void:
 			hz_cfg = hz.stumble
 			hz_id = str(hz.id)
 	if hz_cfg.is_empty():
+		for ch in map_data().channels:
+			var cpts := _vpoly(ch.centerline)
+			var dc := INF
+			for ci in range(cpts.size() - 1):
+				dc = minf(dc, nxt.distance_to(Geometry2D.get_closest_point_to_segment(nxt, cpts[ci], cpts[ci + 1])))
+			if dc <= float(ch.half_width_m) + float(ch.blend_m) and ch.has("stumble"):
+				hz_cfg = ch.stumble
+				hz_id = str(ch.id)
+	if hz_cfg.is_empty():
 		hz_cfg = map_data().hazards[0].stumble
 	u.path = []
 	u.stage = "stumbling"
@@ -1787,6 +1834,7 @@ func _stumble(u: Dictionary, cur: Vector2, nxt: Vector2) -> void:
 	u.fatigue = minf(100.0, float(u.fatigue) + float(hz_cfg.fatigue))
 	u.strength = maxf(0.0, float(u.strength) - float(hz_cfg.strength_loss))
 	state.stats.stumbles = int(state.stats.stumbles) + 1
+	state.stats.horses_lost = float(state.stats.horses_lost) + float(hz_cfg.strength_loss)
 	state.stats.stumble_at[hz_id] = int(state.stats.stumble_at.get(hz_id, 0)) + 1
 	var dir := (nxt - cur).normalized() if nxt.distance_to(cur) > 0.001 else Vector2(1, 0)
 	var lane_len := float(map_data().knowledge.probe_lane_width_m)
@@ -1799,7 +1847,7 @@ func _stumble(u: Dictionary, cur: Vector2, nxt: Vector2) -> void:
 		state.stats.probe_m = float(state.stats.probe_m) + cur.distance_to(tip)
 	_touch_hazards(nxt, BLEND_DEFAULT)
 	_know_sig = -1
-	_event("%s tropieza en un hoyo del fondo que no estaba reconocido: se detiene %d s (+%d fatiga, −%d fuerza)." % [u.name, roundi(hz_cfg.stop_s), roundi(hz_cfg.fatigue), roundi(hz_cfg.strength_loss)], "stumble", {"unit": u.id, "pos": {"x": nxt.x, "z": nxt.y}})
+	_event("%s cae en un hoyo del fondo que no estaba reconocido: se pierden caballos y jinetes, y el grupo queda detenido %d s (+%d fatiga, −%d fuerza)." % [u.name, roundi(hz_cfg.stop_s), roundi(hz_cfg.fatigue), roundi(hz_cfg.strength_loss)], "stumble", {"unit": u.id, "pos": {"x": nxt.x, "z": nxt.y}})
 
 func _nearest_dry_point(from: Vector2, mounted: bool) -> Vector2:
 	## Punto firme y seco de la playa mas cercano; Vector2(INF, INF) si no hay.
@@ -1993,7 +2041,7 @@ func _artillery() -> void:
 	state.stats.shots_taken = int(state.stats.shots_taken) + 1
 	if pick.has("hp"):
 		## Un explorador pierde 1 de salud si el impacto prospera con probabilidad = exposicion (el fuego de distraccion lo protege).
-		if _random() >= exposure_at(float(pick.x), float(pick.z)):
+		if _random() >= exposure_at(float(pick.x), float(pick.z)) * float(fire.get("scout_hit_chance", 1.0)):
 			_event("El buque dispara cerca de %s y no lo alcanza." % pick.name, "shot", {"unit": pick.id, "pos": {"x": pick.x, "z": pick.z}})
 			return
 		pick.hp = maxi(0, int(pick.hp) - 1)
@@ -2027,11 +2075,11 @@ func _history_lines() -> Array:
 	for g in m.groups:
 		tags[str(g.id)] = g
 	return [
-		{"text": "Un buque mercante de %d cañones varó frente al Retiro, junto a la batería Abascal y la Plaza de Toros (Gillespie 1818; sin tipo, tonelaje ni capitán documentados)." % int(ship.guns_total), "tag": str(ship.tag)},
-		{"text": "La caballería de Pueyrredón tomó el buque al cierre del 12 de agosto de 1806, cuando el río bajó de golpe.", "tag": str(tags["zavala"].tag)},
-		{"text": "Güemes al frente de los jinetes es una tradición no probada (Ideario pp. 33, 390-392): Obligado 1920 lo hace ayudante de Liniers.", "tag": str(tags["guemes"].tag)},
-		{"text": "La distancia de ~%d m desde la orilla (cifra divulgativa) y los %.1f m de agua del vado con el río en mínimo son diseño." % [roundi(float(ship.distance_from_shore_high_m)), depth_low], "tag": str(ship.distance_tag)},
-		{"text": "Bancos, canal, vados, pozo, tiempos de bajante, fuerzas, munición y el puesto de Liniers son diseño del juego: no existe sondeo de 1806 del Retiro.", "tag": "diseno"}
+		{"text": "Un mercante británico de %d cañones, que combatió el día de la rendición, fue tomado por caballería al cerrar el 12 de agosto de 1806 por una súbita bajada del río (Gillespie 1818; sin tipo, tonelaje ni capitán documentados)." % int(ship.guns_total), "tag": str(ship.tag)},
+		{"text": "Fuentes divulgativas (edisalta, La Nación, Recalada) lo ubican varado frente al Retiro, cerca de la Plaza de Toros y de la batería de Abascal; Gillespie no da el lugar. Que la caballería fuera la de Pueyrredón viene de relatos secundarios (Obligado 1920).", "tag": "reconstruccion"},
+		{"text": "Güemes al frente de los jinetes es una tradición no probada (Ideario pp. 33, 390-392): Obligado 1920 lo hace ayudante de Liniers, y Gillespie no nombra al jefe.", "tag": str(tags["guemes"].tag)},
+		{"text": "La distancia de ~%d m al buque (cifra divulgativa, medida desde el pie de la barranca, donde estaba la costa de 1806) y los %.1f m de agua del vado con el río en mínimo son diseño." % [roundi(float(ship.distance_from_shore_high_m)), depth_low], "tag": str(ship.distance_tag)},
+		{"text": "Bancos, canal, vados, hoyos, tiempos de bajante, fuerzas, munición, el cuerpo a cuerpo y el puesto de Liniers son diseño del juego: no existe sondeo de 1806 del Retiro.", "tag": "diseno"}
 	]
 
 func campaign_report() -> Dictionary:
@@ -2076,6 +2124,7 @@ func campaign_report() -> Dictionary:
 		"groups": groups, "route": route, "route_notes": notes,
 		"probe_m": float(st.probe_m), "marked_m": float(st.marked_m), "stumbles": int(st.stumbles), "ammo_used": int(st.ammo_used),
 		"balizas_used": int(st.balizas_used), "fire_support_uses": int(st.fire_support_uses), "scouts_lost": int(st.scouts_lost),
+		"horses_lost": float(st.horses_lost), "melee_loss": float(st.melee_loss), "drowned": float(st.drowned),
 		"shots_taken": int(st.shots_taken), "damage_taken": float(st.damage_taken), "level_at_boarding": float(st.level_at_boarding), "boarded_at": float(st.boarded_at),
 		"exposure_s": (st.exposure_s as Dictionary).duplicate(true), "history": _history_lines()}
 
@@ -2431,6 +2480,8 @@ func _event(message: String, kind: String = "info", extra: Dictionary = {}) -> v
 	for key in extra:
 		event[key] = extra[key]
 	state.log.append(event)
+	if state.log.size() > LOG_MAX:
+		state.log = (state.log as Array).slice(state.log.size() - LOG_MAX)
 	_events.append(event)
 
 func _no(reason: String) -> Dictionary:
@@ -2442,10 +2493,18 @@ func snapshot() -> Dictionary:
 func save_game(path: String) -> Error:
 	if state.is_empty():
 		return ERR_UNCONFIGURED
+	var text := JSON.stringify(state, "", true, true)
+	if text.length() > SAVE_MAX_BYTES:
+		## Guardado compacto y, si aun asi se pasa, registro recortado (sin tocar la partida en curso): load_game rechaza > 4 MB.
+		var slim := state.duplicate(true)
+		slim.log = (slim.log as Array).slice(maxi(0, slim.log.size() - SAVE_LOG_FALLBACK))
+		text = JSON.stringify(slim, "", true, true)
+		if text.length() > SAVE_MAX_BYTES:
+			return ERR_FILE_CORRUPT
 	var file := FileAccess.open(path + ".tmp", FileAccess.WRITE)
 	if file == null:
 		return FileAccess.get_open_error()
-	file.store_string(JSON.stringify(state, "\t", true, true))
+	file.store_string(text)
 	file.flush()
 	file.close()
 	return DirAccess.rename_absolute(ProjectSettings.globalize_path(path + ".tmp"), ProjectSettings.globalize_path(path))
@@ -2534,7 +2593,7 @@ func validate_snapshot(value: Variant) -> Dictionary:
 					return _no("Agrupación incompleta.")
 			if not _point_in_map(u):
 				return _no("Agrupación fuera del mapa.")
-			if not u.pace is String or u.pace not in PACES or not u.work is Dictionary or not _number_in(u.stumble_remaining, 0, 20) or not u.tag is String:
+			if not u.pace is String or u.pace not in PACES or not u.work is Dictionary or not _number_in(u.stumble_remaining, 0, 60) or not u.tag is String:
 				return _no("Ritmo, trabajo o tropiezo inválidos.")
 			if not u.work.is_empty() and (not u.work.get("kind") is String or u.work.kind not in ["muster", "resupply", "signal"] or not _number_in(u.work.get("remaining"), 0, 120)):
 				return _no("Trabajo en curso inválido.")
@@ -2607,7 +2666,7 @@ func validate_snapshot(value: Variant) -> Dictionary:
 
 func _validate_justine_fields(d: Dictionary) -> Dictionary:
 	var m := map_data()
-	for key in ["map_id", "map_version", "water_level_m", "water_level", "tide_phase", "capture", "crew_morale", "next_volley", "deadline", "bajante_announced", "rising_announced", "ammo", "ammo_max", "balizas", "volunteers_pool", "advance_authorized", "fire_support", "probes", "scouts", "hazards_found", "fords_found", "stats", "historical_note", "briefing"]:
+	for key in ["map_id", "map_version", "water_level_m", "water_level", "tide_phase", "capture", "crew_morale", "next_volley", "deadline", "bajante_announced", "rising_announced", "ammo", "ammo_max", "balizas", "volunteers_pool", "advance_authorized", "advance_until", "fire_support", "probes", "scouts", "hazards_found", "fords_found", "stats", "historical_note", "briefing"]:
 		if not d.has(key):
 			return _no("Estado de la ribera incompleto: falta %s." % key)
 	if not d.map_id is String or d.map_id != str(m.id) or not _number_in(d.map_version, int(m.map_version), int(m.map_version)):
@@ -2621,7 +2680,7 @@ func _validate_justine_fields(d: Dictionary) -> Dictionary:
 	if not _number_in(d.next_volley, 0, 2000) or not _number_in(d.deadline, 1, 3600) or not d.bajante_announced is bool or not d.rising_announced is bool or not d.tide_phase is String or d.tide_phase not in TIDE_PHASES:
 		return _no("Fase o tiempos del río inválidos.")
 	var res: Dictionary = m.resources
-	if not _number_in(d.ammo_max, 1, 10000) or not _number_in(d.ammo, 0, d.ammo_max if _number_in(d.ammo_max, 1, 10000) else 0) or not _number_in(d.balizas, 0, int(res.balizas_start)) or not _number_in(d.volunteers_pool, 0, float(res.volunteers_pool)) or not d.advance_authorized is bool:
+	if not _number_in(d.ammo_max, 1, 10000) or not _number_in(d.ammo, 0, d.ammo_max if _number_in(d.ammo_max, 1, 10000) else 0) or not _number_in(d.balizas, 0, int(res.balizas_start)) or not _number_in(d.volunteers_pool, 0, float(res.volunteers_pool)) or not d.advance_authorized is bool or not _number_in(d.advance_until, -1, 100000):
 		return _no("Recursos inválidos (munición, balizas o voluntarios).")
 	if not d.fire_support is Dictionary or not _number_in(d.fire_support.get("until"), 0, 100000) or not _number_in(d.fire_support.get("ready_at"), 0, 100000):
 		return _no("Apoyo de fuego inválido.")
@@ -2679,14 +2738,14 @@ func _validate_justine_fields(d: Dictionary) -> Dictionary:
 		if not id is String or id not in fd_ids:
 			return _no("Hallazgo de vado inexistente.")
 	# estadisticas
-	if not d.stats is Dictionary or not d.stats.has_all(["start_strength", "shots_taken", "damage_taken", "stumbles", "probe_m", "marked_m", "ammo_used", "balizas_used", "fire_support_uses", "muster_gain", "scouts_lost", "exposure_s", "boarded_at", "level_at_boarding", "first_water_entry_at"]):
+	if not d.stats is Dictionary or not d.stats.has_all(["start_strength", "shots_taken", "damage_taken", "stumbles", "probe_m", "marked_m", "ammo_used", "balizas_used", "fire_support_uses", "muster_gain", "scouts_lost", "horses_lost", "melee_loss", "drowned", "exposure_s", "boarded_at", "level_at_boarding", "first_water_entry_at"]):
 		return _no("Estadísticas incompletas.")
 	if not d.stats.start_strength is Dictionary or not d.stats.exposure_s is Dictionary:
 		return _no("Estadísticas inválidas.")
 	for id in JUSTINE_GROUPS:
 		if not _number_in(d.stats.start_strength.get(id), 0, 100):
 			return _no("Estadísticas: falta la fuerza inicial de %s." % id)
-	for key in ["shots_taken", "damage_taken", "stumbles", "probe_m", "marked_m", "ammo_used", "balizas_used", "fire_support_uses", "muster_gain", "scouts_lost"]:
+	for key in ["shots_taken", "damage_taken", "stumbles", "probe_m", "marked_m", "ammo_used", "balizas_used", "fire_support_uses", "muster_gain", "scouts_lost", "horses_lost", "melee_loss", "drowned"]:
 		if not _number_in(d.stats[key], 0, 1000000):
 			return _no("Estadísticas fuera de rango.")
 	for key in ["central", "sur", "otra"]:
