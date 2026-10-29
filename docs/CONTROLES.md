@@ -87,6 +87,47 @@ Si un botón está deshabilitado, dejá el mouse sobre él (o enfocá otro con T
 
 Esperar sin actuar no es una estrategia de victoria automática: el ejército invasor puede recuperar recursos y sostener su campaña. El equilibrio entre presión, información y conservación importa más que ocupar todos los nombres del mapa.
 
+## Justina: tabla única de teclas
+
+Esta tabla es la de `J_KEY_TABLE` y `ACTION_KEYS` en `scripts/main.gd`; `tests/test_integration.gd` comprueba que no haya una tecla repetida y que cada fila figure aquí. La vista y el reinicio coinciden con el Norte (R reinicia con confirmación, F centra la selección); la inclinación de cámara pasó a RePág / AvPág para liberar R y F. Los botones del panel y del encabezado ejecutan lo mismo («Ver todo · 0», «Reiniciar · R», «Parte · P»).
+
+| Tecla | Acción |
+| --- | --- |
+| WASD | Mover la cámara (también flechas y borde de pantalla; Mayús = más rápido). |
+| Q / E | Girar la cámara. |
+| RePág / AvPág | Inclinar la cámara. |
+| 1-5 | Seleccionar grupos (1-3) y exploradores (4-5). |
+| Tab | Ciclar la selección. |
+| Espacio | Iniciar, pausar o reanudar el tiempo. |
+| Inicio | Centrar la cámara en la selección (también F). |
+| B | Ir al buque. |
+| 0 | Ver todo el mapa (encuadra el escenario completo). |
+| M | Minimapa grande o normal. |
+| P | Parte de campaña. |
+| G / T / C | Ritmo: galope, trote, paso. |
+| Enter | Confirmar la orden o la ruta en curso. |
+| + / - | Velocidad del tiempo (x1, x2, x4). |
+| R | Reiniciar la partida (pide confirmación; el guardado de F5 no se borra). |
+| F1 | Ayuda y briefing. |
+| F5 | Guardar. |
+| F9 | Cargar. |
+| F11 | Pantalla completa. |
+| Esc | Cancelar la orden, soltar el foco o cerrar el panel. |
+| V | Mover (apuntar el destino; Mayús agrega puntos). |
+| N | Cargar y abordar. |
+| U | Reunir jinetes. |
+| J | Abastecer munición. |
+| K | Señalar a Liniers. |
+| L | Retirar. |
+| Y | Reagrupar. |
+| X | Cancelar la orden. |
+| Z | Reconocer fondo (explorador). |
+| H | Marcar vado (explorador). |
+| I | Volver (explorador) o plegar el panel de río y tiempo. |
+| O | Distraer con fuego. |
+
+Ratón: clic izquierdo selecciona (arrastrar = caja; Mayús suma, Ctrl alterna); clic derecho ordena mover (con vista previa de ruta, tiempo y riesgo); botón derecho o central arrastrado agarra el mapa; Alt + botón central orbita; rueda = zoom hacia el cursor; clic o arrastre en el minimapa centra la cámara.
+
 ## Ajustes
 
 En **Ajustes** podés elegir calidad **Baja**, **Media** o **Alta**, cambiar volumen, silenciar, activar ayudas, invertir la inclinación de cámara y alternar pantalla completa. Baja desactiva sombras; Media y Alta añaden sombras y distintos niveles de suavizado. Elegí el perfil según cómo responda tu equipo.

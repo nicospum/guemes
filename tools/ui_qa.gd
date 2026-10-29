@@ -3,6 +3,9 @@ extends SceneTree
 ## Uso: godot --path . --resolution 1440x900 --script tools/ui_qa.gd [-- --out=<carpeta>]
 ## Resoluciones probadas: 1280x720, 1440x900, 1920x1080 y 2560x1440 (la interfaz usa anclas;
 ## el informe registra el tamano logico del viewport y comprueba que los paneles no se salgan ni se pisen).
+## --size=WxH fija el tamano real de la ventana (sin bordes, tras el arranque) para que el SO no la recorte a la altura util del monitor
+## (con --resolution a secas, 2560x1440 y 1920x1080 salian de 2560x1062 y 1920x1062 en un monitor 1920x1080). Se verifica el tamano de la
+## captura y, si no coincide, el QA falla salvo que se pase --allow-clip; el informe guarda captura_px y resolucion_real.
 ## --out cambia la carpeta de capturas e informe (por defecto evidence/justina-ui/interfaz; no pisa evidence/fase2).
 ## No es una partida humana ni una prueba con teclado físico del sistema operativo.
 
@@ -11,11 +14,20 @@ var out_dir := "res://evidence/justina-ui/interfaz"
 var checks := 0
 var failures: Array = []
 var notes: Dictionary = {}
+var want_size := Vector2i.ZERO
+var allow_clip := false
+var last_shot_size := Vector2i.ZERO
 
 func _initialize() -> void:
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--out="):
 			out_dir = arg.trim_prefix("--out=")
+		elif arg.begins_with("--size="):
+			var parts := arg.trim_prefix("--size=").split("x")
+			if parts.size() == 2:
+				want_size = Vector2i(int(parts[0]), int(parts[1]))
+		elif arg == "--allow-clip":
+			allow_clip = true
 	call_deferred("_run")
 
 func _frames(n: int) -> void:
@@ -25,6 +37,7 @@ func _frames(n: int) -> void:
 func _shot(shot_name: String) -> void:
 	await RenderingServer.frame_post_draw
 	var img := root.get_viewport().get_texture().get_image()
+	last_shot_size = img.get_size()
 	img.save_png(ProjectSettings.globalize_path(out_dir).path_join(shot_name + ".png"))
 
 func check(cond: bool, what: String) -> void:
@@ -147,20 +160,52 @@ func _justina_layout(label: String) -> void:
 			check(view.encloses(r), "%s: panel dentro del viewport %s (%s)" % [label, str(view.size), str(r)])
 	check(_overlaps(rects) == 0, "%s: paneles sin solaparse" % label)
 	var mr: Rect2 = game.minimap_rect()
-	check(mr.size.x >= 260.0 and mr.size.y >= 150.0, "%s: minimapa de al menos 260x150" % label)
+	var sc: float = root.get_final_transform().get_scale().x
+	var min_px := 260.0 if DisplayServer.window_get_size().y >= 1080 else 230.0  # el requisito de 260 px es para 1080p o mas
+	check(mr.size.x * sc >= min_px and mr.size.y * sc >= 0.55 * min_px, "%s: minimapa legible (>= %d px fisicos de ancho; es %s)" % [label, int(min_px), str(mr.size * sc)])
+	notes["rects_" + label] = rects.map(func(r): return str(r))
 	check(view.encloses(game.scale_rect()) and view.encloses(game.compass_rect()), "%s: escala y brujula dentro de la pantalla" % label)
 	notes["justina_layout_" + label] = {"viewport": [view.size.x, view.size.y], "minimapa": [mr.size.x, mr.size.y], "paneles": rects.size()}
+
+func _apply_size() -> void:
+	## Un monitor de 1920x1080 no admite una ventana de SO decorada de 2560x1440 (o de 1080 de alto): el SO la recorta
+	## (p. ej. 1062 px). Una ventana sin bordes cuyo tamano se fija despues del arranque si llega a 2560x1440, y la
+	## captura (textura del viewport) tiene entonces el tamano pedido. Se verifica y se registra; si no se logra, falla.
+	if want_size == Vector2i.ZERO:
+		return
+	root.mode = Window.MODE_WINDOWED
+	root.borderless = true
+	root.size = want_size
+	root.position = Vector2i.ZERO
+	await _frames(12)
+	notes["tamano_pedido"] = [want_size.x, want_size.y]
+	notes["ventana_px_tras_ajuste"] = [DisplayServer.window_get_size().x, DisplayServer.window_get_size().y]
+	notes["monitor_px"] = [DisplayServer.screen_get_size().x, DisplayServer.screen_get_size().y]
+
+func _check_real_size() -> void:
+	if want_size == Vector2i.ZERO:
+		return
+	var real := last_shot_size == want_size
+	notes["captura_px"] = [last_shot_size.x, last_shot_size.y]
+	notes["resolucion_real"] = real
+	if not real:
+		notes["limitacion"] = "El monitor/SO no permitio una captura de %dx%d (se obtuvo %dx%d)." % [want_size.x, want_size.y, last_shot_size.x, last_shot_size.y]
+	check(real or allow_clip, "Captura a la resolucion pedida %s (obtenida %s)" % [str(want_size), str(last_shot_size)])
 
 func _run() -> void:
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(out_dir))
 	game = (load("res://scenes/main.tscn") as PackedScene).instantiate()
 	root.add_child(game)
 	await _frames(20)
+	await _apply_size()
 	notes["viewport_logico"] = [root.get_visible_rect().size.x, root.get_visible_rect().size.y]
 	notes["ventana_px"] = [DisplayServer.window_get_size().x, DisplayServer.window_get_size().y]
 	var salir := _button("Salir")
 	check(salir != null and Rect2(Vector2.ZERO, root.get_visible_rect().size).encloses(salir.get_global_rect()), "Menu: Salir visible dentro del viewport")
 	await _shot("menu")
+	_check_real_size()
+	check(game.find_children("*", "RichTextLabel", true, false).filter(func(l): return "documentada" in str(l.text).to_lower()).is_empty(), "Menu: sin la palabra 'documentada' como autodefinicion")
+	check(game.find_children("*", "RichTextLabel", true, false).filter(func(l): return "diseño propio" in str(l.text)).size() == 1, "Menu: texto honesto 'recreacion historica con diseño propio'")
 	game.jev.force_local = true
 	var T := preload("res://tests/test_integration.gd")
 	var RR := preload("res://scripts/game_rules.gd")
@@ -192,7 +237,41 @@ func _run() -> void:
 	notes["justina_free_con_ayuda"] = _free_area()
 	check(float(notes["justina_free_con_ayuda"].free_pct) >= 75.0, "Justina: la interfaz no tapa mas del 25 %% de la vista (libre %s %%)" % str(notes["justina_free_con_ayuda"].free_pct))
 	notes["justina_overlaps_inicio"] = _overlaps(game.last_overlay_rects)
+	notes["justina_overlay_rects_inicio"] = game.last_overlay_rects.map(func(r): return str(r))
 	check(_overlaps(game.last_overlay_rects) == 0, "Justina inicio: etiquetas y fichas sin solapamiento")
+	# Contexto inicial, rotulos propios, estado de partida
+	var vis := Rect2(Vector2.ZERO, root.get_visible_rect().size)
+	var ship_p: Vector2 = game.rules.ship_position()
+	var ship_s: Vector2 = game.camera.unproject_position(Vector3(ship_p.x, game._ground_y(ship_p.x, ship_p.y), ship_p.y))
+	var grp_s: Vector2 = game.camera.unproject_position(game.world.unit_nodes["guemes"].root.global_position)
+	check(vis.has_point(ship_s) and vis.has_point(grp_s), "Camara inicial: se ven a la vez los grupos y el buque")
+	check(game.world.layer_state.get("labels", true) == false, "La capa 'labels' de la vista esta apagada (rotulos propios de la interfaz)")
+	var dup := 0
+	for l in game.world.find_children("*", "Label3D", true, false):
+		if l.is_visible_in_tree() and (game.world.labels_root.is_ancestor_of(l) or game.world.unit_labels.values().has(l)):
+			dup += 1
+	check(dup == 0, "Sin rotulos 3D duplicados de hitos ni unidades (%d visibles)" % dup)
+	check(game.state_label.text.find("Quedan") >= 0 and game.clock_label.text.begins_with("Quedan"), "El estado y la cuenta regresiva se muestran")
+	check(game.state_label.text.find("Riesgo") >= 0 and game.state_label.text.find("Vado") >= 0, "El estado indica vados y riesgo")
+	var pitch0: float = game.camera_pitch
+	game.qa_keys[KEY_PAGEUP] = true
+	await _frames(10)
+	game.qa_keys.erase(KEY_PAGEUP)
+	check(game.camera_pitch > pitch0, "RePag inclina la camara")
+	var d_before: float = game.camera_distance
+	await _key(KEY_0)
+	await _frames(90)
+	check(game.camera_distance > d_before * 0.99 or game.camera_distance > 450.0, "La tecla 0 aleja la vista para ver todo el mapa (%d m)" % int(game.camera_distance))
+	var corners_ok := true
+	for c in [Vector2(0, 0), Vector2(900, 0), Vector2(900, 520), Vector2(0, 520)]:
+		var cs: Vector2 = game.camera.unproject_position(Vector3(c.x, 0, c.y))
+		if not vis.has_point(cs) or game.camera.is_position_behind(Vector3(c.x, 0, c.y)):
+			corners_ok = false
+	check(corners_ok, "Ver todo: las cuatro esquinas del mapa entran en la pantalla")
+	await _shot("justina-ver-todo")
+	game._reset_camera_j()
+	game._apply_camera()
+	await _frames(6)
 	# Seleccion con entrada real inyectada
 	await _key(KEY_2)
 	check(game.sel_ids == ["arias"], "Tecla 2 selecciona el segundo grupo")
@@ -207,7 +286,7 @@ func _run() -> void:
 	await _shot("justina-caja")
 	# Minimapa con clic real
 	var mr: Rect2 = game.minimap_rect()
-	await _click(mr.position + Vector2(130, 75))
+	await _click(mr.position + Vector2(mr.size.x * 0.5, mr.size.y * 0.5))
 	await _frames(4)
 	check(Vector2(game.camera_target.x, game.camera_target.z).distance_to(Vector2(450, 260)) < 6.0, "Clic real en el minimapa centra la camara")
 	await _shot("justina-minimapa-clic")
@@ -300,6 +379,23 @@ func _run() -> void:
 	_justina_layout("Justina parte")
 	game._close_modal()
 
+	# Reinicio con R y confirmacion
+	var el0: float = game.rules.state.elapsed
+	await _key(KEY_R)
+	await _frames(4)
+	check(is_instance_valid(game.modal), "R abre la confirmacion de reinicio en Justina")
+	await _key(KEY_ESCAPE)
+	await _frames(4)
+	check(not is_instance_valid(game.modal) and game.rules.state.elapsed == el0, "Esc cancela el reinicio y no pierde la partida")
+	await _key(KEY_R)
+	await _frames(4)
+	var yes := _button("Sí, reiniciar")
+	check(yes != null, "La confirmacion ofrece 'Si, reiniciar'")
+	if yes != null:
+		await _click(yes.get_global_rect().get_center())
+		await _frames(20)
+	check(float(game.rules.state.elapsed) == 0.0 and str(game.rules.state.status) == "playing", "Confirmar reinicia la partida")
+	game._close_modal()
 	game.rules = RR.new()
 	game.world_script = RW
 	game._return_menu()

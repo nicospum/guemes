@@ -57,9 +57,39 @@
 			"status": "defeat",
 			"stumbles": 1,
 			"t_s": 900.0
+		},
+		{
+			"capture_pct": 100.0,
+			"outcome_shown": true,
+			"outcome_title": "Buque capturado",
+			"policy": "ui_real",
+			"report_modal_open": true,
+			"route": "central",
+			"status": "victory",
+			"stumbles": 0,
+			"t_s": 801.75,
+			"ui_inputs": 36,
+			"ui_log": [
+				"0 s: clic en «Entendido» (cerrar el briefing)",
+				"0 s: clic en «Iniciar» (arrancar el tiempo)",
+				"0 s: clic en «1×» (velocidad x2)",
+				"0 s: clic en «2×» (velocidad x4)",
+				"0 s: clic en «Señalar a Liniers» (dar la orden de avance)",
+				"1 s: clic en «Reunir» (reunir jinetes)",
+				"54 s: clic en «Abastecer» (reponer munición)",
+				"101 s: clic en «Reunir» (reunir jinetes)",
+				"180 s: clic derecho en el terreno (255, 244)",
+				"281 s: ruta con dos waypoints y Enter",
+				"305 s: clic en «Distraer» (fuego de distracción)",
+				"396 s: clic en «Distraer» (fuego de distracción)",
+				"467 s: clic en «Cargar y abordar» (abordar)",
+				"467 s: clic en «Cargar y abordar» (confirmar el tramo sin reconocer)",
+				"486 s: clic en «Distraer» (fuego de distracción)"
+			]
 		}
 	],
-	"victories": 3,
+	"ui_real_victory": true,
+	"victories": 4,
 	"victory_routes": [
 		"central",
 		"sur",
