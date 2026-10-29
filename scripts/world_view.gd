@@ -38,6 +38,11 @@ var glb_parts_cache = {}
 var glb_batches = {}
 ## Tamaño en pantalla de las etiquetas 3D (fixed_size): constante, no depende de la distancia.
 const LABEL_PIXEL_SIZE = 0.0006
+var batch_parent: Node3D = null
+## Justina (escala real, 1 unidad = 1 m). Todas las cifras vienen de rules.map_data().
+var justina = false
+signal minimap_changed
+var selected_ids: Array = []
 
 func build(game_rules, quality_name = "media"):
  rules = game_rules
@@ -48,17 +53,30 @@ func build(game_rules, quality_name = "media"):
  terrain_noise.frequency = 0.052
  terrain_noise.fractal_octaves = 4
  decoration_rng.seed = 12081806
+ # Justina a escala real: solo si Reglas ya expone el mapa del contrato (map_data). Si no, queda el escenario anterior.
+ justina = scenario == "justine" and rules.has_method("map_data") and not rules.map_data().is_empty()
  _lighting()
- _ground()
- if scenario == "justine":
-  _coast()
+ if justina:
+  _build_justina()
+  batch_parent = landmarks_root
+  _flush_batches()
+  batch_parent = self
  else:
-  _north()
- _flush_batches()
+  _ground()
+  if scenario == "justine":
+   _coast()
+  else:
+   _north()
+  _flush_batches()
  route_root = Node3D.new()
  add_child(route_root)
  for u in rules.state.units:
-  _create_group(u)
+  if justina:
+   _create_group_j(u)
+  else:
+   _create_group(u)
+ if justina:
+  _create_scouts_j()
  update_state(0.01)
 
 func _mat(color: Color, rough = 0.8, emissive = false):
@@ -138,7 +156,7 @@ func _flush_batches():
   mmi.name="Lote_"+kind
   mmi.multimesh=mm
   mmi.material_override=batch_material
-  add_child(mmi)
+  (batch_parent if batch_parent!=null else self).add_child(mmi)
  batches.clear()
  _flush_glb_batches()
 
@@ -192,7 +210,7 @@ func _flush_glb_batches():
    var mmi=MultiMeshInstance3D.new()
    mmi.name="LoteGLB_"+model_name
    mmi.multimesh=mm
-   add_child(mmi)
+   (batch_parent if batch_parent!=null else self).add_child(mmi)
  glb_batches.clear()
 
 func _lighting():
@@ -218,6 +236,20 @@ func _lighting():
  env.fog_light_color = Color("9baeb0") if scenario == "justine" else Color("bccad0")
  env.fog_light_energy = 0.3
  env.fog_density = 0.0018
+ if justina:
+  # Paleta de las laminas de Vidal (1820): cielo palido, horizonte crema, pampa verde oliva.
+  sky_material.sky_top_color = Color("6f8ba0")
+  sky_material.sky_horizon_color = Color("d9d3bd")
+  sky_material.ground_horizon_color = Color("d9d3bd")
+  env.fog_light_color = Color("d3cdb6")
+  env.fog_light_energy = 0.55
+  # Niebla de distancia suave desde 1500 m (contrato 2.4): el mapa mide 900 m.
+  env.fog_mode = Environment.FOG_MODE_DEPTH
+  env.fog_density = 1.0
+  env.fog_depth_begin = 1500.0
+  env.fog_depth_end = 3800.0
+  env.fog_depth_curve = 1.4
+  env.ambient_light_energy = 0.62
  if advanced_renderer and quality != "baja":
   # Solo Forward+/Mobile: oclusión ambiental y brillo suave. El perfil alto agrega niebla volumétrica leve.
   env.glow_enabled = true
@@ -246,7 +278,7 @@ func _lighting():
  sun.light_color = Color("ffddb2")
  sun.light_energy = 0.96
  sun.shadow_enabled = quality != "baja"
- sun.directional_shadow_max_distance = 130
+ sun.directional_shadow_max_distance = 380 if justina else 130
  sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS if (advanced_renderer and quality == "alta") else DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
  sun.shadow_blur = 1.4
  if advanced_renderer and quality == "alta":sun.light_volumetric_fog_energy = 1.0
@@ -510,6 +542,9 @@ func _create_group(unit:Dictionary):
  unit_nodes[str(unit.id)]={"root":root,"figures":figures,"mounted":mounted,"anims":anims,"last":root.position}
 
 func update_state(delta:float):
+ if justina:
+  _update_justina(delta)
+  return
  elapsed_visual+=delta
  path_timer+=delta
  if path_timer>0.5 and is_instance_valid(route_root):
@@ -593,6 +628,9 @@ func update_state(delta:float):
     enemy_marker.position=enemy_marker.position.lerp(target,minf(1,delta*3))
 
 func refresh_paths():
+ if justina:
+  _refresh_paths_j()
+  return
  if not is_instance_valid(route_root):return
  if path_instances==null:
   var mm0=MultiMesh.new();mm0.transform_format=MultiMesh.TRANSFORM_3D
@@ -616,10 +654,16 @@ func refresh_paths():
  mm.instance_count=xf.size()
  for i in range(xf.size()):mm.set_instance_transform(i,xf[i])
 
-func cannon_effect():
+func cannon_effect(from:Vector2=Vector2.ZERO,to:Vector2=Vector2.ZERO)->void:
+ if justina:
+  _cannon_effect_j(from,to)
+  return
  if is_instance_valid(fire_flash):fire_flash.light_energy=4.0
 
 func pick_ground(camera:Camera3D,mouse_pos:Vector2)->Variant:
+ if justina:
+  var hit_j=_ray_surface(camera.project_ray_origin(mouse_pos),camera.project_ray_normal(mouse_pos))
+  return hit_j
  var from=camera.project_ray_origin(mouse_pos)
  var to=from+camera.project_ray_normal(mouse_pos)*500
  var query=PhysicsRayQueryParameters3D.create(from,to,1)
@@ -644,3 +688,1255 @@ func pick_sector(camera:Camera3D,mouse_pos:Vector2)->String:
   var d=camera.unproject_position(p).distance_to(mouse_pos)
   if d<nearest:nearest=d;best=id
  return best
+
+# =====================================================================================
+# JUSTINA a escala real (1 unidad = 1 m, +x este/rio, +z sur, norte = -z).
+# La geometria sale de rules.map_data(); la altura del suelo, de rules.terrain_height_at (UNA sola implementacion).
+# Esta vista no calcula daño, nivel ni ordenes y no dibuja el fondo del agua que el jugador no conoce.
+# =====================================================================================
+const J_CELL = 4.0
+const SHIP_SCALE = 2.2
+const SHIP_KEEL = 1.58
+const RIDER_SCALE = 0.9
+const FOOT_SCALE = 0.9
+const GROUP_BAND = 14.0
+const J_STAGE_TEXT = {"working":"trabaja","stumbling":"tropezó","dismounting":"desmonta","boarding":"aborda","routed":"dispersos","blocked":"bloqueado","rally":"reagrupa","lost":"perdido","waiting_tide":""}
+
+var M: Dictionary = {}
+var map_w = 900.0
+var map_h = 520.0
+var hf: PackedFloat32Array = PackedFloat32Array()
+var hf_nx = 0
+var hf_nz = 0
+var level_m = 1.65
+var level_applied = -99.0
+var water_mat: ShaderMaterial
+var terrain_mat: ShaderMaterial
+var water_nodes: Array = []
+var landmarks_root: Node3D
+var labels_root: Node3D
+var knowledge_root: Node3D
+var exposure_root: Node3D
+var exposure_forced = false
+var exposure_user_on = false
+var layer_state = {"paths":true,"probes":true,"exposure":true,"labels":true,"landmarks":true}
+var landmark_info: Dictionary = {}
+var landmark_labels_3d: Dictionary = {}
+var extra_labels: Array = []
+var scout_nodes: Dictionary = {}
+var state_version_seen = -1
+var knowledge_sig = ""
+var minimap_requested = false
+var minimap_cache: Dictionary = {}
+var minimap_version = 0
+var minimap_sig = ""
+var minimap_timer = 0.0
+var minimap_last_size = Vector2i(260,150)
+var ship_hull: Node3D
+var ship_gun_pos: Array = []
+var smoke_pool: Array = []
+var smoke_next = 0
+var splash_pool: Array = []
+var splash_next = 0
+var flash_pool: Array = []
+var flash_next = 0
+var shot_queue: Array = []
+var battery_pos = Vector3.ZERO
+var battery_timer = 0.0
+var parked_j: Dictionary = {}
+var ring_mat_cache: Dictionary = {}
+var extra_dirty_t = 0.0
+
+# ---------------------------------------------------------------- utilidades
+func _h(x:float,z:float)->float:
+ if hf_nx<2:return 0.0
+ var fx=clampf(x/J_CELL,0.0,float(hf_nx-1)-0.0001)
+ var fz=clampf(z/J_CELL,0.0,float(hf_nz-1)-0.0001)
+ var ix=int(fx);var iz=int(fz)
+ var tx=fx-float(ix);var tz=fz-float(iz)
+ var a=hf[iz*hf_nx+ix];var b=hf[iz*hf_nx+ix+1]
+ var c=hf[(iz+1)*hf_nx+ix];var d=hf[(iz+1)*hf_nx+ix+1]
+ return lerpf(lerpf(a,b,tx),lerpf(c,d,tx),tz)
+
+func _surface_y(x:float,z:float)->float:
+ return maxf(_h(x,z),level_m)
+
+func _poly_x(poly:Array,z:float)->float:
+ if poly.is_empty():return 0.0
+ if z<=float(poly[0][1]):return float(poly[0][0])
+ for i in range(poly.size()-1):
+  var a=poly[i];var b=poly[i+1]
+  if z<=float(b[1]):
+   var t=(z-float(a[1]))/maxf(0.0001,float(b[1])-float(a[1]))
+   return lerpf(float(a[0]),float(b[0]),t)
+ return float(poly[poly.size()-1][0])
+
+func _tag_color(tag:String)->Color:
+ var t=M.get("source_tags",{}).get(tag,{})
+ return Color(str(t.get("color","#d9d3b2")))
+
+func _tag_glyph(tag:String)->String:
+ return str(M.get("source_tags",{}).get(tag,{}).get("glyph",""))
+
+func _pt(p)->Vector2:
+ if p is Dictionary:return Vector2(float(p.get("x",0)),float(p.get("z",0)))
+ if p is Array:return Vector2(float(p[0]),float(p[1]))
+ if p is Vector2:return p
+ return Vector2.ZERO
+
+func _inst_t(kind:String,xf:Transform3D,color:Color):
+ if not batches.has(kind):batches[kind]={"xf":[],"col":[]}
+ batches[kind].xf.append(xf)
+ batches[kind].col.append(color)
+
+func _inst_r(kind:String,pos:Vector3,size_v:Vector3,yaw:float,color:Color,tilt:Vector3=Vector3.ZERO):
+ var b=Basis.from_euler(Vector3(tilt.x,yaw,tilt.z)).scaled_local(size_v)
+ _inst_t(kind,Transform3D(b,pos),color)
+
+func _label_j(text_value:String,pos:Vector3,color:Color,font_size:int,parent:Node3D)->Label3D:
+ var label=_world_label(text_value,pos,color,font_size,parent)
+ label.outline_size=10
+ return label
+
+# ---------------------------------------------------------------- construccion
+func _build_justina():
+ M=rules.map_data()
+ var sz=M.get("size",{"w":900.0,"h":520.0})
+ map_w=float(sz.get("w",900.0));map_h=float(sz.get("h",520.0))
+ level_m=float(rules.water_level_m())
+ _sample_heightfield()
+ _terrain_j()
+ _horizon_j()
+ _water_j()
+ landmarks_root=Node3D.new();landmarks_root.name="Hitos";add_child(landmarks_root)
+ labels_root=Node3D.new();labels_root.name="Rotulos";add_child(labels_root)
+ knowledge_root=Node3D.new();knowledge_root.name="Conocimiento";add_child(knowledge_root)
+ _landmarks_j()
+ _obstacles_j()
+ _ship_j()
+ _effects_j()
+ _exposure_j()
+
+func _sample_heightfield():
+ hf_nx=int(round(map_w/J_CELL))+1
+ hf_nz=int(round(map_h/J_CELL))+1
+ hf.resize(hf_nx*hf_nz)
+ for iz in range(hf_nz):
+  for ix in range(hf_nx):
+   hf[iz*hf_nx+ix]=float(rules.terrain_height_at(float(ix)*J_CELL,float(iz)*J_CELL))
+
+func _ground_color(x:float,z:float,h:float,crest:float,toe:float,road_x:float)->Color:
+ var n=terrain_noise.get_noise_2d(x*0.6,z*0.6)
+ var grass=Color("6d7442").lerp(Color("858154"),clampf(0.5+n*0.8,0,1))
+ var ochre=Color("b08c55")
+ var sand=Color("b2a27b")
+ var mud=Color("6f6247")
+ var c:Color
+ if x<=crest:
+  c=grass
+  if absf(x-road_x)<3.4:c=c.lerp(Color("a58f62"),0.6)
+ elif x<toe:
+  var t=clampf((x-crest)/maxf(1.0,toe-crest),0.0,1.0)
+  c=grass.lerp(ochre,smoothstep(0.0,0.25,t)).lerp(sand,smoothstep(0.75,1.0,t)*0.5)
+ else:
+  c=mud.lerp(sand,smoothstep(0.1,1.7,h))
+  if h>1.65:c=sand.lerp(Color("7f7d4e"),smoothstep(1.7,3.0,h)*0.35)
+ return c
+
+func _terrain_j():
+ var barranca=M.get("barranca",{})
+ var crest_poly:Array=barranca.get("crest",[])
+ var toe_poly:Array=barranca.get("toe",[])
+ var road_poly:Array=[]
+ for lm in M.get("landmarks",[]):
+  if str(lm.get("type",""))=="road":road_poly=lm.get("polyline",[])
+ var nverts=hf_nx*hf_nz
+ var verts=PackedVector3Array();verts.resize(nverts)
+ var norms=PackedVector3Array();norms.resize(nverts)
+ var cols=PackedColorArray();cols.resize(nverts)
+ var crest_z=PackedFloat32Array();crest_z.resize(hf_nz)
+ var toe_z=PackedFloat32Array();toe_z.resize(hf_nz)
+ var road_z=PackedFloat32Array();road_z.resize(hf_nz)
+ for iz in range(hf_nz):
+  var z=float(iz)*J_CELL
+  crest_z[iz]=_poly_x(crest_poly,z);toe_z[iz]=_poly_x(toe_poly,z);road_z[iz]=_poly_x(road_poly,z) if not road_poly.is_empty() else -999.0
+ for iz in range(hf_nz):
+  for ix in range(hf_nx):
+   var i=iz*hf_nx+ix
+   var x=float(ix)*J_CELL;var z=float(iz)*J_CELL
+   var h=hf[i]
+   verts[i]=Vector3(x,h,z)
+   var hl=hf[iz*hf_nx+maxi(ix-1,0)];var hr=hf[iz*hf_nx+mini(ix+1,hf_nx-1)]
+   var hu=hf[maxi(iz-1,0)*hf_nx+ix];var hd=hf[mini(iz+1,hf_nz-1)*hf_nx+ix]
+   norms[i]=Vector3(hl-hr,2.0*J_CELL,hu-hd).normalized()
+   cols[i]=_ground_color(x,z,h,crest_z[iz],toe_z[iz],road_z[iz])
+ var idx=PackedInt32Array();idx.resize((hf_nx-1)*(hf_nz-1)*6)
+ var k=0
+ for iz in range(hf_nz-1):
+  for ix in range(hf_nx-1):
+   var a=iz*hf_nx+ix;var b=a+1;var c=a+hf_nx;var d=c+1
+   idx[k]=a;idx[k+1]=b;idx[k+2]=c;idx[k+3]=b;idx[k+4]=d;idx[k+5]=c
+   k+=6
+ terrain_mat=ShaderMaterial.new()
+ terrain_mat.shader=load("res://assets/terrain_justina.gdshader")
+ terrain_mat.set_shader_parameter("color_gamma",2.6 if advanced_renderer else 1.9)
+ terrain_mat.set_shader_parameter("water_level",level_m)
+ var arr=[];arr.resize(Mesh.ARRAY_MAX)
+ arr[Mesh.ARRAY_VERTEX]=verts;arr[Mesh.ARRAY_NORMAL]=norms;arr[Mesh.ARRAY_COLOR]=cols;arr[Mesh.ARRAY_INDEX]=idx
+ var mesh=ArrayMesh.new()
+ mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arr)
+ var mi=MeshInstance3D.new();mi.name="Terreno";mi.mesh=mesh;mi.material_override=terrain_mat
+ add_child(mi)
+
+func _horizon_j():
+ # Malla de baja resolucion mas alla del borde (hasta ~3000 m): repite la altura del borde del mapa; la niebla la funde. Sin geografia propia.
+ var xs=[-3000.0,-2000.0,-1200.0,-700.0,-400.0,-200.0,-80.0]
+ var zs=[-3200.0,-2200.0,-1400.0,-800.0,-400.0,-150.0]
+ var ix_in=xs.size();var iz_in=zs.size()
+ for i in range(int(map_w/20.0)+1):xs.append(float(i)*20.0)
+ for i in range(int(map_h/20.0)+1):zs.append(float(i)*20.0)
+ var ix_end=xs.size()-1;var iz_end=zs.size()-1
+ xs.append_array([map_w+80.0,map_w+200.0,map_w+500.0,map_w+1000.0,map_w+2000.0,4600.0])
+ zs.append_array([map_h+150.0,map_h+400.0,map_h+800.0,map_h+1400.0,map_h+2200.0,3800.0])
+ var verts=PackedVector3Array();var cols=PackedColorArray();var norms=PackedVector3Array()
+ for zz in zs:
+  for xx in xs:
+   var h=_h(clampf(xx,0.0,map_w),clampf(zz,0.0,map_h))
+   verts.append(Vector3(xx,h,zz));norms.append(Vector3.UP)
+   cols.append(Color("6f7643") if h>2.0 else Color("6f6247"))
+ var idx=PackedInt32Array()
+ var nx=xs.size()
+ for j in range(zs.size()-1):
+  for i in range(nx-1):
+   # Se omite la celda que cubre el mapa (la malla fina ya la cubre).
+   if i>=ix_in and i<ix_end and j>=iz_in and j<iz_end:continue
+   var a=j*nx+i;var b=a+1;var c=a+nx;var d=c+1
+   idx.append_array(PackedInt32Array([a,b,c,b,d,c]))
+ var arr=[];arr.resize(Mesh.ARRAY_MAX)
+ arr[Mesh.ARRAY_VERTEX]=verts;arr[Mesh.ARRAY_NORMAL]=norms;arr[Mesh.ARRAY_COLOR]=cols;arr[Mesh.ARRAY_INDEX]=idx
+ var mesh=ArrayMesh.new();mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arr)
+ var mi=MeshInstance3D.new();mi.name="Horizonte";mi.mesh=mesh;mi.material_override=terrain_mat;mi.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+ add_child(mi)
+
+func _water_quad(x0:float,z0:float,x1:float,z1:float,ground_h:float,name_s:String)->MeshInstance3D:
+ var verts=PackedVector3Array([Vector3(x0,0,z0),Vector3(x1,0,z0),Vector3(x0,0,z1),Vector3(x1,0,z1)])
+ var uvs=PackedVector2Array([Vector2(ground_h,0),Vector2(ground_h,0),Vector2(ground_h,0),Vector2(ground_h,0)])
+ var norms=PackedVector3Array([Vector3.UP,Vector3.UP,Vector3.UP,Vector3.UP])
+ var arr=[];arr.resize(Mesh.ARRAY_MAX)
+ arr[Mesh.ARRAY_VERTEX]=verts;arr[Mesh.ARRAY_NORMAL]=norms;arr[Mesh.ARRAY_TEX_UV]=uvs;arr[Mesh.ARRAY_INDEX]=PackedInt32Array([0,1,2,1,3,2])
+ var mesh=ArrayMesh.new();mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arr)
+ var mi=MeshInstance3D.new();mi.name=name_s;mi.mesh=mesh;mi.material_override=water_mat;mi.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+ mi.custom_aabb=AABB(Vector3(minf(x0,x1),-5,minf(z0,z1)),Vector3(absf(x1-x0),10,absf(z1-z0)))
+ return mi
+
+func _water_j():
+ water_mat=ShaderMaterial.new()
+ water_mat.shader=load("res://assets/water_justina.gdshader")
+ water_mat.set_shader_parameter("water_level",level_m)
+ water_mat.set_shader_parameter("visible_depth_m",float(M.get("knowledge",{}).get("visibility_depth_m",0.3)))
+ # Superficie plana a y = nivel, con la altura real del suelo en UV.x (solo para el halo de 0,3 m y la espuma de contacto).
+ var ix0=int(40.0/J_CELL)
+ var nx=hf_nx-ix0
+ var verts=PackedVector3Array();verts.resize(nx*hf_nz)
+ var uvs=PackedVector2Array();uvs.resize(nx*hf_nz)
+ var norms=PackedVector3Array();norms.resize(nx*hf_nz)
+ for iz in range(hf_nz):
+  for ix in range(nx):
+   var i=iz*nx+ix
+   verts[i]=Vector3(float(ix+ix0)*J_CELL,0.0,float(iz)*J_CELL)
+   uvs[i]=Vector2(hf[iz*hf_nx+ix+ix0],0.0)
+   norms[i]=Vector3.UP
+ var idx=PackedInt32Array();idx.resize((nx-1)*(hf_nz-1)*6)
+ var k=0
+ for iz in range(hf_nz-1):
+  for ix in range(nx-1):
+   var a=iz*nx+ix;var b=a+1;var c=a+nx;var d=c+1
+   idx[k]=a;idx[k+1]=b;idx[k+2]=c;idx[k+3]=b;idx[k+4]=d;idx[k+5]=c
+   k+=6
+ var arr=[];arr.resize(Mesh.ARRAY_MAX)
+ arr[Mesh.ARRAY_VERTEX]=verts;arr[Mesh.ARRAY_NORMAL]=norms;arr[Mesh.ARRAY_TEX_UV]=uvs;arr[Mesh.ARRAY_INDEX]=idx
+ var mesh=ArrayMesh.new();mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arr)
+ var mi=MeshInstance3D.new();mi.name="Agua";mi.mesh=mesh;mi.material_override=water_mat;mi.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+ mi.custom_aabb=AABB(Vector3(0,-5,0),Vector3(map_w,10,map_h))
+ add_child(mi);water_nodes.append(mi);water=mi
+ # Anillo de agua hasta el horizonte (fondo muy profundo: opaca y uniforme).
+ for q in [[map_w,-3400.0,5000.0,4200.0,"AguaEste"],[0.0,-3400.0,map_w,0.0,"AguaNorte"],[0.0,map_h,map_w,4200.0,"AguaSur"]]:
+  var mq=_water_quad(float(q[0]),float(q[1]),float(q[2]),float(q[3]),-10.0,str(q[4]))
+  add_child(mq);water_nodes.append(mq)
+ for n in water_nodes:n.position.y=level_m
+ water_mat.render_priority=0
+
+# ---------------------------------------------------------------- hitos
+func _lm_pos(lm:Dictionary)->Vector2:
+ if lm.has("x"):return Vector2(float(lm.x),float(lm.z))
+ var poly:Array=lm.get("polyline",[])
+ if poly.is_empty():return Vector2.ZERO
+ var mid=poly[poly.size()/2]
+ return Vector2(float(mid[0]),float(mid[1]))
+
+func _landmarks_j():
+ for lm in M.get("landmarks",[]):
+  var id=str(lm.id);var p=_lm_pos(lm);var tag=str(lm.get("tag","documentado"))
+  landmark_info[id]={"id":id,"name":str(lm.get("name",id)),"type":str(lm.get("type","")),"tag":tag,"source":str(lm.get("source","")),"x":p.x,"z":p.y}
+  var top=_h(p.x,p.y)+6.0
+  match str(lm.get("type","")):
+   "bullring":
+    _bullring_j(lm);top=_h(p.x,p.y)+8.0
+   "battery":
+    _battery_j(lm);top=_h(p.x,p.y)+7.0
+   "road":
+    _alameda_j(lm);top=_h(p.x,p.y)+10.0
+   "camp":
+    _camp_j(lm);top=_h(p.x,p.y)+6.0
+   "command":
+    _command_j(lm);top=_h(p.x,p.y)+7.0
+   "ship":
+    top=level_m+26.0
+   "cliff":
+    top=_h(p.x,p.y)+3.0
+  var text=_tag_glyph(tag)+" "+str(lm.get("name",id))
+  var lab=_label_j(text,Vector3(p.x,top,p.y),_tag_color(tag).lerp(Color.WHITE,0.35),30,labels_root)
+  lab.name="Rotulo_"+id
+  lab.visibility_range_end=900.0
+  landmark_labels_3d[id]=lab
+ var ei=0
+ for e in M.get("labels_extra",[]):
+  var tag2=str(e.get("tag","documentado"))
+  var lab2=_label_j(_tag_glyph(tag2)+" "+str(e.text),Vector3(float(e.x),level_m+3.0,float(e.z)),_tag_color(tag2).lerp(Color.WHITE,0.35),28,labels_root)
+  extra_labels.append({"id":"extra_"+str(ei),"label":lab2,"x":float(e.x),"z":float(e.z),"tag":tag2,"text":str(e.text),"cond":str(e.get("show_when",""))})
+  ei+=1
+ # Casas del Retiro sobre la meseta (decoracion; sin rotulo): el pueblo queda al oeste de la Alameda.
+ for hz in [20.0,64.0,110.0,152.0,372.0,408.0,452.0,496.0]:
+  var hx=6.0+decoration_rng.randf()*5.0
+  _house(Vector3(hx,_h(hx,hz),hz),7.5,8.5,false)
+
+func _bullring_j(lm:Dictionary):
+ var c=Vector2(float(lm.x),float(lm.z));var r=float(lm.get("radius_m",24.0))
+ var y0=_h(c.x,c.y)
+ # Arena, muro alto y gradas interiores (Plaza de Toros del Retiro; silueta: Vidal 1820, lamina 05).
+ _inst_t("cyl12",Transform3D(Basis.from_scale(Vector3(r*1.3,0.3,r*1.3)),Vector3(c.x,y0+0.1,c.y)),Color("c3b184"))
+ var n=40
+ for i in range(n):
+  var a=TAU*float(i)/float(n)
+  if i==0:continue
+  var seg=TAU*r/float(n)*1.06
+  var yaw=-a-PI/2.0
+  var p=Vector3(c.x+cos(a)*r,0,c.y+sin(a)*r)
+  _inst_r("box",Vector3(p.x,y0+2.6,p.z),Vector3(seg,5.2,1.6),yaw,Color("d6c9a8"))
+  _inst_r("box",Vector3(p.x,y0+5.4,p.z),Vector3(seg*1.02,0.5,2.1),yaw,Color("8d4b37"))
+  var p2=Vector3(c.x+cos(a)*(r-4.2),0,c.y+sin(a)*(r-4.2))
+  _inst_r("box",Vector3(p2.x,y0+1.4,p2.z),Vector3(seg*0.86,2.8,2.6),yaw,Color("bfae88"))
+
+func _battery_j(lm:Dictionary):
+ var c=Vector2(float(lm.x),float(lm.z));var w=float(lm.get("w",22.0));var d=float(lm.get("d",14.0))
+ var top=_h(c.x,c.y)
+ var low=minf(_h(c.x+w*0.5,c.y),_h(c.x+w*0.5,c.y-d*0.5))
+ var thick=maxf(1.0,top-low+0.6)
+ _inst_t("box",Transform3D(Basis.from_scale(Vector3(w,thick,d)),Vector3(c.x,top+0.1-thick*0.5,c.y)),Color("7d6c47"))
+ # Parapeto de tierra del lado del rio, cuatro piezas (la cifra de piezas es de diseño; la existencia de la bateria, documentada).
+ var px=c.x+w*0.5-1.6
+ _inst_t("box",Transform3D(Basis.from_scale(Vector3(3.2,2.0,d)),Vector3(px,top+1.0,c.y)),Color("6e5f3e"))
+ for i in range(4):
+  var gz=c.y-d*0.5+d*(float(i)+0.5)/4.0
+  _inst_t("box",Transform3D(Basis.from_scale(Vector3(3.0,0.5,1.2)),Vector3(px-2.8,top+0.4,gz)),Color("4d3d28"))
+  var tr=Transform3D(Basis(Vector3(0,0,1),PI/2.0).scaled_local(Vector3(0.55,3.4,0.55)),Vector3(px-2.3,top+1.2,gz))
+  _inst_t("cyl8",tr,Color("2f2f2c"))
+ for g in range(7):
+  _inst_t("cyl8",Transform3D(Basis.from_scale(Vector3(0.9,1.0,0.9)),Vector3(px+0.3,top+2.5,c.y-d*0.5+d*(float(g)+0.5)/7.0)),Color("8f7f58"))
+ battery_pos=Vector3(px+0.5,top+1.3,c.y)
+
+func _alameda_j(lm:Dictionary):
+ var poly:Array=lm.get("polyline",[])
+ if poly.size()<2:return
+ var acc=0.0
+ for i in range(poly.size()-1):
+  var a=Vector2(float(poly[i][0]),float(poly[i][1]));var b=Vector2(float(poly[i+1][0]),float(poly[i+1][1]))
+  var seg=a.distance_to(b);var dir=(b-a)/maxf(seg,0.001);var nrm=Vector2(-dir.y,dir.x)
+  var t=acc
+  while t<seg:
+   var p=a+dir*t
+   for side in [-1.0,1.0]:
+    var q=p+nrm*side*6.5
+    var s=decoration_rng.randf_range(1.0,1.5)
+    _tree(Vector3(q.x,_h(q.x,q.y),q.y),s)
+   t+=16.0
+  acc=t-seg
+
+func _camp_j(lm:Dictionary):
+ var c=Vector2(float(lm.x),float(lm.z));var r=float(lm.get("radius_m",20.0))
+ for i in range(9):
+  var a=TAU*float(i)/9.0+0.3
+  var q=c+Vector2(cos(a),sin(a))*r*(0.45+0.3*float(i%2))
+  _inst_r("prism",Vector3(q.x,_h(q.x,q.y)+1.4,q.y),Vector3(4.0,2.8,5.0),a+0.4,Color("d8cdb0"))
+ _inst_t("cyl12",Transform3D(Basis.from_scale(Vector3(1.2,0.25,1.2)),Vector3(c.x,_h(c.x,c.y)+0.12,c.y)),Color("3b3128"))
+ if _glb_ok("horse_only"):
+  for i in range(6):
+   var q=c+Vector2(-r*0.9,-r*0.8+float(i)*3.2)
+   _inst_glb("horse_only",Transform3D(Basis.from_euler(Vector3(0,PI/2.0,0)).scaled_local(Vector3.ONE*0.9),Vector3(q.x,_h(q.x,q.y),q.y)))
+
+func _command_j(lm:Dictionary):
+ var c=Vector2(float(lm.x),float(lm.z))
+ var y=_h(c.x,c.y)
+ _inst_r("prism",Vector3(c.x,y+1.9,c.y),Vector3(6.0,3.8,8.0),0.2,Color("cfc19a"))
+ for sx in [-1.0,1.0]:
+  _inst_t("cyl8",Transform3D(Basis.from_scale(Vector3(0.2,4.6,0.2)),Vector3(c.x+sx*3.2,y+2.3,c.y)),Color("5d4a36"))
+
+func _obstacles_j():
+ for o in M.get("obstacles",[]):
+  var cx=float(o.x);var cz=float(o.z);var w=float(o.w);var d=float(o.d)
+  var kind=str(o.get("kind",""))
+  if kind=="vegetacion":
+   var count=int(w*d*0.9)
+   for i in range(count):
+    var px=cx+decoration_rng.randf_range(-w*0.5,w*0.5);var pz=cz+decoration_rng.randf_range(-d*0.5,d*0.5)
+    var hh=decoration_rng.randf_range(1.8,3.2)
+    var lean=Vector3(decoration_rng.randf_range(-0.12,0.12),0,decoration_rng.randf_range(-0.12,0.12))
+    _inst_r("cyl8",Vector3(px,_h(px,pz)+hh*0.5,pz),Vector3(0.09,hh,0.09),0.0,Color("8c8a52").lerp(Color("a3a064"),decoration_rng.randf()),lean)
+  elif kind=="carretas":
+   for i in range(3):
+    var px=cx-w*0.33+float(i)*w*0.33;var pz=cz+(float(i%2)-0.5)*1.5
+    var y=_h(px,pz)
+    var yaw=0.5+float(i)*0.7
+    _inst_r("box",Vector3(px,y+1.1,pz),Vector3(3.4,0.25,1.7),yaw,Color("6b5236"))
+    for s in [-1.0,1.0]:
+     var off=Vector3(0,0,s*1.0).rotated(Vector3.UP,yaw)
+     _inst_t("cyl12",Transform3D(Basis.from_euler(Vector3(0,yaw,0))*Basis(Vector3(1,0,0),PI/2.0).scaled_local(Vector3(1.9,0.14,1.9)),Vector3(px,y+0.95,pz)+off),Color("4d3a28"))
+    _inst_r("box",Vector3(px,y+0.8,pz)+Vector3(-2.6,0,0).rotated(Vector3.UP,yaw),Vector3(3.0,0.12,0.14),yaw,Color("5a432c"))
+  var top=_h(cx,cz)+2.0
+
+# ---------------------------------------------------------------- buque
+func _ship_j():
+ var s=M.get("ship",{})
+ var sx=float(s.get("x",580.0));var sz=float(s.get("z",262.0));var heading=float(s.get("heading_deg",0.0))
+ var bed=float(M.get("hull",{}).get("bed_m",-1.5))
+ ship=_model("justine",Vector3(sx,bed+SHIP_KEEL*SHIP_SCALE-0.05,sz))
+ ship.scale=Vector3.ONE*SHIP_SCALE
+ ship.rotation=Vector3(0.012,-deg_to_rad(heading),0.045)
+ ship_hull=ship
+ # Cañones: 13 por banda (26 en total, documentado). Posiciones locales de las portas de babor (oeste con proa al norte).
+ ship_gun_pos.clear()
+ for i in range(13):
+  var gz=-(-5.55+float(i)*0.925)
+  ship_gun_pos.append(Vector3(-3.6*SHIP_SCALE,2.4*SHIP_SCALE,gz*SHIP_SCALE))
+
+# ---------------------------------------------------------------- efectos
+func _effects_j():
+ fire_flash=OmniLight3D.new()
+ fire_flash.light_color=Color("ffb85c");fire_flash.omni_range=70.0;fire_flash.light_energy=0.0;fire_flash.shadow_enabled=false
+ add_child(fire_flash)
+ var smoke_mat=StandardMaterial3D.new()
+ smoke_mat.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
+ smoke_mat.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA
+ smoke_mat.vertex_color_use_as_albedo=true
+ smoke_mat.albedo_color=Color(0.86,0.85,0.8,0.55)
+ var smoke_mesh=SphereMesh.new();smoke_mesh.radius=1.3;smoke_mesh.height=2.6;smoke_mesh.radial_segments=8;smoke_mesh.rings=4
+ var ramp=Gradient.new();ramp.set_color(0,Color(0.95,0.93,0.88,0.85));ramp.set_color(1,Color(0.7,0.7,0.68,0.0))
+ var grow=Curve.new();grow.add_point(Vector2(0,0.5));grow.add_point(Vector2(1,2.8))
+ for i in range(16):
+  var p=CPUParticles3D.new()
+  p.one_shot=true;p.emitting=false;p.amount=16;p.lifetime=5.0;p.explosiveness=0.85
+  p.mesh=smoke_mesh;p.material_override=smoke_mat
+  p.emission_shape=CPUParticles3D.EMISSION_SHAPE_SPHERE;p.emission_sphere_radius=0.8
+  p.spread=35.0;p.initial_velocity_min=2.5;p.initial_velocity_max=6.5;p.gravity=Vector3(0.6,0.9,0.0)
+  p.damping_min=1.4;p.damping_max=2.2
+  p.color_ramp=ramp;p.scale_amount_curve=grow;p.scale_amount_min=1.0;p.scale_amount_max=1.8
+  p.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+  add_child(p);smoke_pool.append(p)
+ var splash_mat=StandardMaterial3D.new()
+ splash_mat.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED;splash_mat.albedo_color=Color(0.92,0.92,0.88,0.85);splash_mat.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA
+ var drop=SphereMesh.new();drop.radius=0.22;drop.height=0.44;drop.radial_segments=6;drop.rings=3
+ for i in range(8):
+  var p=CPUParticles3D.new()
+  p.one_shot=true;p.emitting=false;p.amount=26;p.lifetime=1.5;p.explosiveness=1.0
+  p.mesh=drop;p.material_override=splash_mat
+  p.emission_shape=CPUParticles3D.EMISSION_SHAPE_SPHERE;p.emission_sphere_radius=0.9
+  p.direction=Vector3.UP;p.spread=22.0;p.initial_velocity_min=5.0;p.initial_velocity_max=11.0;p.gravity=Vector3(0,-9.8,0)
+  p.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+  add_child(p);splash_pool.append(p)
+ var flash_mat=StandardMaterial3D.new()
+ flash_mat.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED;flash_mat.albedo_color=Color("ffcf7a");flash_mat.emission_enabled=true;flash_mat.emission=Color("ff9a30")
+ var fm=SphereMesh.new();fm.radius=1.0;fm.height=2.0;fm.radial_segments=8;fm.rings=4
+ for i in range(14):
+  var m=MeshInstance3D.new();m.mesh=fm;m.material_override=flash_mat;m.visible=false;m.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+  add_child(m);flash_pool.append({"node":m,"life":0.0})
+
+func _gun_world(i:int)->Vector3:
+ var rot:Basis=ship.global_transform.basis.orthonormalized()
+ return ship.global_position+rot*ship_gun_pos[i]
+
+func _port_dir()->Vector3:
+ return (ship.global_transform.basis.orthonormalized()*Vector3(-1,0.15,0)).normalized()
+
+func _fire_smoke(pos:Vector3,dir:Vector3,big:bool=true):
+ var p:CPUParticles3D=smoke_pool[smoke_next];smoke_next=(smoke_next+1)%smoke_pool.size()
+ p.global_position=pos;p.direction=dir;p.restart();p.emitting=true
+ var fl=flash_pool[flash_next];flash_next=(flash_next+1)%flash_pool.size()
+ var n:MeshInstance3D=fl.node;n.global_position=pos+dir*0.8;n.scale=Vector3.ONE*(1.4 if big else 0.9);n.visible=true;fl.life=0.14
+
+func _splash(pos:Vector3):
+ var p:CPUParticles3D=splash_pool[splash_next];splash_next=(splash_next+1)%splash_pool.size()
+ p.global_position=pos;p.restart();p.emitting=true
+
+func _cannon_effect_j(from:Vector2,to:Vector2):
+ if smoke_pool.is_empty():return
+ if from!=Vector2.ZERO:
+  var pos=Vector3(from.x,_h(from.x,from.y)+2.2,from.y)
+  _fire_smoke(pos,Vector3(1,0.2,0).normalized(),false)
+  if is_instance_valid(fire_flash):fire_flash.global_position=pos;fire_flash.light_energy=3.0
+  if to!=Vector2.ZERO:shot_queue.append({"t":0.9,"kind":"splash","pos":Vector3(to.x,level_m,to.y)})
+  return
+ # Descarga de la banda de babor: 13 piezas escalonadas en ~1 s.
+ for i in range(ship_gun_pos.size()):
+  shot_queue.append({"t":randf()*1.0 if i>0 else 0.0,"kind":"gun","i":i})
+ var tgt=to
+ if tgt==Vector2.ZERO:
+  tgt=_nearest_target_in_range()
+ if tgt!=Vector2.ZERO:
+  tgt+=Vector2(randf_range(-7,7),randf_range(-7,7))
+  shot_queue.append({"t":0.9,"kind":"splash","pos":Vector3(tgt.x,level_m,tgt.y)})
+
+func _nearest_target_in_range()->Vector2:
+ var sp=Vector2(float(M.ship.x),float(M.ship.z));var best=Vector2.ZERO;var bd=float(M.ship.fire.range_m)
+ for u in rules.state.units:
+  var p=Vector2(float(u.x),float(u.z));var d=sp.distance_to(p)
+  if float(u.strength)>0.0 and d<bd:bd=d;best=p
+ return best
+
+func _update_effects_j(delta:float):
+ if is_instance_valid(fire_flash):
+  fire_flash.light_energy=move_toward(fire_flash.light_energy,0.0,delta*14.0)
+ for fl in flash_pool:
+  if fl.life>0.0:
+   fl.life-=delta
+   fl.node.scale*=maxf(0.0,1.0-delta*6.0)
+   if fl.life<=0.0:fl.node.visible=false
+ var keep=[]
+ for q in shot_queue:
+  q.t-=delta
+  if q.t>0.0:keep.append(q);continue
+  if q.kind=="gun":
+   var gp=_gun_world(int(q.i));_fire_smoke(gp,_port_dir())
+   if is_instance_valid(fire_flash) and int(q.i)==6:fire_flash.global_position=gp;fire_flash.light_energy=4.5
+  elif q.kind=="splash":_splash(q.pos)
+ shot_queue=keep
+
+# ---------------------------------------------------------------- alcance del buque
+func _exposure_j():
+ exposure_root=Node3D.new();exposure_root.name="Alcance";add_child(exposure_root)
+ var f=M.get("ship",{}).get("fire",{})
+ var rng=float(f.get("range_m",280.0));var af=f.get("arc_factors",{})
+ var b_half=deg_to_rad(float(af.get("broadside_half_deg",40.0)));var q_half=deg_to_rad(float(af.get("quarter_half_deg",70.0)))
+ var verts=PackedVector3Array();var cols=PackedColorArray();var idx=PackedInt32Array()
+ var steps=72
+ var cs={1.0:Color(0.9,0.25,0.2,0.15),0.5:Color(0.95,0.6,0.2,0.11),0.25:Color(0.95,0.85,0.35,0.07)}
+ for k in range(steps):
+  var a0=TAU*float(k)/float(steps);var a1=TAU*float(k+1)/float(steps);var am=(a0+a1)*0.5
+  var ang=absf(wrapf(am,-PI,PI));if ang>PI*0.5:ang=PI-ang
+  var fac=float(af.get("broadside",1.0)) if ang<=b_half else (float(af.get("quarter",0.5)) if ang<=q_half else float(af.get("chaser",0.25)))
+  var col:Color=cs[1.0] if fac>=0.99 else (cs[0.5] if fac>=0.4 else cs[0.25])
+  var base=verts.size()
+  verts.append(Vector3.ZERO);verts.append(Vector3(cos(a0),0,sin(a0))*rng);verts.append(Vector3(cos(a1),0,sin(a1))*rng)
+  cols.append(Color(col.r,col.g,col.b,col.a*0.3));cols.append(col);cols.append(col)
+  idx.append_array(PackedInt32Array([base,base+2,base+1]))
+  # Anillo del alcance.
+  var rb=verts.size()
+  var ring_col=Color(1,0.9,0.7,0.4)
+  verts.append(Vector3(cos(a0),0,sin(a0))*(rng-1.2));verts.append(Vector3(cos(a0),0,sin(a0))*(rng+1.2))
+  verts.append(Vector3(cos(a1),0,sin(a1))*(rng-1.2));verts.append(Vector3(cos(a1),0,sin(a1))*(rng+1.2))
+  for _i in range(4):cols.append(ring_col)
+  idx.append_array(PackedInt32Array([rb,rb+2,rb+1,rb+1,rb+2,rb+3]))
+ var arr=[];arr.resize(Mesh.ARRAY_MAX);arr[Mesh.ARRAY_VERTEX]=verts;arr[Mesh.ARRAY_COLOR]=cols;arr[Mesh.ARRAY_INDEX]=idx
+ var mesh=ArrayMesh.new();mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arr)
+ var mi=MeshInstance3D.new();mi.mesh=mesh;mi.material_override=_overlay_mat();mi.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+ mi.custom_aabb=AABB(Vector3(-rng,-1,-rng),Vector3(rng*2,2,rng*2))
+ exposure_root.add_child(mi)
+ var sx=float(M.ship.x);var sz=float(M.ship.z)
+ exposure_root.position=Vector3(sx,level_m+0.18,sz)
+ exposure_root.rotation.y=-deg_to_rad(float(M.ship.get("heading_deg",0.0)))
+ exposure_root.visible=false
+
+func _overlay_mat()->StandardMaterial3D:
+ if ring_mat_cache.has("overlay"):return ring_mat_cache["overlay"]
+ var m=StandardMaterial3D.new()
+ m.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
+ m.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA
+ m.vertex_color_use_as_albedo=true
+ m.cull_mode=BaseMaterial3D.CULL_DISABLED
+ m.render_priority=1
+ m.no_depth_test=false
+ ring_mat_cache["overlay"]=m
+ return m
+
+# ---------------------------------------------------------------- unidades
+func _ring_j(radius:float,color:Color,parent:Node3D)->MeshInstance3D:
+ var m=TorusMesh.new();m.inner_radius=radius-0.16;m.outer_radius=radius+0.16;m.rings=48;m.ring_segments=6
+ var n=MeshInstance3D.new();n.mesh=m
+ var mat=StandardMaterial3D.new();mat.albedo_color=color;mat.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
+ n.material_override=mat;n.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+ parent.add_child(n)
+ return n
+
+func _group_count(u:Dictionary)->int:
+ var n=clampi(roundi(float(u.strength)/100.0*14.0),2,14)
+ if quality=="baja":n=maxi(2,n/2)
+ return n
+
+func _mm_parts(root:Node3D,model_name:String,count:int)->Array:
+ var out=[]
+ for part in _glb_parts(model_name):
+  var mm=MultiMesh.new();mm.transform_format=MultiMesh.TRANSFORM_3D;mm.mesh=part.mesh;mm.instance_count=count
+  var mmi=MultiMeshInstance3D.new();mmi.multimesh=mm;mmi.custom_aabb=AABB(Vector3(-30,-5,-30),Vector3(60,20,60))
+  root.add_child(mmi)
+  out.append({"mmi":mmi,"mm":mm,"xf":part.xf})
+ if out.is_empty():
+  # Sin GLB: una capsula por jinete (para que el juego siga siendo jugable).
+  var mm2=MultiMesh.new();mm2.transform_format=MultiMesh.TRANSFORM_3D
+  var cap=CapsuleMesh.new();cap.radius=0.4;cap.height=1.8;mm2.mesh=cap;mm2.instance_count=count
+  var mmi2=MultiMeshInstance3D.new();mmi2.multimesh=mm2;mmi2.custom_aabb=AABB(Vector3(-30,-5,-30),Vector3(60,20,60));mmi2.material_override=_mat(Color("514333"))
+  root.add_child(mmi2);out.append({"mmi":mmi2,"mm":mm2,"xf":Transform3D(Basis.IDENTITY,Vector3(0,0.9,0))})
+ return out
+
+func _create_group_j(unit:Dictionary):
+ var id=str(unit.id)
+ var root=Node3D.new();root.name="Grupo_"+id;add_child(root)
+ root.position=Vector3(float(unit.x),_h(float(unit.x),float(unit.z)),float(unit.z))
+ var mounted=bool(unit.get("mounted",true))
+ var n=_group_count(unit)
+ var parts=_mm_parts(root,"rider_1806" if mounted else "dismounted_1806",n)
+ var ring=_ring_j(9.0,Color("e2bc72"),root)
+ selected_rings[id]=ring
+ var tag=str(unit.get("tag","diseno"))
+ var label=_label_j(_tag_glyph(tag)+" "+str(unit.name),Vector3(0,7.0,0),Color("e9d4aa"),30,root)
+ unit_labels[id]=label
+ unit_nodes[id]={"root":root,"figures":root,"mounted":mounted,"anims":[],"last":root.position,"parts":parts,"n":n,"yaw":-PI/2.0,"kind":"group","dirty":true,"pos2":Vector2(float(unit.x),float(unit.z)),"moving":false,"stage":""}
+
+func _create_scouts_j():
+ for sc in rules.state.get("scouts",[]):
+  var id=str(sc.id)
+  var root=Node3D.new();root.name="Explorador_"+id;add_child(root)
+  root.position=Vector3(float(sc.x),_h(float(sc.x),float(sc.z)),float(sc.z))
+  var fig=Node3D.new();fig.name="Figura";root.add_child(fig)
+  for part in _glb_parts("rider_1806"):
+   var mi=MeshInstance3D.new();mi.mesh=part.mesh;mi.transform=Transform3D(part.xf.basis.scaled_local(Vector3.ONE*RIDER_SCALE),part.xf.origin*RIDER_SCALE);fig.add_child(mi)
+  var lance=MeshInstance3D.new();var lm=CylinderMesh.new();lm.top_radius=0.03;lm.bottom_radius=0.05;lm.height=3.8;lm.radial_segments=6
+  lance.mesh=lm;lance.material_override=_mat(Color("6f5a3c"));lance.position=Vector3(0.45,2.4,-0.3);lance.rotation=Vector3(0.15,0,-0.12);fig.add_child(lance)
+  var ring=_ring_j(2.6,Color("e2bc72"),root)
+  selected_rings[id]=ring
+  var label=_label_j("◇ "+str(sc.name),Vector3(0,5.0,0),Color("dcd8c0"),26,root)
+  unit_labels[id]=label
+  unit_nodes[id]={"root":root,"figures":fig,"mounted":true,"anims":[],"last":root.position,"kind":"scout","yaw":-PI/2.0,"pos2":Vector2(float(sc.x),float(sc.z)),"moving":false,"stage":""}
+  scout_nodes[id]=true
+
+func _dir_yaw(prev:Vector2,cur:Vector2,yaw:float,delta:float)->float:
+ var mv=cur-prev
+ if mv.length()>0.02:
+  return lerp_angle(yaw,atan2(-mv.x,-mv.y),minf(1.0,delta*5.0))
+ return yaw
+
+func _ring_visible(id:String,stage:String)->bool:
+ return id in selected_ids or id==selected or selected=="all" or stage=="stumbling" or stage=="working"
+
+func _ring_color(id:String,stage:String)->Color:
+ if stage=="stumbling":return Color("d4553f")
+ if stage=="working":return Color("7fb5d9")
+ return Color("e2bc72")
+
+func _update_group_j(u:Dictionary,delta:float):
+ var id=str(u.id)
+ if not unit_nodes.has(id):return
+ var entry=unit_nodes[id]
+ var mounted=bool(u.get("mounted",true))
+ var n=_group_count(u)
+ if entry.mounted!=mounted:
+  for p in entry.parts:p.mmi.queue_free()
+  entry.parts=_mm_parts(entry.root,"rider_1806" if mounted else "dismounted_1806",n)
+  entry.mounted=mounted;entry.dirty=true;entry.n=n
+ elif n!=entry.n:
+  for p in entry.parts:p.mm.instance_count=n
+  entry.n=n;entry.dirty=true
+ var root:Node3D=entry.root
+ var cur=Vector2(float(u.x),float(u.z))
+ var stage=str(u.get("stage",""))
+ var moving=stage=="moving" or stage=="stumbling"
+ var prev:Vector2=entry.pos2
+ var yaw=_dir_yaw(prev,cur,float(entry.yaw),delta)
+ var changed=cur.distance_squared_to(prev)>0.0001 or absf(yaw-float(entry.yaw))>0.002
+ entry.pos2=cur;entry.yaw=yaw
+ root.position=Vector3(cur.x,_h(cur.x,cur.y),cur.y)
+ root.visible=float(u.strength)>0.0
+ if root.visible and (changed or entry.dirty or moving or stage=="routed" or entry.moving!=moving):
+  _layout_group_j(entry,u,moving,stage)
+  entry.dirty=false
+ entry.moving=moving;entry.stage=stage
+ var id_s=id
+ var ring:MeshInstance3D=selected_rings[id_s]
+ ring.visible=_ring_visible(id_s,stage)
+ if ring.visible:
+  ring.position.y=maxf(0.0,level_m-root.position.y)+0.3
+  (ring.material_override as StandardMaterial3D).albedo_color=_ring_color(id_s,stage)
+ _update_label_j(id_s,u,stage,root,7.0)
+
+func _layout_group_j(entry:Dictionary,u:Dictionary,moving:bool,stage:String):
+ var n:int=entry.n
+ var mounted:bool=entry.mounted
+ var lanes=clampi(int(ceil(sqrt(float(n)*0.9))),1,4)
+ var band=GROUP_BAND if mounted else 9.0
+ var step_along=2.5 if mounted else 1.5
+ var spread=2.4 if stage=="routed" else 1.0
+ var yaw:float=entry.yaw
+ var rootpos:Vector3=entry.root.position
+ var t=elapsed_visual
+ var sc=RIDER_SCALE if mounted else FOOT_SCALE
+ for i in range(n):
+  var row=i/lanes;var lane=i%lanes
+  var across=(float(lane)-float(lanes-1)*0.5)*band/float(lanes)*spread
+  var along=float(row)*step_along*spread
+  var off=Vector3(across,0,along).rotated(Vector3.UP,yaw)
+  var wx=rootpos.x+off.x;var wz=rootpos.z+off.z
+  var gy=_h(wx,wz)-rootpos.y
+  var bob=0.0
+  var pitch=0.0
+  if moving:
+   bob=0.07*absf(sin(t*7.0+float(i)*0.9))
+   if stage=="stumbling":pitch=0.18*sin(t*9.0+float(i))
+  var basis=Basis.from_euler(Vector3(pitch,yaw,0.0)).scaled_local(Vector3.ONE*sc)
+  var xf=Transform3D(basis,Vector3(off.x,gy+bob,off.z))
+  for p in entry.parts:p.mm.set_instance_transform(i,xf*p.xf)
+
+func _update_label_j(id:String,u,stage:String,root:Node3D,h:float):
+ var label:Label3D=unit_labels[id]
+ var txt:String
+ if u.has("strength"):
+  var tag=str(u.get("tag","diseno"))
+  var short=str(u.name).split(" · ")[0]
+  var sel=id in selected_ids or id==selected
+  txt=_tag_glyph(tag)+" "+(str(u.name) if sel else short)+" · "+str(int(round(float(u.strength))))+"%"
+ else:
+  txt="◇ "+str(u.name)+(" · "+str(int(u.get("hp",3)))+"/3" if true else "")
+ var st=str(J_STAGE_TEXT.get(stage,""))
+ if st!="":txt+=" · "+st
+ if label.text!=txt:label.text=txt
+ var sel2=id in selected_ids or id==selected
+ label.modulate=Color("f1d290") if sel2 else Color("ddd7bf")
+ if stage=="stumbling":label.modulate=Color("f0a08a")
+
+func _update_scout_j(sc:Dictionary,delta:float):
+ var id=str(sc.id)
+ if not unit_nodes.has(id):return
+ var entry=unit_nodes[id]
+ var root:Node3D=entry.root
+ var cur=Vector2(float(sc.x),float(sc.z))
+ var stage=str(sc.get("stage","idle"))
+ var moving=stage=="moving" or stage=="probing" or stage=="marking"
+ var prev:Vector2=entry.pos2
+ var yaw=_dir_yaw(prev,cur,float(entry.yaw),delta)
+ entry.pos2=cur;entry.yaw=yaw
+ root.position=Vector3(cur.x,_h(cur.x,cur.y),cur.y)
+ var fig:Node3D=entry.figures
+ fig.rotation=Vector3(0,yaw,0)
+ fig.position.y=0.0
+ if stage=="lost":
+  fig.rotation=Vector3(0,yaw,PI*0.5);fig.position.y=0.6
+ elif moving:
+  fig.position.y=0.06*absf(sin(elapsed_visual*7.0))
+ var ring:MeshInstance3D=selected_rings[id]
+ ring.visible=_ring_visible(id,stage) and stage!="lost"
+ if ring.visible:ring.position.y=maxf(0.0,level_m-root.position.y)+0.3
+ _update_label_j(id,sc,stage,root,5.0)
+
+func _update_parked_j():
+ # Caballos de los grupos desmontados: quedan estacionados en el vado del abordaje (board_point).
+ var bp=Vector2.ZERO
+ if rules.has_method("board_point"):bp=rules.board_point()
+ else:
+  var c=M.ship.capture.boarding_point;bp=Vector2(float(c[0]),float(c[1]))
+ var gi=0
+ for u in rules.state.units:
+  var id=str(u.id)
+  if not bool(u.get("mounted",true)) and float(u.strength)>0.0 and not parked_j.has(id):
+   var n=_group_count(u)
+   var holder=Node3D.new();holder.name="Caballos_"+id;add_child(holder)
+   var parts=_mm_parts(holder,"horse_only",n)
+   var lanes=clampi(int(ceil(sqrt(float(n)*0.9))),1,4)
+   var base=bp+Vector2(-4.0,float(gi-1)*9.0)
+   for i in range(n):
+    var row=i/lanes;var lane=i%lanes
+    var p=base+Vector2(-float(row)*2.5,(float(lane)-float(lanes-1)*0.5)*3.0)
+    var basis=Basis.from_euler(Vector3(0,PI*0.5,0)).scaled_local(Vector3.ONE*RIDER_SCALE)
+    var xf=Transform3D(basis,Vector3(p.x,_h(p.x,p.y),p.y))
+    for pt in parts:pt.mm.set_instance_transform(i,xf*pt.xf)
+   parked_j[id]=holder
+  gi+=1
+ var deep=false
+ if rules.has_method("water_depth_at"):deep=float(rules.water_depth_at(bp.x,bp.y))>1.3
+ for id in parked_j:parked_j[id].visible=not deep
+
+# ---------------------------------------------------------------- conocimiento (sondas, balizas, boyas)
+func _depth_color(depth:float,alpha:float)->Color:
+ if depth<=0.6:return Color(0.30,0.85,0.45,alpha)
+ if depth<=1.3:return Color(0.96,0.72,0.20,alpha)
+ return Color(0.90,0.25,0.20,alpha)
+
+func _rebuild_knowledge_j():
+ for c in knowledge_root.get_children():c.queue_free()
+ var verts=PackedVector3Array();var cols=PackedColorArray();var idx=PackedInt32Array()
+ var posts=[]
+ var y=0.09
+ for p in rules.state.get("probes",[]):
+  var pts:Array=p.get("pts",[])
+  if pts.size()<1:continue
+  var marked=str(p.get("kind",""))=="marked"
+  var half=float(p.get("width",6.0))*0.5
+  var carry=0.0
+  if pts.size()==1:
+   pts=[pts[0],pts[0]]
+  for i in range(pts.size()-1):
+   var a=_pt(pts[i]);var b=_pt(pts[i+1])
+   var seg=a.distance_to(b)
+   if seg<0.001:continue
+   var dir=(b-a)/seg;var nrm=Vector2(-dir.y,dir.x)
+   var steps=maxi(1,int(ceil(seg/3.0)))
+   for s in range(steps):
+    var t0=float(s)/float(steps);var t1=float(s+1)/float(steps)
+    var p0=a.lerp(b,t0);var p1=a.lerp(b,t1)
+    var mid=a.lerp(b,(t0+t1)*0.5)
+    var depth=level_m-_h(mid.x,mid.y)
+    var col=_depth_color(depth,0.62 if marked else 0.55)
+    var base=verts.size()
+    verts.append(Vector3(p0.x+nrm.x*half,y,p0.y+nrm.y*half));verts.append(Vector3(p0.x-nrm.x*half,y,p0.y-nrm.y*half))
+    verts.append(Vector3(p1.x+nrm.x*half,y,p1.y+nrm.y*half));verts.append(Vector3(p1.x-nrm.x*half,y,p1.y-nrm.y*half))
+    for _k in range(4):cols.append(col)
+    idx.append_array(PackedInt32Array([base,base+1,base+2,base+1,base+3,base+2]))
+    if marked:
+     # Borde claro a cada lado.
+     for side in [1.0,-1.0]:
+      var eb=verts.size()
+      var o0=Vector2(p0.x+nrm.x*half*side,p0.y+nrm.y*half*side);var o1=Vector2(p1.x+nrm.x*half*side,p1.y+nrm.y*half*side)
+      var inward=-nrm*side*0.5
+      verts.append(Vector3(o0.x,y+0.01,o0.y));verts.append(Vector3(o0.x+inward.x,y+0.01,o0.y+inward.y))
+      verts.append(Vector3(o1.x,y+0.01,o1.y));verts.append(Vector3(o1.x+inward.x,y+0.01,o1.y+inward.y))
+      for _k in range(4):cols.append(Color(0.97,0.95,0.82,0.9))
+      idx.append_array(PackedInt32Array([eb,eb+1,eb+2,eb+1,eb+3,eb+2]))
+   if marked:
+    var d=carry
+    while d<=seg:
+     posts.append(a+dir*d);d+=10.0
+    carry=d-seg
+ if verts.size()>0:
+  var arr=[];arr.resize(Mesh.ARRAY_MAX);arr[Mesh.ARRAY_VERTEX]=verts;arr[Mesh.ARRAY_COLOR]=cols;arr[Mesh.ARRAY_INDEX]=idx
+  var mesh=ArrayMesh.new();mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arr)
+  var mi=MeshInstance3D.new();mi.name="Franjas";mi.mesh=mesh;mi.material_override=_overlay_mat();mi.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+  mi.custom_aabb=AABB(Vector3(0,-1,0),Vector3(map_w,2,map_h))
+  knowledge_root.add_child(mi)
+ # Balizas (postes) cada 10 m de vado marcado.
+ for q in posts:
+  var gh=_h(q.x,q.y)
+  var top=maxf(gh,level_m)
+  var pm=MeshInstance3D.new();var cm=CylinderMesh.new();cm.top_radius=0.07;cm.bottom_radius=0.1;cm.height=2.6;cm.radial_segments=6
+  pm.mesh=cm;pm.material_override=_mat(Color("efe3b0"),0.7,true);pm.position=Vector3(q.x,1.3-level_m*0.0+(top-level_m),q.y)
+  knowledge_root.add_child(pm)
+ # Boyas: pozos hallados (rojas) y vados hallados (verdes), con rotulo.
+ for hz in M.get("hazards",[]):
+  if not (str(hz.id) in rules.state.get("hazards_found",[])):continue
+  var c=hz.center
+  _buoy_j(Vector2(float(c[0]),float(c[1])),Color("d4382a"),"▲ "+str(hz.get("name","Pozo")))
+ for fd in M.get("fords",[]):
+  if not (str(fd.id) in rules.state.get("fords_found",[])):continue
+  var pts2:Array=[]
+  if fd.has("centerline"):pts2=fd.centerline
+  elif fd.has("center"):pts2=[fd.center]
+  var mid=Vector2.ZERO
+  for q in pts2:
+   var v=Vector2(float(q[0]),float(q[1]));mid+=v
+   _buoy_j(v,Color("37b86a"),"")
+  if pts2.size()>0:
+   mid/=float(pts2.size())
+   var lab=_label_j("▲ "+str(fd.get("name","Vado")),Vector3(mid.x,3.4,mid.y),Color("a6e6bd"),28,knowledge_root)
+   lab.position.y=3.4
+
+func _buoy_j(p:Vector2,color:Color,label_text:String):
+ var b=MeshInstance3D.new();var sm=SphereMesh.new();sm.radius=0.55;sm.height=1.1;sm.radial_segments=10;sm.rings=5
+ b.mesh=sm;b.material_override=_mat(color,0.5,true);b.position=Vector3(p.x,0.3,p.y)
+ knowledge_root.add_child(b)
+ var stake=MeshInstance3D.new();var cm=CylinderMesh.new();cm.top_radius=0.04;cm.bottom_radius=0.04;cm.height=2.4;cm.radial_segments=5
+ stake.mesh=cm;stake.material_override=_mat(Color("e9e2c6"));stake.position=Vector3(p.x,1.2,p.y)
+ knowledge_root.add_child(stake)
+ if label_text!="":
+  _label_j(label_text,Vector3(p.x,3.4,p.y),Color("f2a99c"),28,knowledge_root)
+
+func _knowledge_signature()->String:
+ var s=str(snappedf(level_m,0.02))
+ var total=0
+ for p in rules.state.get("probes",[]):total+=int(p.get("pts",[]).size())*7+1
+ s+="|"+str(rules.state.get("probes",[]).size())+"|"+str(total)
+ s+="|"+str(rules.state.get("hazards_found",[]))+"|"+str(rules.state.get("fords_found",[]))
+ return s
+
+# ---------------------------------------------------------------- bucle por cuadro
+func _apply_level_j(lv:float):
+ level_applied=lv
+ for n in water_nodes:n.position.y=lv
+ water_mat.set_shader_parameter("water_level",lv)
+ terrain_mat.set_shader_parameter("water_level",lv)
+ knowledge_root.position.y=lv
+ if is_instance_valid(exposure_root):exposure_root.position.y=lv+0.18
+
+func _update_justina(delta:float):
+ elapsed_visual+=delta
+ level_m=float(rules.water_level_m())
+ if absf(level_m-level_applied)>0.0004:_apply_level_j(level_m)
+ var sv=int(rules.state.get("state_version",0))
+ if sv!=state_version_seen:
+  state_version_seen=sv
+  var sig=_knowledge_signature()
+  if sig!=knowledge_sig:
+   knowledge_sig=sig;_rebuild_knowledge_j()
+  _update_extra_labels_j()
+  path_timer=1.0
+ for u in rules.state.units:_update_group_j(u,delta)
+ for sc in rules.state.get("scouts",[]):_update_scout_j(sc,delta)
+ _update_parked_j()
+ _update_ship_j(delta)
+ _update_effects_j(delta)
+ _update_layers_j()
+ path_timer+=delta
+ if path_timer>0.5:
+  var signature=selected+str(selected_ids)+str(show_paths)
+  for unit in rules.state.units:signature+=str(unit.get("path",[]).size())+str(unit.stage)+("%d" % int(float(unit.x)))
+  if signature!=last_path_signature:last_path_signature=signature;_refresh_paths_j()
+  path_timer=0.0
+ if minimap_requested:
+  minimap_timer+=delta
+  if minimap_timer>=float(M.get("minimap",{}).get("refresh_s",2.0)):
+   minimap_timer=0.0;minimap_refresh(false)
+
+func _update_ship_j(delta:float):
+ if not is_instance_valid(ship):return
+ var ss=rules.ship_state() if rules.has_method("ship_state") else {}
+ var active=bool(ss.get("fire_support_active",false))
+ if active and battery_pos!=Vector3.ZERO:
+  battery_timer-=delta
+  if battery_timer<=0.0:
+   battery_timer=randf_range(1.0,1.8)
+   var bp=Vector2(battery_pos.x,battery_pos.z+randf_range(-5.0,5.0))
+   _cannon_effect_j(bp,Vector2(float(M.ship.x),float(M.ship.z))+Vector2(randf_range(-10,10),randf_range(-14,14)))
+ else:
+  battery_timer=0.0
+ var hd=float(ss.get("heading_deg",M.ship.get("heading_deg",0.0)))
+ ship.rotation.y=-deg_to_rad(hd)
+
+func _update_extra_labels_j():
+ for e in extra_labels:
+  var show=true
+  if str(e.cond)=="known_or_emerged":
+   var emerged=level_m-_h(e.x,e.z)<=0.0
+   var known=false
+   if rules.has_method("knowledge_at"):known=str(rules.knowledge_at(float(e.x),float(e.z)))!="unknown"
+   show=emerged or known
+  e.label.visible=show
+
+func _update_layers_j():
+ var want=exposure_user_on if exposure_forced else selected_ids.size()>0
+ exposure_root.visible=bool(layer_state.exposure) and want
+ if exposure_root.visible:
+  var ss=rules.ship_state() if rules.has_method("ship_state") else {}
+  exposure_root.scale=Vector3.ONE
+  var mesh_inst=exposure_root.get_child(0) as MeshInstance3D
+  if mesh_inst!=null:mesh_inst.transparency=0.45 if bool(ss.get("fire_support_active",false)) else 0.0
+
+func _refresh_paths_j():
+ if not is_instance_valid(route_root):return
+ if path_instances==null:
+  var mm0=MultiMesh.new();mm0.transform_format=MultiMesh.TRANSFORM_3D
+  var disc=CylinderMesh.new();disc.top_radius=0.55;disc.bottom_radius=0.55;disc.height=0.12;disc.radial_segments=8
+  mm0.mesh=disc
+  path_instances=MultiMeshInstance3D.new();path_instances.multimesh=mm0;path_instances.custom_aabb=AABB(Vector3(0,-5,0),Vector3(map_w,30,map_h))
+  var pm=_mat(Color("e9c678"),0.6,true);pm.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
+  path_instances.material_override=pm;path_instances.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+  route_root.add_child(path_instances)
+ var xf=[]
+ if show_paths and bool(layer_state.paths):
+  for u in rules.state.units:
+   var id=str(u.id)
+   if not (id==selected or selected=="all" or id in selected_ids):continue
+   var points:Array=u.get("path",[])
+   for i in range(points.size()):
+    if i%2!=0 and i!=points.size()-1:continue
+    var v=_pt(points[i])
+    xf.append(Transform3D(Basis.IDENTITY,Vector3(v.x,maxf(_h(v.x,v.y),level_m)+0.2,v.y)))
+ var mm:MultiMesh=path_instances.multimesh
+ mm.instance_count=xf.size()
+ for i in range(xf.size()):mm.set_instance_transform(i,xf[i])
+
+# ---------------------------------------------------------------- API publica: mundo, camara, picks
+func map_size()->Vector2:
+ return Vector2(map_w,map_h)
+
+func world_to_map(p:Vector2)->Vector2:
+ return Vector2(p.x/map_w,p.y/map_h)
+
+func map_to_world(uv:Vector2)->Vector2:
+ return Vector2(uv.x*map_w,uv.y*map_h)
+
+func camera_bounds()->Rect2:
+ var m=float(M.get("camera",{}).get("bounds_margin_m",60.0))
+ return Rect2(-m,-m,map_w+2.0*m,map_h+2.0*m)
+
+func clamp_camera_target(p:Vector3)->Vector3:
+ var b=camera_bounds()
+ var x=clampf(p.x,b.position.x,b.end.x);var z=clampf(p.z,b.position.y,b.end.y)
+ return Vector3(x,maxf(_h(x,z),level_m),z)
+
+func _ray_surface(origin:Vector3,dir:Vector3)->Variant:
+ # Marcha por el campo de alturas: la superficie visible es la mas alta entre suelo y agua.
+ var ymax=20.0
+ var t=0.0
+ if origin.y>ymax:
+  if dir.y>=-0.0001:return null
+  t=(ymax-origin.y)/dir.y
+ var prev=t
+ var hit=false
+ while t<7000.0:
+  var p=origin+dir*t
+  if p.y<=maxf(_h(p.x,p.z),level_m):hit=true;break
+  prev=t
+  t+=maxf(1.0,t*0.008)
+ if not hit:return null
+ var lo=prev;var hi=t
+ for i in range(14):
+  var mid=(lo+hi)*0.5;var pm=origin+dir*mid
+  if pm.y<=maxf(_h(pm.x,pm.z),level_m):hi=mid
+  else:lo=mid
+ return origin+dir*hi
+
+func ground_xz_from_screen(camera:Camera3D,mouse_pos:Vector2)->Variant:
+ var hit=_ray_surface(camera.project_ray_origin(mouse_pos),camera.project_ray_normal(mouse_pos))
+ if hit==null:return null
+ return Vector2(hit.x,hit.z)
+
+func _plane_point(camera:Camera3D,screen:Vector2)->Vector2:
+ var o=camera.project_ray_origin(screen);var d=camera.project_ray_normal(screen)
+ if d.y<-0.002:
+  var t=(level_m-o.y)/d.y
+  if t>0.0 and t<8000.0:return Vector2(o.x+d.x*t,o.z+d.z*t)
+ var h=Vector2(d.x,d.z)
+ if h.length()<0.0001:h=Vector2(0,-1)
+ return Vector2(o.x,o.z)+h.normalized()*6000.0
+
+func camera_frustum_on_ground(camera:Camera3D)->PackedVector2Array:
+ var vs=camera.get_viewport().get_visible_rect().size
+ var b=camera_bounds()
+ var out=PackedVector2Array()
+ for s in [Vector2(0,0),Vector2(vs.x,0),Vector2(vs.x,vs.y),Vector2(0,vs.y)]:
+  var p=_plane_point(camera,s)
+  out.append(Vector2(clampf(p.x,b.position.x,b.end.x),clampf(p.y,b.position.y,b.end.y)))
+ return out
+
+func meters_per_pixel(camera:Camera3D,screen_pos:Vector2=Vector2(-1,-1))->float:
+ var vs=camera.get_viewport().get_visible_rect().size
+ var sp=screen_pos
+ if sp.x<0.0 and sp.y<0.0:sp=vs*0.5
+ var o=camera.project_ray_origin(sp);var d=camera.project_ray_normal(sp)
+ if d.y<-0.02:
+  var a=_plane_point(camera,sp);var b2=_plane_point(camera,sp+Vector2(1,0))
+  # Se mide en horizontal de pantalla (donde la escala grafica se dibuja).
+  var m=a.distance_to(b2)
+  if m>0.0 and m<500.0:return m
+ var dist=maxf(1.0,camera.global_position.distance_to(Vector3(o.x+d.x*50,o.y+d.y*50,o.z+d.z*50))/50.0*50.0)
+ return 2.0*dist*tan(deg_to_rad(camera.fov)*0.5)/maxf(1.0,vs.y)
+
+func _unit_ids_stable()->Array:
+ var ids=[]
+ for id in ["guemes","arias","zavala","scout_1","scout_2"]:
+  if unit_nodes.has(id):ids.append(id)
+ return ids
+
+func pick_units_in_rect(camera:Camera3D,screen_rect:Rect2)->Array:
+ var out=[]
+ var r=screen_rect.abs()
+ for id in _unit_ids_stable():
+  var node:Node3D=unit_nodes[id].root
+  if not node.visible:continue
+  var p=node.global_position+Vector3(0,1.8,0)
+  if camera.is_position_behind(p):continue
+  if r.has_point(camera.unproject_position(p)):out.append(id)
+ return out
+
+func pick_landmark(camera:Camera3D,mouse_pos:Vector2)->String:
+ var best="";var nearest=40.0
+ for id in landmark_info:
+  var info=landmark_info[id]
+  var p=Vector3(float(info.x),_surface_y(float(info.x),float(info.z))+2.0,float(info.z))
+  if camera.is_position_behind(p):continue
+  var d=camera.unproject_position(p).distance_to(mouse_pos)
+  if d<nearest:nearest=d;best=id
+ return best
+
+func get_landmark_info(id:String)->Dictionary:
+ return landmark_info.get(id,{}).duplicate()
+
+func landmark_labels(camera:Camera3D)->Array:
+ var out=[]
+ for id in landmark_info:
+  var info=landmark_info[id]
+  var p=Vector3(float(info.x),_surface_y(float(info.x),float(info.z))+6.0,float(info.z))
+  out.append({"id":id,"name":info.name,"tag":info.tag,"screen":camera.unproject_position(p),"behind":camera.is_position_behind(p)})
+ return out
+
+func set_layer_visible(layer:String,on:bool)->void:
+ if not layer_state.has(layer):return
+ layer_state[layer]=on
+ match layer:
+  "labels":
+   if is_instance_valid(labels_root):labels_root.visible=on
+  "landmarks":
+   if is_instance_valid(landmarks_root):landmarks_root.visible=on
+  "probes":
+   if is_instance_valid(knowledge_root):knowledge_root.visible=on
+  "exposure":
+   exposure_forced=true;exposure_user_on=on
+  "paths":
+   _refresh_paths_j()
+
+func set_selected_ids(ids:Array)->void:
+ selected_ids=ids.duplicate()
+ selected=str(ids[0]) if ids.size()>0 else ""
+
+# ---------------------------------------------------------------- minimapa (textura, sin unidades ni camara)
+func _mm_color(key:String,fallback:String)->Color:
+ return Color(str(M.get("minimap",{}).get("colors",{}).get(key,fallback)))
+
+func _mm_prepare(sz:Vector2i)->Dictionary:
+ var W=sz.x;var H=sz.y
+ var land=PackedByteArray();land.resize(W*H*4)
+ var hs=PackedFloat32Array();hs.resize(W*H)
+ var shade=PackedFloat32Array();shade.resize(W*H)
+ var bed=PackedInt32Array()
+ var barranca=M.get("barranca",{})
+ var crest_poly:Array=barranca.get("crest",[]);var toe_poly:Array=barranca.get("toe",[])
+ var c_land=_mm_color("land","#8a7a58");var c_bar=_mm_color("barranca","#5e5a45")
+ var Ls=Vector3(-0.5,0.8,-0.4).normalized()
+ for py in range(H):
+  var z=(float(py)+0.5)/float(H)*map_h
+  var cx=_poly_x(crest_poly,z);var tx=_poly_x(toe_poly,z)
+  for px in range(W):
+   var x=(float(px)+0.5)/float(W)*map_w
+   var k=py*W+px
+   var h=_h(x,z)
+   hs[k]=h
+   var gx=(_h(x+J_CELL,z)-_h(x-J_CELL,z))/(2.0*J_CELL);var gz=(_h(x,z+J_CELL)-_h(x,z-J_CELL))/(2.0*J_CELL)
+   var nrm=Vector3(-gx,1.0,-gz).normalized()
+   var s=clampf(0.45+0.75*maxf(0.0,nrm.dot(Ls)),0.4,1.15)
+   shade[k]=s
+   var col=c_land
+   if x<=cx:col=c_land
+   elif x<tx:col=c_bar
+   else:bed.append(k)
+   if x<tx:
+    col=Color(col.r*s,col.g*s,col.b*s)
+    land[k*4]=int(clampf(col.r,0,1)*255.0);land[k*4+1]=int(clampf(col.g,0,1)*255.0);land[k*4+2]=int(clampf(col.b,0,1)*255.0);land[k*4+3]=255
+ return {"w":W,"h":H,"land":land,"hs":hs,"shade":shade,"bed":bed,"version":-1,"img":null,"tex":null}
+
+func _mm_render(e:Dictionary)->void:
+ var W:int=e.w;var H:int=e.h
+ var data:PackedByteArray=e.land.duplicate()
+ var hs:PackedFloat32Array=e.hs;var shade:PackedFloat32Array=e.shade
+ var c_em=_mm_color("emerged","#c8b88a");var c_wu=_mm_color("water_unknown","#4a5d63")
+ var c_lane=_mm_color("probe_lane","#6fb8a6");var c_mark=_mm_color("marked","#e2c46b");var c_danger=_mm_color("danger","#d48f79")
+ var c_high=_mm_color("land","#8a7a58").lerp(c_em,0.6)
+ var vis=float(M.get("knowledge",{}).get("visibility_depth_m",0.3))
+ var hi_level=float(M.get("tide",{}).get("level_high_m",1.65))
+ for k in e.bed:
+  var depth=level_m-hs[k]
+  var c:Color
+  if depth<=0.0:
+   var s=shade[k]*0.35+0.65
+   c=(c_high if hs[k]>hi_level else c_em)*s
+  elif depth<=vis:
+   c=c_em.lerp(c_wu,0.55)
+  else:
+   c=c_wu
+   var px=k%W;var py=k/W
+   if (px+py)%7<2:c=c.lightened(0.07)
+  data[k*4]=int(clampf(c.r,0,1)*255.0);data[k*4+1]=int(clampf(c.g,0,1)*255.0);data[k*4+2]=int(clampf(c.b,0,1)*255.0);data[k*4+3]=255
+ # Franjas de sondas por profundidad real (verde/ambar/rojo) y vados marcados.
+ var mpp_x=map_w/float(W);var mpp_z=map_h/float(H)
+ for p in rules.state.get("probes",[]):
+  var pts:Array=p.get("pts",[]);var marked=str(p.get("kind",""))=="marked";var half=float(p.get("width",6.0))*0.5
+  for i in range(pts.size()-1):
+   _mm_strip(data,hs,W,H,_pt(pts[i]),_pt(pts[i+1]),half,marked,c_lane,c_mark,c_danger,mpp_x,mpp_z)
+ for hz in M.get("hazards",[]):
+  if str(hz.id) in rules.state.get("hazards_found",[]):_mm_disc(data,W,H,Vector2(float(hz.center[0]),float(hz.center[1])),float(hz.get("radius_m",10.0)),c_danger)
+ for fd in M.get("fords",[]):
+  if str(fd.id) in rules.state.get("fords_found",[]):
+   if fd.has("centerline"):
+    var cl:Array=fd.centerline
+    for i in range(cl.size()-1):_mm_strip(data,hs,W,H,_pt(cl[i]),_pt(cl[i+1]),float(fd.get("half_width_m",8.0)),true,c_lane,Color("5fd08a"),c_danger,mpp_x,mpp_z)
+   elif fd.has("center"):_mm_disc(data,W,H,_pt(fd.center),float(fd.get("radius_m",20.0)),Color("5fd08a"))
+ for id in landmark_info:
+  var info=landmark_info[id]
+  var cc=_tag_color(str(info.tag))
+  _mm_dot(data,W,H,Vector2(float(info.x),float(info.z)),2,cc)
+ _mm_dot(data,W,H,Vector2(float(M.ship.x),float(M.ship.z)),3,Color("f4efdc"))
+ var img=Image.create_from_data(W,H,false,Image.FORMAT_RGBA8,data)
+ e.img=img
+ if e.tex==null:e.tex=ImageTexture.create_from_image(img)
+ else:(e.tex as ImageTexture).update(img)
+ e.version=minimap_version
+
+func _mm_set(data:PackedByteArray,W:int,H:int,px:int,py:int,c:Color)->void:
+ if px<0 or py<0 or px>=W or py>=H:return
+ var k=(py*W+px)*4
+ data[k]=int(c.r*255.0);data[k+1]=int(c.g*255.0);data[k+2]=int(c.b*255.0);data[k+3]=255
+
+func _mm_dot(data:PackedByteArray,W:int,H:int,p:Vector2,r:int,c:Color)->void:
+ var cx=int(p.x/map_w*float(W));var cy=int(p.y/map_h*float(H))
+ for dy in range(-r,r+1):
+  for dx in range(-r,r+1):
+   if dx*dx+dy*dy<=r*r+1:_mm_set(data,W,H,cx+dx,cy+dy,c)
+
+func _mm_disc(data:PackedByteArray,W:int,H:int,p:Vector2,rm:float,c:Color)->void:
+ var rx=int(ceil(rm/map_w*float(W)));var ry=int(ceil(rm/map_h*float(H)))
+ var cx=int(p.x/map_w*float(W));var cy=int(p.y/map_h*float(H))
+ for dy in range(-ry,ry+1):
+  for dx in range(-rx,rx+1):
+   var wx=(float(dx)/float(maxi(rx,1)));var wy=(float(dy)/float(maxi(ry,1)))
+   if wx*wx+wy*wy<=1.0:_mm_set(data,W,H,cx+dx,cy+dy,c)
+
+func _mm_strip(data:PackedByteArray,hs:PackedFloat32Array,W:int,H:int,a:Vector2,b:Vector2,half:float,marked:bool,c_lane:Color,c_mark:Color,c_danger:Color,mpp_x:float,mpp_z:float)->void:
+ var x0=int(floor((minf(a.x,b.x)-half)/mpp_x));var x1=int(ceil((maxf(a.x,b.x)+half)/mpp_x))
+ var y0=int(floor((minf(a.y,b.y)-half)/mpp_z));var y1=int(ceil((maxf(a.y,b.y)+half)/mpp_z))
+ var ab=b-a;var l2=maxf(ab.length_squared(),0.0001)
+ for py in range(maxi(y0,0),mini(y1,H-1)+1):
+  for px in range(maxi(x0,0),mini(x1,W-1)+1):
+   var wp=Vector2((float(px)+0.5)*mpp_x,(float(py)+0.5)*mpp_z)
+   var t=clampf((wp-a).dot(ab)/l2,0.0,1.0)
+   if wp.distance_to(a+ab*t)>half:continue
+   var depth=level_m-hs[py*W+px]
+   var c:Color
+   if marked:c=c_mark
+   elif depth<=0.6:c=c_lane
+   elif depth<=1.3:c=Color("e0b24a")
+   else:c=c_danger
+   _mm_set(data,W,H,px,py,c)
+
+func minimap_signature()->String:
+ return _knowledge_signature()+"|"+str(snappedf(level_m,0.01))
+
+func minimap_refresh(force:bool=false)->void:
+ var sig=minimap_signature()
+ if not force and sig==minimap_sig:return
+ minimap_sig=sig;minimap_version+=1
+ emit_signal("minimap_changed")
+
+func get_minimap_texture(size:Vector2i)->Texture2D:
+ minimap_requested=true
+ minimap_last_size=size
+ if not justina:return null
+ if not minimap_cache.has(size):minimap_cache[size]=_mm_prepare(size)
+ var e:Dictionary=minimap_cache[size]
+ var sig_now=minimap_signature()
+ if sig_now!=minimap_sig:
+  minimap_sig=sig_now;minimap_version+=1
+ if e.version!=minimap_version or e.tex==null:_mm_render(e)
+ return e.tex
