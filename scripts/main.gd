@@ -1925,7 +1925,7 @@ func _select_ids(ids:Array,how:String="set"):
  if is_instance_valid(world):
   world.selected=selected;world.set_selected_ids(sel_ids)
   world.set_layer_visible("exposure",not _sel_groups().is_empty())
- if (aim=="move" and _sel_groups().is_empty()) or (aim in ["probe","mark_ford"] and _sel_scouts().is_empty()):aim="";aim_pts=[]
+ if (aim=="move" and _sel_groups().is_empty()) or (aim in ["probe","probe_careful","mark_ford"] and _sel_scouts().is_empty()):aim="";aim_pts=[]
  pending_pt=null;wp_list=[];hover_plan_key="";hover_info={}
  select_flash=0.5
  _refresh_actions();_update_hud()
@@ -1969,7 +1969,7 @@ func _action_effect(a:String)->String:
  return str(_action_info(a).get("effect",""))
 
 func _action_kind(a:String)->String:
- if a in ["probe","mark_ford","recall"]:return "scout"
+ if a in ["probe","probe_careful","mark_ford","recall"]:return "scout"
  if a in ["distract_fire","retreat_all"]:return "global"
  return "group"
 
@@ -2007,7 +2007,7 @@ func _avail(action:String)->Dictionary:
  for id in actors:
   var target=Vector2.ZERO
   if action=="board":target=rules.board_point()
-  elif action in ["move","probe","mark_ford"]:target=_actor_pos(id)
+  elif action in ["move","probe","probe_careful","mark_ford"]:target=_actor_pos(id)
   var av=rules.action_availability(id,action,target)
   if bool(av.get("ok",false)):return av
   if fail.is_empty():fail=av
@@ -2048,7 +2048,7 @@ func _do_action(action:String):
    var r=rules.call_fire_support()
    _toast(str(r.get("reason","")),4,bool(r.get("ok",false)));_sound("order" if bool(r.get("ok",false)) else "error")
   "retreat_all":_retreat_dialog()
-  "move","probe","mark_ford":_enter_aim(action)
+  "move","probe","probe_careful","mark_ford":_enter_aim(action)
   "recall":
    var done=0;var msg=""
    for id in _sel_scouts():
@@ -2094,7 +2094,7 @@ func _enter_aim(action:String):
  if kind=="scout" and _sel_scouts().is_empty():_toast("Seleccioná un explorador (4, 5).",3,false);return
  if kind=="group" and _sel_groups().is_empty():_toast("Seleccioná un grupo (1, 2, 3).",3,false);return
  aim=action;aim_pts=[];wp_list=[];pending_pt=null;hover_plan_key=""
- var text={"move":"Mover: clic en el terreno o en el minimapa. Shift agrega waypoints (hasta 4), Enter confirma, Esc cancela.","probe":"Reconocer fondo: clic en el punto a sondear. Shift agrega hasta 3 puntos, Enter confirma, Esc cancela.","mark_ford":"Marcar vado: clic sobre un tramo ya sondeado (1 o 2 puntos con Shift). Enter confirma, Esc cancela."}[action]
+ var text={"move":"Mover: clic en el terreno o en el minimapa. Shift agrega waypoints (hasta 4), Enter confirma, Esc cancela.","probe_careful":"Sondeo cauteloso: clic en el punto a sondear (más lento donde hay fuego, pero recibe la mitad de impactos). Shift agrega hasta 3 puntos, Enter confirma, Esc cancela.","probe":"Reconocer fondo: clic en el punto a sondear. Shift agrega hasta 3 puntos, Enter confirma, Esc cancela.","mark_ford":"Marcar vado: clic sobre un tramo ya sondeado (1 o 2 puntos con Shift). Enter confirma, Esc cancela."}[action]
  _toast(text,6)
 
 func _cancel_aim():
@@ -2107,8 +2107,8 @@ func _aim_click(p:Vector2,shift:bool):
   if shift:_add_waypoint(p)
   else:_commit_move(p)
   return
- if aim in ["probe","mark_ford"]:
-  var cap=3 if aim=="probe" else 2
+ if aim in ["probe","probe_careful","mark_ford"]:
+  var cap=3 if aim!="mark_ford" else 2
   if aim_pts.size()<cap:aim_pts.append(p)
   else:aim_pts[cap-1]=p
   if shift and aim_pts.size()<cap:
@@ -2136,7 +2136,7 @@ func _add_waypoint(p:Vector2):
  _toast("Waypoint %d. Clic derecho (sin Shift) o Enter terminan la ruta." % wp_list.size(),2.5)
 
 func _confirm_key():
- if aim in ["probe","mark_ford"]:_confirm_aim();return
+ if aim in ["probe","probe_careful","mark_ford"]:_confirm_aim();return
  if not wp_list.is_empty():
   var last=wp_list.pop_back() as Vector2
   _commit_move(last,true);return
@@ -2224,7 +2224,7 @@ func _set_preview_point(g:Vector2,force:bool):
  var key="%s|%s|%d|%d|%d" % [aim,pace,wp_list.size(),aim_pts.size(),sel_ids.size()]
  if not force and last_hover_pt!=null and (last_hover_pt as Vector2).distance_to(g)<1.5 and key==hover_plan_key and Time.get_ticks_msec()-hover_stamp<1000:return
  last_hover_pt=g;hover_plan_key=key;hover_stamp=Time.get_ticks_msec()
- if aim in ["probe","mark_ford"]:
+ if aim in ["probe","probe_careful","mark_ford"]:
   var scouts=_sel_scouts()
   if scouts.is_empty():hover_info={};return
   var pts=aim_pts.duplicate();pts.append(g)
@@ -2652,7 +2652,7 @@ func _draw_overlay_j(font,blocked:Array,placed:Array):
      overlay.draw_polyline(pts2,Color(0.03,0.06,0.07,0.7),5.0,true)
      for i in range(pts2.size()-1):overlay.draw_dashed_line(pts2[i],pts2[i+1],rc,3.0,10.0)
   elif str(hover_info.kind)=="scout" and not _sel_scouts().is_empty() and world.unit_nodes.has(_sel_scouts()[0]):
-   var st3=world.unit_nodes[_sel_scouts()[0]].root.global_position+Vector3(0,0.4,0) if aim=="probe" else null
+   var st3=world.unit_nodes[_sel_scouts()[0]].root.global_position+Vector3(0,0.4,0) if aim in ["probe","probe_careful"] else null
    var pts3=_world_pts(hover_info.pts,st3)
    for i in range(pts3.size()-1):overlay.draw_dashed_line(pts3[i],pts3[i+1],Color("6fb8a6"),3.0,8.0)
   var tp=_project(hover_info.point+Vector3(0,0.3,0))

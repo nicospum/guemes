@@ -8,7 +8,7 @@
   "source_tags": {
     "documentado": { "label": "Documentado", "glyph": "●", "color": "#9ac4ab", "meaning": "Documentado en transcripción: testimonio, plano o parte reproducido en una compilación o fuente académica citada en docs/historia/FUENTES.md (no se inspeccionó el manuscrito). Las fuentes divulgativas no bastan: lo que solo ellas sostienen es Reconstrucción. Vale para el hecho o la descripción, nunca para el trazado exacto ni para las cifras del juego." },
     "tradicion":   { "label": "Tradición", "glyph": "◆", "color": "#d9b576", "meaning": "Atribución transmitida y no probada (p. ej. Güemes al frente de los jinetes). Ideario pp. 33, 390-392." },
-    "reconstruccion": { "label": "Reconstrucción", "glyph": "◇", "color": "#8fb4d9", "meaning": "Posición o forma inferida de planos y vistas posteriores; el hecho es documentado pero el trazado exacto no." },
+    "reconstruccion": { "label": "Reconstrucción", "glyph": "◇", "color": "#8fb4d9", "meaning": "Posición o forma inferida de planos y vistas posteriores, o hecho sostenido solo por fuentes secundarias o divulgativas; el trazado exacto no está documentado." },
     "diseno":      { "label": "Diseño", "glyph": "▲", "color": "#d48f79", "meaning": "Regla, cifra o geografía inventada para que el juego funcione. No es dato histórico." }
   },
   "time": {
