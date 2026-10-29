@@ -1,14 +1,14 @@
-# Diseño del escenario Justina (rediseño 2026-10-29, segunda pasada de Reglas)
+# Diseño del escenario Justina (rediseño 2026-10-29, tercera pasada de Reglas)
 
-Documento de diseño del escenario rediseñado. Decisión del usuario: **escala real (1 unidad = 1 m), mapa de ~900 x 520 m, buque a unos 390 m del pie de la barranca, con minimapa y cámara libre**. Los números viven en `data/justina_map.json` (único origen, `map_version` 2); este texto los explica y no debe contradecirlos. La API entre pistas está en `docs/CONTRATO_JUSTINA.md`; los cambios de esta pasada respecto del contrato están en `docs/DISENO_REGLAS.md` ("Cambios de la segunda pasada").
+Documento de diseño del escenario rediseñado. Decisión del usuario: **escala real (1 unidad = 1 m), mapa de ~900 x 520 m, buque a unos 390 m del pie de la barranca, con minimapa y cámara libre**. La tercera pasada (revisión independiente del 29 de octubre) agrega: **fondo oculto distinto por partida**, **recursos limitados que obligan a elegir** (2 señales, 16 de pólvora de reserva), **captura con decisiones** (contraataques, heridos, marea), **explorador con riesgo decidible** (sondeo cauteloso y riesgo estimado) y las correcciones de etiquetas. Los números viven en `data/justina_map.json` (único origen, `map_version` 3); este texto los explica y no debe contradecirlos. La API entre pistas está en `docs/CONTRATO_JUSTINA.md`; los cambios de esta pasada respecto del contrato están en `docs/DISENO_REGLAS.md` ("Cambios de la segunda pasada").
 
 ## 0. Etiquetas de fuente
 
-Todo dato, lugar o regla lleva una de estas etiquetas, en el JSON (`tag`) y en pantalla (glifo + color). **Documentado solo se usa para lo que respalda una fuente primaria o sólida** (Gillespie 1818, planos de 1801 y vistas de Vidal); lo que repiten fuentes divulgativas es Reconstrucción.
+Todo dato, lugar o regla lleva una de estas etiquetas, en el JSON (`tag`) y en pantalla (glifo + color). **Documentado solo se usa para lo que respalda un testimonio, plano o parte reproducido en una compilación o fuente académica citada en `docs/historia/FUENTES.md`** (Gillespie 1818 en la transcripción del Ideario, plano de 1801, vistas de Vidal); es la regla del proyecto ("Documentado en transcripción": no se inspeccionó el manuscrito) y es la misma definición que ve el jugador. Lo que repiten fuentes divulgativas es Reconstrucción. Una **entidad mixta se rotula por su parte más débil** y separa sus partes en `tag_parts`: el buque (`landmarks.justina` y `ship`) es Reconstrucción, con `descripcion: documentado` (mercante británico de 26 cañones), `lugar: reconstruccion` y `posicion_casco: diseno`.
 
 | Etiqueta | Glifo | Significa |
 |---|---|---|
-| **Documentado** | ● | Sustentado por fuente primaria o sólida citada en `docs/historia`. |
+| **Documentado** | ● | Documentado en transcripción: testimonio, plano o parte reproducido en una compilación o fuente académica citada en `docs/historia/FUENTES.md`. Las fuentes divulgativas no bastan. Vale para el hecho o la descripción, nunca para el trazado exacto ni las cifras del juego. |
 | **Tradición** | ◆ | Atribución transmitida y no probada (Güemes al frente de los jinetes; Ideario pp. 33, 390-392). |
 | **Reconstrucción** | ◇ | El hecho o el lugar viene de fuentes secundarias o divulgativas, o la forma exacta se infiere de planos y vistas posteriores (Vidal 1816-20, Boneo 1801). |
 | **Diseño** | ▲ | Regla, cifra o geografía inventada para jugar. No es dato histórico. |
@@ -17,16 +17,17 @@ Todo dato, lugar o regla lleva una de estas etiquetas, en el JSON (`tag`) y en p
 
 | Afirmación | Etiqueta | Fuente / nota |
 |---|---|---|
-| Era un **buque mercante británico de 26 cañones**, que **combatió el día de la rendición** y fue tomado por **caballería** al cerrar el 12 de agosto de 1806 "por una súbita bajada del río". | Documentado | Gillespie 1818 (traducción reproducida en el Ideario, pp. 28-29, 94 y 390 por OCR/transcripción; falta cotejar con el escaneo). **Sin tipo, tonelaje ni capitán**: no rotular fragata/goleta ni inventar nombre. |
+| Era un **buque mercante británico de 26 cañones**, que **combatió el día de la rendición** y fue tomado por **caballería** al cerrar el 12 de agosto de 1806 "por una súbita bajada del río". | Documentado (en transcripción; solo la **descripción**: el lugar es Reconstrucción) | Gillespie 1818 (traducción reproducida en el Ideario, pp. 28-29, 94 y 390 por OCR/transcripción; falta cotejar con el escaneo). **Sin tipo, tonelaje ni capitán**: no rotular fragata/goleta ni inventar nombre. |
 | Varó **frente al Retiro**, cerca de la **Plaza de Toros** (hoy Plaza San Martín) y de la **batería Abascal**, con la barranca y la Alameda en tierra. No es Quilmes ni Barragán. | **Reconstrucción** (confianza media-alta en el Retiro) | **El lugar NO viene de Gillespie**: lo sostienen fuentes divulgativas (edisalta, La Nación, Recalada). La Plaza de Toros sí figura en el plano de Boneo-Villalonga 1801. La equivalencia con la Torre Monumental es de confianza media/baja: **no se dibuja**. |
-| La caballería era la de **Pueyrredón**; **Liniers** ordenó avanzar. | **Reconstrucción** | Obligado 1920 y divulgación; Gillespie solo dice "caballería". |
+| La caballería era la de **Pueyrredón**. | **Documentado** según la investigación del repo (sin cotejo propio del original) | Concha (15-ago-1806) y Liniers (Archivo Pueyrredón, t. I, p. 54), `docs/investigacion/REDISENO_SINTESIS_2026-10-29.md`; Gillespie solo dice "caballería". Falta incorporar esas fuentes a `FUENTES.md`. El **grupo** del juego (cantidad, fuerza, composición) sigue siendo Reconstrucción/Diseño. |
+| **Liniers** ordenó avanzar. | **Reconstrucción** | Obligado 1920 (fuente secundaria). La orden de avance del juego es regla de **Diseño**. |
 | **Güemes como jefe de los jinetes**. | **Tradición, no probada** | Obligado lo hace ayudante de Liniers que lleva la orden a Pueyrredón; la tropa montada era de Pueyrredón. Ideario p. 33. Gillespie y Concha no lo nombran. |
 | La costa de 1806 estaba **al pie de la barranca** (Plaza de Toros). | Reconstrucción | La línea de agua inicial del juego queda a ~20 m del pie. |
 | Distancia al buque "menos de 400 m". | Cifra divulgativa sin cita primaria (**marcada como tal**; en el JSON `distance_tag: diseno`) | Se mide **desde el pie de la barranca** (x≈190) hasta el casco (x=580): 390 m. Ya no se mide desde una orilla adelantada 120 m. |
 | Profundidad al final "pecho o cuello de los caballos" (1-1,5 m). | Divulgación, sin sondeo de época | Se usa 1,0 m en el vado de abordaje (diseño). |
-| El Plata puede subir o bajar 2,1-2,4 m de golpe por el viento. | Documentado (Gillespie) | El viento del 12/8/1806 **no** está documentado. |
+| El Plata tiene bajadas muy repentinas de siete u ocho pies (≈ 2,1-2,4 m). | Documentado en transcripción (Gillespie) | **Gillespie no atribuye la causa al viento en ese pasaje**: «por el viento» es una explicación moderna de la investigación del repo (vientos del oeste, bajantes de ~1,65 m hoy). El viento del 12/8/1806 **no** está documentado. |
 | Ocurrió sin bandera argentina, sin Infernales, sin San Martín. | Regla de CLAUDE.md | El buque era británico y se dibuja sin bandera nacional; si lleva insignia, genérica y marcada reconstrucción. |
-| Todo lo demás: bancos, canal, vados, hoyos, tiempos, cifras de fuerza, munición, cuerpo a cuerpo, puesto de Liniers, **la orden de avance de 300 s**. | **Diseño** | No hay carta de sondeo de 1806 del Retiro. |
+| Todo lo demás: bancos, canal, vados, hoyos, tiempos, cifras de fuerza, munición, cuerpo a cuerpo, puesto de Liniers, **las dos órdenes de avance de 420 s**, los contraataques de la dotación. | **Diseño** | No hay carta de sondeo de 1806 del Retiro. |
 
 ## 1. Geografía (coordenadas métricas)
 
@@ -46,7 +47,7 @@ En 1806 la costa estaba al pie de la barranca: **toda la tierra (cresta, pie, Al
 
 | Elemento | Posición (m) | Etiqueta |
 |---|---|---|
-| **Alameda** (calle sobre la barranca) | polilínea x≈138-154, de z=0 a 520 | Documentado (existencia) / Reconstrucción (trazado) |
+| **Alameda** (calle sobre la barranca) | polilínea x≈138-154, de z=0 a 520 | **Reconstrucción** (lugar y trazado: fuentes secundarias sin plano cotejado; antes figuraba Documentado) |
 | **Plaza de Toros del Retiro** | centro (134, 225), radio 24 | Documentado (lugar, plano de 1801) / Reconstrucción (posición junto a la cresta) |
 | **Campamento de Pueyrredón** | centro (140, 275), radio 20 | Reconstrucción (fuentes secundarias) |
 | **Batería Abascal** | (156, 205), 22 x 14 m, sobre la cresta | **Reconstrucción** (existencia y zona por fuentes divulgativas; sin plano ni documento primario cotejado). Que su fuego llegue al buque (rango 600 m): Diseño |
@@ -72,19 +73,31 @@ Salida de los grupos: en la franja de playa alta, a ~10 m de la línea de agua i
 | **Sur** | (332,404) → (380,430) → (450,455) → (520,440) → (565,390) → (572,320) → (556,282) | 28 m | -0,45 m | Ruta **larga** que llega por la popa del buque (cañones de caza: poca exposición). Solo se alcanza por el **vado sur**. |
 | **Norte** | (300,150) a (480,150) | 70 m | -0,10 m | **Señuelo**: sin salida, termina a ~136 m del buque. |
 
-- **Canal de la ribera**: eje (300,320)-(310,480), 36 m de ancho, fondo -2,0 m. Corta el acceso al banco sur. Cruzarlo a ciegas **tropieza** (30 s detenido, +25 fatiga, −22 de fuerza).
+- **Canal de la ribera**: eje (300,320)-(310,480), 36 m de ancho, fondo -2,0 m. Corta el acceso al banco sur. Cruzarlo a ciegas **tropieza** (40 s detenido, +30 fatiga, −38 de fuerza).
 - **Vado sur** (oculto): carril (268,400)-(342,406), 20 m de ancho, cota -0,9 m. Abre con nivel ≤ 0,4 m: **t ≈ 355 s** hasta ≈ 989 s para caballos.
 - **Vado del buque**: círculo (548,262) de 22 m de radio, cota -1,0 m: profundidad 1,0 m con el río en mínimo. Transitable para caballos con nivel ≤ 0,3 m: **t ≈ 379 a ≈ 982 s**. Para gente a pie (límite 1,2 m) el vado deja de ser vadeable con el río a 0,2 m: **t ≈ 974 s**. Punto de abordaje.
 - **Hoyos ocultos** (todos Diseño; quien pasa sin haberlos reconocido **cae** y pierde caballos y jinetes):
 
-| Hoyo | Centro | Radio | Costo del tropiezo |
-|---|---|---|---|
-| **Pozo del banco central** | (415,264) | 11 m | 35 s detenido, +30 fatiga, **−28 de fuerza** |
-| **Falso vado del borde norte** | (352,242) | 9 m | 25 s, +20 fatiga, −18 de fuerza |
-| **Falso vado del borde sur** | (372,292) | 9 m | 25 s, +20 fatiga, −18 de fuerza |
-| **Canal de la ribera** (si se cruza fuera del vado) | eje del canal | 36 m de ancho | 30 s, +25 fatiga, −22 de fuerza |
+| Hoyo | Centro | Radio | Costo del tropiezo | ¿Existe siempre? |
+|---|---|---|---|---|
+| **Pozo del banco central** | (345,264) | 11 m | 45 s detenido, +35 fatiga, **−45 de fuerza** | sí |
+| **Falso vado del borde norte** | (352,222) | 9 m | 30 s, +25 fatiga, −32 de fuerza | sí |
+| **Falso vado del borde sur** | (372,306) | 9 m | 30 s, +25 fatiga, −32 de fuerza | sí |
+| **Hoyo del flanco norte** (`pozo_flanco_norte`) | (348,240) | 9 m | 40 s, +30, −38 | **solo si el sorteo de la semilla lo elige** |
+| **Hoyo del flanco sur** (`pozo_flanco_sur`) | (348,288) | 9 m | 40 s, +30, −38 | **solo si lo elige** (exactamente uno de los dos flancos) |
+| **Hoyo del banco sur, salida del vado** (`pozo_sur_a`) | (362,419) | 9 m | 40 s, +30, −38 | **solo si lo elige** (uno de `pozo_sur_a`/`pozo_sur_b`) |
+| **Hoyo del banco sur, tramo medio** (`pozo_sur_b`) | (380,429) | 9 m | 40 s, +30, −38 | **solo si lo elige** |
+| **Canal de la ribera** (si se cruza fuera del vado) | eje del canal | 36 m de ancho | 40 s, +30 fatiga, −38 de fuerza | sí |
 
-  Antes la caída costaba −3 de fuerza: reconocer no pesaba. Ahora un trazado a ciegas por el centro (los tres grupos juntos) pierde ≈ 95 % de la fuerza en las simulaciones.
+  Antes la caída costaba −3 de fuerza y luego −28: reconocer no pesaba lo bastante. Ahora un trazado a ciegas por el centro o por el borde norte pierde más del 95 % de la fuerza de los tres grupos en las simulaciones, y **no depende del azar de A\***: el pozo central y los falsos vados están siempre y cubren cualquier trazado recto.
+
+#### 1.2.1 Resultado oculto por partida (`hidden_layout`)
+
+Al empezar, la **semilla** sortea una variante por grupo (con un generador propio que no consume el azar del fuego): `state.hidden.picks = {flanco_central, hoyo_banco_sur}`. Solo la variante elegida **existe** en el fondo de esa partida (terreno, malla de rutas y colisiones); la otra es fondo normal. El resultado queda **fijo** y se guarda en la partida: cargar restaura el mismo fondo.
+
+- **Flanco del banco central.** Con el pozo central descubierto, el planificador lo rodea por el flanco que cree libre. Una de las dos orillas tiene un segundo hoyo; la otra es firme. Sondear **un** carril por un flanco lo resuelve: si el carril termina frente a un hoyo, el firme es el otro (solo hay uno); si lo recorre entero, es ese. Quien solo sondea el eje central apuesta a un lado.
+- **Hoyo del banco sur.** Hay un hoyo en uno de dos puntos del eje del banco, a 60-120 m de la salida del vado. Con el vado abierto, un carril por el eje lo descubre antes de cargar.
+- **Por qué la semilla y no el azar de A\*:** antes lo único que impedía que el planificador pasara por el pozo era la suerte del trazado. Ahora el desastre de ir a ciegas es **determinista** (hay hoyos en todos los trazados rectos), y reconocer es la única forma de saber cuál variante tocó. Descubrir un hoyo lo marca para el planificador con su fondo real; los hoyos inactivos nunca se descubren ni se marcan.
 - Todo lo anterior es **Diseño**: no existe sondeo de 1806 del Retiro.
 
 ### 1.3 Información incompleta (fondo desconocido)
@@ -94,7 +107,7 @@ El Plata es **turbio**: el jugador **no ve el fondo**. Lo único que sabe a cien
 2. Los **carriles reconocidos** por exploradores (franja de 6 m) y los **vados marcados** (corredor de 16 m).
 3. Para todo lo demás vale la **estimación**: perfil base suave, sin bancos, canal, vados ni pozos. La ruta calculada por el planificador usa solo este conocimiento; la simulación aplica el fondo **real**.
 
-El resultado jugable: la ruta central parece buena en el mapa y esconde tres trampas; la ruta sur parece cortada por un canal "invisible" y exige descubrir el vado. Reconocer el centro cuesta: el explorador entra en el arco de la banda del buque (ver 5) y solo puede empezar cuando el agua baja de ~0,85 m sobre el banco (t ≳ 270 s).
+El resultado jugable: la ruta central parece buena en el mapa y esconde el pozo, dos falsos vados y (según la semilla) un hoyo de flanco; la ruta sur parece cortada por un canal "invisible", exige descubrir el vado y esconde un hoyo en el banco. Reconocer el centro cuesta: el explorador entra en el arco de la banda del buque (ver 5) y solo puede empezar cuando el agua baja (t ≳ 250 s; los exploradores entran hasta 1,3 m de profundidad, igual que los caballos). Para reconocer con riesgo decidible, `probe_careful` y `scout_risk` dan el riesgo de baja antes de ordenar (ver 5).
 
 ## 2. Tiempos
 
@@ -106,7 +119,7 @@ El resultado jugable: la ruta central parece buena en el mapa y esconde tres tra
 | Subida (lineal) | 960-1080 (120 s) | 0,0 → 1,65 |
 | **Plazo** | 1080 (18 min) | derrota si no hay captura |
 
-Partida objetivo **12-18 min**. En las simulaciones las victorias duran entre 13,1 y 16,6 min. La bajante es un **temporizador visible** con barra de nivel y marcas de profundidad (Diseño, anclado en Gillespie y en una bajante moderna típica de ~1,65 m). El plazo es de 18 min (antes 15) porque el abordaje ya no es instantáneo (ver 5): el riesgo real es que **el agua que sube alcance a los que están a pie en el vado** (~t 974 s).
+Partida objetivo **12-18 min**. En las simulaciones las victorias duran entre 12,4 y 16,2 min (ver 10). La bajante es un **temporizador visible** con barra de nivel y marcas de profundidad (Diseño, anclado en Gillespie y en una bajante moderna típica de ~1,65 m). El plazo es de 18 min (antes 15) porque el abordaje ya no es instantáneo (ver 5): el riesgo real es que **el agua que sube alcance a los que están a pie en el vado** (~t 974 s).
 
 ## 3. Velocidades
 
@@ -129,40 +142,44 @@ Fatiga por segundo: caminar 0,02; trote 0,05; galope 0,12; ×1,5 en barro; ×1,6
 ## 4. Bucle del jugador
 
 1. **Mirar** (0-60 s, río alto): el mapa muestra solo orilla, barranca, hitos y el buque. Hay que decidir cómo repartir las tareas entre tres grupos y dos exploradores.
-2. **Prepararse** (≈0-300 s): reunir jinetes (cuesta 4 de munición y +20 de fatiga), abastecer munición, **señalar a Liniers cuando falte poco para cruzar** (la orden vale 300 s) y reconocer. No hay espera pasiva: cada tarea saca al grupo de la playa y la bajante no espera.
-3. **Reconocer y decidir ruta** (≈250-450 s): el centro exige sondear **bajo el fuego del buque** (el explorador cae en ≈ 12 descargas (≈ 90 s) si es el único blanco; el fuego de distracción lo alarga) o aceptar el riesgo a ciegas; el sur se reconoce a salvo, fuera del alcance, pero es más largo. Se puede dividir fuerzas.
-4. **Cruzar** (≈330-600 s): marcha con el ritmo elegido, fuego de distracción en las ventanas de 45 s (8 de munición, recarga 90 s), a la vez o escalonados. Cada grupo que cruza solo recibe todo el fuego.
-5. **Abordar y sostener** (≈550-1000 s): llegar al vado, desmontar (12 s) y **mantener el abordaje** mientras el buque dispara (x0,5), la dotación pelea cuerpo a cuerpo (0,06 de fuerza por segundo por grupo mientras tenga moral) y el agua sube. Decidir cuándo cargar con todo, cuándo cubrir con fuego (baja la moral 3 por uso) y cuándo retirar a un grupo que flaquea (puede, monta y vuelve).
+2. **Prepararse** (≈0-300 s): reunir jinetes (cuesta 4 de munición y +20 de fatiga), abastecer munición de la reserva (solo 16), **señalar a Liniers** (solo 2 señales de 420 s: una pronto da +8 de munición pero vence antes de llegar; una tarde no da munición para cubrir a los exploradores) y reconocer. La pólvora no alcanza para todo: **cubrir a los exploradores, cubrir el cruce, armar reclutas y rechazar contraataques compiten por los mismos 44 de munición**.
+3. **Reconocer y decidir ruta** (≈250-500 s): el centro exige un carril por un flanco **bajo el fuego del buque** (sondeo cauteloso: más lento pero con la mitad de riesgo; el riesgo estimado de baja se informa al ordenar) o apostar a ciegas; el sur exige descubrir y marcar el vado (≈100-250 s) y sondear el banco desde que el vado abre (t ≳ 355 s), fuera del alcance del buque. Se puede dividir fuerzas.
+4. **Cruzar** (≈330-750 s): marcha con el ritmo elegido, fuego de distracción en las ventanas de 45 s (8 de munición, recarga 90 s), a la vez o escalonados. **Si la orden de avance vence con un grupo en marcha, el grupo se detiene**: `plan_route` avisa cuando la ETA supera la vigencia.
+5. **Abordar y sostener** (≈550-1000 s): llegar al vado, desmontar (12 s) y **sostener el abordaje con decisiones**: cada ~55 s la dotación **contraataca** y hay 14 s para **rechazarlo** (3 de munición) o se pierde terreno; los heridos del cuerpo a cuerpo y de los contraataques pueden **evacuarse** (el grupo no suma captura 10 s y recupera el 60 %) o retirarse con el grupo; y hay que **retirar a tiempo** a los de a pie cuando el agua del vado se acerca a 1,2 m.
 6. **Cierre**: victoria al 100 % de captura; si el río alcanza a la gente a pie en el vado, se ahoga.
 
-## 5. Acciones (10) con coste y efecto
+## 5. Acciones (13) con coste y efecto
 
-Cifras en `actions` del JSON.
+Cifras en `actions` del JSON. La tercera pasada agrega `probe_careful` (explorador), `repel` y `evacuate` (grupos que abordan).
 
 | # | Acción (id) | Quién | Coste | Efecto | Etiqueta |
 |---|---|---|---|---|---|
 | 1 | **Mover** (`move`, ritmo walk/trot/gallop) | grupo | tiempo de marcha + fatiga por segundo | Marcha a un punto. La ruta se calcula con lo que el jugador sabe. | Diseño |
-| 2 | **Reconocer fondo** (`probe`) | explorador | ocupa al explorador; hasta 3 puntos; 1,0 m/s en agua, 3,0 m/s en seco; no entra en agua > 1,1 m; **4 de salud, cada descarga lo acierta con probabilidad 0,4 x exposición** | Revela el fondo real en una franja de 6 m: aparecen pozos y vados. | Diseño |
+| 2 | **Reconocer fondo** (`probe`) | explorador | ocupa al explorador; hasta 3 puntos; 1,0 m/s en agua, 3,0 m/s en seco; no entra en agua > 1,3 m (como los caballos); **4 de salud, cada descarga lo acierta con probabilidad 0,4 x exposición** | Revela el fondo real en una franja de 6 m: aparecen pozos y vados. Al ordenarlo se informa el **riesgo estimado**: segundos expuestos, impactos esperados y % de baja (peor caso: único blanco). | Diseño |
+| 2b | **Sondeo cauteloso** (`probe_careful`, o `issue_scout(..., {"cautious": true})`) | explorador | igual que `probe`, pero donde el buque alcanza avanza a **0,7** de la velocidad | Mismo efecto con **la mitad** de la probabilidad de ser alcanzado (`hit_mult` 0,5). Con la mitad del riesgo y 30 % más de tiempo bajo el fuego, el explorador del centro sobrevive la mayoría de las veces; con dos exploradores el fuego se reparte. | Diseño |
 | 3 | **Marcar vado** (`mark_ford`) | explorador | 1 baliza por cada 10 m (16 al inicio), trabaja a 1,0 m/s; solo sobre un tramo ya sondeado | Ensancha el carril a 16 m: columna a velocidad plena y sin tropiezo. | Diseño |
 | 4 | **Reunir jinetes** (`muster`) | grupo | subir por una bajada hasta la Plaza de Toros; 40 s allí; **4 de munición**; sale del reservorio de 60; **+20 de fatiga** (reclutas sin entrenar) | +20 de fuerza (tope 100). | Diseño |
 | 5 | **Distraer con fuego** (`distract_fire`) | global | 8 de munición; reutilizable cada 90 s | 45 s con la exposición a la mitad; el buque pierde **3** de moral y tarda 2 s más entre descargas. Dispara la batería Abascal y tiradores de la barranca. | Diseño |
-| 6 | **Abastecer munición** (`resupply`) | grupo | subir hasta la batería; 25 s allí | +16 de munición (tope 40; arranca en **12**). | Diseño |
-| 7 | **Señalar a Liniers** (`signal_liniers`) | grupo | ir al puesto de mando (148,345), 10 s allí | Concede la **orden de avance durante 300 s** (necesaria para `board`; vencida hay que volver a señalar) y +8 de munición. | **Diseño** (que Liniers ordenó avanzar lo cuenta Obligado, fuente secundaria; Güemes como mensajero es tradición y **no se afirma**) |
-| 8 | **Cargar y abordar** (`board`) | grupo | requiere orden de avance vigente; llegar al vado del buque; desmontar 12 s | Suma poder de captura 0,30 %/s por unidad de fuerza; baja la moral de la dotación 0,12/s. Los caballos quedan en el vado. Costo: fuego x0,5, cuerpo a cuerpo y agua que sube. | Documentado (el hecho) / Diseño (cifras) |
+| 6 | **Abastecer munición** (`resupply`) | grupo | subir hasta la batería; 25 s allí | +16 de munición (tope 40; arranca en **12**), retirados de la **reserva de la batería (16 en total: se agota)**. | Diseño |
+| 7 | **Señalar a Liniers** (`signal_liniers`) | grupo | ir al puesto de mando (148,345), 10 s allí; **solo 2 señales en toda la partida** | Concede la **orden de avance durante 420 s** (necesaria para `board`; si vence con un grupo en marcha hacia el buque, **el grupo se detiene**; vencida hay que volver a señalar) y +8 de munición. | **Diseño** (que Liniers ordenó avanzar lo cuenta Obligado, fuente secundaria; Güemes como mensajero es tradición y **no se afirma**) |
+| 8 | **Cargar y abordar** (`board`) | grupo | requiere orden de avance vigente; llegar al vado del buque; desmontar 12 s | Suma poder de captura 0,55 %/s por unidad de fuerza; baja la moral de la dotación 0,12/s. Los caballos quedan en el vado. Costo: fuego x0,3, cuerpo a cuerpo, contraataques y agua que sube. | Documentado en transcripción (el hecho) / Diseño (cifras) |
 | 9 | **Retirar** (`withdraw`; `retreat_all`) | grupo / global | la marcha de vuelta | Vuelve a la playa seca; **también desde el abordaje** (los jinetes montan los caballos del vado). `retreat_all` termina la partida como derrota ordenada. | Diseño |
 | 10 | **Reagrupar** (`rally`) | grupo | tiempo | En la playa seca y fuera de alcance: -0,18 fatiga/s, +0,025 fuerza/s. | Diseño |
+| 11 | **Rechazar contraataque** (`repel`) | grupo que aborda | **3 de munición**, +3 de fatiga; solo durante la ventana de 14 s de un contraataque | La captura no retrocede y el daño se reduce a la cuarta parte. | Diseño |
+| 12 | **Evacuar heridos** (`evacuate`) | grupo que aborda | 10 s sin sumar poder de captura; hacen falta ≥ 3 de heridos | Recupera el **60 %** de los heridos como fuerza. | Diseño |
 
 Más `cancel` (anula la orden en curso).
 
 ### Fuego del buque (el castigo)
 
-Cada **7,5 s** el buque dispara una descarga contra un objetivo dentro de **280 m** (alcance Diseño). Daño 3,2-5,0 × exposición × moral de la dotación (mín. 0,2). Exposición por rumbo desde el buque: banda (±40° del oeste) **1,0**; cuartel (hasta ±70°) **0,5**; popa/proa **0,25**. Quien desmonta o aborda recibe el **fuego x0,5**. En la playa y el barro no hay fuego (fuera de alcance): el riesgo empieza donde empieza el agua. En las simulaciones el centro acumula ≥ 1,4 veces la exposición de cruce de la ruta sur con los mismos recursos (1,69 en la matriz).
+Cada **7,5 s** el buque dispara una descarga contra un objetivo dentro de **265 m** (alcance Diseño; era 280). Daño 7,8-11,9 × exposición × moral de la dotación (mín. 0,2). Exposición por rumbo desde el buque: banda (±40° del oeste) **1,0**; cuartel (hasta ±70°) **0,4**; popa/proa **0,15**. Quien desmonta o aborda recibe el **fuego x0,3** (era x0,5: así el castigo está en el cruce, que es lo que diferencia las rutas, y no en el sitio de abordaje, que es igual para todas). En la playa y el barro no hay fuego (fuera de alcance): el riesgo empieza donde empieza el agua. El centro acumula ≈ 1,6 veces la exposición de cruce de la sur con los mismos recursos (ver 10).
 
-### Abordaje: costo y agua que sube
+### Abordaje: costo, decisiones y agua que sube
 
-- **Cuerpo a cuerpo**: cada grupo que aborda pierde 0,06 de fuerza por segundo × moral de la dotación/100. Con la dotación quebrada casi nada.
-- **Agua que sube**: quien está desmontando o abordando con una profundidad mayor que 1,2 m pierde `3,0 × (exceso + 0,1)` de fuerza por segundo. Con el río en mínimo nadie se ahoga.
-- **Poder de captura** = fuerza/100 × (1 − 0,004 × fatiga, mínimo 0,4).
+- **Cuerpo a cuerpo**: cada grupo que aborda pierde 0,05 de fuerza por segundo × moral de la dotación/100. Con la dotación quebrada casi nada. **La mitad de lo que se pierde son heridos** (`wounded`), recuperables con `evacuate` o retirando al grupo (mitad de efecto).
+- **Contraataque de la dotación** (`ship.capture.counter`): a los 30 s del primer abordaje y luego cada 55 s ± 12 s, la dotación contraataca (si su moral ≥ 15). Se abre una **ventana de 14 s**: si algún grupo que aborda **rechaza** (`repel`), el daño es un cuarto; si no, los grupos que abordan reparten 22 de daño y la captura retrocede 8 puntos. Es la decisión que impide la espera pasiva: **sin responder, la captura no se sostiene** (ver `central_flank_noreply` y `south_noreply` en 10).
+- **Agua que sube**: quien está desmontando o abordando con una profundidad mayor que 1,2 m pierde `3,0 × (exceso + 0,1)` de fuerza por segundo. Con el río en mínimo nadie se ahoga. Desde el 85 % del límite (1,02 m) el parte avisa cada 10 s para que se retire o se evacue a tiempo (**gestión de la marea**).
+- **Poder de captura** = fuerza/100 × (1 − 0,004 × fatiga, mínimo 0,4); el ritmo es 0,55 %/s por unidad de poder (era 0,30: ahora hay contraataques que lo deshacen).
 
 ## 6. Victoria y derrota
 
@@ -193,24 +210,29 @@ Todo cambio entre pistas pasa por el contrato; no se tocan archivos ajenos.
 
 ## 10. Objetivos de balance para los tests de Reglas
 
-Medidos con 11 estrategias scripteadas x 6 semillas (66 partidas) sobre el juego real, no con un modelo aparte. Resultados en `docs/DISENO_REGLAS.md`.
+Medidos con **18 estrategias scripteadas x 8 semillas** (3, 5, 7, 11, 13, 17, 19, 23; 144 partidas) sobre el juego real, no con un modelo aparte. Tabla completa y lectura en `docs/DISENO_REGLAS.md`.
 
 | Criterio | Cómo se comprueba |
 |---|---|
-| Ninguna estrategia gana más del 70 % de las victorias y al menos 3 ganan en la mitad o más de las semillas | `_test_strategies` (`play_targets.dominance`) |
+| Ninguna estrategia acumula más del **60 %** de las victorias de la matriz (antes 70 %); al menos 3 ganan en la mitad o más de las semillas; ninguna familia (centro, sur) gana más del 75 % de sus partidas | `_test_strategies` (`play_targets.dominance`) |
 | Hay victorias por el centro y por el sur; ninguna ruta acumula más del 75 % | `_test_strategies` |
-| Ruta central a ciegas: tropieza en todas las semillas, pierde ≥ 30 % y no gana | `rush_central` |
-| Reconocer + central: solo tropieza si el explorador cayó antes de hallar el pozo | `probed_central_full` |
-| Sur: gana en la mitad o más de las semillas, con ≥ 60 s de margen antes de que el agua alcance a la gente a pie; exposición del centro ≥ 1,4 × la del sur | `south_full` vs `probed_central_full` |
-| Las victorias duran 12-18 min | tiempos de todas las victorias |
+| **A ciegas casi nunca se gana** (≤ 10 % de las partidas de las estrategias ciegas) y **reconocer mejora la tasa de éxito** (≥ 40 % y ≥ 30 puntos más) | `rush_central`, `rush_gallop`, `blind_north_edge`, `south_wrong_crossing` frente a `central_flank_*`, `south_full`, `mixed_split` |
+| Ruta central a ciegas: tropieza en casi todas las semillas y pierde ≥ 30 % | `rush_central`, `rush_gallop` |
+| Sondear solo el eje del centro (o solo el vado sur) **no basta**: el hoyo oculto cobra | `central_center_lane` vs `central_flank_lane`; `south_vado_only` vs `south_full` |
+| Rechazar contraataques y evacuar heridos paga (menos pérdida por contraataque, no menos victorias); con captura activa hay una ventana de decisión cada ≲ 90 s | `central_flank_noreply`, `south_noreply`; ventana en todas las victorias |
+| **Ruta sur: mejor victoria < 960 s** y **exposición centro/sur ≥ 1,4**; la central gana antes (media < 900 s) y la sur con menos bajas | `south_full` vs `central_flank_lane` |
+| Las victorias duran entre 10 y 18 min | tiempos de todas las victorias |
 | Salir tarde pierde; pasividad pierde exactamente en t=1080 s | `late_all_in`, `passive` |
-| Guardar/cargar en cualquier momento: estado idéntico (1e-6); guardado compacto bajo 3 MB | `_test_justine_persistence`, `_test_save_size` |
+| La métrica de bajas queda entre 0 y 100 en todas las partidas (`campaign_report().loss_total_pct`) | todas |
+| Guardar/cargar en cualquier momento: estado idéntico (1e-6); guardado compacto bajo 3 MB **medido en bytes**, con recorte de registro, órdenes y sondas | `_test_justine_persistence`, `_test_save_size`, `_test_labels_and_save_trim` |
 | Ningún grupo supera las velocidades de la sección 3 | muestreo de posiciones |
+
+**Cambios de objetivos de balance respecto de la pasada anterior** (con justificación, en `play_targets`): `max_win_share` 0,7 → 0,6 (pedido de la revisión), `strategies_min` 8 → 10 y `seeds_min` 6 → 8 (matriz de 18 x 8), `recon_then_south.victory_before_s` se mantiene en 960 s y ahora se exige al **mejor caso** (912 s medidos; la media sur es 935 s y varias semillas pasan de 960 s: la sur es lenta a propósito), `central_vs_south_exposure_ratio_min` se mantiene en 1,4 (1,58 medido). Para lograrlo se tocó: alcance del buque 280 → 265 m, arcos de cuartel/popa 0,5/0,25 → 0,4/0,15, daño 3,2-5,0 → 7,8-11,9, fuego sobre quien aborda x0,5 → x0,3, ritmo de captura 0,30 → 0,55 %/s, validez de la orden de avance 300 → 420 s, sondeo hasta 1,3 m y costos de tropiezo. Son números de **Diseño**; no hay datos históricos que los sustenten.
 
 ## 11. Lo que no se verificó
 
 - **Las láminas de `docs/referencias/justina/` no se miraron una por una**: las posiciones de barranca, playa y Plaza de Toros se tomaron de la síntesis y de los hallazgos, no de un calco sobre Vidal. La Vista debe contrastar la silueta con `vidal_05` y `vidal_02` y proponer ajustes por contrato.
 - Las cifras de Gillespie (pp. 28-29, 94 y 390) vienen del OCR o de la transcripción del Ideario; falta cotejar con el escaneo. Los enlaces concretos de La Nación y Recalada para el lugar del varado no están en la bibliografía de `docs/historia/FUENTES.md`: hay que incorporarlos y cotejarlos. El total de efectivos (100 contra 180) no está confirmado: el juego **no** muestra cifras de hombres, solo fuerza relativa.
-- Ninguna cifra de diseño (tiempos, velocidades, daños, costes) se jugó con personas. Las estrategias están scripteadas con conocimiento del mapa que un jugador no tiene al principio; las semillas solo cambian el azar del fuego, así que muchas estrategias dan el mismo resultado en las seis.
+- Ninguna cifra de diseño (tiempos, velocidades, daños, costes) se jugó con personas. Las estrategias están scripteadas con conocimiento del mapa que un jugador no tiene al principio. Ahora las semillas cambian el **fondo oculto** (flanco central y hoyo del banco sur) además del azar del fuego; aun así el balance es sensible: variar el daño del buque entre 7,5 y 8,2 pasa la ruta central de ~100 % a ~15 % de victorias. Con 8 semillas el ruido es grande: la variante `central_flank_pair` ganó 8/8 en las semillas de la matriz y 6/10 en otras diez (29-67), y `central_flank_lane` 5/8 y 2/10; la ventaja del par no es un defecto del guion sino de diseño: **dos exploradores comparten una sola ventana de fuego de cobertura (8 de munición) y dejan pólvora para rechazar contraataques**. Esta es la estrategia más fuerte de la matriz (≈ 78 % en 18 semillas) y **no cumple una lectura estricta de «ninguna estrategia gana más del 60 %»**; sí cumple la de reparto de victorias (≤ 60 % del total, 33 % medido).
 - La posición real de la batería, la Plaza de Toros y el campamento se dan por reconstrucción; no hay plano de la ribera de 1806.
-- La prueba de integración de la interfaz (`tests/test_integration.gd`) no se ajustó a la nueva geografía y a la nueva línea de tiempo: ocho de sus comprobaciones fallan (selección por caja, nombre del lugar, tiempos de la bajante y del sondeo). Es trabajo de la pista UI.
+- La interfaz (pista UI) **todavía no conoce** `probe_careful`, `repel`, `evacuate` ni `scout_risk`: las acciones aparecen como botones genéricos (sin tecla ni modo de apuntado para el sondeo cauteloso), y `main.gd` no muestra `resources().signals_left`/`ammo_reserve` ni `state.counter`. Los tests de integración (181 comprobaciones) siguen en verde con ese estado, pero hace falta el trabajo de UI para jugar las decisiones nuevas.

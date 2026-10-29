@@ -29,11 +29,15 @@ const MARK_POINT_SPACING := 2.0
 const BEACH_MARGIN_M := 40.0           ## playa seca = x <= shore_high + 40 (texto de actions.rally.regen_requires, JSON)
 const BOARDING_EXPOSURE_MULT := 0.6    ## valor por defecto; el escenario lo fija en ship.capture.boarding_exposure_mult
 const LOG_MAX := 400                   ## tope del registro de acontecimientos en el estado
-const SAVE_MAX_BYTES := 3000000        ## tope del guardado (load_game rechaza > 4 MB)
+const SAVE_MAX_BYTES := 3000000        ## tope del guardado en BYTES utf-8 (load_game rechaza > LOAD_MAX_BYTES)
+const LOAD_MAX_BYTES := 4000000
 const SAVE_LOG_FALLBACK := 60          ## si aun asi se pasa, se recorta el registro a esto al guardar
 const JUSTINE_GROUPS :=["guemes", "arias", "zavala"]
 const JUSTINE_STAGES := ["ready", "moving", "working", "stumbling", "rally", "blocked", "dismounting", "boarding", "routed"]
-const JUSTINE_ORDER_ACTIONS := ["move", "board", "rally", "withdraw", "muster", "resupply", "signal_liniers"]
+const JUSTINE_ORDER_ACTIONS := ["move", "board", "rally", "withdraw", "muster", "resupply", "signal_liniers", "repel", "evacuate"]
+const SAVE_ORDERS_FALLBACK := 120      ## si el guardado se pasa del tope, se conservan solo las ultimas ordenes
+const SAVE_PROBE_STRIDE := 3           ## y las sondas se aligeran conservando 1 de cada N puntos (mas los extremos)
+const SCOUT_ACTIONS_ALL := ["probe", "probe_careful", "mark_ford", "recall"]
 const SCOUT_STAGES := ["idle", "moving", "probing", "marking", "lost"]
 const PACES := ["walk", "trot", "gallop"]
 const TIDE_PHASES := ["alta", "bajando", "baja", "subiendo"]
@@ -54,6 +58,10 @@ static var _S_static_ms := 0.0
 var state: Dictionary = {}
 var _events: Array = []
 var _navigation_revision := -999
+# Resultado oculto de la partida: hoyos variantes que NO existen en el fondo de esta partida (se sortean con la semilla).
+var _inactive: Dictionary = {}
+var _real_h_inst := PackedFloat32Array()
+var _real_h_ready := false
 
 # Malla de rutas (por instancia: depende del nivel del rio y de lo que el jugador sabe).
 var _nav: AStarGrid2D
@@ -148,7 +156,9 @@ static func _build_geo() -> void:
 		else:
 			layers.append(_make_layer("set", PackedVector2Array([Vector2(float(fd.center[0]), float(fd.center[1]))]), float(fd.radius_m), float(fd.top_m), float(fd.blend_m)))
 	for hz in m.hazards:
-		layers.append(_make_layer("set", PackedVector2Array([Vector2(float(hz.center[0]), float(hz.center[1]))]), float(hz.radius_m), float(hz.bed_m), BLEND_DEFAULT))
+		var hl := _make_layer("set", PackedVector2Array([Vector2(float(hz.center[0]), float(hz.center[1]))]), float(hz.radius_m), float(hz.bed_m), BLEND_DEFAULT)
+		hl["hid"] = str(hz.id)
+		layers.append(hl)
 	layers.append(_make_layer("set", PackedVector2Array([Vector2(float(m.hull.center[0]), float(m.hull.center[1]))]), float(m.hull.radius_m), float(m.hull.bed_m), BLEND_DEFAULT))
 	var obstacles: Array = []
 	for o in m.obstacles:
@@ -221,6 +231,8 @@ func new_game(scenario: String, seed_value: int = 1806) -> Dictionary:
 	_nav = null
 	_nav_key = Vector2i(-1, -1)
 	_know_sig = -1
+	_inactive = {}
+	_real_h_ready = false
 	_clear_knowledge()
 	if scenario == "justine":
 		_setup_justine()
@@ -236,24 +248,49 @@ func _unit(id: String, title: String, x: float, z: float, sector_id: String = ""
 		"supply": 100.0, "mounted": true, "stage": "ready", "order": {}, "path": [],
 		"sector_id": sector_id, "dismount_remaining": 0.0, "revealed_until": 0, "blocked_until": 0.0}
 
+## Resultado oculto fijo por partida: elige UNA variante por grupo con la semilla (generador propio: no consume el flujo de azar del juego).
+func _roll_hidden(seed_value: int) -> Dictionary:
+	var picks := {}
+	var x: int = (absi(seed_value) * 1103515245 + 12345) % 2147483648
+	for grp in map_data().get("hidden_layout", {}).get("groups", []):
+		for _k in range(5):
+			x = (x * 1103515245 + 12345) % 2147483648
+		var variants: Array = grp.variants
+		picks[str(grp.id)] = str(variants[((x >> 13) ^ (x >> 21)) % variants.size()])
+	return {"picks": picks}
+
+## Calcula los hoyos variantes inactivos a partir de lo elegido (state.hidden) y descarta la malla de alturas de la partida anterior.
+func _apply_hidden() -> void:
+	_inactive = {}
+	_real_h_ready = false
+	var picks: Dictionary = state.get("hidden", {}).get("picks", {})
+	for hz in map_data().hazards:
+		if hz.has("variant_group") and str(picks.get(str(hz.variant_group), "")) != str(hz.id):
+			_inactive[str(hz.id)] = true
+
+func hazard_active(id: String) -> bool:
+	return not _inactive.has(id)
+
 func _setup_justine() -> void:
 	var m := map_data()
 	if m.is_empty():
 		push_error("Escenario Justina sin mapa")
 		return
+	state.hidden = _roll_hidden(int(state.seed))
+	_apply_hidden()
 	var units: Array = []
 	var start_strength := {}
 	for g in m.groups:
 		var u := _unit(str(g.id), str(g.name), float(g.x), float(g.z))
 		u.strength = float(g.strength)
-		u.merge({"pace": "trot", "work": {}, "stumble_remaining": 0.0, "tag": str(g.tag)})
+		u.merge({"pace": "trot", "work": {}, "stumble_remaining": 0.0, "tag": str(g.tag), "wounded": 0.0, "evac_remaining": 0.0})
 		units.append(u)
 		start_strength[str(g.id)] = float(g.strength)
 	state.units = units
 	var scouts: Array = []
 	for s in m.scouts:
 		scouts.append({"id": str(s.id), "name": str(s.name), "x": float(s.x), "z": float(s.z), "hp": int(m.resources.scout_hp),
-			"stage": "idle", "order": {}, "path": [], "work_remaining": 0.0})
+			"stage": "idle", "order": {}, "path": [], "work_remaining": 0.0, "cautious": false})
 	var tide := tide_at(0.0)
 	var res: Dictionary = m.resources
 	state.merge({"map_id": str(m.id), "map_version": int(m.map_version),
@@ -262,9 +299,12 @@ func _setup_justine() -> void:
 		"deadline": float(m.time.deadline_s), "bajante_announced": false, "rising_announced": false,
 		"ammo": int(res.ammo_start), "ammo_max": int(res.ammo_max), "balizas": int(res.balizas_start), "volunteers_pool": float(res.volunteers_pool),
 		"advance_authorized": false, "advance_until": -1.0, "fire_support": {"until": 0.0, "ready_at": 0.0},
+		"ammo_reserve": int(res.ammo_reserve), "signals_left": int(res.signals_max),
+		"counter": {"next_at": -1.0, "active": false, "until": 0.0, "answered": false, "count": 0},
 		"probes": [], "scouts": scouts, "hazards_found": [], "fords_found": [], "defeat_cause": "",
 		"stats": {"start_strength": start_strength, "shots_taken": 0, "damage_taken": 0.0, "stumbles": 0, "probe_m": 0.0, "marked_m": 0.0,
 			"ammo_used": 0, "balizas_used": 0, "fire_support_uses": 0, "muster_gain": 0.0, "scouts_lost": 0, "horses_lost": 0.0, "melee_loss": 0.0, "drowned": 0.0,
+			"counter_hits": 0, "counter_repelled": 0, "counter_loss": 0.0, "evacuations": 0, "wounded_recovered": 0.0, "halted_by_expiry": 0,
 			"exposure_s": {"central": 0.0, "sur": 0.0, "otra": 0.0}, "bank_s": {"central": 0.0, "sur": 0.0},
 			"stumble_at": {}, "boarded_at": -1.0, "level_at_boarding": -1.0, "first_water_entry_at": -1.0},
 		"historical_note": str(m.texts.historical_note), "briefing": str(m.texts.briefing)})
@@ -328,6 +368,8 @@ func terrain_height_at(x: float, z: float) -> float:
 	var p := Vector2(x, z)
 	for layer in g.layers:
 		if not layer.rect.has_point(p):
+			continue
+		if not _inactive.is_empty() and layer.has("hid") and _inactive.has(layer.hid):
 			continue
 		var pts: PackedVector2Array = layer.pts
 		var d := INF
@@ -686,6 +728,8 @@ func _ensure_static() -> void:
 	_S_base_col.resize(NX)
 	for i in range(NX):
 		_S_base_col[i] = _base_height(i * CELL)
+	var keep_inactive := _inactive
+	_inactive = {}  ## la malla estatica se hornea con TODAS las variantes; cada partida corrige las suyas (_real_heights)
 	for j in range(NZ):
 		for i in range(NX):
 			var x := i * CELL
@@ -694,8 +738,27 @@ func _ensure_static() -> void:
 			_S_real_h[idx] = terrain_height_at(x, z)
 			var lk := _land_kind(x, z, CELL)
 			_S_cls[idx] = 0 if lk == "" else (2 if lk == "bajada" else 1)
+	_inactive = keep_inactive
 	_S_static_ready = true
 	_S_static_ms = float(Time.get_ticks_usec() - t0) / 1000.0
+
+## Alturas reales de la malla para ESTA partida: la malla estatica con los hoyos variantes inactivos recalculados.
+func _real_heights() -> PackedFloat32Array:
+	if _inactive.is_empty():
+		return _S_real_h
+	if _real_h_ready:
+		return _real_h_inst
+	_real_h_inst = _S_real_h.duplicate()
+	for hz in map_data().hazards:
+		if not _inactive.has(str(hz.id)):
+			continue
+		var c := Vector2(float(hz.center[0]), float(hz.center[1]))
+		var reach := float(hz.radius_m) + BLEND_DEFAULT + CELL
+		for j in range(maxi(0, floori((c.y - reach) / CELL)), mini(NZ - 1, ceili((c.y + reach) / CELL)) + 1):
+			for i in range(maxi(0, floori((c.x - reach) / CELL)), mini(NX - 1, ceili((c.x + reach) / CELL)) + 1):
+				_real_h_inst[j * NX + i] = terrain_height_at(i * CELL, j * CELL)
+	_real_h_ready = true
+	return _real_h_inst
 
 func _ensure_nav() -> void:
 	_ensure_static()
@@ -717,6 +780,7 @@ func _ensure_nav() -> void:
 	var v_shallow := minf(trot, float(mv.shallow_water.horse_mps))
 	var v_deep := minf(trot, float(mv.deep_water.speed_mps))
 	var limit := _horse_limit()
+	var real_h := _real_heights()
 	var known_w := 0.8  ## contrato 1.5: lo reconocido cuesta x0,8 frente a lo desconocido
 	if _nav == null:
 		_nav = AStarGrid2D.new()
@@ -743,7 +807,7 @@ func _ensure_nav() -> void:
 			elif cls == 2:
 				w = ramp_w
 			else:
-				var hr: float = _S_real_h[idx]
+				var hr: float = real_h[idx]
 				var known := (level - hr) <= vis or _know_r[idx] != 0
 				var d := level - (hr if known else _S_base_col[i] + opt)
 				if d > limit:
@@ -944,6 +1008,10 @@ func plan_route(group_id: String, target: Vector2, pace: String = "trot", opts: 
 		res.warnings.append("Con este ritmo no llegaría al vado del buque dentro de su ventana abierta.")
 	if pace == "gallop":
 		res.warnings.append("El galope solo vale en terreno firme; en barro y agua se limita al trote.")
+	if dest.distance_to(board_point()) <= float(map_data().ship.capture.boarding_radius_m) and bool(state.get("advance_authorized", false)) and float(state.get("advance_until", -1.0)) >= 0.0:
+		var left := float(state.advance_until) - float(state.elapsed)
+		if float(res.eta_s) > left:
+			res.warnings.append("La orden de avance de Liniers vence en %d s y la marcha lleva ≈ %d s: el grupo se detendría antes de llegar." % [roundi(left), roundi(res.eta_s)])
 	return res
 
 ## Integra la ruta paso a paso con las velocidades PERCIBIDAS en el nivel de cada instante estimado.
@@ -1031,6 +1099,30 @@ func _work_site(action: String) -> Dictionary:
 func _stumble_stop(u: Dictionary) -> String:
 	return "El grupo tropezó y se reorganiza (%d s más)." % ceili(float(u.stumble_remaining))
 
+## Acciones de cubierta: solo para grupos que ya abordan. {"ok", "reason"}.
+func _check_boarding_action(u: Dictionary, action: String) -> Dictionary:
+	if state.get("status", "") != "playing":
+		return _no("La partida ya terminó.")
+	if float(u.strength) <= float(map_data().outcome.routed_strength_threshold):
+		return _no("Esa agrupación ya no puede recibir órdenes.")
+	var cap: Dictionary = map_data().ship.capture
+	if u.stage != "boarding":
+		return _no("Solo un grupo que ya está abordando el buque puede hacerlo.")
+	if action == "repel":
+		var c: Dictionary = state.counter
+		if not bool(c.active):
+			return _no("No hay un contraataque en curso: la dotación todavía no se lanzó.")
+		if bool(c.answered):
+			return _no("El contraataque ya fue rechazado.")
+		if int(state.ammo) < int(cap.counter.repel_ammo):
+			return _no("Faltan municiones para rechazar el contraataque: hacen falta %d y quedan %d." % [int(cap.counter.repel_ammo), int(state.ammo)])
+		return {"ok": true, "reason": "Disponible: quedan %d s de ventana." % ceili(float(c.until) - float(state.elapsed))}
+	if float(u.evac_remaining) > 0.0:
+		return _no("El grupo ya está evacuando heridos (%d s)." % ceili(float(u.evac_remaining)))
+	if float(u.wounded) < float(cap.evacuate_min_wounded):
+		return _no("No hay heridos que evacuar (hacen falta al menos %.0f; hay %.1f)." % [float(cap.evacuate_min_wounded), float(u.wounded)])
+	return {"ok": true, "reason": "Disponible: recupera %.0f de fuerza y el grupo no suma captura %d s." % [float(u.wounded) * float(cap.evacuate_recover), roundi(float(cap.evacuate_s))]}
+
 ## Condiciones de una orden de grupo que no dependen de la ruta. {"ok", "reason"}.
 func _check_group_action(u: Dictionary, action: String) -> Dictionary:
 	if state.get("status", "") != "playing":
@@ -1039,8 +1131,10 @@ func _check_group_action(u: Dictionary, action: String) -> Dictionary:
 		return _no("Esa agrupación ya no puede recibir órdenes.")
 	if action == "cancel":
 		return {"ok": true, "reason": "Disponible."}
+	if action in ["repel", "evacuate"]:
+		return _check_boarding_action(u, action)
 	if u.stage == "dismounting" or (u.stage == "boarding" and action != "withdraw"):
-		return _no("El grupo ya desmontó y está abordando el buque: solo puede retirarse.")
+		return _no("El grupo ya desmontó y está abordando el buque: solo puede retirarse, rechazar el contraataque o evacuar heridos.")
 	if u.stage == "stumbling":
 		return _no(_stumble_stop(u))
 	var m := map_data()
@@ -1067,9 +1161,13 @@ func _check_group_action(u: Dictionary, action: String) -> Dictionary:
 		"resupply":
 			if int(state.ammo) >= int(state.ammo_max):
 				return _no("El depósito de munición está lleno (%d/%d)." % [int(state.ammo), int(state.ammo_max)])
+			if int(state.ammo_reserve) <= 0:
+				return _no("La batería Abascal no tiene más pólvora de reserva.")
 		"signal_liniers":
 			if bool(state.advance_authorized):
 				return _no("La orden de avance de Liniers ya fue concedida.")
+			if int(state.signals_left) <= 0:
+				return _no("Liniers no concede más órdenes de avance: ya se usaron las %d señales." % int(m.resources.signals_max))
 		_:
 			return _no("Orden táctica desconocida.")
 	if m.is_empty():
@@ -1098,7 +1196,27 @@ func issue_order(group_id: String, action: String, target: Vector2 = Vector2.ZER
 	var chk := _check_group_action(u, action)
 	if not chk.ok:
 		return chk
+	if action == "repel":
+		var rc: Dictionary = map_data().ship.capture.counter
+		var ra: Dictionary = map_data().actions.repel
+		state.ammo = int(state.ammo) - int(rc.repel_ammo)
+		state.stats.ammo_used = int(state.stats.ammo_used) + int(rc.repel_ammo)
+		state.counter.answered = true
+		u.fatigue = minf(100.0, float(u.fatigue) + float(ra.fatigue_gain))
+		_record_order(group_id, action, {})
+		_event("%s cierra filas para rechazar el contraataque (−%d de munición)." % [u.name, int(rc.repel_ammo)], "counter", {"unit": u.id, "tag": str(ra.tag)})
+		return {"ok": true, "reason": "El grupo rechaza el contraataque.", "path": [], "plan": {}}
+	if action == "evacuate":
+		u.evac_remaining = float(map_data().ship.capture.evacuate_s)
+		_record_order(group_id, action, {})
+		_event("%s evacúa a sus heridos (%d s sin sumar captura)." % [u.name, roundi(float(u.evac_remaining))], "boarding", {"unit": u.id})
+		return {"ok": true, "reason": "Evacuación de heridos en curso.", "path": [], "plan": {}}
 	if action == "withdraw" and u.stage == "boarding":
+		u.evac_remaining = 0.0
+		var wb := float(u.wounded) * float(map_data().ship.capture.evacuate_recover) * 0.5  ## los heridos se retiran con el grupo (la mitad que al evacuar)
+		u.strength = minf(100.0, float(u.strength) + wb)
+		state.stats.wounded_recovered = float(state.stats.wounded_recovered) + wb
+		u.wounded = 0.0
 		u.mounted = true  ## los caballos esperaban en el vado
 		_clear_motion(u)
 	var pace := str(opts.get("pace", u.pace))
@@ -1189,12 +1307,12 @@ func _scout_check(s: Dictionary, action: String, points: Array) -> Dictionary:
 		return _no("%s fue abatido y no recibe órdenes." % s.name)
 	if action == "recall":
 		return {"ok": true, "reason": "Disponible."}
-	if action not in ["probe", "mark_ford"]:
+	if action not in ["probe", "probe_careful", "mark_ford"]:
 		return _no("Orden de explorador desconocida.")
 	var a: Dictionary = map_data().actions[action]
 	if points.is_empty():
 		return _no("Indicá al menos un punto.")
-	var max_pts := int(a.waypoints_max) if action == "probe" else 2
+	var max_pts := int(a.waypoints_max) if action != "mark_ford" else 2
 	if points.size() > max_pts:
 		return _no("Máximo %d puntos para esta acción." % max_pts)
 	for p in points:
@@ -1248,11 +1366,16 @@ func _mark_balizas(points: Array) -> int:
 	var per := float(map_data().actions.mark_ford.balizas_per_10m)
 	return ceili((seg[0] as Vector2).distance_to(seg[1] as Vector2) / 10.0 * per - 0.000001)
 
-func issue_scout(scout_id: String, action: String, points: Array = []) -> Dictionary:
+func issue_scout(scout_id: String, action: String, points: Array = [], opts: Dictionary = {}) -> Dictionary:
 	var s := get_scout(scout_id)
+	if action == "probe" and bool(opts.get("cautious", false)):
+		action = "probe_careful"
 	var chk := _scout_check(s, action, points)
 	if not chk.ok:
 		return chk
+	var careful := action == "probe_careful"
+	if careful:
+		action = "probe"
 	var here := Vector2(s.x, s.z)
 	var route_pts: Array = []
 	var order: Dictionary = {}
@@ -1280,7 +1403,11 @@ func issue_scout(scout_id: String, action: String, points: Array = []) -> Dictio
 				return _no("No hay camino hasta el tramo a marcar: " + str(leg.reason))
 			route_pts = leg.pts
 			order = {"action": "mark_ford", "points": _path_dicts(seg)}
+	var risk := {}
+	if action == "probe":
+		risk = scout_risk(scout_id, points, careful)
 	s.order = order
+	s.cautious = careful
 	s.path = _path_dicts(route_pts)
 	s.stage = stage
 	s.work_remaining = 0.0
@@ -1290,7 +1417,56 @@ func issue_scout(scout_id: String, action: String, points: Array = []) -> Dictio
 	_record_order(scout_id, action, {"points": _path_dicts(points)})
 	if route_pts.is_empty():
 		_scout_arrived(s)
-	return {"ok": true, "reason": "Orden recibida.", "path": s.path.duplicate(true)}
+	var why := "Orden recibida."
+	if not risk.is_empty():
+		why += " " + str(risk.text)
+	return {"ok": true, "reason": why, "path": s.path.duplicate(true), "risk": risk}
+
+## Riesgo decidible del sondeo: horas expuestas al fuego, impactos esperados y probabilidad de baja, suponiendo que el explorador es el unico blanco
+## (el peor caso) y sin contar un apoyo de fuego futuro. No tiene efectos.
+func scout_risk(scout_id: String, points: Array, careful: bool = false) -> Dictionary:
+	var out := {"exposed_s": 0.0, "expected_hits": 0.0, "death_pct": 0.0, "hp": 0, "careful": careful, "text": ""}
+	var s := get_scout(scout_id)
+	if s.is_empty() or points.is_empty() or map_data().is_empty():
+		return out
+	var fire: Dictionary = map_data().ship.fire
+	var pa: Dictionary = map_data().actions.probe
+	var hit := float(fire.get("scout_hit_chance", 1.0))
+	var speed_mult := 1.0
+	if careful:
+		var pc: Dictionary = map_data().actions.probe_careful
+		hit *= float(pc.hit_mult)
+		speed_mult = float(pc.speed_mult)
+	var gap := float(fire.volley_interval_s)
+	var prev := Vector2(s.x, s.z)
+	var hits := 0.0
+	var exposed := 0.0
+	for pt in points:
+		var target: Vector2 = pt
+		var seg := prev.distance_to(target)
+		var n := maxi(1, ceili(seg / 2.0))
+		var sub := seg / float(n)
+		for k in range(n):
+			var p := prev.lerp(target, (float(k) + 0.5) / float(n))
+			var e := exposure_at(p.x, p.y)
+			var v := (float(pa.speed_mps_water) if water_depth_at(p.x, p.y) > 0.0 else float(pa.speed_mps_dry)) * (speed_mult if e > 0.0 else 1.0)
+			var dt := sub / maxf(0.05, v)
+			exposed += e * dt
+			hits += e * dt / gap * hit
+		prev = target
+	var hp := int(s.hp)
+	## Poisson: P(impactos >= salud)
+	var p_alive := 0.0
+	var term := exp(-hits)
+	for i in range(hp):
+		p_alive += term
+		term *= hits / float(i + 1)
+	out.exposed_s = exposed
+	out.expected_hits = hits
+	out.hp = hp
+	out.death_pct = clampf((1.0 - p_alive) * 100.0, 0.0, 100.0)
+	out.text = "Riesgo: %d s expuesto, ≈ %.1f impactos esperados (salud %d), %d %% de baja%s." % [roundi(exposed), hits, hp, roundi(float(out.death_pct)), " (cauteloso)" if careful else ""]
+	return out
 
 func call_fire_support() -> Dictionary:
 	if state.get("status", "") != "playing" or state.get("scenario", "") != "justine":
@@ -1329,7 +1505,7 @@ func ship_state() -> Dictionary:
 		"fire_support_ready_in": maxf(0.0, float(state.get("fire_support", {}).get("ready_at", 0.0)) - float(state.get("elapsed", 0.0)))}
 
 func resources() -> Dictionary:
-	return {"ammo": int(state.ammo), "ammo_max": int(state.ammo_max), "balizas": int(state.balizas), "volunteers_pool": float(state.volunteers_pool), "advance_authorized": bool(state.advance_authorized),
+	return {"ammo": int(state.ammo), "ammo_max": int(state.ammo_max), "ammo_reserve": int(state.get("ammo_reserve", 0)), "signals_left": int(state.get("signals_left", 0)), "balizas": int(state.balizas), "volunteers_pool": float(state.volunteers_pool), "advance_authorized": bool(state.advance_authorized),
 		"advance_remaining_s": maxf(0.0, float(state.get("advance_until", -1.0)) - float(state.get("elapsed", 0.0))) if bool(state.advance_authorized) and float(state.get("advance_until", -1.0)) >= 0.0 else 0.0}
 
 func scouts() -> Array:
@@ -1349,9 +1525,9 @@ func action_info(action: String) -> Dictionary:
 func list_actions(actor_kind: String) -> Array:
 	match actor_kind:
 		"group":
-			return ["move", "board", "muster", "resupply", "signal_liniers", "withdraw", "rally", "cancel"]
+			return ["move", "board", "muster", "resupply", "signal_liniers", "withdraw", "repel", "evacuate", "rally", "cancel"]
 		"scout":
-			return ["probe", "mark_ford", "recall"]
+			return ["probe", "probe_careful", "mark_ford", "recall"]
 		"global":
 			return ["distract_fire", "retreat_all"]
 	return []
@@ -1371,8 +1547,10 @@ func _cost_text(action: String) -> String:
 		parts.append("+%d fuerza" % int(a.strength_gain))
 	if a.has("ammo_gain"):
 		parts.append("+%d munición" % int(a.ammo_gain))
-	if action == "probe":
+	if action in ["probe", "probe_careful"]:
 		parts.append("hasta %d puntos" % int(a.waypoints_max))
+	if action == "probe_careful":
+		parts.append("×%.1f de velocidad, ×%.2f de riesgo" % [float(a.speed_mult), float(a.hit_mult)])
 	if action == "board":
 		parts.append("desmonta %d s" % int(map_data().ship.capture.dismount_s))
 	return " · ".join(parts)
@@ -1399,13 +1577,15 @@ func action_availability(actor_id: String, action: String, target: Vector2 = Vec
 		return out
 	var s := get_scout(actor_id)
 	if not s.is_empty():
-		if action in ["probe", "mark_ford", "recall"]:
+		if action in SCOUT_ACTIONS_ALL:
 			var pts: Array = [] if target == Vector2.ZERO else [target]
 			if action == "recall":
 				pts = []
 			var chk2 := _scout_check(s, action, pts) if (pts.size() > 0 or action == "recall") else _scout_ready(s, action)
 			out.ok = chk2.ok
 			out.reason = chk2.reason
+			if out.ok and action in ["probe", "probe_careful"] and pts.size() > 0:
+				out.reason = str(chk2.reason) + " " + str(scout_risk(actor_id, pts, action == "probe_careful").text)
 		else:
 			out.reason = "Esa acción no es de exploradores."
 		return out
@@ -1413,7 +1593,7 @@ func action_availability(actor_id: String, action: String, target: Vector2 = Vec
 	if u.is_empty():
 		out.reason = "Actor desconocido."
 		return out
-	if action in ["probe", "mark_ford", "recall"]:
+	if action in SCOUT_ACTIONS_ALL:
 		out.reason = "Esa acción es de exploradores."
 		return out
 	var c := _check_group_action(u, action)
@@ -1498,7 +1678,17 @@ func _justine_step(dt: float) -> void:
 		_event("El agua vuelve a subir: quedan %d s para asegurar la captura." % roundi(marks.deadline - elapsed), "warning")
 	if bool(state.advance_authorized) and float(state.get("advance_until", -1.0)) >= 0.0 and elapsed >= float(state.advance_until):
 		state.advance_authorized = false
-		_event("La orden de avance de Liniers venció: hay que volver a señalar para cargar.", "warning")
+		var halted := 0
+		for hu in state.units:
+			## La orden de avance vale hasta llegar: un grupo que aun marcha hacia el buque se detiene cuando vence (los que ya desmontaron siguen).
+			if hu.stage in ["moving", "blocked", "stumbling"] and str(hu.order.get("action", "")) == "board":
+				var hn := str(hu.name)
+				_clear_motion(hu)
+				hu.order = {}
+				halted += 1
+				_event("%s se detiene: venció la orden de avance antes de llegar al buque." % hn, "warning", {"unit": hu.id, "pos": {"x": hu.x, "z": hu.z}})
+		state.stats.halted_by_expiry = int(state.stats.halted_by_expiry) + halted
+		_event("La orden de avance de Liniers venció: hay que volver a señalar para cargar%s." % ("" if int(state.signals_left) > 0 else " (ya no quedan más señales)"), "warning")
 	var board_power := 0.0
 	var alive := 0
 	var routed_hp: float = float(m.outcome.routed_strength_threshold)
@@ -1521,6 +1711,7 @@ func _justine_step(dt: float) -> void:
 		var cap: Dictionary = m.ship.capture
 		state.capture = minf(100.0, float(state.capture) + board_power * float(cap.rate_per_power_per_s) * dt)
 		state.crew_morale = maxf(0.0, float(state.crew_morale) - board_power * float(cap.morale_loss_per_power_per_s) * dt)
+	_step_counter()
 	if elapsed >= float(state.next_volley):
 		var gap := float(m.ship.fire.volley_interval_s)
 		if _fire_support_active():
@@ -1534,6 +1725,60 @@ func _justine_step(dt: float) -> void:
 	elif elapsed >= float(state.deadline):
 		_finish("defeat", "El plazo se agotó sin asegurar el buque.", "plazo")
 	state.state_version = int(state.state_version) + 1
+
+func _boarders() -> Array:
+	var out: Array = []
+	for u in state.units:
+		if u.stage in ["boarding", "dismounting"] and float(u.strength) > float(map_data().outcome.routed_strength_threshold):
+			out.append(u)
+	return out
+
+## Contraataque de la dotacion: se abre una ventana de decision; sin respuesta (accion 'repel') golpea a los que abordan y retrocede la captura.
+func _step_counter() -> void:
+	var cfg: Dictionary = map_data().ship.capture.counter
+	var c: Dictionary = state.counter
+	var elapsed := float(state.elapsed)
+	var boarders := _boarders()
+	if not bool(c.active):
+		if boarders.is_empty() or float(state.crew_morale) < float(cfg.min_crew_morale):
+			if boarders.is_empty():
+				c.next_at = -1.0  ## sin nadie abordando se reinicia el reloj del contraataque
+			return
+		if float(c.next_at) < 0.0:
+			c.next_at = elapsed + float(cfg.first_after_boarding_s)
+			return
+		if elapsed >= float(c.next_at):
+			c.active = true
+			c.answered = false
+			c.until = elapsed + float(cfg.window_s)
+			_event("La dotación contraataca sobre la cubierta: hay %d s para rechazarlo (Rechazar contraataque, %d de munición) o se pierde terreno." % [roundi(float(cfg.window_s)), int(cfg.repel_ammo)], "counter", {"tag": str(cfg.tag)})
+		return
+	if elapsed < float(c.until):
+		return
+	var mult := float(cfg.repelled_mult) if bool(c.answered) else 1.0
+	c.active = false
+	c.count = int(c.count) + 1
+	var jitter := (_random() * 2.0 - 1.0) * float(cfg.jitter_s)
+	c.next_at = elapsed + float(cfg.interval_s) + jitter
+	var live := _boarders()
+	if live.is_empty():
+		return
+	var dmg := float(cfg.damage) * mult
+	var share := dmg / float(live.size())
+	var share_w := float(map_data().ship.capture.wounded_share)
+	for u in live:
+		var lost := minf(share, float(u.strength))
+		u.strength = float(u.strength) - lost
+		u.wounded = minf(100.0, float(u.wounded) + lost * share_w)
+		state.stats.counter_loss = float(state.stats.counter_loss) + lost
+	var cap_loss := float(cfg.capture_loss_pct) * mult
+	state.capture = maxf(0.0, float(state.capture) - cap_loss)
+	if bool(c.answered):
+		state.stats.counter_repelled = int(state.stats.counter_repelled) + 1
+		_event("El contraataque se rechaza: −%.0f de fuerza repartidos y la captura cede %.1f %%." % [dmg, cap_loss], "counter", {"tag": str(cfg.tag)})
+	else:
+		state.stats.counter_hits = int(state.stats.counter_hits) + 1
+		_event("El contraataque no fue contestado: −%.0f de fuerza repartidos y la captura retrocede %.0f %%." % [dmg, cap_loss], "warning", {"tag": str(cfg.tag)})
 
 func _account_exposure(dt: float) -> void:
 	for u in state.units:
@@ -1599,6 +1844,18 @@ func _step_group(u: Dictionary, dt: float) -> float:
 			u.fatigue = minf(100.0, float(u.fatigue) + 0.05 * dt)
 			if float(u.strength) <= float(map_data().outcome.routed_strength_threshold):
 				return 0.0
+			if float(u.evac_remaining) > 0.0:
+				## Evacuando heridos: el grupo no aporta poder de captura hasta terminar.
+				u.evac_remaining = maxf(0.0, float(u.evac_remaining) - dt)
+				if float(u.evac_remaining) <= 0.0:
+					var cap: Dictionary = map_data().ship.capture
+					var back := float(u.wounded) * float(cap.evacuate_recover)
+					u.strength = minf(100.0, float(u.strength) + back)
+					state.stats.wounded_recovered = float(state.stats.wounded_recovered) + back
+					state.stats.evacuations = int(state.stats.evacuations) + 1
+					u.wounded = 0.0
+					_event("%s evacúa a sus heridos: recupera %.0f de fuerza." % [u.name, back], "boarding", {"unit": u.id, "pos": {"x": u.x, "z": u.z}})
+				return 0.0
 			return (float(u.strength) / 100.0) * maxf(0.4, 1.0 - float(u.fatigue) * 0.004)
 		"rally":
 			if _on_dry_beach(here):
@@ -1613,8 +1870,12 @@ func _boarding_hazards(u: Dictionary, dt: float) -> void:
 	if u.stage == "boarding":
 		var melee := float(cap.get("melee_loss_per_s", 0.0)) * (float(state.crew_morale) / 100.0) * dt
 		u.strength = maxf(0.0, float(u.strength) - melee)
+		u.wounded = minf(100.0, float(u.wounded) + melee * float(cap.wounded_share))
 		state.stats.melee_loss = float(state.stats.melee_loss) + melee
-	var excess := water_depth_at(float(u.x), float(u.z)) - _foot_limit()
+	var depth_here := water_depth_at(float(u.x), float(u.z))
+	if depth_here > float(cap.tide_warn_fraction) * _foot_limit() and depth_here <= _foot_limit() and int(float(state.elapsed) * 4.0) % 40 == 0:
+		_event("%s: el agua sube en el vado (%.2f m); a partir de %.1f m los de a pie no aguantan. Retirá a los grupos o evacuá a los heridos." % [u.name, depth_here, _foot_limit()], "warning", {"unit": u.id, "pos": {"x": u.x, "z": u.z}})
+	var excess := depth_here - _foot_limit()
 	if excess > 0.0:
 		var loss := float(cap.get("drown_loss_per_m_s", 0.0)) * (excess + 0.1) * dt
 		u.strength = maxf(0.0, float(u.strength) - loss)
@@ -1742,21 +2003,25 @@ func _finish_work(u: Dictionary) -> void:
 			_event("%s reúne jinetes en la Plaza de Toros: +%.0f de fuerza (reclutas sin entrenar: +%.0f de fatiga, −%d de munición)." % [u.name, gain, raw_fat, ac], "muster", {"unit": u.id, "pos": pos})
 		"resupply":
 			a = map_data().actions.resupply
-			var got := mini(int(a.ammo_gain), int(state.ammo_max) - int(state.ammo))
+			var got := mini(mini(int(a.ammo_gain), int(state.ammo_max) - int(state.ammo)), int(state.ammo_reserve))
 			state.ammo = int(state.ammo) + got
-			_event("%s abastece munición en la batería Abascal: +%d." % [u.name, got], "ammo", {"unit": u.id, "pos": pos})
+			state.ammo_reserve = int(state.ammo_reserve) - got
+			_event("%s abastece munición en la batería Abascal: +%d (quedan %d de reserva)." % [u.name, got, int(state.ammo_reserve)], "ammo", {"unit": u.id, "pos": pos})
 		"signal":
 			a = map_data().actions.signal_liniers
 			state.advance_authorized = true
+			state.signals_left = maxi(0, int(state.signals_left) - 1)
 			state.advance_until = float(state.elapsed) + float(a.get("valid_s", 1.0e9))
 			var got2 := mini(int(a.ammo_gain), int(state.ammo_max) - int(state.ammo))
 			state.ammo = int(state.ammo) + got2
-			_event("Liniers concede la orden de avanzar (vale %d s). Regla del juego: el relato de Obligado (1920) la hace partir de Liniers hacia la caballería de Pueyrredón. +%d de munición." % [roundi(float(a.get("valid_s", 0.0))), got2], "signal", {"unit": u.id, "pos": pos, "tag": str(a.tag)})
+			_event("Liniers concede la orden de avanzar (vale %d s). Regla del juego: el relato de Obligado (1920) la hace partir de Liniers hacia la caballería de Pueyrredón. +%d de munición. Quedan %d señales." % [roundi(float(a.get("valid_s", 0.0))), got2, int(state.signals_left)], "signal", {"unit": u.id, "pos": pos, "tag": str(a.tag)})
 
 func _touch_hazards(p: Vector2, reach: float) -> void:
 	var m := map_data()
 	var changed := false
 	for hz in m.hazards:
+		if _inactive.has(str(hz.id)):
+			continue
 		var c := Vector2(float(hz.center[0]), float(hz.center[1]))
 		if p.distance_to(c) <= float(hz.radius_m) + reach and str(hz.id) not in state.hazards_found:
 			state.hazards_found.append(str(hz.id))
@@ -1811,6 +2076,8 @@ func _stumble(u: Dictionary, cur: Vector2, nxt: Vector2) -> void:
 	var hz_id := "otro"
 	var best := INF
 	for hz in map_data().hazards:
+		if _inactive.has(str(hz.id)):
+			continue
 		var c := Vector2(float(hz.center[0]), float(hz.center[1]))
 		var d := nxt.distance_to(c) - float(hz.radius_m)
 		if d < best and d <= BLEND_DEFAULT + float(map_data().knowledge.probe_lane_width_m):
@@ -1878,9 +2145,12 @@ func _rescue_submerged(u: Dictionary) -> void:
 
 # --- exploradores ---------------------------------------------------------
 
-func _scout_speed(p: Vector2) -> float:
+func _scout_speed(p: Vector2, s: Dictionary = {}) -> float:
 	var a: Dictionary = map_data().actions.probe
-	return float(a.speed_mps_water) if water_depth_at(p.x, p.y) > 0.0 else float(a.speed_mps_dry)
+	var v := float(a.speed_mps_water) if water_depth_at(p.x, p.y) > 0.0 else float(a.speed_mps_dry)
+	if bool(s.get("cautious", false)) and str(s.get("stage", "")) == "probing" and exposure_at(p.x, p.y) > 0.0:
+		v *= float(map_data().actions.probe_careful.speed_mult)  ## solo se avanza agachado donde el buque alcanza
+	return v
 
 func _scout_arrived(s: Dictionary) -> void:
 	var act := str(s.order.get("action", ""))
@@ -1917,6 +2187,8 @@ func _scout_stop(s: Dictionary, cur: Vector2, nxt: Vector2, why: String) -> void
 	var reach := float(map_data().knowledge.probe_lane_width_m) * 0.5
 	## El explorador sondea con la lanza desde el borde: si lo que lo frena es un pozo conocido por su centro, la franja llega hasta ahí.
 	for hz in map_data().hazards:
+		if _inactive.has(str(hz.id)):
+			continue
 		var c := Vector2(float(hz.center[0]), float(hz.center[1]))
 		if nxt.distance_to(c) <= float(hz.radius_m) + reach + BLEND_DEFAULT and not rec.is_empty():
 			rec = _probe_add_point(rec, c)
@@ -1940,7 +2212,7 @@ func _step_scout(s: Dictionary, dt: float) -> void:
 	var cur := Vector2(s.x, s.z)
 	var p: Dictionary = s.path[0]
 	var wp := Vector2(p.x, p.z)
-	var nxt := cur.move_toward(wp, _scout_speed(cur) * dt)
+	var nxt := cur.move_toward(wp, _scout_speed(cur, s) * dt)
 	if _land_kind(nxt.x, nxt.y, 0.0) not in ["", "bajada"]:
 		_scout_stop(s, cur, nxt, "el terreno no es transitable.")
 		return
@@ -2041,7 +2313,10 @@ func _artillery() -> void:
 	state.stats.shots_taken = int(state.stats.shots_taken) + 1
 	if pick.has("hp"):
 		## Un explorador pierde 1 de salud si el impacto prospera con probabilidad = exposicion (el fuego de distraccion lo protege).
-		if _random() >= exposure_at(float(pick.x), float(pick.z)) * float(fire.get("scout_hit_chance", 1.0)):
+		var hit_p := exposure_at(float(pick.x), float(pick.z)) * float(fire.get("scout_hit_chance", 1.0))
+		if bool(pick.get("cautious", false)) and str(pick.stage) == "probing":
+			hit_p *= float(map_data().actions.probe_careful.hit_mult)
+		if _random() >= hit_p:
 			_event("El buque dispara cerca de %s y no lo alcanza." % pick.name, "shot", {"unit": pick.id, "pos": {"x": pick.x, "z": pick.z}})
 			return
 		pick.hp = maxi(0, int(pick.hp) - 1)
@@ -2075,8 +2350,9 @@ func _history_lines() -> Array:
 	for g in m.groups:
 		tags[str(g.id)] = g
 	return [
-		{"text": "Un mercante británico de %d cañones, que combatió el día de la rendición, fue tomado por caballería al cerrar el 12 de agosto de 1806 por una súbita bajada del río (Gillespie 1818; sin tipo, tonelaje ni capitán documentados)." % int(ship.guns_total), "tag": str(ship.tag)},
-		{"text": "Fuentes divulgativas (edisalta, La Nación, Recalada) lo ubican varado frente al Retiro, cerca de la Plaza de Toros y de la batería de Abascal; Gillespie no da el lugar. Que la caballería fuera la de Pueyrredón viene de relatos secundarios (Obligado 1920).", "tag": "reconstruccion"},
+		{"text": "Un mercante británico de %d cañones, que combatió el día de la rendición, fue tomado por caballería al cerrar el 12 de agosto de 1806 por una súbita bajada del río (Gillespie 1818, documentado en transcripción; sin tipo, tonelaje ni capitán documentados)." % int(ship.guns_total), "tag": str(ship.get("tag_parts", {}).get("descripcion", "documentado"))},
+		{"text": "Fuentes divulgativas (edisalta, La Nación, Recalada; aún no incorporadas a la bibliografía S1-S8) lo ubican varado frente al Retiro, cerca de la Plaza de Toros y de la batería de Abascal; Gillespie no da el lugar, por eso el lugar es reconstrucción.", "tag": "reconstruccion"},
+		{"text": "Que la caballería fuera la de Pueyrredón figura en Concha (15 de agosto de 1806) y en Liniers (Archivo Pueyrredón, t. I, p. 54) según la investigación del repo, sin cotejo propio del original; Obligado 1920 cuenta además que Liniers dio la orden de avanzar.", "tag": "documentado"},
 		{"text": "Güemes al frente de los jinetes es una tradición no probada (Ideario pp. 33, 390-392): Obligado 1920 lo hace ayudante de Liniers, y Gillespie no nombra al jefe.", "tag": str(tags["guemes"].tag)},
 		{"text": "La distancia de ~%d m al buque (cifra divulgativa, medida desde el pie de la barranca, donde estaba la costa de 1806) y los %.1f m de agua del vado con el río en mínimo son diseño." % [roundi(float(ship.distance_from_shore_high_m)), depth_low], "tag": str(ship.distance_tag)},
 		{"text": "Bancos, canal, vados, hoyos, tiempos de bajante, fuerzas, munición, el cuerpo a cuerpo y el puesto de Liniers son diseño del juego: no existe sondeo de 1806 del Retiro.", "tag": "diseno"}
@@ -2090,6 +2366,12 @@ func campaign_report() -> Dictionary:
 		var start := float(st.start_strength.get(u.id, 100.0))
 		groups.append({"id": u.id, "name": u.name, "tag": str(u.get("tag", "diseno")), "start_strength": start, "end_strength": float(u.strength),
 			"loss_pct": clampf((start - float(u.strength)) / start * 100.0, 0.0, 100.0) if start > 0.0 else 0.0})
+	## Bajas reales = todo lo que el fuego, el cuerpo a cuerpo, el agua, los hoyos y los contraataques quitaron (nunca negativas: reunir jinetes no las compensa).
+	var start_total := 0.0
+	for sid in st.start_strength:
+		start_total += float(st.start_strength[sid])
+	var casualties := float(st.damage_taken) + float(st.melee_loss) + float(st.drowned) + float(st.horses_lost) + float(st.counter_loss)
+	var loss_total_pct := clampf(casualties / maxf(1.0, start_total + float(st.muster_gain)) * 100.0, 0.0, 100.0)
 	var title := "En curso"
 	match str(state.get("defeat_cause", "")):
 		"plazo":
@@ -2120,8 +2402,13 @@ func campaign_report() -> Dictionary:
 		notes.append("Ruta: banco %s." % route)
 	if float(st.boarded_at) >= 0.0:
 		notes.append("Abordaje a los %d s con el río a %.2f m." % [roundi(st.boarded_at), float(st.level_at_boarding)])
+	if int(st.counter_hits) + int(st.counter_repelled) > 0:
+		notes.append("Contraataques de la dotación: %d rechazados, %d sin contestar." % [int(st.counter_repelled), int(st.counter_hits)])
 	return {"status": state.status, "reason": state.reason, "elapsed": float(state.elapsed), "outcome_title": title,
-		"groups": groups, "route": route, "route_notes": notes,
+		"groups": groups, "route": route, "route_notes": notes, "casualties": casualties, "loss_total_pct": loss_total_pct,
+		"counter_hits": int(st.counter_hits), "counter_repelled": int(st.counter_repelled), "counter_loss": float(st.counter_loss),
+		"evacuations": int(st.evacuations), "wounded_recovered": float(st.wounded_recovered), "halted_by_expiry": int(st.halted_by_expiry),
+		"hidden_picks": (state.get("hidden", {}).get("picks", {}) as Dictionary).duplicate(true),
 		"probe_m": float(st.probe_m), "marked_m": float(st.marked_m), "stumbles": int(st.stumbles), "ammo_used": int(st.ammo_used),
 		"balizas_used": int(st.balizas_used), "fire_support_uses": int(st.fire_support_uses), "scouts_lost": int(st.scouts_lost),
 		"horses_lost": float(st.horses_lost), "melee_loss": float(st.melee_loss), "drowned": float(st.drowned),
@@ -2494,12 +2781,14 @@ func save_game(path: String) -> Error:
 	if state.is_empty():
 		return ERR_UNCONFIGURED
 	var text := JSON.stringify(state, "", true, true)
-	if text.length() > SAVE_MAX_BYTES:
-		## Guardado compacto y, si aun asi se pasa, registro recortado (sin tocar la partida en curso): load_game rechaza > 4 MB.
+	## El tope se mide en BYTES (utf-8), no en caracteres: los acentos de los textos ocupan 2 bytes y load_game rechaza > 4 MB de archivo.
+	if text.to_utf8_buffer().size() > SAVE_MAX_BYTES:
+		## Guardado compacto y, si aun asi se pasa, copia aligerada (sin tocar la partida en curso): registro, ordenes y sondas.
 		var slim := state.duplicate(true)
 		slim.log = (slim.log as Array).slice(maxi(0, slim.log.size() - SAVE_LOG_FALLBACK))
+		_slim_for_save(slim)
 		text = JSON.stringify(slim, "", true, true)
-		if text.length() > SAVE_MAX_BYTES:
+		if text.to_utf8_buffer().size() > SAVE_MAX_BYTES:
 			return ERR_FILE_CORRUPT
 	var file := FileAccess.open(path + ".tmp", FileAccess.WRITE)
 	if file == null:
@@ -2509,11 +2798,30 @@ func save_game(path: String) -> Error:
 	file.close()
 	return DirAccess.rename_absolute(ProjectSettings.globalize_path(path + ".tmp"), ProjectSettings.globalize_path(path))
 
+## Aligera una COPIA del estado para el guardado de emergencia: recorta ordenes y sondas, y conserva lo que importa para el conocimiento.
+func _slim_for_save(slim: Dictionary) -> void:
+	var orders: Array = slim.orders
+	if orders.size() > SAVE_ORDERS_FALLBACK:
+		## Se conserva la primera orden (la coherencia exige que coincida con first_order_at) y las mas recientes.
+		var kept: Array = [orders[0]]
+		kept.append_array(orders.slice(orders.size() - (SAVE_ORDERS_FALLBACK - 1)))
+		slim.orders = kept
+	if slim.has("probes"):
+		for p in slim.probes:
+			var pts: Array = p.pts
+			if pts.size() <= 4:
+				continue
+			var thin: Array = []
+			for i in range(pts.size()):
+				if i == 0 or i == pts.size() - 1 or i % SAVE_PROBE_STRIDE == 0:
+					thin.append(pts[i])
+			p.pts = thin
+
 func load_game(path: String) -> Dictionary:
 	if not FileAccess.file_exists(path):
 		return _no("No hay una partida guardada.")
 	var file := FileAccess.open(path, FileAccess.READ)
-	if file == null or file.get_length() > 4000000:
+	if file == null or file.get_length() > LOAD_MAX_BYTES:
 		return _no("El archivo guardado no es válido.")
 	var text := file.get_as_text()
 	file.close()
@@ -2533,6 +2841,7 @@ func load_game(path: String) -> Dictionary:
 	_nav_key = Vector2i(-1, -1)
 	_know_sig = -1
 	_clear_knowledge()
+	_apply_hidden()
 	_events = []
 	_event("Partida recuperada. Las respuestas externas de la sesión anterior quedan invalidadas.", "load")
 	return {"ok": true, "reason": "Partida recuperada.", "state": state}
@@ -2588,9 +2897,11 @@ func validate_snapshot(value: Variant) -> Dictionary:
 			return _no("Identificadores de agrupación inválidos.")
 		ids.append(u.id)
 		if is_j:
-			for key in ["pace", "work", "stumble_remaining", "tag"]:
+			for key in ["pace", "work", "stumble_remaining", "tag", "wounded", "evac_remaining"]:
 				if not u.has(key):
 					return _no("Agrupación incompleta.")
+			if not _number_in(u.wounded, 0, 100) or not _number_in(u.evac_remaining, 0, 60) or (float(u.evac_remaining) > 0.0 and u.stage != "boarding"):
+				return _no("Heridos o evacuación inválidos.")
 			if not _point_in_map(u):
 				return _no("Agrupación fuera del mapa.")
 			if not u.pace is String or u.pace not in PACES or not u.work is Dictionary or not _number_in(u.stumble_remaining, 0, 60) or not u.tag is String:
@@ -2666,9 +2977,25 @@ func validate_snapshot(value: Variant) -> Dictionary:
 
 func _validate_justine_fields(d: Dictionary) -> Dictionary:
 	var m := map_data()
-	for key in ["map_id", "map_version", "water_level_m", "water_level", "tide_phase", "capture", "crew_morale", "next_volley", "deadline", "bajante_announced", "rising_announced", "ammo", "ammo_max", "balizas", "volunteers_pool", "advance_authorized", "advance_until", "fire_support", "probes", "scouts", "hazards_found", "fords_found", "stats", "historical_note", "briefing"]:
+	for key in ["map_id", "map_version", "water_level_m", "water_level", "tide_phase", "capture", "crew_morale", "next_volley", "deadline", "bajante_announced", "rising_announced", "ammo", "ammo_max", "balizas", "volunteers_pool", "advance_authorized", "advance_until", "fire_support", "probes", "scouts", "hazards_found", "fords_found", "stats", "historical_note", "briefing", "hidden", "ammo_reserve", "signals_left", "counter"]:
 		if not d.has(key):
 			return _no("Estado de la ribera incompleto: falta %s." % key)
+	# resultado oculto: una variante valida por grupo
+	var picked: Dictionary = {}
+	if not d.hidden is Dictionary or not d.hidden.get("picks") is Dictionary:
+		return _no("Resultado oculto de la partida inválido.")
+	for grp in m.get("hidden_layout", {}).get("groups", []):
+		var pick: Variant = d.hidden.picks.get(str(grp.id))
+		if not pick is String or pick not in grp.variants:
+			return _no("Resultado oculto: variante inválida en el grupo %s." % str(grp.id))
+		picked[str(grp.id)] = pick
+	if d.hidden.picks.size() != picked.size():
+		return _no("Resultado oculto con grupos desconocidos.")
+	if not _number_in(d.ammo_reserve, 0, int(m.resources.ammo_reserve)) or not _number_in(d.signals_left, 0, int(m.resources.signals_max)):
+		return _no("Reserva de munición o señales inválidas.")
+	var cn: Variant = d.counter
+	if not cn is Dictionary or not cn.has_all(["next_at", "active", "until", "answered", "count"]) or not cn.active is bool or not cn.answered is bool or not _number_in(cn.next_at, -1, 100000) or not _number_in(cn.until, 0, 100000) or not _number_in(cn.count, 0, 10000):
+		return _no("Estado del contraataque inválido.")
 	if not d.map_id is String or d.map_id != str(m.id) or not _number_in(d.map_version, int(m.map_version), int(m.map_version)):
 		return _no("El guardado es de otro mapa o de otra versión del mapa de Justina.")
 	var hi := float(m.tide.level_high_m)
@@ -2705,7 +3032,7 @@ func _validate_justine_fields(d: Dictionary) -> Dictionary:
 		return _no("Exploradores inválidos.")
 	var sids: Array = []
 	for s in d.scouts:
-		if not s is Dictionary or not s.has_all(["id", "name", "x", "z", "hp", "stage", "order", "path", "work_remaining"]) or not s.id is String or s.id in sids:
+		if not s is Dictionary or not s.has_all(["id", "name", "x", "z", "hp", "stage", "order", "path", "work_remaining", "cautious"]) or not s.id is String or s.id in sids or not s.cautious is bool:
 			return _no("Explorador corrupto.")
 		sids.append(s.id)
 		var known_scout := false
@@ -2734,18 +3061,21 @@ func _validate_justine_fields(d: Dictionary) -> Dictionary:
 	for id in d.hazards_found:
 		if not id is String or id not in hz_ids:
 			return _no("Hallazgo de pozo inexistente.")
+		for hz in m.hazards:
+			if str(hz.id) == id and hz.has("variant_group") and str(picked.get(str(hz.variant_group), "")) != id:
+				return _no("Hallazgo de un pozo que no existe en el fondo de esta partida.")
 	for id in d.fords_found:
 		if not id is String or id not in fd_ids:
 			return _no("Hallazgo de vado inexistente.")
 	# estadisticas
-	if not d.stats is Dictionary or not d.stats.has_all(["start_strength", "shots_taken", "damage_taken", "stumbles", "probe_m", "marked_m", "ammo_used", "balizas_used", "fire_support_uses", "muster_gain", "scouts_lost", "horses_lost", "melee_loss", "drowned", "exposure_s", "boarded_at", "level_at_boarding", "first_water_entry_at"]):
+	if not d.stats is Dictionary or not d.stats.has_all(["start_strength", "shots_taken", "damage_taken", "stumbles", "probe_m", "marked_m", "ammo_used", "balizas_used", "fire_support_uses", "muster_gain", "scouts_lost", "horses_lost", "melee_loss", "drowned", "exposure_s", "boarded_at", "level_at_boarding", "first_water_entry_at", "counter_hits", "counter_repelled", "counter_loss", "evacuations", "wounded_recovered", "halted_by_expiry"]):
 		return _no("Estadísticas incompletas.")
 	if not d.stats.start_strength is Dictionary or not d.stats.exposure_s is Dictionary:
 		return _no("Estadísticas inválidas.")
 	for id in JUSTINE_GROUPS:
 		if not _number_in(d.stats.start_strength.get(id), 0, 100):
 			return _no("Estadísticas: falta la fuerza inicial de %s." % id)
-	for key in ["shots_taken", "damage_taken", "stumbles", "probe_m", "marked_m", "ammo_used", "balizas_used", "fire_support_uses", "muster_gain", "scouts_lost", "horses_lost", "melee_loss", "drowned"]:
+	for key in ["shots_taken", "damage_taken", "stumbles", "probe_m", "marked_m", "ammo_used", "balizas_used", "fire_support_uses", "muster_gain", "scouts_lost", "horses_lost", "melee_loss", "drowned", "counter_hits", "counter_repelled", "counter_loss", "evacuations", "wounded_recovered", "halted_by_expiry"]:
 		if not _number_in(d.stats[key], 0, 1000000):
 			return _no("Estadísticas fuera de rango.")
 	for key in ["central", "sur", "otra"]:
