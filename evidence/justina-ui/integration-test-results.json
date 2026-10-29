@@ -1,0 +1,12 @@
+{
+	"checks": 168,
+	"engine": "4.7.2-stable (official)",
+	"failures": [],
+	"final_scenario": "norte",
+	"final_status": "playing",
+	"kind": "headless_scene_integration",
+	"ok": true,
+	"rules_stub": true,
+	"suite": "main_scene_player_flow",
+	"world_stub": true
+}

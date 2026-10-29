@@ -1,0 +1,78 @@
+{
+	"checks": 48,
+	"engine": "4.7.2-stable (official)",
+	"failures": [],
+	"kind": "window_injected_input",
+	"notes": {
+		"justina_escala": {
+			"m": 10,
+			"mpp": 0.0874176025390625,
+			"px": 114.393436899983
+		},
+		"justina_free_con_ayuda": {
+			"free_pct": 77.4,
+			"free_px": 1133846,
+			"total_px": 1464300
+		},
+		"justina_free_sin_ayuda": {
+			"free_pct": 79.3,
+			"free_px": 1161746,
+			"total_px": 1464300
+		},
+		"justina_layout_Justina inicio": {
+			"minimapa": [
+				260.0,
+				150.0
+			],
+			"paneles": 5,
+			"viewport": [
+				1627.0,
+				900.0
+			]
+		},
+		"justina_layout_Justina parte": {
+			"minimapa": [
+				260.0,
+				150.0
+			],
+			"paneles": 5,
+			"viewport": [
+				1627.0,
+				900.0
+			]
+		},
+		"justina_overlaps_inicio": 0,
+		"norte_free": {
+			"free_pct": 69.3,
+			"free_px": 1014128,
+			"total_px": 1464300
+		},
+		"norte_free_con_ayuda": {
+			"free_pct": 66.0,
+			"free_px": 966248,
+			"total_px": 1464300
+		},
+		"norte_hover": "Mover no disponible: La agrupación ya se encuentra en ese sector.",
+		"norte_overlaps_inicio": 0,
+		"norte_reason_assault": "Arias coordina Humahuaca desde marzo: afecta artillería, cuartel, depósito de pólvora y comunicaciones.\nBloqueada: La operación de Humahuaca corresponde a Manuel Eduardo Arias.",
+		"preview_ruta_sin_reconocer": "196 m · 01:42 · 84 m sin reconocer · riesgo desconocido",
+		"preview_sondeo": "sondeo de 38 m · ≈ 00:12",
+		"rules_stub": true,
+		"sector_after_bracket": "rosario",
+		"sector_before_after": [
+			"lerma",
+			"oran"
+		],
+		"ventana_px": [
+			1920,
+			1062
+		],
+		"viewport_logico": [
+			1627.0,
+			900.0
+		],
+		"world_stub": true
+	},
+	"renderer": "NVIDIA GeForce RTX 3080 Ti",
+	"suite": "ui_qa_window"
+}

@@ -3,11 +3,11 @@ extends SceneTree
 ## Uso: godot --path . --resolution 1440x900 --script tools/ui_qa.gd [-- --out=<carpeta>]
 ## Resoluciones probadas: 1280x720, 1440x900, 1920x1080 y 2560x1440 (la interfaz usa anclas;
 ## el informe registra el tamano logico del viewport y comprueba que los paneles no se salgan ni se pisen).
-## --out cambia la carpeta de capturas e informe (por defecto evidence/fase2/interfaz).
+## --out cambia la carpeta de capturas e informe (por defecto evidence/justina-ui/interfaz; no pisa evidence/fase2).
 ## No es una partida humana ni una prueba con teclado físico del sistema operativo.
 
 var game: Node
-var out_dir := "res://evidence/fase2/interfaz"
+var out_dir := "res://evidence/justina-ui/interfaz"
 var checks := 0
 var failures: Array = []
 var notes: Dictionary = {}
@@ -112,6 +112,45 @@ func _layout_checks(label: String) -> void:
 	var header_r: Rect2 = game.hud_panels[0].get_global_rect()
 	check(absf(header_r.position.x - 20.0) < 2.0 and (absf(view.size.x - header_r.end.x - 20.0) < 2.0 or absf(header_r.size.x - game.hud_panels[0].get_combined_minimum_size().x) < 1.0) and header_r.end.x <= view.size.x, "%s: cabecera ocupa el ancho con margen 20 (o su ancho minimo) (%s)" % [label, str(header_r)])
 
+func _drag(a: Vector2, b: Vector2, button: int) -> void:
+	await _move(a)
+	var e := InputEventMouseButton.new()
+	e.position = _to_window(a)
+	e.global_position = e.position
+	e.button_index = button
+	e.pressed = true
+	e.button_mask = 1 << (button - 1)
+	root.push_input(e)
+	await process_frame
+	for k in range(1, 9):
+		var m := InputEventMouseMotion.new()
+		m.position = _to_window(a.lerp(b, k / 8.0))
+		m.global_position = m.position
+		m.button_mask = 1 << (button - 1)
+		root.push_input(m)
+		await process_frame
+	var u := InputEventMouseButton.new()
+	u.position = _to_window(b)
+	u.global_position = u.position
+	u.button_index = button
+	u.pressed = false
+	root.push_input(u)
+	await process_frame
+
+func _justina_layout(label: String) -> void:
+	var view := Rect2(Vector2.ZERO, root.get_visible_rect().size)
+	var rects: Array = []
+	for panel in game.hud_panels:
+		if is_instance_valid(panel) and panel.is_visible_in_tree():
+			var r: Rect2 = panel.get_global_rect()
+			rects.append(r)
+			check(view.encloses(r), "%s: panel dentro del viewport %s (%s)" % [label, str(view.size), str(r)])
+	check(_overlaps(rects) == 0, "%s: paneles sin solaparse" % label)
+	var mr: Rect2 = game.minimap_rect()
+	check(mr.size.x >= 260.0 and mr.size.y >= 150.0, "%s: minimapa de al menos 260x150" % label)
+	check(view.encloses(game.scale_rect()) and view.encloses(game.compass_rect()), "%s: escala y brujula dentro de la pantalla" % label)
+	notes["justina_layout_" + label] = {"viewport": [view.size.x, view.size.y], "minimapa": [mr.size.x, mr.size.y], "paneles": rects.size()}
+
 func _run() -> void:
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(out_dir))
 	game = (load("res://scenes/main.tscn") as PackedScene).instantiate()
@@ -123,122 +162,146 @@ func _run() -> void:
 	check(salir != null and Rect2(Vector2.ZERO, root.get_visible_rect().size).encloses(salir.get_global_rect()), "Menu: Salir visible dentro del viewport")
 	await _shot("menu")
 	game.jev.force_local = true
+	var T := preload("res://tests/test_integration.gd")
+	var RR := preload("res://scripts/game_rules.gd")
+	var RW := preload("res://scripts/world_view.gd")
+	var probe_r = RR.new()
+	var probe_w = RW.new()
+	var has_rules: bool = probe_r.has_method("plan_route") and probe_r.has_method("campaign_report")
+	var has_world: bool = probe_w.has_method("get_minimap_texture") and probe_w.has_method("pick_units_in_rect")
+	probe_w.free()
+	notes["rules_stub"] = not has_rules
+	notes["world_stub"] = not has_world
+	if not has_rules:
+		game.rules = T.StubRules.new()
+	if not has_world:
+		game.world_script = T.StubWorld
 	game._start_game("justine")
-	await _frames(40)
-	_layout_checks("Justine")
-	await _shot("justine-inicio")
-	notes["justine_free_con_ayuda"] = _free_area()
+	await _frames(30)
+	check(is_instance_valid(game.modal), "Justina: el briefing se muestra al empezar")
+	await _shot("justina-briefing")
+	game._close_modal()
+	await _frames(30)
+	_justina_layout("Justina inicio")
+	await _shot("justina-inicio")
 	game.hint_timer = 0.0
 	game._update_hud()
-	notes["justine_free"] = _free_area()
+	notes["justina_free_sin_ayuda"] = _free_area()
 	game.hint_timer = 18.0
-	notes["justine_overlaps_inicio"] = _overlaps(game.last_overlay_rects)
-	check(_overlaps(game.last_overlay_rects) == 0, "Justine inicio: etiquetas sin solapamiento")
+	game._update_hud()
+	notes["justina_free_con_ayuda"] = _free_area()
+	check(float(notes["justina_free_con_ayuda"].free_pct) >= 75.0, "Justina: la interfaz no tapa mas del 25 %% de la vista (libre %s %%)" % str(notes["justina_free_con_ayuda"].free_pct))
+	notes["justina_overlaps_inicio"] = _overlaps(game.last_overlay_rects)
+	check(_overlaps(game.last_overlay_rects) == 0, "Justina inicio: etiquetas y fichas sin solapamiento")
+	# Seleccion con entrada real inyectada
 	await _key(KEY_2)
-	check(game.selected == "arias", "Tecla 2 selecciona la segunda agrupacion")
-	check(game.select_flash > 0.0, "La seleccion dispara un destello")
+	check(game.sel_ids == ["arias"], "Tecla 2 selecciona el segundo grupo")
 	await _frames(6)
-	await _shot("justine-seleccion-destello")
-	await _frames(40)
-	await _shot("justine-seleccion-persistente")
-	await _move(Vector2(700, 380))
-	await _frames(12)
-	notes["hover_water"] = game.hover_info.get("text", "")
-	notes["hover_pick"] = str(game.world.pick_ground(game.camera, Vector2(700, 380))) + " mouse=" + str(game.hover_mouse) + " status=" + str(game.rules.state.status)
-	await _shot("justine-hover-invalido")
-	for candidate in [Vector2(420, 250), Vector2(500, 350), Vector2(560, 300), Vector2(330, 120), Vector2(470, 500), Vector2(600, 520)]:
-		await _move(candidate)
-		await _frames(12)
-		if bool(game.hover_info.get("ok", false)):
-			break
-	notes["hover_land"] = game.hover_info.get("text", "")
-	await _shot("justine-hover-valido")
-	var direct := _button("Banco directo")
-	check(direct != null, "Boton Banco directo visible")
-	if direct:
-		await _click(direct.get_global_rect().get_center())
-	check(game.rules.get_unit("arias").order.get("action", "") == "direct", "Click real en Banco directo ordena a la agrupacion elegida")
-	await _frames(20)
-	await _shot("justine-orden-ruta")
-	await _key(KEY_4)
-	check(game.selected == "all", "Tecla 4 selecciona todas")
-	var flank := _button("Rodeo sur")
-	await _click(flank.get_global_rect().get_center())
-	await _frames(20)
-	await _shot("justine-todas-rodeo")
-	var board := _button("Abordar")
-	check(board != null and board.disabled, "Abordar esta bloqueado con el agua alta")
-	notes["justine_reason_text"] = game.reason_label.text
-	var rally := _button("Reagrupar")
-	await _click(rally.get_global_rect().get_center())
-	check(game.confirm_action == "rally", "Reagrupar pide confirmacion")
-	var n_orders: int = game.rules.state.orders.size()
-	await _frames(2)
-	rally = _button("Reagrupar")
-	await _click(rally.get_global_rect().get_center())
-	check(game.rules.state.orders.size() > n_orders, "Segundo clic ejecuta Reagrupar")
-	await _key(KEY_1)
-	var direct2 := _button("Banco directo")
-	await _click(direct2.get_global_rect().get_center())
-	game.paused = false
-	for i in range(12):
-		game._process(5.0)
-		if game.rules.get_unit("guemes").stage == "waiting_tide":
-			break
-	game.paused = true
-	if game.rules.get_unit("guemes").stage != "waiting_tide":
-		notes["wait_forced"] = true
-		game.rules.get_unit("guemes").stage = "waiting_tide"
-		game.rules.get_unit("guemes").order = {"action": "direct", "x": 12.0, "z": 0.0}
-	notes["guemes_stage_at"] = [game.rules.get_unit("guemes").stage, game.rules.state.elapsed]
-	await _frames(10)
-	await _shot("justine-espera-bajante")
-	notes["wait_seconds_unit0"] = game._wait_seconds(game.rules.get_unit("guemes"))
-	check(float(notes["wait_seconds_unit0"]) >= 0.0, "La agrupacion que espera la bajante muestra una estimacion")
-	await _key(KEY_TAB)
-	check(root.gui_get_focus_owner() != null, "Tab da foco a la interfaz")
-	await _frames(3)
-	await _shot("justine-foco-teclado")
-	await _key(KEY_TAB)
-	check(root.gui_get_focus_owner() != null, "Tab recorre los botones")
-	await _key(KEY_ESCAPE)
-	check(root.gui_get_focus_owner() == null, "Esc suelta el foco")
-	check(not is_instance_valid(game.modal), "Esc con foco no abre modal")
-	var focusable := 0
-	var total := 0
-	for b in game.ui.find_children("*", "Button", true, false):
-		total += 1
-		if b.focus_mode == Control.FOCUS_ALL:
-			focusable += 1
-	notes["buttons_focusable"] = "%d de %d" % [focusable, total]
+	await _shot("justina-seleccion")
+	var pg: Vector2 = game.camera.unproject_position(game.world.unit_nodes["guemes"].root.global_position)
+	var pa: Vector2 = game.camera.unproject_position(game.world.unit_nodes["arias"].root.global_position)
+	var box := Rect2(pg, Vector2.ZERO).expand(pa).grow(24)
+	await _drag(box.position, box.end, MOUSE_BUTTON_LEFT)
+	check(game.sel_ids.has("guemes") and game.sel_ids.has("arias") and not game.sel_ids.has("zavala"), "Caja de seleccion real sobre dos grupos")
+	await _frames(4)
+	await _shot("justina-caja")
+	# Minimapa con clic real
+	var mr: Rect2 = game.minimap_rect()
+	await _click(mr.position + Vector2(130, 75))
+	await _frames(4)
+	check(Vector2(game.camera_target.x, game.camera_target.z).distance_to(Vector2(450, 260)) < 6.0, "Clic real en el minimapa centra la camara")
+	await _shot("justina-minimapa-clic")
+	# Arrastre derecho real y rueda
+	var t_before: Vector3 = game.camera_target
+	await _drag(Vector2(800, 400), Vector2(700, 440), MOUSE_BUTTON_RIGHT)
+	check(game.camera_target.distance_to(t_before) > 3.0, "Arrastre derecho real mueve la camara")
 	var d0: float = game.camera_distance
 	for i in range(3):
 		var e := InputEventMouseButton.new()
-		e.position = _to_window(Vector2(900, 400))
+		e.position = _to_window(Vector2(800, 400))
 		e.button_index = MOUSE_BUTTON_WHEEL_UP
 		e.pressed = true
 		root.push_input(e)
 		await process_frame
-	check(game.camera_distance < d0, "La rueda acerca la camara")
-	for i in range(60):
+	check(game.camera_distance < d0, "Rueda real acerca la camara")
+	for i in range(80):
 		var e2 := InputEventMouseButton.new()
-		e2.position = _to_window(Vector2(900, 400))
+		e2.position = _to_window(Vector2(800, 400))
 		e2.button_index = MOUSE_BUTTON_WHEEL_UP
 		e2.pressed = true
 		root.push_input(e2)
 		await process_frame
-	check(game.camera_distance >= 18.0, "Zoom con limite inferior")
-	await _key(KEY_F)
-	await _frames(70)
-	await _shot("justine-cerca-enfoque")
-	notes["justine_overlaps_cerca"] = _overlaps(game.last_overlay_rects)
-	check(_overlaps(game.last_overlay_rects) == 0, "Justine cerca: etiquetas sin solapamiento")
-	await _key(KEY_P)
+	check(game.camera_distance >= 25.0 - 0.01, "Zoom con minimo de 25 m")
+	game.camera_distance = 90.0
+	game._center_on(Vector2(140, 265))
+	game._apply_camera()
 	await _frames(6)
-	await _shot("justine-parte-abierto")
-	notes["justine_free_parte_abierto"] = _free_area()
-	await _key(KEY_P)
+	# Escala y brujula
+	var si: Dictionary = game._scale_info()
+	notes["justina_escala"] = si
+	check(float(si.px) >= 80.0 and float(si.px) <= 160.0, "Barra de escala entre 80 y 160 px (%d m, %d px)" % [int(si.m), int(si.px)])
+	check((game.compass_rect() as Rect2).size.x >= 48.0, "Brujula de al menos 48 px")
+	game.camera_yaw = 0.8
+	game._apply_camera()
+	await _frames(6)
+	await _shot("justina-brujula-girada")
+	game.camera_yaw = 0.0
+	game._apply_camera()
+	# Exploradores y vista previa de riesgo
+	game.paused = false
+	await _key(KEY_5)
+	game._do_action("probe")
+	await _move(Vector2(520, 300))
+	await _frames(14)
+	notes["preview_sondeo"] = game.hover_info.get("text", "")
+	await _shot("justina-apuntar-sondeo")
+	game._cancel_aim()
+	game._select_ids(["guemes"])
+	game.camera_distance = 260.0
+	game._center_on(Vector2(300, 264))
+	game._apply_camera()
+	await _frames(4)
+	var wet: Vector2 = game.camera.unproject_position(Vector3(300, 0, 264))
+	await _move(wet)
+	await _frames(14)
+	notes["preview_ruta_sin_reconocer"] = game.hover_info.get("text", "")
+	check(str(game.hover_info.get("text", "")).find("riesgo") >= 0, "Vista previa de ruta muestra el riesgo")
+	await _shot("justina-vista-previa-riesgo")
+	# Mitad de bajante, cruce y parte
+	game._select_ids(["scout_1"])
+	game.rules.issue_scout("scout_1", "probe", [Vector2(200, 264), Vector2(330, 264)])
+	game.paused = true
+	for s in range(210):
+		game._handle_events(game.rules.tick(1.0))
+	game._update_hud()
+	await _frames(20)
+	await _shot("justina-mitad-bajante")
+	game._select_ids(["guemes"])
+	game._do_action("signal_liniers")
+	for s in range(90):
+		game._handle_events(game.rules.tick(1.0))
+	game._select_ids(["guemes", "arias", "zavala"])
+	game._do_action("board")
+	if game.confirm_action == "board":
+		game._do_action("board")
+	for s in range(150):
+		game._handle_events(game.rules.tick(1.0))
+	game._update_hud()
+	await _frames(20)
+	await _shot("justina-cruce")
+	for s in range(500):
+		if game.rules.state.status != "playing":
+			break
+		game._handle_events(game.rules.tick(1.0))
+	game.paused = false
+	await _frames(20)
+	await _shot("justina-parte")
+	check(game.rules.state.status != "playing" and is_instance_valid(game.modal), "El parte de campaña aparece al terminar")
+	_justina_layout("Justina parte")
+	game._close_modal()
 
+	game.rules = RR.new()
+	game.world_script = RW
 	game._return_menu()
 	await _frames(10)
 	game._start_game("norte")
