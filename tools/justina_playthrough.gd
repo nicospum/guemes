@@ -57,6 +57,7 @@ func _play(policy: String, seed_value: int = 1806) -> Dictionary:
 	root.add_child(game)
 	await process_frame
 	game.jev.force_local = true
+	game.forced_seed=1806
 	game._start_game("justine")
 	await process_frame
 	if is_instance_valid(game.modal):

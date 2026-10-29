@@ -221,6 +221,7 @@ func _run() -> void:
 		game.rules = T.StubRules.new()
 	if not has_world:
 		game.world_script = T.StubWorld
+	game.forced_seed=1806
 	game._start_game("justine")
 	await _frames(30)
 	check(is_instance_valid(game.modal), "Justina: el briefing se muestra al empezar")

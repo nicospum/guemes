@@ -415,6 +415,7 @@ func _justina() -> void:
 	check(_find_button("Volver a jugar") != null, "Defeat also permits immediate restart")
 	game._close_modal()
 	# Retirada general con confirmacion
+	game.forced_seed=1806
 	game._start_game("justine")
 	game._close_modal()
 	game._do_action("retreat_all")
@@ -424,6 +425,7 @@ func _justina() -> void:
 	game._process(0.0)
 	game._close_modal()
 	# Parte parcial con P
+	game.forced_seed=1806
 	game._start_game("justine")
 	game._close_modal()
 	_key(KEY_P)
@@ -437,6 +439,7 @@ func _justina() -> void:
 		check(_find_button("Nueva partida") != null, "...and offers a new game")
 		game._close_modal()
 	# Textos prohibidos
+	game.forced_seed=1806
 	game._start_game("justine")
 	game._close_modal()
 	game._select_ids(["guemes"])
@@ -445,6 +448,7 @@ func _justina() -> void:
 	check(all_text.find("fragata") < 0 and all_text.find("goleta") < 0, "No UI text says fragata or goleta")
 	check(all_text.find("güemes mandó") < 0 and all_text.find("güemes comandó") < 0 and all_text.find("al mando de güemes") < 0, "No UI text states that Guemes commanded")
 	check(game.sel_info.text.find("Tradición") >= 0, "The vanguard shows its Tradición label when selected")
+	game.forced_seed=1806
 	game._start_game("justine")
 	game._close_modal()
 	var cp = game.rules.campaign_report()

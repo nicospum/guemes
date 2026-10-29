@@ -328,6 +328,8 @@ func _rebuild_world():
  get_viewport().msaa_3d=Viewport.MSAA_DISABLED if settings.quality=="baja" else (Viewport.MSAA_4X if settings.quality=="alta" else Viewport.MSAA_2X)
  get_viewport().scaling_3d_scale=0.5 if settings.quality=="baja" else 1.0
 
+var forced_seed:int=-1 # -1: fondo del río distinto en cada partida; las pruebas fijan una semilla
+
 func _menu():
  jev.invalidate();pending_round=false;mode="menu";paused=true;outcome_shown=false
  rules.new_game("justine",1806)
@@ -370,7 +372,7 @@ func _button_at(parent,text_value,pos,size_v,fn):
 func _start_game(scenario_name:String):
  var build_start=Time.get_ticks_msec()
  jev.invalidate();pending_round=false;resolution_remaining=0;outcome_shown=false
- rules.new_game(scenario_name,1806 if scenario_name=="justine" else 1817)
+ rules.new_game(scenario_name,(forced_seed if forced_seed>=0 else int(Time.get_ticks_usec()%1000003)) if scenario_name=="justine" else 1817)
  selected="guemes";sector="lerma";mode="play";paused=scenario_name=="justine";speed=1
  sel_ids=["guemes"];pace="trot";aim="";aim_pts=[];wp_list=[];pending_pt=null;tut_step=0;mm_big=false
  camera_target=Vector3(-6,0,0) if scenario_name=="justine" else Vector3(1,0,4)
