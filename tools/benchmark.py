@@ -16,6 +16,7 @@ p.add_argument("--project",default="",help="Si se indica, se usa --path <project
 p.add_argument("--renderer",default="",help="forward_plus | mobile | gl_compatibility (opcional).")
 p.add_argument("--repeat",type=int,default=1);p.add_argument("--no-vsync",action="store_true",default=None)
 p.add_argument("--vsync",action="store_true",help="Dejar V-Sync activo (por defecto se desactiva en Windows).")
+p.add_argument("--max-frame-ms",type=float,default=0.0,help="Si es > 0, falla (codigo 2) cuando el cuadro medio de alguna corrida supera ese valor (objetivo de Justina: 3 ms en RTX 3080 Ti).")
 args=p.parse_args()
 root=pathlib.Path(__file__).resolve().parents[1];out=pathlib.Path(args.output).resolve();out.mkdir(parents=True,exist_ok=True)
 binary=pathlib.Path(args.binary).resolve(strict=True)
@@ -56,6 +57,10 @@ for scenario in args.scenarios.split(","):
    report_path.write_text(json.dumps(report,indent=2),encoding="utf-8")
    runs.append(report)
   fps=[r["mean_fps"] for r in runs]
-  row={"scenario":scenario,"quality":quality,"repeat":len(runs),"mean_fps_mean":round(statistics.mean(fps),1),"mean_fps_min":round(min(fps),1),"mean_fps_max":round(max(fps),1),"frame_ms_median_mean":round(statistics.mean(r["frame_ms_median"] for r in runs),3),"frame_ms_p95_mean":round(statistics.mean(r["frame_ms_p95"] for r in runs),3),"scene_build_ms_mean":round(statistics.mean(r["scene_build_ms"] for r in runs),1),"renderer":runs[0]["renderer"],"viewport":runs[0]["viewport"]}
+  row={"scenario":scenario,"quality":quality,"repeat":len(runs),"mean_fps_mean":round(statistics.mean(fps),1),"mean_fps_min":round(min(fps),1),"mean_fps_max":round(max(fps),1),"frame_ms_mean_mean":round(statistics.mean(1000.0/r["mean_fps"] for r in runs),3),"frame_ms_mean_max":round(max(1000.0/r["mean_fps"] for r in runs),3),"frame_ms_median_mean":round(statistics.mean(r["frame_ms_median"] for r in runs),3),"frame_ms_p95_mean":round(statistics.mean(r["frame_ms_p95"] for r in runs),3),"scene_build_ms_mean":round(statistics.mean(r["scene_build_ms"] for r in runs),1),"renderer":runs[0]["renderer"],"viewport":runs[0]["viewport"]}
   print(json.dumps(row),flush=True);summary.append(row)
 (out/"resumen.json").write_text(json.dumps(summary,indent=2),encoding="utf-8")
+if args.max_frame_ms>0:
+ bad=[r for r in summary if r["frame_ms_mean_max"]>args.max_frame_ms]
+ print("Presupuesto de cuadro medio",args.max_frame_ms,"ms:","FALLA" if bad else "OK",flush=True)
+ if bad:raise SystemExit(2)

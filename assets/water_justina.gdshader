@@ -2,10 +2,11 @@ shader_type spatial;
 render_mode blend_mix, depth_draw_always, cull_disabled, shadows_disabled, specular_schlick_ggx;
 // Agua turbia del Plata (Justina). El color NO depende de la profundidad: solo se ve el suelo a menos de
 // visible_depth_m (0,3 m) de la superficie, que es lo que Reglas llama "visible". Mas abajo es opaca y uniforme.
+// Color pardo con un matiz terracota, como el río de las láminas de Vidal (1820, docs/referencias/justina/vidal_02 y vidal_01).
 // UV.x trae la altura REAL del suelo (m sobre el cero de bajante) solo para calcular ese halo y la espuma de contacto.
 uniform float water_level = 1.65;
 uniform float visible_depth_m = 0.3;
-uniform vec3 water_color : source_color = vec3(0.34, 0.35, 0.26);
+uniform vec3 water_color : source_color = vec3(0.39, 0.34, 0.24);
 uniform vec3 sky_tint : source_color = vec3(0.72, 0.70, 0.60);
 uniform vec3 shallow_color : source_color = vec3(0.60, 0.52, 0.36);
 varying vec3 world_pos;

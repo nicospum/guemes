@@ -719,7 +719,20 @@ var knowledge_root: Node3D
 var exposure_root: Node3D
 var exposure_forced = false
 var exposure_user_on = false
-var layer_state = {"paths":true,"probes":true,"exposure":true,"labels":true,"landmarks":true}
+var layer_state = {"paths":true,"probes":true,"exposure":true,"labels":true,"landmarks":true,"unit_labels":true}
+var level_high_m = 1.65
+## Recursos del conocimiento (sondas, balizas, boyas): se crean una vez y se reescriben; no se crean mallas ni materiales por baliza.
+var kn_strips: MeshInstance3D
+var kn_strips_mesh: ArrayMesh
+var kn_posts: MultiMeshInstance3D
+var kn_buoys_red: MultiMeshInstance3D
+var kn_buoys_green: MultiMeshInstance3D
+var kn_stakes: MultiMeshInstance3D
+var kn_labels: Array = []
+var kn_label_used = 0
+var kn_rebuilds = 0
+var beacons: Array = []
+const BEACON_TYPES = ["ship","battery","bullring"]
 var landmark_info: Dictionary = {}
 var landmark_labels_3d: Dictionary = {}
 var extra_labels: Array = []
@@ -804,6 +817,7 @@ func _build_justina():
  var sz=M.get("size",{"w":900.0,"h":520.0})
  map_w=float(sz.get("w",900.0));map_h=float(sz.get("h",520.0))
  level_m=float(rules.water_level_m())
+ level_high_m=float(M.get("tide",{}).get("level_high_m",1.65))
  _sample_heightfield()
  _terrain_j()
  _horizon_j()
@@ -811,9 +825,11 @@ func _build_justina():
  landmarks_root=Node3D.new();landmarks_root.name="Hitos";add_child(landmarks_root)
  labels_root=Node3D.new();labels_root.name="Rotulos";add_child(labels_root)
  knowledge_root=Node3D.new();knowledge_root.name="Conocimiento";add_child(knowledge_root)
+ _knowledge_nodes_j()
  _landmarks_j()
  _obstacles_j()
  _ship_j()
+ _beacons_j()
  _effects_j()
  _exposure_j()
 
@@ -839,8 +855,8 @@ func _ground_color(x:float,z:float,h:float,crest:float,toe:float,road_x:float)->
   var t=clampf((x-crest)/maxf(1.0,toe-crest),0.0,1.0)
   c=grass.lerp(ochre,smoothstep(0.0,0.25,t)).lerp(sand,smoothstep(0.75,1.0,t)*0.5)
  else:
-  c=mud.lerp(sand,smoothstep(0.1,1.7,h))
-  if h>1.65:c=sand.lerp(Color("7f7d4e"),smoothstep(1.7,3.0,h)*0.35)
+  c=mud.lerp(sand,smoothstep(0.1,level_high_m+0.05,h))
+  if h>level_high_m:c=sand.lerp(Color("7f7d4e"),smoothstep(level_high_m+0.05,level_high_m+1.4,h)*0.35)
  return c
 
 func _terrain_j():
@@ -935,7 +951,9 @@ func _water_j():
  water_mat.set_shader_parameter("water_level",level_m)
  water_mat.set_shader_parameter("visible_depth_m",float(M.get("knowledge",{}).get("visibility_depth_m",0.3)))
  # Superficie plana a y = nivel, con la altura real del suelo en UV.x (solo para el halo de 0,3 m y la espuma de contacto).
- var ix0=int(40.0/J_CELL)
+ var toe_min=map_w
+ for tp in M.get("barranca",{}).get("toe",[]):toe_min=minf(toe_min,float(tp[0]))
+ var ix0=clampi(int(floor((toe_min-24.0)/J_CELL)),0,hf_nx-2)
  var nx=hf_nx-ix0
  var verts=PackedVector3Array();verts.resize(nx*hf_nz)
  var uvs=PackedVector2Array();uvs.resize(nx*hf_nz)
@@ -994,7 +1012,7 @@ func _landmarks_j():
     top=level_m+26.0
    "cliff":
     top=_h(p.x,p.y)+3.0
-  var text=_tag_glyph(tag)+" "+str(lm.get("name",id))
+  var text=_tag_glyph(tag)+" "+str(lm.get("name",id))+(" (tradición)" if tag=="tradicion" else "")
   var lab=_label_j(text,Vector3(p.x,top,p.y),_tag_color(tag).lerp(Color.WHITE,0.35),30,labels_root)
   lab.name="Rotulo_"+id
   lab.visibility_range_end=900.0
@@ -1007,7 +1025,8 @@ func _landmarks_j():
   ei+=1
  # Casas del Retiro sobre la meseta (decoracion; sin rotulo): el pueblo queda al oeste de la Alameda.
  for hz in [20.0,64.0,110.0,152.0,372.0,408.0,452.0,496.0]:
-  var hx=6.0+decoration_rng.randf()*5.0
+  var crest_x=_poly_x(M.get("barranca",{}).get("crest",[]),hz)
+  var hx=maxf(3.0,crest_x-14.0-decoration_rng.randf()*6.0)
   _house(Vector3(hx,_h(hx,hz),hz),7.5,8.5,false)
 
 func _bullring_j(lm:Dictionary):
@@ -1410,7 +1429,9 @@ func _update_label_j(id:String,u,stage:String,root:Node3D,h:float):
   var tag=str(u.get("tag","diseno"))
   var short=str(u.name).split(" · ")[0]
   var sel=id in selected_ids or id==selected
-  txt=_tag_glyph(tag)+" "+(str(u.name) if sel else short)+" · "+str(int(round(float(u.strength))))+"%"
+  # Lo no probado (tradición) se marca siempre en el rótulo del mundo, con el nombre completo para que no parezca un hecho.
+  var full=sel or tag=="tradicion"
+  txt=_tag_glyph(tag)+" "+(str(u.name) if full else short)+(" (tradición)" if tag=="tradicion" else "")+" · "+str(int(round(float(u.strength))))+"%"
  else:
   txt="◇ "+str(u.name)+(" · "+str(int(u.get("hp",3)))+"/3" if true else "")
  var st=str(J_STAGE_TEXT.get(stage,""))
@@ -1477,8 +1498,44 @@ func _depth_color(depth:float,alpha:float)->Color:
  if depth<=1.3:return Color(0.96,0.72,0.20,alpha)
  return Color(0.90,0.25,0.20,alpha)
 
+func _kn_mmi(name_s:String,mesh:Mesh,mat:Material)->MultiMeshInstance3D:
+ var mm=MultiMesh.new();mm.transform_format=MultiMesh.TRANSFORM_3D;mm.mesh=mesh;mm.instance_count=0
+ var mmi=MultiMeshInstance3D.new();mmi.name=name_s;mmi.multimesh=mm;mmi.material_override=mat
+ mmi.custom_aabb=AABB(Vector3(0,-6,0),Vector3(map_w,40,map_h));mmi.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+ knowledge_root.add_child(mmi)
+ return mmi
+
+## Crea una sola vez los recursos del conocimiento (malla de franjas, lotes de postes/boyas/estacas, material compartido).
+func _knowledge_nodes_j():
+ kn_strips_mesh=ArrayMesh.new()
+ kn_strips=MeshInstance3D.new();kn_strips.name="Franjas";kn_strips.mesh=kn_strips_mesh;kn_strips.material_override=_overlay_mat()
+ kn_strips.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;kn_strips.custom_aabb=AABB(Vector3(0,-1,0),Vector3(map_w,2,map_h))
+ knowledge_root.add_child(kn_strips)
+ var post=CylinderMesh.new();post.top_radius=0.07;post.bottom_radius=0.1;post.height=2.6;post.radial_segments=6
+ var ball=SphereMesh.new();ball.radius=0.55;ball.height=1.1;ball.radial_segments=10;ball.rings=5
+ var stake=CylinderMesh.new();stake.top_radius=0.04;stake.bottom_radius=0.04;stake.height=2.4;stake.radial_segments=5
+ kn_posts=_kn_mmi("Balizas",post,_mat(Color("efe3b0"),0.7,true))
+ kn_buoys_red=_kn_mmi("BoyasRojas",ball,_mat(Color("d4382a"),0.5,true))
+ kn_buoys_green=_kn_mmi("BoyasVerdes",ball,_mat(Color("37b86a"),0.5,true))
+ kn_stakes=_kn_mmi("Estacas",stake,_mat(Color("e9e2c6")))
+
+func _kn_set(mmi:MultiMeshInstance3D,xf:Array)->void:
+ var mm:MultiMesh=mmi.multimesh
+ if mm.instance_count!=xf.size():mm.instance_count=xf.size()
+ for i in range(xf.size()):mm.set_instance_transform(i,xf[i])
+
+## Rótulo reutilizable (pool): no se crean Label3D nuevos si ya hay libres.
+func _kn_label(text_value:String,pos:Vector3,color:Color)->void:
+ var lab:Label3D
+ if kn_label_used<kn_labels.size():lab=kn_labels[kn_label_used]
+ else:
+  lab=_label_j("",pos,color,28,knowledge_root);kn_labels.append(lab)
+ kn_label_used+=1
+ lab.text=text_value;lab.position=pos;lab.modulate=color;lab.visible=true
+
 func _rebuild_knowledge_j():
- for c in knowledge_root.get_children():c.queue_free()
+ kn_rebuilds+=1
+ kn_label_used=0
  var verts=PackedVector3Array();var cols=PackedColorArray();var idx=PackedInt32Array()
  var posts=[]
  var y=0.09
@@ -1522,47 +1579,39 @@ func _rebuild_knowledge_j():
     while d<=seg:
      posts.append(a+dir*d);d+=10.0
     carry=d-seg
+ # La malla de franjas se reescribe en su lugar (misma ArrayMesh, mismo material).
+ kn_strips_mesh.clear_surfaces()
  if verts.size()>0:
   var arr=[];arr.resize(Mesh.ARRAY_MAX);arr[Mesh.ARRAY_VERTEX]=verts;arr[Mesh.ARRAY_COLOR]=cols;arr[Mesh.ARRAY_INDEX]=idx
-  var mesh=ArrayMesh.new();mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arr)
-  var mi=MeshInstance3D.new();mi.name="Franjas";mi.mesh=mesh;mi.material_override=_overlay_mat();mi.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-  mi.custom_aabb=AABB(Vector3(0,-1,0),Vector3(map_w,2,map_h))
-  knowledge_root.add_child(mi)
+  kn_strips_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arr)
  # Balizas (postes) cada 10 m de vado marcado.
+ var post_xf=[]
  for q in posts:
-  var gh=_h(q.x,q.y)
-  var top=maxf(gh,level_m)
-  var pm=MeshInstance3D.new();var cm=CylinderMesh.new();cm.top_radius=0.07;cm.bottom_radius=0.1;cm.height=2.6;cm.radial_segments=6
-  pm.mesh=cm;pm.material_override=_mat(Color("efe3b0"),0.7,true);pm.position=Vector3(q.x,1.3-level_m*0.0+(top-level_m),q.y)
-  knowledge_root.add_child(pm)
- # Boyas: pozos hallados (rojas) y vados hallados (verdes), con rotulo.
+  var top=maxf(_h(q.x,q.y),level_m)
+  post_xf.append(Transform3D(Basis.IDENTITY,Vector3(q.x,1.3+(top-level_m),q.y)))
+ _kn_set(kn_posts,post_xf)
+ # Boyas: pozos hallados (rojas) y vados hallados (verdes), con rótulo.
+ var red_xf=[];var green_xf=[];var stake_xf=[]
  for hz in M.get("hazards",[]):
   if not (str(hz.id) in rules.state.get("hazards_found",[])):continue
   var c=hz.center
-  _buoy_j(Vector2(float(c[0]),float(c[1])),Color("d4382a"),"▲ "+str(hz.get("name","Pozo")))
+  var pv=Vector2(float(c[0]),float(c[1]))
+  red_xf.append(Transform3D(Basis.IDENTITY,Vector3(pv.x,0.3,pv.y)));stake_xf.append(Transform3D(Basis.IDENTITY,Vector3(pv.x,1.2,pv.y)))
+  _kn_label("▲ "+str(hz.get("name","Pozo")),Vector3(pv.x,3.4,pv.y),Color("f2a99c"))
  for fd in M.get("fords",[]):
   if not (str(fd.id) in rules.state.get("fords_found",[])):continue
   var pts2:Array=[]
   if fd.has("centerline"):pts2=fd.centerline
   elif fd.has("center"):pts2=[fd.center]
-  var mid=Vector2.ZERO
+  var mid2=Vector2.ZERO
   for q in pts2:
-   var v=Vector2(float(q[0]),float(q[1]));mid+=v
-   _buoy_j(v,Color("37b86a"),"")
+   var v=Vector2(float(q[0]),float(q[1]));mid2+=v
+   green_xf.append(Transform3D(Basis.IDENTITY,Vector3(v.x,0.3,v.y)));stake_xf.append(Transform3D(Basis.IDENTITY,Vector3(v.x,1.2,v.y)))
   if pts2.size()>0:
-   mid/=float(pts2.size())
-   var lab=_label_j("▲ "+str(fd.get("name","Vado")),Vector3(mid.x,3.4,mid.y),Color("a6e6bd"),28,knowledge_root)
-   lab.position.y=3.4
-
-func _buoy_j(p:Vector2,color:Color,label_text:String):
- var b=MeshInstance3D.new();var sm=SphereMesh.new();sm.radius=0.55;sm.height=1.1;sm.radial_segments=10;sm.rings=5
- b.mesh=sm;b.material_override=_mat(color,0.5,true);b.position=Vector3(p.x,0.3,p.y)
- knowledge_root.add_child(b)
- var stake=MeshInstance3D.new();var cm=CylinderMesh.new();cm.top_radius=0.04;cm.bottom_radius=0.04;cm.height=2.4;cm.radial_segments=5
- stake.mesh=cm;stake.material_override=_mat(Color("e9e2c6"));stake.position=Vector3(p.x,1.2,p.y)
- knowledge_root.add_child(stake)
- if label_text!="":
-  _label_j(label_text,Vector3(p.x,3.4,p.y),Color("f2a99c"),28,knowledge_root)
+   mid2/=float(pts2.size())
+   _kn_label("▲ "+str(fd.get("name","Vado")),Vector3(mid2.x,3.4,mid2.y),Color("a6e6bd"))
+ _kn_set(kn_buoys_red,red_xf);_kn_set(kn_buoys_green,green_xf);_kn_set(kn_stakes,stake_xf)
+ for i in range(kn_label_used,kn_labels.size()):kn_labels[i].visible=false
 
 func _knowledge_signature()->String:
  var s=str(snappedf(level_m,0.02))
@@ -1598,6 +1647,7 @@ func _update_justina(delta:float):
  _update_parked_j()
  _update_ship_j(delta)
  _update_effects_j(delta)
+ _update_beacons_j()
  _update_layers_j()
  path_timer+=delta
  if path_timer>0.5:
@@ -1667,6 +1717,100 @@ func _refresh_paths_j():
  var mm:MultiMesh=path_instances.multimesh
  mm.instance_count=xf.size()
  for i in range(xf.size()):mm.set_instance_transform(i,xf[i])
+
+## Diagnóstico: máxima diferencia (m) entre la altura que dibuja la Vista (muestreo a J_CELL de rules.terrain_height_at) y la de Reglas en n puntos al azar.
+func terrain_consistency_error(n:int=400)->float:
+ if not justina:return 0.0
+ var rng=RandomNumberGenerator.new();rng.seed=77
+ var worst=0.0
+ for i in range(n):
+  var x=rng.randf_range(0.0,map_w);var z=rng.randf_range(0.0,map_h)
+  worst=maxf(worst,absf(_h(x,z)-float(rules.terrain_height_at(x,z))))
+ return worst
+
+# ---------------------------------------------------------------- balizas de escala y encuadre
+## Poste de señal de tamaño casi constante en pantalla sobre el buque, la batería y la Plaza de Toros: a 500 m se ve dónde están aunque el modelo mida pocos píxeles. No lleva bandera ni insignia.
+func _beacons_j():
+ for id in landmark_info:
+  var info=landmark_info[id]
+  if not (str(info.type) in BEACON_TYPES):continue
+  var col=_tag_color(str(info.tag)).lerp(Color("f4efdc"),0.5)
+  var root=Node3D.new();root.name="Baliza_"+id
+  var base_y=level_m if str(info.type)=="ship" else _h(float(info.x),float(info.z))
+  root.position=Vector3(float(info.x),base_y,float(info.z))
+  var height=70.0 if str(info.type)=="ship" else 46.0
+  var pole=CylinderMesh.new();pole.top_radius=0.5;pole.bottom_radius=0.5;pole.height=1.0;pole.radial_segments=6
+  var pm=MeshInstance3D.new();pm.mesh=pole;pm.material_override=_beacon_mat(Color(col.r,col.g,col.b,0.7))
+  pm.scale=Vector3(1.0,height,1.0);pm.position=Vector3(0,height*0.5,0);pm.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+  root.add_child(pm)
+  var tip=SphereMesh.new();tip.radius=1.0;tip.height=2.0;tip.radial_segments=8;tip.rings=4
+  var tm=MeshInstance3D.new();tm.mesh=tip;tm.material_override=_beacon_mat(Color(col.r,col.g,col.b,0.95));tm.position=Vector3(0,height,0);tm.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+  root.add_child(tm)
+  landmarks_root.add_child(root)
+  beacons.append({"root":root,"pole":pm,"tip":tm,"h":height})
+
+## Material de baliza: sin sombreado y con prioridad de dibujo mayor que el agua, para que el poste no quede tapado por la superficie.
+func _beacon_mat(c:Color)->StandardMaterial3D:
+ var key="beacon"+c.to_html()
+ if ring_mat_cache.has(key):return ring_mat_cache[key]
+ var m=StandardMaterial3D.new();m.albedo_color=c;m.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
+ m.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA;m.render_priority=5;m.disable_fog=true
+ ring_mat_cache[key]=m
+ return m
+
+func _update_beacons_j():
+ var cam=get_viewport().get_camera_3d()
+ if cam==null:return
+ for b in beacons:
+  var r:Node3D=b.root
+  var d=cam.global_position.distance_to(r.global_position)
+  r.visible=d>140.0
+  if not r.visible:continue
+  var k=clampf(d/150.0,1.0,8.0)
+  b.pole.scale=Vector3(k,float(b.h),k)
+  b.tip.scale=Vector3.ONE*k*1.6
+
+## Encuadra una lista de puntos (x,z) con una cámara dada: devuelve {target:Vector3, distance, height, pitch_deg, fits}. La UI decide si lo usa; sirve para que el encuadre inicial no sea solo arena.
+## Convención: cámara al sur del objetivo mirando al norte (norte arriba, como el minimapa).
+func frame_view(camera:Camera3D,pts:Array,pitch_deg:float=52.0,margin:float=0.82)->Dictionary:
+ if pts.is_empty():return {}
+ var mn=Vector2(1e9,1e9);var mx=Vector2(-1e9,-1e9)
+ for q in pts:
+  var v=_pt(q);mn=Vector2(minf(mn.x,v.x),minf(mn.y,v.y));mx=Vector2(maxf(mx.x,v.x),maxf(mx.y,v.y))
+ var c=(mn+mx)*0.5
+ var target=Vector3(c.x,maxf(_h(c.x,c.y),level_m),c.y)
+ var vs=camera.get_viewport().get_visible_rect().size
+ var aspect=maxf(0.5,vs.x/maxf(1.0,vs.y))
+ var half_v=tan(deg_to_rad(camera.fov)*0.5);var half_h=half_v*aspect
+ if camera.keep_aspect==Camera3D.KEEP_WIDTH:
+  half_h=tan(deg_to_rad(camera.fov)*0.5);half_v=half_h/aspect
+ var p=deg_to_rad(pitch_deg)
+ var f=Vector3(0,-sin(p),-cos(p));var up=Vector3(0,cos(p),-sin(p));var right=Vector3(1,0,0)
+ var dist=40.0;var fits=false
+ var maxd=float(M.get("camera",{}).get("max_distance_m",900.0))
+ while dist<=maxd:
+  var cam_pos=target-f*dist
+  fits=true
+  for q in pts:
+   var v=_pt(q);var rel=Vector3(v.x,_surface_y(v.x,v.y),v.y)-cam_pos
+   var z=rel.dot(f)
+   if z<1.0:fits=false;break
+   if absf(rel.dot(right)/(z*half_h))>margin or absf(rel.dot(up)/(z*half_v))>margin:fits=false;break
+  if fits:break
+  dist*=1.04
+ return {"target":target,"distance":minf(dist,maxd),"height":minf(dist,maxd)*sin(p),"pitch_deg":pitch_deg,"fits":fits}
+
+## Encuadre inicial sugerido: barranca/Plaza de Toros, batería, playa, río y buque a la vez.
+func initial_frame(camera:Camera3D)->Dictionary:
+ var pts=[]
+ for id in ["plaza_toros","bateria_abascal","justina"]:
+  if landmark_info.has(id):
+   var info=landmark_info[id];pts.append(Vector2(float(info.x),float(info.z)))
+ if landmark_info.has("justina"):
+  var sh=landmark_info["justina"];pts.append(Vector2(float(sh.x)+18.0,float(sh.z)))
+ var sc=M.get("camera",{}).get("focus_start",[140,265])
+ pts.append(Vector2(float(sc[0]),float(sc[1])))
+ return frame_view(camera,pts)
 
 # ---------------------------------------------------------------- API publica: mundo, camara, picks
 func map_size()->Vector2:
@@ -1783,12 +1927,23 @@ func landmark_labels(camera:Camera3D)->Array:
   out.append({"id":id,"name":info.name,"tag":info.tag,"screen":camera.unproject_position(p),"behind":camera.is_position_behind(p)})
  return out
 
+## Estado de una capa ("paths"|"probes"|"exposure"|"labels"|"unit_labels"|"landmarks"). La UI lo consulta para no duplicar rótulos.
+func layer_visible(layer:String)->bool:
+ return bool(layer_state.get(layer,false))
+
+## "labels" = rótulos 3D de hitos y extras (si la UI rotula los hitos con landmark_labels(), debe apagarla); "unit_labels" = rótulos de grupos y exploradores (solo se tocan al llamar set_layer_visible).
+## Los rótulos de boyas y vados hallados dependen de la capa "probes" (la UI no los dibuja).
+func _apply_label_layers()->void:
+ if is_instance_valid(labels_root):labels_root.visible=bool(layer_state.labels)
+ for id in unit_labels:
+  if is_instance_valid(unit_labels[id]):unit_labels[id].visible=bool(layer_state.unit_labels)
+
 func set_layer_visible(layer:String,on:bool)->void:
  if not layer_state.has(layer):return
  layer_state[layer]=on
  match layer:
-  "labels":
-   if is_instance_valid(labels_root):labels_root.visible=on
+  "labels","unit_labels":
+   if justina:_apply_label_layers()
   "landmarks":
    if is_instance_valid(landmarks_root):landmarks_root.visible=on
   "probes":
