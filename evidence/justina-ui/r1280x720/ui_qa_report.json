@@ -6,8 +6,8 @@
 	"notes": {
 		"justina_escala": {
 			"m": 10,
-			"mpp": 0.0874176025390625,
-			"px": 114.393436899983
+			"mpp": 0.0855255126953125,
+			"px": 116.924174843889
 		},
 		"justina_free_con_ayuda": {
 			"free_pct": 77.1,
@@ -55,9 +55,9 @@
 		"norte_hover": "Mover no disponible: La agrupación ya se encuentra en ese sector.",
 		"norte_overlaps_inicio": 0,
 		"norte_reason_assault": "Arias coordina Humahuaca desde marzo: afecta artillería, cuartel, depósito de pólvora y comunicaciones.\nBloqueada: La operación de Humahuaca corresponde a Manuel Eduardo Arias.",
-		"preview_ruta_sin_reconocer": "121 m · 01:06 · 8 m sin reconocer · riesgo desconocido",
+		"preview_ruta_sin_reconocer": "121 m · 01:20 · riesgo bajo",
 		"preview_sondeo": "",
-		"rules_stub": true,
+		"rules_stub": false,
 		"sector_after_bracket": "rosario",
 		"sector_before_after": [
 			"lerma",
@@ -71,7 +71,7 @@
 			1600.0,
 			900.0
 		],
-		"world_stub": true
+		"world_stub": false
 	},
 	"renderer": "NVIDIA GeForce RTX 3080 Ti",
 	"suite": "ui_qa_window"

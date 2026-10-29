@@ -1,0 +1,68 @@
+{
+	"defeats": 2,
+	"engine": "4.7.2-stable (official)",
+	"kind": "scene_automation_not_human",
+	"results": [
+		{
+			"capture_pct": 75.0,
+			"outcome_shown": true,
+			"outcome_title": "Plazo agotado",
+			"policy": "rush_central",
+			"report_modal_open": true,
+			"route": "central",
+			"status": "defeat",
+			"stumbles": 2,
+			"t_s": 900.0
+		},
+		{
+			"capture_pct": 100.0,
+			"outcome_shown": true,
+			"outcome_title": "Buque capturado",
+			"policy": "north_edge_central",
+			"report_modal_open": true,
+			"route": "central",
+			"status": "victory",
+			"stumbles": 0,
+			"t_s": 675.25
+		},
+		{
+			"capture_pct": 100.0,
+			"outcome_shown": true,
+			"outcome_title": "Buque capturado",
+			"policy": "recon_south",
+			"report_modal_open": true,
+			"route": "sur",
+			"status": "victory",
+			"stumbles": 0,
+			"t_s": 860.5
+		},
+		{
+			"capture_pct": 100.0,
+			"outcome_shown": true,
+			"outcome_title": "Buque capturado",
+			"policy": "mixed",
+			"report_modal_open": true,
+			"route": "mixta",
+			"status": "victory",
+			"stumbles": 0,
+			"t_s": 842.5
+		},
+		{
+			"capture_pct": 0.0,
+			"outcome_shown": true,
+			"outcome_title": "Plazo agotado",
+			"policy": "late",
+			"report_modal_open": true,
+			"route": "central",
+			"status": "defeat",
+			"stumbles": 1,
+			"t_s": 900.0
+		}
+	],
+	"victories": 3,
+	"victory_routes": [
+		"central",
+		"sur",
+		"mixta"
+	]
+}

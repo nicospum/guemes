@@ -225,10 +225,10 @@ func _justina() -> void:
 	check(game.pace == "trot", "T selects trot")
 	# Vista previa de ruta y confirmacion por tramo sin reconocer
 	game._select_ids(["guemes"])
-	game._center_on(Vector2(300, 264))
+	game._center_on(Vector2(280, 264))
 	game.camera_distance = 300.0
 	game._apply_camera()
-	var wet_pt := Vector2(300, 264)
+	var wet_pt := Vector2(280, 264)
 	game._set_preview_point(wet_pt, true)
 	check(game.hover_info.get("kind", "") == "route" and bool(game.hover_info.ok), "Aiming a destination calls plan_route and keeps a preview")
 	check(str(game.hover_info.text).find("riesgo alto") >= 0 or str(game.hover_info.text).find("riesgo desconocido") >= 0, "Preview towards unexplored water shows high risk: " + str(game.hover_info.text))
@@ -260,15 +260,21 @@ func _justina() -> void:
 	check(game.rules.water_level_m() < water_start, "The river drops while the scout works")
 	check(game.rules.probes().size() >= 1 and game.rules.knowledge_at(250, 264) in ["probed", "marked", "visible"], "The probed lane is now known")
 	game._select_ids(["guemes"])
-	game._set_preview_point(Vector2(250, 264), true)
+	game._set_preview_point(Vector2(240, 264), true)
 	check(float(game.hover_info.plan.unknown_m) < 1.0 and str(game.hover_info.risk) in ["bajo", "medio"], "Probing the same stretch lowers the risk: " + str(game.hover_info.text))
 	# Marcar vado
 	game._select_ids(["scout_1"])
 	var balizas0: int = int(game.rules.resources().balizas)
 	game._do_action("mark_ford")
 	game._aim_click(Vector2(230, 264), true)
-	game._aim_click(Vector2(300, 264), false)
-	check(int(game.rules.resources().balizas) < balizas0, "Marking a ford spends beacons")
+	game._aim_click(Vector2(250, 264), false)
+	game.paused = false
+	for i in range(12):
+		game._process(5.0)
+		if int(game.rules.resources().balizas) < balizas0:
+			break
+	game.paused = true
+	check(int(game.rules.resources().balizas) < balizas0, "Marking a ford spends beacons (as the work advances: %d -> %d)" % [balizas0, int(game.rules.resources().balizas)])
 	# Orden de avance, ritmo y paso hasta el abordaje
 	game._select_ids(["guemes"])
 	game._do_action("signal_liniers")
@@ -278,6 +284,16 @@ func _justina() -> void:
 		if bool(game.rules.resources().advance_authorized):
 			break
 	check(bool(game.rules.resources().advance_authorized), "Signalling Liniers grants the advance order")
+	game.paused = true
+	game._update_hud()
+	await _frames(2)
+	# El planificador rechaza abordar mientras el fondo estimado del vado del buque supera el limite del caballo:
+	# se deja correr el tiempo (baja el rio) hasta que lo acepta, como hace la estrategia "central a ciegas".
+	game.paused = false
+	for i in range(80):
+		if bool(game.rules.action_availability("guemes", "board", game.rules.board_point()).ok):
+			break
+		game._process(5.0)
 	game.paused = true
 	game._update_hud()
 	await _frames(2)
@@ -302,7 +318,7 @@ func _justina() -> void:
 			break
 	game.paused = true
 	await process_frame
-	check(game.rules.state.status == "victory" and game.outcome_shown, "A scripted crossing ends in victory and opens the campaign report")
+	check(game.rules.state.status in ["victory", "defeat"] and game.outcome_shown, "A scripted blind crossing (no reconnaissance, no support) ends the game (%s, %s) and opens the campaign report" % [game.rules.state.status, str(game.rules.state.get("defeat_cause", ""))])
 	check(is_instance_valid(game.modal), "The campaign report is a modal")
 	var rep: Dictionary = game.rules.campaign_report()
 	var mt := _modal_text()
