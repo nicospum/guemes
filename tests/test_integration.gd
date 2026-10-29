@@ -130,6 +130,9 @@ func _justina() -> void:
 	check(_press("2 Voluntarios"), "Roster button selects a group")
 	check(game.selected == "arias", "Roster closure selects the correct actor")
 	# Caja de seleccion sobre dos grupos
+	game._center_on(Vector2(199, 268), 120.0)
+	game.camera_distance = game.cam_goal_distance
+	game.camera_target = game.cam_goal_target
 	game._apply_camera()
 	var pg := _screen("guemes")
 	var pa := _screen("arias")
@@ -238,7 +241,7 @@ func _justina() -> void:
 	# Nombre del paraje
 	game._center_on(Vector2(150, 265))
 	game._update_place()
-	check(game.place_label.text.find("Playa alta") >= 0 or game.place_label.text.find("Barro") >= 0 or game.place_label.text.find("Campamento") >= 0, "Place name describes the centre: " + game.place_label.text)
+	check(game.place_label.text.find("Plaza de Toros") >= 0 or game.place_label.text.find("Playa") >= 0 or game.place_label.text.find("Barranca") >= 0, "Place name describes the centre: " + game.place_label.text)
 	game._center_on(Vector2(412, 264))
 	game._update_place()
 	check(game.place_label.text.find("Banco central") < 0 and game.place_label.text.find("pozo") < 0 and game.place_label.text.find("Pozo") < 0, "Hidden bank and pit are not named before reconnaissance")
@@ -304,6 +307,15 @@ func _justina() -> void:
 	game._do_action("cancel")
 	check(game.rules.get_unit("guemes").order.is_empty(), "Cancel clears the order")
 	# El mismo tramo, ya sondeado, deja de ser riesgoso
+	# Con la nueva geografia el rio alto no deja sondear: se espera a que baje (bajante desde 60 s).
+	game.paused = false
+	var water_start: float = game.rules.water_level_m()
+	for i in range(40):
+		if float(game.rules.state.get("t", 0.0)) >= 260.0:
+			break
+		game._process(10.0)
+	game.paused = true
+	check(game.rules.water_level_m() < water_start, "The river drops while the scout works")
 	game.paused = false
 	game._select_ids(["scout_1"])
 	game._do_action("probe")
@@ -314,19 +326,17 @@ func _justina() -> void:
 	check(game.aim == "probe" and game.aim_pts.size() == 1, "Shift keeps adding probe points")
 	game._aim_click(Vector2(330, 264), false)
 	check(game.aim == "" and game.rules.scouts()[0].stage != "idle", "The last click orders the probe")
-	var water_start: float = game.rules.water_level_m()
 	for i in range(40):
 		game._process(10.0)
 		if game.rules.scouts()[0].stage == "idle":
 			break
 	game.paused = true
-	check(game.rules.water_level_m() < water_start, "The river drops while the scout works")
 	check(game.rules.probes().size() >= 1 and game.rules.knowledge_at(250, 264) in ["probed", "marked", "visible"], "The probed lane is now known")
 	game._select_ids(["guemes"])
 	game._set_preview_point(Vector2(240, 264), true)
 	check(float(game.hover_info.plan.unknown_m) < 1.0 and str(game.hover_info.risk) in ["bajo", "medio"], "Probing the same stretch lowers the risk: " + str(game.hover_info.text))
-	# Marcar vado
-	game._select_ids(["scout_1"])
+	# Marcar vado (el explorador 1 puede haber caído bajo el fuego del buque: marca el 2 sobre el carril ya sondeado)
+	game._select_ids(["scout_2"])
 	var balizas0: int = int(game.rules.resources().balizas)
 	game._do_action("mark_ford")
 	game._aim_click(Vector2(230, 264), true)
