@@ -5,33 +5,53 @@
   "general_notice": "Recreación histórica. El terreno, los grupos, las rutas, los tiempos y las reglas simplifican acontecimientos reales. Los resultados de tu partida pueden diferir de la historia.",
   "scenarios": {
     "justine": {
-      "title": "La toma del Justine",
+      "title": "La toma de la Justina",
       "date": "12 de agosto de 1806",
-      "place": "Ribera de Buenos Aires",
-      "context": "Durante la Reconquista de Buenos Aires, un mercante armado británico fue tomado por caballería tras una bajante del río.",
-      "notice": "Güemes protagoniza aquí una atribución tradicional. Su intervención personal no está probada y las versiones difieren sobre su papel: Gillespie no identifica al jefe de la caballería; el relato de Obligado lo muestra transmitiendo una orden; notas posteriores lo hacen jefe del grupo de jinetes.",
-      "name_note": "Justine y Justina son variantes presentes en las fuentes. El juego utiliza Justine.",
-      "art_note": "Ribera, casco del buque, vestuario y transición de abordaje son reconstrucciones artísticas. En 1806 aún no existían la bandera argentina ni los Infernales.",
+      "place": "Frente al Retiro, Buenos Aires",
+      "context": "Durante la Reconquista de Buenos Aires, un mercante armado británico de 26 cañones, que había combatido el día de la rendición, fue tomado por caballería cuando el río bajó de golpe. Gillespie no dice dónde estaba; fuentes divulgativas lo sitúan varado frente al Retiro, junto a la Plaza de Toros.",
+      "notice": "Reconstrucción jugable, no crónica. Güemes protagoniza aquí una atribución tradicional: su intervención personal no está probada y las versiones difieren. Gillespie no identifica al jefe de la caballería; el relato de Obligado (1920) lo muestra transmitiendo una orden de Liniers a Pueyrredón; notas posteriores lo hacen jefe del grupo de jinetes.",
+      "name_note": "Justina y Justine son variantes presentes en las fuentes. El juego usa Justina; el identificador interno del escenario sigue siendo «justine».",
+      "art_note": "Ribera, casco del buque, vestuario y transición de abordaje son reconstrucciones artísticas. El buque era británico: no se dibuja bandera argentina (en 1806 no existía) ni Infernales. Sin tipo, tonelaje ni capitán documentados.",
       "facts": [
         {
           "title": "Una oportunidad del río",
-          "text": "Gillespie relaciona la captura con una bajante. La hora, las rutas y los umbrales de profundidad del juego son una adaptación.",
+          "text": "Gillespie relaciona la captura con una súbita bajada del río, al terminar el 12 de agosto. La hora, las rutas, los umbrales de profundidad, las mareas y la geografía de bancos y vados del juego son una adaptación: no existe sondeo de 1806 del Retiro.",
           "kind": "testimonio y adaptación",
           "source_ids": [
             "S1"
           ]
         },
         {
-          "title": "Un mercante armado",
-          "text": "El testigo describe un barco mercante con 26 cañones. No se cuenta con un plano verificado de su casco.",
+          "title": "Un mercante británico armado que combatió",
+          "text": "El testigo describe un barco mercante de 26 cañones, británico, que combatió el día de la rendición. No se cuenta con un plano verificado de su casco ni con tipo, tonelaje o capitán.",
           "kind": "testimonio y reconstrucción",
           "source_ids": [
-            "S1"
+            "S1",
+            "S3"
+          ]
+        },
+        {
+          "title": "Dónde varó",
+          "text": "Gillespie no da el lugar. Que varó frente al Retiro, cerca de la Plaza de Toros y de la batería de Abascal, lo sostienen fuentes divulgativas (edisalta, La Nación, Recalada), de confianza media: se usa como reconstrucción. La costa de 1806 estaba al pie de la barranca; los ~390 m al buque son una cifra divulgativa que el juego mide desde el pie de la barranca.",
+          "kind": "fuentes secundarias divulgativas; reconstrucción",
+          "verification": "parcial",
+          "source_ids": [
+            "S2",
+            "S3"
+          ]
+        },
+        {
+          "title": "La caballería de Pueyrredón",
+          "text": "Gillespie habla de caballería sin nombrar al jefe. Que fuera la de Pueyrredón, y que Liniers ordenara avanzar, viene de relatos secundarios (Obligado 1920). Las cantidades y la fuerza relativa de cada grupo del juego son diseño.",
+          "kind": "relato secundario",
+          "source_ids": [
+            "S1",
+            "S3"
           ]
         },
         {
           "title": "La tradición de Güemes",
-          "text": "Pastor Obligado (1920) lo presenta como ayudante de Liniers que lleva a la caballería de Pueyrredón la orden de avanzar por la playa. El Ideario conserva ese relato, declara no probada su intervención y registra que ese día regresaba de Córdoba (p. 33).",
+          "text": "Pastor Obligado (1920) lo presenta como ayudante de Liniers que lleva a la caballería de Pueyrredón la orden de avanzar por la playa. El Ideario conserva ese relato, declara no probada su intervención y registra que ese día regresaba de Córdoba (p. 33). En el juego la vanguardia lleva su nombre con la marca de tradición, y la orden de avance de Liniers es una regla de juego.",
           "kind": "tradición discutida",
           "source_ids": [
             "S1",
