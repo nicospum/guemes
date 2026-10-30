@@ -22,12 +22,12 @@ Todo dato, lugar o regla lleva una de estas etiquetas, en el JSON (`tag`) y en p
 | Era un **buque mercante británico de 26 cañones**, que **combatió el día de la rendición** y fue tomado por **caballería** al cerrar el 12 de agosto de 1806 "por una súbita bajada del río". | Documentado (en transcripción; solo la **descripción**: el lugar es Reconstrucción) | Gillespie 1818 (traducción reproducida en el Ideario, pp. 28-29, 94 y 390 por OCR/transcripción; falta cotejar con el escaneo). **Sin tipo, tonelaje ni capitán**: no rotular fragata/goleta ni inventar nombre. |
 | Varó **frente al Retiro**, cerca de la **Plaza de Toros** (hoy Plaza San Martín); con la barranca en tierra. No es Quilmes ni Barragán. | **Reconstrucción** (confianza media-alta en el Retiro; una **zona**, no un pin) | **El lugar NO viene de Gillespie**: lo sostienen fuentes divulgativas (edisalta, La Nación, Recalada; S3, S10, S11). La Torre Monumental (1916) no marca el punto. La «batería Abascal» no se cotejó con ningún documento primario: lo que consta (Liniers, 11-ago, S13) son **dos piezas de a 18** de la goleta Dolores. |
 | La caballería era la de **Pueyrredón**. | **Reconstrucción** (antes figuraba Documentado) | Concha (15-ago-1806) y Liniers (Archivo Pueyrredón, t. I, p. 54) según la investigación del repo, **sin cotejo del original**; el paquete P1 reconstruye el vínculo por relatos posteriores. Gillespie solo dice «caballería». «40 a 60 jinetes» queda no verificado (el paquete: 30, 50 o 60 sin datos suficientes). |
-| **Liniers** ordenó avanzar. | **Reconstrucción** | Obligado 1920 (fuente secundaria). La orden de avance del juego es regla de **Diseño**. |
+| **Liniers** ordenó avanzar. | **Diseño** sobre una fuente secundaria (antes figuraba Reconstrucción; unificado en la Ronda 3 con MATRIZ_HISTORICA D y el JSON). Liniers como jefe de la Reconquista sí es Documentado: en `historical_figures_roles` el rol lleva Reconstrucción (la más débil de sus partes) con `tag_parts`. | Obligado 1920 (fuente secundaria). La orden de avance del juego es regla de **Diseño**. |
 | **Güemes como jefe de los jinetes**. | **Tradición, no probada** | Obligado 1920 lo hace ayudante de Liniers que lleva la orden a Pueyrredón (Luis Güemes identifica a Obligado como la fuente de la atribución, S13 p. 72). Dato **documentado** distinto: cadete de 21 años del **Regimiento de Infantería de Buenos Aires** (no de caballería; documento del 11-ago); su presencia en el buque el 12 queda **sin datos suficientes**. Ideario p. 33 (no probada; «volvía de Córdoba» no se cotejó con P1). |
 | La costa de 1806 estaba **al pie de la barranca** (Plaza de Toros). | Reconstrucción | La línea de agua inicial del juego queda a ~20 m del pie. |
 | Distancia al buque «~400 m». | **Tradición discutida** (un material bonaerense de 2006, S26 p. 93, «desde las barrancas de la Plaza de Toros»; sin medición contemporánea). El juego usa 390 m = **Diseño** (`distance_tag: diseno`) | Se mide **desde el pie de la barranca** (x≈190) hasta el casco (x=580). La etiqueta visible es una sola: «~400 m (tradición discutida); el juego mide 390 m (diseño)». No medir 400 m desde la orilla moderna. |
 | Profundidad al final "pecho o cuello de los caballos" (1-1,5 m). | Divulgación, sin sondeo de época | Se usa 1,0 m en el vado de abordaje (diseño). |
-| El Plata tiene bajadas muy repentinas de siete u ocho pies (≈ 2,1-2,4 m). | Documentado en transcripción (Gillespie) | **Gillespie no atribuye la causa al viento en ese pasaje**: «por el viento» es una explicación moderna de la investigación del repo (vientos del oeste, bajantes de ~1,65 m hoy). El viento del 12/8/1806 **no** está documentado. |
+| El Plata tiene bajadas muy repentinas de siete u ocho pies (≈ 2,1-2,4 m). | Documentado en transcripción (Gillespie) | **Corregido en la Ronda 2 (la afirmación anterior, «Gillespie no atribuye la causa al viento», estaba mal):** en el pilotaje (pp. 35-36) Gillespie sí liga el nivel a «las brisas casuales» y habla de un buque «left dry». Lo moderno es la cifra de ~1,65 m (vientos del oeste y noroeste; Meccia 2008). El viento del 12/8/1806 **no** está documentado. |
 | Ocurrió sin bandera argentina, sin Infernales, sin San Martín. | Regla de CLAUDE.md | El buque era británico y se dibuja sin bandera nacional; si lleva insignia, genérica y marcada reconstrucción. |
 | Todo lo demás: bancos, canal, vados, hoyos, tiempos, cifras de fuerza, munición, cuerpo a cuerpo, puesto de Liniers, **las dos órdenes de avance de 420 s**, los contraataques de la dotación. | **Diseño** | No hay carta de sondeo de 1806 del Retiro. |
 
@@ -265,7 +265,7 @@ Medidos con **18 estrategias scripteadas x 8 semillas de calibración** (3, 5, 7
 | Sondear solo el eje del centro (o solo el vado sur) **no basta**: el hoyo oculto cobra | `central_center_lane` vs `central_flank_lane`; `south_vado_only` vs `south_full` |
 | Rechazar contraataques y evacuar heridos paga (menos pérdida por contraataque, no menos victorias); con captura activa hay una ventana de decisión cada ≲ 90 s | `central_flank_noreply`, `south_noreply`; ventana en todas las victorias |
 | **Ruta sur: mejor victoria < 960 s** y **exposición centro/sur ≥ 1,4**; la central gana antes (media < 900 s) y la sur con menos bajas | `south_full` vs `central_flank_lane` |
-| Las victorias duran entre 10 y 18 min | tiempos de todas las victorias |
+| Las victorias duran entre 10 y 18 min (Ronda 3: típicamente 11,1-12,3 min por el centro y 14-15,6 min por el sur; ver 14) | tiempos de todas las victorias |
 | Salir tarde pierde; pasividad pierde exactamente en t=1080 s | `late_all_in`, `passive` |
 | La métrica de bajas queda entre 0 y 100 en todas las partidas (`campaign_report().loss_total_pct`) | todas |
 | Guardar/cargar en cualquier momento: estado idéntico (1e-6); guardado compacto bajo 3 MB **medido en bytes**, con recorte de registro, órdenes y sondas | `_test_justine_persistence`, `_test_save_size`, `_test_labels_and_save_trim` |
@@ -342,3 +342,52 @@ Resultados de la matriz por estrategia (calibración, 8 semillas): `central_flan
 
 **Sin implementar / pendientes.** Banco expuesto («left dry») y posición B del buque (2.4); playtest humano; ruta sur algo más cara (hoy `south_full` pierde 49 % frente a 52 % del centro, con 2,5 min más); cotejo de Gillespie con el escaneo; mostrar en la UI `short_label`, `marker_style`, `routes`, `label_anchors` (pistas Vista/UI, ver CONTRATO 7); GLB de ropa del paquete sin usar; capturas pesadas en Git (evidence/justina-ui/final_r1, 104 MB) a reducir.
 
+
+## 14. Ronda 3 (30-oct-2026): condición del río por partida, desvíos frente a Gillespie y balance re-medido
+
+Pista «Mapa e historia», tercera pasada. Cambios en `data/justina_map.json` (reformateado a sangría 2), `data/history.json`, `scripts/game_rules.gd` (solo la condición del río), `tests/test_rules.gd` y `docs/`. **Sin tocar** `world_view.gd`, `main.gd` ni shaders (claves nuevas en `CONTRATO_JUSTINA.md` 8).
+
+### 14.1 Área jugable: 900 x 750 m frente a 900 x 520 m (reevaluada de nuevo)
+
+Se mantiene 900 x 520 jugable + 115 m de contexto por lado. Razones, y lo que se aclara: (a) **ninguna de las dos geometrías es histórica**: ni la costa casi N-S de este mapa ni la diagonal NO-SE del prototipo del paquete tienen coordenadas de 1806; el eje N-S se eligió por reglas, minimapa y balance y no debe leerse como orientación real de la costa (`context.geometry_note`); (b) el balance depende del tramo orilla-buque de 390 m y de las dos bajadas; (c) estirar al norte y sur solo añade tierra sin reglas. Se reabre únicamente si se rehace la banda de fuego.
+
+### 14.2 Qué se contrastó con Gillespie (OCR local, `docs/referencias/justina`) y qué cambia
+
+| Pasaje | Qué dice | Consecuencia |
+|---|---|---|
+| p. 38 (pilotaje) | Salvo embarcaciones menores, nada puede fondear con seguridad a menos de **cuatro millas**; con las bajadas súbitas la playa queda seca «por un gran trecho». | Choca con un mercante de 26 cañones a ~390 m de la barranca y con un calado de varios metros. Se registra como **tensión con la fuente** (`ship.pilotage_tension`, `tide_gillespie.anchorage_four_miles`, fichas `draft_note` y `distance_note`). Los 390 m y el vado de 1 m siguen siendo **Diseño**. Apoyo posible: p. 94, «se había acercado a la ciudad para comerciar» y fue aligerado. |
+| p. 94 | Buque «manned» (tripulado) con oficiales y cien marineros «besides her own crew»; batía «la playa y las calles». | «Armado» se corrige a «tripulado»: el armamento de 26 cañones ya existía. El buque batía la playa: apoya la proximidad a la costa. |
+| pp. 28-29 | Se ordenó embarcar 180 hombres de Santa Elena en el Justinia. | **No dice cuándo desembarcaron.** «Son de otra fase» pasa a **Reconstrucción** (inferencia razonada); la cubierta sigue sin poblarse con ellos. |
+| p. 121 y pp. 94-95 | «El Retiro, o Plaza del Toros» da nombre al sitio; el 10 de agosto había allí un sargento y 17 soldados británicos contra los que avanzó Liniers. | Refuerza la existencia de la Plaza de Toros y del Retiro como puesto (`context.gillespie_retiro`, ficha del Retiro). |
+| pp. 35-36 | Buque «left dry». | **Decisión pendiente tuya:** el juego pone agua alrededor del casco (Diseño); la variante «banco expuesto» no se implementó. Se muestra en pantalla con `texts.dry_note` y en el briefing. |
+
+### 14.3 Condición del río por partida (`time.variants`), el cambio de reglas de la ronda
+
+Problema que atiende (revisión de la Ronda 2): las líneas buenas ganaban 14/14 con ~50 % de bajas y la «tasa 59 %» salía de mezclar guiones perfectos con guiones inútiles. Se agregó **variación entre partidas que premia leer el escenario**: una de cuatro condiciones del río sorteada con la semilla (generador propio, después de los hoyos: los fondos de cada semilla **no cambian**), visible desde el inicio en la barra de tiempo del HUD (`tide_marks`) y guardada en `state.hidden.tide`.
+
+| Condición | Peso | Bajada (s) | Fin del mínimo (s) | Vuelve a lo alto (s) | Efecto |
+|---|---|---|---|---|---|
+| `normal` Brisa ordinaria | 3 | 60-450 | 960 | 1080 | Los valores base. |
+| `sostenida` | 1 | 45-400 | 1010 | 1080 | Holgada: cualquier ruta llega. |
+| `lenta` | 1 | 90-490 | 960 | 1080 | El vado abre ~35 s más tarde; la sur queda justa. |
+| `breve` La brisa cede pronto | 1 | 60-450 | 660 | 770 | Solo gana quien llega rápido: la sur no, y la central solo si va sin demoras. |
+
+Es **Diseño** (`tag: diseno`): Gillespie liga el nivel a las brisas casuales, no da serie de viento ni de nivel del 12/8/1806. Un guardado sin `hidden.tide` se lee como `normal`; una condición inventada se rechaza. Tests nuevos (`_test_tide_variants`). Las pruebas de reglas fijan `normal` en `_new_j` salvo que pidan la sorteada; las estrategias de la matriz usan la sorteada.
+
+### 14.4 Matriz re-medida (APPDATA aislado, 18 estrategias x 8 semillas de calibración + 12 de validación para las 12 razonables)
+
+| Medida | Ronda 2 | Ronda 3 |
+|---|---|---|
+| Cohorte razonable, calibración / validación | 59 % / 59 % | **47 % (45/96) / 50 % (72/144)** |
+| Bajas medianas de las victorias | 54 % | **53 %** (1 de 117 por encima de 80 %) |
+| Máx. con defensa (líneas confiables) / sin defensa | 64 % / 78 % | **63 % / 77 %** |
+| `central_flank_lane`, `pair`, `hasty`, `noreply` | 14/14 | **7/8 calibración y 11/12 validación** (en una matriz ampliada de 16 semillas, 15/16) |
+| `south_full` / `south_noreply` | 14/14 | **5/8 calibración y 8/12 validación** (11/16 en 16 semillas) |
+| `mixed_split`, `central_center_lane`, `central_flank_stagger` (calibración) | 8/14, 6/14, 1/14 | 3/8, 2/8, 2/8 |
+| Tiempo de victoria | 11,1-15,2 min | **11,1-12,3 min (centro), 14-15,6 min (sur)** |
+
+Lectura honesta: las líneas buenas ya **no son 100 %** (pierden en la condición `breve`; la sur también en `lenta`), la cohorte quedó **dentro del 40-60 %** y centrada, y varias estrategias distintas ganan la mitad o más en validación. La ruta central sigue siendo la más fiable: la sur exige leer la ventana del río. Pero **«una partida humana razonable tiene 40-60 %» sigue siendo una estimación**: la cohorte son guiones que conocen el mapa; no hubo playtest humano. La tasa de la cohorte no es la de una persona (`play_targets.cohort_note`).
+
+**Objetivos mantenidos o re-justificados.** Ninguna estrategia > 60 % de las victorias globales (test verde); ciegas y pasiva ~0 %; ruta sur viable < 960 s (mejor caso 843 s); exposición centro/sur ≥ 1,4. **Re-justificado:** las victorias duran 11,1-15,6 min, no 12-16: la ruta central rápida (`central_hasty`) llega a 11,1 min; subir el mínimo exigiría alargar la bajante para todos y empujar la sur contra el plazo de 18 min. El objetivo pasa a **11-16 min** (`play_targets.victory_minutes_observed`).
+
+**Pendientes de esta ronda.** Playtest humano; banco expuesto (decisión del usuario); mostrar en la UI el nombre de la condición del río (`time.variants[].label`, `tide_variant_id()`); revisar con el equipo visual que el HUD legible cubra los cuatro hitos; el cotejo de Gillespie con el escaneo.

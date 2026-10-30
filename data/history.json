@@ -48,7 +48,7 @@
         },
         {
           "title": "La caballería de Pueyrredón",
-          "text": "Gillespie habla de caballería sin nombrar al jefe ('boarded, and taken by cavalry', p. 94). Que fuera la de Pueyrredón se apoya en documentos de época que cita la investigación del proyecto (parte de Concha del 15 de agosto de 1806, oficio de Liniers en el Archivo Pueyrredón, t. I, p. 54), que NO se cotejaron con sus originales; el paquete de investigación del 30-oct-2026 reconstruye ese vínculo por relatos posteriores y considera 'sin datos suficientes' la cantidad de jinetes (30, 50 o 60 según el relato): la cifra '40 a 60' que citaba esta ficha queda como no verificada. La orden de avance de Liniers y los detalles del relato (anteojo, mensajero por la Alameda, rendición con pañuelo) vienen de Obligado (1920) y de la divulgación: son tradición. Las cantidades de cada grupo del juego son diseño.",
+          "text": "Según citas del repo que no se cotejaron con sus originales, la caballería era la de Pueyrredón (parte de Concha del 15 de agosto de 1806; oficio de Liniers en el Archivo Pueyrredón, t. I, p. 54): es Reconstrucción. Lo que sí está en Gillespie es que fue caballería, sin nombrar al jefe ('boarded, and taken by cavalry', p. 94). El paquete de investigación del 30-oct-2026 reconstruye el vínculo con Pueyrredón por relatos posteriores y considera 'sin datos suficientes' la cantidad de jinetes (30, 50 o 60 según el relato): la cifra '40 a 60' que citaba esta ficha queda como no verificada. La orden de avance de Liniers (Diseño sobre fuente secundaria) y los detalles del relato (anteojo, mensajero por la Alameda, rendición con pañuelo) vienen de Obligado (1920) y de la divulgación: son tradición. Las cantidades de cada grupo del juego son diseño.",
           "kind": "reconstrucción: citas de la investigación del repo sin cotejo del original; detalles del relato son tradición",
           "source_ids": [
             "S9",
@@ -72,7 +72,7 @@
         },
         {
           "title": "Cómo se ve el Retiro: ciudad alta, circo y barranca",
-          "text": "El lugar se entiende como una sucesión de superficies: ciudad alta, borde de barranca, franja baja de playa y bajos, y un río somero y turbio. En el alto está la Plaza de Toros (inaugurada en 1801), de exterior octogonal y ruedo circular, con dependencias militares cerca del borde; hacia el sur la trama se densifica hacia Santa Catalina, la Alameda del frente central, la Plaza Mayor y el Fuerte. Dimensiones (90 m entre vértices del circo, 9-14 m de desnivel, bajadas, ancho de la playa) y cotas son diseño; la posición relativa de los conjuntos está mejor respaldada que su geometría. No hay muelle continuo, avenida costanera ni césped ornamental: el juego muestra costa irregular, arena húmeda y barro.",
+          "text": "El lugar se entiende como una sucesión de superficies: ciudad alta, borde de barranca, franja baja de playa y bajos, y un río somero y turbio. En el alto está la Plaza de Toros (inaugurada en 1801), de exterior octogonal y ruedo circular, con dependencias militares cerca del borde; hacia el sur la trama se densifica hacia Santa Catalina, la Alameda del frente central, la Plaza Mayor y el Fuerte. Dimensiones (90 m entre vértices del circo, 9-14 m de desnivel, bajadas, ancho de la playa) y cotas son diseño; la posición relativa de los conjuntos está mejor respaldada que su geometría. No hay muelle continuo, avenida costanera ni césped ornamental: el juego muestra costa irregular, arena húmeda y barro. Gillespie (1818) confirma que 'el Retiro, o Plaza del Toros' daba nombre al sitio (p. 121) y que el 10 de agosto había allí un sargento y 17 soldados británicos contra los que avanzó Liniers (pp. 94-95); el buque, dice, batía 'la playa y las calles' de los españoles (p. 94). Ni la costa N-S de este mapa ni la diagonal NO-SE del prototipo del paquete (900 x 750 m) son geometrías históricas: el eje se eligió por reglas y minimapa.",
           "kind": "reconstrucción (plano de 1801 y vistas de Vidal) y diseño",
           "source_ids": [
             "S21",
@@ -82,7 +82,8 @@
             "S25",
             "S29",
             "S30",
-            "S35"
+            "S35",
+            "S9"
           ],
           "verification": "parcial"
         },
@@ -100,7 +101,7 @@
         },
         {
           "title": "El buque Justina: casco, cañones y dotación",
-          "text": "Mercante armado británico de 26 cañones, de Messrs. Princeps y Saunders, de Londres (Gillespie, p. 29); se había acercado a la ciudad para comerciar (Gillespie, p. 94) y luego fue aligerado y armado con oficiales y cien marineros de la escuadra además de su dotación propia. No es una fragata regular de la Royal Navy ni un 'HMS'. Los 26 cañones son en total (no por banda; el reparto 13/13 es diseño); los 180 hombres de Santa Elena son de otra fase. El casco del juego mide 40 x 9 m, de diseño por comparables de catálogo (RMG SLR0583, LNG0016, MSA0204); no hay plano del Justina ni se conoce su calado. El daño en la mesana es hipótesis (un parte de Liniers menciona una mesana dañada en una fragata sin nombre); que un cañonazo derribara el palo entero es tradición discutida. El nombre es Justina; Gillespie escribe 'Justinia' y la conmemoración actual, 'Justine'. Una pista bibliográfica (Schlez) da un capitán Robert Morris y un sobrecargo William Dunn: no se verificó y el juego no usa esos nombres.",
+          "text": "Mercante armado británico de 26 cañones, de Messrs. Princeps y Saunders, de Londres (Gillespie, p. 29); se había acercado a la ciudad para comerciar (Gillespie, p. 94) y luego fue aligerado y tripulado con oficiales (Gillespie dice 'manned', no 'armed': el armamento de 26 cañones ya existía) y cien marineros de la escuadra además de su dotación propia. No es una fragata regular de la Royal Navy ni un 'HMS'. Los 26 cañones son en total (no por banda; el reparto 13/13 es diseño); los 180 hombres de Santa Elena (Gillespie pp. 28-29: se ordenó embarcarlos en el Justinia) probablemente son de otra fase: Gillespie no dice cuándo desembarcaron y esa lectura es una Reconstrucción (inferencia razonada), por eso no se pueblan la cubierta con ellos. El casco del juego mide 40 x 9 m, de diseño por comparables de catálogo (RMG SLR0583, LNG0016, MSA0204); no hay plano del Justina ni se conoce su calado. El daño en la mesana es hipótesis (un parte de Liniers menciona una mesana dañada en una fragata sin nombre); que un cañonazo derribara el palo entero es tradición discutida. El nombre es Justina; Gillespie escribe 'Justinia' y la conmemoración actual, 'Justine'. Una pista bibliográfica (Schlez) da un capitán Robert Morris y un sobrecargo William Dunn: no se verificó y el juego no usa esos nombres.",
           "kind": "documentado en transcripción (26 cañones, armadores, motivo comercial, refuerzo de marineros: Gillespie); reconstrucción (daño de mesana); diseño (casco 40 x 9 m, calado, reparto 13/13, capitán)",
           "source_ids": [
             "S9",
@@ -112,7 +113,7 @@
         },
         {
           "title": "Agua, banco y estados del río",
-          "text": "Gillespie ve la causa en un descenso súbito del río y habla de un buque 'dejado en seco'. 'Encallado' (el casco toca fondo), 'vadeable' (se cruza a pie o a caballo) y 'en seco' (sin agua sobre esa superficie) son condiciones distintas. El juego modela, por elección de diseño, la variante 'banco parcialmente inundado': casco apoyado en un bajo, agua a los lados, canal persistente y un vado de ~1 m con el río en mínimo. Esa profundidad es mayor que los 0-0,6 m que propone el paquete para el corredor ecuestre: se mantiene porque con aguas más someras el abordaje pierde el costo y el riesgo de ahogo que dan sentido a la marea (ver docs/DISENO_JUSTINA.md 2.4). La variante 'banco localmente expuesto', más cercana al relato, se evaluó en la Ronda 2 y quedó como alternativa no implementada. Las mareas, los vientos del oeste y noroeste que explican bajantes modernas y el nivel de 1,65 m no son observaciones del 12 de agosto de 1806: no se halló una secuencia horaria de viento, presión y nivel.",
+          "text": "Gillespie ve la causa en un descenso súbito del río y habla de un buque 'dejado en seco'. 'Encallado' (el casco toca fondo), 'vadeable' (se cruza a pie o a caballo) y 'en seco' (sin agua sobre esa superficie) son condiciones distintas. El juego modela, por elección de diseño, la variante 'banco parcialmente inundado': casco apoyado en un bajo, agua a los lados, canal persistente y un vado de ~1 m con el río en mínimo. Esa profundidad es mayor que los 0-0,6 m que propone el paquete para el corredor ecuestre: se mantiene porque con aguas más someras el abordaje pierde el costo y el riesgo de ahogo que dan sentido a la marea (ver docs/DISENO_JUSTINA.md 2.4). La variante 'banco localmente expuesto', más cercana al relato, se evaluó en la Ronda 2 y quedó como alternativa no implementada. Las mareas, los vientos del oeste y noroeste que explican bajantes modernas y el nivel de 1,65 m no son observaciones del 12 de agosto de 1806: no se halló una secuencia horaria de viento, presión y nivel. En el mismo pilotaje (p. 38) Gillespie escribe que, salvo embarcaciones menores, nada puede fondear con seguridad a menos de cuatro millas, y que con las bajadas súbitas la playa queda seca por un gran trecho: los ~390 m del buque y su casco apoyado en un bajo propio son una zona de diseño tensa con ese testimonio (p. 94 dice solo que se había acercado a la ciudad para comerciar y fue aligerado). Decisión pendiente tuya: la variante 'banco expuesto' (casco en seco) es la más cercana a Gillespie y no está implementada; el juego usa agua alrededor por jugabilidad. Ronda 3 (Diseño): la bajante no es igual en todas las partidas; una condición del río sorteada con la semilla (brisa ordinaria, sostenida, lenta o que cede pronto) corre los hitos de bajada y subida y se lee en la barra de tiempo desde el inicio. Gillespie liga el nivel a las brisas casuales; ninguna variante es una reconstrucción del 12 de agosto de 1806.",
           "kind": "testimonio y diseño",
           "source_ids": [
             "S9",
@@ -138,6 +139,16 @@
             "S38"
           ],
           "verification": "parcial"
+        },
+        {
+          "title": "Qué hace el juego distinto de Gillespie",
+          "text": "Resumen de los desvíos de Diseño frente a la única fuente de época: (1) Gillespie dice buque 'left dry' (en seco); el juego lo apoya en un bajo con agua alrededor (vado de ~1 m). (2) Gillespie dice que nada fondea con seguridad a menos de cuatro millas; el juego lo pone a unos 390 m del pie de la barranca. (3) La 'subida' del río a partir de cierto momento no consta en Gillespie: es la regla que da riesgo al abordaje. (4) Los tiempos de la bajante varían por partida por diseño. (5) La orden de Liniers para avanzar es una regla de Diseño sobre Obligado (1920). Nada de esto se presenta como dato histórico.",
+          "kind": "diseño frente a testimonio",
+          "source_ids": [
+            "S9",
+            "S13"
+          ],
+          "verification": "cotejado con el texto OCR local de Gillespie, no con el escaneo"
         }
       ],
       "reference_outcome": "La captura del buque es el desenlace histórico de referencia. Victoria y derrota de esta partida dependen de tus decisiones.",
@@ -149,7 +160,16 @@
         "Dimensión y fachada del circo, puertas, cuarteles de agosto de 1806, bajada usada: parámetros abiertos.",
         "Bandera que llevaba el buque: sin inventario de presa localizado; Red Ensign es hipótesis.",
         "Viento del 12/8/1806 y nivel real del agua: sin datos; Gillespie liga las caídas a las brisas en general (pp. 35-36).",
-        "Ubicación de las piezas de a 18, del campamento de Pueyrredón, del puesto de Liniers y del camino sobre la barranca: hipótesis de mapa (trazo punteado)."
+        "Ubicación de las piezas de a 18, del campamento de Pueyrredón, del puesto de Liniers y del camino sobre la barranca: hipótesis de mapa (trazo punteado).",
+        "Banco expuesto ('en seco', Gillespie) frente a banco con agua alrededor (diseño): decisión pendiente del usuario; la variante no está implementada.",
+        "Fondeo a cuatro millas y playa seca 'por un gran trecho' (Gillespie p. 38): el buque a ~390 m de la barranca y su calado son zona de diseño; sin plano ni sondaje del Retiro de 1806.",
+        "Pendiente de cotejo: Gillespie solo leído en OCR (no en el escaneo); Concha 15-ago y oficio de Liniers (Archivo Pueyrredón t. I, p. 54) vistos solo por cita; parte de Liniers del 11 de agosto (dos piezas de a 18) en segunda mano; cifra de 1801 de la Plaza de Toros tomada del paquete y de Pillado; Ideario p. 33 (Güemes volviendo de Córdoba).",
+        "Temporal y sudestada del 4 al 8 de agosto de 1806 en San Isidro (investigación info/ del paquete, no cotejada): no hay serie de viento ni de nivel para el 12.",
+        "Distancias Retiro-Santa Catalina (~1 km) y Retiro-Fuerte (~2 km): estimaciones del repo, no medidas sobre Boneo 1801 ni el plano de 1808 (Diseño)."
+      ],
+      "pending_verification": [
+        "Banco expuesto ('en seco', Gillespie) frente a banco con agua alrededor (diseño): decisión pendiente del usuario; la variante no está implementada.",
+        "Pendiente de cotejo: Gillespie solo leído en OCR (no en el escaneo); Concha 15-ago y oficio de Liniers (Archivo Pueyrredón t. I, p. 54) vistos solo por cita; parte de Liniers del 11 de agosto (dos piezas de a 18) en segunda mano; cifra de 1801 de la Plaza de Toros tomada del paquete y de Pillado; Ideario p. 33 (Güemes volviendo de Córdoba)."
       ]
     },
     "norte": {
@@ -207,8 +227,8 @@
       "title": "Alexander Gillespie, Gleanings and Remarks (Leeds, 1818): pilotaje del Plata y p. 94 (la «Justinia»)",
       "url": "https://archive.org/stream/gleaningsremarks00gillrich/gleaningsremarks00gillrich_djvu.txt",
       "kind": "testimonio de un participante; texto OCR de Internet Archive, sin cotejar con el escaneo",
-      "pages": "28-29 (armadores, 26 cañones, 180 de Santa Elena), 35-36 (brisas, buque left dry, caídas de 7-8 pies), 94 (Justinia, tráfico comercial, abordada y tomada por caballería)",
-      "verification": "cotejado con el OCR local (docs/referencias/justina/gillespie_1818_gleanings_and_remarks_djvu.txt, líneas ~1255-1262, ~1555-1575, ~3846-3856)"
+      "pages": "28-29 (armadores, 26 cañones, 180 de Santa Elena), 35-36 (brisas, buque left dry, caídas de 7-8 pies), 38 (nada fondea con seguridad a menos de cuatro millas; la playa queda seca por un gran trecho), 94-95 (Justinia, tráfico comercial, abordada y tomada por caballería; sargento y 17 hombres en el Retiro el 10 de agosto), 121 (el Retiro, o Plaza del Toros)",
+      "verification": "cotejado con el OCR local (docs/referencias/justina/gillespie_1818_gleanings_and_remarks_djvu.txt, líneas ~1255-1262, ~1555-1575, ~3846-3856); Ronda 3: pp. 38, 94-95 y 121 verificadas en el OCR local (líneas ~1650-1666, ~3846-3871, ~4925-4931)"
     },
     {
       "id": "S1",
@@ -465,7 +485,7 @@
   ],
   "justina_package": {
     "name": "Justina_Retiro_1806 (paquete del usuario, 30-oct-2026)",
-    "status": "punto de partida; cotejado con docs/referencias/justina (Ronda 2: Gillespie pp. 29, 35-36 y 94 reverificados en el OCR local)",
+    "status": "punto de partida; cotejado con docs/referencias/justina (Ronda 3: pp. 38, 94-95 y 121 de Gillespie agregadas)",
     "note": "Las referencias [01]-[39] del informe se mapean a S9, S13-S39 en docs/historia/FUENTES.md (P1). El ajuste georreferenciado experimental (residuo ~17 m) no se usa para fijar el encallamiento."
   }
 }
