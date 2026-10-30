@@ -173,3 +173,28 @@ Solo aspecto. Sin cambios de geometria, `game_rules.gd`, `main.gd` ni `data/just
 - Chips de grupos solapados, camara inicial y carteles del anillo: son de `main.gd` (otra pista).
 - `tools/ui_qa.gd` a 1440x900 reporta 56,5 % libre (<60 %); se corre en 1280/1920/2560 segun el protocolo, no medido aqui.
 - Costa recta y pendiente 8-12 % del paquete: geometria, de la pista de mapa.
+
+## Justina ronda 5: aspecto (pista visual)
+Solo aspecto: no cambia geometria, reglas, `main.gd` ni `game_rules.gd`. Capturas `antes_*` y `final_*` (24 vistas cada una, ventana real 1440x900, Forward+) en `evidence/justina-ui/calidad_r5/`; benchmark en `calidad_r5/bench.json`.
+
+### Cambios
+- **Rio.** Causa de la lamina pálida casi blanca: no era el color base sino el reflejo especular del cielo (Forward+) y la emision Fresnel. Se bajo `SPECULAR` 0,5 -> 0,12, rugosidad 0,10 -> 0,22, emision Fresnel x0,5 (exponente 5), brillo solar y bruma de horizonte; colores base a limo ocre-oliva (cerca), pardo-oliva (medio) y verde botella turbio (canal), tomados de la paleta "Arena/tierra" apagada. Sigue sin textura (sin mosaico) y no delata el fondo oculto.
+- **Fuerte/circo (H4 del paquete).** La bandera era un cuadrado rojo sobre blanco (se leia como otra bandera). Ahora pano blanco con escudo pintado (borde laton, cuarteles rojo/crudo, corona esquematica). Inferencia (cuenta de 1803, Pillado): escudo exacto, tamaño y estado el 12-ago **sin datos** (Diseño). Sin escudo argentino.
+- **Red Ensign (H1).** El canton ahora lleva Union de 1801 esquematica: aspa blanca de San Andres, aspa roja fina de San Patricio, cruz blanca y roja de San Jorge. Sigue siendo hipotesis (la bandera del Justina no esta identificada).
+- **Guiones de grupo.** Eran postes de 6 m escalados hasta x7 de lejos (antenas de 40 m). Ahora asta de 3,8 m y guion chico (1,5 x 0,9 m), x3 maximo de lejos. Colores de paleta neutros (latón/cuero, lino/cuero, azul marinero/lino): son marcas de lectura de **Diseño**, no estandartes historicos ni colores de bando (el paquete lo advierte); se quita el azul del Fijo y el encarnado que sugerian un regimiento.
+- **Bateria de las piezas de a 18.** Dos piezas (unica cifra con fuente, parte de Liniers del 11-ago via L. Guemes), 5 gaviones; emplazamiento y parapeto = Diseño. Corregido el comentario que llamaba "documentada" a la bateria.
+- **Buque apoyado (`ship.grounded_visual`).** Ahora se consume: escora de 4-7 grados, asiento de 0,6 m y anillo de fango/arena humeda (22-34 m) con interpolacion entre `floating_above_m` 0,9 y `grounded_below_m` 0,35. Diseño (Gillespie: "left dry"; calado desconocido).
+- **Ciudad alta.** Tres franjas de casas de azotea y hasta 7 torres de iglesia al oeste de la meseta (x -110 a -480), mas densas hacia el sur. Reconstruccion estetica: de Boneo 1801 solo se toma el tamaño de cuadra y que la traza sube al oeste/sur; lotes y torres son Diseño.
+- **Aro de alcance de fuego.** Mas fino (1 m, antes 2 m) y mas tenue (alfa 0,26, antes 0,55).
+
+### Fiel a fuente vs estetica
+Fiel/documentado: buque mercante britanico armado (Gillespie), Plaza de Toros (Boneo 1801, Vidal 1820), existencia de dos piezas de a 18 por cita. Tradicion: Guemes. Reconstruccion/Diseño: color del rio y del terreno, bandera del fuerte (escudo), Union del Red Ensign, ciudad lejana, bateria, guiones, anillo de fango.
+
+### Medicion
+`benchmark.py --scenarios justine --repeat 3 --renderer forward_plus --max-frame-ms 3`: baja 1,60 ms, media 2,35 ms de cuadro medio (OK < 3 ms). `tests/test_rules.gd` 520 checks 0 fallos; `tests/test_integration.gd` 248 checks 0 fallos (APPDATA aislado).
+
+### Pendiente
+- Jinetes/caballos: siguen con la piel del GLB (no se retintaron con la paleta; requiere regenerar `rider_1806.glb`). Popa plana del casco: corresponde a `tools/create_models.py`/Blender, no se toco el GLB.
+- Camino de la barranca rojiblanco, rotulos superpuestos, camara inicial y textos de briefing: son de `main.gd`/mapa/UI (otras pistas).
+- Compatibility y 2560x1440 reales sin verificar visualmente. Bancos que emergen: se ven al bajar el nivel (comportamiento previo), sin cambio.
+- Hallazgos de historia (etiquetas Reconstruccion->Diseño, p. 94 de Gillespie vs alcance de 265 m, citas de pagina, acantilados 1807) pertenecen a la pista de mapa/historia.
