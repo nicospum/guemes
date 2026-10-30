@@ -771,6 +771,14 @@ func _justina_r1_ui() -> void:
 	check(game._short_name("guemes").find("Güemes") >= 0 and game._card_text("guemes").find("◆") >= 0, "Güemes' card keeps his name and the tradition mark")
 	check(game._deploy_consequences().find("Fuerza total") >= 0, "The deployment screen explains the consequences of strength")
 	check(game.info_label.text.find("Captura del buque") >= 0 and game.info_label.text.find("Moral de la dotación") >= 0, "Capture and morale are labelled separately")
+	# Ronda 2 (ui_feel): lenguaje sin jerga y tarjetas compactas
+	game._select_ids(["guemes"])
+	game._update_hud()
+	check(game.phase_label.text.find("diseño") < 0 and game.left_foot.text.find("avisos") < 0 and game.state_label.text.find("ETA") < 0, "R2: la cabecera y el panel no traen etiquetas de diseño ni jerga: " + game.phase_label.text)
+	check(game.deploy_btn.text.begins_with("Ajustar tropas") and game.roster_buttons["guemes"].custom_minimum_size.y > game.roster_buttons["zavala"].custom_minimum_size.y, "R2: el despliegue es opcional («Ajustar tropas») y solo la tarjeta elegida es grande")
+	check(game._plain("Tropezaste en 1 pozo(s)") == "Tropezaste en 1 pozo" and game._plain("2 pozo(s)") == "2 pozos", "R2: el plural de pozo se arma bien")
+	check(game.sel_info.text.find("Diseño") < 0 and game.sel_info.text.find("cansancio") >= 0 and game.sel_info.text.find("fatiga") < 0, "R2: la seleccion usa «cansancio» y no rotula todo como diseño")
+	check(not game.auto_start_pending and game.TUT_STEPS.size() == 5 and game.TUT_STEPS[0].find("explorador") >= 0, "R2: el tutorial es corto y arranca por el explorador")
 	boarder_r4.stage = stage_r4
 	game.rules.state.counter = saved_counter
 	game.settings.auto_pause = false

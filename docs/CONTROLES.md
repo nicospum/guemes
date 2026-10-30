@@ -195,7 +195,7 @@ Este manual se contrastó con los controles y acciones de `scripts/main.gd` y `s
 
 ## Ronda de diversión R1 (ui_feel): cambios de interfaz de la Justina
 
-- **Tarjeta inicial** (en vez del briefing largo): objetivo en una línea, «perder no es grave: volvés con el mismo río y lo anotado» y botones **Empezar**, **Cómo se juega** (la ayuda completa, F1) y **Saltar tutorial**. El reloj arranca con **Espacio**.
+- **Tarjeta inicial** (en vez del briefing largo): objetivo en una línea, «perder no es grave: volvés con el mismo río y lo anotado» y botones **Empezar**, **Cómo se juega** (la ayuda completa, F1) y **Saltar tutorial**. Tras **Empezar** el reloj arranca solo con tu primera orden (también con **Espacio**), y queda elegido el explorador 4. Las ayudas opcionales (baqueano, bajante generosa) son casillas con borde dorado cuando están activas.
 - **Guía de 4 pasos**, uno a la vez: medir el agua (explorador + Z), esperar el vado, pedir la carga a Liniers (K) solo cuando el vado esté a 60 s o menos, cargar y abordar (N). Se salta o se cierra.
 - **Esc** sin nada que cancelar abre el **menú de pausa** (☰ Menú): guardar, ajustes, parte, diario y, aparte, lo que corta el intento (reiniciar, volver al menú, **Abandonar: retirada general**, con segunda confirmación). La retirada general ya no está en la botonera de órdenes.
 - **`** (tecla sobre Tab) selecciona los tres grupos.
@@ -205,3 +205,14 @@ Este manual se contrastó con los controles y acciones de `scripts/main.gd` y `s
 - **Feedback**: cuenta regresiva «¡DESCARGA n!» sobre el buque en los últimos 4 s, destello y sacudida con cada descarga, tropiezo y contraataque, pausa automática al tropezar un grupo, al dispersarse uno o cuando el vado cede, y sonidos cortos distintos (vado, descarga, tropiezo, derrota).
 - Panel derecho limpio: objetivo, captura, vados, barras; munición, avisos y estado del río quedan en «Detalles».
 - Progreso (`user://justina_progress.json`): río fijo hasta ganar, diario, intentos, medalla y candado. Las pruebas fijan `forced_seed`.
+
+
+## Ronda 2 (ui_feel): qué cambió en la interfaz de la Justina
+
+- **Inicio en un paso:** la guía es una sola frase por vez (explorador, vado, carga, abordaje), con una flecha que rebota sobre lo que hay que tocar y un anillo dorado sobre el buque («Objetivo: el buque»).
+- **Sin jerga:** desaparecieron «(diseño)», «ETA» suelto, «fatiga» (ahora «cansancio») y la etiqueta de fuente en cada ficha; solo se rotula lo que no es diseño (por ejemplo, la tradición sobre Güemes). El «Despliegue previo» es opcional: botón «Ajustar tropas» antes de la primera orden.
+- **Fichas compactas:** solo la agrupación elegida muestra el detalle; las demás son dos líneas. Sobre el mapa, las agrupaciones no elegidas son marcadores chicos (número y fuerza).
+- **Un solo mensaje a la vez:** un aviso crítico tapa el cartel transitorio; un cartel importante o una descarga tapan la guía del tutorial. La descarga del buque se anuncia en un cartel fijo arriba al centro, con una línea hasta el círculo de impacto.
+- **Parte de derrota:** causa, una acción («Probá esto»), tres datos y «Reintentar (mismo mapa)» primero; «Mapa distinto» al lado. Diario, parte completo y fuentes quedan en «Más opciones». Victoria: medalla de esta vez, «Tu mejor medalla», desbloqueo del escenario 2 y un cierre de 2 s con la cámara sobre el buque.
+- **Sonido:** `select` (selección, suave) y `messenger` (llega el mensajero); se reutilizan los .wav existentes.
+- **Indicador de tiempo:** «TIEMPO REAL · ▶ ×1» o «‖ EN PAUSA» más marco ámbar en pausa (sin cambios de comportamiento).

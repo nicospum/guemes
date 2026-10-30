@@ -191,11 +191,11 @@ const GROUP_ROLE = {
  "scout_1":{"kind":"Explorador","role":"Sondea el fondo con la lanza y marca el vado."},
  "scout_2":{"kind":"Explorador","role":"Sondea el fondo con la lanza y marca el vado."}}
 const TUT_STEPS = [
- "1/4 · Medí el agua antes de cruzar: elegí un explorador (4 o 5), apretá Z y hacé clic en el agua. Espacio hace correr el reloj.",
- "2/4 · Esperá a que el vado ceda: mirá la barra de tiempo, arriba a la derecha. Mientras tanto, abastecé munición (J).",
- "3/4 · ¡El vado cede! Elegí un grupo (1-3) y «Pedir carga a Liniers» (K).",
- "4/4 · A cargar: con los grupos elegidos, clic derecho sobre el buque o «Cargar y abordar» (N).",
- "Abordaje: cuando el buque contraataque, apretá «Rechazar» (coma) a tiempo."]
+ "1/4 · Primero medí el agua: elegí al explorador 4, apretá Z y hacé clic en el agua. El reloj arranca con tu primera orden (o con Espacio).",
+ "2/4 · Esperá a que el vado ceda (mirá la barra de tiempo a la derecha). Mientras, abastecé munición (J).",
+ "3/4 · ¡El vado cede! Elegí un grupo (1-3) y pedí carga a Liniers (K).",
+ "4/4 · A cargar: clic derecho sobre el buque o «Cargar y abordar» (N).",
+ "Abordaje: cuando el buque contraataque, rechazalo (coma) a tiempo."]
 var mode_label: Label
 var ring_labels: Array = []
 var moral_label: RichTextLabel
@@ -432,7 +432,7 @@ func _button_at(parent,text_value,pos,size_v,fn):
 func _start_game(scenario_name:String):
  var build_start=Time.get_ticks_msec()
  jev.invalidate();pending_round=false;resolution_remaining=0;outcome_shown=false
- attempt_logged=false;shake=0.0;flash_alpha=0.0;toast_prio=0;volley_warned=-1.0;toast_timer=0.0;details_open=false
+ attempt_logged=false;shake=0.0;flash_alpha=0.0;toast_prio=0;volley_warned=-1.0;toast_timer=0.0;details_open=false;auto_start_pending=false
  rules.new_game(scenario_name,_justina_seed() if scenario_name=="justine" else 1817)
  intro_assists=[];last_result={}
  if scenario_name=="justine":campaign.begin_attempt(rules);_progress_sync()
@@ -729,8 +729,9 @@ func _process(delta):
  if update_timer>0.25:
   _update_hud();update_timer=0
  if toast_timer>0:toast_timer-=delta
- if is_instance_valid(toast_label):toast_label.visible=toast_timer>0
- if is_instance_valid(toast_view):toast_view.visible=toast_timer>0 and toast_pos!=null
+ var alert_on=is_instance_valid(alert_panel) and alert_panel.visible
+ if is_instance_valid(toast_label):toast_label.visible=toast_timer>0 and not alert_on
+ if is_instance_valid(toast_view):toast_view.visible=toast_timer>0 and toast_pos!=null and not alert_on
  hoof_timer-=delta
  if not paused and hoof_timer<=0 and rules.state.scenario=="justine":
   for u in rules.state.units:
@@ -818,7 +819,7 @@ func _unhandled_input(event):
 
 func _toggle_pause():
  if rules.state.scenario=="norte":_resolve_round();return
- paused=not paused
+ paused=not paused;auto_start_pending=false
  if not paused:pause_reason=""
  _update_hud();_sound("order")
 
@@ -1888,7 +1889,7 @@ func _build_hud_j():
  res_label=_rich(right_body,"",12)
  risk_label=_rich(right_body,"",12)
  log_label=_rich(right_body,"",11)
- detail_ctls=[tide_label,res_label,risk_label]
+ detail_ctls=[tide_label,res_label,risk_label,river_ctl]
  details_btn=_button(right_body,"",_toggle_details,22);_compact(details_btn,6,1);details_btn.add_theme_font_size_override("font_size",11)
  details_btn.tooltip_text="Muestra u oculta el detalle: munición, avisos a Liniers, estacas, estado del río y riesgo del sondeo."
  _apply_details()
@@ -1902,7 +1903,7 @@ func _build_hud_j():
   rb.draw.connect(func():_draw_card(aid,rb))
   roster_buttons[id]=rb
  left_foot=_rich(lv,"",11)
- deploy_btn=_button(lv,"Despliegue previo ▸",_deploy_dialog,24);_compact(deploy_btn,6,2);deploy_btn.add_theme_font_size_override("font_size",12)
+ deploy_btn=_button(lv,"Ajustar tropas ▸",_deploy_dialog,24);_compact(deploy_btn,6,2);deploy_btn.add_theme_font_size_override("font_size",12)
  deploy_btn.tooltip_text="Composición, rol y punto de partida de las cinco agrupaciones. Antes de empezar se puede reasignar fuerza entre los tres grupos."
  # Minimapa y su barra de cámara
  map_widget=Control.new();map_widget.mouse_filter=Control.MOUSE_FILTER_STOP;ui.add_child(map_widget)
@@ -2052,7 +2053,7 @@ func _next_step()->Dictionary:
  if bool(st.counter.active) and not bool(st.counter.answered):return {"action":"repel","text":"¡Contraataque! Apretá «Rechazar» (coma) con un grupo que aborda."}
  var res=rules.resources()
  if rules.probes().is_empty():
-  return {"action":"probe","text":"Medí el agua: elegí un explorador (4 o 5), apretá Z y hacé clic en el agua."+(" Con el tiempo detenido ordenás tranquilo; Espacio inicia el reloj." if paused and float(st.elapsed)<0.5 else "")}
+  return {"action":"probe","text":"Medí el agua: elegí un explorador (4 o 5), apretá Z y hacé clic en el agua."}
  var boarding=false
  for id in GROUP_IDS:
   if str(rules.get_unit(id).get("stage","")) in ["boarding","dismounting"]:boarding=true
@@ -2193,8 +2194,12 @@ func _card_text(id:String)->String:
  var stage_t=str(STAGE_TEXT.get(str(a.stage),["·",str(a.stage)])[1])
  if id in SCOUT_IDS:
   var hp_max=int(_jmap().get("resources",{}).get("scout_hp",4))
+  if not sel_ids.has(id):return "◈ %d %s   ♥ %d/%d\nOrden: %s" % [_actor_number(id),_short_name(id),int(a.hp),hp_max,_order_text(id)]
   return "%s◈ %d %s   ♥ %d/%d\nExplorador a pie · lanza\n%s\nOrden: %s" % [mark,_actor_number(id),_short_name(id),int(a.hp),hp_max,stage_t,_order_text(id)]
- return "%s%s %d %s      %d %%\n%s · mun. %d\n%s · fatiga %d\nOrden: %s" % [mark,_ujg(id),_actor_number(id),_short_name(id),int(a.strength),str(role.kind),int(rules.resources().ammo),stage_t,int(a.fatigue),_order_text(id)]
+ if not sel_ids.has(id):
+  return "%s %d %s      %d %%\nmun. %d · Orden: %s" % [_ujg(id),_actor_number(id),_short_name(id),int(a.strength),int(rules.resources().ammo),_order_text(id)]
+ var tired="" if int(a.fatigue)<=0 else " · cansancio %d" % int(a.fatigue)
+ return "%s%s %d %s      %d %%\n%s · mun. %d\n%s%s\nOrden: %s" % [mark,_ujg(id),_actor_number(id),_short_name(id),int(a.strength),str(role.kind),int(rules.resources().ammo),stage_t,tired,_order_text(id)]
 
 func _card_tip(id:String)->String:
  var a=_actor(id)
@@ -2350,9 +2355,9 @@ func _deploy_dialog():
  if not _is_j():return
  var started=float(rules.state.elapsed)>0.0 or not rules.state.orders.is_empty()
  var box=_open_modal("Despliegue previo · tus 5 agrupaciones",1060,700)
- var intro="[b]Cómo se «diseñan» las tropas.[/b] La fuerza de cada agrupación es una escala relativa de 0 a 100, no un número de hombres. Hay tres grupos (1-3) y dos exploradores (4-5). Los roles, la composición y los puntos de partida son [color=#e8a98f]▲ diseño[/color] salvo donde la ficha dice otra cosa: las fuentes no dan el orden de batalla de la caballería de Pueyrredón."
+ var intro="[b]Tus tropas.[/b] La fuerza va de 0 a 100 (no es un número de hombres). Hay tres grupos (1-3) y dos exploradores (4-5)."
  if started:intro+="\n[color=#f4a58d]La partida ya empezó: el despliegue quedó fijo.[/color]"
- else:intro+="\nTodavía estás a tiempo: podés pasar fuerza entre los grupos (hasta ±%d respecto de la partida, sin pasar de 100; el total se conserva) y dar órdenes de marcha con el tiempo detenido." % int(rules.DEPLOY_MARGIN)
+ else:intro+="\nTodavía estás a tiempo: podés pasar fuerza de un grupo a otro (hasta ±%d) y mover los puntos de partida." % int(rules.DEPLOY_MARGIN)
  var introrow=_hbox(box,12)
  var introcol=_vbox(introrow,6);introcol.custom_minimum_size.x=640;introcol.size_flags_horizontal=Control.SIZE_EXPAND_FILL
  var intro_rt=_rich(introcol,intro,13);intro_rt.custom_minimum_size.x=640
@@ -2360,8 +2365,8 @@ func _deploy_dialog():
  dmap.draw.connect(func():_draw_deploy_map(dmap))
  dmap.tooltip_text="Puntos de partida de las cinco agrupaciones sobre el mapa del escenario. Se mueven al elegir una dirección."
  var scroll=ScrollContainer.new();scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;scroll.custom_minimum_size=Vector2(1000,_scroll_h(250.0,555.0));box.add_child(scroll)
- var grid=GridContainer.new();grid.columns=6;grid.add_theme_constant_override("h_separation",16);grid.add_theme_constant_override("v_separation",8);scroll.add_child(grid)
- for h in ["Nº","Agrupación","Composición","Rol (diseño)","Punto de partida","Fuente"]:_label(grid,h,12,GOLD)
+ var grid=GridContainer.new();grid.columns=5;grid.add_theme_constant_override("h_separation",16);grid.add_theme_constant_override("v_separation",8);scroll.add_child(grid)
+ for h in ["Nº","Agrupación","Composición","Rol","Punto de partida"]:_label(grid,h,12,GOLD)
  for id in ALL_ACTORS:
   var a=_actor(id)
   if a.is_empty():continue
@@ -2371,13 +2376,11 @@ func _deploy_dialog():
   var nm=_label(grid,str(a.name),14,PAPER);nm.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;nm.custom_minimum_size.x=170
   var comp=""
   if id in SCOUT_IDS:comp="Explorador a pie con lanza · salud %d" % int(_jmap().get("resources",{}).get("scout_hp",4))
-  else:comp="%s · fuerza %d/100 · %s · fatiga %d" % [str(role.kind),int(a.strength),"a caballo" if bool(a.get("mounted",false)) else "a pie",int(a.fatigue)]
+  else:comp="%s · fuerza %d/100 · %s · cansancio %d" % [str(role.kind),int(a.strength),"a caballo" if bool(a.get("mounted",false)) else "a pie",int(a.fatigue)]
   var cl=_label(grid,comp,13,PAPER);cl.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;cl.custom_minimum_size.x=210
   var rl=_label(grid,str(role.role),13,MUTED);rl.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;rl.custom_minimum_size.x=220
   var p0=_actor_pos(id)
   var pl=_label(grid,"x %d · z %d\n%s" % [int(p0.x),int(p0.y),_place_name(p0)],13,PAPER);pl.custom_minimum_size.x=120
-  var tg=str(a.get("tag","diseno"))
-  var sl=_label(grid,"%s %s" % [_tag_glyph(tg),_tag_label(tg)],13,_tag_color(tg));sl.custom_minimum_size.x=120
  var cons=_rich(introcol,_deploy_consequences(),12);cons.custom_minimum_size.x=640
  var apb=CheckButton.new();apb.text="Pausa automática en avisos críticos (recomendada: el contraataque dura 14 s)";apb.button_pressed=bool(settings.auto_pause)
  apb.toggled.connect(func(on):settings.auto_pause=on;_save_settings();_update_hud());box.add_child(apb)
@@ -2399,7 +2402,7 @@ func _deploy_dialog():
   var dv:Vector2=d[1]
   var mb=_button(row2,str(d[0]),func():_deploy_nudge(who_o.selected,dv),34);mb.disabled=started
  var small_h=get_viewport().get_visible_rect().size.y<800.0
- var note=_rich(box,"Límites: ±%d de fuerza por grupo (tope 100), %d m de movimiento del punto, solo en tierra firme. El equilibrio se midió con el despliegue por defecto." % [int(rules.DEPLOY_MARGIN),int(rules.DEPLOY_MOVE_M)] if small_h else "Límites del motor: cada grupo puede variar hasta ±%d de su fuerza de partida (sin pasar de 100) y cada punto de partida moverse hasta %d m del original, solo sobre tierra firme. Las rutas y el ritmo se ordenan después, con el tiempo detenido. El equilibrio se midió con el despliegue por defecto; moverlos es una libertad de diseño." % [int(rules.DEPLOY_MARGIN),int(rules.DEPLOY_MOVE_M)],12)
+ var note=_rich(box,"Límites: ±%d de fuerza por grupo (tope 100), %d m de movimiento del punto, solo en tierra firme. El equilibrio se midió con el despliegue por defecto." % [int(rules.DEPLOY_MARGIN),int(rules.DEPLOY_MOVE_M)] if small_h else "Cada grupo puede variar hasta ±%d de fuerza y cada punto de partida moverse hasta %d m, solo en tierra firme. El juego se equilibró con el despliegue por defecto." % [int(rules.DEPLOY_MARGIN),int(rules.DEPLOY_MOVE_M)],12)
  note.custom_minimum_size.x=1000
  var brow=_hbox(box,8)
  var start=_button(brow,"Empezar a ordenar (en pausa)",_close_modal,42);start.size_flags_horizontal=Control.SIZE_EXPAND_FILL
@@ -2630,6 +2633,7 @@ func _map_center(p:Vector2):
 
 # ---------- Selección ----------
 func _select_ids(ids:Array,how:String="set"):
+ if mode=="play":_sound("select")
  var out=[]
  if how=="set":out=ids.duplicate()
  else:
@@ -2803,7 +2807,7 @@ PELIGRO: pide confirmación y termina la partida. No es lo mismo que «Retirar»
   if tut_on:
    # Un solo mensaje guía a la vez: mientras el tutorial está en pantalla, esta línea solo explica cómo leer los botones.
    reason_label.add_theme_color_override("font_color",MUTED)
-   reason_label.text="Seguí la guía de arriba. Los botones resaltados se pueden usar ahora; pasá el mouse por los grises para ver por qué no."
+   reason_label.text="Seguí la guía de arriba. Los botones con borde se pueden usar ahora; pasá el mouse por los grises para saber por qué no."
   else:
    reason_label.text="SIGUIENTE ▸ "+str(rec.text)+(("   ·   En gris: "+blocked_note) if nblocked>0 else "")
 
@@ -3258,7 +3262,7 @@ func _update_hud_j():
  var st=rules.state
  title_label.text="JUSTINA  ·  RETIRO"
  var left=maxf(0.0,float(st.deadline)-float(st.elapsed))
- phase_label.text="12 AGO 1806 · río %s %s m (diseño)" % [_river_word(),("%.2f" % rules.water_level_m()).replace(".",",")]
+ phase_label.text="12 AGO 1806 · río %s" % _river_word()
  clock_label.text="Quedan "+_clock(left)+" min"
  clock_label.add_theme_color_override("font_color",RED if left<180.0 else GOLD)
  _update_fords()
@@ -3284,13 +3288,16 @@ Buque: próxima descarga en [b]%d s[/b]" % [int(res.ammo),int(res.ammo_max),int(
   var b:Button=roster_buttons.get(id)
   if not is_instance_valid(b):continue
   b.text=_card_text(id);b.tooltip_text=_card_tip(id)
+  b.custom_minimum_size.y=70.0 if sel_ids.has(id) else 40.0
   b.add_theme_color_override("font_color",UNIT_COLORS[id]);b.add_theme_color_override("font_hover_color",UNIT_COLORS[id])
   if sel_ids.has(id):
    b.add_theme_stylebox_override("normal",_cm_style("rosel"+id,Color("29454c"),UNIT_COLORS[id],2,8,3))
   else:
    b.add_theme_stylebox_override("normal",_cm_style("cmnormal83",Color("1a3037"),Color("455753"),1,8,3))
   b.queue_redraw()
- left_foot.text="Munición [b]%d/%d[/b] · reserva [b]%d[/b] · avisos a Liniers [b]%d[/b]" % [int(res.ammo),int(res.ammo_max),int(res.ammo_reserve),int(res.signals_left)]
+ left_foot.text="Munición [b]%d/%d[/b] (de reserva %d)" % [int(res.ammo),int(res.ammo_max),int(res.ammo_reserve)]
+ if is_instance_valid(deploy_btn):deploy_btn.visible=float(st.elapsed)<0.5 and rules.state.orders.is_empty()
+ _auto_start_check()
  for pid in pace_buttons:
   pace_buttons[pid].set_pressed_no_signal(pid==pace)
  sel_info.text=_selection_text()
@@ -3305,7 +3312,18 @@ Buque: próxima descarga en [b]%d s[/b]" % [int(res.ammo),int(res.ammo_max),int(
  _tut_update()
  tutorial_label.text=_tutorial_j() if bool(settings.tutorial) else ""
  last_hint_text=tutorial_label.text
- if is_instance_valid(hint_panel):hint_panel.visible=not tutorial_label.text.is_empty() and not (is_instance_valid(alert_panel) and alert_panel.visible)
+ # Un solo mensaje a la vez: el aviso crítico manda; un cartel importante tapa la guía mientras dura.
+ if is_instance_valid(hint_panel):hint_panel.visible=str(st.status)=="playing" and not tutorial_label.text.is_empty() and not (is_instance_valid(alert_panel) and alert_panel.visible) and not (toast_timer>0.0 and toast_prio>=2) and rules.state.get("pending_shot",{}).is_empty()
+
+# La primera orden del intento arranca el reloj solo (tras «Empezar»): menos pasos antes de la acción.
+func _auto_start_check():
+ if not auto_start_pending or not paused or is_instance_valid(modal) or str(rules.state.status)!="playing":return
+ var started=not rules.state.orders.is_empty()
+ for sc in rules.scouts():
+  if str(sc.stage) in ["probing","moving","marking"]:started=true
+ if not started:return
+ auto_start_pending=false;paused=false;pause_reason=""
+ _toast("El reloj corre. Espacio lo pausa: con el tiempo detenido podés ordenar con calma.",5,true,1)
 
 func _selection_text()->String:
  var groups=_sel_groups();var scouts=_sel_scouts()
@@ -3314,16 +3332,17 @@ func _selection_text()->String:
  var t=""
  if groups.size()==1 and scouts.is_empty():
   var u=rules.get_unit(groups[0])
+  t="[b]%s[/b]   fuerza %d · cansancio %d · %s\nOrden: %s" % [str(u.name),int(u.strength),int(u.fatigue),str(STAGE_TEXT.get(str(u.stage),["",str(u.stage)])[1]),_order_text(groups[0])]
   var tag=str(u.get("tag","diseno"))
-  t="[b]%s[/b]   fuerza %d · fatiga %d · %s\nOrden: %s   ·   Fuente: [color=%s]%s %s[/color]" % [str(u.name),int(u.strength),int(u.fatigue),str(STAGE_TEXT.get(str(u.stage),["",str(u.stage)])[1]),_order_text(groups[0]),str(_tag_info(tag).get("color","#aab7b5")),_tag_glyph(tag),_tag_label(tag)]
+  if tag!="diseno":t+="   ·   [color=%s]%s %s[/color]" % [str(_tag_info(tag).get("color","#aab7b5")),_tag_glyph(tag),_tag_label(tag)]
  elif groups.size()>=1:
   var s=0.0
   for id in groups:s+=float(rules.get_unit(id).strength)
   t="[b]%d grupos[/b] seleccionados · fuerza media %d\nLa acción se aplica a los %d grupos seleccionados." % [groups.size(),int(s/groups.size()),groups.size()]
-  if not scouts.is_empty():t+=" Los %d exploradores no reciben órdenes de grupo." % scouts.size()
+  if not scouts.is_empty():t+=" Los exploradores no reciben órdenes de grupo."
  else:
   var a=_actor(scouts[0])
-  t="[b]%s[/b]   ♥ %d · %s\nOrden: %s   ·   Fuente: [color=%s]%s %s[/color]" % [str(a.name),int(a.hp),str(STAGE_TEXT.get(str(a.stage),["",str(a.stage)])[1]),_order_text(scouts[0]),str(_tag_info("diseno").get("color","#aab7b5")),_tag_glyph("diseno"),_tag_label("diseno")]
+  t="[b]%s[/b]   ♥ %d · %s\nOrden: %s" % [str(a.name),int(a.hp),str(STAGE_TEXT.get(str(a.stage),["",str(a.stage)])[1]),_order_text(scouts[0])]
   if scouts.size()>1:t+="  ·  la acción se aplica a los %d exploradores" % scouts.size()
  return t
 
@@ -3353,7 +3372,7 @@ func _risk_now()->Dictionary:
 func _ford_line(f:Dictionary,t:float)->String:
  var w:Dictionary=f.win
  var nm=str(f.name).split(" (")[0]
- var est="" if bool(w.certain) else " [color=#e0bf81](estimado, sin reconocer)[/color]"
+ var est="" if bool(w.certain) else " [color=#e0bf81](sin confirmar)[/color]"
  var opens=float(w.opens_at);var closes=float(w.closes_at)
  if opens<0.0:return "• %s: [color=#f4a58d]no abre con este nivel[/color]" % nm
  if t<opens:return "• %s: [color=#e0bf81]abre en %s[/color]%s" % [nm,_clock(opens-t),est]
@@ -3369,13 +3388,13 @@ func _state_text(left:float)->String:
  var c="#f4a58d" if left<180.0 else "#f4efe0"
  var status=str(st.status)
  if status!="playing":lines.append("[b]Partida terminada[/b]: "+("victoria" if status=="victory" else "derrota"))
- else:lines.append("[b][color=%s]Quedan %s min[/color][/b] · río %s (%s m)" % [c,_clock(left),_river_word(),("%.2f" % rules.water_level_m()).replace(".",",")])
- if ford_cache.is_empty():lines.append("Vados: ninguno conocido todavía. Reconocé el fondo.")
+ else:lines.append("[b][color=%s]Quedan %s min[/color][/b] · río %s" % [c,_clock(left),_river_word()])
+ if ford_cache.is_empty():lines.append("Vado: todavía no medido. Mandá un explorador.")
  else:
   for f in ford_cache:lines.append(_ford_line(f,t))
  var rk=_risk_now()
  var col={"bajo":"#a6e3b8","medio":"#e0bf81","alto":"#f4a58d"}[str(rk.level)]
- lines.append("Riesgo de fuego ahora: [b][color=%s]%s[/color][/b] (%d %%)" % [col,str(rk.level).to_upper(),int(float(rk.exposure)*100.0)])
+ lines.append("Riesgo de fuego: [b][color=%s]%s[/color][/b]" % [col,str(rk.level).to_upper()])
  return "\n".join(lines)
 
 func _update_fords():
@@ -3544,7 +3563,7 @@ func _draw_chips_j(font,placed:Array,blocked:Array=[]):
   if anchor==null or not Rect2(Vector2(10,10),view-Vector2(20,20)).has_point(anchor):continue
   var is_sel=_is_selected(id)
   var c:Color=UNIT_COLORS[id]
-  var chip=Vector2(104,22) if is_scout else (Vector2(224,54) if is_sel else Vector2(172,24))
+  var chip=(Vector2(104,22) if is_sel else Vector2(56,20)) if is_scout else (Vector2(224,54) if is_sel else Vector2(88,22))
   var rect=Rect2(anchor-Vector2(chip.x*0.5,chip.y+6),chip)
   rect.position.x=clampf(rect.position.x,4.0,view.x-chip.x-4.0)
   var base_y=rect.position.y
@@ -3568,7 +3587,8 @@ func _draw_chips_j(font,placed:Array,blocked:Array=[]):
   var chip=rect.size
   overlay.draw_style_box(_cached_style("chipj"+str(is_sel)+c.to_html(),Color(0.035,0.075,0.09,0.9),c if is_sel else Color(c.r,c.g,c.b,0.6),3 if is_sel else 1,5),rect)
   if is_scout:
-   overlay.draw_string(font,rect.position+Vector2(6,15),"◈ %d  ♥%d  %s" % [_actor_number(id),int(u.hp),str(STAGE_TEXT.get(str(u.stage),["",""])[1])],HORIZONTAL_ALIGNMENT_LEFT,chip.x-8,11,c)
+   if is_sel:overlay.draw_string(font,rect.position+Vector2(6,15),"◈ %d  ♥%d  %s" % [_actor_number(id),int(u.hp),str(STAGE_TEXT.get(str(u.stage),["",""])[1])],HORIZONTAL_ALIGNMENT_LEFT,chip.x-8,11,c)
+   else:overlay.draw_string(font,rect.position+Vector2(6,15),"◈%d ♥%d" % [_actor_number(id),int(u.hp)],HORIZONTAL_ALIGNMENT_LEFT,chip.x-8,12,c)
    continue
   var strength=float(u.strength)
   var bar_color=GREEN if strength>=60 else (GOLD if strength>=35 else RED)
@@ -3583,7 +3603,7 @@ func _draw_chips_j(font,placed:Array,blocked:Array=[]):
    overlay.draw_rect(Rect2(rect.position+Vector2(8,30),Vector2((chip.x-16)*clampf(float(u.fatigue)/100.0,0,1),2)),Color("c9b6a0"))
    overlay.draw_string(font,rect.position+Vector2(8,46),_stage_badge(str(u.stage)),HORIZONTAL_ALIGNMENT_LEFT,chip.x-14,11,Color("e9e3d4"))
   else:
-   overlay.draw_string(font,rect.position+Vector2(7,16),_ujg(id)+" "+str(_actor_number(id))+" "+{"guemes":"Güemes (trad.)","arias":"Voluntarios","zavala":"Reserva"}.get(id,"")+" %d %%" % int(strength),HORIZONTAL_ALIGNMENT_LEFT,chip.x-10,12,c)
+   overlay.draw_string(font,rect.position+Vector2(6,16),_ujg(id)+str(_actor_number(id))+"  %d %%" % int(strength),HORIZONTAL_ALIGNMENT_LEFT,chip.x-10,12,c)
    overlay.draw_rect(Rect2(rect.position+Vector2(6,19),Vector2(chip.x-12,3)),Color("31433e"))
    overlay.draw_rect(Rect2(rect.position+Vector2(6,19),Vector2((chip.x-12)*clampf(strength/100.0,0,1),3)),bar_color)
 
@@ -3604,7 +3624,7 @@ func _draw_landmarks_j(font,blocked:Array,placed:Array):
 
 func _draw_top_j():
  if mode!="play" or not is_instance_valid(world):return
- _draw_pause_frame();_draw_volley_warning()
+ _draw_pause_frame();_draw_volley_warning();_draw_guides()
  if box_active:
   overlay_top.draw_rect(box_rect,Color(1,1,1,0.10))
   overlay_top.draw_rect(box_rect,Color(1,1,1,0.9),false,1.5)
@@ -3628,6 +3648,7 @@ func _handle_events_j(events:Array):
    "shot_warning":_sound("volley_warn");_flash(Color(0.95,0.5,0.25),0.08)
    "counter_warning":_sound("alert");_flash(Color(0.9,0.25,0.2),0.1)
    "choice":
+    _sound("messenger")
     if not is_instance_valid(modal) and mode=="play":choice_text=str(event.get("text",""));call_deferred("_choice_dialog")
    "counter":_juice("counter")
    "ford":_juice("ford")
@@ -3824,6 +3845,9 @@ var flash_rect:ColorRect
 var toast_prio=0
 var volley_warned=-1.0
 var details_open=false
+var auto_start_pending=false
+var beat_enabled=true
+var outcome_beat:Label
 var details_btn:Button
 var detail_ctls:Array=[]
 var attempt_logged=false
@@ -3890,7 +3914,10 @@ func _learned_block(parent:Node,limit:int=5):
   _rich(box,"[color=#aab7b5]Esta vez no anotaste nada nuevo. Medir el agua con un explorador (Z) llena el diario.[/color]",15)
  else:
   var t=""
-  for i in range(mini(limit,items.size())):t+="• "+_plain(str(items[i].text))+"\n"
+  var shown=0
+  for i in range(items.size()):
+   if str(items[i].text).begins_with("Hoy:") or shown>=limit:continue
+   shown+=1;t+="• "+_plain(str(items[i].text))+"\n"
   if items.size()>limit:t+="• …y %d más en el diario.\n" % (items.size()-limit)
   _rich(box,t.strip_edges(),16)
  var hint=_aprendido_hint() if int(progress.derrotas_seguidas)>=2 else ""
@@ -3907,55 +3934,83 @@ func _history_toggle(parent:Node,r:Dictionary):
  var rt=_rich(body,hist,14);rt.custom_minimum_size.x=820
  tb.pressed.connect(func():body.visible=not body.visible;tb.text="Qué fue historia ▾" if body.visible else "Qué fue historia ▸")
 
+func _primary_style(btn:Button):
+ btn.add_theme_stylebox_override("normal",_cm_style("retry_main",Color("40391a"),Color("f0d27a"),2,14,8))
+ btn.add_theme_stylebox_override("hover",_cm_style("retry_main_h",Color("55491f"),Color("ffe9a0"),2,14,8))
+
+# Fila de «Más»: lo secundario queda plegado para que el botón principal sea lo único que pese.
+func _more_row(parent:Node,specs:Array,r:Dictionary):
+ var holder=_vbox(parent,6)
+ var tb=_button(holder,"Más opciones ▸",func():pass,30);tb.alignment=HORIZONTAL_ALIGNMENT_LEFT
+ var body=_vbox(holder,6);body.visible=false
+ var row=_hbox(body,8)
+ for sp in specs:_button(row,str(sp[0]),sp[1],34)
+ _history_toggle(body,r)
+ tb.pressed.connect(func():body.visible=not body.visible;tb.text="Más opciones ▾" if body.visible else "Más opciones ▸")
+
 func _defeat_dialog(r:Dictionary):
  var d=_defeat_text(r)
- var box=_open_modal("Esta vez no pudo ser",900,_scroll_h(520.0,40.0))
- _rich(box,"[b]%s[/b]" % str(d.cause),21).custom_minimum_size.x=840
- _rich(box,"[color=#f0d27a]Probá esto:[/color] "+str(d.advice),17).custom_minimum_size.x=840
+ var box=_open_modal("Esta vez no pudo ser",900,_scroll_h(500.0,40.0))
+ _rich(box,"[b]%s[/b]" % _plain(str(d.cause)),21).custom_minimum_size.x=840
+ _rich(box,"[color=#f0d27a]Probá esto:[/color] "+_plain(str(d.advice)),18).custom_minimum_size.x=840
  var chips=_hbox(box,10)
  _stat_chip(chips,"Captura del buque","%d %%" % int(float(rules.state.get("capture",0.0))),GREEN if float(rules.state.get("capture",0.0))>=50.0 else PAPER)
  _stat_chip(chips,"Bajas","%d %%" % int(float(r.get("loss_total_pct",0.0))))
  _stat_chip(chips,"Tiempo jugado",_clock(float(r.get("elapsed",0.0))))
  var row=_hbox(box,10)
- var retry_btn=_button(row,"Reintentar · mismo río",func():_retry(false),54);retry_btn.size_flags_horizontal=Control.SIZE_EXPAND_FILL;retry_btn.add_theme_font_size_override("font_size",19)
- retry_btn.add_theme_stylebox_override("normal",_cm_style("retry_main",Color("40391a"),Color("f0d27a"),2,14,8))
+ var retry_btn=_button(row,"Reintentar (mismo mapa)",func():_retry(false),58);retry_btn.size_flags_horizontal=Control.SIZE_EXPAND_FILL;retry_btn.add_theme_font_size_override("font_size",20)
+ _primary_style(retry_btn)
  retry_btn.tooltip_text="Vuelve a empezar con el mismo fondo del río: los pozos y vados están donde los anotaste."
- var fresh_btn=_button(row,"Río nuevo",func():_retry(true),54);fresh_btn.tooltip_text="Sortea otro fondo del río y borra el diario."
- _button(row,"Menú",_menu,54)
- _learned_block(box)
- var row2=_hbox(box,8)
- _button(row2,"Abrir el diario",_diary_dialog,34)
- _button(row2,"Parte completo",func():_report_dialog(true),34)
- _button(row2,"Ver fuentes",_history_dialog,34)
- _history_toggle(box,r)
+ var fresh_btn=_button(row,"Mapa distinto",func():_retry(true),58);fresh_btn.tooltip_text="Sortea otro fondo del río y borra el diario."
+ _learned_block(box,3)
+ _more_row(box,[["Abrir el diario",_diary_dialog],["Parte completo",func():_report_dialog(true)],["Ver fuentes",_history_dialog],["Menú",_menu]],r)
  _juice("defeat");_sound("defeat")
 
 func _victory_dialog(r:Dictionary):
- var box=_open_modal("¡Buque tomado!",900,_scroll_h(580.0,40.0))
+ var box=_open_modal("¡Buque tomado!",900,_scroll_h(540.0,40.0))
  var med=last_medal if not last_medal.is_empty() else "bronce"
  var ml=_label(box,"MEDALLA DE "+med.to_upper(),30,MEDAL_COLOR.get(med,GOLD),true);ml.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+ var best=str(progress.mejor_medalla)
+ var sub="Esta vez."
+ if not best.is_empty() and best!=med:sub="Esta vez. Tu mejor sigue siendo la de %s." % best
+ elif best==med and not last_first_win:sub="Esta vez. Igualaste tu mejor medalla."
+ var sl=_label(box,sub,14,MUTED);sl.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
  var why=""
+ var n=0
  for ln in last_result.get("lines",[]):
   if str(ln).begins_with("Se desbloqueó"):continue
-  why+="• "+str(ln)+"
-"
+  if n>=3:break
+  n+=1;why+="• "+str(ln)+"\n"
  _rich(box,why.strip_edges(),18).custom_minimum_size.x=840
  if last_first_win:
-  var un=_label(box,"Se desbloqueó: Sostener el Norte",20,GREEN,true);un.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+  var un=_label(box,"Se desbloqueó el escenario 2: Sostener el Norte",20,GREEN,true);un.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
  var chips=_hbox(box,10)
  _stat_chip(chips,"Tiempo",_clock(float(r.get("elapsed",0.0))),GOLD)
  _stat_chip(chips,"Bajas","%d %%" % int(float(r.get("loss_total_pct",0.0))))
- _stat_chip(chips,"Mejor medalla",str(progress.mejor_medalla).capitalize(),MEDAL_COLOR.get(str(progress.mejor_medalla),PAPER))
+ _stat_chip(chips,"Tu mejor medalla",best.capitalize(),MEDAL_COLOR.get(best,PAPER))
  var row=_hbox(box,10)
- var go=_button(row,"Ir a Sostener el Norte",func():_start_game("norte"),54);go.size_flags_horizontal=Control.SIZE_EXPAND_FILL;go.add_theme_font_size_override("font_size",19)
- go.add_theme_stylebox_override("normal",_cm_style("retry_main",Color("40391a"),Color("f0d27a"),2,14,8))
- _button(row,"Rejugar · río nuevo",func():_retry(true),54)
- _button(row,"Menú",_menu,54)
- var row2=_hbox(box,8)
- _button(row2,"Parte completo",func():_report_dialog(true),34)
- _button(row2,"Ver fuentes",_history_dialog,34)
- _history_toggle(box,r)
+ var go=_button(row,"Ir a Sostener el Norte (escenario 2)",func():_start_game("norte"),58);go.size_flags_horizontal=Control.SIZE_EXPAND_FILL;go.add_theme_font_size_override("font_size",20)
+ _primary_style(go)
+ _button(row,"Rejugar · mapa distinto",func():_retry(true),58)
+ _more_row(box,[["Parte completo",func():_report_dialog(true)],["Ver fuentes",_history_dialog],["Menú",_menu]],r)
  _juice("victory")
+ _victory_beat()
+
+# Cierre breve de la captura: la cámara va al buque, banner y destello antes de mostrar el resultado.
+func _victory_beat():
+ if qa_mode or benchmark_mode or not beat_enabled or not is_instance_valid(modal):return
+ _center_ship()
+ modal.modulate.a=0.0
+ if is_instance_valid(outcome_beat):outcome_beat.queue_free()
+ outcome_beat=_label(ui,"¡BUQUE JUSTINA TOMADO!",44,Color("f6dc92"),true)
+ outcome_beat.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;outcome_beat.mouse_filter=Control.MOUSE_FILTER_IGNORE
+ outcome_beat.add_theme_color_override("font_outline_color",Color(0.05,0.03,0.0,0.95));outcome_beat.add_theme_constant_override("outline_size",10)
+ _anchor(outcome_beat,0,0.5,1,0.5,0,-60,0,20)
+ var tw=create_tween()
+ tw.tween_interval(2.0)
+ tw.tween_callback(func():
+  if is_instance_valid(outcome_beat):outcome_beat.queue_free()
+  if is_instance_valid(modal):create_tween().tween_property(modal,"modulate:a",1.0,0.35))
 
 func _diary_dialog():
  var box=_open_modal("Diario del Bañado",860,_scroll_h(600.0,40.0))
@@ -3983,29 +4038,38 @@ func _diary_new_river():
  else:_close_modal()
 
 func _intro_card():
- var box=_open_modal("Justina · Buenos Aires, 12 de agosto de 1806",760,_scroll_h(500.0,40.0))
+ var box=_open_modal("Justina · Buenos Aires, 12 de agosto de 1806",760,_scroll_h(440.0,40.0))
  _rich(box,"[font_size=22][b]Objetivo:[/b] tomar el buque Justina, varado en el río, antes de que suba la marea.[/font_size]",22).custom_minimum_size.x=700
  _rich(box,"[font_size=18]Perder no es grave: volvés a jugar con [b]el mismo río[/b] y con lo que anotaste en el diario.[/font_size]",18).custom_minimum_size.x=700
  var n=int(progress.intentos)
  if n>0:
-  var line="Intento %d · diario: %d %s" % [n+1,progress.diario.size(),"anotación" if progress.diario.size()==1 else "anotaciones"]
+  var line="Intento %d · anotaste %d %s" % [n+1,progress.diario.size(),"cosa" if progress.diario.size()==1 else "cosas"]
   var hint=_aprendido_hint() if int(progress.derrotas_seguidas)>=2 else ""
   if not hint.is_empty():line+="\n[color=#f0d27a]Pista:[/color] "+_plain(hint)
   _rich(box,"[color=#aab7b5]"+line+"[/color]",15).custom_minimum_size.x=700
- for o in campaign.offered_assists(rules):
-  var cb=CheckBox.new();cb.text="%s: %s" % [str(o.label),str(o.text)];cb.add_theme_font_size_override("font_size",14);cb.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;cb.custom_minimum_size.x=700
-  cb.tooltip_text="Ayuda opcional. Con ayuda no hay medalla de oro."
+ var offered=campaign.offered_assists(rules)
+ if not offered.is_empty():_label(box,"AYUDAS OPCIONALES (sin ellas se puede ganar oro)",12,GOLD)
+ for o in offered:
   var oid=str(o.id)
+  var label_text="%s: %s" % [str(o.label),str(o.text)]
+  var cb=Button.new();cb.toggle_mode=true;cb.text="☐  "+label_text;cb.alignment=HORIZONTAL_ALIGNMENT_LEFT;cb.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+  cb.add_theme_font_size_override("font_size",14);cb.custom_minimum_size=Vector2(700,44);cb.focus_mode=Control.FOCUS_NONE
+  cb.add_theme_stylebox_override("normal",_cm_style("assist_off",Color("172326"),Color("65756c"),1,10,5))
+  cb.add_theme_stylebox_override("hover",_cm_style("assist_off_h",Color("1f3036"),Color("aab7b5"),1,10,5))
+  cb.add_theme_stylebox_override("pressed",_cm_style("assist_on",Color("40391a"),Color("f0d27a"),3,10,5))
+  cb.add_theme_stylebox_override("hover_pressed",_cm_style("assist_on",Color("40391a"),Color("f0d27a"),3,10,5))
+  cb.tooltip_text="Ayuda opcional: queda anotada en el parte y con ella no hay medalla de oro."
   cb.toggled.connect(func(on):
+   cb.text=("☑  " if on else "☐  ")+label_text
    if on and not intro_assists.has(oid):intro_assists.append(oid)
    elif not on:intro_assists.erase(oid))
   box.add_child(cb)
- _rich(box,"[color=#aab7b5]Tres pasos: medí el agua con un explorador, esperá a que el vado ceda, pedí carga a Liniers y abordá. El reloj arranca cuando apretás Espacio.[/color]",15).custom_minimum_size.x=700
+ _rich(box,"[color=#aab7b5]Cómo se juega: medí el agua con un explorador, esperá a que el vado ceda, pedí carga a Liniers y abordá. El reloj arranca con tu primera orden.[/color]",15).custom_minimum_size.x=700
  var row=_hbox(box,10)
- var go=_button(row,"Empezar",_intro_close,54);go.size_flags_horizontal=Control.SIZE_EXPAND_FILL;go.add_theme_font_size_override("font_size",20)
- go.add_theme_stylebox_override("normal",_cm_style("retry_main",Color("40391a"),Color("f0d27a"),2,14,8))
- _button(row,"Cómo se juega",_briefing_dialog,54)
- var tk=_button(row,"Saltar tutorial",_intro_skip_tutorial,54)
+ var go=_button(row,"Empezar",_intro_close,56);go.size_flags_horizontal=Control.SIZE_EXPAND_FILL;go.add_theme_font_size_override("font_size",20)
+ _primary_style(go)
+ _button(row,"Cómo se juega",_briefing_dialog,56)
+ var tk=_button(row,"Saltar tutorial",_intro_skip_tutorial,56)
  tk.tooltip_text="Sin los carteles guía. Se reabre con «Repetir tutorial» en la ayuda."
 
 func _intro_skip_tutorial():
@@ -4013,6 +4077,8 @@ func _intro_skip_tutorial():
 
 func _intro_close():
  campaign.mark_tutorial_seen()
+ auto_start_pending=paused and float(rules.state.elapsed)<0.5
+ if bool(settings.tutorial) and rules.probes().is_empty():_select_ids(["scout_1"])
  var ap=campaign.apply_assists(rules,intro_assists)
  if not ap.is_empty():_toast("Ayuda en uso: "+", ".join(ap)+". La medalla de oro queda fuera.",6)
  _progress_sync()
@@ -4041,6 +4107,7 @@ func _abandon():
 const PLAIN_SWAPS=[["Orden de avance","Permiso de carga"],["orden de avance","permiso de carga"],["Señales de Liniers","Avisos a Liniers"],["Señalar a Liniers","Pedir carga a Liniers"],["señales","avisos"],["Señales","Avisos"],["Balizas","Estacas"],["balizas","estacas"],["baliza","estaca"],["Pólvora de reserva","Munición de reserva"],["pólvora de reserva","munición de reserva"],["Reconocer fondo","Sondear el agua"]]
 func _plain(t:String)->String:
  for p in PLAIN_SWAPS:t=t.replace(str(p[0]),str(p[1]))
+ t=t.replace(" 1 pozo(s)"," 1 pozo").replace("pozo(s)","pozos")
  return t
 
 # Una frase corta para el cartel transitorio: sin explicaciones de diseño ni notas largas.
@@ -4091,16 +4158,53 @@ func _draw_volley_warning():
  var pc=_project(Vector3(ax,_ground_y(ax,az)+3.0,az))
  var font=_font()
  var txt=("¡ANDANADA FUERTE %d!" if strong else "¡DESCARGA %d!") % ceili(left)
- var sz=font.get_string_size(txt,HORIZONTAL_ALIGNMENT_LEFT,-1,18)
+ var sz=font.get_string_size(txt,HORIZONTAL_ALIGNMENT_LEFT,-1,22)
+ var view=get_viewport().get_visible_rect().size
+ # El cartel va fijo arriba al centro (no tapa a las tropas); una flecha corta lo une con el círculo.
+ var rc=Rect2(Vector2(view.x*0.5-(sz.x+32.0)*0.5,58.0),Vector2(sz.x+32.0,sz.y+34.0))
+ overlay_top.draw_rect(rc,Color(0.3,0.05,0.04,0.95));overlay_top.draw_rect(rc,Color(base.r,base.g,base.b,1.0),false,3.0)
+ overlay_top.draw_string(font,rc.position+Vector2(16,sz.y),txt,HORIZONTAL_ALIGNMENT_LEFT,-1,22,Color("ffe3d8"))
+ overlay_top.draw_string(font,rc.position+Vector2(16,sz.y+22),"Sacá al grupo del círculo" if left>0.6 else "",HORIZONTAL_ALIGNMENT_LEFT,-1,13,Color("ffd9cf"))
  if pc!=null:
-  var rc=Rect2(pc+Vector2(-sz.x*0.5-8,-sz.y-14),sz+Vector2(16,8))
-  overlay_top.draw_rect(rc,Color(0.3,0.05,0.04,0.92));overlay_top.draw_rect(rc,Color(base.r,base.g,base.b,1.0),false,2.0)
-  overlay_top.draw_string(font,rc.position+Vector2(8,sz.y-1),txt,HORIZONTAL_ALIGNMENT_LEFT,-1,18,Color("ffd9cf"))
-  var hint="Salí del círculo" if left>0.6 else ""
-  if hint!="":overlay_top.draw_string(font,rc.position+Vector2(8,sz.y+20),hint,HORIZONTAL_ALIGNMENT_LEFT,-1,13,Color("ffd9cf"))
+  var pr=Rect2(Vector2(8,60),view-Vector2(16,70))
+  if pr.has_point(pc):
+   overlay_top.draw_line(Vector2(rc.position.x+rc.size.x*0.5,rc.end.y),pc+Vector2(0,-6),Color(base.r,base.g,base.b,0.55+0.3*pulse),2.0,true)
+   overlay_top.draw_circle(pc+Vector2(0,-6),5.0,Color(base.r,base.g,base.b,0.9))
  var sp=rules.ship_position()
  var p=_project(Vector3(sp.x,_ground_y(sp.x,sp.y)+6.0,sp.y))
  if p!=null:overlay_top.draw_arc(p,26.0+pulse*8.0,0,TAU,32,Color(base.r,base.g,base.b,0.55+0.3*pulse),3.0)
+
+# Flecha que rebota sobre lo que hay que tocar y anillo dorado de objetivo sobre el buque.
+func _guide_arrow(p:Vector2,text_value:String):
+ var bob=sin(Time.get_ticks_msec()*0.006)*6.0
+ var tip=p+Vector2(0,-12.0+bob)
+ var col=Color("f0d27a")
+ overlay_top.draw_colored_polygon(PackedVector2Array([tip,tip+Vector2(-13,-22),tip+Vector2(13,-22)]),col)
+ overlay_top.draw_rect(Rect2(tip+Vector2(-5,-44),Vector2(10,22)),col)
+ if text_value.is_empty():return
+ var font=_font()
+ var sz=font.get_string_size(text_value,HORIZONTAL_ALIGNMENT_LEFT,-1,15)
+ var view=get_viewport().get_visible_rect().size
+ var rc=Rect2(tip+Vector2(-sz.x*0.5-8,-76),sz+Vector2(16,8))
+ rc.position.x=clampf(rc.position.x,6.0,view.x-rc.size.x-6.0);rc.position.y=maxf(rc.position.y,60.0)
+ overlay_top.draw_rect(rc,Color(0.13,0.1,0.02,0.94));overlay_top.draw_rect(rc,col,false,2.0)
+ overlay_top.draw_string(font,rc.position+Vector2(8,sz.y-2),text_value,HORIZONTAL_ALIGNMENT_LEFT,-1,15,Color("fff0c4"))
+
+func _draw_guides():
+ if mode!="play" or str(rules.state.status)!="playing" or not is_instance_valid(world) or is_instance_valid(modal):return
+ var sp=rules.ship_position()
+ var pship=_project(Vector3(sp.x,_ground_y(sp.x,sp.y)+6.0,sp.y))
+ if pship!=null and rules.state.get("pending_shot",{}).is_empty():
+  var pulse=0.5+0.5*sin(Time.get_ticks_msec()*0.005)
+  overlay_top.draw_arc(pship,30.0+pulse*5.0,0,TAU,40,Color(0.94,0.82,0.48,0.35+0.3*pulse),3.0)
+  if float(rules.state.elapsed)<0.5 and bool(settings.tutorial):
+   var ft=get_viewport().get_visible_rect().size
+   if Rect2(Vector2(10,60),ft-Vector2(20,70)).has_point(pship):_guide_arrow(pship+Vector2(0,-30),"Objetivo: el buque")
+ if not bool(settings.tutorial):return
+ if tut_step==0 and world.unit_nodes.has("scout_1"):
+  var ps=_project(world.unit_nodes["scout_1"].root.global_position+Vector3(0,4.0,0))
+  if ps!=null:_guide_arrow(ps,"Medí el agua (Z)" if sel_ids.has("scout_1") else "Elegí al explorador 4")
+ elif tut_step==3 and pship!=null:_guide_arrow(pship+Vector2(0,-30),"Cargá contra el buque")
 
 # Marco ámbar mientras el tiempo está detenido: se ve de un vistazo si el reloj corre.
 func _draw_pause_frame():
