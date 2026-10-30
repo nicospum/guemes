@@ -89,7 +89,7 @@ func _new_j(seed_value: int = 7, keep_variant: bool = false) -> RefCounted:
 ## Ronda 9: el río se comprimió (0:30-4:10 baja, mínimo hasta 10:40, plazo 13:00). Convierte un instante del cronograma viejo (60/450/960/1080) a su equivalente de fase.
 func _tt(old: float) -> float:
 	var xs := [0.0, 60.0, 450.0, 960.0, 1080.0]
-	var ys := [0.0, 30.0, 250.0, 640.0, 760.0]
+	var ys := [0.0, 30.0, 250.0, 700.0, 830.0]
 	for i in range(1, xs.size()):
 		if old <= xs[i]:
 			return ys[i - 1] + (old - xs[i - 1]) / (xs[i] - xs[i - 1]) * (ys[i] - ys[i - 1])
@@ -181,13 +181,13 @@ func _test_speed_table() -> void:
 
 func _test_tide_and_windows() -> void:
 	var r := _new_j()
-	var expected := {0: [1.65, "alta"], 30: [1.65, "bajando"], 140: [0.825, "bajando"], 250: [0.0, "baja"], 500: [0.0, "baja"], 640: [0.0, "subiendo"], 700: [0.825, "subiendo"], 760: [1.65, "subiendo"]}
+	var expected := {0: [1.65, "alta"], 30: [1.65, "bajando"], 140: [0.825, "bajando"], 250: [0.0, "baja"], 500: [0.0, "baja"], 700: [0.0, "subiendo"], 765: [0.825, "subiendo"], 830: [1.65, "subiendo"]}
 	for t in expected:
 		var td: Dictionary = r.tide_at(float(t))
 		check(_near(td.level_m, expected[t][0], 1e-6) and td.phase == expected[t][1], "tide_at(%d) = %.3f m, %s" % [t, expected[t][0], expected[t][1]])
 		check(_near(td.level_norm, 0.05 + 0.9 * td.level_m / 1.65, 1e-6), "level_norm derivado a t=%d" % t)
 	var marks: Dictionary = r.tide_marks()
-	check(marks.drop_start == 30.0 and marks.drop_end == 250.0 and marks.low_hold_end == 640.0 and marks.rise_end == 760.0 and marks.deadline == 780.0, "tide_marks")
+	check(marks.drop_start == 30.0 and marks.drop_end == 250.0 and marks.low_hold_end == 700.0 and marks.rise_end == 830.0 and marks.deadline == 840.0, "tide_marks")
 	# antes de sondear: sin certeza (la ventana es la percibida, optimista)
 	var bp: Vector2 = r.board_point()
 	var before: Dictionary = r.ford_window(bp.x, bp.y)
@@ -199,9 +199,9 @@ func _test_tide_and_windows() -> void:
 	r.state.probes.append({"id": "t1", "kind": "lane", "pts": [{"x": 540.0, "z": 262.0}, {"x": 556.0, "z": 262.0}], "width": 6.0, "t": 0.0, "scout": "scout_1"})
 	r.state.probes.append({"id": "t2", "kind": "lane", "pts": [{"x": 300.0, "z": 403.0}, {"x": 310.0, "z": 403.0}], "width": 6.0, "t": 0.0, "scout": "scout_1"})
 	var w: Dictionary = r.ford_window(548, 262)
-	check(w.certain and _near(w.opens_at, 210.0, 5.0) and _near(w.closes_at, 662.0, 5.0), "ford_window del vado del buque ≈ 210..662 s (abre antes de 3:30) (obtenido %.1f..%.1f)" % [w.opens_at, w.closes_at])
+	check(w.certain and _near(w.opens_at, 210.0, 5.0) and _near(w.closes_at, 722.0, 5.0), "ford_window del vado del buque ≈ 210..722 s (abre antes de 3:30) (obtenido %.1f..%.1f)" % [w.opens_at, w.closes_at])
 	var ws: Dictionary = r.ford_window(305, 403)
-	check(ws.certain and _near(ws.opens_at, 197.0, 5.0) and _near(ws.closes_at, 669.0, 5.0), "ford_window del vado sur ≈ 197..669 s (obtenido %.1f..%.1f)" % [ws.opens_at, ws.closes_at])
+	check(ws.certain and _near(ws.opens_at, 197.0, 5.0) and _near(ws.closes_at, 730.0, 5.0), "ford_window del vado sur ≈ 197..730 s (obtenido %.1f..%.1f)" % [ws.opens_at, ws.closes_at])
 	check(_near(w.depth_at_low_m, 1.0, 0.02), "Profundidad del vado del buque con el río en mínimo ≈ 1,0 m")
 	r.state.probes.append({"id": "t3", "kind": "lane", "pts": [{"x": 335.0, "z": 264.0}, {"x": 350.0, "z": 264.0}], "width": 6.0, "t": 0.0, "scout": "scout_1"})
 	var never: Dictionary = r.ford_window(345, 264)
@@ -212,7 +212,7 @@ func _test_tide_and_windows() -> void:
 	check(_near(q.state.water_level_m, 0.825, 1e-6) and q.state.tide_phase == "bajando" and _near(q.state.water_level, 0.5, 1e-6), "El estado sigue la bajante (t=140)")
 	_advance(q, 400.0)
 	check(q.state.tide_phase == "baja" and q.state.bajante_announced and not q.state.rising_announced, "Aviso de bajante emitido y aún sin aviso de subida")
-	_advance(q, 700.0)
+	_advance(q, 760.0)
 	check(q.state.tide_phase == "subiendo" and q.state.rising_announced, "Aviso de subida emitido")
 
 # ---------------------------------------------------------------------------
@@ -686,7 +686,7 @@ func _test_round5_data() -> void:
 	for v in m.time.variants:
 		if str(v.id) == "lenta":
 			lenta = v
-	check(float(lenta.drop_start_s) == 40.0 and float(lenta.drop_end_s) == 285.0 and float(lenta.low_hold_end_s) == 640.0, "La condición «lenta» corre la bajante ~15 s")
+	check(float(lenta.drop_start_s) == 40.0 and float(lenta.drop_end_s) == 285.0 and float(lenta.low_hold_end_s) == 700.0, "La condición «lenta» corre la bajante ~15 s")
 	var f := FileAccess.open("res://data/history.json", FileAccess.READ)
 	var hist: Dictionary = JSON.parse_string(f.get_as_text())
 	var htxt := JSON.stringify(hist.scenarios.justine).to_lower()
@@ -1194,11 +1194,11 @@ const SOUTH_BOARD_WP := [Vector2(450, 455), Vector2(520, 440), Vector2(565, 390)
 const STRATEGY_NAMES := ["rush_central", "rush_gallop", "blind_north_edge", "central_center_lane", "central_flank_lane", "central_flank_pair", "central_hasty", "central_bare", "central_flank_stagger", "central_flank_noreply", "south_full", "south_vado_only", "south_bare", "south_wrong_crossing", "south_noreply", "mixed_split", "late_all_in", "passive"]
 
 func _central_common() -> Dictionary:
-	return {"signal_t": 180.0, "resupply": true, "muster": 1, "stage": STAGE_CENTRAL, "stage_t": 260.0, "board_t": 330.0, "wait_probes": true, "wait_max": 330.0, "signal_on_go": true, "cover": true, "fire": true, "repel": true, "evac": true}
+	return {"signal_t": 100.0, "resupply": true, "muster": 1, "stage": STAGE_CENTRAL, "stage_t": 120.0, "board_t": 170.0, "wait_probes": true, "wait_max": 120.0, "signal_on_go": true, "cover": true, "fire": true, "repel": true, "evac": true}
 
 func _south_common() -> Dictionary:
-	return {"signal_t": 290.0, "resupply": true, "muster": 1, "stage": STAGE_SOUTH, "stage_t": 220.0, "stage2": STAGE_SOUTH_EXIT, "stage2_t": 390.0, "stage2_wp": [Vector2(300, 403)], "board_t": 390.0, "wp": SOUTH_BOARD_WP, "wait_probes": true, "wait_max": 420.0, "signal_on_go": true, "fire": true, "cover": true, "repel": true, "evac": true,
-		"mark_t": 150.0, "probes": [{"who": "scout_1", "t": 100.0, "pts": PROBE_SOUTH_VADO, "careful": false}]}
+	return {"signal_t": 200.0, "resupply": true, "muster": 1, "stage": STAGE_SOUTH, "stage_t": 200.0, "stage2": STAGE_SOUTH_EXIT, "stage2_t": 270.0, "stage2_wp": [Vector2(300, 403)], "board_t": 270.0, "wp": SOUTH_BOARD_WP, "wait_probes": true, "wait_max": 170.0, "signal_on_go": true, "fire": true, "cover": true, "repel": true, "evac": true,
+		"mark_t": 170.0, "probes": [{"who": "scout_1", "t": 150.0, "pts": PROBE_SOUTH_VADO, "careful": false}]}
 
 func _with(base: Dictionary, extra: Dictionary) -> Dictionary:
 	var out := base.duplicate(true)
@@ -1207,28 +1207,28 @@ func _with(base: Dictionary, extra: Dictionary) -> Dictionary:
 	return out
 
 func _strategy_cfg(name: String) -> Dictionary:
-	var south_bank := {"who": "scout_1", "t": 355.0, "pts": PROBE_SOUTH_BANK, "careful": true, "after_found": "vado_sur"}
+	var south_bank := {"who": "scout_1", "t": 200.0, "pts": PROBE_SOUTH_BANK, "careful": true, "after_found": "vado_sur"}
 	match name:
 		"rush_central":
 			return {"signal_t": 0.0, "board_t": 0.0}
 		"rush_gallop":
 			return {"signal_t": 0.0, "board_t": 0.0, "pace": "gallop"}
 		"blind_north_edge":
-			return {"signal_t": 180.0, "resupply": true, "muster": 1, "stage": Vector2(255, 226), "stage_t": 200.0, "board_t": 340.0, "wp": NORTH_EDGE, "fire": true, "repel": true}
+			return {"signal_t": 100.0, "resupply": true, "muster": 1, "stage": Vector2(255, 226), "stage_t": 110.0, "board_t": 180.0, "wp": NORTH_EDGE, "fire": true, "repel": true}
 		"central_center_lane":
-			return _with(_central_common(), {"probes": [{"who": "scout_1", "t": 250.0, "pts": PROBE_CENTER, "careful": true}]})
+			return _with(_central_common(), {"probes": [{"who": "scout_1", "t": 90.0, "pts": PROBE_CENTER, "careful": true}]})
 		"central_flank_lane":
-			return _with(_central_common(), {"flank": true, "probes": [{"who": "scout_1", "t": 255.0, "pts": PROBE_FLANK_N, "careful": true}]})
+			return _with(_central_common(), {"flank": true, "probes": [{"who": "scout_1", "t": 90.0, "pts": PROBE_FLANK_N, "careful": true}]})
 		"central_flank_pair":
-			return _with(_central_common(), {"flank": true, "probes": [{"who": "scout_1", "t": 255.0, "pts": PROBE_FLANK_N, "careful": true}, {"who": "scout_2", "t": 255.0, "pts": PROBE_FLANK_S, "careful": true}]})
+			return _with(_central_common(), {"flank": true, "probes": [{"who": "scout_1", "t": 90.0, "pts": PROBE_FLANK_N, "careful": true}, {"who": "scout_2", "t": 90.0, "pts": PROBE_FLANK_S, "careful": true}]})
 		"central_hasty":
-			return _with(_central_common(), {"flank": true, "cover": false, "probes": [{"who": "scout_1", "t": 250.0, "pts": PROBE_FLANK_N, "careful": false}], "wait_max": 120.0})
+			return _with(_central_common(), {"flank": true, "cover": false, "probes": [{"who": "scout_1", "t": 90.0, "pts": PROBE_FLANK_N, "careful": false}], "wait_max": 60.0})
 		"central_bare":
-			return {"signal_on_go": true, "stage": STAGE_CENTRAL, "stage_t": 260.0, "board_t": 330.0, "flank": true, "wait_probes": true, "wait_max": 330.0, "probes": [{"who": "scout_1", "t": 250.0, "pts": PROBE_FLANK_N, "careful": true}]}
+			return {"signal_on_go": true, "stage": STAGE_CENTRAL, "stage_t": 120.0, "board_t": 170.0, "flank": true, "wait_probes": true, "wait_max": 120.0, "probes": [{"who": "scout_1", "t": 90.0, "pts": PROBE_FLANK_N, "careful": true}]}
 		"central_flank_stagger":
-			return _with(_central_common(), {"flank": true, "stagger": 45.0, "probes": [{"who": "scout_1", "t": 255.0, "pts": PROBE_FLANK_N, "careful": true}]})
+			return _with(_central_common(), {"flank": true, "stagger": 45.0, "probes": [{"who": "scout_1", "t": 90.0, "pts": PROBE_FLANK_N, "careful": true}]})
 		"central_flank_noreply":
-			return _with(_central_common(), {"flank": true, "repel": false, "evac": false, "probes": [{"who": "scout_1", "t": 255.0, "pts": PROBE_FLANK_N, "careful": true}]})
+			return _with(_central_common(), {"flank": true, "repel": false, "evac": false, "probes": [{"who": "scout_1", "t": 90.0, "pts": PROBE_FLANK_N, "careful": true}]})
 		"south_full":
 			var c := _south_common()
 			c.probes = [c.probes[0], south_bank]
@@ -1236,9 +1236,9 @@ func _strategy_cfg(name: String) -> Dictionary:
 		"south_vado_only":
 			return _south_common()
 		"south_bare":
-			return {"signal_t": 290.0, "signal_on_go": true, "stage": STAGE_SOUTH, "stage_t": 220.0, "stage2": STAGE_SOUTH_EXIT, "stage2_t": 390.0, "stage2_wp": [Vector2(300, 403)], "board_t": 390.0, "wp": SOUTH_BOARD_WP, "wait_probes": true, "wait_max": 420.0, "mark_t": 150.0, "probes": [{"who": "scout_1", "t": 100.0, "pts": PROBE_SOUTH_VADO, "careful": false}]}
+			return {"signal_t": 200.0, "signal_on_go": true, "stage": STAGE_SOUTH, "stage_t": 130.0, "stage2": STAGE_SOUTH_EXIT, "stage2_t": 230.0, "stage2_wp": [Vector2(300, 403)], "board_t": 270.0, "wp": SOUTH_BOARD_WP, "wait_probes": true, "wait_max": 170.0, "mark_t": 170.0, "probes": [{"who": "scout_1", "t": 150.0, "pts": PROBE_SOUTH_VADO, "careful": false}]}
 		"south_wrong_crossing":
-			return {"signal_t": 150.0, "resupply": true, "muster": 1, "stage": Vector2(255, 360), "stage_t": 220.0, "board_t": 340.0, "wp": [Vector2(300, 360), Vector2(450, 455), Vector2(520, 440), Vector2(565, 390)], "fire": true, "repel": true}
+			return {"signal_t": 90.0, "resupply": true, "muster": 1, "stage": Vector2(255, 360), "stage_t": 130.0, "board_t": 190.0, "wp": [Vector2(300, 360), Vector2(450, 455), Vector2(520, 440), Vector2(565, 390)], "fire": true, "repel": true}
 		"south_noreply":
 			var c2 := _south_common()
 			c2.probes = [c2.probes[0], south_bank]
@@ -1247,12 +1247,12 @@ func _strategy_cfg(name: String) -> Dictionary:
 			return c2
 		"mixed_split":
 			var c3 := _south_common()
-			c3.probes = [c3.probes[0], south_bank, {"who": "scout_2", "t": 255.0, "pts": PROBE_FLANK_N, "careful": true}]
+			c3.probes = [c3.probes[0], south_bank, {"who": "scout_2", "t": 90.0, "pts": PROBE_FLANK_N, "careful": true}]
 			c3.split = true
 			c3.cover = true
 			return c3
 		"late_all_in":
-			return {"signal_t": 360.0, "resupply": true, "muster": 1, "board_t": 1000.0, "fire": true}
+			return {"signal_t": 200.0, "resupply": true, "muster": 1, "board_t": 1000.0, "fire": true}
 		"passive":
 			return {}
 	return {}
@@ -1447,6 +1447,10 @@ func _run_strategy(policy: String, seed_value: int = 7) -> Dictionary:
 				prev_zero[u.id] = zero
 		s.t = float(s.r.state.elapsed)
 	var rep: Dictionary = s.r.campaign_report()
+	if "--events" in OS.get_cmdline_user_args():
+		for ev in s.r.state.log:
+			if str(ev.kind) in ["warning", "stumble", "recon", "boarding", "counter", "signal", "last_effort"]:
+				print("      [%d] %s: %s" % [int(ev.time), ev.kind, str(ev.text).substr(0, 110)])
 	return {"policy": policy, "seed": seed_value, "status": s.r.state.status, "t": float(s.r.state.elapsed), "loss_pct": float(rep.loss_total_pct), "stumbles": int(s.r.state.stats.stumbles),
 		"exposure": s.r.state.stats.exposure_s.duplicate(true), "route": rep.route, "ammo_used": int(s.r.state.stats.ammo_used), "probe_m": float(s.r.state.stats.probe_m),
 		"stranded": stranded, "report": rep, "fire_uses": int(s.mem.get("fire_uses", 0)), "capture": float(s.r.state.capture), "boarded_at": float(s.r.state.stats.boarded_at),
@@ -1510,6 +1514,8 @@ func _print_matrix() -> void:
 			ch += int(res.counter_hits)
 			cr += int(res.counter_repelled)
 			line += " %s%d" % ["V" if res.status == "victory" else "d", int(res.t)]
+			if "--notes" in OS.get_cmdline_user_args():
+				print("   ", p, sd, res.status, int(res.t), str(res.report.route_notes), str(res.report.hidden_picks), "mission", str(res.report.mission_id))
 			if "--expo" in OS.get_cmdline_user_args():
 				print("   ", p, sd, JSON.stringify(res.exposure), "boarded", int(res.boarded_at), "t", int(res.t), "dmg", int(res.report.damage_taken))
 		print("%-22s WIN: loss %3.0f%% expo %3.0f | wins %d/%d t_avg %4.0f loss %3.0f%% expo %4.0f board %4.0f horses %3.0f melee %3.0f fire %3.0f scoutsL %d stumbles %d cnt %d/%d %s |%s" % [p, wl / maxf(1.0, wins), we / maxf(1.0, wins), wins, seeds.size(), tsum / maxf(1.0, wins), lsum / seeds.size(), esum / seeds.size(), ba / seeds.size(), hl / seeds.size(), ml / seeds.size(), dg / seeds.size(), sl, st_sum, cr, ch + cr, str(routes.keys()), line])

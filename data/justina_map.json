@@ -43,9 +43,9 @@
     "step_s": 0.25,
     "drop_start_s": 30.0,
     "drop_end_s": 250.0,
-    "low_hold_end_s": 640.0,
-    "rise_end_s": 760.0,
-    "deadline_s": 780.0,
+    "low_hold_end_s": 700.0,
+    "rise_end_s": 830.0,
+    "deadline_s": 840.0,
     "variants": [
       {
         "id": "normal",
@@ -54,9 +54,9 @@
         "tag": "diseno",
         "drop_start_s": 30.0,
         "drop_end_s": 250.0,
-        "low_hold_end_s": 640.0,
-        "rise_end_s": 760.0,
-        "note": "Valores base. El río baja entre 0:30 y 4:30, queda en mínimo hasta 10:40 y vuelve a subir hasta el plazo (13:00)."
+        "low_hold_end_s": 700.0,
+        "rise_end_s": 830.0,
+        "note": "Valores base. El río baja entre 0:30 y 4:10, queda en mínimo hasta 11:40 y vuelve a subir hasta el plazo (14:00)."
       },
       {
         "id": "sostenida",
@@ -65,8 +65,8 @@
         "tag": "diseno",
         "drop_start_s": 25.0,
         "drop_end_s": 230.0,
-        "low_hold_end_s": 690.0,
-        "rise_end_s": 780.0,
+        "low_hold_end_s": 760.0,
+        "rise_end_s": 840.0,
         "note": "Bajante rápida y mínimo largo: ventana holgada. Es la compensación de la variante de misión «viento fuerte»."
       },
       {
@@ -76,19 +76,19 @@
         "tag": "diseno",
         "drop_start_s": 40.0,
         "drop_end_s": 285.0,
-        "low_hold_end_s": 640.0,
-        "rise_end_s": 760.0,
+        "low_hold_end_s": 700.0,
+        "rise_end_s": 830.0,
         "note": "Reservada: el vado abre ~15 s más tarde. Ninguna variante de misión la sortea por defecto (la ronda 9 quitó la variante «breve», que dejaba la ruta sur sin tiempo)."
       }
     ],
     "variants_note": "Ronda 9: la condición del río ya no se sortea aparte; la fija la variante de misión (mission_variants). La variante «breve» se eliminó por injusta.",
     "tag": "diseno",
-    "note": "Ronda 9 (DISEÑO, directriz de diversión): partida comprimida. Bajante 0:30-4:30, mínimo hasta 10:40, subida hasta el plazo duro de 13:00. El vado central abre ~3:20. Gillespie (1818, pp. 35-36) liga la bajada a las brisas, pero los tiempos son elección de juego: la diversión manda sobre el cronograma histórico. // Nota original (rondas 1-8): Bajante 390 s (6,5 min), mínimo sostenido 510 s, subida 120 s. Plazo 18 min (partida objetivo 12-18 min). Gillespie (1818, pilotaje, pp. 35-36) escribe que en estaciones ordinarias el río sube o baja a veces siete u ocho pies (≈ 2,1-2,4 m) 'bajo el control arbitrario de las brisas casuales', y que por esa causa un buque de fuerza quedó 'left dry' (en seco) y fue abordado por caballería el día de la rendición: SÍ liga la bajada al viento y SÍ habla de buque en seco. Lo que no consta es el viento concreto del 12/8/1806 (sin serie de viento, presión ni nivel), ni la cota, la hora o la forma del fondo (las bajantes por vientos del oeste/noroeste de hoy, ~1,65 m, son mecánica moderna: Meccia 2008). Los tiempos, el nivel de 1,65 m y el banco 'parcialmente inundado' (en lugar del 'en seco' de Gillespie) son elecciones de DISEÑO para que exista un vado jugable; ver docs/DISENO_JUSTINA.md 2.4.",
-    "no_return_s": 600.0,
+    "note": "Ronda 9 (DISEÑO, directriz de diversión): partida comprimida. Bajante 0:30-4:10, mínimo hasta 11:40, subida hasta el plazo duro de 14:00 (ronda 9: 13:00 dejaba sin tiempo a la ruta sur). El vado central abre ~3:30. Gillespie (1818, pp. 35-36) liga la bajada a las brisas, pero los tiempos son elección de juego: la diversión manda sobre el cronograma histórico. // Nota original (rondas 1-8): Bajante 390 s (6,5 min), mínimo sostenido 510 s, subida 120 s. Plazo 18 min (partida objetivo 12-18 min). Gillespie (1818, pilotaje, pp. 35-36) escribe que en estaciones ordinarias el río sube o baja a veces siete u ocho pies (≈ 2,1-2,4 m) 'bajo el control arbitrario de las brisas casuales', y que por esa causa un buque de fuerza quedó 'left dry' (en seco) y fue abordado por caballería el día de la rendición: SÍ liga la bajada al viento y SÍ habla de buque en seco. Lo que no consta es el viento concreto del 12/8/1806 (sin serie de viento, presión ni nivel), ni la cota, la hora o la forma del fondo (las bajantes por vientos del oeste/noroeste de hoy, ~1,65 m, son mecánica moderna: Meccia 2008). Los tiempos, el nivel de 1,65 m y el banco 'parcialmente inundado' (en lugar del 'en seco' de Gillespie) son elecciones de DISEÑO para que exista un vado jugable; ver docs/DISENO_JUSTINA.md 2.4.",
+    "no_return_s": 660.0,
     "no_return_warn_s": [
-      360.0,
-      480.0,
-      570.0
+      420.0,
+      540.0,
+      630.0
     ]
   },
   "tide": {
@@ -1168,8 +1168,8 @@
     "fire": {
       "range_m": 265.0,
       "volley_interval_s": 7.5,
-      "damage_min": 6.6,
-      "damage_max": 9.9,
+      "damage_min": 6.0,
+      "damage_max": 9.0,
       "arc_factors": {
         "broadside_half_deg": 40.0,
         "broadside": 1.0,
@@ -1221,8 +1221,8 @@
         "radius_m": 9.0,
         "strong_every_n": 6,
         "strong_lead_s": 4.0,
-        "strong_mult": 1.6,
-        "strong_radius_m": 15.0,
+        "strong_mult": 1.5,
+        "strong_radius_m": 10.0,
         "note": "Ronda 9 (C7): cada descarga se anuncia antes (evento shot_warning con posición apuntada, instante de impacto y si es fuerte). El buque apunta a donde estará el grupo: si el grupo se detiene, cambia de rumbo o se aleja más que el radio, la descarga cae al agua. Cada 6.ª descarga (≈45 s) es fuerte: aviso de 4 s, daño ×1,6 sobre todo lo que esté dentro del radio ampliado."
       }
     },
@@ -1421,7 +1421,7 @@
     "ammo_max": 40,
     "ammo_reserve": 16,
     "signals_max": 2,
-    "reserve_note": "Recursos limitados que obligan a elegir: la batería solo tiene 16 de pólvora de reserva (se retira de una vez con 'Abastecer'), Liniers concede como mucho 2 órdenes de avance, quedan 60 voluntarios y 16 balizas. Munición total disponible ≈ 12 + 2×8 + 16 = 44; el fuego de distracción cuesta 8, reunir 4, rechazar un contraataque 3. Ronda 9: la variante «munición escasa» baja la munición inicial a 8.",
+    "reserve_note": "Recursos limitados que obligan a elegir: la batería solo tiene 16 de pólvora de reserva (se retira de una vez con 'Abastecer'), Liniers concede como mucho 2 órdenes de avance, quedan 60 voluntarios y 16 balizas. Munición total disponible ≈ 12 + 2×8 + 16 = 44; el fuego de distracción cuesta 8, reunir 4, rechazar un contraataque 3. Ronda 9: la variante «munición escasa» baja la munición inicial a 9.",
     "balizas_start": 16,
     "volunteers_pool": 60.0,
     "scout_hp": 4
@@ -3713,8 +3713,8 @@
       {
         "id": "municion_escasa",
         "label": "Munición escasa, pero llegan voluntarios",
-        "consequence": "Empezás con 8 de munición en vez de 12, pero hay 100 voluntarios para reunir.",
-        "ammo_start_delta": -4,
+        "consequence": "Empezás con 9 de munición en vez de 12, pero hay 100 voluntarios para reunir.",
+        "ammo_start_delta": -3,
         "volunteers_delta": 40,
         "favors": "central"
       },
@@ -3787,7 +3787,7 @@
         "id": "rio_minimo",
         "t": 270.0,
         "kind": "tide",
-        "text": "El río llegó a su mínimo. El vado está abierto: cada minuto cuenta antes de que vuelva a subir (plazo 13:00)."
+        "text": "El río llegó a su mínimo. El vado está abierto: cada minuto cuenta antes de que vuelva a subir (plazo 14:00)."
       },
       {
         "id": "voluntarios",
@@ -3800,7 +3800,7 @@
         "id": "liniers_3",
         "t": 420.0,
         "kind": "liniers",
-        "text": "Liniers: «Quedan seis minutos de plazo. Quien no cargó, que cargue.»"
+        "text": "Liniers: «Quedan siete minutos de plazo. Quien no cargó, que cargue.»"
       }
     ]
   },
@@ -3838,8 +3838,8 @@
         "advice": "Si fue sin querer: está en el menú de pausa y pide confirmación. Si fue a propósito, ¡volvé a intentarlo!"
       },
       "inaccion": {
-        "cause": "Pasó el punto sin retorno (10:00) sin que nadie cargara contra el buque.",
-        "advice": "Sondeá y señalá a Liniers temprano: a los 6:00 ya tenés que estar en posición."
+        "cause": "Pasó el punto sin retorno (11:00) sin que nadie cargara contra el buque.",
+        "advice": "Sondeá y señalá a Liniers temprano: a los 7:00 ya tenés que estar en marcha."
       }
     },
     "stumble_advice": "Tropezaste en {n} pozo(s): sondeá ese flanco antes de cruzar (ya quedó anotado).",
