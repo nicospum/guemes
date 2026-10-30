@@ -2,6 +2,17 @@
 
 Elegí **I · El río ofrece una oportunidad** (la Justina, en **tiempo real con pausa**) o **II · Sostener el norte** (la campaña contra La Serna, por rondas). Los dos se juegan sin conexión. La ayuda está en **F1** (o **?** en la Justina) durante la partida.
 
+> **Tus primeros 60 segundos en la Justina** (tiempo real con pausa; empieza en pausa)
+>
+> 1. **Espacio** inicia o pausa el reloj. Con el tiempo detenido podés seguir ordenando: es la forma recomendada de jugar.
+> 2. **4 o 5** elige un explorador y **Z** («Reconocer fondo») + clic en el agua sondea el río: sin eso no sabés por dónde cruzar.
+> 3. **1** elige a Güemes y los jinetes y **K** («Señalar a Liniers») da la orden de avance (hay solo dos señales).
+> 4. **N** («Cargar y abordar») o clic derecho para trazar la ruta; el cartel muestra destino, tiempo y riesgo. **Ctrl+Z** deshace.
+> 5. Si aparece el **contraataque**, tenés 14 s: **coma (,)** «Rechazar». Dejá «Pausa auto: sí» y el juego se detiene solo.
+>
+> Perdido: **F1** o **?** abre la ayuda y repite el tutorial; **0** muestra todo el mapa; **B** va al buque.
+> Para ver cómo se «diseñan» las tropas: **Despliegue previo** (panel izquierdo).
+
 Hay dos modos de tiempo distintos, y cada pantalla lo dice:
 
 | Escenario | Cómo corre el tiempo |

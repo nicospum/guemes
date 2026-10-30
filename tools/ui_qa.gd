@@ -240,6 +240,8 @@ func _run() -> void:
 	await _frames(10)
 	check(is_instance_valid(game.modal) and game.find_children("*", "Label", true, false).any(func(l): return str(l.text).find("Punto de partida") >= 0), "Justina: el despliegue previo muestra puntos de partida")
 	check(Rect2(Vector2.ZERO, root.get_visible_rect().size).encloses((game.modal.get_child(1) as Control).get_global_rect()), "Justina: el despliegue previo entra en pantalla")
+	check(game.find_children("*", "RichTextLabel", true, false).any(func(l): return str(l.text).find("Consecuencias") >= 0), "Justina: el despliegue previo muestra las consecuencias de la fuerza")
+	check(game.find_children("*", "CheckButton", true, false).any(func(c): return str(c.text).find("Pausa autom") >= 0), "Justina: el despliegue previo ofrece la pausa automatica")
 	await _shot("justina-despliegue")
 	game._close_modal()
 	await _frames(30)
@@ -257,6 +259,14 @@ func _run() -> void:
 	check(game.mode_label.text.find("PAUSA") >= 0 and game.pause_banner.visible and game.pause_banner.text.find("tiempo detenido") >= 0, "Justina: la pausa se anuncia (indicador y cartel)")
 	check(game.roster_buttons.size() == 5 and game.roster_panel.is_visible_in_tree(), "Justina: el panel lateral muestra las cinco agrupaciones")
 	check(game.hint_panel.visible and game.tutorial_label.text.begins_with("1/6"), "Justina: el tutorial arranca en el paso 1/6")
+	check(game.moral_label.text.find("Moral") >= 0 and game.info_label.text.find("Captura del buque 0") >= 0, "Justina: captura y moral van rotuladas por separado")
+	check(game.roster_buttons["guemes"].text.find("Güemes") >= 0 and game.roster_buttons["guemes"].text.find("◆") >= 0, "Justina: la ficha de Güemes lleva su nombre y la marca de tradicion")
+	game.hover_info = {"kind": "route", "ok": false, "text": "x", "risk": "alto", "point": Vector3.ZERO}
+	game._close_modal()
+	game._update_hover_j(0.2)
+	check(game.hover_info.is_empty() or game.hover_mouse == Vector2(-1, -1), "Justina: no hay cartel de error colgado al empezar")
+	check(game.settings.auto_pause == true and game.autopause_button.text.find("sí") >= 0, "Justina: la pausa automatica esta activa en la primera partida")
+	check(str(game._reason_with_help("El fondo estimado en ese punto supera el límite de 1.3 m.")).find("explorador") >= 0, "Justina: el rechazo por fondo estimado dice que hacer")
 	await _shot("justina-pausa-tutorial")
 	notes["justina_overlaps_inicio"] = _overlaps(game.last_overlay_rects)
 	notes["justina_overlay_rects_inicio"] = game.last_overlay_rects.map(func(r): return str(r))
@@ -353,7 +363,8 @@ func _run() -> void:
 	await _key(KEY_5)
 	game._do_action("probe")
 	await _move(Vector2(520, 300))
-	await _frames(14)
+	await create_timer(0.5).timeout
+	await _frames(4)
 	notes["preview_sondeo"] = game.hover_info.get("text", "")
 	await _shot("justina-apuntar-sondeo")
 	game._cancel_aim()
@@ -362,12 +373,28 @@ func _run() -> void:
 	game._center_on(Vector2(300, 264))
 	game._apply_camera()
 	await _frames(4)
-	var wet: Vector2 = game.camera.unproject_position(Vector3(300, 0, 264))
+	var wet_pt := Vector2(300, 264)
+	for cand in [Vector2(300, 264), Vector2(230, 262), Vector2(225, 275), Vector2(215, 255)]:
+		if bool(game.rules.plan_route("guemes", cand, "trot", {}).get("ok", false)):
+			wet_pt = cand
+			break
+	game._center_on(wet_pt)
+	game._apply_camera()
+	await _frames(4)
+	var wet: Vector2 = game.camera.unproject_position(Vector3(wet_pt.x, 0, wet_pt.y))
 	await _move(wet)
-	await _frames(14)
+	# Determinista: el cursor real del SO puede mover hover_mouse; se fija a mano y se fuerza el calculo (que es por tiempo, no por cuadros)
+	game.hover_mouse = wet
+	game.hover_timer = 0.0
+	game._update_hover_j(0.2)
+	await _frames(2)
 	notes["preview_ruta_sin_reconocer"] = game.hover_info.get("text", "")
 	check(str(game.hover_info.get("text", "")).find("riesgo") >= 0, "Vista previa de ruta muestra el riesgo")
 	await _shot("justina-vista-previa-riesgo")
+	game.hover_mouse = game.minimap_rect().get_center()
+	game.hover_timer = 0.0
+	game._update_hover_j(0.2)
+	check(game.hover_info.is_empty(), "Justina: sobre el minimapa no queda colgado el cartel de ruta o de error")
 	# Atajos nuevos: ? abre la ayuda, Ctrl+Z deshace, coma sin grupo abordando avisa sin romper
 	await _key(KEY_QUESTION)
 	await _frames(4)
@@ -418,6 +445,7 @@ func _run() -> void:
 	game._update_hud()
 	await _frames(12)
 	check(game.paused and game.alert_panel.visible and game.pause_banner.text.find("PAUSA AUTOMÁTICA") >= 0, "Justina: el contraataque pausa solo y muestra el aviso")
+	check(not game.hint_panel.visible, "Justina: el tutorial se oculta mientras hay un aviso critico")
 	_justina_layout("Justina aviso")
 	await _shot("justina-aviso-contraataque")
 	game.rules.state.counter = counter_backup
