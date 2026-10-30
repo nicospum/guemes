@@ -2,7 +2,7 @@ extends SceneTree
 ## Capturas del aspecto de Justina (ronda 4). Uso: godot --path . --resolution 1440x900 --script tools/vis_shots.gd -- --out=<carpeta> [--tag=antes] [--only=texto]
 ## Ventana real (no --headless). No es una prueba de reglas: solo fija camara y marea y guarda PNG.
 var game: Node
-var out_dir := "res://evidence/justina-ui/ronda4"
+var out_dir := "res://evidence/justina-ui/calidad_r1"
 var tag := ""
 var only := ""
 
@@ -67,4 +67,9 @@ func _run() -> void:
 	_cam(200, 260, 700, 70, 180); await _shot("15_extremo_cenital_yaw180")
 	_cam(120, 520, 300, 18, 135); await _shot("16_extremo_esquina_sur")
 	_cam(120, 0, 300, 18, 45); await _shot("17_extremo_esquina_norte")
+	var u0 = game.rules.state.units[0]
+	_cam(float(u0.x), float(u0.z), 45, 28, -70); await _shot("18_grupo_cerca")
+	_cam(134, 150, 160, 22, 0); await _shot("19_circo_desde_norte")
+	_cam(580, 262, 70, 20, -125); await _shot("20_buque_popa_ensign")
+	_cam(400, 262, 1100, 55, 0); await _shot("21_panorama_alto")
 	quit()
