@@ -2863,7 +2863,7 @@ func _reason_with_help(why:String)->String:
  if why.find("fondo estimado")>=0:
   return why+" Es una estimación sin reconocer (no el nivel real del río): mandá un explorador (4 o 5, Z) a sondear o elegí un punto más cerca de la playa."
  if why.find("barranca solo se sube")>=0:
-  return why+" Bajá por el Camino de la barranca (Alameda) o quedate en la playa."
+  return why+" Bajá por el Camino de la barranca (diseño) o quedate en la playa."
  if why.find("Agua demasiado honda")>=0:
   return why+" Buscá el vado junto al buque (se marca en el mapa) o esperá la bajante."
  return why
@@ -3140,7 +3140,7 @@ func _update_hud_j():
  var st=rules.state
  title_label.text="JUSTINA  ·  RETIRO"
  var left=maxf(0.0,float(st.deadline)-float(st.elapsed))
- phase_label.text="12 AGO 1806  ·  río %s (%s m)" % [str(st.tide_phase),("%.2f" % rules.water_level_m()).replace(".",",")]
+ phase_label.text="12 AGO 1806 · río %s %s m (diseño)" % [str(st.tide_phase),("%.2f" % rules.water_level_m()).replace(".",",")]
  clock_label.text="Quedan "+_clock(left)+" min"
  clock_label.add_theme_color_override("font_color",RED if left<180.0 else GOLD)
  _update_fords()
@@ -3532,6 +3532,20 @@ Gillespie escribe que el buque quedó «en seco» (left dry) y que lo abordó la
  if str(jtx.get("briefing_long",""))!="":text_f+="[b]En detalle[/b]\n"+_player_text(str(jtx.briefing_long))+"\n\n"
  if str(jtx.get("tradition_context",""))!="":text_f+="[b]Sobre Güemes[/b]\n"+_player_text(str(jtx.tradition_context))+"\n\n"
  if str(jtx.get("sources_detail",""))!="":text_f+="[b]Qué se tomó de dónde[/b]\n"+_player_text(str(jtx.sources_detail))+"\n\n"
+ var md_items:Array=jtx.get("map_decisions",{}).get("items",[])
+ if not md_items.is_empty():
+  text_f+="[b]Decisiones del mapa[/b]
+"
+  for it in md_items:
+   var ti=str(it.get("tag","diseno"))
+   text_f+="• [b]%s[/b] (%s): %s
+" % [_player_text(str(it.get("title",""))),str(m.get("source_tags",{}).get(ti,{}).get("label",ti)),_player_text(str(it.get("text","")))]
+  text_f+="
+"
+ for k in ["historical_note","result_contrast"]:
+  if str(jtx.get(k,""))!="":text_f+=_player_text(str(jtx[k]))+"
+
+"
  text_f+="[b]Cómo leer las etiquetas[/b]\n"
  for t in ["documentado","tradicion","reconstruccion","diseno"]:
   var info=m.get("source_tags",{}).get(t,{})

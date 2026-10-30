@@ -730,7 +730,7 @@ func _justina_r1_ui() -> void:
 	check(game.pause_banner.visible and game.pause_banner.text.find("PAUSA AUTOMÁTICA") >= 0, "The banner says the pause was automatic")
 	check(game.alert_btn.visible and game.alert_btn.text.find("Rechazar") >= 0, "The alert offers a Rechazar button")
 	check(not game.hint_panel.visible, "The tutorial panel hides while a critical alert is on screen")
-	check(game._reason_with_help("El fondo estimado en ese punto supera el límite de 1.3 m.").find("explorador") >= 0 and game._reason_with_help("La barranca solo se sube por las dos bajadas; ese punto no es transitable.").find("Alameda") >= 0, "Rejected destinations say the cause and the alternative")
+	check(game._reason_with_help("El fondo estimado en ese punto supera el límite de 1.3 m.").find("explorador") >= 0 and game._reason_with_help("La barranca solo se sube por las dos bajadas; ese punto no es transitable.").find("Camino de la barranca") >= 0, "Rejected destinations say the cause and the alternative")
 	check(game._short_name("guemes").find("Güemes") >= 0 and game._card_text("guemes").find("◆") >= 0, "Güemes' card keeps his name and the tradition mark")
 	check(game._deploy_consequences().find("Fuerza total") >= 0, "The deployment screen explains the consequences of strength")
 	check(game.info_label.text.find("Captura del buque") >= 0 and game.info_label.text.find("Moral de la dotación") >= 0, "Capture and morale are labelled separately")

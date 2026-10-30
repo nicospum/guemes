@@ -861,6 +861,7 @@ func _build_justina():
  knowledge_root=Node3D.new();knowledge_root.name="Conocimiento";add_child(knowledge_root)
  _knowledge_nodes_j()
  _landmarks_j()
+ _ramp_paths_j()
  _scenery_j()
  _scale_bar_j()
  _obstacles_j()
@@ -1096,6 +1097,32 @@ func _lm_pos(lm:Dictionary)->Vector2:
  if poly.is_empty():return Vector2.ZERO
  var mid=poly[poly.size()/2]
  return Vector2(float(mid[0]),float(mid[1]))
+
+func _ramp_paths_j():
+ # R6: barranca.ramps[].visual_path (Diseño): camino de tierra de ~95-100 m que se ve sobre la meseta; la pendiente de juego no cambia.
+ for r in M.get("barranca",{}).get("ramps",[]):
+  var vp:Dictionary=r.get("visual_path",{})
+  var poly:Array=vp.get("polyline",[])
+  if poly.size()<2:continue
+  var verts=PackedVector3Array();var norms=PackedVector3Array();var idx=PackedInt32Array()
+  var w=1.6
+  for i in range(poly.size()):
+   var p0=Vector2(float(poly[i][0]),float(poly[i][1]))
+   var p1=Vector2(float(poly[mini(i+1,poly.size()-1)][0]),float(poly[mini(i+1,poly.size()-1)][1]))
+   var p2=Vector2(float(poly[maxi(i-1,0)][0]),float(poly[maxi(i-1,0)][1]))
+   var dir=(p1-p2).normalized();var nrm=Vector2(-dir.y,dir.x)
+   for sd in [-1.0,1.0]:
+    var q=p0+nrm*sd*w
+    verts.append(Vector3(q.x,_h(q.x,q.y)+0.08,q.y));norms.append(Vector3.UP)
+   if i>0:
+    var a=(i-1)*2
+    idx.append_array([a,a+1,a+2,a+1,a+3,a+2])
+  var arr=[];arr.resize(Mesh.ARRAY_MAX)
+  arr[Mesh.ARRAY_VERTEX]=verts;arr[Mesh.ARRAY_NORMAL]=norms;arr[Mesh.ARRAY_INDEX]=idx
+  var mesh=ArrayMesh.new();mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arr)
+  var mi=MeshInstance3D.new();mi.name="CaminoBajada_"+str(r.get("id","x"));mi.mesh=mesh;mi.material_override=_mat(Color("a58f68"),1.0)
+  mi.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+  add_child(mi)
 
 func _landmarks_j():
  for lm in M.get("landmarks",[]):
