@@ -137,6 +137,12 @@ func _inst(kind:String,pos:Vector3,size_v:Vector3,color:Color):
  batches[kind].xf.append(Transform3D(Basis.from_scale(size_v),pos))
  batches[kind].col.append(color)
 
+var props_mat: ShaderMaterial
+func _props_mat()->ShaderMaterial:
+ if props_mat==null:
+  props_mat=ShaderMaterial.new();props_mat.shader=load("res://shaders/justina_props.gdshader")
+ return props_mat
+
 func _flush_batches():
  if batch_material==null:
   batch_material=StandardMaterial3D.new()
@@ -156,7 +162,7 @@ func _flush_batches():
   var mmi=MultiMeshInstance3D.new()
   mmi.name="Lote_"+kind
   mmi.multimesh=mm
-  mmi.material_override=batch_material
+  mmi.material_override=_props_mat() if justina else batch_material
   (batch_parent if batch_parent!=null else self).add_child(mmi)
  batches.clear()
  _flush_glb_batches()
@@ -884,7 +890,7 @@ func _base_bed(x:float)->float:
 ## Color de zona (rgb) y cuanto es campo/pasto (a). El sombreador agrega el detalle procedural.
 func _ground_color(x:float,z:float,h:float,crest:float,toe:float,road_x:float)->Color:
  var n=terrain_noise.get_noise_2d(x*0.6,z*0.6)
- var grass=Color("5f6a36").lerp(Color("7c7a46"),clampf(0.5+n*0.8,0,1))
+ var grass=Color("6a6a3c").lerp(Color("86794a"),clampf(0.5+n*0.8,0,1))
  var ochre=Color("a98450")
  var sand=Color("b2a27b")
  var mud=Color("6f6247")
@@ -1244,10 +1250,18 @@ const SCALE_X = 197.0
 const SCALE_Z0 = 312.0
 
 func _house_at(x:float,z:float,w:float,d:float,yaw:float,col_tint:Color=Color.WHITE):
- if not _glb_ok("house_colonial"):
-  _inst_r("box",Vector3(x,_far_h(x,z)+1.8,z),Vector3(w,3.6,d),yaw,Color("bcb298"));return
+ var hv=fposmod(sin(x*7.31+z*3.17)*9631.7,1.0)
+ if not _glb_ok("house_colonial") or hv<0.38:
+  # Casa de azotea (Vidal 1820: techos planos con parapeto, revoque claro) o sin GLB: caja con parapeto, alturas y tonos variados. Reconstruccion.
+  var hh=3.2+1.8*fposmod(sin(x*2.1+z*5.3)*777.7,1.0)
+  var base=_far_h(x,z)
+  var wall=Color("d8cfb8").lerp(Color("c2ae88"),fposmod(sin(x*4.3+z*1.9)*555.5,1.0)).darkened(0.12)
+  _inst_r("box",Vector3(x,base+hh*0.5,z),Vector3(w,hh,d),yaw,wall)
+  _inst_r("box",Vector3(x,base+hh+0.28,z),Vector3(w*1.02,0.56,d*1.02),yaw,wall.lightened(0.04))
+  if hv<0.12:_inst_r("box",Vector3(x,base+hh*0.55,z),Vector3(w*0.3,hh*0.8,d*1.04),yaw,Color("4c372b"))
+  return
  var sx=w/5.7;var sz=d/6.0
- var b=Basis.from_euler(Vector3(0,yaw,0)).scaled_local(Vector3(sx,(sx+sz)*0.5,sz))
+ var b=Basis.from_euler(Vector3(0,yaw,0)).scaled_local(Vector3(sx,(sx+sz)*0.5*(0.85+0.5*hv),sz))
  _inst_glb("house_colonial",Transform3D(b,Vector3(x,_far_h(x,z),z)))
 
 func _scenery_j():
@@ -1300,9 +1314,11 @@ func _scenery_j():
   if not ok:continue
   if absf(x-_poly_x(road_poly,z3))<5.0:continue
   if terrain_noise.get_noise_2d(x*0.045,z3*0.045+9.0)<-0.02:continue
-  var w=rng.randf_range(1.2,3.0);var hgt=w*rng.randf_range(0.45,0.8)
-  var sc=Color("3f4a28").lerp(Color("66693a"),rng.randf())
-  _inst_r("sphere",Vector3(x,_h(x,z3)+hgt*0.3,z3),Vector3(w,hgt,w*rng.randf_range(0.8,1.2)),rng.randf()*TAU,sc)
+  # Matas (ronda 3): no esferas verdes iguales; tamaños muy variados, achatadas o altas, tonos de pasto seco y matorral pardo (paleta de Vidal).
+  var w=rng.randf_range(0.7,3.4)*(1.0+0.5*float(rng.randf()<0.12));var hgt=w*rng.randf_range(0.30,0.85)
+  var sc=Color("4d4a2a").lerp(Color("8a7a48"),rng.randf()).lerp(Color("5a5e32"),rng.randf()*0.4)
+  _inst_r("sphere",Vector3(x,_h(x,z3)+hgt*0.28,z3),Vector3(w,hgt,w*rng.randf_range(0.6,1.3)),rng.randf()*TAU,sc)
+  _inst_r("sphere",Vector3(x+w*0.1,_h(x,z3)+0.02,z3+w*0.1),Vector3(w*1.5,0.1,w*1.4),rng.randf()*TAU,Color("3a3524"))
   placed+=1
  # --- campo lejano: matorral, algarrobos/talas, quintas al norte y la ciudad al sur
  var far_shr=0;tries=0
@@ -1314,7 +1330,7 @@ func _scenery_j():
   if h4<4.0:continue
   if terrain_noise.get_noise_2d(x4*0.012,z4*0.012+3.0)<-0.05:continue
   var w4=rng.randf_range(1.6,4.2)
-  _inst_r("sphere",Vector3(x4,h4+w4*0.2,z4),Vector3(w4,w4*0.6,w4),rng.randf()*TAU,Color("3f4a28").lerp(Color("696a3c"),rng.randf()))
+  _inst_r("sphere",Vector3(x4,h4+w4*0.2,z4),Vector3(w4*rng.randf_range(0.7,1.4),w4*rng.randf_range(0.35,0.7),w4),rng.randf()*TAU,Color("4d4a2a").lerp(Color("8a7a48"),rng.randf()))
   far_shr+=1
  if _glb_ok("tree_algarrobo"):
   var ft=0;tries=0
@@ -1346,7 +1362,7 @@ func _scenery_j():
      var hx=bx+(t*117.0 if side%2==0 else (-0.42 if side==1 else 0.42)*117.0)
      var hz=bz+((-0.42 if side==0 else 0.42)*117.0 if side%2==0 else t*117.0)
      _house_at(hx,hz,rng.randf_range(8.0,12.0),rng.randf_range(9.0,13.0),(0.0 if side%2==0 else PI*0.5)+rng.randf_range(-0.04,0.04))
-    if churches<2 and rng.randf()<0.10 and _glb_ok("church_colonial"):
+    if churches<4 and rng.randf()<0.16 and _glb_ok("church_colonial"):
      churches+=1
      _inst_glb("church_colonial",Transform3D(Basis.from_scale(Vector3.ONE*0.95),Vector3(bx,_far_h(bx,bz),bz)))
    bx+=117.0
@@ -1396,11 +1412,37 @@ func _ship_j():
  ship.scale=Vector3(SHIP_SX,SHIP_SY,SHIP_SZ)
  ship.rotation=Vector3(0.012,-deg_to_rad(heading),0.045)
  ship_hull=ship
+ _strip_ladder(ship)
  # Cañones: 13 portas por banda es DISEÑO (Gillespie da 26 cañones en total, no el reparto; el paquete pide no dibujar 13 idénticos). Posiciones locales de las portas de babor (oeste con proa al norte).
  ship_gun_pos.clear()
  for i in range(13):
   var gz=-(-5.55+float(i)*0.925)
   ship_gun_pos.append(Vector3(-3.3*SHIP_SX,2.4*SHIP_SY,gz*SHIP_SZ))
+
+
+# Ronda 3: el GLB trae una escalera rigida colgada del costado de babor (modelo sin regenerar: no hay Blender en esta PC).
+# Se quitan en carga los triangulos de la superficie "wood" que caen en la caja de la escalera (coordenadas del GLB). Aspecto, no reglas.
+func _strip_ladder(root:Node3D)->void:
+ for mi in root.find_children("*","MeshInstance3D",true,false):
+  var m:Mesh=mi.mesh
+  if m==null:continue
+  var out=ArrayMesh.new()
+  for si in range(m.get_surface_count()):
+   var a=m.surface_get_arrays(si)
+   var mat=m.surface_get_material(si)
+   if mat!=null and str(mat.resource_name)=="PBR | wood" and a[Mesh.ARRAY_INDEX]!=null:
+    var v:PackedVector3Array=a[Mesh.ARRAY_VERTEX];var ix:PackedInt32Array=a[Mesh.ARRAY_INDEX]
+    var keep=PackedInt32Array()
+    for t in range(ix.size()/3):
+     var inside=true
+     for k in range(3):
+      var p=v[ix[t*3+k]]
+      if not (p.x>-3.02 and p.x<-2.4 and p.z>2.2 and p.z<2.95 and p.y>-0.05 and p.y<3.8):inside=false
+     if not inside:keep.append_array(PackedInt32Array([ix[t*3],ix[t*3+1],ix[t*3+2]]))
+    a[Mesh.ARRAY_INDEX]=keep
+   out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,a)
+   out.surface_set_material(out.get_surface_count()-1,mat)
+  mi.mesh=out
 
 # ---------------------------------------------------------------- efectos
 func _effects_j():
@@ -1538,6 +1580,12 @@ func _exposure_j():
  exposure_root.position=Vector3(sx,level_m+0.18,sz)
  exposure_root.rotation.y=-deg_to_rad(float(M.ship.get("heading_deg",0.0)))
  exposure_root.visible=false
+ # Rotulos de los anillos (ronda 3): el anillo rosa es el alcance de fuego del buque; el punteado, la zona de incertidumbre del encallamiento. Ambos de DISEÑO.
+ var l1=_label_j("Alcance del fuego del buque (diseño)",Vector3(rng*0.0,0.8,-rng),Color("e6a08c"),20,exposure_root)
+ l1.outline_size=8
+ var unc=float(M.get("ship",{}).get("uncertainty_radius_m",120.0))
+ var l2=_label_j("Zona de incertidumbre del encallamiento (±%d m, diseño)"%int(unc),Vector3(sx+unc*0.2,level_m+1.2,sz+unc),Color("e3d8b0"),20,labels_root)
+ l2.outline_size=8
 
 func _overlay_mat()->StandardMaterial3D:
  if ring_mat_cache.has("overlay"):return ring_mat_cache["overlay"]
