@@ -269,14 +269,22 @@ func _roll_hidden(seed_value: int) -> Dictionary:
 	var tide_id := "normal"
 	var mission_id := ""
 	if not mv.is_empty():
-		for _k in range(5):
-			x = (x * 1103515245 + 12345) % 2147483648
-		var mission: Dictionary = mv[((x >> 13) ^ (x >> 21)) % mv.size()]
+		## Generador propio (distinto del de los hoyos) para que la variante de misión no se correlacione con el fondo.
+		var y: int = (absi(seed_value) * 69069 + 362437) % 2147483648
+		for _k in range(7):
+			y = (y * 1664525 + 1013904223) % 2147483648
+		var mission: Dictionary = mv[((y >> 13) ^ (y >> 21)) % mv.size()]
 		mission_id = str(mission.id)
 		tide_id = str(mission.get("tide", "normal"))
 	return {"picks": picks, "tide": tide_id, "mission": mission_id}
 
 ## Variante de misión de la partida (vacía si no hay): modifica fuego, munición, voluntarios, río y moral de la dotación.
+## Marcas «anotado» del diario (CampaignProgress): solo para dibujar en el mapa. NO son conocimiento confirmado ni entran en el guardado de la partida.
+var diary_marks: Array = []
+
+func set_diary_marks(marks: Array) -> void:
+	diary_marks = marks.duplicate(true)
+
 func mission() -> Dictionary:
 	var id := str(state.get("hidden", {}).get("mission", ""))
 	for v in map_data().get("mission_variants", {}).get("list", []):

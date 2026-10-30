@@ -75,7 +75,7 @@
         "weight": 1,
         "tag": "diseno",
         "drop_start_s": 40.0,
-        "drop_end_s": 285.0,
+        "drop_end_s": 265.0,
         "low_hold_end_s": 700.0,
         "rise_end_s": 830.0,
         "note": "Reservada: el vado abre ~15 s más tarde. Ninguna variante de misión la sortea por defecto (la ronda 9 quitó la variante «breve», que dejaba la ruta sur sin tiempo)."
@@ -1248,11 +1248,11 @@
       "evacuate_min_wounded": 3.0,
       "tide_warn_fraction": 0.85,
       "counter": {
-        "first_after_boarding_s": 30.0,
-        "interval_s": 50.0,
+        "first_after_boarding_s": 25.0,
+        "interval_s": 40.0,
         "jitter_s": 12.0,
         "window_s": 12.0,
-        "damage": 20.0,
+        "damage": 28.0,
         "capture_loss_pct": 25.0,
         "repelled_mult": 0.2,
         "repel_ammo": 3,
@@ -1270,13 +1270,13 @@
         "sur": 1.0,
         "mixta": 1.1,
         "tag": "diseno",
-        "note": "Ronda 9 (C9): la ruta central (rápida, cara) premia el abordaje con ×1,3 de poder de captura; la sur (lenta, barata en bajas) no tiene premio pero llega con menos desgaste; la mixta ×1,1."
+        "note": "Ronda 9 (C9): ruta central (rápida, cara en bajas) ×1,3 de poder de captura; sur (lenta, llega con menos desgaste de fuego pero moja la pólvora) ×1,0; mixta ×1,1."
       },
       "south_powder": {
-        "ammo_loss": 4,
+        "ammo_loss": 6,
         "min_depth_m": 0.25,
         "tag": "diseno",
-        "note": "Ronda 9 (C9): cruzar el vado sur moja pólvora: la primera vez que un grupo entra al agua del vado sur se pierden 4 de munición."
+        "note": "Ronda 9 (C9): cruzar el vado sur moja pólvora: la primera vez que un grupo entra al agua del vado sur se pierden 6 de munición."
       }
     },
     "position_candidates": [
@@ -1421,7 +1421,7 @@
     "ammo_max": 40,
     "ammo_reserve": 16,
     "signals_max": 2,
-    "reserve_note": "Recursos limitados que obligan a elegir: la batería solo tiene 16 de pólvora de reserva (se retira de una vez con 'Abastecer'), Liniers concede como mucho 2 órdenes de avance, quedan 60 voluntarios y 16 balizas. Munición total disponible ≈ 12 + 2×8 + 16 = 44; el fuego de distracción cuesta 8, reunir 4, rechazar un contraataque 3. Ronda 9: la variante «munición escasa» baja la munición inicial a 9.",
+    "reserve_note": "Recursos limitados que obligan a elegir: la batería solo tiene 16 de pólvora de reserva (se retira de una vez con 'Abastecer'), Liniers concede como mucho 2 órdenes de avance, quedan 60 voluntarios y 16 balizas. Munición total disponible ≈ 12 + 2×8 + 16 = 44; el fuego de distracción cuesta 8, reunir 4, rechazar un contraataque 3. Ronda 9: la variante «munición escasa» baja la munición inicial a 10.",
     "balizas_start": 16,
     "volunteers_pool": 60.0,
     "scout_hp": 4
@@ -1784,11 +1784,11 @@
         "ford_marked_min_m": 10.0
       },
       "gold": {
-        "loss_pct_below": 40.0,
-        "time_below_s": 600.0,
+        "loss_pct_below": 32.0,
+        "time_below_s": 540.0,
         "no_assists": true
       },
-      "note": "Ronda 9 (C12): bronce = capturar el buque; plata = bajas < 55 % y vado marcado; oro = bajas < 40 %, antes de 10:00 y sin baqueano ni bajante generosa."
+      "note": "Ronda 9 (C12): bronce = capturar el buque; plata = bajas < 55 % y vado marcado; oro = bajas < 32 %, antes de 9:00 y sin baqueano ni bajante generosa."
     }
   },
   "play_targets": {
@@ -3713,17 +3713,21 @@
       {
         "id": "municion_escasa",
         "label": "Munición escasa, pero llegan voluntarios",
-        "consequence": "Empezás con 9 de munición en vez de 12, pero hay 100 voluntarios para reunir.",
-        "ammo_start_delta": -3,
+        "consequence": "Empezás con 10 de munición en vez de 12, pero hay 100 voluntarios para reunir.",
+        "ammo_start_delta": -2,
         "volunteers_delta": 40,
         "favors": "central"
       },
       {
         "id": "viento_fuerte",
         "label": "Viento fuerte del oeste: la bajante es rápida",
-        "consequence": "El río baja antes y se queda más tiempo abajo: sobra tiempo para la ruta sur.",
+        "consequence": "El río baja antes y se queda más tiempo abajo, y el humo del viento tapa la costa sur: la ruta sur rinde más.",
         "tide": "sostenida",
-        "favors": "sur"
+        "favors": "sur",
+        "fire_mult": {
+          "sur": 0.8,
+          "central": 1.0
+        }
       },
       {
         "id": "buque_nervioso",
