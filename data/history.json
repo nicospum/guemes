@@ -2,7 +2,7 @@
   "schema_version": 1,
   "language": "es-AR",
   "reviewed_on": "2026-10-30",
-  "general_notice": "Recreación histórica. El terreno, los grupos, las rutas, los tiempos y las reglas simplifican acontecimientos reales. Los resultados de tu partida pueden diferir de la historia. Las etiquetas significan: Documentado, un hecho que consta en un testimonio o documento de época (a veces solo en su transcripción) o en un plano de época; Tradición, una atribución transmitida y no probada; Reconstrucción, algo que se apoya en fuentes secundarias o divulgativas, o que se infiere de planos y vistas posteriores, y cuyo detalle exacto no está comprobado; Diseño, una regla, cifra o geografía inventada para que el juego funcione, que no es dato histórico.",
+  "general_notice": "Reconstrucción jugable. El terreno, los grupos, las rutas, los tiempos y las reglas simplifican acontecimientos reales. Los resultados de tu partida pueden diferir de la historia. Las etiquetas significan: Documentado, un hecho que consta en un testimonio o documento de época (a veces solo en su transcripción) o en un plano de época; Tradición, una atribución transmitida y no probada; Reconstrucción, algo que se apoya en fuentes secundarias o divulgativas, o que se infiere de planos y vistas posteriores, y cuyo detalle exacto no está comprobado; Diseño, una regla, cifra o geografía inventada para que el juego funcione, que no es dato histórico.",
   "scenarios": {
     "justine": {
       "title": "La toma de la Justina",
@@ -47,9 +47,9 @@
           ]
         },
         {
-          "title": "La caballería de Pueyrredón",
-          "text": "Según citas del repo que no se cotejaron con sus originales, la caballería era la de Pueyrredón (parte de Concha del 15 de agosto de 1806; oficio de Liniers en el Archivo Pueyrredón, t. I, p. 54): es Reconstrucción. Lo que sí está en Gillespie es que fue caballería, sin nombrar al jefe ('boarded, and taken by cavalry', p. 94). El paquete de investigación del 30-oct-2026 reconstruye el vínculo con Pueyrredón por relatos posteriores y considera 'sin datos suficientes' la cantidad de jinetes (30, 50 o 60 según el relato): la cifra '40 a 60' que citaba esta ficha queda como no verificada. La orden de avance de Liniers (Diseño sobre fuente secundaria) y los detalles del relato (anteojo, mensajero por la Alameda, rendición con pañuelo) vienen de Obligado (1920) y de la divulgación: son tradición. Las cantidades de cada grupo del juego son diseño.",
-          "kind": "reconstrucción: citas de la investigación del repo sin cotejo del original; detalles del relato son tradición",
+          "title": "La caballería de Pueyrredón (relato posterior)",
+          "text": "Gillespie dice solo «caballería» y no nombra a su jefe. Que fuera la caballería voluntaria de Pueyrredón es un relato posterior o tradición, sin cotejo del original: la investigación del repo cita un parte de Concha (15 de agosto de 1806) y un oficio de Liniers del Archivo Pueyrredón, pero se vieron solo por cita y por eso el juego no los presenta como verificados ni muestra ninguna cifra de jinetes (el paquete dice 30, 50 o 60 «sin datos suficientes»). La reserva de caballería lleva la etiqueta Reconstrucción y su fuerza, cantidad y composición son diseño.",
+          "kind": "relato posterior / tradición, sin cotejo",
           "source_ids": [
             "S9",
             "S3",
@@ -165,11 +165,13 @@
         "Fondeo a cuatro millas y playa seca 'por un gran trecho' (Gillespie p. 38): el buque a ~390 m de la barranca y su calado son zona de diseño; sin plano ni sondaje del Retiro de 1806.",
         "Pendiente de cotejo: Gillespie solo leído en OCR (no en el escaneo); Concha 15-ago y oficio de Liniers (Archivo Pueyrredón t. I, p. 54) vistos solo por cita; parte de Liniers del 11 de agosto (dos piezas de a 18) en segunda mano; cifra de 1801 de la Plaza de Toros tomada del paquete y de Pillado; Ideario p. 33 (Güemes volviendo de Córdoba).",
         "Temporal y sudestada del 4 al 8 de agosto de 1806 en San Isidro (investigación info/ del paquete, no cotejada): no hay serie de viento ni de nivel para el 12.",
-        "Distancias Retiro-Santa Catalina (~1 km) y Retiro-Fuerte (~2 km): estimaciones del repo, no medidas sobre Boneo 1801 ni el plano de 1808 (Diseño)."
+        "Distancias Retiro-Santa Catalina (~1 km) y Retiro-Fuerte (~2 km): estimaciones del repo, no medidas sobre Boneo 1801 ni el plano de 1808 (Diseño).",
+        "Costa de 1806: sin levantamiento. El mapa la inclina NO-SE como el paquete (A, D2) pero menos que su prototipo: elección de diseño (docs/DISENO_JUSTINA.md 1.0b). El área jugable sigue en 900 x 520 m y el 'contexto' no es jugable."
       ],
       "pending_verification": [
         "Banco expuesto ('en seco', Gillespie) frente a banco con agua alrededor (diseño): decisión pendiente del usuario; la variante no está implementada.",
-        "Pendiente de cotejo: Gillespie solo leído en OCR (no en el escaneo); Concha 15-ago y oficio de Liniers (Archivo Pueyrredón t. I, p. 54) vistos solo por cita; parte de Liniers del 11 de agosto (dos piezas de a 18) en segunda mano; cifra de 1801 de la Plaza de Toros tomada del paquete y de Pillado; Ideario p. 33 (Güemes volviendo de Córdoba)."
+        "Pendiente de cotejo: Gillespie solo leído en OCR (no en el escaneo); Concha 15-ago y oficio de Liniers (Archivo Pueyrredón t. I, p. 54) vistos solo por cita; parte de Liniers del 11 de agosto (dos piezas de a 18) en segunda mano; cifra de 1801 de la Plaza de Toros tomada del paquete y de Pillado; Ideario p. 33 (Güemes volviendo de Córdoba).",
+        "Ronda 4: medir Santa Catalina sobre Boneo 1801 (no se identificó la iglesia en la copia local); el Fuerte quedó en ≈13 cuadras (≈1,5 km, medida gruesa). Cotejar Gillespie en el escaneo (el cotejo es contra OCR). Decidir con el usuario el banco expuesto."
       ]
     },
     "norte": {
@@ -481,6 +483,13 @@
       "url": "https://www.edisalta.ar/iconografia.html",
       "kind": "iconografía moderna de la toma; no es documento de época",
       "verification": "ficha del paquete"
+    },
+    {
+      "id": "S40",
+      "title": "Plano de Boneo y Villalonga, 1801: conteo de cuadras entre el circo del Retiro y el Fuerte (Ronda 4)",
+      "url": "docs/referencias/justina/boneo_villalonga_1801_plano_buenos_aires.jpg",
+      "kind": "medición propia gruesa sobre un plano de época (≈13 cuadras de 140 varas ≈ 1,5 km, ±20 %); la longitud de la cuadra es supuesta, no leída de una escala del plano",
+      "verification": "medida con la copia local; Santa Catalina no se identificó"
     }
   ],
   "justina_package": {

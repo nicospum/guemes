@@ -532,3 +532,19 @@ Aditivas. Reglas cambió solo en la condición del río (ver `DISENO_JUSTINA.md`
 | `history.json` `scenarios.justine.pending_verification` y hechos nuevos «Qué hace el juego distinto de Gillespie», «Agua, banco y estados del río» ampliado | Lista de pendientes de cotejo y desvíos de diseño: mostrarlos en la pantalla Historia | UI |
 
 Formato: `data/justina_map.json` quedó con sangría de 2 espacios y LF (antes mezclaba líneas compactas); es solo de formato.
+
+## 9. Claves nuevas y cambios (Ronda 4, 30-oct-2026, `map_version` 6)
+
+Para `world_view.gd`, `main.gd` y `shaders/` (otras pistas; esta ronda no los tocó).
+
+* **Costa inclinada.** `bed_warp.tilt_z_dx` (polilínea [z, dx], dx en m), `bed_warp.tilt_k`, `bed_warp.tilt_note`. `GameRules.terrain_height_at` ya la aplica (`_bed_tilt`), así que todo lo que lea el terreno de reglas hereda la diagonal. `world_view._base_bed(x)` (solo color) NO la aplica: para el color de la playa conviene llamar a `rules.terrain_height_at`. `shore_high`, `barranca.crest/toe`, `landmarks`, `scenery`, `obstacles`, `routes` y `label_anchors` ya vienen corridos; no recalcular. Los puntos de `context.north/south` también.
+* **Fichas y etiquetas.** `uncertainty_labels.items` (textos cortos por origen, incluye `sin_cotejo`); `characters[].tag_parts` y `tag_note` (liniers, pueyrredon): mostrar la etiqueta más débil.
+* **Cronología.** `milestones.items[]` {id, date, text, tag, in_game, source_ids}: pintar los que tienen `in_game: true`.
+* **Textos para «Fuentes e historia».** `texts.map_decisions.items[]` {id, title, text, tag}: área jugable, costa inclinada, 390 m, distancias.
+* **Banderas.** `banners.items[].status_label` (texto de pantalla), `banners.group_markers` (los guiones de color de los grupos son marcadores del juego: rotular «(trad.)» al de Güemes y no darles aspecto de estandarte histórico), dos ítems nuevos (`pabellon_mercante_espanol_1785`, `banderas_borbonicas_unidad`, ambos `draw_default: false`).
+* **Buque apoyado.** `ship.grounded_visual` {floating_above_m, grounded_below_m, heel_deg, sink_m, mud_ring_radius_m, wake_when_floating, wake_when_grounded, foam_when_grounded} y `ship.position_note`: con nivel < 0,35 m: sin estela ni espuma, escora de 4-7°, asiento de ~0,6 m y anillo de fango.
+* **Ids.** `groups[].public_id`, `forces.groups.*.public_id`, `landmarks[bateria_abascal].public_id` = `piezas_retiro`, `forces.id_policy`. Las claves internas (`arias`, `zavala`, `bateria_abascal`) no se renombraron (main.gd líneas 73-79, 189-190, 565, 755-756, 1211-1213; world_view.gd líneas 635, 1647-1661, 2181, 2269; tools y tests las usan; `arias` es también del Norte). Si se renombran, hacerlo en una sola integración con migración de guardados.
+* **Distancias.** `distances.items[retiro_a_fuerte].m` = 1500 (≈13 cuadras en Boneo, medida gruesa); `context.skyline[].bearing_visible` = false (no mostrar rumbos).
+* **Para `main.gd` (anotado, no tocado):** reemplazar «Recreación histórica»/«Historia y recreación» (líneas ~405 y ~910) por «Reconstrucción jugable»; el aviso de contraataque no debe dispararse sin grupo abordando; la cámara inicial y el solape de rótulos siguen abiertos.
+* **Guardados.** `JUSTINE_SAVE_VERSION` no se subió: la geometría cambió (costa inclinada) y un guardado anterior cargaría con el terreno nuevo bajo posiciones viejas; es aceptable en alfa, pero conviene subir el schema en la integración.
+

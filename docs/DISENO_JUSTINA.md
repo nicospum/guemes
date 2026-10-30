@@ -391,3 +391,31 @@ Lectura honesta: las líneas buenas ya **no son 100 %** (pierden en la condició
 **Objetivos mantenidos o re-justificados.** Ninguna estrategia > 60 % de las victorias globales (test verde); ciegas y pasiva ~0 %; ruta sur viable < 960 s (mejor caso 843 s); exposición centro/sur ≥ 1,4. **Re-justificado:** las victorias duran 11,1-15,6 min, no 12-16: la ruta central rápida (`central_hasty`) llega a 11,1 min; subir el mínimo exigiría alargar la bajante para todos y empujar la sur contra el plazo de 18 min. El objetivo pasa a **11-16 min** (`play_targets.victory_minutes_observed`).
 
 **Pendientes de esta ronda.** Playtest humano; banco expuesto (decisión del usuario); mostrar en la UI el nombre de la condición del río (`time.variants[].label`, `tide_variant_id()`); revisar con el equipo visual que el HUD legible cubra los cuatro hitos; el cotejo de Gillespie con el escaneo.
+
+## 15. Ronda 4 (30-oct-2026): mapa e historia con el paquete, costa inclinada y balance re-medido
+
+### 15.1 Área jugable 900 x 750 m frente a 900 x 520 m (decisión visible)
+
+Se mantiene **900 x 520 m jugable** y 115 m de contexto al norte y al sur. Es una decisión de diseño por balance, no por historia: el paquete (D2) quiere una gran superficie expuesta entre la protección urbana y el casco, y la tiene (390 m de playa y banco entre el pie de la barranca y el buque); los 230 m que faltan para llegar a 750 m serían tierra sin reglas. El contexto (ciudad alta, ribera y barranca que continúan) no es área jugable ampliada y así se dice en `texts.map_decisions`. Reabrir si se rediseña la banda de fuego.
+
+### 15.2 Costa y barranca inclinadas (hallazgo «ribera casi recta»)
+
+El paquete pide costa irregular y en diagonal NO-SE, sin borde recto. La costa del juego era una recta N-S con entrantes de ±10-15 m. Ahora `bed_warp.tilt_z_dx` (k = 0,15; pivote en z = 262, la altura del buque) corre en x el perfil de la playa; `shore_high`, `barranca.crest/toe`, las bajadas, el camino de la barranca, las piezas, el campamento, el puesto, el decorado de la franja costera, los obstáculos y los trazos de ruta se corrieron lo mismo. Resultado: ±39 m en el tramo jugable (z = 0 y z = 520) y ±56 m en el contexto; 8,5° respecto del eje N-S. Es una **elección de diseño**: el prototipo del paquete usa ~45° y no tiene coordenadas de 1806.
+
+Por qué solo 8,5° y no 45°: el balance depende de las distancias de las dos rutas. Con el pivote en el buque la ruta central (z ≈ 262) no se mueve; la sur (z ≈ 400) ve su playa 21 m más ancha, lo que cambia poco el costo del vado. Un ángulo mayor corre la barranca sobre los puntos de partida de los grupos (x ≈ 199, z = 240-296) y obliga a rehacer despliegue, vado y matriz.
+
+Costo de balance medido (APPDATA aislado, mismas 18 estrategias x 8 + 12 semillas): cohorte 44 % calibración / 46 % validación (antes 47 % / 50 %), bajas medianas 51 % (antes 53 %), máximo con defensa 68 % (antes 63 %), sin defensa 78 % (antes 77 %), 0 de 108 victorias sobre 80 % de bajas (antes 1 de 117). Siguen dentro de los objetivos. Cambios en `tests/test_rules.gd`: las fixtures de terreno que dependían de la costa recta se movieron con ella (cañaveral norte 250 → 229 en x, agua 245 → 242, altura mínima de la playa inicial 2,5 → 2,3 m, límite del rescate 250 → 256 m); no se tocó ningún objetivo de balance.
+
+Pendiente que sigue abierto (del hallazgo «pendiente de bajada»): el paquete propone 8-12 % con 83-150 m de desarrollo; el juego usa ~25-30 % con ~30 m de bajada. Es costo de balance, no de historia (los grupos partirían muy lejos de la orilla); se registra en `barranca.ramps[].desarrollo_paquete_m`.
+
+### 15.3 Qué cambió en la historia y en las etiquetas
+
+Ver `docs/historia/MATRIZ_HISTORICA.md` sección F. En resumen: Pueyrredón y su caballería pasan a «relato posterior o tradición, sin cotejo» (se quita «Documental» y la cifra de jinetes), Liniers lleva `tag_parts` y la etiqueta más débil, el Fuerte se midió por cuadras (≈1,5 km), los rumbos no se muestran, los guiones de color de los grupos se declaran marcadores del juego, y hay `milestones`, `uncertainty_labels` y `ship.grounded_visual` nuevos. Los ids internos `arias`, `zavala` y `bateria_abascal` se conservan (los usan main, world_view, herramientas y el Norte) y llevan `public_id`.
+
+### 15.4 Balance: hallazgos abiertos y qué se hizo
+
+* **Concentración en la ruta central** (validación 2026: 45 de 66 victorias son de estrategias centrales, 68 %; ninguna estrategia individual pasa de 11/66 = 17 %, así que el objetivo «ninguna estrategia > 60 %» se cumple pero la familia central domina). No se rebalanceó en esta ronda: bajar la recompensa central exige tocar el fuego del buque o el pozo oculto y re-medir las 18 estrategias, y no se podía hacer sin romper los demás objetivos. Opciones para la próxima ronda: subir el castigo del fuego en el centro y acortar un poco la ventana, o ensanchar la ventana de la sur.
+* **Borde duro a ~12 min** (derrotas a 714-727 s junto a victorias a 697-720 s): sin cambio. El rango real de victoria central es 11,3-12,5 min y el de la sur 14-15,6; el objetivo documentado es 11-16 min, no 12-16.
+* **Partida humana 40-60 %:** no medible desde aquí. La cohorte son guiones que conocen el mapa; falta un playtest humano. No se simuló una persona.
+* **ui_real perdió una semilla** por dispersión de grupos: es de la pista de UI/tiempo real; no se tocó.
+
