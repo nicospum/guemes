@@ -538,7 +538,7 @@ func _world_label(text_value:String,pos:Vector3,color:Color,font_size=32,parent:
  var label=Label3D.new()
  label.text=text_value;label.position=pos
  label.font_size=font_size;label.pixel_size=LABEL_PIXEL_SIZE;label.fixed_size=true
- label.modulate=color;label.outline_size=8;label.outline_modulate=Color(0.07,0.10,0.09,0.9)
+ label.modulate=color;label.outline_size=14;label.outline_modulate=Color(0.05,0.07,0.07,0.96)
  label.billboard=BaseMaterial3D.BILLBOARD_ENABLED
  label.no_depth_test=true
  parent.add_child(label)
@@ -842,7 +842,7 @@ func _inst_r(kind:String,pos:Vector3,size_v:Vector3,yaw:float,color:Color,tilt:V
 
 func _label_j(text_value:String,pos:Vector3,color:Color,font_size:int,parent:Node3D)->Label3D:
  var label=_world_label(text_value,pos,color,font_size,parent)
- label.outline_size=10
+ label.outline_size=16
  return label
 
 # ---------------------------------------------------------------- construccion
@@ -1182,7 +1182,7 @@ func _landmarks_j():
     _inst_r("box",Vector3(mx,_h(mx,mz)+wh*0.5-0.1,mz),Vector3(ln+0.05 if along_x else 0.5,wh,0.5 if along_x else ln+0.05),0.0,Color("bdb096"))
 
 func _bullring_j(lm:Dictionary):
- var c=Vector2(float(lm.x),float(lm.z));var r=float(lm.get("radius_m",24.0))*0.62   # R-div1: huella visual 62 % (el fuerte dominaba la escena)
+ var c=Vector2(float(lm.x),float(lm.z));var r=float(lm.get("radius_m",24.0))*0.50   # R-div1: huella visual 62 % (el fuerte dominaba la escena)
  var y0=_h(c.x,c.y)
  # Plaza de Toros (Boneo 1801, Vidal 1820 lamina 05; paquete F01): exterior OCTOGONAL (r = radio de vertices), ruedo circular
  # independiente, muro encalado, techo de teja en el anillo de gradas y 4 portales (Pillado: cuatro puertas, orientacion desconocida).
@@ -1204,8 +1204,20 @@ func _bullring_j(lm:Dictionary):
     _inst_r("box",Vector3(q.x,y0+wall_h*0.5,q.y),Vector3(side*0.32,wall_h,2.2),yaw,Color("c3b690"))
    _inst_r("box",Vector3(pw.x,y0+wall_h*0.9,pw.z),Vector3(side*0.36,wall_h*0.22,2.2),yaw,Color("b8aa86"))
   else:
-   _inst_r("box",Vector3(pw.x,y0+wall_h*0.5,pw.z),Vector3(side,wall_h,2.2),yaw,Color("c3b690"))
-  _inst_r("box",Vector3(pw.x,y0+wall_h+0.3,pw.z),Vector3(side*1.02,0.6,3.0),yaw,Color("77604a"))
+   var wc=[Color("cdbf9c"),Color("c4b58f"),Color("d3c7a8"),Color("bfae88")][i%4]
+   _inst_r("box",Vector3(pw.x,y0+wall_h*0.5,pw.z),Vector3(side,wall_h,2.2),yaw,wc)
+   # Aspilleras (visual R2): troneras oscuras en la cara exterior para que el muro no sea un bloque liso.
+   var tg=Vector2(-sin(a),cos(a))
+   for k2 in [-0.28,0.0,0.28]:
+    var qa=Vector2(pw.x,pw.z)+tg*side*k2+Vector2(cos(a),sin(a))*1.15
+    _inst_r("box",Vector3(qa.x,y0+wall_h*0.62,qa.y),Vector3(0.5,0.95,0.25),yaw,Color("3d3027"))
+  # Zocalo desgastado (barro y humedad) y techo de teja rojiza del paquete.
+  var pb=Vector3(c.x+cos(a)*(apo+0.25),0,c.y+sin(a)*(apo+0.25))
+  _inst_r("box",Vector3(pb.x,y0+0.55,pb.z),Vector3(side*1.02,1.1,2.6),yaw,Color("9a8a6a"))
+  # Contrafuerte en cada vertice.
+  var av=TAU*float(i)/8.0
+  _inst_r("box",Vector3(c.x+cos(av)*r,y0+wall_h*0.52,c.y+sin(av)*r),Vector3(1.3,wall_h*1.04,2.8),-av-PI/2.0,Color("b2a37f"))
+  _inst_r("box",Vector3(pw.x,y0+wall_h+0.3,pw.z),Vector3(side*1.02,0.6,3.0),yaw,[Color("8e5a47"),Color("7e5b48"),Color("9a6650")][i%3])
   # gradas de madera (anillo interior, mas bajo)
   var pg=Vector3(c.x+cos(a)*(apo-r*0.16),0,c.y+sin(a)*(apo-r*0.16))
   _inst_r("box",Vector3(pg.x,y0+wall_h*0.32,pg.z),Vector3(side*0.86,wall_h*0.64,r*0.22),yaw,Color("9a8160"))
@@ -1531,6 +1543,9 @@ func _ship_j():
  ship.rotation=Vector3(0.012,-deg_to_rad(heading),0.045)
  ship_hull=ship;ship_y0=ship.position.y
  _strip_ladder(ship)
+ # Ficha del objetivo: el buque se ve desde cualquier altura (tamaño fijo en pantalla, aro que late). Hija del mundo, no del casco escalado.
+ var ship_tok=_token_j(self,4,Color("e6b04a"),56.0,260.0,620.0,10.0,true);ship_tok.name="Ficha_buque"
+ ship_tok.position=Vector3(sx,10.0,sz)
  # Anillo de fango y arena humeda alrededor del casco apoyado (Diseño: grounded_visual.mud_ring_radius_m).
  var mr:Array=M.get("ship",{}).get("grounded_visual",{}).get("mud_ring_radius_m",[22.0,34.0])
  var pm=PlaneMesh.new();pm.size=Vector2(float(mr[1])*2.2,float(mr[1])*2.2*1.3);pm.subdivide_width=1;pm.subdivide_depth=1
@@ -1731,7 +1746,7 @@ func _exposure_j():
   var cmi=MeshInstance3D.new();cmi.name="CoberturaGillespie";cmi.mesh=cm;cmi.material_override=_overlay_mat();cmi.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
   cmi.custom_aabb=AABB(Vector3(-crng,-1,-crng),Vector3(crng*2,2,crng*2))
   exposure_root.add_child(cmi)
-  var lc=_label_j("Hasta donde batía el buque según Gillespie p. 94 (no simulado, diseño)",Vector3(0,0.8,-crng),Color("d9b8a6"),18,exposure_root)
+  var lc=_label_j("Hasta aquí batía el buque (Gillespie, no simulado)",Vector3(0,0.8,-crng),Color("d9b8a6"),18,exposure_root)
   lc.outline_size=8
  var sx=float(M.ship.x);var sz=float(M.ship.z)
  exposure_root.position=Vector3(sx,level_m+0.18,sz)
@@ -1872,6 +1887,23 @@ var label_d:Dictionary={}
 var ship_far_k=1.0
 var far_k:Dictionary={}   # R6: tamaño minimo en pantalla de las figuras de un grupo (simbolico: 1 hasta ~150 m de camara, hasta x3,4 a 600 m)
 
+## Ficha de lectura de tamaño fijo en pantalla (shaders/justina_token.gdshader). shape: 0 caballeria, 1 voluntarios, 2 reserva, 3 explorador, 4 buque.
+func _token_j(parent:Node3D,shape:int,color:Color,px:float,fade_a:float,fade_b:float,y:float,pulse:bool=false,drop:float=0.0)->MeshInstance3D:
+ var q=QuadMesh.new();q.size=Vector2(1,1)
+ var mi=MeshInstance3D.new();mi.mesh=q;mi.name="Ficha_"+str(shape)
+ var sm=ShaderMaterial.new();sm.shader=load("res://shaders/justina_token.gdshader")
+ sm.set_shader_parameter("tint",color);sm.set_shader_parameter("size_px",px);sm.set_shader_parameter("shape",shape)
+ sm.set_shader_parameter("fade_a",fade_a);sm.set_shader_parameter("fade_b",fade_b);sm.set_shader_parameter("pulse",1.0 if pulse else 0.0);sm.set_shader_parameter("drop_px",drop)
+ sm.render_priority=20
+ mi.material_override=sm;mi.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+ mi.extra_cull_margin=16384.0
+ mi.position=Vector3(0,y,0)
+ parent.add_child(mi)
+ return mi
+
+const TOKEN_COLORS={"guemes":"f0c25a","arias":"4fc7b8","zavala":"ec8fb6","scout_1":"d8d2c0","scout_2":"c9d8d2"}
+const TOKEN_SHAPES={"guemes":0,"arias":1,"zavala":2}
+
 func _group_marker_j(id:String,root:Node3D)->void:
  var pal:Array=GROUP_PAL.get(id,["7b6953","d8cfb8"])
  # R6: colores del guion desde banners.group_markers del JSON (Diseño; antes fijos en el codigo). Evita el azul-blanco-azul que se leia como bandera.
@@ -1896,6 +1928,7 @@ func _group_marker_j(id:String,root:Node3D)->void:
  var disc=MeshInstance3D.new();disc.mesh=dm;disc.name="Halo"
  var dmat=StandardMaterial3D.new();dmat.albedo_color=Color(Color(pal[0]).r,Color(pal[0]).g,Color(pal[0]).b,0.30);dmat.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED;dmat.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA;dmat.no_depth_test=false
  disc.material_override=dmat;disc.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;ring.add_child(disc)
+ _token_j(root,int(TOKEN_SHAPES.get(id,0)),Color(str(TOKEN_COLORS.get(id,"d8cfb8"))),40.0,50.0,110.0,1.0,false,30.0)
  group_markers.append({"node":m,"ring":ring,"root":root})
 
 func _update_markers_j(cam:Camera3D)->void:
@@ -1956,6 +1989,7 @@ func _create_scouts_j():
   lance.mesh=lm;lance.material_override=_mat(Color("6f5a3c"));lance.position=Vector3(0.45,2.4,-0.3);lance.rotation=Vector3(0.15,0,-0.12);fig.add_child(lance)
   var ring=_ring_j(2.6,Color("e2bc72"),root)
   selected_rings[id]=ring
+  _token_j(root,3,Color(str(TOKEN_COLORS.get(id,"d8d2c0"))),26.0,60.0,130.0,1.0,false,22.0)
   var label=_label_j("◇ "+str(sc.name),Vector3(0,5.0,0),Color("dcd8c0"),26,root)
   unit_labels[id]=label
   unit_nodes[id]={"root":root,"figures":fig,"mounted":true,"anims":[],"last":root.position,"kind":"scout","yaw":-PI/2.0,"pos2":Vector2(float(sc.x),float(sc.z)),"moving":false,"stage":""}

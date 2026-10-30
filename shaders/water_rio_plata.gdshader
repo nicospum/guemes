@@ -51,7 +51,7 @@ void fragment(){
 	float h0 = swell(p, t, lod);
 	float hx = swell(p + vec2(e, 0.0), t, lod);
 	float hz = swell(p + vec2(0.0, e), t, lod);
-	float k = 2.8 * wave_amp * lod;
+	float k = 4.6 * wave_amp * lod;
 	vec3 n_w = normalize(vec3(-(hx - h0) / e * k, 1.0, -(hz - h0) / e * k));
 	NORMAL = normalize((VIEW_MATRIX * vec4(n_w, 0.0)).xyz);
 
@@ -144,12 +144,24 @@ void fragment(){
 	float wmask = smoothstep(0.52, 0.80, j_fbm2(j_rot(p, 0.8) * vec2(0.020, 0.045) + vec2(t * 0.01, 3.0)));  // solo en parches (rafagas)
 	float front = smoothstep(0.90, 0.99, wf) * wmask * (0.2 + 0.8 * lod) * (1.0 - band_s * 0.7);
 	body = mix(body, vec3(0.92, 0.88, 0.72), front * 0.22);
+	// R2-visual: gradiente de profundidad marcado (ocre-limo cerca de la costa -> verde botella-pardo al canal), usa solo el perfil BASE publico.
+	float off_k = smoothstep(0.2, 2.6, est);
+	vec3 warm = vec3(0.50, 0.33, 0.16);
+	vec3 cool = vec3(0.10, 0.19, 0.15);
+	body = mix(body, mix(warm, cool, off_k), 0.80 * (1.0 - halo));
+	// Sombreado de facetas de ola con el sol: lados iluminados claros, lados en sombra oscuros (da relieve y corriente a toda la lamina).
+	float lit = clamp(dot(n_w, normalize(sun_dir)), 0.0, 1.0);
+	body *= clamp(1.0 + (lit - 0.62) * 2.4 * (0.35 + 0.65 * lod), 0.45, 1.7);
+	// Crestas con espuma fina que se ven a altura de juego (borreguitos cortos orientados al viento).
+	float cr2 = j_noise(j_rot(p, 0.25) * vec2(0.22, 0.55) + vec2(t * 0.32, t * 0.06));
+	float cr_m = smoothstep(0.70, 0.84, cr2) * smoothstep(0.52, 0.72, h0) * lod * (1.0 - band_s * 0.8) * 0.5;
+	foam = max(foam, cr_m);
 	vec3 sky = mix(sky_horizon, sky_zenith, clamp(r.y * 1.6, 0.0, 1.0));
 	float sd_dot = max(dot(r, normalize(sun_dir)), 0.0);
 	float glint = pow(sd_dot, 40.0) * 0.10 + pow(sd_dot, 300.0) * 0.55 * (0.5 + h0);
 
 	ALBEDO = mix(mix(body, sky_horizon * 0.80, haze * 0.40), vec3(0.88, 0.86, 0.76), foam * 0.8);
-	EMISSION = sky * (fres * 0.34 + 0.012) * vec3(1.0, 0.94, 0.80) + vec3(1.0, 0.90, 0.70) * glint;
+	EMISSION = sky * (fres * 0.34 + 0.004) * vec3(1.0, 0.94, 0.80) + vec3(1.0, 0.90, 0.70) * glint;
 	METALLIC = 0.0;
 	ROUGHNESS = mix(0.22, 0.7, foam);
 	SPECULAR = 0.12;
