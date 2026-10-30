@@ -2214,10 +2214,16 @@ func _declutter_world_labels():
   var rect=Rect2(sp-Vector2(95,18),Vector2(190,36))
   l.visible=not _overlaps_any(rect,avoid)
 
+func _tide_label()->String:
+ var id=rules.tide_variant_id()
+ for v in rules.map_data().get("time",{}).get("variants",[]):
+  if str(v.id)==id:return str(v.get("label",id))
+ return id
+
 func _tide_text()->String:
  var t=float(rules.state.elapsed);var m=rules.tide_marks()
  if str(rules.state.status)!="playing":return ""
- if t<float(m.drop_start):return "Río: la [b]bajante empieza en %s[/b]" % _clock(float(m.drop_start)-t)
+ if t<float(m.drop_start):return "Río (%s): la [b]bajante empieza en %s[/b]" % [_tide_label().to_lower(),_clock(float(m.drop_start)-t)]
  if t<float(m.drop_end):return "Río [b]BAJANDO[/b]: mínimo en %s · sube recién en %s" % [_clock(float(m.drop_end)-t),_clock(float(m.low_hold_end)-t)]
  if t<float(m.low_hold_end):return "Río en su mínimo: [color=#e0bf81][b]SUBE en %s[/b][/color]" % _clock(float(m.low_hold_end)-t)
  return "[color=#f4a58d][b]EL RÍO SUBE[/b][/color]: el plazo vence en %s" % _clock(float(m.deadline)-t)
