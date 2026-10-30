@@ -10,8 +10,8 @@ render_mode blend_mix, depth_draw_always, cull_disabled, shadows_disabled, specu
 // Asi el color no delata el fondo oculto: los bancos aparecen solo al bajar el nivel (el suelo real emerge) o dentro de 0,3 m.
 uniform float water_level = 1.65;
 uniform float visible_depth_m = 0.3;
-uniform vec3 near_color : source_color = vec3(0.50, 0.43, 0.27);
-uniform vec3 far_color : source_color = vec3(0.33, 0.32, 0.20);
+uniform vec3 near_color : source_color = vec3(0.46, 0.42, 0.28);
+uniform vec3 far_color : source_color = vec3(0.25, 0.29, 0.22);
 uniform vec3 sky_horizon : source_color = vec3(0.78, 0.76, 0.68);
 uniform vec3 sky_zenith : source_color = vec3(0.45, 0.52, 0.58);
 uniform vec3 sun_dir = vec3(0.42, 0.62, 0.66);
@@ -57,28 +57,32 @@ void fragment(){
 	// Color del cuerpo: arenoso y claro cerca de la orilla, pardo-verdoso oscuro lejos; manchas de sedimento a gran escala.
 	float shallow = 1.0 - smoothstep(0.1, 1.5, est);
 	float patch_n = j_fbm2(p * 0.012 + vec2(t * 0.003, 0.0));
+	float plume = j_fbm2(p * 0.0042 + vec2(5.0, t * 0.0015));        // plumas de sedimento a escala de cientos de metros
 	vec3 body = mix(far_color, near_color, shallow);
-	body = mix(body, body * vec3(1.18, 1.10, 0.85), (patch_n - 0.5) * 0.9);
-	body *= 0.94 + 0.12 * h0;
+	vec3 silt = vec3(0.50, 0.42, 0.27);                               // limo en suspension: ocre
+	vec3 algae = vec3(0.24, 0.31, 0.24);                              // agua mas clara y verdosa
+	body = mix(body, mix(algae, silt, smoothstep(0.30, 0.70, plume)), 0.55 * (1.0 - shallow * 0.6));
+	body = mix(body, body * vec3(1.14, 1.08, 0.88), (patch_n - 0.5) * 0.8);
+	body *= 0.90 + 0.22 * h0;
 	// Halo de contacto: el suelo real se insinua a menos de visible_depth_m de la superficie.
 	float halo = 1.0 - smoothstep(0.0, visible_depth_m, depth);
 	body = mix(body, near_color * vec3(1.12, 1.05, 0.88), halo * 0.7);
 
-	// Espuma sutil en la orilla: contacto real (< 0,14 m) rota por ruido, mas un lavado que avanza y retrocede.
+	// Espuma de orilla: gradiente continuo por profundidad real (sin ruido binario), modulada suavemente por el lavado de las olas.
 	float foam = 0.0;
-	if (depth < 0.4) {
-		float wash = 0.5 + 0.5 * sin(depth * 14.0 - t * 1.5 + j_noise(p * 0.6) * 5.0);
-		float foam_n = j_noise(p * 2.2 + vec2(t * 0.15, 0.0));
-		foam = (1.0 - smoothstep(0.02, 0.16, depth)) * smoothstep(0.25, 0.7, foam_n * 0.7 + wash * 0.5);
-		foam += (1.0 - smoothstep(0.10, 0.34, depth)) * smoothstep(0.62, 0.9, foam_n) * 0.35;
-		foam = clamp(foam, 0.0, 1.0);
+	if (depth < 0.5) {
+		float wash = 0.5 + 0.5 * sin(depth * 9.0 - t * 1.2 + j_noise(p * 0.35) * 4.0);
+		float foam_n = 0.65 + 0.35 * j_noise(p * 0.8 + vec2(t * 0.1, 0.0));
+		foam = (1.0 - smoothstep(0.0, 0.14, depth)) * (0.55 + 0.45 * wash) * foam_n;
+		foam += (1.0 - smoothstep(0.08, 0.5, depth)) * 0.16 * wash;
+		foam = clamp(foam, 0.0, 0.8);
 	}
 
 	vec3 sky = mix(sky_horizon, sky_zenith, clamp(r.y * 1.4, 0.0, 1.0));
-	float glint = pow(max(dot(r, normalize(sun_dir)), 0.0), 260.0) * 0.10;
+	float glint = pow(max(dot(r, normalize(sun_dir)), 0.0), 90.0) * 0.07 + pow(max(dot(r, normalize(sun_dir)), 0.0), 600.0) * 0.12;
 
-	ALBEDO = mix(body, vec3(0.82, 0.80, 0.72), foam * 0.85);
-	EMISSION = sky * fres * 0.55 + vec3(1.0, 0.93, 0.8) * glint;
+	ALBEDO = mix(body, vec3(0.78, 0.78, 0.70), foam * 0.7);
+	EMISSION = sky * fres * 0.6 + vec3(1.0, 0.93, 0.8) * glint;
 	METALLIC = 0.0;
 	ROUGHNESS = mix(0.16, 0.7, foam);
 	SPECULAR = 0.5;

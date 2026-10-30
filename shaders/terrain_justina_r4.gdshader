@@ -62,7 +62,7 @@ void fragment(){
 
 	// Playa: arena con rizado alargado, grava y juncal arriba de la linea de agua alta.
 	float beach = 1.0 - veg;
-	float above = h - water_level;
+	float above = h - water_level + (j_fbm2(p * 0.05 + 40.0) - 0.5) * 0.9;
 	float ripple = j_noise(vec2(p.x * 0.9, p.y * 0.11)) * 0.6 + j_noise(vec2(p.x * 3.1, p.y * 0.4)) * 0.4;
 	vec3 sand = mix(vec3(0.56, 0.49, 0.34), vec3(0.65, 0.58, 0.42), ripple);
 	vec3 mud = vec3(0.34, 0.29, 0.20);
@@ -73,7 +73,7 @@ void fragment(){
 	c = mix(c, beach_c, beach * (1.0 - cliff * 0.7));
 
 	// Barro humedo y brillo bajo/cerca del agua (bajante).
-	float wet = above < 0.0 ? 1.0 : 1.0 - smoothstep(0.0, 0.45, above);
+	float wet = 1.0 - smoothstep(-0.1, 0.9, above);
 	c = mix(c, c * vec3(0.62, 0.58, 0.52), wet * 0.8);
 
 	ALBEDO = pow(c, vec3(color_gamma)) * (0.94 + fine * 0.10);

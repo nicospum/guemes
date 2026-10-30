@@ -844,6 +844,7 @@ func _build_justina():
  _obstacles_j()
  _ship_j()
  _beacons_j()
+ _ensign_j(M.get("ship",{}))
  _effects_j()
  _exposure_j()
 
@@ -1105,19 +1106,36 @@ func _landmarks_j():
 func _bullring_j(lm:Dictionary):
  var c=Vector2(float(lm.x),float(lm.z));var r=float(lm.get("radius_m",24.0))
  var y0=_h(c.x,c.y)
- # Arena, muro alto y gradas interiores (Plaza de Toros del Retiro; silueta: Vidal 1820, lamina 05).
- _inst_t("cyl12",Transform3D(Basis.from_scale(Vector3(r*1.3,0.3,r*1.3)),Vector3(c.x,y0+0.1,c.y)),Color("c3b184"))
- var n=40
- for i in range(n):
-  var a=TAU*float(i)/float(n)
-  if i==0:continue
-  var seg=TAU*r/float(n)*1.06
+ # Plaza de Toros (Boneo 1801, Vidal 1820 lamina 05; paquete F01): exterior OCTOGONAL (r = radio de vertices), ruedo circular
+ # independiente, muro encalado, techo de teja en el anillo de gradas y 4 portales (Pillado: cuatro puertas, orientacion desconocida).
+ # Medidas de diseño: la altura y el ruedo no son datos historicos.
+ var ruedo=r*0.5
+ _inst_t("cyl12",Transform3D(Basis.from_scale(Vector3(ruedo*1.0,0.3,ruedo*1.0)),Vector3(c.x,y0+0.1,c.y)),Color("a38d6b"))
+ var apo=r*cos(PI/8.0);var side=2.0*r*sin(PI/8.0)
+ var wall_h=clampf(r*0.2,5.0,9.0)
+ for i in range(8):
+  var a=TAU*(float(i)+0.5)/8.0
   var yaw=-a-PI/2.0
-  var p=Vector3(c.x+cos(a)*r,0,c.y+sin(a)*r)
-  _inst_r("box",Vector3(p.x,y0+2.6,p.z),Vector3(seg,5.2,1.6),yaw,Color("d6c9a8"))
-  _inst_r("box",Vector3(p.x,y0+5.4,p.z),Vector3(seg*1.02,0.5,2.1),yaw,Color("8d4b37"))
-  var p2=Vector3(c.x+cos(a)*(r-4.2),0,c.y+sin(a)*(r-4.2))
-  _inst_r("box",Vector3(p2.x,y0+1.4,p2.z),Vector3(seg*0.86,2.8,2.6),yaw,Color("bfae88"))
+  var pw=Vector3(c.x+cos(a)*apo,0,c.y+sin(a)*apo)
+  var gate=(i%2==0)
+  if gate:
+   # portal: dos tramos de muro a los lados de un vano oscuro
+   var tang=Vector2(-sin(a),cos(a))
+   for sg in [-1.0,1.0]:
+    var q=Vector2(pw.x,pw.z)+tang*sg*side*0.34
+    _inst_r("box",Vector3(q.x,y0+wall_h*0.5,q.y),Vector3(side*0.32,wall_h,2.2),yaw,Color("d8cfb8"))
+   _inst_r("box",Vector3(pw.x,y0+wall_h*0.9,pw.z),Vector3(side*0.36,wall_h*0.22,2.2),yaw,Color("d8cfb8"))
+  else:
+   _inst_r("box",Vector3(pw.x,y0+wall_h*0.5,pw.z),Vector3(side,wall_h,2.2),yaw,Color("d8cfb8"))
+  _inst_r("box",Vector3(pw.x,y0+wall_h+0.3,pw.z),Vector3(side*1.02,0.6,3.0),yaw,Color("8d4b37"))
+  # gradas de madera (anillo interior, mas bajo)
+  var pg=Vector3(c.x+cos(a)*(apo-r*0.16),0,c.y+sin(a)*(apo-r*0.16))
+  _inst_r("box",Vector3(pg.x,y0+wall_h*0.32,pg.z),Vector3(side*0.86,wall_h*0.64,r*0.22),yaw,Color("9a8160"))
+ # Bandera blanca con escudo español pintado: INFERENCIA (cuenta de 1803, Pillado; paquete H4). Sin escudo argentino.
+ var fp=Vector3(c.x,y0+wall_h,c.y)
+ _cylinder(Vector3(fp.x,fp.y+4.0,fp.z),0.12,8.0,Color("4c372b"))
+ _box(Vector3(fp.x+1.3,fp.y+7.0,fp.z),Vector3(2.6,1.6,0.06),Color("e9e3d2"))
+ _box(Vector3(fp.x+1.3,fp.y+7.0,fp.z+0.05),Vector3(0.7,0.8,0.05),Color("983c3c"))
 
 func _battery_j(lm:Dictionary):
  var c=Vector2(float(lm.x),float(lm.z));var w=float(lm.get("w",22.0));var d=float(lm.get("d",14.0))
@@ -1138,8 +1156,10 @@ func _battery_j(lm:Dictionary):
  battery_pos=Vector3(px+0.5,top+1.3,c.y)
 
 func _alameda_j(lm:Dictionary):
+ # Paquete C: no extender una avenida ribereña uniforme. Arboleda IRREGULAR: separacion y lado variables, huecos y sauces/talas sueltos (Diseño).
  var poly:Array=lm.get("polyline",[])
  if poly.size()<2:return
+ var rng=RandomNumberGenerator.new();rng.seed=1806
  var acc=0.0
  for i in range(poly.size()-1):
   var a=Vector2(float(poly[i][0]),float(poly[i][1]));var b=Vector2(float(poly[i+1][0]),float(poly[i+1][1]))
@@ -1147,11 +1167,11 @@ func _alameda_j(lm:Dictionary):
   var t=acc
   while t<seg:
    var p=a+dir*t
-   for side in [-1.0,1.0]:
-    var q=p+nrm*side*6.5
-    var s=decoration_rng.randf_range(1.3,1.9)
-    _tree(Vector3(q.x,_h(q.x,q.y),q.y),s)
-   t+=16.0
+   if rng.randf()<0.7:
+    var side=-1.0 if rng.randf()<0.5 else 1.0
+    var q=p+nrm*side*rng.randf_range(4.0,12.0)+dir*rng.randf_range(-4.0,4.0)
+    _tree(Vector3(q.x,_h(q.x,q.y),q.y),rng.randf_range(1.1,2.0))
+   t+=rng.randf_range(14.0,38.0)
   acc=t-seg
 
 func _camp_j(lm:Dictionary):
@@ -1326,8 +1346,8 @@ func _scale_bar_j():
   var y=_h(SCALE_X,zp)
   _inst_t("cyl8",Transform3D(Basis.from_scale(Vector3(0.22,3.4,0.22)),Vector3(SCALE_X,y+1.7,zp)),Color("5a3a2a"))
   _inst_t("box",Transform3D(Basis.from_scale(Vector3(0.9,0.9,0.08)),Vector3(SCALE_X,y+3.6,zp)),Color("efe6cc"))
- var lab=_label_j("Escala · 100 m",Vector3(SCALE_X,_h(SCALE_X,SCALE_Z0+50.0)+6.0,SCALE_Z0+50.0),Color("f0e4c2"),26,scale_root)
- lab.name="Rotulo_escala";lab.visibility_range_end=700.0
+ var lab=_label_j("Escala · 100 m",Vector3(SCALE_X,_h(SCALE_X,SCALE_Z0+50.0)+6.0,SCALE_Z0+50.0),Color("f6ecd0"),26,scale_root)
+ lab.name="Rotulo_escala";lab.visibility_range_end=700.0;lab.outline_size=18;lab.outline_modulate=Color(0.08,0.07,0.05,0.95)
  # Referencias de lectura: se reubican con el nivel del rio.
  ref_labels["agua"]=_label_j("Línea de agua",Vector3(210,level_m+1.0,100),Color("cfe3dc"),24,scale_root)
  ref_labels["pie"]=_label_j("Pie de la barranca",Vector3(190,_h(188,60)+4.0,60),Color("e6d3a6"),24,scale_root)
@@ -1550,7 +1570,45 @@ func _create_group_j(unit:Dictionary):
  var tag=str(unit.get("tag","diseno"))
  var label=_label_j(_tag_glyph(tag)+" "+str(unit.name),Vector3(0,7.0,0),Color("e9d4aa"),30,root)
  unit_labels[id]=label
+ _group_marker_j(id,root)
  unit_nodes[id]={"root":root,"figures":root,"mounted":mounted,"anims":[],"last":root.position,"parts":parts,"n":n,"yaw":-PI/2.0,"kind":"group","dirty":true,"pos2":Vector2(float(unit.x),float(unit.z)),"moving":false,"stage":""}
+
+## Paleta del paquete (04_paleta_diseno). Guion de lectura de cada grupo: color de DISEÑO para distinguir, NO es un estandarte histórico.
+const GROUP_PAL = {"guemes":["253b53","983c3c"],"arias":["d8cfb8","7b6953"],"zavala":["a38d6b","33475b"]}
+var group_markers: Array = []
+
+func _group_marker_j(id:String,root:Node3D)->void:
+ var pal:Array=GROUP_PAL.get(id,["7b6953","d8cfb8"])
+ var m=Node3D.new();m.name="Guion_"+id;root.add_child(m)
+ _cylinder(Vector3(0,3.0,0),0.07,6.0,Color("4c372b"),m)
+ _box(Vector3(1.4,3.6,0),Vector3(2.8,1.7,0.06),Color(pal[0]),m)
+ _box(Vector3(1.4,3.6,0.05),Vector3(2.8,0.5,0.06),Color(pal[1]),m)
+ var ring=_ring_j(3.0,Color(pal[0]).lerp(Color("f4efdc"),0.35),root)
+ ring.name="Ancla";ring.scale=Vector3(1,1,1)
+ group_markers.append({"node":m,"ring":ring,"root":root})
+
+func _update_markers_j(cam:Camera3D)->void:
+ for g in group_markers:
+  var r:Node3D=g.root
+  var d=cam.global_position.distance_to(r.global_position)
+  var k=clampf(d*0.012,1.0,7.0)   # legible desde lejos: crece con la distancia, 1 u = 1 m a corta distancia
+  g.node.scale=Vector3.ONE*k
+  g.ring.position.y=maxf(0.0,level_m-r.position.y)+0.35
+  g.ring.scale=Vector3.ONE*clampf(d*0.004,1.0,4.0)
+
+func _ensign_j(s:Dictionary)->void:
+ # Red Ensign (H1, HIPÓTESIS/Reconstrucción: la bandera concreta del Justina no está identificada; Union posterior a 1801 en el cantón).
+ var sx=float(s.get("x",580.0));var sz=float(s.get("z",262.0));var heading=deg_to_rad(float(s.get("heading_deg",0.0)))
+ var root=Node3D.new();root.name="Pabellon_hipotesis";add_child(root)
+ root.position=Vector3(sx,level_m,sz);root.rotation.y=-heading
+ var px=0.0;var pz=15.5   # popa (+z local con proa al norte)
+ _cylinder(Vector3(px,12.0,pz),0.15,8.0,Color("4c372b"),root)
+ _box(Vector3(px,15.2,pz-2.3),Vector3(0.05,2.6,4.6),Color("b6453e"),root)       # campo rojo
+ _box(Vector3(px,15.85,pz-0.9),Vector3(0.06,1.3,1.8),Color("33475b"),root)        # cantón Union (esquema)
+ _box(Vector3(px,15.85,pz-0.9),Vector3(0.08,0.22,1.8),Color("d8cfb8"),root)
+ _box(Vector3(px,15.85,pz-0.9),Vector3(0.08,1.3,0.22),Color("d8cfb8"),root)
+ _box(Vector3(px,15.85,pz-0.9),Vector3(0.09,0.1,1.8),Color("983c3c"),root)
+ _box(Vector3(px,15.85,pz-0.9),Vector3(0.09,1.3,0.1),Color("983c3c"),root)
 
 func _create_scouts_j():
  for sc in rules.state.get("scouts",[]):
@@ -1985,6 +2043,7 @@ func _beacon_mat(c:Color)->StandardMaterial3D:
 func _update_beacons_j():
  var cam=get_viewport().get_camera_3d()
  if cam==null:return
+ _update_markers_j(cam)
  for b in beacons:
   var r:Node3D=b.root
   var d=cam.global_position.distance_to(r.global_position)

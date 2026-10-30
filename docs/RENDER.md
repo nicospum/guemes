@@ -80,3 +80,30 @@ Retroalimentacion de la preview 3: una zona "definida" y el resto generico y pla
 - La barra de 100 m es de mundo; la barra de escala de la interfaz (esquina del minimapa) es de `main.gd`.
 - El circulo de alcance del buque (rojo/amarillo) es de `main.gd`/Reglas y domina visualmente el rio; no se toco.
 - Las pistas de interfaz y turnos (claridad del manejo de tropas, por turnos o en tiempo continuo) son de otra pista.
+
+## Justina ronda 1 (visual): paquete Retiro 1806, agua, circo, guiones, pabellón
+Pista visual sola; no cambia geometría ni reglas (`data/justina_map.json`, `game_rules.gd`, `main.gd` sin tocar). Parte del commit 82f7135 (ronda 4), evaluado con capturas `base_*` y mejorado.
+
+### Qué cambió
+- **Agua** (`shaders/water_rio_plata.gdshader`): pardo-ocre turbio con plumas de sedimento a escala de cientos de metros (zonas ocre y zonas verdosas), más oscuro y frío mar adentro; reflejo del cielo por Fresnel y destello solar amplio. **Espuma de orilla continua**: gradiente por profundidad real, sin umbral de ruido binario (se acabó el "granulado" blanco sobre los bancos). Un solo tono de agua; solo cambia la transparencia con el nivel.
+- **Orilla** (`shaders/terrain_justina_r4.gdshader`): la línea de humedad serpentea (ruido de ~20 m) y pasa arena seca, arena húmeda y barro con degradado suave; independiente de la forma de la costa (geometría de la pista de mapa).
+- **Plaza de Toros**: exterior **octogonal** de lado a lado según `radius_m` del JSON (radio de vértices), muro encalado (Lino crudo #D8CFB8), teja (paleta), 4 portales, gradas de madera, ruedo circular independiente (la mitad del radio). Bandera blanca con escudo pintado: **inferencia** (cuenta de 1803, paquete H4), sin escudo argentino. Si la pista de mapa sube el radio (el paquete propone 90 m entre vértices), el dibujo lo sigue.
+- **Alameda**: arboleda **irregular** (separación 14-38 m, un solo lado al azar, desfase lateral; paquete C: no extender una avenida uniforme). Es Diseño.
+- **Guiones de grupo** (`GROUP_PAL`): asta + banderín con paleta del paquete (Güemes: Azul del Fijo #253B53 + Encarnado #983C3C; Voluntarios: Lino #D8CFB8 + Ropa civil #7B6953; Reserva: Arena #A38D6B + Azul marinero #33475B). Son marcadores de DISEÑO para distinguir grupos, no estandartes históricos. Crecen con la distancia de cámara (legibles al alejar, 1 u = 1 m de cerca) junto a un anillo de ancla.
+- **Pabellón del buque**: Red Ensign (campo rojo #B6453E, cantón con Union posterior a 1801) en la popa. **Hipótesis/Reconstrucción** (H1): la bandera concreta del Justina no está identificada. Sin White Ensign, sin bandera argentina.
+- **Barra de escala**: rótulo con contorno oscuro grueso (legible sobre el pasto).
+- Verificado que `enemy_marker`/"REALISTAS"/`royalist_1817` solo se crean en `_north()` (Norte), nunca en Justina.
+
+### Fiel a fuente vs estética reconstruida
+- Fiel (según paquete): octógono del circo, contraste barranca/ribera, mercante armado con 26 piezas, casco ~40 x 9-10 m (diseño por comparables RMG), Red Ensign como hipótesis, bandera blanca del circo como inferencia, sin Torre/estaciones/jardines modernos.
+- Estética reconstruida: color del agua (referencia Vidal 1820, no medido), plumas de sedimento, olas, colores de pasto/tosca, guiones de grupo, forma exacta de las puertas del circo, tejas. Colores = paleta de diseño del paquete (no tintes medidos).
+
+### Evidencia y medición
+- Capturas con ventana real (1440x900, Forward+, RTX 3080 Ti) en `evidence/justina-ui/calidad_r1/`: `base_*` (antes) y `final_*` (21 vistas, incl. grupo cerca, circo desde el norte, buque, panorama alto). Generadas con `tools/vis_run.sh`.
+- Benchmark `benchmark.py` justine, 3 repeticiones, forward_plus: baja 1,45 ms, media 2,27 ms (máx 2,28) de cuadro medio < 3 ms.
+- `test_rules` 474/0, `test_integration` 181/0, `ui_qa` 1280x720 sin fallos (60 checks reportados).
+
+### Pendiente
+- Costa casi recta, ciudad alta/Santa Catalina/Fuerte y área 900x750: geometría, de la pista de mapa. El cono de fuego rojo y las etiquetas (`main.gd`) dominan el río: de la pista de interfaz.
+- Marineros/jinetes con ropa del paquete (G2/G4): los GLB `rider_1806` no se rehicieron; sin carros, botes ni ciudad a escala de fondo.
+- Compatibility no verificado visualmente.
