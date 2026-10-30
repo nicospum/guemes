@@ -31,6 +31,7 @@ func _run() -> void:
 	game = scene.instantiate()
 	root.add_child(game)
 	await process_frame
+	game.settings.auto_pause = false  # los guiones automaticos no pueden esperar a que el jugador reanude
 	check(game.mode == "menu", "Opening the delivery reaches scenario selection")
 	check(_find_button("EL RÍO OFRECE") != null, "Menu offers the Justina scenario")
 	check(_find_button("SOSTENER EL NORTE") != null, "Menu offers the northern scenario")
@@ -276,6 +277,8 @@ func _justina() -> void:
 		if docs.find("| " + ks + " |") < 0:
 			undocumented.append(ks)
 	check(undocumented.is_empty(), "Every Justina key is in docs/CONTROLES.md: " + str(undocumented))
+	# --- Ronda 1: tiempo real, panel de agrupaciones, acciones contextuales, deshacer, avisos, tutorial y despliegue ---
+	await _justina_r1_ui()
 	# Reinicio con R (confirmacion) y pitch en RePag/AvPag
 	_key(KEY_R)
 	check(is_instance_valid(game.modal), "R asks to confirm the restart in Justina")
@@ -589,6 +592,115 @@ func _ui_text(node: Node) -> String:
 		if n is Control and n.tooltip_text != "":
 			out += n.tooltip_text + "\n"
 	return out
+
+func _justina_r1_ui() -> void:
+	game.paused = true
+	game._update_hud()
+	check(game.mode_label.text.find("PAUSA") >= 0, "Header shows EN PAUSA while paused")
+	check(game.pause_banner.visible and game.pause_banner.text.find("órdenes con el tiempo detenido") >= 0, "A banner explains that orders can be given while paused")
+	check(game.pause_button.text.find("Iniciar") >= 0, "Before the first second the pause button says Iniciar")
+	game.paused = false
+	game._update_hud()
+	check(game.mode_label.text.begins_with("TIEMPO REAL") and game.mode_label.text.find("×1") >= 0, "Header shows TIEMPO REAL ×1 while running: " + game.mode_label.text)
+	check(not game.pause_banner.visible, "The pause banner is hidden while the clock runs")
+	game._set_speed(2.0)
+	check(game.speed == 2.0 and game.mode_label.text.find("×2") >= 0 and game.speed_buttons[2].button_pressed, "The ×2 speed button sets the speed and the indicator")
+	_key(KEY_F4)
+	check(game.speed == 4.0 and game.speed_buttons[4].button_pressed, "F4 selects ×4")
+	_key(KEY_F2)
+	check(game.speed == 1.0, "F2 selects ×1")
+	game.paused = true
+	game._update_hud()
+	# Panel lateral de agrupaciones
+	check(game.roster_buttons.size() == 5 and game.roster_panel.is_visible_in_tree(), "The five-group side panel is always visible")
+	for id in game.ALL_ACTORS:
+		var ct: String = game.roster_buttons[id].text
+		check(ct.find("Orden:") >= 0 and ct.find(game._short_name(id)) >= 0, "Card %s shows name and current order" % id)
+	for id in game.GROUP_IDS:
+		check(game.roster_buttons[id].text.find("%d %%" % int(game.rules.get_unit(id).strength)) >= 0 and game.roster_buttons[id].text.find("mun.") >= 0, "Card %s shows strength and ammunition" % id)
+	game.roster_buttons["zavala"].pressed.emit()
+	check(game.sel_ids == ["zavala"], "Clicking a side card selects that group")
+	# Despliegue previo
+	game._deploy_dialog()
+	var dt := _modal_text()
+	check(is_instance_valid(game.modal) and dt.find("Despliegue previo") >= 0 and dt.find("Explorador 1") >= 0 and dt.find("Punto de partida") >= 0, "The deployment dialog lists the five groups with starting points")
+	game._close_modal()
+	var g0: float = float(game.rules.get_unit("guemes").strength)
+	var a0: float = float(game.rules.get_unit("arias").strength)
+	var tr: Dictionary = game.rules.deploy_transfer("zavala", "arias", 5.0)
+	check(bool(tr.ok) and float(game.rules.get_unit("arias").strength) == a0 + 5.0, "Deployment can move strength between groups: " + str(tr.reason))
+	check(is_equal_approx(float(game.rules.campaign_report().groups[1].start_strength), a0 + 5.0), "The report uses the redeployed starting strength")
+	var all_ok := true
+	for i in range(5):
+		if not bool(game.rules.deploy_transfer("zavala", "arias", 5.0).ok):
+			all_ok = false
+	check(not all_ok, "Deployment transfers stop at the +-15 limit")
+	for gid in ["zavala", "arias"]:
+		var base := 60.0 if gid == "zavala" else 70.0
+		game.rules.state.stats.start_strength[gid] = base
+		game.rules.get_unit(gid).strength = base
+	check(not bool(game.rules.deploy_transfer("zavala", "zavala", 5.0).ok), "Deployment rejects the same group twice")
+	check(g0 == 100.0, "Guemes keeps its starting strength")
+	# Orden con ETA y deshacer
+	game._select_ids(["guemes"])
+	var sx: float = float(game.rules.get_unit("guemes").x)
+	game._commit_move(Vector2(sx, 300.0), true)
+	check(game.order_log.size() == 1 and str(game.rules.get_unit("guemes").order.get("action", "")) == "move", "A move order is given and logged")
+	game._update_hud()
+	check(game.roster_buttons["guemes"].text.find("ETA") >= 0, "The card shows the ETA of the order: " + game.roster_buttons["guemes"].text)
+	check(game._eta_s("guemes") > 0.0, "ETA is positive for a moving group")
+	game._do_action("undo")
+	check(game.order_log.is_empty() and game.rules.get_unit("guemes").order.is_empty() and str(game.rules.get_unit("guemes").stage) == "ready", "Deshacer reverts the last order")
+	game._update_hud()
+	check(game.action_buttons["undo"].disabled, "Deshacer is greyed out with nothing to undo")
+	# Acciones contextuales: motivo legible, siguiente paso, Volver sin error
+	var bb: Button = game.action_buttons["board"]
+	check(bb.disabled and str(bb.get_meta("why")).find("Señalar a Liniers") >= 0 and str(bb.get_meta("why")).find("K") >= 0, "Blocked board explains the Liniers chain in plain words: " + str(bb.get_meta("why")))
+	check(game.reason_label.text.begins_with("SIGUIENTE"), "With nothing hovered the bar says the next step: " + game.reason_label.text)
+	game._show_action_info("board")
+	check(game.reason_label.text.find("No disponible") >= 0 and game.reason_label.text.find("Liniers") >= 0, "Hovering a blocked action shows why")
+	game._show_action_info("")
+	game._select_ids(["scout_1"])
+	var rb: Button = game.action_buttons["recall"]
+	check(not rb.disabled and str(rb.get_meta("why")).find("desconocida") < 0, "Volver is valid for a live scout (no 'Acción desconocida')")
+	check(game.action_buttons.has("probe_careful") and game.action_buttons.has("mark_ford"), "Scout bar lists careful probe and mark ford")
+	game._select_ids(["guemes"])
+	check(game.action_buttons.has("repel") and game.action_buttons.has("evacuate") and game.action_buttons["repel"].disabled, "Group bar lists repel and evacuate (greyed out until a counterattack)")
+	game._select_ids(["scout_1"])
+	# Tutorial interactivo
+	game.settings.tutorial = true
+	game.tut_step = 0
+	game._update_hud()
+	check(game.hint_panel.visible and game.tutorial_label.text.begins_with("1/6"), "Tutorial step 1/6 is shown: " + game.tutorial_label.text)
+	game._tut_skip()
+	check(game.tutorial_label.text.begins_with("2/6"), "Tutorial steps can be skipped")
+	game._tut_close()
+	check(not game.hint_panel.visible and not bool(game.settings.tutorial), "The tutorial can be closed")
+	game.settings.tutorial = true
+	game.tut_step = 0
+	# Avisos criticos con pausa automatica (contraataque)
+	game.settings.auto_pause = true
+	game.paused = false
+	var saved_counter: Dictionary = game.rules.state.counter.duplicate(true)
+	game.rules.state.counter.active = true
+	game.rules.state.counter.answered = false
+	game.rules.state.counter.until = float(game.rules.state.elapsed) + 14.0
+	game._update_hud()
+	check(game.paused and game.alert_panel.visible and game.alert_label.text.find("CONTRAATAQUE") >= 0 and game.alert_label.text.find("14") >= 0, "A counterattack alert pauses the game and shows the countdown: " + game.alert_label.text)
+	check(game.pause_banner.visible and game.pause_banner.text.find("PAUSA AUTOMÁTICA") >= 0, "The banner says the pause was automatic")
+	check(game.alert_btn.visible and game.alert_btn.text.find("Rechazar") >= 0, "The alert offers a Rechazar button")
+	game.rules.state.counter = saved_counter
+	game.settings.auto_pause = false
+	game.alert_ids_seen = {}
+	game.pause_reason = ""
+	game.paused = true
+	game._update_hud()
+	check(not game.alert_panel.visible, "The alert disappears once the window is over")
+	# Minimapa claro y camara libre
+	check(game.mm_bar.is_visible_in_tree() and game.mm_bar.get_global_rect().end.y <= game.minimap_rect().position.y + 1.0, "The minimap has a camera bar above it")
+	game._select_ids(["guemes"])
+	game.paused = true
+	game._update_hud()
 
 func _layout_checks(label: String) -> void:
 	var view := Rect2(Vector2.ZERO, root.get_visible_rect().size)

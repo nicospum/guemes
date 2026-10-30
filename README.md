@@ -1,6 +1,6 @@
 # Güemes — Juegos de la Patria
 
-**Versión 0.3.0-alfa — alfa jugable, 28 de octubre de 2026.** Respecto de 0.2.0: casas, iglesias, árboles y rocas 3D ya usados en escena; balance del norte (victoria no antes de la ronda 10); órdenes que no ahogan unidades; validación de coherencia de guardados; interfaz adaptable; sin fugas de recursos al salir. (La entrega 0.1.0 conserva su verificación en `docs/VERIFICACION.md`; la de 0.2.0 está en `docs/VERIFICACION_FASE2.md`.)
+**Versión 0.3.0-alfa (preview 4: interfaz de la Justina en tiempo real) — alfa jugable, 30 de octubre de 2026.** Preview 4 aclara los controles de la Justina: tiempo real con pausa y velocidades ×1/×2/×4 siempre indicado, panel lateral con las cinco agrupaciones, acciones contextuales con motivo, rutas con destino y ETA, deshacer (Ctrl+Z), avisos con pausa automática, despliegue previo y tutorial de seis pasos. Respecto de 0.2.0: casas, iglesias, árboles y rocas 3D ya usados en escena; balance del norte (victoria no antes de la ronda 10); órdenes que no ahogan unidades; validación de coherencia de guardados; interfaz adaptable; sin fugas de recursos al salir. (La entrega 0.1.0 conserva su verificación en `docs/VERIFICACION.md`; la de 0.2.0 está en `docs/VERIFICACION_FASE2.md`.)
 
 Dos escenarios completos en sus reglas, con selección, objetivos, victoria, derrota, reinicio y persistencia. Proyecto independiente en Godot 4.7.2. La entrega incluye código y exportación Windows x64. El acabado es 3D estilizado de detalle medio: la fidelidad cinematográfica solicitada sigue pendiente. Jev está integrado por contrato y alternativa local, pero no se validó una decisión viva por falta de credencial.
 
@@ -20,13 +20,13 @@ Para **0.2.0-alfa** se midió, en una PC con Windows 11, Ryzen 9 7950X y RTX 308
 
 ### I. Tomar la Justina · 1806
 
-Tiempo real con pausa. Tres agrupaciones de caballería parten de la ribera. La bajante cambia la profundidad y el tránsito. Podés elegir el banco central, más corto y expuesto, o el rodeo sur, más largo y protegido. Las órdenes de aproximación preparan el movimiento, esperan en la ribera si hace falta y reanudan el cruce al habilitarse.
+**Tiempo real con pausa** (no por turnos): el reloj corre solo y la cabecera lo dice siempre («TIEMPO REAL · ▶ ×1» o «‖ EN PAUSA»). Con el tiempo detenido podés seguir dando órdenes. Tres agrupaciones de caballería parten de la ribera. La bajante cambia la profundidad y el tránsito. Podés elegir el banco central, más corto y expuesto, o el rodeo sur, más largo y protegido. Las órdenes de aproximación preparan el movimiento, esperan en la ribera si hace falta y reanudan el cruce al habilitarse.
 
 Al llegar al buque se representa un desmontaje de 12 segundos y la resolución de la captura; los caballos quedan fuera de la cubierta. La fuerza conservada afecta el progreso. Perdés si las agrupaciones se dispersan o se cierra la oportunidad sin capturar. No se simula combate individual en cubierta.
 
-**Para empezar:** seleccioná una agrupación (Mayús+clic suma otras, o arrastrá una caja), elegí una aproximación y pulsá Espacio. Podés cambiar órdenes por grupo con 1/2/3 (4 y 5 son los exploradores), cancelar con X, reagruparte o mover con clic derecho. + y − cambian la velocidad.
+**Para empezar:** mirá a la izquierda tus cinco agrupaciones (tres grupos y dos exploradores; clic o teclas 1-5 para elegirlas) y el **Despliegue previo**. El panel inferior dice siempre el siguiente paso: reconocer el fondo con un explorador (4 o 5, tecla Z), señalar a Liniers (K) para obtener la orden de avance y después cargar y abordar (N) o trazar la ruta con clic derecho. Espacio pausa y reanuda; X cancela una orden y Ctrl+Z la deshace. F1 o ? abren la ayuda.
 
-En recorridos automatizados, la vía directa ganó en 7 min 53,75 s simulados y el rodeo sur en 9 min 7 s. Son resultados del balance actual, no mediciones de jugadores.
+Los tiempos y tasas de victoria de los recorridos automatizados están en `docs/DISENO_JUSTINA.md` y en `evidence/`; son resultados del balance actual, no mediciones de jugadores.
 
 ### II. Sostener el norte · 1816–1817
 
@@ -47,15 +47,18 @@ Las pruebas comprobaron dos estrategias ganadoras distintas, en rondas 10 y 11, 
 | Girar | Q / E; arrastrar con botón central |
 | Seleccionar grupo | Clic o teclas 1, 2, 3 |
 | Seleccionar las tres agrupaciones, Justina | Mayús+clic suma, Ctrl+clic alterna, o arrastrar una caja |
-| Seleccionar explorador, Justina | 4 y 5 (Explorador 1 y 2) |
+| Seleccionar explorador, Justina | 4 y 5 (Explorador 1 y 2), o su ficha a la izquierda |
 | Mover | Clic derecho |
-| Pausa / resolver ronda | Espacio |
-| Velocidad (Justina: ×1, ×2, ×4) | + / − ; Tab cicla la selección |
+| Pausa o reanudar (Justina, tiempo real) / resolver ronda (norte) | Espacio |
+| Velocidad de la Justina (×1, ×2, ×4) | Botones ×1 ×2 ×4, F2 / F3 / F4 o + / − |
+| Ciclar la selección (Justina) | Tab |
+| Deshacer la última orden (Justina) | Ctrl+Z |
+| Rechazar contraataque / evacuar heridos (Justina) | Coma (,) / punto (.) |
 | Cancelar orden | X |
 | Guardar / cargar | F5 / F9 |
 | Reiniciar escenario | R |
 | Enfocar objetivo | O |
-| Controles / fuentes | F1 / H |
+| Ayuda (Justina: F1 o ?) / fuentes | F1 / H |
 | Pantalla completa | F11 |
 
 El detalle, la ayuda contextual y el sonido se cambian en Ajustes. El perfil bajo reduce resolución 3D, cantidad de figuras decorativas, sombras y antialiasing; la interfaz mantiene su resolución. Las cifras de las agrupaciones representan fuerzas agregadas, no el número literal de figuras visibles.
