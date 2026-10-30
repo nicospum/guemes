@@ -104,7 +104,6 @@ class Sim:
 	var t := 0.0
 	var cfg: Dictionary = {}
 	var rng: RandomNumberGenerator = null
-	var rng: RandomNumberGenerator = null
 
 const GROUP_IDS := ["guemes", "arias", "zavala"]
 const SEEDS := [3, 5, 7, 11, 13, 17, 19, 23]
@@ -553,8 +552,8 @@ func _ui_step(r, t: float) -> void:
 	for u in st.units:
 		if r.exposure_at(float(u.x), float(u.z)) > 0.0 and u.stage in ["moving", "dismounting", "boarding"]:
 			exposed = true
-	## Ronda 9: se cuida la pólvora para rechazar contraataques (piso de 12 tras gastar 8).
-	if exposed and int(st.ammo) >= 20 and float((st.get("fire_support", {}) as Dictionary).get("ready_at", 0.0)) <= t and t >= float(mem.get("fire_wait", 0.0)):
+	## Ronda 9: se cuida la pólvora para rechazar contraataques (piso de 8 tras gastar 8).
+	if exposed and int(st.ammo) >= 16 and float((st.get("fire_support", {}) as Dictionary).get("ready_at", 0.0)) <= t and t >= float(mem.get("fire_wait", 0.0)):
 		mem.fire_wait = t + 12.0
 		if await _press("Distraer con fuego", "fuego de distraccion"):
 			return
@@ -585,7 +584,7 @@ func _ui_step(r, t: float) -> void:
 		if await _press("Reunir", "reunir jinetes"):
 			mem.muster0 = true
 		return
-	if t >= 150.0 and not mem.has("resupply") and mem.has("muster0") and r.get_unit("zavala").stage == "ready" and int(st.ammo) < 30 and int(st.ammo_reserve) > 0:
+	if t >= 95.0 and not mem.has("resupply") and mem.has("muster0") and r.get_unit("zavala").stage == "ready" and int(st.ammo) < 30 and int(st.ammo_reserve) > 0:
 		await _select_groups(["zavala"])
 		if await _press("Abastecer", "reponer munición"):
 			mem.resupply = true

@@ -140,3 +140,15 @@ Para reconstruir, seguir `docs/RECONSTRUIR.md`. En Linux, las pruebas renderizad
 - Orden recomendado de las pruebas con el mismo perfil: `tools/ui_qa.gd` primero (borra `settings.cfg` al arrancar) y luego `tests/test_integration.gd`, que deja `auto_pause=false` en el perfil; con APPDATA aislado y limpio por suite no hay contaminación.
 - `ui_qa`: 130/130 en 1280x720, 1920x1080 y 2560x1440. `test_integration`: 245 comprobaciones sin fallos. `test_rules`: 505 sin fallos. `justina_playthrough`: 15 victorias, incluida la política `ui_real`.
 - Nuevo: `deploy_place` (reubicar puntos de partida, 14 m, tierra firme), cabecera «Quedan mm:ss min», «Güemes (trad.)» en fichas/chips, aviso de la fuente («en seco», cuatro millas), glosas, motivo visible de acciones en gris, toast y chips que no se pisan, recorte del cuadro de cámara al minimapa. Capturas: `evidence/justina-ui/calidad_r3_ui/`.
+
+## Ronda 9 · pista `mapa_reglas` (rama `div1-mapa_reglas`)
+
+Todo con `APPDATA` aislado; nada se declaró sin correrse.
+
+- `tests/test_rules.gd`: **638 comprobaciones, 0 fallas** (520 antes). Nuevo: aviso/esquive/andanada fuerte, contraataque con aviso y consecuencias, quiebre, último esfuerzo, medallas, variantes de misión, eventos de campo (≥ 6; ≤ 90 s sin evento en los primeros 5 min), elección del mensajero, baqueano y bajante generosa, premio de ruta, punto sin retorno, y el ciclo de campaña completo (`CampaignProgress`: mundo fijo en 50 reinicios, «Río nuevo» en 20, persistencia, diario sin conocimiento confirmado, ayudas escalonadas, causas sin jerga, desbloqueo del Norte, archivo dañado).
+- `tests/test_integration.gd`: 260 comprobaciones, 0 fallas. `tests/jev_contract_test.gd`: 15, 0 fallas (contrato offline). `tests/audio_runtime_test.gd`: 17 comprobaciones, 1 falla (driver de audio Dummy en headless: la única aceptada).
+- `tools/ui_qa.gd` (ventana real): 144 comprobaciones, 0 fallas en 1280x720 y 1920x1080. En 1440x900 falla «la interfaz deja libre ≥ 60 % de la vista (57,7 %)»: **ocurre igual en `main` sin mis cambios** (hallazgo previo de la pista UI, no de esta ronda).
+- `tools/justina_playthrough.gd`: ver el informe de la rama (las políticas se resincronizaron con `tests/test_rules.gd`; la política `ui_real` gana al menos una de tres semillas con clics y teclas reales).
+- Monte Carlo: `godot --headless --path . --script tests/test_rules.gd -- --matrix --only=central_flank_pair,south_full --bymission --seeds=1001,...` y `-- --human --n=60 --attempts=6 --base=900` (tablas y límites en `docs/DISENO_REGLAS.md`, «Ronda 9»). El «jugador humano» es un modelo; no hubo playtest.
+- JEV: había credencial en `user://jev.cfg`; la consulta real expiró a los 2 s y el cliente usó la alternativa local. No hay decisión en vivo comprobada.
+- No se hizo `benchmark.py` en esta pista (no hay cambios de render); el costo de `tick` medido por `test_rules` es ≈ 0,1 ms.

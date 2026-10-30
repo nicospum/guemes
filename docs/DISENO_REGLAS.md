@@ -258,3 +258,75 @@ Estos tiempos son **tiempo de simulación con órdenes automatizadas**, no medic
 ## Ronda 5 (30-oct-2026): ajustes de equilibrio de Justina
 
 Solo datos: `ship.fire.damage_min/max` 7,6 / 11,5 → 8,06 / 12,19 y `time.variants[lenta]` con la bajante a 75-470 s. `game_rules.gd` solo cambia el aviso de guardados de versión anterior (v1 y v2). Matriz re-medida: 542 comprobaciones sin fallos, cohorte 50 % / 50 %, bajas medianas 53 %, máximo con defensa 68 %. Detalle y comparación en `docs/DISENO_JUSTINA.md` 16.3. Escenario Norte sin cambios.
+
+## Ronda 9 (30-oct-2026, pista `mapa_reglas`): ciclo de campaña, partida comprimida y balance de «jugador humano»
+
+Directriz del usuario que manda: la fidelidad histórica es solo una guía; hay que poder jugar y que sea entretenido; si perdés, volvés a jugar con lo que aprendiste; hay que ganar para pasar al segundo escenario. El Norte no se tocó. `map_version` 7 → **8** (un guardado de partida anterior se rechaza con aviso; el progreso de campaña es otro archivo).
+
+### Qué se implementó (plan de diversión, `docs/PLAN_DIVERSION_JUSTINA.md`)
+
+| Cambio | Estado | Dónde |
+|---|---|---|
+| **C1** Mundo fijo hasta ganar | Hecho (lógica y pruebas); la UI debe llamar `CampaignProgress.world_seed()` en lugar de sortear en `main.gd:432` | `scripts/campaign.gd` |
+| **C2** Diario del Bañado | Hecho (datos, persistencia, marcas `confirmed:false`); falta dibujarlo (UI/visual) | `campaign.gd`, `rules.diary_marks` |
+| **C3** Parte de derrota que enseña | Hecho el texto (causa ≤ 140 car., consejo, pista desde la 2.ª derrota); falta la pantalla | `campaign.record_result()`, JSON `campaign.defeat_causes` |
+| **C4** «Desde el cruce» | **No hecho** (exige tocar el flujo de `main.gd`; el plan lo marcaba opcional) | — |
+| **C5** Río y partida comprimidos | Hecho: bajante 0:30-4:10, mínimo hasta 11:40, plazo duro **14:00** (el plan pedía 13:00; con 13:00 la ruta sur no llegaba), vado abre ≈ 3:30 en todas las variantes, variante «breve» eliminada | JSON `time` |
+| **C7** (reglas) Fuego telegrafado | Hecho: aviso con punto apuntado y cuenta regresiva (3 s; 4 s la andanada fuerte, cada 6.ª ≈ 45 s, ×1,5); el buque apunta a donde estará el grupo, así que quedarse quieto o seguir la marcha recibe el golpe y moverse más que el radio (9 m / 10 m) lo esquiva | `_volley_step`, `ship.fire.telegraph` |
+| **C8** Contraataques con consecuencias | Hecho: aviso a 5 s, ventana de 12 s; rechazar cuesta 3 de munición y 6 de fatiga y deja la captura en −5; no contestar: −25 de captura, 24 de daño repartido y el grupo más débil se quiebra | `_step_counter`, `ship.capture.counter` |
+| **C9** Rutas con identidad | Hecho: premio de captura central ×1,2 / sur ×1,05 / mixta ×1,1; la sur moja 4 de pólvora al cruzar el vado; las variantes de misión inclinan cuál conviene | `route_premium`, `south_powder` |
+| **C10** Variantes de misión | Hecho: 4 (costado fuerte al sur, munición escasa con voluntarios, viento fuerte, buque nervioso) sorteadas con la semilla, con generador propio (no se correlaciona con el fondo); aviso en el segundo 4 | `mission_variants`, `rules.mission()` |
+| **C11** Moral y quiebre gradual | Hecho: ≤ 25 de fuerza = «quebrado» (lento ×0,7, no suma captura), se rehace al pasar de 38; la derrota por dispersión llega cuando todos están quebrados o dispersos | `outcome.shaken` |
+| **C12** Último esfuerzo y medallas | Hecho: una vez por partida, +30 de fuerza a cada grupo (cuesta 40 de voluntarios); con todos quebrados y captura ≥ 30 % se abre una ventana de 15 s en lugar de perder en el acto. **Decisión de diseño distinta de la del plan:** no convierte la derrota en victoria bronce (eso baja el valor de ganar); si la ventana vence, el parte dice «estuviste a un paso» | `last_effort()`, `outcome.last_effort`, `outcome.medals` |
+| **C18** Presión de reloj | Hecho: punto sin retorno **11:00**; avisos de Liniers a los 7:00, 9:00 y 10:30; derrota por inacción si nadie salió a cargar | `time.no_return_s` |
+| **C19** Eventos de campo | Hecho: 8 eventos programados (aviso de variante, tres mensajes de Liniers, mensajero con elección pólvora/voluntarios, pista del vecino sobre el flanco, mínimo del río, refuerzo de voluntarios); nunca más de 90 s sin evento en los primeros 5 min (prueba) | `field_events` |
+| Ayudas en escalera | Hecho: derrota 2 → pista; derrota 3 → «Baqueano» (revela el hoyo del flanco, +8 de munición); derrota 5 → «Bajante generosa» (+60 s). Opcionales y marcadas en el parte; quitan el oro | `apply_assist` |
+
+### Cómo se midió (y qué NO prueba)
+
+- `tests/test_rules.gd`: **638 comprobaciones** (antes 520), todas verdes; las de balance se reescribieron para la partida comprimida (victorias de 7,5 a 14 min con mediana entre 9 y 12; pasividad = derrota por inacción a los 11:00 con ≥ 2 avisos; la mejor línea de cada ruta rinde parecido en 20 semillas; cohorte «razonable» 25-50 %).
+- `tests/test_rules.gd -- --matrix --bymission [--seeds=...]`: matriz estrategia × semillas con desglose por variante de misión. `-- --human --n=N --attempts=K --base=S`: **simulación de jugador humano**.
+- **El «jugador humano» es un modelo inventado.** Tres perfiles (experto, promedio, novato) cometen errores con probabilidades que yo elegí (no sondear el flanco, no rechazar un contraataque, gastar pólvora, salir tarde, no esquivar el aviso, no usar el último esfuerzo) y mejoran ×0,72 por derrota (el diario enseña; desde la 2.ª derrota saben qué flanco tiene el hoyo; aceptan baqueano y bajante con 70 %). Las tasas que salen **dependen de esas probabilidades inventadas**: son una guía de orden de magnitud, no un resultado. Si modelo y persona discrepan, manda el playtest del usuario (3 partidas), que **no se hizo**.
+- Muestras: celdas por guion con 100 semillas; humano con 60 mundos × hasta 6 intentos por perfil. El intervalo de confianza (95 %, binomial) de un 25 % con n = 60 es ±11 puntos: ninguna meta de la tabla de abajo se afirma con más precisión que eso.
+
+### Resultados medidos (APPDATA aislado; 100 semillas por celda, 1001-1100; 60 mundos × 6 intentos por perfil humano)
+
+**Guiones (jugador que conoce el mapa).** Victoria por variante de misión (n por variante ≈ 24-26):
+
+| Guion | Total | buque nervioso | viento fuerte | munición escasa | costado fuerte al sur | Victoria media | Bajas en victoria |
+|---|---|---|---|---|---|---|---|
+| `central_flank_pair` (centro, sondea los dos flancos) | **85 %** (85/100) | 100 % | 62 % | 77 % | 100 % | 10,3 min | ≈ 58 % de la fuerza |
+| `south_full` (sur completo) | **66 %** (66/100) | 100 % | 100 % | 38 % | 31 % | 12,2 min | ≈ 38 % |
+| `central_hasty` (centro apurado, sin cobertura) | 48 % | 100 % | 0 % | 15 % | 77 % | 10,0 min | ≈ 57 % |
+| `mixed_split` | 28 % | 83 % | 21 % | 0 % | 12 % | 11,9 min | ≈ 46 % |
+| `central_flank_noreply` (no rechaza contraataques) | **0 %** | 0 % | 0 % | 0 % | 0 % | — | derrota media ≈ 10 min |
+| `rush_central` (a ciegas) | **0 %** | 0 % | 0 % | 0 % | 0 % | — | derrota a los 5:30-6:50 |
+| `passive` / `late_all_in` | **0 %** | — | — | — | — | — | derrota por inacción a los 11:00 |
+
+Lectura: (a) la diferencia entre las mejores líneas de cada ruta es de **19 puntos** (meta del plan: ≤ 20); (b) **cada ruta gana en alguna variante**: el centro en «costado fuerte al sur» (100 % contra 31 %), el sur en «viento fuerte» (100 % contra 62 %); (c) no defender el abordaje o ir a ciegas pierde siempre; (d) la victoria típica dura 9-12 min (meta del plan: 9-12). Antes de la ronda el mejor guion central ganaba 11 de 12 semillas y la familia central ≈ 62 % de todas las victorias de la matriz.
+
+**Jugador humano simulado (modelo inventado, ver arriba).**
+
+| Perfil | Gana al 1.er intento | Acumulado al 3.º | al 5.º | Intentos para ganar (media) | Victoria mediana | Derrota mediana | Medallas del primer triunfo |
+|---|---|---|---|---|---|---|---|
+| experto | 100 % | 100 % | 100 % | 1,0 | 11,7 min | — | bronce 20, plata 30, oro 10 (de 60) |
+| promedio | **17 %** | **73 %** | **97 %** | 2,8 | 9,8 min | 12,6 min | bronce 49, plata 7, oro 4 |
+| novato | **8 %** | **40 %** | **93 %** | 3,6 | 10,0 min | 11,1 min | bronce 53, plata 5, oro 0 |
+
+Contra las metas del plan (sección 5): «ganar al 3.er intento 60-80 %» **sí** (promedio 73 %); «al menos una victoria en 5 intentos ≥ 90 %» **sí** (97 % y 93 %); «oro 10-20 % del guion fuerte» **sí** (17 %); «victoria al 1.er intento 25-40 % (humano promedio)» **no** (17 %, IC 95 % ≈ 8-28 %); «novato 10-25 %» **no** (8 %, IC ≈ 3-18 %). **No ajusté las probabilidades del modelo para acertar esas metas**: eso sería circular (el crítico del plan lo señaló). Las metas de primer intento quedan abiertas hasta el playtest del usuario; la dificultad de entrada se corrige con datos (`mission_variants`, `counter.damage`) sin tocar código.
+
+Con baqueano/bajante (ofrecidos desde la 3.ª/5.ª derrota) terminaron ganando 27 de los 60 mundos del perfil promedio y 45 de los 60 del novato, y esas victorias no llevan oro: la escalera de ayuda sostiene a quien se estanca. Causas de derrota del modelo: dispersión 90-94 %, plazo 5-10 %, inacción ≈ 1 %.
+
+**Qué cambió respecto de la ronda anterior (misma semilla y política):** plazo 18:00 → 14:00; vado 6:19 → 3:30; victoria central 12-13,5 → 8,7-12 min; el parte de derrota nombra una causa en lenguaje de jugador; el contraataque sin contestar pasó de −9 a −25 de captura (con rechazo, −5); la ruta sur gana 66 % de las veces (antes perdía por tiempo en la variante «breve»).
+
+
+### Qué no se logró (a la vista)
+
+- **Derrota típica ≤ 9 min (mediana ≤ 7): NO.** Las derrotas por dispersión llegan tarde (mediana 11-12,6 min en el modelo): la marcha ocupa los primeros ≈ 7 min y la caída posterior es gradual. Probé quiebre a 32 y cuerpo a cuerpo más duro: acortan ≈ 1 min y vuelven la victoria más cara. Queda abierto: la UI puede ofrecer «Retirarse y reintentar» (Esc → dos clics) apenas la captura se estanca.
+- **C4 y todo lo visual/UI** (ver CONTRATO 13.6).
+- Las cifras de bajas por ruta (central ≈ 55-60 %, sur ≈ 40-45 %) cumplen «no pírrica» (mediana ≤ 65 %), pero la central sigue siendo cara por diseño.
+- No se midió con personas ni en la escena con ventana más allá del recorrido automático (`tools/justina_playthrough.gd`).
+
+### JEV / TypeSafe
+
+`has_credentials() = true` (hay `user://jev.cfg`; no se leyó ni se imprimió su contenido). Se intentó una consulta real (elegir ruta, observación sintética sin datos personales): **expiró a los 2 s** y el cliente devolvió la alternativa local (`source=local_fallback`, `reason=timeout`). **No hay una decisión en vivo verificada** y ninguna cifra de esta ronda depende de Jev (Justina no lo usa; es del Norte).
