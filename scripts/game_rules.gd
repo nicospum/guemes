@@ -4,7 +4,7 @@ class_name GameRules
 ## Escenario Justina: todas las cifras salen de data/justina_map.json (map_data()); ver docs/CONTRATO_JUSTINA.md y docs/DISENO_REGLAS.md.
 
 const SAVE_VERSION := 1
-const JUSTINE_SAVE_VERSION := 2
+const JUSTINE_SAVE_VERSION := 3
 const MAP_PATH := "res://data/justina_map.json"
 const MAX_ROUNDS := 14
 const STEP := 0.25

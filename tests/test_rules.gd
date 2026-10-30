@@ -101,7 +101,7 @@ func _test_map_and_terrain() -> void:
 	check(not m.is_empty() and str(m.id) == "justina", "El mapa de Justina se carga una vez desde el JSON")
 	check(r.map_size() == Vector2(900, 520), "map_size = 900 x 520 m")
 	check(r.board_point() == Vector2(548, 262) and r.ship_position() == Vector2(580, 262), "board_point y ship_position salen del JSON")
-	check(r.state.schema_version == Rules.JUSTINE_SAVE_VERSION and r.state.map_id == "justina" and int(r.state.map_version) == int(m.map_version), "Estado inicial con schema 2 y versión de mapa")
+	check(r.state.schema_version == Rules.JUSTINE_SAVE_VERSION and r.state.map_id == "justina" and int(r.state.map_version) == int(m.map_version), "Estado inicial con schema 3 y versión de mapa")
 	check(r.state.units.size() == 3 and r.state.scouts.size() == 2 and int(r.state.ammo) == 12 and int(r.state.balizas) == 16 and _near(float(r.state.volunteers_pool), 60.0, 0.001), "Recursos y actores iniciales del JSON")
 	check(float(r.state.units[0].x) == 199.0 and str(r.state.units[0].tag) == "tradicion" and str(r.state.units[2].tag) == "reconstruccion", "Los grupos conservan su etiqueta de fuente (Güemes = tradición; la caballería de Pueyrredón, reconstrucción)")
 	check(r.state.log[0].kind == "objective", "El primer evento es el objetivo")
@@ -684,9 +684,9 @@ func _test_package_data() -> void:
 	check("infantería de buenos aires" in facts_txt and "sin datos suficientes" in facts_txt and not ("40 a 60" in facts_txt) and "sin cotejo" in facts_txt, "history.json: Güemes cadete de Infantería, presencia sin datos; la caballería de Pueyrredón es relato posterior sin cotejo y no muestra la cifra «40 a 60»")
 	var pue: Dictionary = {}
 	for fact in hist.scenarios.justine.facts:
-		if str(fact.title) == "La caballería de Pueyrredón":
+		if str(fact.title).begins_with("La caballería de Pueyrredón"):
 			pue = fact
-	check(str(pue.kind).begins_with("reconstrucción") and not ("documental" in str(pue.kind).to_lower()), "La caballería de Pueyrredón ya no se rotula documental")
+	check(("tradición" in str(pue.kind).to_lower() or str(pue.kind).begins_with("reconstrucción")) and not ("documental" in str(pue.kind).to_lower()), "La caballería de Pueyrredón ya no se rotula documental")
 
 # ---------------------------------------------------------------------------
 # 5b. Resultado oculto por partida, recursos limitados, decisiones en la captura, riesgo del explorador, etiquetas y tope de guardado

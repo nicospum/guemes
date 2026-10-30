@@ -908,7 +908,7 @@ func _controls_dialog():
  check.toggled.connect(func(on):settings.tutorial=on;_save_settings());box.add_child(check)
 
 func _history_dialog():
- var box=_open_modal("Historia y recreación",1000,746)
+ var box=_open_modal("Historia y reconstrucción",1000,746)
  var scroll=ScrollContainer.new();scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;scroll.custom_minimum_size.y=620;box.add_child(scroll)
  var content=VBoxContainer.new();content.size_flags_horizontal=Control.SIZE_EXPAND_FILL;scroll.add_child(content)
  var text_value="[b]Cómo leer esta recreación[/b]\n"+str(history_data.get("general_notice","Fuentes documentales, tradición y adaptación jugable se distinguen por separado."))+"\n\n"
@@ -2212,7 +2212,7 @@ func _declutter_world_labels():
  for rl in ring_labels:
   if is_instance_valid(rl):labels.append(rl)
  for l in labels:
-  if not is_instance_valid(l):continue
+  if not is_instance_valid(l) or not l.is_inside_tree():continue
   if str(l.name)=="Rotulo_escala":
    l.visible=false  # la escala de 100 m se lee en la barra del minimapa; el rótulo 3D flotaba sobre rutas y rótulos
    continue

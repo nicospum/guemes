@@ -832,7 +832,7 @@ class StubRules extends RefCounted:
 		var scouts: Array = []
 		for s in m.scouts:
 			scouts.append({"id": s.id, "name": s.name, "x": s.x, "z": s.z, "hp": 3, "stage": "idle", "order": {}, "path": [], "work_remaining": 0.0, "tag": s.tag})
-		state = {"schema_version": 2, "game_id": "stub-%d" % Time.get_ticks_usec(), "state_version": 1, "scenario": "justine", "seed": seed_value, "elapsed": 0.0, "status": "playing", "reason": "", "round": 1, "units": units, "log": [], "orders": [], "external_decisions": [], "first_order_at": -1.0,
+		state = {"schema_version": 3, "game_id": "stub-%d" % Time.get_ticks_usec(), "state_version": 1, "scenario": "justine", "seed": seed_value, "elapsed": 0.0, "status": "playing", "reason": "", "round": 1, "units": units, "log": [], "orders": [], "external_decisions": [], "first_order_at": -1.0,
 			"map_id": "justina", "map_version": 1, "water_level_m": 1.65, "water_level": 0.95, "tide_phase": "alta", "capture": 0.0, "crew_morale": 100.0, "next_volley": 7.5, "deadline": 900.0,
 			"ammo": 16, "ammo_max": 40, "balizas": 16, "volunteers_pool": 60.0, "advance_authorized": false, "fire_support": {"until": 0.0, "ready_at": 0.0},
 			"probes": [], "scouts": scouts, "hazards_found": [], "fords_found": [], "briefing": m.texts.briefing, "historical_note": m.texts.historical_note,
