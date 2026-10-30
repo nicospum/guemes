@@ -277,8 +277,8 @@
 			"t_s": 1080.0
 		},
 		{
-			"boarded_at": 576.3,
-			"capture_pct": 89.7,
+			"boarded_at": 574.8,
+			"capture_pct": 85.1,
 			"defeat_cause": "dispersos",
 			"loss_pct": 100.0,
 			"outcome_shown": true,
@@ -289,8 +289,8 @@
 			"seed": 1806,
 			"status": "defeat",
 			"stumbles": 0,
-			"t_s": 877.75,
-			"ui_inputs": 109,
+			"t_s": 859.25,
+			"ui_inputs": 126,
 			"ui_log": [
 				"0 s: clic en «Entendido» (cerrar el briefing)",
 				"0 s: clic en «Iniciar» (arrancar el tiempo)",
@@ -309,13 +309,14 @@
 				"413 s: guemes por el carril firme (dos waypoints y Enter)",
 				"414 s: arias por el carril firme (dos waypoints y Enter)",
 				"415 s: zavala por el carril firme (dos waypoints y Enter)",
-				"450 s: clic en «Distraer con fuego» (fuego de distraccion)",
-				"487 s: clic en «Cargar y abordar» (abordar)",
-				"487 s: clic en «Cargar y abordar» (confirmar el tramo sin reconocer)",
-				"552 s: clic en «Distraer con fuego» (fuego de distraccion)",
-				"595 s: clic en «Rechazar contraataque» (rechazar el contraataque)",
-				"745 s: clic en «Evacuar heridos» (evacuar heridos)",
-				"746 s: clic en «Evacuar heridos» (evacuar heridos)"
+				"452 s: clic en «Distraer con fuego» (fuego de distraccion)",
+				"485 s: clic en «Cargar y abordar» (abordar)",
+				"485 s: clic en «Cargar y abordar» (confirmar el tramo sin reconocer)",
+				"554 s: clic en «Distraer con fuego» (fuego de distraccion)",
+				"566 s: clic en «Distraer con fuego» (fuego de distraccion)",
+				"593 s: clic en «Rechazar contraataque» (rechazar el contraataque)",
+				"725 s: clic en «Evacuar heridos» (evacuar heridos)",
+				"726 s: clic en «Evacuar heridos» (evacuar heridos)"
 			]
 		},
 		{
