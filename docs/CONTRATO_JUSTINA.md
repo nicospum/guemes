@@ -511,3 +511,24 @@ Aditivas, como las de la sección 6: Reglas y tests solo cambiaron en `ship.fire
 **Para otras pistas (pendiente, no hecho aquí):**
 - Vista: dibujar `routes`, la zona de incertidumbre y los hitos `hipotesis`; anclar «Pie de la barranca» según `label_anchors`; aplicar `palette.house` y `scenery.blocks`; comprobar el bajo bajo el casco desde el inicio (hallazgo ALTA de la revisión); el comentario de `world_view.gd` ~l. 1378 que dice «13 por banda... documentado» debe decir diseño.
 - UI: usar `short_label` y `tradition_mark`; mover «Escala»; explicar en el mensaje de destino rechazado qué hace falta (reconocer / probar desde la playa).
+
+## 8. Claves nuevas (Ronda 3, 30-oct-2026, `map_version` 5 sin cambio)
+
+Aditivas. Reglas cambió solo en la condición del río (ver `DISENO_JUSTINA.md` 14); **los consumidores son las pistas Vista y UI; esta ronda no tocó `world_view.gd`, `main.gd` ni shaders**.
+
+| Clave | Contenido | Quién la consume |
+|---|---|---|
+| `time.variants[]` | `id`, `label`, `weight`, `tag` (`diseno`), `drop_start_s`, `drop_end_s`, `low_hold_end_s`, `rise_end_s`, `note`. Condiciones del río sorteadas por semilla: `normal`, `sostenida`, `lenta`, `breve`. `time.variants_note` explica el diseño | Reglas (ya usa), UI (mostrar `label`) |
+| `rules.tide_variant_id()` (API de `game_rules.gd`) | Id de la condición de esta partida; `state.hidden.tide` la guarda. Un guardado sin ella es `normal` | UI |
+| `rules.tide_marks()` | Ahora refleja la condición sorteada: la barra de tiempo (`main.gd` 3185) y los avisos la muestran sin cambios. **UI sugerida:** un rótulo con `time.variants[id].label` junto a la barra («Brisa que cede pronto…») | UI |
+| `texts.dry_note` | Frase corta, para la ayuda y el briefing: Gillespie dice «en seco» y el juego deja agua alrededor (Diseño); la variante «banco expuesto» es una decisión pendiente del usuario. Misma frase en `tide_gillespie.on_screen_note` | UI |
+| `ship.pilotage_tension`, `tide_gillespie.anchorage_four_miles` | Gillespie p. 38 (cuatro millas; playa seca «por un gran trecho») frente a los 390 m del buque; `note`, `quote_short`, `tag`. Mostrar en la ficha del buque o en la pantalla Historia | UI |
+| `context.gillespie_retiro` | Gillespie pp. 94-95 y 121: «el Retiro, o Plaza del Toros», sargento y 17 soldados el 10 de agosto, buque batiendo playa y calles. Contexto de la ficha del Retiro | UI |
+| `context.geometry_note` | Ninguna geometría (N-S del mapa, diagonal del paquete) es histórica | UI, doc |
+| `historical_figures_roles.items[].tag_parts`, `tag_note` | `liniers` y `marineros` pasan a `reconstruccion` con partes (jefe y refuerzo: documentado; orden de avance y vestuario/total: diseño). Mostrar la etiqueta más débil | UI |
+| `ship.crew_composition.santa_elena_180.tag` (`reconstruccion`) | «Otra fase» es inferencia, Gillespie no dice cuándo desembarcaron | UI |
+| `distances.items[retiro_a_santa_catalina|retiro_a_fuerte].tag` = `diseno`; `context.skyline[].distance_tag/bearing_tag` = `diseno` | La existencia del hito es Reconstrucción; la distancia y el rumbo son estimaciones de Diseño | UI, Vista |
+| `play_targets.victory_minutes_observed`, `play_targets.cohort_note` | 11-16 min observados; la tasa de la cohorte no es la de una persona | Tests, doc |
+| `history.json` `scenarios.justine.pending_verification` y hechos nuevos «Qué hace el juego distinto de Gillespie», «Agua, banco y estados del río» ampliado | Lista de pendientes de cotejo y desvíos de diseño: mostrarlos en la pantalla Historia | UI |
+
+Formato: `data/justina_map.json` quedó con sangría de 2 espacios y LF (antes mezclaba líneas compactas); es solo de formato.

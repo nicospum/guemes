@@ -26,6 +26,7 @@ func _initialize() -> void:
 	_test_geography_and_texts()
 	_test_package_data()
 	_test_hidden_layout()
+	_test_tide_variants()
 	_test_scarce_resources()
 	_test_capture_decisions()
 	_test_scout_risk()
@@ -68,9 +69,12 @@ func _near(a: float, b: float, tol: float) -> bool:
 # ---------------------------------------------------------------------------
 # Ayudas de simulacion
 
-func _new_j(seed_value: int = 7) -> RefCounted:
+## Las pruebas de reglas fijan la condición del río en "normal" (los valores base de time) salvo que se pida la sorteada con la semilla.
+func _new_j(seed_value: int = 7, keep_variant: bool = false) -> RefCounted:
 	var r := Rules.new()
 	r.new_game("justine", seed_value)
+	if not keep_variant:
+		r.state.hidden.tide = "normal"
 	return r
 
 func _advance(r: RefCounted, t: float) -> void:
@@ -693,6 +697,51 @@ func _hz(m: Dictionary, id: String) -> Dictionary:
 			return hz
 	return {}
 
+## Ronda 3: la condición del río (viento) cambia con la semilla, es visible en tide_marks y se guarda y valida.
+func _test_tide_variants() -> void:
+	var m: Dictionary = _new_j().map_data()
+	var vs: Array = m.time.variants
+	check(vs.size() >= 3 and str(vs[0].id) == "normal", "Hay al menos 3 condiciones del río y la primera es la base (%d)" % vs.size())
+	var base: Dictionary = m.time
+	var nv: Dictionary = vs[0]
+	check(float(nv.drop_start_s) == float(base.drop_start_s) and float(nv.drop_end_s) == float(base.drop_end_s) and float(nv.low_hold_end_s) == float(base.low_hold_end_s) and float(nv.rise_end_s) == float(base.rise_end_s), "La variante normal repite los valores base de time")
+	for v in vs:
+		var ok: bool = float(v.drop_start_s) >= 0.0 and float(v.drop_start_s) < float(v.drop_end_s) and float(v.drop_end_s) < float(v.low_hold_end_s) and float(v.low_hold_end_s) < float(v.rise_end_s) and float(v.rise_end_s) <= float(base.deadline_s)
+		check(ok and str(v.get("tag", "")) == "diseno" and str(v.get("label", "")) != "", "Condición %s: hitos ordenados, dentro del plazo, rotulada y de diseño" % str(v.id))
+	var seen := {}
+	for sd in SEEDS:
+		seen[_new_j(int(sd), true).tide_variant_id()] = true
+	check(seen.size() >= 3, "Las semillas de calibración sortean al menos 3 condiciones del río (%s)" % str(seen.keys()))
+	var a := _new_j(5, true)
+	check(a.tide_variant_id() == _new_j(5, true).tide_variant_id(), "La condición del río es fija para una misma semilla")
+	var other := ""
+	for sd in SEEDS:
+		var c := _new_j(int(sd), true)
+		if c.tide_variant_id() != "normal":
+			other = c.tide_variant_id()
+			a = c
+			break
+	check(other != "", "Alguna semilla tiene una condición distinta de la normal")
+	var marks: Dictionary = a.tide_marks()
+	var vv: Dictionary = {}
+	for v in vs:
+		if str(v.id) == other:
+			vv = v
+	check(marks.drop_start == float(vv.drop_start_s) and marks.low_hold_end == float(vv.low_hold_end_s) and marks.rise_end == float(vv.rise_end_s) and marks.deadline == float(base.deadline_s), "tide_marks refleja la condición sorteada (%s)" % other)
+	check(_near(a.tide_at(float(vv.drop_end_s) + 1.0).level_m, 0.0, 1e-6) and _near(a.tide_at(float(vv.rise_end_s)).level_m, 1.65, 1e-6), "tide_at sigue la condición sorteada")
+	var path := "user://test-rules-tide.json"
+	_advance(a, 400.0)
+	check(a.save_game(path) == OK, "Se guarda una partida con condición del río")
+	var back := Rules.new()
+	check(back.load_game(path).ok and back.tide_variant_id() == other and back.tide_marks().low_hold_end == float(vv.low_hold_end_s), "Al cargar se restaura la condición del río y sus hitos")
+	var snap: Dictionary = a.snapshot()
+	var bad: Dictionary = snap.duplicate(true)
+	bad.hidden.tide = "tormenta_inventada"
+	_rejects(a, bad, "Una condición del río inventada se rechaza")
+	var old: Dictionary = _new_j(7).snapshot()
+	old.hidden.erase("tide")
+	check(Rules.new().validate_snapshot(old).ok, "Un guardado anterior sin condición del río es válido (se lee como normal)")
+
 func _test_hidden_layout() -> void:
 	var m: Dictionary = _new_j().map_data()
 	var a := _new_j(5)
@@ -1240,7 +1289,7 @@ func _policy_cfg(s: Sim) -> void:
 
 func _run_strategy(policy: String, seed_value: int = 7) -> Dictionary:
 	var s := Sim.new()
-	s.r = _new_j(seed_value)
+	s.r = _new_j(seed_value, true)
 	s.cfg = _strategy_cfg(policy)
 	var guard := 0
 	var stranded := 0
