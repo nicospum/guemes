@@ -24,3 +24,7 @@ Condiciones que el proyecto hereda del paquete (LEEME): el mapa de contexto usa 
 ## Fuentes de la Ronda 2 (30-oct-2026)
 
 Solo se citan o consultan; no se incorporan al ejecutable imágenes ni textos con derechos de terceros. Gillespie (1818, dominio público) se cita con páginas y OCR local; las fichas de Royal Museums Greenwich, el Museo del Cabildo y el MHN se remiten a sus páginas y **no se usan sus fotos como texturas**. Las referencias S29-S39 (Arrowsmith 1806, Sellés-Martínez sobre Brambila, Reitano, Aramburo, Carman, Real decreto de 1785, croquis de Donnelly, Malosetti Costa, OpenStreetMap contributors bajo ODbL, estandartes de Luján y Núñez 2007) están en `docs/historia/FUENTES.md` con su estado de verificación. La base cartográfica UWM de 1808 del paquete no tiene licencia comercial verificada y no entra en el juego.
+
+## Ronda 5 (30-oct-2026)
+
+No se agregaron imágenes ni textos de terceros. Se usó de nuevo el OCR local de Gillespie (dominio público) con páginas corregidas, el informe del paquete del usuario y los datos de `docs/referencias/justina`. Las láminas del paquete (contexto UWM 1808, Brambila, Vidal) siguen sin incorporarse al repositorio ni al ejecutable; sus condiciones figuran en el LEEME del paquete y en `docs/historia/FUENTES.md` (P1, S42).

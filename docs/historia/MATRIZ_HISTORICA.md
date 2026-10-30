@@ -142,6 +142,29 @@ Correcciones a la matriz anterior tras reverificar Gillespie en el OCR local (`F
 
 **Pendientes (Ronda 4):** escaneo de Gillespie; Concha 15-ago y oficio de Liniers en original; parte de Liniers del 11-ago; Santa Catalina sobre plano; decisión del usuario sobre el banco expuesto; originales de Obligado; AGN IX-11-5-1 e IX-26-7-7; TNA PC 1/3823; serie de viento y nivel del 12/8/1806; plano de la ribera.
 
+## G. Ronda 5 (30 de octubre de 2026): mapa e historia con el paquete completo
+
+| Afirmación o elemento | Fuente (qué se tomó de dónde) | Etiqueta | Cambio en esta ronda |
+| --- | --- | --- | --- |
+| Dos piezas de a 18 en el Retiro | Parte de Liniers del 11-ago vía [S13] (segunda mano); paquete F03 («emplazamiento abierto») | Existencia: **Reconstrucción**; emplazamiento, alcance de 600 m y parapeto: **Diseño** | Se dibujan **dos** (antes cuatro con siete gaviones) y el hito pasa a Diseño con sufijo «(diseño)». |
+| El buque batía playa y calles | Gillespie p. 94 («not only along the beach, but in the different streets») | **Documentado** (el testimonio); el alcance de 265 m es **Diseño** y lo contradice | `ship.fire.p94_tension`; anillo visual de 420 m no simulado (`cover_zone`). |
+| Plaza de Toros «inaugurada en 1801» | Boneo 1801 la muestra; el año de inauguración viene del paquete y de Pillado, sin fuente primaria vista; Gillespie p. 121 es retrospectiva (una sola corrida) | Existencia **Documentada**; fecha **sin fuente primaria** | «En uso desde c. 1801»; la cita de p. 121 conserva su matiz. |
+| 26 cañones y armadores | Gillespie p. 28 (26 cañones) y p. 29 (Princeps y Saunders) | **Documentado** | Se corrige la página (antes «p. 29» para los 26). |
+| Perros del Retiro la noche del 11 | Gillespie p. 95 | **Documentado** | Hito `noche_11` y `tide_gillespie.dogs_p95`. |
+| Acantilados del Retiro «a poca distancia del Plata» | Gillespie p. 274 (septiembre de 1807) | **Documentado** para 1807 | Respaldo de la barranca cercana al agua, con el aviso de la fecha. |
+| Cuarteles, casas, manzanas, tapias, costa irregular | Paquete F02/F12 («huellas y alturas sin datos», «lotes no reconstruidos») | Existencia/área: **Reconstrucción**; huella y volumen: **Diseño** | Etiquetas bajadas a Diseño con `tag_parts`. |
+| Campamento de Pueyrredón | Obligado 1920 (secundaria); sin cotejo | **Tradición**; posición **Diseño** | Antes Reconstrucción. |
+| Cantidad de jinetes | Parte de Concha del 15-ago citado en la investigación de apoyo (S41); el informe dice 30, 50 o 60 «sin datos suficientes» | **Reconstrucción** sin cotejo | No se muestra cifra; `forces.groups.zavala.composition` registra el orden de magnitud. |
+| Pabellón del buque | Paquete H1; Perrin 1922; RMG AAA0773 | **Reconstrucción** (hipótesis) | El cantón lleva las aspas de la Union de 1801 (`canton_layers`). |
+| Bandera del cuartel | Paquete H7 (omitir) | **Diseño** (opcional) | `bandera_cuartel` con aspa de Borgoña; se prohíbe el círculo/cuadrado rojo centrado. |
+| Colores de unidad | Paquete G7 («no usar colores como prueba infalible de bando») | **Diseño** | Marcadores neutros y asta oscura de 3-4 m (`group_markers`). |
+| Güemes protagonista | Obligado 1920 vía [S13]; Gillespie no lo nombra | **Tradición** | `texts.result_contrast`: la pantalla de resultado contrasta la versión de Gillespie con lo jugado. |
+| Bajada de 8-12 % | Paquete D2/D4 | **Diseño** | Pendiente de juego sin cambio; `visual_path` con el desarrollo largo, solo visual. |
+| Texto de producción en el briefing | — | — | Eliminado de los textos del jugador. |
+
+**Pendientes (Ronda 5):** playtest humano; banco expuesto; fuente primaria de 1801; Gillespie en el escaneo; Concha 15-ago, oficio y parte de Liniers del 11-ago en original; Obligado 1920; AGN IX-11-5-1 e IX-26-7-7; TNA PC 1/3823; serie de viento y nivel del 12/8/1806; Santa Catalina sobre Boneo.
+
+
 ## Límites y compromisos de presentación
 
 - Los desenlaces alternativos son resultados de una partida, no nuevos hechos históricos.

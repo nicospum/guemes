@@ -2987,7 +2987,7 @@ func validate_snapshot(value: Variant) -> Dictionary:
 		return _no("Escenario o resultado inválido en el guardado.")
 	var is_j: bool = d.scenario == "justine"
 	var expected := JUSTINE_SAVE_VERSION if is_j else SAVE_VERSION
-	if is_j and _number_in(d.schema_version, SAVE_VERSION, SAVE_VERSION):
+	if is_j and _number_in(d.schema_version, SAVE_VERSION, JUSTINE_SAVE_VERSION - 1):  ## Ronda 5: cualquier versión anterior de Justina (v1, v2 de la preview 3) da el aviso claro
 		return _no("Este guardado es de una versión anterior del escenario Justina y no es compatible.")
 	if not _number_in(d.schema_version, expected, expected):
 		return _no("Versión de guardado incompatible; se necesita la versión %d." % expected)

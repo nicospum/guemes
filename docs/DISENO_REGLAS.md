@@ -254,3 +254,7 @@ Estos tiempos son **tiempo de simulación con órdenes automatizadas**, no medic
 ## Ronda 3: condición del río por partida
 
 `hidden.tide` (id de `time.variants`) se sortea con la semilla después de los hoyos y se guarda con la partida; `tide_at`, `tide_marks` y `ford_window` leen los hitos de la variante (`_time_cfg()`), así que el HUD, la barra de tiempo y los avisos la reflejan sin cambios. Un guardado sin la clave se lee como `normal`. Ver `docs/DISENO_JUSTINA.md` 14.
+
+## Ronda 5 (30-oct-2026): ajustes de equilibrio de Justina
+
+Solo datos: `ship.fire.damage_min/max` 7,6 / 11,5 → 8,06 / 12,19 y `time.variants[lenta]` con la bajante a 75-470 s. `game_rules.gd` solo cambia el aviso de guardados de versión anterior (v1 y v2). Matriz re-medida: 542 comprobaciones sin fallos, cohorte 50 % / 50 %, bajas medianas 53 %, máximo con defensa 68 %. Detalle y comparación en `docs/DISENO_JUSTINA.md` 16.3. Escenario Norte sin cambios.

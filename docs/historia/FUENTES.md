@@ -1,6 +1,6 @@
 # Fuentes y registro de revisión histórica
 
-Revisado el 28 de octubre de 2026; ampliado el 30 de octubre de 2026 con el paquete Justina_Retiro_1806 (P1, S13 a S28). Este dossier entrega referencias y síntesis propias; los libros, artículos e imágenes de consulta no se incluyen como assets del ejecutable.
+Revisado el 28 de octubre de 2026; ampliado el 30 de octubre de 2026 con el paquete Justina_Retiro_1806 (P1, S13 a S28; Ronda 5: S41 y S42). Este dossier entrega referencias y síntesis propias; los libros, artículos e imágenes de consulta no se incluyen como assets del ejecutable.
 
 ## Bibliografía y fuentes consultadas
 
@@ -83,6 +83,15 @@ Paquete del usuario con informe A-K (fichas visuales, 18 elementos a modelar, fi
 **Advertencias del paquete que el juego respeta:** el mapa de 1808 no es de 1806; la georreferenciación experimental (residuo de ~17 m entre sus propios controles) no mide exactitud histórica y no se usa para fijar el encallamiento; las medidas del circo, el casco, la bajada y las cotas son diseño; Güemes en la Justina es tradición, distinta de la captura por caballería de Gillespie; no se usan imágenes generadas ni texturas de museos (licencias remitidas a RMG Images).
 
 **Ronda 4 (30-oct-2026), qué se tomó de dónde.** (a) Del paquete P1: la costa irregular en diagonal NO-SE (A, D2, F; se adopta en parte, como diseño), la tabla de banderas H1-H8 (con sus `status`), las fichas G1-G6 (se mantienen los kits de la Ronda 2) y la lista de anacronismos. (b) Medición propia gruesa: el Fuerte a ≈13 cuadras del circo en `docs/referencias/justina/boneo_villalonga_1801_plano_buenos_aires.jpg` (fuente S40 en `data/history.json`), con la cuadra supuesta de 140 varas; no se leyó una escala gráfica del plano. (c) Gillespie (OCR local): «some cavalry» (p. 36) y «taken by cavalry» (p. 94) son todo lo que dice de la caballería; no nombra a Pueyrredón ni a Güemes. (d) Concha 15-ago y el oficio de Liniers siguen **vistos solo por cita** (estado: no verificados); ya no figuran en texto visible como respaldo.
+
+**Ronda 5 (30-oct-2026), qué se tomó de dónde.** (a) Del informe del paquete (S42): fichas F01-F18 (piezas de a 18 = dos), H1-H8 (aspas de la Union en el cantón, bandera opcional de cuartel, reglas de símbolos), G7 (paleta y «no usar colores como prueba de bando»), D2/D4 (bajada, agua, banco) y la tabla J de pendientes. (b) De la investigación de apoyo de `info/` (S41): **solo pistas**; se leyó y se dejó fuera como dato: el parte de Concha del 15-ago con una cifra de jinetes, el oficio de Liniers, una meseta de 18-22,5 m, loess y tosca con túnel y un uso del Retiro como parque de artillería. El informe curado del propio paquete no confirma esas cifras. Todo lo de S41 figura como «Reconstrucción sin cotejo» o queda fuera. (c) De Gillespie en el OCR local, con páginas verificadas por el marcador de página: p. 28 (26 cañones), p. 29 (Princeps y Saunders), p. 94 (batía playa y calles; «boarded, and taken by cavalry»), p. 95 (perros toda la noche del 11), p. 121 (una sola corrida, nombre del sitio), p. 274 (acantilados, septiembre de 1807). (d) De Boneo 1801: la Plaza de Toros ya existía («en uso desde c. 1801»). (e) Las láminas 01-04 del paquete se miraron como esquemas de diseño; la georreferenciación (residuo ~17 m) **no** se usa para fijar el encallamiento. Tabla de adopción: `data/justina_map.json` → `package_adoption`.
+
+| ID | Referencia | Estado de verificación |
+| --- | --- | --- |
+| S41 | Investigación de apoyo del paquete (`info/Investigación histórica, espacial y visual…`), texto largo sin notas al pie verificables. | No cotejada. Pista y orden de magnitud solamente. |
+| S42 | Informe y láminas del paquete Justina_Retiro_1806 (A-K, 01-04, georef). | Leído completo; contrastado con Gillespie, Boneo 1801, Arrowsmith 1806 y Vidal; las láminas son interpretaciones, no evidencia independiente. |
+
+Pendientes (Ronda 5): ver `MATRIZ_HISTORICA.md` G. No se agregaron imágenes ni textos con derechos de terceros al repositorio.
 
 ## Pendientes de investigación delimitados
 

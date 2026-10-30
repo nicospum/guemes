@@ -20,3 +20,4 @@ assets/models/*_rm_*.jpg*
 # Worktrees de agentes y perfiles temporales de QA
 .claude/
 evidence/fase2/qa/**/_appdata/
+evidence/**/_appdata/
