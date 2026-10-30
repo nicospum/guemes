@@ -15,12 +15,13 @@
       "facts": [
         {
           "title": "Una oportunidad del río",
-          "text": "Gillespie relaciona la captura con una súbita bajada del río, al terminar el 12 de agosto. La hora, las rutas, los umbrales de profundidad, las mareas y la geografía de bancos y vados del juego son una adaptación: no existe sondeo de 1806 del Retiro. En su pilotaje, Gillespie describe caídas repentinas e inexplicables del Plata, de siete u ocho pies (unos 2,1-2,4 m); ese pasaje no las atribuye al viento, y el viento del 12 de agosto no está documentado.",
-          "kind": "testimonio y adaptación",
+          "text": "Gillespie relaciona la captura con una súbita bajada del río, al terminar el 12 de agosto. En su pilotaje (pp. 35-36) escribe que el río sube o baja a veces siete u ocho pies (unos 2,1-2,4 m) bajo el control arbitrario de las brisas casuales, y que por esa causa un buque de fuerza quedó 'left dry' (en seco) y fue abordado por caballería el día de la rendición: sí liga las caídas al viento y sí habla de un buque en seco. No consta el viento concreto del 12 de agosto de 1806 ni hay sondeo del Retiro. El juego adapta: la hora, las rutas, los umbrales de profundidad, las mareas, el nivel de 1,65 m y la geografía de bancos y vados son diseño; en particular, el banco 'parcialmente inundado' (casco apoyado y agua alrededor) es una elección de diseño, más cauta que el 'en seco' del relato, para que exista un vado jugable.",
+          "kind": "testimonio (viento y buque en seco: Gillespie) y adaptación (todo lo demás: diseño)",
           "source_ids": [
             "S1",
             "S9"
-          ]
+          ],
+          "verification": "cotejado con el texto OCR local de Gillespie (docs/referencias/justina), no con el escaneo"
         },
         {
           "title": "Un mercante británico armado que combatió",
@@ -58,7 +59,7 @@
         },
         {
           "title": "La tradición de Güemes",
-          "text": "Pastor Obligado (1920) lo presenta como ayudante de Liniers que lleva a la caballería de Pueyrredón la orden de avanzar por la playa; Luis Güemes identifica a Obligado como fuente de la atribución. Lo documentado es otra cosa: un papel del 11 de agosto lo da como cadete (21 años) del Regimiento de Infantería de Buenos Aires —no 'cadete de caballería', como repite una nota oficial— y una cuenta firmada en Candelaria ese mismo día; que estuviera en Buenos Aires el 12 y subiera al buque queda sin datos suficientes. El Ideario (p. 33) declara no probada su intervención y lo da volviendo de Córdoba (dato no cotejado con el paquete). Montar a caballo no cambia su adscripción administrativa. En el juego el grupo lleva su nombre con la marca de tradición, y la orden de avance de Liniers es una regla de juego.",
+          "text": "Dos versiones de la tradición, ninguna probada. Pastor Obligado (1920) lo presenta como ayudante de Liniers que lleva a la caballería de Pueyrredón la orden de avanzar por la playa; notas posteriores lo hacen jefe de los jinetes. Luis Güemes identifica a Obligado como fuente de la atribución y Gillespie no lo nombra. Lo documentado es otra cosa: un papel del 11 de agosto lo da como cadete (21 años) del Regimiento de Infantería de Buenos Aires —no 'cadete de caballería', como repite una nota oficial— y una cuenta firmada en Candelaria ese mismo día; que estuviera en Buenos Aires el 12 y subiera al buque queda sin datos suficientes. El Ideario (p. 33) declara no probada su intervención y lo da volviendo de Córdoba (dato no cotejado con el paquete). Montar a caballo no cambia su adscripción administrativa. En el juego el grupo de vanguardia lleva su nombre con la marca de tradición (rótulo corto 'Vanguardia (trad.)'). La orden de avance de Liniers, que el juego exige para atacar, es una regla de diseño apoyada en esa misma fuente secundaria (Obligado): no es un hecho documentado.",
           "kind": "tradición discutida",
           "source_ids": [
             "S1",
@@ -78,14 +79,29 @@
             "S22",
             "S24",
             "S23",
-            "S25"
+            "S25",
+            "S29",
+            "S30",
+            "S35"
+          ],
+          "verification": "parcial"
+        },
+        {
+          "title": "Hitos del mapa que son hipótesis",
+          "text": "Para que el mapa se lea, el juego coloca cuatro elementos cuya ubicación no consta en ninguna fuente: las piezas de a 18 del Retiro (Liniers, parte del 11 de agosto, habla de dos piezas de la goleta Dolores; el emplazamiento es abierto y su alcance de 600 m es diseño), el campamento de Pueyrredón, el puesto de mando de Liniers y el tramo de camino sobre la barranca (la Alameda documentada es la del frente central de la ciudad, no la de Retiro). En pantalla llevan trazo punteado y el sufijo '(hipótesis)'. Lo mismo vale para las rutas dibujadas (central, sur y mensajero de Liniers): son trazos de juego, no movimientos históricos.",
+          "kind": "reconstrucción y diseño",
+          "source_ids": [
+            "S13",
+            "S10",
+            "S11",
+            "S9"
           ],
           "verification": "parcial"
         },
         {
           "title": "El buque Justina: casco, cañones y dotación",
-          "text": "Mercante armado británico (de Princeps y Saunders, de Londres, según el paquete); no una fragata regular de la Royal Navy ni un 'HMS'. Los 26 cañones son en total (no por banda; el reparto 13/13 es diseño); la tripulación de la acción era la dotación propia, oficiales y cien marineros de la escuadra, no los 180 hombres de Santa Elena (otra fase). El casco del juego mide 40 x 9 m, de diseño por comparables de catálogo (RMG SLR0583, LNG0016, MSA0204); no hay plano del Justina ni se conoce su calado. El daño en la mesana es hipótesis (un parte de Liniers menciona una mesana dañada en una fragata sin nombre); que un cañonazo derribara el palo entero es tradición discutida. El nombre es Justina; Gillespie escribe 'Justinia' y la conmemoración actual, 'Justine'. Una pista bibliográfica (Schlez) da un capitán Robert Morris y un sobrecargo William Dunn: no se verificó y el juego no usa esos nombres.",
-          "kind": "documentado en transcripción (descripción) y diseño (casco)",
+          "text": "Mercante armado británico de 26 cañones, de Messrs. Princeps y Saunders, de Londres (Gillespie, p. 29); se había acercado a la ciudad para comerciar (Gillespie, p. 94) y luego fue aligerado y armado con oficiales y cien marineros de la escuadra además de su dotación propia. No es una fragata regular de la Royal Navy ni un 'HMS'. Los 26 cañones son en total (no por banda; el reparto 13/13 es diseño); los 180 hombres de Santa Elena son de otra fase. El casco del juego mide 40 x 9 m, de diseño por comparables de catálogo (RMG SLR0583, LNG0016, MSA0204); no hay plano del Justina ni se conoce su calado. El daño en la mesana es hipótesis (un parte de Liniers menciona una mesana dañada en una fragata sin nombre); que un cañonazo derribara el palo entero es tradición discutida. El nombre es Justina; Gillespie escribe 'Justinia' y la conmemoración actual, 'Justine'. Una pista bibliográfica (Schlez) da un capitán Robert Morris y un sobrecargo William Dunn: no se verificó y el juego no usa esos nombres.",
+          "kind": "documentado en transcripción (26 cañones, armadores, motivo comercial, refuerzo de marineros: Gillespie); reconstrucción (daño de mesana); diseño (casco 40 x 9 m, calado, reparto 13/13, capitán)",
           "source_ids": [
             "S9",
             "S13",
@@ -96,7 +112,7 @@
         },
         {
           "title": "Agua, banco y estados del río",
-          "text": "Gillespie ve la causa en un descenso súbito del río. 'Encallado' (el casco toca fondo), 'vadeable' (se cruza a pie o a caballo) y 'en seco' (sin agua sobre esa superficie) son condiciones distintas: el juego modela la variante principal, banco parcialmente inundado, con el casco apoyado, agua a los lados, canal persistente y una ruta de vadeo de diseño de ~1 m con el río en mínimo. La variante 'banco localmente expuesto' queda como alternativa no implementada. Las mareas, los vientos del oeste y noroeste que explican bajantes modernas y el nivel de 1,65 m no son observaciones del 12 de agosto de 1806: no se halló una secuencia horaria de viento, presión y nivel.",
+          "text": "Gillespie ve la causa en un descenso súbito del río y habla de un buque 'dejado en seco'. 'Encallado' (el casco toca fondo), 'vadeable' (se cruza a pie o a caballo) y 'en seco' (sin agua sobre esa superficie) son condiciones distintas. El juego modela, por elección de diseño, la variante 'banco parcialmente inundado': casco apoyado en un bajo, agua a los lados, canal persistente y un vado de ~1 m con el río en mínimo. Esa profundidad es mayor que los 0-0,6 m que propone el paquete para el corredor ecuestre: se mantiene porque con aguas más someras el abordaje pierde el costo y el riesgo de ahogo que dan sentido a la marea (ver docs/DISENO_JUSTINA.md 2.4). La variante 'banco localmente expuesto', más cercana al relato, se evaluó en la Ronda 2 y quedó como alternativa no implementada. Las mareas, los vientos del oeste y noroeste que explican bajantes modernas y el nivel de 1,65 m no son observaciones del 12 de agosto de 1806: no se halló una secuencia horaria de viento, presión y nivel.",
           "kind": "testimonio y diseño",
           "source_ids": [
             "S9",
@@ -115,7 +131,11 @@
             "S18",
             "S19",
             "S20",
-            "S24"
+            "S24",
+            "S33",
+            "S34",
+            "S36",
+            "S38"
           ],
           "verification": "parcial"
         }
@@ -127,7 +147,9 @@
         "Identidad del casco (TNA PC 1/3823; Morris/Dunn): no verificada.",
         "Punto de encallamiento, sondajes y meteorología del día: sin datos; el juego usa una zona de diseño.",
         "Dimensión y fachada del circo, puertas, cuarteles de agosto de 1806, bajada usada: parámetros abiertos.",
-        "Bandera que llevaba el buque: sin inventario de presa localizado; Red Ensign es hipótesis."
+        "Bandera que llevaba el buque: sin inventario de presa localizado; Red Ensign es hipótesis.",
+        "Viento del 12/8/1806 y nivel real del agua: sin datos; Gillespie liga las caídas a las brisas en general (pp. 35-36).",
+        "Ubicación de las piezas de a 18, del campamento de Pueyrredón, del puesto de Liniers y del camino sobre la barranca: hipótesis de mapa (trazo punteado)."
       ]
     },
     "norte": {
@@ -184,7 +206,9 @@
       "id": "S9",
       "title": "Alexander Gillespie, Gleanings and Remarks (Leeds, 1818): pilotaje del Plata y p. 94 (la «Justinia»)",
       "url": "https://archive.org/stream/gleaningsremarks00gillrich/gleaningsremarks00gillrich_djvu.txt",
-      "kind": "testimonio de un participante; texto OCR de Internet Archive, sin cotejar con el escaneo"
+      "kind": "testimonio de un participante; texto OCR de Internet Archive, sin cotejar con el escaneo",
+      "pages": "28-29 (armadores, 26 cañones, 180 de Santa Elena), 35-36 (brisas, buque left dry, caídas de 7-8 pies), 94 (Justinia, tráfico comercial, abordada y tomada por caballería)",
+      "verification": "cotejado con el OCR local (docs/referencias/justina/gillespie_1818_gleanings_and_remarks_djvu.txt, líneas ~1255-1262, ~1555-1575, ~3846-3856)"
     },
     {
       "id": "S1",
@@ -360,11 +384,88 @@
       "title": "Virna L. Meccia, Estudios de la circulación forzada por el viento en el estuario del Río de la Plata, tesis UBA, 2008",
       "url": "https://bibliotecadigital.exactas.uba.ar/download/tesis/tesis_n4220_Meccia.pdf",
       "kind": "mecánica moderna de bajantes extremas; no reconstruye el 12 de agosto de 1806"
+    },
+    {
+      "id": "S29",
+      "title": "Aaron Arrowsmith, mapa del Virreinato de Buenos Aires, 1806 (copia local en docs/referencias/justina)",
+      "url": "docs/referencias/justina/arrowsmith_1806_viceroyalty_buenos_ayres_map.jpg",
+      "kind": "cartografía regional de época; sirve para el contexto del Plata y la forma general de la costa, no para el Retiro",
+      "verification": "copia local inspeccionada; sin uso de coordenadas"
+    },
+    {
+      "id": "S30",
+      "title": "Sellés-Martínez, Buenos Aires desde el Camino de las Carretas, 2023, sobre la lámina de Brambila (colección Bauzá; Commons, dominio público)",
+      "url": "https://www.rumbosur.org/libros/CaminodelasCarretas.pdf",
+      "kind": "estudio de orientación y atribución de la vista; corresponde a la ribera sur, no a Retiro; referencia de carretas y horizonte bajo",
+      "verification": "parcial (ficha del paquete)"
+    },
+    {
+      "id": "S31",
+      "title": "Emir Reitano, «El Río de la Plata como espacio de frontera marítimo-fluvial durante el período colonial tardío», Pasado Abierto 2(3), 2016, pp. 128-152",
+      "url": "https://www.memoria.fahce.unlp.edu.ar/art_revistas/pr.8418/pr.8418.pdf",
+      "kind": "contexto portuario y de navegación; no levantamiento del escenario",
+      "verification": "ficha del paquete"
+    },
+    {
+      "id": "S32",
+      "title": "Mariano Aramburo, «Reforma y servicio miliciano en Buenos Aires, 1801-1806», Cuadernos de Marte 1, 2011, pp. 9-46",
+      "url": "https://publicaciones.sociales.uba.ar/index.php/cuadernosdemarte/es/article/view/654",
+      "kind": "estudio de las milicias porteñas; contexto de las fuerzas locales, sin nóminas del 12 de agosto",
+      "verification": "ficha del paquete"
+    },
+    {
+      "id": "S33",
+      "title": "W. Y. Carman, «Infantry Clothing Regulations, 1802», Journal of the Society for Army Historical Research 19(76), 1940, pp. 200-235",
+      "url": "https://www.royal-scots.com/wp-content/uploads/2026/08/1802-Clothing-Regulations.pdf",
+      "kind": "vestuario británico de infantería; solo para el contexto opcional del 71.º, que no se coloca en la escena",
+      "verification": "transcripción digital consultada por el paquete"
+    },
+    {
+      "id": "S34",
+      "title": "Real decreto de 28 de mayo de 1785 (pabellones navales y mercantes), en el dossier del Museo Naval «La bandera que vino de la mar», 2025-2026",
+      "url": "https://armada.defensa.gob.es/archivo/noticias/cienciaorgano/01cienciamuseo/01informacionmuseonaval/02prensamuseonaval/01noticias/2025/Noviembre/E",
+      "kind": "norma del pabellón español de 1785; no se coloca en la escena (el buque es británico)",
+      "verification": "ficha del paquete"
+    },
+    {
+      "id": "S35",
+      "title": "Croquis de movimientos británicos de junio de 1806 asociado a Donnelly (ed. 1808, Universidad de Pensilvania ARG0087) y mapas manuscritos de las campañas de 1806-7 (John Carter Brown Library)",
+      "url": "https://dia.upenn.edu/en/maps/ARG0087/",
+      "kind": "cartografía de época de junio de 1806 y 1807; no se trasladan posiciones de 1807 a agosto de 1806",
+      "verification": "ficha del paquete"
+    },
+    {
+      "id": "S36",
+      "title": "Laura Malosetti Costa, «El retrato ideal de Güemes», 2021; Museo Histórico Nacional MHNA1390 (uniforme de gala de Güemes)",
+      "url": "https://www.cultura.gob.ar/el-retrato-ideal-de-guemes-10657/",
+      "kind": "no hay retrato del natural de Güemes; el uniforme de gala conservado no es patrón de 1806: se usa solo como límite de lo que se puede mostrar",
+      "verification": "ficha del paquete"
+    },
+    {
+      "id": "S37",
+      "title": "OpenStreetMap contributors (ODbL): puntos actuales de orientación (Catedral, San Francisco, Santo Domingo, Santa Catalina, Pilar)",
+      "url": "https://www.openstreetmap.org/copyright",
+      "kind": "controles de la georreferenciación experimental del paquete (residuo ~17 m entre sus propios controles); NO fijan el punto de encallamiento",
+      "verification": "no se usa en el juego"
+    },
+    {
+      "id": "S38",
+      "title": "Estandarte de Luján y estandarte de Húsares (pistas secundarias con referencias a Udaondo y actas)",
+      "url": "https://periodico-el-restaurador.blogspot.com/2022/03/invasiones-inglesas-estandarte-con-la.html?m=1",
+      "kind": "pista pendiente de cotejo; posterior (21-sep-1806) o sin procedencia: NO se usa en el abordaje",
+      "verification": "no verificada"
+    },
+    {
+      "id": "S39",
+      "title": "Jorge Virgilio Núñez, Las invasiones inglesas, 2007 (iconografía; encargo a Cancio Lazo)",
+      "url": "https://www.edisalta.ar/iconografia.html",
+      "kind": "iconografía moderna de la toma; no es documento de época",
+      "verification": "ficha del paquete"
     }
   ],
   "justina_package": {
     "name": "Justina_Retiro_1806 (paquete del usuario, 30-oct-2026)",
-    "status": "punto de partida; cotejado con docs/referencias/justina",
-    "note": "Las referencias [01]-[39] del informe se mapean a S9, S13-S28 en docs/historia/FUENTES.md (P1). El ajuste georreferenciado experimental (residuo ~17 m) no se usa para fijar el encallamiento."
+    "status": "punto de partida; cotejado con docs/referencias/justina (Ronda 2: Gillespie pp. 29, 35-36 y 94 reverificados en el OCR local)",
+    "note": "Las referencias [01]-[39] del informe se mapean a S9, S13-S39 en docs/historia/FUENTES.md (P1). El ajuste georreferenciado experimental (residuo ~17 m) no se usa para fijar el encallamiento."
   }
 }
