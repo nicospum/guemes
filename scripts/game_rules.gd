@@ -1588,6 +1588,9 @@ func scout_risk(scout_id: String, points: Array, careful: bool = false) -> Dicti
 	out.expected_hits = hits
 	out.hp = hp
 	out.death_pct = clampf((1.0 - p_alive) * 100.0, 0.0, 100.0)
+	if exposed < 0.5:
+		out.text = "Sin exposición al fuego del buque."
+		return out
 	out.text = "Riesgo: %d s expuesto, ≈ %.1f impactos esperados (salud %d), %d %% de baja%s." % [roundi(exposed), hits, hp, roundi(float(out.death_pct)), " (cauteloso)" if careful else ""]
 	return out
 

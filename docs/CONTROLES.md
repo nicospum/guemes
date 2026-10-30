@@ -172,3 +172,12 @@ En **Ajustes** podés activar o no la **pausa automática** de la Justina, elegi
 **Usar siempre el mando local** mantiene las decisiones del adversario en la alternativa local. Jev puede seleccionar intenciones si se configura acceso externo; la partida se puede completar sin él. El estado mostrado distingue esa alternativa de una llamada real.
 
 Este manual se contrastó con los controles y acciones de `scripts/main.gd` y `scripts/game_rules.gd` de la entrega. Las duraciones y el rendimiento medidos se documentan en el informe de QA; no se garantizan por estos consejos.
+
+**Ronda 6: ajustes de claridad.**
+
+- El botón del briefing dice **Jugar (empieza en pausa)** y el fondo del diálogo se oscurece casi por completo, para que no asomen textos de la interfaz.
+- El minimapa tiene título y leyenda cortos («sondeado», «dudoso») que caben en 720p. El rótulo «Centro de la vista / Bajo el cursor» ya no muestra coordenadas crudas.
+- El sondeo sin exposición al fuego dice «Sin exposición al fuego del buque» en lugar de «0 impactos esperados» (cambio aditivo en `scout_risk`, `game_rules.gd`).
+- Si **N** no puede trazar ruta por falta de fondo reconocido, el aviso aclara que la selección pasó a un explorador y que el grupo no recibió ninguna orden.
+- Un clic en el agua con **Z** ya da la orden del primer punto; **Mayús** suma hasta tres puntos y **Enter** solo confirma una ruta con varios puntos.
+- Limitación documentada: el despliegue previo permite reasignar efectivos y mover puntos de partida dentro de los límites del motor, no cambiar el número de agrupaciones (5).

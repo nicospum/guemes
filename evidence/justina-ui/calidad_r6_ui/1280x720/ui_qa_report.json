@@ -1,5 +1,5 @@
 {
-	"checks": 144,
+	"checks": 139,
 	"engine": "4.7.2-stable (official)",
 	"failures": [],
 	"kind": "window_injected_input",
@@ -84,7 +84,7 @@
 		"norte_overlaps_inicio": 0,
 		"norte_reason_assault": "Arias coordina Humahuaca desde marzo: afecta artillería, cuartel, depósito de pólvora y comunicaciones.\nBloqueada: La operación de Humahuaca corresponde a Manuel Eduardo Arias.",
 		"preview_ruta_sin_reconocer": "38 m · 00:24 · 7 m sin reconocer · riesgo desconocido",
-		"preview_sondeo": "sondeo de 81 m · ≈ 00:27 · Riesgo: 0 s expuesto, ≈ 0.0 impactos esperados (salud 4), 0 % de baja.",
+		"preview_sondeo": "sondeo de 81 m · ≈ 00:27 · Sin exposición al fuego del buque.",
 		"rects_Justina aviso": [
 			"[P: (12.0, 6.0), S: (1256.0, 40.0)]",
 			"[P: (996.0, 54.0), S: (272.0, 440.0)]",
