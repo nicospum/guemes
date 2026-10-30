@@ -181,3 +181,14 @@ Este manual se contrastó con los controles y acciones de `scripts/main.gd` y `s
 - Si **N** no puede trazar ruta por falta de fondo reconocido, el aviso aclara que la selección pasó a un explorador y que el grupo no recibió ninguna orden.
 - Un clic en el agua con **Z** ya da la orden del primer punto; **Mayús** suma hasta tres puntos y **Enter** solo confirma una ruta con varios puntos.
 - Limitación documentada: el despliegue previo permite reasignar efectivos y mover puntos de partida dentro de los límites del motor, no cambiar el número de agrupaciones (5).
+
+## Ronda 7: claridad de controles en la Justina
+
+- **Cabecera**: el indicador permanente dice «TIEMPO REAL · ▶ ×1» o «‖ EN PAUSA»; el cartel de pausa agrega «podés dar órdenes con el tiempo detenido». El título se recorta con puntos suspensivos antes de empujar los botones fuera de pantalla (1280x720).
+- **Río**: el rótulo («alta», «bajando», «en su mínimo», «subiendo») se calcula del reloj y de las marcas de marea, no de una fase guardada.
+- **Retirada general** va en rojo, pide confirmación («¿Terminar la partida con una retirada general?») y se distingue de **Retirar (L)**, que solo manda a los grupos elegidos de vuelta a la playa.
+- **Glifos**: cada agrupación lleva el glifo de su etiqueta de fuente (● documentado, ◆ tradición, ◇ reconstrucción, ▲ diseño), no uno fijo por id.
+- **Ayuda (F1 o ?)**: pestañas «Cómo jugar» (tiempo real + 4 pasos), «Teclas», «Palabras y consejos» y «Fuentes».
+- **Despliegue previo**: incluye un mapa recortado con los cinco puntos de partida, que se mueven al elegir Norte/Sur/Oeste/Este. Límites del motor: ±15 de fuerza por grupo y 14 m por punto.
+- **Tutorial**: si se salta pasos porque ya los hiciste, un aviso lo dice; la línea inferior solo manda a «seguir el tutorial» mientras la tarjeta está visible.
+- Las fichas de las agrupaciones en el mapa dibujan primero las líneas de unión y después los rótulos: ninguna línea cruza el texto de otra ficha.

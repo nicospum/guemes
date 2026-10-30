@@ -1,0 +1,139 @@
+{
+	"checks": 144,
+	"engine": "4.7.2-stable (official)",
+	"failures": [],
+	"kind": "window_injected_input",
+	"notes": {
+		"captura_px": [
+			1280,
+			720
+		],
+		"justina_escala": {
+			"m": 10,
+			"mpp": 0.121734619140625,
+			"px": 82.145901228378
+		},
+		"justina_free_con_ayuda": {
+			"free_pct": 42.7,
+			"free_px": 393280,
+			"total_px": 921600
+		},
+		"justina_free_sin_ayuda": {
+			"free_pct": 42.7,
+			"free_px": 393280,
+			"total_px": 921600
+		},
+		"justina_layout_Justina aviso": {
+			"minimapa": [
+				260.0,
+				150.0
+			],
+			"paneles": 6,
+			"viewport": [
+				1280.0,
+				720.0
+			]
+		},
+		"justina_layout_Justina inicio": {
+			"minimapa": [
+				260.0,
+				150.0
+			],
+			"paneles": 6,
+			"viewport": [
+				1280.0,
+				720.0
+			]
+		},
+		"justina_layout_Justina parte": {
+			"minimapa": [
+				260.0,
+				150.0
+			],
+			"paneles": 6,
+			"viewport": [
+				1280.0,
+				720.0
+			]
+		},
+		"justina_overlaps_inicio": 0,
+		"justina_overlay_rects_inicio": [
+			"[P: (285.8139, 267.2506), S: (224.0, 54.0)]",
+			"[P: (307.0428, 326.1896), S: (172.0, 24.0)]",
+			"[P: (298.0065, 356.6209), S: (172.0, 24.0)]",
+			"[P: (349.1798, 236.8984), S: (104.0, 22.0)]",
+			"[P: (343.0692, 396.521), S: (104.0, 22.0)]",
+			"[P: (830.0399, 337.6263), S: (117.0, 23.0)]",
+			"[P: (290.4915, 197.0536), S: (147.0, 23.0)]"
+		],
+		"monitor_px": [
+			1920,
+			1080
+		],
+		"norte_free": {
+			"free_pct": 68.9,
+			"free_px": 991448,
+			"total_px": 1440000
+		},
+		"norte_free_con_ayuda": {
+			"free_pct": 65.5,
+			"free_px": 943568,
+			"total_px": 1440000
+		},
+		"norte_hover": "Mover no disponible: La agrupación ya se encuentra en ese sector.",
+		"norte_overlaps_inicio": 0,
+		"norte_reason_assault": "Arias coordina Humahuaca desde marzo: afecta artillería, cuartel, depósito de pólvora y comunicaciones.\nBloqueada: La operación de Humahuaca corresponde a Manuel Eduardo Arias.",
+		"preview_ruta_sin_reconocer": "38 m · 00:24 · 7 m sin reconocer · riesgo desconocido",
+		"preview_sondeo": "sondeo de 81 m · ≈ 00:27 · Sin exposición al fuego del buque.",
+		"rects_Justina aviso": [
+			"[P: (12.0, 6.0), S: (1256.0, 40.0)]",
+			"[P: (996.0, 54.0), S: (272.0, 440.0)]",
+			"[P: (12.0, 80.0), S: (240.0, 439.0)]",
+			"[P: (12.0, 560.0), S: (260.0, 150.0)]",
+			"[P: (12.0, 528.0), S: (260.0, 28.0)]",
+			"[P: (280.0, 556.0), S: (900.0, 154.0)]"
+		],
+		"rects_Justina inicio": [
+			"[P: (12.0, 6.0), S: (1256.0, 40.0)]",
+			"[P: (996.0, 54.0), S: (272.0, 440.0)]",
+			"[P: (12.0, 80.0), S: (240.0, 439.0)]",
+			"[P: (12.0, 560.0), S: (260.0, 150.0)]",
+			"[P: (12.0, 528.0), S: (260.0, 28.0)]",
+			"[P: (280.0, 558.0), S: (900.0, 152.0)]"
+		],
+		"rects_Justina parte": [
+			"[P: (12.0, 6.0), S: (1256.0, 40.0)]",
+			"[P: (996.0, 54.0), S: (272.0, 440.0)]",
+			"[P: (12.0, 80.0), S: (240.0, 439.0)]",
+			"[P: (12.0, 560.0), S: (260.0, 150.0)]",
+			"[P: (12.0, 528.0), S: (260.0, 28.0)]",
+			"[P: (280.0, 594.0), S: (900.0, 116.0)]"
+		],
+		"resolucion_real": true,
+		"rules_stub": false,
+		"sector_after_bracket": "rosario",
+		"sector_before_after": [
+			"lerma",
+			"oran"
+		],
+		"tamano_pedido": [
+			1280,
+			720
+		],
+		"ventana_px": [
+			1280,
+			720
+		],
+		"ventana_px_tras_ajuste": [
+			1280,
+			720
+		],
+		"viewport_logico": [
+			1600.0,
+			900.0
+		],
+		"world_stub": false
+	},
+	"renderer": "NVIDIA GeForce RTX 3080 Ti",
+	"suite": "ui_qa_window"
+}
