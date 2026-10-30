@@ -698,3 +698,31 @@ Estado nuevo legible (`rules.state`): `pending_shot` ({} si no hay), `pending_ch
 ## 14. Integración ronda 1 de diversión (30-oct-2026)
 
 `main.gd` usa `CampaignProgress` (`user://campaign.json`) como única fuente del progreso; `progress` es solo una vista sincronizada con `_progress_sync()`. Se muestran el círculo de aviso de la descarga (`state.pending_shot`), el mensajero (`choice`, con reloj detenido), el aviso de último esfuerzo (botón en la franja de alertas) y las ayudas opcionales (baqueano, bajante generosa) en la tarjeta inicial. Los eventos de campo devuelven la velocidad a ×1. Pendiente: «Desde el cruce» (C4), íconos de rol, estandartes, grupos quebrados apagados y marca del punto sin retorno en la barra de tiempo.
+
+## 15. Ronda 2 de diversión (30-oct-2026, pista `mapa_reglas`): interfaz nueva para `ui_feel`
+
+Todo sale de `data/justina_map.json`; `main.gd` y `world_view.gd` no se tocaron en esta pista. Lo que la interfaz puede (y debería) usar:
+
+### 15.1 Ventaja de la experiencia (nunca oculta)
+- `campaign.mercy.levels[n]`: multiplicadores por racha de derrotas (`n` = derrotas seguidas; el nivel 0 es el colchón de cualquier primer intento): `fire_mult` (fuego del buque), `stumble_mult` (castigo del pozo), `capture_mult` (ritmo de captura), `counter_mult`/`counter_cap_mult` (daño y pérdida de captura de los contraataques), `melee_mult`, `auto_repel_n` (cuántos de los primeros contraataques rechaza solo el sargento, sin costo) y `label` (texto para mostrar).
+- `CampaignProgress.begin_attempt(rules)` ya llama a `rules.set_mercy(defeats_in_row)`. Si el nivel es > 0, el reglamento emite un evento `assist` con el `label` en el segundo 0: mostrarlo como aviso. Nunca debe quedar «sin avisar» (el parte lo repite).
+- `rules.state.mercy.level` / `campaign_report().mercy_level` y `mercy_label` para el parte. El evento `counter` con `auto: true` es el rechazo automático del sargento.
+
+### 15.2 Cargar sin la orden de Liniers (riesgo explícito)
+- `rules.on_own_charge_check(group_id)` devuelve `{ok, reason}` (ok mientras NO haya orden vigente). Para ejecutarlo: `rules.issue_order(group_id, "board", Vector2.ZERO, {"on_own": true})`. Sin esa opción, `board` sigue rechazándose con «Falta la orden de avance de Liniers: señalá primero.» (botón normal).
+- Costo declarado: captura −20 % mientras no haya orden vigente (`ON_OWN_MULT` = 0,8), y el oro queda fuera (`campaign_report().on_own_charge`). La carga sin orden no se detiene al vencer la orden (no tiene). Se emite un evento `warning` («carga sin esperar la orden de Liniers…») una sola vez.
+- Sugerencia de UI: botón secundario «Cargar sin orden (más lento, sin oro)» junto a «Cargar»; la señal a Liniers pasa a ser un bonus (+8 de munición y captura normal), no un requisito.
+
+### 15.3 «Desde el cruce» (C4)
+- `campaign.checkpoint_tick(rules)` (barato; llamarlo cada cuadro mientras se juega) guarda un punto de control a los `campaign.checkpoint_s` = 200 s (antes de que ceda el vado) si nadie cargó todavía. `campaign.has_checkpoint()` / `checkpoint_time()` dicen si hay uno válido para el mundo actual; `campaign.restore_checkpoint(rules)` lo carga (conserva sondeos y balizas, cuenta el intento y fija la ventaja con la racha actual) y devuelve `{ok, reason}`. Se invalida con «Río nuevo» y al ganar. Ofrecerlo en el parte de derrota: «Reintentar desde el cruce (3:20)».
+
+### 15.4 Textos del parte (ya corregidos en `campaign.gd`/JSON)
+- Singular/plural: `campaign.stumble_advice_one` / `counter_advice_one` (sin «pozo(s)»).
+- Victoria: `record_result()` devuelve `medal_label` («Medalla de plata»), `best_medal`, `record_line` («Esta vez: Bronce · Tu mejor: Plata») y `lines` con lo que FALTA para la siguiente medalla (no repite lo que ya se cumplió). El título debe usar `medal_label` (la medalla de ESTA partida) y el récord va aparte.
+- Nuevas medallas (`outcome.medals`): plata = bajas < 55 % y vado marcado; oro = bajas < 30 %, antes de 12:10, sin ayudas ni carga sin orden. Oro es de la ruta sur (el centro queda en plata por sus bajas): decisión de equilibrio, no histórica.
+
+### 15.5 Derrota inevitable (corte temprano)
+- `outcome.doomed`: si la fuerza total en pie cae bajo `total_strength_below` (70), la captura no llegó a `capture_below_pct` (60) y no hay último esfuerzo posible, la partida termina en ese momento con causa `dispersos` (texto del reglamento: «Quedaron muy pocos efectivos…»). La UI no necesita nada nuevo: es una derrota normal que llega antes.
+
+### 15.6 Fuego por ruta
+- `ship.fire.route_mult` {central 1,12; sur 0,95}: el centro es más rápido pero lo bate el costado; el sur es más lento y más seguro. Se aplica al daño de cada descarga (no a los grupos que ya abordan). Solo cambia números; no hay claves nuevas de UI.

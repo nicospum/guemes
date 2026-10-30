@@ -20,7 +20,7 @@ func _init(save_path: String = DEFAULT_PATH) -> void:
 
 static func fresh() -> Dictionary:
 	return {"version": VERSION, "world_seed": 0, "diary": [], "attempts": 0, "wins": 0, "defeats_in_row": 0, "defeats_total": 0,
-		"best_medal": "", "justina_won": false, "north_unlocked": false, "tutorial_seen": false, "last_cause": "", "worlds": 0}
+		"best_medal": "", "justina_won": false, "north_unlocked": false, "tutorial_seen": false, "last_cause": "", "worlds": 0, "checkpoint": {}}
 
 # ---------------------------------------------------------------------------
 # Persistencia
@@ -98,6 +98,9 @@ static func _validate(v: Variant) -> Dictionary:
 		return {}
 	d.best_medal = medal
 	d.last_cause = str(src.get("last_cause", ""))
+	var cpv: Variant = src.get("checkpoint", {})
+	if cpv is Dictionary and (cpv as Dictionary).has_all(["world_seed", "t"]):
+		d.checkpoint = {"world_seed": int(cpv.world_seed), "t": float(cpv.t)}
 	var diary: Variant = src.get("diary", [])
 	if not diary is Array or diary.size() > MAX_DIARY * 2:
 		return {}
@@ -130,6 +133,7 @@ func new_world(candidate: int = -1) -> int:
 	data.world_seed = s
 	data.worlds = int(data.worlds) + 1
 	data.diary = []
+	data.checkpoint = {}
 	data.defeats_in_row = 0
 	save_progress()
 	return s
@@ -194,6 +198,7 @@ func record_result(rules: RefCounted) -> Dictionary:
 		out.best_medal = str(data.best_medal)
 		out.record_line = "Esta vez: %s · Tu mejor: %s" % [str(rep.medal).capitalize(), str(data.best_medal).capitalize()]
 		out.lines = _victory_lines(rules, rep, bool(out.unlocked_north))
+		data.checkpoint = {}
 		data.world_seed = 0  ## después de ganar, «Rejugar» sortea un mundo nuevo para mejorar la medalla
 		data.diary = []
 	else:
@@ -380,6 +385,54 @@ func _pozo_text(kinds: Dictionary, id: String, hz_name: String) -> String:
 		"pozo_flanco_sur":
 			return tpl.replace("{where}", "sur")
 	return hz_name
+
+# ---------------------------------------------------------------------------
+# «Desde el cruce» (C4): punto de control automático poco antes de que ceda el vado. Reintentar desde ahí cuesta segundos y
+# conserva el reconocimiento ya hecho (sondeos, balizas). La UI llama checkpoint_tick() cada cuadro (es barato) y ofrece
+# restore_checkpoint() en el parte de derrota si has_checkpoint().
+
+const CHECKPOINT_PATH := "user://campaign_checkpoint.json"
+var checkpoint_path := CHECKPOINT_PATH
+var _cp_taken_attempt := -1
+
+## Guarda el punto de control una vez por intento, cuando el reloj pasa de campaign.checkpoint_s y nadie cargó todavía.
+func checkpoint_tick(rules: RefCounted) -> bool:
+	if _cp_taken_attempt == int(data.attempts) or str(rules.state.get("status", "")) != "playing":
+		return false
+	var at := float(rules.map_data().get("campaign", {}).get("checkpoint_s", 200.0))
+	if float(rules.state.elapsed) < at or float(rules.state.stats.boarded_at) >= 0.0:
+		return false
+	for u in rules.state.units:
+		if str(u.stage) in ["dismounting", "boarding"] or str(u.order.get("action", "")) == "board":
+			return false
+	_cp_taken_attempt = int(data.attempts)
+	if rules.save_game(checkpoint_path) != OK:
+		return false
+	data.checkpoint = {"world_seed": int(data.world_seed), "t": float(rules.state.elapsed)}
+	save_progress()
+	return true
+
+## ¿Hay un punto de control válido para el mundo actual?
+func has_checkpoint() -> bool:
+	var cp: Variant = data.get("checkpoint", null)
+	return cp is Dictionary and int(cp.get("world_seed", -1)) == int(data.world_seed) and int(data.world_seed) > 0 and FileAccess.file_exists(checkpoint_path)
+
+func checkpoint_time() -> float:
+	return float(data.get("checkpoint", {}).get("t", 0.0)) if has_checkpoint() else 0.0
+
+## Reanuda desde el punto de control: el reconocimiento ya hecho se conserva; el intento cuenta, y la ventaja de la experiencia y las marcas del diario se actualizan.
+func restore_checkpoint(rules: RefCounted) -> Dictionary:
+	if not has_checkpoint():
+		return {"ok": false, "reason": "No hay punto de control para este mundo."}
+	var res: Dictionary = rules.load_game(checkpoint_path)
+	if not bool(res.get("ok", false)):
+		return res
+	data.attempts = int(data.attempts) + 1
+	rules.set_diary_marks(diary_marks())
+	rules.apply_mercy_now(int(data.defeats_in_row))
+	_cp_taken_attempt = int(data.attempts)  ## no pisar el punto de control con el mismo tramo
+	save_progress()
+	return {"ok": true, "reason": "Desde el cruce: el reconocimiento se conserva (%d:%02d)." % [int(rules.state.elapsed) / 60, int(rules.state.elapsed) % 60]}
 
 # ---------------------------------------------------------------------------
 # Tutorial una vez por perfil (C6): la UI pregunta y marca.

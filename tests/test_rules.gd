@@ -1048,7 +1048,7 @@ func _test_round9_telegraph() -> void:
 	check(not warn.is_empty() and float(warn.eta) >= 2.5 and not bool(warn.strong), "Toda descarga se anuncia con ≥ 2,5 s de antelación (eta %.2f s)" % float(warn.get("eta", 0.0)))
 	check(impact_t >= t0 + 6.0 - 0.001 and impact_t - float(warn.get("time", 0.0)) >= 2.5, "El impacto llega después del aviso (aviso t=%.2f, impacto t=%.2f)" % [float(warn.get("time", 0.0)), impact_t])
 	var dmg := hp0 - float(r.get_unit("guemes").strength)
-	check(dmg > 0.0 and dmg <= float(tg.get("strong_mult", 1.5)) * 0.0 + 9.001 * 1.19, "Un grupo parado recibe la descarga avisada (−%.1f)" % dmg)
+	check(dmg > 0.0 and dmg <= float(tg.get("strong_mult", 1.5)) * 0.0 + 9.001 * 1.13, "Un grupo parado recibe la descarga avisada (−%.1f)" % dmg)
 	# esquivar: el grupo se aleja más que el radio durante el aviso y la descarga cae al agua
 	var d := _at(_tt(400.0), 5)
 	var gd: Dictionary = d.get_unit("guemes")
@@ -1080,7 +1080,7 @@ func _test_round9_telegraph() -> void:
 				sw = ev
 	var sdmg := 100.0 - float(f.get_unit("guemes").strength)
 	check(not sw.is_empty() and bool(sw.strong) and float(sw.eta) >= 3.5 and int(f.state.stats.strong_volleys) == 1, "La 6.ª descarga es una andanada fuerte con aviso de ≥ 3,5 s (eta %.2f)" % float(sw.get("eta", 0.0)))
-	check(sdmg > 9.0 * 0.99 and sdmg <= 13.5 * 1.19 + 0.01, "La andanada fuerte pega más que una normal (−%.1f)" % sdmg)
+	check(sdmg > 9.0 * 0.99 and sdmg <= 13.5 * 1.13 + 0.01, "La andanada fuerte pega más que una normal (−%.1f)" % sdmg)
 	# reaccionar al aviso reduce el daño por andanada a la mitad o menos
 	var no_react := 0.0
 	var react := 0.0
@@ -1576,6 +1576,35 @@ func _test_round2_fun() -> void:
 	var res3: Dictionary = cp.record_result(g3)
 	check(res3.won and str(res3.medal_label).begins_with("Medalla de ") and "Tu mejor:" in str(res3.record_line), "La victoria trae la medalla de ESTA partida y el récord por separado")
 	check(res3.lines.back().begins_with("Se desbloqueó el escenario 2"), "La victoria dice qué se desbloquea")
+	# «Desde el cruce»: punto de control automático y reanudación
+	var cp2 := CampaignProgress.new("user://test-campaign-cp.json")
+	cp2.checkpoint_path = "user://test-cp-state.json"
+	DirAccess.remove_absolute("user://test-campaign-cp.json")
+	cp2.world_seed(9)
+	var h := _new_j(9, true)
+	cp2.begin_attempt(h)
+	_advance(h, 100.0)
+	check(not cp2.checkpoint_tick(h) and not cp2.has_checkpoint(), "Antes de los 200 s todavía no hay punto de control")
+	_advance(h, 205.0)
+	check(cp2.checkpoint_tick(h) and cp2.has_checkpoint(), "A los 200 s se guarda el punto de control (una vez)")
+	check(not cp2.checkpoint_tick(h), "El punto de control no se vuelve a escribir en el mismo intento")
+	var t_cp := float(h.state.elapsed)
+	var strengths := []
+	for hu in h.state.units:
+		strengths.append(float(hu.strength))
+	_advance(h, 300.0)
+	var h2 := Rules.new()
+	h2.new_game("justine", 9)
+	var rc: Dictionary = cp2.restore_checkpoint(h2)
+	var same_units := true
+	for ui in range(h2.state.units.size()):
+		if absf(float(h2.state.units[ui].strength) - float(strengths[ui])) > 0.001:
+			same_units = false
+	check(rc.ok and absf(float(h2.state.elapsed) - t_cp) < 0.01 and same_units and h2.state.status == "playing", "Reanudar desde el cruce restaura el tiempo y las fuerzas exactos")
+	check(int(cp2.data.attempts) == 2 and int(h2.state.mercy.level) == int(cp2.data.defeats_in_row), "Reanudar cuenta el intento y fija la ventaja con la racha actual")
+	cp2.new_world(77)
+	check(not cp2.has_checkpoint(), "Con «Río nuevo» el punto de control del mundo anterior deja de valer")
+
 	# guardado: sobrescribe sin perder el archivo
 	cp.data.attempts = 77
 	check(cp.save_progress(), "El guardado atómico sobrescribe un archivo existente")
@@ -2356,6 +2385,7 @@ func _test_victory_quality(all: Dictionary) -> void:
 	var cal_n := 0
 	var wins_loss: Array = []
 	var defended_max := 0.0
+	var defended_who := ""
 	var marginal_max := 0.0
 	var undefended_max := 0.0
 	var wins_p := {}
@@ -2400,6 +2430,8 @@ func _test_victory_quality(all: Dictionary) -> void:
 		if "noreply" in p:
 			continue
 		if int(wins_p[p]) * 2 >= int(games_p[p]):
+			if float(loss_max_p[p]) > defended_max:
+				defended_who = p
 			defended_max = maxf(defended_max, float(loss_max_p[p]))
 		else:
 			marginal_max = maxf(marginal_max, float(loss_max_p[p]))
@@ -2415,7 +2447,7 @@ func _test_victory_quality(all: Dictionary) -> void:
 		if float(l) > 80.0:
 			over80 += 1
 	check(wins_loss.size() >= 20 and median <= float(vl.median_max_pct), "Victorias no pírricas: bajas medianas %.0f %% <= %d %% (%d victorias)" % [median, int(vl.median_max_pct), wins_loss.size()])
-	check(defended_max <= float(tg.max_victory_loss_pct), "Ninguna victoria con defensa del abordaje, en las líneas confiables, cuesta más del %d %% de la fuerza (máx. %.0f %%)" % [int(tg.max_victory_loss_pct), defended_max])
+	check(defended_max <= float(tg.max_victory_loss_pct), "Ninguna victoria con defensa del abordaje, en las líneas confiables, cuesta más del %d %% de la fuerza (máx. %.0f %%, %s)" % [int(tg.max_victory_loss_pct), defended_max, defended_who])
 	check(marginal_max <= float(vl.marginal_line_max_pct), "...y las líneas marginales (ganan menos de la mitad) no pasan del %d %% (máx. %.0f %%): ganar mal es posible pero caro, no un guion" % [int(vl.marginal_line_max_pct), marginal_max])
 	check(undefended_max <= float(vl.undefended_max_pct), "Ni siquiera sin defender el abordaje una victoria pasa del %d %% (máx. %.0f %%)" % [int(vl.undefended_max_pct), undefended_max])
 	check(float(over80) / float(maxi(1, wins_loss.size())) <= float(vl.share_over_80_max), "Pocas victorias al borde (>80 %% de bajas): %d de %d (máx. %.0f %%)" % [over80, wins_loss.size(), float(vl.share_over_80_max) * 100.0])

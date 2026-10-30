@@ -2083,6 +2083,11 @@ func set_mercy(streak: int) -> Dictionary:
 		_event(str(state.mercy.label), "assist", {"assist": "experiencia", "level": streak})
 	return state.mercy
 
+## Como set_mercy, pero también con la partida en marcha: lo usa «Desde el cruce» al reanudar un punto de control con la racha actual.
+func apply_mercy_now(streak: int) -> void:
+	if state.get("scenario", "") == "justine":
+		state.mercy = _mercy_for(streak)
+
 ## Ayudas visibles de la escalera anti-frustración (campaign.assist_after_defeats). Se piden al inicio; quedan marcadas en el parte y quitan el oro.
 func apply_assist(kind: String) -> Dictionary:
 	if state.get("status", "") != "playing" or state.get("scenario", "") != "justine":
