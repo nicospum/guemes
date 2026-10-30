@@ -2,7 +2,7 @@
   "schema_version": 1,
   "language": "es-AR",
   "reviewed_on": "2026-10-30",
-  "general_notice": "Recreación histórica. El terreno, los grupos, las rutas, los tiempos y las reglas simplifican acontecimientos reales. Los resultados de tu partida pueden diferir de la historia. Las etiquetas significan: Documentado, un hecho que consta en un testimonio o documento de época (a veces solo en su transcripción) o en un plano de época; Tradición, una atribución transmitida y no probada; Reconstrucción, algo que se apoya en fuentes secundarias o divulgativas, o que se infiere de planos y vistas posteriores, y cuyo detalle exacto no está comprobado; Diseño, una regla, cifra o geografía inventada para que el juego funcione, que no es dato histórico.",
+  "general_notice": "Reconstrucción jugable, no una crónica. El terreno, los grupos, las rutas, los tiempos y las reglas simplifican acontecimientos reales. Los resultados de tu partida pueden diferir de la historia. Las etiquetas significan: Documentado, un hecho que consta en un testimonio o documento de época (a veces solo en su transcripción) o en un plano de época; Tradición, una atribución transmitida y no probada; Reconstrucción, algo que se apoya en fuentes secundarias o divulgativas, o que se infiere de planos y vistas posteriores, y cuyo detalle exacto no está comprobado; Diseño, una regla, cifra o geografía inventada para que el juego funcione, que no es dato histórico.",
   "scenarios": {
     "justine": {
       "title": "La toma de la Justina",

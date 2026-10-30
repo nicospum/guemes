@@ -704,7 +704,16 @@ func _justina_r1_ui() -> void:
 	game.rules.state.counter.active = true
 	game.rules.state.counter.answered = false
 	game.rules.state.counter.until = float(game.rules.state.elapsed) + 14.0
+	game._select_ids(["guemes"])
 	game._update_hud()
+	check(not game.paused and game.alert_panel.visible and game.alert_label.text.find("Ningún grupo aborda") >= 0, "Counterattack with nobody boarding warns, does not auto-pause and says what to do")
+	check(game.action_buttons.has("repel") and not game.action_buttons["repel"].visible, "Rechazar is hidden while nobody is boarding")
+	var boarder_r4: Dictionary = game.rules.get_unit("guemes")
+	var stage_r4 = boarder_r4.stage
+	boarder_r4.stage = "boarding"
+	game.alert_ids_seen = {}
+	game._update_hud()
+	check(game.action_buttons["repel"].visible, "Rechazar appears when a group is boarding")
 	check(game.paused and game.alert_panel.visible and game.alert_label.text.find("CONTRAATAQUE") >= 0 and game.alert_label.text.find("14") >= 0, "A counterattack alert pauses the game and shows the countdown: " + game.alert_label.text)
 	check(game.pause_banner.visible and game.pause_banner.text.find("PAUSA AUTOMÁTICA") >= 0, "The banner says the pause was automatic")
 	check(game.alert_btn.visible and game.alert_btn.text.find("Rechazar") >= 0, "The alert offers a Rechazar button")
@@ -713,6 +722,7 @@ func _justina_r1_ui() -> void:
 	check(game._short_name("guemes").find("Güemes") >= 0 and game._card_text("guemes").find("◆") >= 0, "Güemes' card keeps his name and the tradition mark")
 	check(game._deploy_consequences().find("Fuerza total") >= 0, "The deployment screen explains the consequences of strength")
 	check(game.info_label.text.find("Captura del buque") >= 0 and game.info_label.text.find("Moral de la dotación") >= 0, "Capture and morale are labelled separately")
+	boarder_r4.stage = stage_r4
 	game.rules.state.counter = saved_counter
 	game.settings.auto_pause = false
 	game.alert_ids_seen = {}

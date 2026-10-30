@@ -198,6 +198,7 @@ const TUT_STEPS = [
  "5/6 · Con los grupos elegidos, clic derecho traza la ruta (la vista previa muestra riesgo y tiempo) o «Cargar y abordar» (N). Ctrl+Z deshace la última orden; X cancela.",
  "6/6 · Abordaje: cuando aparezca el aviso de CONTRAATAQUE tenés 14 s para «Rechazar» (coma). El juego se pausa solo en los avisos críticos (botón «Pausa auto»)."]
 var mode_label: Label
+var ring_labels: Array = []
 var moral_label: RichTextLabel
 var speed_buttons = {}
 var top_stack: VBoxContainer
@@ -402,7 +403,7 @@ func _menu():
  _button(options,"Ajustes",_settings_dialog)
  _button(options,"Historia",_history_dialog)
  _spacer(box,6)
- _rich(box,"[color=#aab7b5]Recreación histórica con diseño propio: el juego distingue lo documentado, la tradición, la reconstrucción y el diseño (en «Historia» y en cada etiqueta). Que Güemes mandara en la Justina es una tradición no probada.[/color]",13)
+ _rich(box,"[color=#aab7b5]Reconstrucción jugable con diseño propio, no una crónica: el juego distingue lo documentado, la tradición, la reconstrucción y el diseño (en «Historia» y en cada etiqueta). Que Güemes mandara en la Justina es una tradición no probada.[/color]",13)
  _label(box,"VERSIÓN "+str(ProjectSettings.get_setting("application/config/version","?")).to_upper()+"  ·  3D LOCAL  ·  SE PUEDE JUGAR SIN CONEXIÓN",11,MUTED)
  var credit=_label(ui,"RÍO DE LA PLATA\n12 DE AGOSTO DE 1806",16,Color("e6ceb0"),true)
  _anchor(credit,1,1,1,1,-400,-200,-20,-100)
@@ -1910,7 +1911,8 @@ func _update_mode_ui():
  pause_button.text="▶  Reanudar" if paused else "‖  Pausar"
  if float(st.elapsed)<0.5 and paused:pause_button.text="▶  Iniciar"
  for sp in speed_buttons:speed_buttons[sp].set_pressed_no_signal(int(speed)==int(sp))
- autopause_button.text="Pausa auto: "+("sí" if bool(settings.auto_pause) else "no")
+ autopause_button.text=("☑ " if bool(settings.auto_pause) else "☐ ")+"Pausa auto"
+ autopause_button.add_theme_stylebox_override("normal",_cm_style("ap_on",Color(0.07,0.2,0.17),Color("6fb8a6"),1,5,3) if bool(settings.auto_pause) else _cm_style("ap_off",Color(0.14,0.15,0.15),Color("65756c"),1,5,3))
 
 func _compute_alerts()->Array:
  var out=[]
@@ -1921,7 +1923,8 @@ func _compute_alerts()->Array:
  var c=st.counter
  if bool(c.active) and not bool(c.answered):
   var rem=maxf(0.0,float(c.until)-t)
-  out.append({"id":"counter%d" % int(c.count),"level":"crit","short":"contraataque de la dotación: tenés %d s para rechazarlo." % int(float(cap.get("window_s",14))),"text":"⚔ CONTRAATAQUE DE LA DOTACIÓN · quedan %d s para rechazarlo. «Rechazar» con un grupo que aborda (coma) cuesta %d de munición; sin respuesta pierden fuerza y la captura retrocede." % [ceili(rem),int(cap.get("repel_ammo",3))],"btn":"Rechazar ahora (,)","fn":"repel"})
+  var anyb=_anyone_boarding()
+  out.append({"id":"counter%d" % int(c.count),"level":"crit" if anyb else "warn","nopause":not anyb,"short":"contraataque de la dotación: tenés %d s para rechazarlo." % int(float(cap.get("window_s",14))),"text":"⚔ CONTRAATAQUE DE LA DOTACIÓN · quedan %d s para rechazarlo. «Rechazar» con un grupo que aborda (coma) cuesta %d de munición; sin respuesta pierden fuerza y la captura retrocede.%s" % [ceili(rem),int(cap.get("repel_ammo",3)),"" if anyb else " Ningún grupo aborda ahora: mandá uno a «Cargar y abordar» (N) para poder responder."],"btn":"Rechazar ahora (,)","fn":"repel"})
  var res=rules.resources()
  var marching=false
  for id in GROUP_IDS:
@@ -1943,7 +1946,7 @@ func _update_alerts():
  for a in list:
   if not alert_ids_seen.has(str(a.id)):
    alert_ids_seen[str(a.id)]=true
-   if bool(settings.auto_pause) and not paused and not is_instance_valid(modal) and mode=="play":
+   if bool(settings.auto_pause) and not bool(a.get("nopause",false)) and not paused and not is_instance_valid(modal) and mode=="play":
     paused=true;pause_reason=str(a.short);_sound("alert")
  if list.is_empty():
   alert_current={};alert_panel.visible=false;return
@@ -2203,6 +2206,11 @@ func _declutter_world_labels():
  for k in world.ref_labels:labels.append(world.ref_labels[k])
  if is_instance_valid(world.scale_root):
   for ch in world.scale_root.find_children("*","Label3D",true,false):labels.append(ch)
+ if ring_labels.is_empty():
+  for ch in world.find_children("*","Label3D",true,false):
+   if str(ch.text).begins_with("Alcance del fuego"):ring_labels.append(ch)
+ for rl in ring_labels:
+  if is_instance_valid(rl):labels.append(rl)
  for l in labels:
   if not is_instance_valid(l):continue
   if str(l.name)=="Rotulo_escala":
@@ -2211,8 +2219,10 @@ func _declutter_world_labels():
   var p=l.global_position
   if camera.is_position_behind(p):continue
   var sp=camera.unproject_position(p)
-  var rect=Rect2(sp-Vector2(95,18),Vector2(190,36))
-  l.visible=not _overlaps_any(rect,avoid)
+  var half=Vector2(150,20) if l in ring_labels else Vector2(95,18)
+  var rect=Rect2(sp-half,half*2.0)
+  # El rótulo del anillo de fuego (diseño) se ancla al borde visible: si se sale de la pantalla o cae bajo un panel, se oculta.
+  l.visible=not _overlaps_any(rect,avoid) and (not (l in ring_labels) or Rect2(Vector2.ZERO,get_viewport().get_visible_rect().size).encloses(rect))
 
 func _tide_label()->String:
  var id=rules.tide_variant_id()
@@ -2625,6 +2635,9 @@ func _update_action_states():
   var cost=" · ".join(cost_parts.slice(0,2))
   b.text=_tag_glyph(tag)+" "+_action_label(a)+"\n"+(("["+kt+"] ") if kt!="" else "")+cost
   b.disabled=not ok
+  # Acciones de abordaje: solo se muestran cuando hay un grupo abordando o un contraataque en curso (menos botones en gris).
+  if a in ["repel","evacuate"]:
+   b.visible=_anyone_boarding()
   var why="" if ok else _friendly_reason(a,str(av.get("reason","")) if playing else "La partida ya terminó.")
   b.tooltip_text=_action_effect(a)+"\nTecla: "+(kt if kt!="" else "—")+"  ·  Fuente: "+_tag_glyph(tag)+" "+_tag_label(tag)+(("\nNo disponible ahora: "+why) if not ok else "")
   b.set_meta("why",why)
@@ -2638,7 +2651,7 @@ func _update_action_states():
    nblocked+=1
    if blocked_note.is_empty() or (str(rec.action)==a):
     var wshort=why.split(".")[0]
-    blocked_note=_action_label(a)+": "+(wshort if wshort.length()<=60 else wshort.substr(0,57)+"…")
+    blocked_note=_action_label(a)+": "+(wshort if wshort.length()<=120 else wshort.substr(0,117)+"…")
  if is_instance_valid(reason_label) and hover_action.is_empty():
   reason_label.add_theme_color_override("font_color",Color("f0d27a"))
   reason_label.text="SIGUIENTE ▸ "+str(rec.text)+(("   ·   En gris: "+blocked_note+" (tocá o pasá el mouse por cada una para ver su motivo)") if nblocked>0 else "")
@@ -3128,8 +3141,15 @@ func _selection_text()->String:
   if scouts.size()>1:t+="  ·  la acción se aplica a los %d exploradores" % scouts.size()
  return t
 
+func _anyone_boarding()->bool:
+ for id in GROUP_IDS:
+  if str(rules.get_unit(id).get("stage","")) in ["boarding","dismounting"]:return true
+ return false
+
 func _tutorial_j()->String:
  if tut_step>=TUT_STEPS.size():return ""
+ # El paso 6/6 (abordaje) solo se muestra cuando hay un grupo abordando o un contraataque en curso.
+ if tut_step==5 and not _anyone_boarding() and not (bool(rules.state.counter.active) and not bool(rules.state.counter.answered)):return ""
  return str(TUT_STEPS[tut_step])
 
 # Estado de la partida: cuenta regresiva, ventanas de vado y riesgo actual (texto, junto a la barra de tiempo).
@@ -3430,19 +3450,23 @@ func _briefing_dialog():
 • [b]Baliza[/b]: estaca que marcás en un vado reconocido para no sondearlo de nuevo. • [b]Pólvora de reserva[/b]: munición extra que se reparte con «Abastecer munición»; los grupos no la usan solos. • [b]Quedan 18:00 min[/b]: minutos y segundos hasta el plazo, no una hora del día.
 
 "
- text+="[b]Una advertencia sobre la fuente[/b]
+ var text_f="[b]Una advertencia sobre la fuente[/b]
 Gillespie escribe que el buque quedó «en seco» (left dry) y que lo abordó la caballería. Este juego elige, por jugabilidad, un casco apoyado con agua alrededor, vados de poca profundidad y un río que baja y sube: es [color=#e8a98f]◇ diseño[/color], no testimonio. Gillespie también dice que ningún buque fondea con seguridad a menos de cuatro millas; los 390 m del juego son una distancia de diseño en tensión con eso. Que Güemes estuviera en la acción es [color=#e0bf81]tradición[/color] (por eso «Güemes (trad.)»).
 
 "
- text+=str(rules.state.get("briefing",m.get("texts",{}).get("briefing","")))+"\n\n[b]Cómo leer las etiquetas[/b]\n"
+ text_f+=str(rules.state.get("briefing",m.get("texts",{}).get("briefing","")))+"\n\n[b]Cómo leer las etiquetas[/b]\n"
  for t in ["documentado","tradicion","reconstruccion","diseno"]:
   var info=m.get("source_tags",{}).get(t,{})
-  text+="[color=%s]%s %s[/color] — %s\n" % [str(info.get("color","#fff")),str(info.get("glyph","")),str(info.get("label","")),str(info.get("meaning",""))]
+  text_f+="[color=%s]%s %s[/color] — %s\n" % [str(info.get("color","#fff")),str(info.get("glyph","")),str(info.get("label","")),str(info.get("meaning",""))]
  text+="\n[b]Consejos[/b]\n"
  var tips=m.get("texts",{}).get("tips",[])
  for i in range(mini(3,tips.size())):text+="• "+str(tips[i])+"\n"
- text+="\n[b]Controles[/b]\n• Cámara: WASD/flechas y borde de pantalla mueven · rueda zoom · botón derecho arrastrado agarra el mapa · Q/E giran · RePág/AvPág inclinan · el minimapa (clic o arrastre) mueve la vista; el cuadro blanco es lo que ves.\n• Cámara rápida: F centra la selección · B va al buque · 0 muestra todo el mapa · M agranda el minimapa.\n• Selección: clic en una ficha o en el mapa · 1-5 · Tab cicla · caja con arrastre izquierdo · Mayús suma · Ctrl alterna.\n• Órdenes: clic derecho mueve · V Mover · N Cargar y abordar · K Señalar a Liniers · Z Reconocer (Mayús+Z cauteloso) · H Marcar vado · I Volver · O Distraer con fuego · [b]coma[/b] Rechazar contraataque · [b]punto[/b] Evacuar heridos · X cancelar · [b]Ctrl+Z deshacer[/b] la última orden · G/T/C ritmo.\n• Tiempo: Espacio pausa/reanuda · F2/F3/F4 o +/− velocidad ×1/×2/×4 · P parte · F5 guardar · F9 cargar · R reiniciar · F1 o ? esta ayuda."
- _rich(content,text,15).custom_minimum_size.x=840
+ var text_k="\n[b]Controles[/b]\n• Cámara: WASD/flechas y borde de pantalla mueven · rueda zoom · botón derecho arrastrado agarra el mapa · Q/E giran · RePág/AvPág inclinan · el minimapa (clic o arrastre) mueve la vista; el cuadro blanco es lo que ves.\n• Cámara rápida: F centra la selección · B va al buque · 0 muestra todo el mapa · M agranda el minimapa.\n• Selección: clic en una ficha o en el mapa · 1-5 · Tab cicla · caja con arrastre izquierdo · Mayús suma · Ctrl alterna.\n• Órdenes: clic derecho mueve · V Mover · N Cargar y abordar · K Señalar a Liniers · Z Reconocer (Mayús+Z cauteloso) · H Marcar vado · I Volver · O Distraer con fuego · [b]coma[/b] Rechazar contraataque · [b]punto[/b] Evacuar heridos · X cancelar · [b]Ctrl+Z deshacer[/b] la última orden · G/T/C ritmo.\n• Tiempo: Espacio pausa/reanuda · F2/F3/F4 o +/− velocidad ×1/×2/×4 · P parte · F5 guardar · F9 cargar · R reiniciar · F1 o ? esta ayuda."
+ scroll.queue_free()
+ var tabs=TabContainer.new();tabs.size_flags_vertical=Control.SIZE_EXPAND_FILL;tabs.custom_minimum_size=Vector2(880,500);box.add_child(tabs);box.move_child(tabs,0)
+ for pair in [["Cómo jugar",text],["Teclas",text_k],["Fuentes",text_f]]:
+  var sc=ScrollContainer.new();sc.name=str(pair[0]);sc.size_flags_horizontal=Control.SIZE_EXPAND_FILL;tabs.add_child(sc)
+  var rt=_rich(sc,str(pair[1]),15);rt.custom_minimum_size.x=840
  var row=_hbox(box)
  var go=_button(row,"Entendido · ver el despliegue",_deploy_dialog,42);go.size_flags_horizontal=Control.SIZE_EXPAND_FILL
  _button(row,"Cerrar y jugar",_close_modal,42)
