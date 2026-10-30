@@ -778,6 +778,7 @@ var minimap_sig = ""
 var minimap_timer = 0.0
 var minimap_last_size = Vector2i(260,150)
 var ship_hull: Node3D
+var ship_y0=0.0
 var ship_gun_pos: Array = []
 var smoke_pool: Array = []
 var smoke_next = 0
@@ -1123,10 +1124,14 @@ func _landmarks_j():
   extra_labels.append({"id":"extra_"+str(ei),"label":lab2,"x":float(e.x),"z":float(e.z),"tag":tag2,"text":str(e.text),"cond":str(e.get("show_when",""))})
   ei+=1
  # Casas del Retiro sobre la meseta (decoracion; sin rotulo): el pueblo queda al oeste de la Alameda.
+ # R4: agrupadas en manzanas de 2-3 casas con tapia (no cajas sueltas); reconstruccion, Vidal 1820 muestra caserio continuo.
  for hz in [20.0,64.0,110.0,152.0,372.0,408.0,452.0,496.0]:
   var crest_x=_poly_x(M.get("barranca",{}).get("crest",[]),hz)
   var hx=maxf(3.0,crest_x-14.0-decoration_rng.randf()*6.0)
   _house(Vector3(hx,_h(hx,hz),hz),7.5,8.5,false)
+  _house(Vector3(hx-1.0,_h(hx-1.0,hz+9.5),hz+9.5),7.0,8.0,false)
+  _inst_r("box",Vector3(hx-1.5,_h(hx-1.5,hz+18.0)+0.8,hz+18.0),Vector3(0.5,1.6,11.0),0.0,Color("bdb096"))
+  _inst_r("box",Vector3(hx+4.5,_h(hx+4.5,hz+4.0)+0.8,hz+4.0),Vector3(0.5,1.6,22.0),0.0,Color("bdb096"))
 
 func _bullring_j(lm:Dictionary):
  var c=Vector2(float(lm.x),float(lm.z));var r=float(lm.get("radius_m",24.0))
@@ -1152,10 +1157,15 @@ func _bullring_j(lm:Dictionary):
    _inst_r("box",Vector3(pw.x,y0+wall_h*0.9,pw.z),Vector3(side*0.36,wall_h*0.22,2.2),yaw,Color("d1c7ad"))
   else:
    _inst_r("box",Vector3(pw.x,y0+wall_h*0.5,pw.z),Vector3(side,wall_h,2.2),yaw,Color("d8cfb8"))
-  _inst_r("box",Vector3(pw.x,y0+wall_h+0.3,pw.z),Vector3(side*1.02,0.6,3.0),yaw,Color("9a5444"))
+  _inst_r("box",Vector3(pw.x,y0+wall_h+0.3,pw.z),Vector3(side*1.02,0.6,3.0),yaw,Color("8e5a47"))
   # gradas de madera (anillo interior, mas bajo)
   var pg=Vector3(c.x+cos(a)*(apo-r*0.16),0,c.y+sin(a)*(apo-r*0.16))
   _inst_r("box",Vector3(pg.x,y0+wall_h*0.32,pg.z),Vector3(side*0.86,wall_h*0.64,r*0.22),yaw,Color("9a8160"))
+ # Dependencias bajas contra el costado oeste (almacen y cuarteles): Vidal muestra el Retiro como masa baja y continua (reconstruccion de volumen).
+ for k in range(3):
+  var ax=c.x-r*1.25-float(k)*0.0;var az=c.y+(float(k)-1.0)*r*0.62
+  _inst_r("box",Vector3(ax,_h(ax,az)+2.0,az),Vector3(r*0.55,4.0,r*0.55),0.0,Color("cfc4a8"))
+  _inst_r("box",Vector3(ax,_h(ax,az)+4.25,az),Vector3(r*0.6,0.5,r*0.6),0.0,Color("8e5a47"))
  # Bandera blanca con escudo español pintado: INFERENCIA (cuenta de 1803, Pillado; paquete H4). Sin escudo argentino.
  var fp=Vector3(c.x,y0+wall_h,c.y)
  _cylinder(Vector3(fp.x,fp.y+4.0,fp.z),0.12,8.0,Color("4c372b"))
@@ -1320,6 +1330,18 @@ func _scenery_j():
   _inst_r("sphere",Vector3(x,_h(x,z3)+hgt*0.28,z3),Vector3(w,hgt,w*rng.randf_range(0.6,1.3)),rng.randf()*TAU,sc)
   _inst_r("sphere",Vector3(x+w*0.1,_h(x,z3)+0.02,z3+w*0.1),Vector3(w*1.5,0.1,w*1.4),rng.randf()*TAU,Color("3a3524"))
   placed+=1
+ # --- matorral de transicion alrededor del mapa (R4): el detalle del pasto sigue mas alla del tablero, sin corte
+ placed=0;tries=0
+ while placed<420 and tries<5000:
+  tries+=1
+  var xt=rng.randf_range(-260.0,262.0);var zt=rng.randf_range(-260.0,map_h+260.0)
+  if zt>=0.0 and zt<=map_h and xt>=2.0:continue
+  var ht=_far_h(xt,zt)
+  if ht<3.0:continue
+  if terrain_noise.get_noise_2d(xt*0.045,zt*0.045+9.0)<-0.02:continue
+  var wt=rng.randf_range(0.9,3.0);var hgt2=wt*rng.randf_range(0.30,0.8)
+  _inst_r("sphere",Vector3(xt,ht+hgt2*0.28,zt),Vector3(wt,hgt2,wt*rng.randf_range(0.6,1.3)),rng.randf()*TAU,Color("4d4a2a").lerp(Color("8a7a48"),rng.randf()).lerp(Color("5a5e32"),rng.randf()*0.4))
+  placed+=1
  # --- campo lejano: matorral, algarrobos/talas, quintas al norte y la ciudad al sur
  var far_shr=0;tries=0
  while far_shr<700 and tries<9000:
@@ -1411,7 +1433,7 @@ func _ship_j():
  ship=_model("justine",Vector3(sx,bed+SHIP_KEEL*SHIP_SY-0.05,sz))
  ship.scale=Vector3(SHIP_SX,SHIP_SY,SHIP_SZ)
  ship.rotation=Vector3(0.012,-deg_to_rad(heading),0.045)
- ship_hull=ship
+ ship_hull=ship;ship_y0=ship.position.y
  _strip_ladder(ship)
  # Cañones: 13 portas por banda es DISEÑO (Gillespie da 26 cañones en total, no el reparto; el paquete pide no dibujar 13 idénticos). Posiciones locales de las portas de babor (oeste con proa al norte).
  ship_gun_pos.clear()
@@ -2044,6 +2066,10 @@ func _update_ship_j(delta:float):
   battery_timer=0.0
  var hd=float(ss.get("heading_deg",M.ship.get("heading_deg",0.0)))
  ship.rotation.y=-deg_to_rad(hd)
+ # R4: con la bajante el casco apoya en el banco: escora a babor y se asienta (aspecto; la regla del vado no cambia).
+ var lk=clampf(level_m/maxf(level_high_m,0.1),0.0,1.0)
+ ship.rotation.z=lerpf(0.13,0.045,lk);ship.rotation.x=lerpf(0.034,0.012,lk)
+ ship.position.y=ship_y0-0.30*(1.0-lk)
  if water_mat!=null and absf(hd-ship_hd_applied)>0.01:
   ship_hd_applied=hd
   water_mat.set_shader_parameter("ship_fwd",Vector2(sin(deg_to_rad(hd)),-cos(deg_to_rad(hd))))
