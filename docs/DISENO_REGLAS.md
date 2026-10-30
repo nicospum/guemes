@@ -330,3 +330,45 @@ Con baqueano/bajante (ofrecidos desde la 3.ª/5.ª derrota) terminaron ganando 2
 ### JEV / TypeSafe
 
 `has_credentials() = true` (hay `user://jev.cfg`; no se leyó ni se imprimió su contenido). Se intentó una consulta real (elegir ruta, observación sintética sin datos personales): **expiró a los 2 s** y el cliente devolvió la alternativa local (`source=local_fallback`, `reason=timeout`). **No hay una decisión en vivo verificada** y ninguna cifra de esta ronda depende de Jev (Justina no lo usa; es del Norte).
+
+## Ronda 2 de diversión (30-oct-2026, pista `mapa_reglas`): primer intento ganable, aprendizaje que se nota y sin estrategia dominante
+
+Directriz que manda (usuario): la fidelidad histórica es solo una guía; hay que poder jugar y que sea entretenido; si perdés, jugás de nuevo; el Justina es tiempo real con pausa; el Norte no se toca. Todo lo de abajo es **diseño de juego** (rótulo `diseno`), no historia. Interfaz para `ui_feel` en `docs/CONTRATO_JUSTINA.md` sección 15.
+
+### Qué cambió
+| Problema (QC / jugador) | Cambio | Dónde |
+|---|---|---|
+| Primer intento casi siempre perdido (promedio 31 % / 19 %, novato 0 %) | **Ventaja de la experiencia** por nivel de racha de derrotas (0 = primer intento): menos fuego del buque, tropiezos suaves, captura más rápida, contraataques más suaves; el sargento rechaza solo los primeros contraataques (1 en el nivel 0-1, 2 desde el 2). Sube de nivel con cada derrota, se avisa en el segundo 0 y en el parte, nunca es oculta | `campaign.mercy` (JSON), `rules.set_mercy()`, `CampaignProgress.begin_attempt()` |
+| Derrotas aplastantes sin causa clara (93 % de bajas, 0 % de captura) | Mismo colchón + `ship.fire.route_mult` + contraataque sin responder ya no rompe al grupo más débil (`shake_on_unanswered` = false) y cuesta menos | JSON |
+| Derrotas que se arrastran | `outcome.doomed`: poca fuerza total (< 70), captura < 60 % y sin último esfuerzo posible → derrota inmediata (causa `dispersos`) | `rules._is_doomed()` |
+| Estrategia dominante (centro ganaba 100 %, sur 83 % con la ayuda de la ventaja base) | `ship.fire.route_mult` central ×1,12 / sur ×0,95 (centro rápido y caro, sur lento y barato) y la variante «viento fuerte» deja el centro +6 % más a la vista: el mejor guion de cada ruta pierde en una variante y gana en otra | JSON |
+| Cargar exige señalar a Liniers (burocracia) | **Carga sin orden** (`issue_order(..., {"on_own": true})`): captura −20 %, sin oro, avisada. La señal queda como bonus | `rules.on_own_charge_check()` |
+| «Desde el cruce» pendiente (C4) | Punto de control automático a los 200 s + `restore_checkpoint()` (cuenta el intento y fija la ventaja con la racha actual) | `scripts/campaign.gd` |
+| Medalla incoherente, plural «pozo(s)», textos | `medal_label` de esta partida + `record_line`, qué FALTA para la próxima medalla, plurales correctos, «Esta vez:» en el diario, guardado que pisa archivo existente | `campaign.gd`, JSON |
+| Oro inalcanzable / siempre alcanzado | Oro: bajas < 30 %, antes de 12:10, sin ayudas ni carga sin orden (hoy solo la ruta sur lo alcanza); plata < 55 % + vado marcado | `outcome.medals` |
+| Victoria pírrica | Mediana de bajas de las victorias razonables 51 %; solo 2 de 122 victorias pasan del 80 %; máximo con defensa 78 % (antes 83 %; la prueba exige ≤ 80 %) | `melee_mult`, `route_mult` |
+
+### Resultados medidos (APPDATA aislado; `tests/test_rules.gd -- --human --n=32 --base=9100|31000`, 6 intentos por mundo, 32 mundos × 2 bases = 64 mundos por perfil)
+Modelo de jugador **inventado** (errores y ayudas descriptos en la ronda 9); no son personas. Intervalo aproximado ±12 puntos por base.
+
+| Perfil | Gana al 1.º (antes → ahora) | Acumulado al 3.º (antes → ahora) | Al 5.º | Intentos medios para ganar |
+|---|---|---|---|---|
+| Experto | 100 → 100 % | 100 % | 100 % | 1,0 |
+| Promedio | 31 / 19 % → **63 / 44 %** (media 54 %) | 88 → **100 / 100 %** | 100 % | 2,3 → **1,5-1,8** |
+| Novato | 0 / 0 % → **25 / 13 %** (media 19 %) | 25 / 31 % → **91 / 97 %** | 100 % | 4,1 → **2,2** |
+
+Matriz de estrategias (40 semillas, `--matrix --bymission`): `central_flank_pair` 38/40, `central_flank_lane` 36/40, `south_full` 35/40, `mixed_split` 19/40. Por variante: el centro gana más rápido pero es el que más flaquea con «viento fuerte» (7/9 y 6/9, el sur 9/9); el sur pierde con «costado fuerte al sur» (4/9, el centro 9/9). Ninguna ruta supera a otra en más de 20 puntos en el total y cada una es la mejor en al menos una variante; la línea del centro sigue siendo algo más fiable (95 % vs 88 %) pero paga 60 % de bajas contra 35 % del sur. Las estrategias sin reconocer o sin responder contraataques siguen siendo mucho peores (`central_bare` 0 %, `central_flank_noreply` ≈ 50 % de lo que gana el mismo guion respondiendo).
+
+### Lo que NO se logró / límites honestos
+- El promedio al primer intento (54 %) queda por encima de la meta del plan (25-40 %): la directriz del usuario («tiene que ser jugable y entretenido») pesó más; si una persona real lo siente fácil, bajar `campaign.mercy.levels[0].fire_mult` de 0,96 a 0,92 vuelve el primer intento ~15 puntos más difícil. El novato llega al 3.º intento en casi todos los mundos: el aprendizaje se nota, pero **la tasa real de personas no se midió** (no hubo playtest humano).
+- La derrota mediana sigue en ~11-12 min a ×1 (≈ 3 min a ×4): el corte `doomed` solo actúa cuando la fuerza total ya es baja; una derrota por desgaste con 60-90 % de captura sigue llegando tarde. Mitigación de UI: ×4 y «Reintentar» en cualquier momento.
+- «Mixta/reserva» sigue siendo la línea más floja (≈ 40 %): no es la mejor en ninguna variante.
+- Las cifras de oro/plata/bronce son de este modelo; el oro hoy es casi exclusivo de la ruta sur con un guion limpio (el experto lo logra ~65-70 %).
+- JEV/TypeSafe no se usó en esta pista (reglas puras): no hay prueba en vivo ni se declara ninguna.
+
+### Verificación de esta ronda (APPDATA aislado, worktree `div2-mapa_reglas`)
+- `tests/test_rules.gd` completo: 667 comprobaciones, 0 fallas (incluye la cohorte: victoria razonable 51 % en calibración y validación, bajas medianas 52 %, 2 de 122 victorias sobre 80 %).
+- `tests/test_integration.gd` (perfil limpio): 265 comprobaciones, 0 fallas. Con un perfil sucio falla «tarjeta inicial corta» por el texto de ayudas/pistas acumuladas: aislar siempre el perfil.
+- `tests/jev_contract_test.gd`: 15 comprobaciones, 0 fallas (`live_api_tested: false`: solo contrato offline; no se probó JEV en vivo).
+- `tools/justina_playthrough.gd`: 15 victorias de 24; `ui_real` con clics reales gana las 3 semillas (1806, 5, 11) en esta corrida (antes 1806 perdía y 5 alternaba). Una corrida no prueba estabilidad.
+- No se corrieron `ui_qa.gd`, `audio_runtime_test.gd` ni `benchmark.py` (no hay cambios de UI, audio ni render en esta pista).

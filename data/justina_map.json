@@ -1168,7 +1168,8 @@
     "fire": {
       "range_m": 265.0,
       "volley_interval_s": 7.5,
-      "damage_min": 6.6,
+      "route_mult": {"central": 1.12, "sur": 0.95, "note": "Ronda 2: el centro es rápido pero lo bate el costado (×1,12); el sur es lento pero el fuego llega más flojo (×0,95). DISEÑO de juego."},
+        "damage_min": 6.6,
       "damage_max": 9.9,
       "arc_factors": {
         "broadside_half_deg": 40.0,
@@ -1261,7 +1262,7 @@
         "note": "Ronda 9 (C8): aviso 5 s antes; ventana de 12 s. Rechazar cuesta 3 de munición y 6 de fatiga pero conserva la captura (-5 en vez de -25). No contestar: -25 de captura, 20 de daño repartido y el grupo más débil se quiebra. Evacuar salva al grupo que tiene heridos.",
         "warn_s": 5.0,
         "repel_fatigue": 6.0,
-        "shake_on_unanswered": true
+        "shake_on_unanswered": false
       },
       "note": "Los grupos que abordan reciben el fuego del buque (x0,5), pierden fuerza en el cuerpo a cuerpo mientras la dotación conserve la moral (melee_loss_per_s x moral/100) y, si el río sube más allá de lo que un hombre a pie puede vadear, se ahogan a drown_loss_per_m_s de fuerza por metro de exceso y por segundo. Diseño.",
       "access_note": "Desmontar y acceder a cubierta por escala/cabo es una opción lúdica del paquete (D5, J), no un detalle comprobado del abordaje. Los caballos no suben a cubierta.",
@@ -1760,6 +1761,12 @@
       "inacción pasado el punto sin retorno (time.no_return_s)"
     ],
     "routed_strength_threshold": 5.0,
+    "doomed": {
+      "tag": "diseno",
+      "total_strength_below": 70.0,
+      "capture_below_pct": 60.0,
+      "note": "Ronda 2: corte de derrota inevitable. Si la fuerza total en pie baja de total_strength_below, la captura no llegó a capture_below_pct y no queda último esfuerzo posible, la partida termina ahí (perder dura minutos, no un cuarto de hora) y se ofrece reintentar."
+    },
     "shaken": {
       "threshold": 25.0,
       "recover_at": 38.0,
@@ -1784,8 +1791,8 @@
         "ford_marked_min_m": 10.0
       },
       "gold": {
-        "loss_pct_below": 32.0,
-        "time_below_s": 540.0,
+        "loss_pct_below": 30.0,
+        "time_below_s": 730.0,
         "no_assists": true
       },
       "note": "Ronda 9 (C12): bronce = capturar el buque; plata = bajas < 55 % y vado marcado; oro = bajas < 32 %, antes de 9:00 y sin baqueano ni bajante generosa."
@@ -1820,8 +1827,8 @@
     },
     "max_victory_loss_pct": 80,
     "cohort_win_rate": [
-      0.25,
-      0.5
+      0.35,
+      0.6
     ],
     "victory_loss": {
       "median_max_pct": 65,
@@ -3657,12 +3664,12 @@
       {
         "id": "viento_fuerte",
         "label": "Viento fuerte del oeste: la bajante es rápida",
-        "consequence": "El río baja antes y se queda más tiempo abajo, y el humo del viento tapa la costa sur: la ruta sur rinde más.",
+        "consequence": "El río baja antes y se queda más tiempo abajo, y el humo del viento tapa la costa sur (−20 % de fuego) pero deja el centro a la vista (+6 %): la ruta sur rinde más.",
         "tide": "sostenida",
         "favors": "sur",
         "fire_mult": {
           "sur": 0.8,
-          "central": 1.0
+          "central": 1.06
         }
       },
       {
@@ -3782,15 +3789,28 @@
         "advice": "Sondeá y señalá a Liniers temprano: a los 7:00 ya tenés que estar en marcha."
       }
     },
-    "stumble_advice": "Tropezaste en {n} pozo(s): sondeá ese flanco antes de cruzar (ya quedó anotado).",
+    "stumble_advice": "Tropezaste en {n} pozos: sondeá ese flanco antes de cruzar (ya quedó anotado).",
+    "checkpoint_s": 200.0,
+    "stumble_advice_one": "Tropezaste en un pozo: sondeá ese flanco antes de cruzar (ya quedó anotado).",
+    "mercy": {
+      "tag": "diseno",
+      "note": "Ronda 2 (directriz de diversión): ventaja de la experiencia. El nivel es la racha de derrotas del perfil (0 = primer intento). Se muestra siempre en el parte y en un aviso del segundo 0; nunca es oculta. Los multiplicadores bajan el castigo (fuego del buque, tropiezo en un pozo, contraataque) y suben el ritmo de captura. El nivel 0 es el colchón de cualquier primer intento.",
+      "levels": [
+        {"fire_mult": 0.96, "stumble_mult": 0.6, "capture_mult": 1.07, "counter_mult": 0.6, "counter_cap_mult": 0.45, "melee_mult": 0.82, "auto_repel_n": 1, "label": ""},
+        {"fire_mult": 0.82, "stumble_mult": 0.58, "capture_mult": 1.12, "counter_mult": 0.55, "counter_cap_mult": 0.4, "melee_mult": 0.76, "auto_repel_n": 1, "label": "Aprendiste del último intento: la tropa llega más entera y el buque falla más."},
+        {"fire_mult": 0.74, "stumble_mult": 0.5, "capture_mult": 1.2, "counter_mult": 0.5, "counter_cap_mult": 0.36, "melee_mult": 0.7, "auto_repel_n": 2, "label": "Segunda derrota seguida: la experiencia pesa (fuego del buque −26 %, tropiezos suaves, captura más rápida)."},
+        {"fire_mult": 0.64, "stumble_mult": 0.4, "capture_mult": 1.3, "counter_mult": 0.45, "counter_cap_mult": 0.32, "melee_mult": 0.64, "auto_repel_n": 2, "label": "La tropa ya conoce el terreno: el buque casi no le acierta y la captura avanza rápido."}
+      ]
+    },
     "ammo_advice": "Te quedaste sin munición: abastecé en la batería antes de cruzar.",
-    "counter_advice": "Dejaste {n} contraataque(s) sin responder: «Rechazar» cuesta 3 de munición pero evita perder 25 de captura.",
+    "counter_advice": "Dejaste {n} contraataques sin responder: «Rechazar» cuesta 3 de munición pero evita perder mucha captura.",
+    "counter_advice_one": "Dejaste un contraataque sin responder: «Rechazar» cuesta 3 de munición pero evita perder mucha captura.",
     "diary_kinds": {
       "pozo": "Pozo del flanco {where}",
       "vado": "Vado en {where}",
       "fuego": "Zona de fuego del costado",
       "plazo": "Llegaste tarde: el río subió a las {mmss}",
-      "mision": "Hoy: {label}"
+      "mision": "Esta vez: {label}"
     }
   }
 }
