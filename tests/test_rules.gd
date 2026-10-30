@@ -110,17 +110,17 @@ func _test_map_and_terrain() -> void:
 		var h: float = r.terrain_height_at(ref[0], ref[1])
 		check(_near(h, ref[2], 0.02), "Altura de referencia (%d,%d) = %.2f (obtenida %.3f)" % [ref[0], ref[1], ref[2], h])
 	check(_near(r.terrain_height_at(130, 100), 12.0 + (13.0 - 12.0) * 0.0, 3.0) and r.terrain_height_at(130, 100) > 8.0, "La meseta está a 8-15 m")
-	check(r.terrain_height_at(199, 240) > 2.5 and r.terrain_height_at(199, 240) < r.terrain_height_at(170, 240) and float(r.state.units[0].x) - float(r.map_data().barranca.toe[5][0]) < 10.0, "La costa inicial está al pie de la barranca: los grupos parten a pocos metros del pie, sobre la playa alta")
+	check(r.terrain_height_at(199, 240) > 2.3 and r.terrain_height_at(199, 240) < r.terrain_height_at(170, 240) and float(r.state.units[0].x) - float(r.map_data().barranca.toe[5][0]) < 10.0, "La costa inicial está al pie de la barranca: los grupos parten a pocos metros del pie, sobre la playa alta")
 	check(_near(r.water_depth_at(199, 240), r.water_level_m() - r.terrain_height_at(199, 240), 1e-9), "water_depth_at = nivel - altura")
 	# tipos de suelo con el río en 1,65 m
-	var kinds := {"meseta": [130, 100], "barranca": [175, 100], "bajada": [178, 190], "obstaculo": [250, 120], "casco": [580, 262], "firme": [199, 240], "barro": [206, 240], "somera": [215, 240], "agua": [245, 240], "honda": [415, 264]}
+	var kinds := {"meseta": [130, 100], "barranca": [175, 100], "bajada": [178, 190], "obstaculo": [229, 120], "casco": [580, 262], "firme": [199, 240], "barro": [206, 240], "somera": [215, 240], "agua": [242, 240], "honda": [415, 264]}
 	for k in kinds:
 		check(r.terrain_kind_at(kinds[k][0], kinds[k][1]) == k, "terrain_kind_at devuelve %s (obtenido %s)" % [k, r.terrain_kind_at(kinds[k][0], kinds[k][1])])
 	check(r.terrain_kind_at(-4, 10) == "obstaculo" and r.speed_at(-4, 10, "walk", true) == 0.0 and r.speed_at(901, 10, "walk", true) == 0.0, "Fuera del mapa no se transita")
 	# la bajada y el acceso a los hitos de la meseta son transitables; el resto de la meseta no
 	check(r.speed_at(178, 190, "trot", true) > 0.0 and r.speed_at(150, 180, "trot", true) > 0.0 and r.speed_at(148, 345, "trot", true) > 0.0, "Las bajadas y el acceso a la batería/puesto de Liniers son transitables")
 	check(r.speed_at(130, 100, "trot", true) == 0.0 and r.speed_at(175, 100, "trot", true) == 0.0, "El resto de la meseta y la barranca no se pisan")
-	check(not r.is_walkable(345, 264) and r.is_walkable(199, 240) and not r.is_walkable(250, 120), "is_walkable compatible con la firma vieja")
+	check(not r.is_walkable(345, 264) and r.is_walkable(199, 240) and not r.is_walkable(229, 120), "is_walkable compatible con la firma vieja")
 
 # ---------------------------------------------------------------------------
 # 2. Tabla de velocidades (contrato 1.3.3)
@@ -246,7 +246,7 @@ func _test_group_actions() -> void:
 	check(not bad.ok and "barranca" in str(bad.reason), "Mover a la meseta se rechaza con causa (barranca/bajadas)")
 	bad = r.issue_order("guemes", "move", Vector2(2000, 100))
 	check(not bad.ok and "fuera del mapa" in str(bad.reason), "Mover fuera del mapa se rechaza")
-	bad = r.issue_order("guemes", "move", Vector2(250, 120))
+	bad = r.issue_order("guemes", "move", Vector2(229, 120))
 	check(not bad.ok and "obstáculo" in str(bad.reason), "Mover sobre el cañaveral se rechaza")
 	bad = r.issue_order("guemes", "move", Vector2(345, 264))
 	check(not bad.ok, "Mover al centro del banco con el río alto se rechaza (fondo estimado)")
@@ -380,7 +380,7 @@ func _test_scout_and_global_actions() -> void:
 	var many: Array = [Vector2(250, 250), Vector2(260, 250), Vector2(270, 250), Vector2(280, 250)]
 	var m4: Dictionary = r.issue_scout("scout_1", "probe", many)
 	check(not m4.ok and "Máximo 3" in str(m4.reason), "Más de 3 puntos se rechaza")
-	check(not r.issue_scout("scout_1", "probe", [Vector2(-5, 10)]).ok and not r.issue_scout("scout_1", "probe", [Vector2(250, 120)]).ok, "Puntos fuera del mapa o sobre un obstáculo se rechazan")
+	check(not r.issue_scout("scout_1", "probe", [Vector2(-5, 10)]).ok and not r.issue_scout("scout_1", "probe", [Vector2(229, 120)]).ok, "Puntos fuera del mapa o sobre un obstáculo se rechazan")
 	var probes0: int = r.state.probes.size()
 	var pm0 := float(r.state.stats.probe_m)
 	check(r.issue_scout("scout_1", "probe", [Vector2(250, 246), Vector2(296, 246)]).ok, "Sondear acepta hasta 3 puntos")
@@ -681,7 +681,7 @@ func _test_package_data() -> void:
 				missing += 1
 	check(missing == 0 and ids.has("S13") and ids.has("S28") and "fijo de caballería" in str(ids.S2.kind).to_lower(), "history.json: todas las fuentes citadas existen (S13-S28) y S2 advierte del «Fijo de Caballería»")
 	var facts_txt := JSON.stringify(hist.scenarios.justine.facts).to_lower()
-	check("infantería de buenos aires" in facts_txt and "sin datos suficientes" in facts_txt and "40 a 60" in facts_txt and "no verificad" in facts_txt, "history.json: Güemes cadete de Infantería, presencia sin datos y «40 a 60 jinetes» no verificado")
+	check("infantería de buenos aires" in facts_txt and "sin datos suficientes" in facts_txt and not ("40 a 60" in facts_txt) and "sin cotejo" in facts_txt, "history.json: Güemes cadete de Infantería, presencia sin datos; la caballería de Pueyrredón es relato posterior sin cotejo y no muestra la cifra «40 a 60»")
 	var pue: Dictionary = {}
 	for fact in hist.scenarios.justine.facts:
 		if str(fact.title) == "La caballería de Pueyrredón":
@@ -985,7 +985,7 @@ func _test_labels_and_save_trim() -> void:
 	var note := str(m.time.note).to_lower()
 	check("siete u ocho pies" in note and "left dry" in note and "sí liga la bajada al viento" in note and not ("no atribuye la causa al viento" in note), "La nota del tiempo cita a Gillespie (pp. 35-36): sí liga la bajada al viento y habla de buque 'left dry'; el banco parcialmente inundado es diseño")
 	var camp := str(by_id.campamento_pueyrredon.source).to_lower() + " " + str(m.groups[2].note).to_lower()
-	check("concha" in camp and "archivo pueyrredón" in camp, "La caballería de Pueyrredón se atribuye a Concha y a Liniers (Archivo Pueyrredón)")
+	check("sin cotejo" in camp and "gillespie" in camp, "La caballería de Pueyrredón figura como relato posterior sin cotejo (no se cita a Concha ni a Liniers como verificados)")
 	check("s1-s8" in str(by_id.justina.source).to_lower(), "El hito deja constancia de que las fuentes divulgativas no están en la bibliografía S1-S8")
 	# tope de guardado en BYTES con texto acentuado, y recorte de ordenes y sondas
 	var path := "user://test-rules-trim.json"
@@ -1778,7 +1778,7 @@ func _test_not_stranded() -> void:
 	rescue.state.accumulator = 0.0
 	rescue.tick(0.25)
 	g = rescue.get_unit("guemes")
-	check(rescue.speed_at(float(g.x), float(g.z), "walk", true) > 0.0 and g.stage == "ready" and g.order.is_empty() and g.path.is_empty() and float(g.x) < 250.0, "Rescate: vuelve a la playa con estado limpio")
+	check(rescue.speed_at(float(g.x), float(g.z), "walk", true) > 0.0 and g.stage == "ready" and g.order.is_empty() and g.path.is_empty() and float(g.x) < 256.0, "Rescate: vuelve a la playa con estado limpio")
 	check(float(g.fatigue) >= 10.0, "El rescate suma +10 de fatiga")
 	var warned := false
 	for e in rescue.state.log:

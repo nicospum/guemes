@@ -172,6 +172,7 @@ static func _build_geo() -> void:
 		"crest": _vpoly(b.crest, true), "toe": _vpoly(b.toe, true), "crest_h": crest_h,
 		"base": _vpoly(m.bed_profile.points_x_elev), "layers": layers, "obstacles": obstacles,
 		"warp": _vpoly(m.get("bed_warp", {}).get("points_z_dx", [])), "warp_cfg": m.get("bed_warp", {}),
+		"tilt": _vpoly(m.get("bed_warp", {}).get("tilt_z_dx", [])),
 		"hull_c": Vector2(float(m.hull.center[0]), float(m.hull.center[1])), "hull_r": float(m.hull.radius_m),
 		"ramps": [], "access": []
 	}
@@ -380,7 +381,7 @@ func terrain_height_at(x: float, z: float) -> float:
 	var tx := _interp(g.toe, z)
 	if x < tx:
 		return lerpf(_interp(g.crest_h, z), float(m.barranca.toe_elevation_m), smoothstep(0.0, 1.0, (x - cx) / (tx - cx)))
-	var e := _interp(g.base, x - _bed_warp(x, z, tx))
+	var e := _interp(g.base, x - _bed_warp(x, z, tx) - _bed_tilt(x, z))
 	var p := Vector2(x, z)
 	for layer in g.layers:
 		if not layer.rect.has_point(p):
@@ -414,6 +415,15 @@ func _bed_warp(x: float, z: float, toe_x: float) -> float:
 	var fin := smoothstep(toe_x + float(c.fade_in_from_toe_m), toe_x + float(c.fade_in_from_toe_m) + float(c.fade_in_len_m), x)
 	var fout := 1.0 - smoothstep(float(c.fade_out_from_x), float(c.fade_out_to_x), x)
 	return _interp(w, z) * fin * fout
+
+## Inclinacion NO-SE de la costa (Ronda 4, data bed_warp.tilt_z_dx): corre todo el perfil de la playa en x segun z; el pie de la barranca ya viene
+## desplazado igual en el JSON (toe), asi que el terreno es continuo. Se desvanece mar adentro con el mismo fade_out que los meandros.
+func _bed_tilt(x: float, z: float) -> float:
+	var w: PackedVector2Array = _S_geo.get("tilt", PackedVector2Array())
+	if w.is_empty():
+		return 0.0
+	var c: Dictionary = _S_geo.warp_cfg
+	return _interp(w, z) * (1.0 - smoothstep(float(c.fade_out_from_x), float(c.fade_out_to_x), x))
 
 func _interp_crest(z: float) -> float:
 	return _interp(_S_geo.crest, z)
