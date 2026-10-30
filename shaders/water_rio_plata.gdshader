@@ -11,11 +11,11 @@ render_mode blend_mix, depth_draw_always, cull_disabled, shadows_disabled, specu
 uniform float water_level = 1.65;
 uniform float visible_depth_m = 0.3;
 // R6: los tres tonos vienen de palette.water.turbid_near/mid/far del JSON (world_view.gd los pasa); estos son solo valores por defecto.
-uniform vec3 near_color : source_color = vec3(0.541, 0.486, 0.361);   // turbid_near #8A7C5C
-uniform vec3 mid_color : source_color = vec3(0.475, 0.502, 0.416);   // turbid_mid #79806A
-uniform vec3 far_color : source_color = vec3(0.373, 0.451, 0.471);   // turbid_far #5F7378
-uniform vec3 sky_horizon : source_color = vec3(0.66, 0.66, 0.58);    // bruma cremosa de Vidal
-uniform vec3 sky_zenith : source_color = vec3(0.42, 0.50, 0.56);
+uniform vec3 near_color : source_color = vec3(0.62, 0.50, 0.30);   // turbid_near #8A7C5C
+uniform vec3 mid_color : source_color = vec3(0.50, 0.46, 0.27);   // turbid_mid #79806A
+uniform vec3 far_color : source_color = vec3(0.33, 0.37, 0.28);   // turbid_far #5F7378
+uniform vec3 sky_horizon : source_color = vec3(0.92, 0.82, 0.62);    // bruma cremosa de Vidal
+uniform vec3 sky_zenith : source_color = vec3(0.50, 0.58, 0.62);
 uniform vec3 sun_dir = vec3(0.42, 0.62, 0.66);
 uniform float wave_amp = 1.0;
 // Buque varado (ronda 2): pista de bajo bajo el casco (agua clara + espuma) y zona de incertidumbre de su ubicacion (120 m).
@@ -51,7 +51,7 @@ void fragment(){
 	float h0 = swell(p, t, lod);
 	float hx = swell(p + vec2(e, 0.0), t, lod);
 	float hz = swell(p + vec2(0.0, e), t, lod);
-	float k = 1.5 * wave_amp * lod;
+	float k = 2.8 * wave_amp * lod;
 	vec3 n_w = normalize(vec3(-(hx - h0) / e * k, 1.0, -(hz - h0) / e * k));
 	NORMAL = normalize((VIEW_MATRIX * vec4(n_w, 0.0)).xyz);
 
@@ -79,7 +79,7 @@ void fragment(){
 	body = mix(body, mix(algae, silt, smoothstep(0.28, 0.66, plume * 0.6 + plume2 * 0.5)), 0.22 * (1.0 - shallow * 0.6));
 	// Vetas de viento alargadas (lanes claros y oscuros paralelos al viento) que rompen la lamina plana.
 	float lane = j_noise(j_rot(p, -0.5) * vec2(0.012, 0.11) + vec2(0.0, t * 0.05));
-	body *= (0.94 + 0.12 * lane) * 0.66;
+	body *= (0.90 + 0.20 * lane) * 0.66;
 	// R4: variacion de gran escala (400-900 m, dos direcciones) sin direccion dominante: cuerpos de agua de distinto sedimento.
 	float big1 = j_fbm2(j_rot(p, 0.9) * 0.0016 + vec2(11.0, t * 0.0004));
 	float big2 = j_fbm2(j_rot(p, -0.4) * 0.0031 + vec2(3.0, 7.0));
@@ -89,8 +89,9 @@ void fragment(){
 	body = mix(body, body * vec3(1.10, 1.06, 0.92), (patch_n - 0.5) * 0.7);
 	// R6: crestas claras y senos oscuros (contraste de ola real) y manchas de viento (catspaws) que rompen la lamina.
 	float crest = smoothstep(0.50, 0.78, h0);
-	body *= 0.80 + 0.36 * h0;
-	body = mix(body, body * vec3(1.18, 1.18, 1.10), crest * 0.22 * lod);
+	float swl = j_noise(j_rot(p, 0.55) * 0.045 + vec2(t * 0.10, t * 0.04));   // ola larga: visible desde altura
+	body *= (0.62 + 0.80 * h0) * (0.82 + 0.40 * swl);
+	body = mix(body, body * vec3(1.35, 1.28, 1.05), crest * 0.35 * lod);
 	float gust = j_fbm2(j_rot(p, 0.3) * vec2(0.020, 0.052) + vec2(t * 0.012, 0.0));
 	body *= 0.93 + 0.14 * smoothstep(0.38, 0.70, gust);
 	// Estrias de espuma de rompiente lejos de la orilla (borreguitos, viento fresco): escasas y alargadas.
@@ -132,12 +133,23 @@ void fragment(){
 	float ring = (1.0 - smoothstep(0.0, 0.9, abs(ur - unc_radius))) * step(0.5, fract(atan(sd.y, sd.x) * 9.5493 + 0.5));
 	body = mix(body, vec3(0.80, 0.74, 0.55), ring * 0.14 * unc_strength);
 
+	// R-div1: tres bandas de profundidad legibles (somera arenosa / media limosa / canal verde oscuro) con borde suave.
+	float band_s = 1.0 - smoothstep(0.25, 0.75, est);
+	float band_d = smoothstep(1.7, 2.6, est);
+	body = mix(body, vec3(0.66, 0.55, 0.34), band_s * 0.40 * (1.0 - halo));
+	body = mix(body, vec3(0.22, 0.31, 0.24), band_d * 0.55);
+	// Frentes de ola: lineas claras que viajan hacia la costa (oeste), deformadas por ruido; dan escala y direccion al agua.
+	float wph = dot(p, vec2(0.62, 0.16)) * 0.55 + t * 0.55 + j_noise(p * 0.035) * 6.0;
+	float wf = abs(fract(wph * 0.159) - 0.5) * 2.0;                       // diente de sierra -> cresta fina
+	float wmask = smoothstep(0.52, 0.80, j_fbm2(j_rot(p, 0.8) * vec2(0.020, 0.045) + vec2(t * 0.01, 3.0)));  // solo en parches (rafagas)
+	float front = smoothstep(0.90, 0.99, wf) * wmask * (0.2 + 0.8 * lod) * (1.0 - band_s * 0.7);
+	body = mix(body, vec3(0.92, 0.88, 0.72), front * 0.22);
 	vec3 sky = mix(sky_horizon, sky_zenith, clamp(r.y * 1.6, 0.0, 1.0));
 	float sd_dot = max(dot(r, normalize(sun_dir)), 0.0);
-	float glint = pow(sd_dot, 60.0) * 0.03 + pow(sd_dot, 400.0) * 0.14 * (0.5 + h0);
+	float glint = pow(sd_dot, 40.0) * 0.10 + pow(sd_dot, 300.0) * 0.55 * (0.5 + h0);
 
-	ALBEDO = mix(mix(body, sky_horizon * 0.62, haze * 0.30), vec3(0.88, 0.86, 0.76), foam * 0.8);
-	EMISSION = sky * (fres * 0.040 + 0.0) * vec3(1.0, 0.96, 0.84) + vec3(1.0, 0.93, 0.8) * glint;
+	ALBEDO = mix(mix(body, sky_horizon * 0.80, haze * 0.40), vec3(0.88, 0.86, 0.76), foam * 0.8);
+	EMISSION = sky * (fres * 0.34 + 0.012) * vec3(1.0, 0.94, 0.80) + vec3(1.0, 0.90, 0.70) * glint;
 	METALLIC = 0.0;
 	ROUGHNESS = mix(0.22, 0.7, foam);
 	SPECULAR = 0.12;
