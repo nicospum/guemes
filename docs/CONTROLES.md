@@ -216,3 +216,13 @@ Este manual se contrastó con los controles y acciones de `scripts/main.gd` y `s
 - **Parte de derrota:** causa, una acción («Probá esto»), tres datos y «Reintentar (mismo mapa)» primero; «Mapa distinto» al lado. Diario, parte completo y fuentes quedan en «Más opciones». Victoria: medalla de esta vez, «Tu mejor medalla», desbloqueo del escenario 2 y un cierre de 2 s con la cámara sobre el buque.
 - **Sonido:** `select` (selección, suave) y `messenger` (llega el mensajero); se reutilizan los .wav existentes.
 - **Indicador de tiempo:** «TIEMPO REAL · ▶ ×1» o «‖ EN PAUSA» más marco ámbar en pausa (sin cambios de comportamiento).
+
+## Ronda 3 (ui_feel): reintento rápido y claridad
+
+- **Reintentar desde el cruce** (parte de derrota): vuelve al punto de control guardado poco antes de que ceda el vado, con el reconocimiento hecho. El juego lo guarda solo (`campaign.checkpoint_tick`). **Reintentar (mismo mapa)** empieza de cero con el mismo río.
+- **Cargar sin orden**: botón de riesgo (color ocre, al final de la fila) si falta el permiso de Liniers; pide confirmar con un segundo toque. Captura −20 % y sin oro.
+- **Punto sin retorno**: marca roja en la barra de tiempo. Pasada sin que nadie cargue aparece «Reintentar ya».
+- La botonera solo muestra lo que se puede usar ahora (más la acción recomendada); lo riesgoso (Retirar, Distraer con fuego, Cargar sin orden) va al final y en otro color. Una sola línea «AHORA ▸» dice qué hacer.
+- El tutorial marca al explorador con un aro dorado (ya no tapa la ficha de Güemes) y se oculta mientras hay una alerta de peligro.
+- Los rótulos de pozos y vados que no entran enteros en pantalla se ocultan en vez de verse cortados.
+- Cambios en `game_rules.gd`: ninguno.

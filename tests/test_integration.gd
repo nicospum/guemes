@@ -652,9 +652,9 @@ func _justina_r1_ui() -> void:
 	check(game.roster_buttons.size() == 5 and game.roster_panel.is_visible_in_tree(), "The five-group side panel is always visible")
 	for id in game.ALL_ACTORS:
 		var ct: String = game.roster_buttons[id].text
-		check(ct.find("Orden:") >= 0 and ct.find(game._short_name(id)) >= 0, "Card %s shows name and current order" % id)
+		check(ct.find(game._order_text(id)) >= 0 and ct.find(game._short_name(id)) >= 0 and ct.find("Orden:") < 0, "Card %s shows name and current order" % id)
 	for id in game.GROUP_IDS:
-		check(game.roster_buttons[id].text.find("%d %%" % int(game.rules.get_unit(id).strength)) >= 0 and game.roster_buttons[id].text.find("mun.") >= 0, "Card %s shows strength and ammunition" % id)
+		check(game.roster_buttons[id].text.find("%d %%" % int(game.rules.get_unit(id).strength)) >= 0 and game.roster_buttons[id].text.find("munición") >= 0, "Card %s shows strength and ammunition" % id)
 	game.roster_buttons["zavala"].pressed.emit()
 	check(game.sel_ids == ["zavala"], "Clicking a side card selects that group")
 	# Despliegue previo
@@ -719,7 +719,9 @@ func _justina_r1_ui() -> void:
 	var tut_prev: bool = bool(game.settings.tutorial)
 	game.settings.tutorial = false
 	game._update_hud()
-	check(game.reason_label.text.begins_with("SIGUIENTE"), "With nothing hovered and no tutorial the bar says the next step: " + game.reason_label.text)
+	check(game.reason_label.text.find("En gris") < 0 and game.reason_label.text.count("
+") == 0, "R3: la guia es una sola linea, sin la lista de acciones en gris")
+	check(game.reason_label.text.begins_with("AHORA"), "With nothing hovered and no tutorial the bar says the next step: " + game.reason_label.text)
 	check(game.reason_label.text.find("límite de 1 ") < 0 and game.reason_label.text.find("(tocá o pasá") < 0, "R5: the grey-reason note is not cut at the decimal: " + game.reason_label.text)
 	check(game._player_text("Texto. La variante con el banco expuesto es una decisión pendiente tuya.").find("pendiente") < 0, "R5: production notes are stripped from player text")
 	check(str(game._order_text("guemes")).length() > 0 and game._friendly_reason("board", "El fondo estimado en ese punto supera el límite de 1.3 m.").begins_with("El camino hasta el buque"), "R5: the board reason says to probe toward the ship first")

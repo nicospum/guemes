@@ -360,7 +360,7 @@ func _defeat_screen_checks() -> void:
 	check(int(game.rules.state.seed) != seed_a and game.progress.diario.is_empty(), "R1: «Río nuevo» cambia el rio y vacia el diario")
 	# Intento nuevo con diario: las marcas «anotado» se dibujan solo si falta confirmar
 	game.campaign.data.diary = [{"key": "pozo:pozo_central", "kind": "pozo", "text": "Pozo del banco central: te hizo tropezar 2 veces.", "x": 345.0, "z": 264.0, "n": 2}, {"key": "vado:vado_sur", "kind": "vado", "text": "Vado de la ribera (sur): reconocido.", "x": 305.0, "z": 403.0, "n": 1}]
-	game.campaign.data.attempts = 2
+	game.campaign.data.attempts = 3  # begin_attempt ya sumo el intento en curso: la tarjeta muestra "Intento 3"
 	game.campaign.data.defeats_in_row = 2
 	game.campaign.save_progress()
 	game._progress_sync()
@@ -387,6 +387,52 @@ func _defeat_screen_checks() -> void:
 	game.campaign.data.defeats_in_row = 2
 	game._reset_camera_j()
 	game._apply_camera()
+	# Ronda 3: «Reintentar desde el cruce», marca de punto sin retorno, «Cargar sin orden» y rotulos dentro de pantalla
+	game._start_game("justine")
+	game._close_modal()
+	game.paused = false
+	for sec in range(215):
+		game.rules.tick(1.0)
+	game.campaign.checkpoint_path = "user://qa_checkpoint.json"
+	check(game.campaign.checkpoint_tick(game.rules) and game.campaign.has_checkpoint(), "R3: el punto de control se guarda antes del vado")
+	var t_cp: float = float(game.rules.state.elapsed)
+	for sec in range(120):
+		game.rules.tick(1.0)
+	game._update_hud()
+	await _frames(2)
+	check(game._compute_alerts().any(func(x): return str(x.id) == "lost_cause") or float(game.rules.state.no_return_s) > float(game.rules.state.elapsed), "R3: pasado el punto sin retorno sin cargar aparece «Reintentar ya»")
+	game.sel_ids = ["guemes"]
+	game._refresh_actions()
+	game._update_action_states()
+	var own_b: Button = game.action_buttons.get("board_own")
+	check(own_b != null and own_b.visible and not own_b.disabled and own_b.text.find("Cargar sin orden") >= 0, "R3: «Cargar sin orden» se ofrece (con su costo) cuando falta el permiso de Liniers")
+	var hidden_grey := 0
+	for ak in game.action_buttons:
+		var ab2: Button = game.action_buttons[ak]
+		if ab2.visible and ab2.disabled and str(game._next_step().action) != ak:
+			hidden_grey += 1
+	check(hidden_grey == 0, "R3: las acciones no disponibles se ocultan en vez de mostrarse en gris (%d en gris)" % hidden_grey)
+	game.rules.state.status = "defeat"
+	game._outcome_dialog()
+	await _frames(4)
+	var cp_b: Button = _button("Reintentar desde el cruce")
+	check(cp_b != null and cp_b.is_visible_in_tree() and Rect2(Vector2.ZERO, root.get_visible_rect().size).encloses(cp_b.get_global_rect()), "R3: la derrota ofrece «Reintentar desde el cruce» sin scroll")
+	check(_modal_fits(), "R3: el parte con tres botones entra en pantalla")
+	await _shot("justina-derrota-cruce")
+	if cp_b != null:
+		var t1 := Time.get_ticks_msec()
+		cp_b.pressed.emit()
+		await _frames(2)
+		check(Time.get_ticks_msec() - t1 <= 3000 and game.rules.state.status == "playing" and absf(float(game.rules.state.elapsed) - t_cp) < 3.0 and not game.paused, "R3: «Desde el cruce» devuelve el mando en <= 3 s, en el tiempo guardado")
+	game.campaign.checkpoint_path = game.campaign.CHECKPOINT_PATH
+	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://qa_checkpoint.json"))
+	game.paused = true
+	game._update_hud()
+	await _frames(2)
+	await _shot("justina-despues-cruce")
+	game._start_game("justine")
+	game._close_modal()
+	await _frames(3)
 	# Una sola cosa por vez: los carteles menores no pisan a uno importante
 	game._toast("⚠ importante", 4.0, true, 2)
 	game._toast("menor", 2.0, true, 0)

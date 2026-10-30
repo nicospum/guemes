@@ -44,6 +44,16 @@ El objetivo es volver insostenible la invasión afectando abastecimiento, cohesi
 
 Las pruebas comprobaron dos estrategias ganadoras distintas, en rondas 10 y 11, y derrota por pasividad en la ronda 12. Una retirada anterior a mayo se identifica como desenlace alternativo. La duración humana objetivo de 20–35 minutos sigue sin validación con jugadores.
 
+## Cómo ganar en 3 minutos (Justina)
+
+1. Objetivo: tomar el buque Justina, varado en el río, antes de que suba la marea. Si perdés, volvés a jugar con el mismo río y con lo que anotaste.
+2. Elegí al explorador (tecla 4, aro dorado), apretá **Z** y hacé clic en el agua para medirla. Mientras el vado cede, abastecé munición (**J**).
+3. Cuando cede el vado: elegí un grupo (1 a 3), **K** para pedir carga a Liniers y **N** (o clic derecho en el buque) para cargar. Sin permiso existe «Cargar sin orden»: captura 20 % más lenta y sin oro.
+4. Rechazá los contraataques (**,**). Mirá la barra de tiempo: la marca roja «sin retorno» es el último momento para cargar.
+5. Si perdés: «Reintentar desde el cruce» te devuelve antes del vado en segundos, con lo ya sondeado; «Reintentar (mismo mapa)» empieza de cero.
+
+Resoluciones con QA de interfaz real (ventana): 1280x720, 1440x900, 1920x1080 y 2560x1440 (renderer Forward+, calidad media). Compatibility y calidad alta no se probaron en esta ronda.
+
 ## Controles principales
 
 | Acción | Control |
