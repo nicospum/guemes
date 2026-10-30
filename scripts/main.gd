@@ -3527,7 +3527,12 @@ func _briefing_dialog():
 Gillespie escribe que el buque quedó «en seco» (left dry) y que lo abordó la caballería. Este juego elige, por jugabilidad, un casco apoyado con agua alrededor, vados de poca profundidad y un río que baja y sube: es [color=#e8a98f]◇ diseño[/color], no testimonio. Gillespie también dice que ningún buque fondea con seguridad a menos de cuatro millas; los 390 m del juego son una distancia de diseño en tensión con eso. Que Güemes estuviera en la acción es [color=#e0bf81]tradición[/color] (por eso «Güemes (trad.)»).
 
 "
- text_f+=_player_text(str(rules.state.get("briefing",m.get("texts",{}).get("briefing",""))))+"\n\n[b]Cómo leer las etiquetas[/b]\n"
+ var jtx=m.get("texts",{})
+ text_f+=_player_text(str(rules.state.get("briefing",jtx.get("briefing",""))))+"\n\n"
+ if str(jtx.get("briefing_long",""))!="":text_f+="[b]En detalle[/b]\n"+_player_text(str(jtx.briefing_long))+"\n\n"
+ if str(jtx.get("tradition_context",""))!="":text_f+="[b]Sobre Güemes[/b]\n"+_player_text(str(jtx.tradition_context))+"\n\n"
+ if str(jtx.get("sources_detail",""))!="":text_f+="[b]Qué se tomó de dónde[/b]\n"+_player_text(str(jtx.sources_detail))+"\n\n"
+ text_f+="[b]Cómo leer las etiquetas[/b]\n"
  for t in ["documentado","tradicion","reconstruccion","diseno"]:
   var info=m.get("source_tags",{}).get(t,{})
   text_f+="[color=%s]%s %s[/color] — %s\n" % [str(info.get("color","#fff")),str(info.get("glyph","")),str(info.get("label","")),str(info.get("meaning",""))]
@@ -3583,6 +3588,10 @@ func _report_dialog(final:bool=false):
   var ht=str(hline.get("tag","diseno"))
   hist+="[color=%s]%s %s[/color]  %s\n" % [str(_tag_info(ht).get("color","#aab7b5")),_tag_glyph(ht),_tag_label(ht),str(hline.get("text",""))]
  _rich(content,hist,14).custom_minimum_size.x=860
+ if rules.state.scenario=="justine":
+  var jrt=_jmap().get("texts",{})
+  var contrast=str(jrt.get("result_contrast","")) if final else str(jrt.get("result_contrast_short",""))
+  if contrast!="":_rich(content,"[b]Gillespie y la tradición[/b]\n"+_player_text(contrast),14).custom_minimum_size.x=860
  var row=_hbox(box)
  if final:
   _button(row,"Volver a jugar",func():_start_game("justine"),44)
