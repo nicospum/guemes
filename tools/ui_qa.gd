@@ -28,6 +28,9 @@ func _initialize() -> void:
 				want_size = Vector2i(int(parts[0]), int(parts[1]))
 		elif arg == "--allow-clip":
 			allow_clip = true
+	# Instalacion nueva: los ajustes guardados por otras pruebas (p. ej. auto_pause=false) no deben contaminar la primera partida.
+	if FileAccess.file_exists("user://settings.cfg"):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path("user://settings.cfg"))
 	call_deferred("_run")
 
 func _frames(n: int) -> void:
