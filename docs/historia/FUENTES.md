@@ -104,3 +104,12 @@ Revisión del 30/10/2026 (paquete P1): **abiertos** AGN IX-11-5-1 e IX-26-7-7 (d
 Revisión del 30/10/2026 (Ronda 3): verificadas en el OCR local de Gillespie las pp. 38 (cuatro millas, playa seca), 94-95 (sargento y 17 hombres en el Retiro; buque «manned»; batía playa y calles) y 121 («el Retiro, o Plaza del Toros»). Estado de verificación: **cotejado con OCR, no con el escaneo**. Siguen **sin cotejar** Concha 15-ago y el oficio de Liniers (por cita), el parte de Liniers del 11-ago (segunda mano), la cifra de 1801 de la Plaza de Toros (paquete y Pillado), Ideario p. 33 y el temporal del 4-8 de agosto de las investigaciones `info/` del paquete (P1; no cotejado).
 
 Revisión del 30/10/2026 (Ronda 2): sigue abierto además el **escaneo** de Gillespie pp. 29, 35-36 y 94 (el cotejo es contra el OCR), la serie meteorológica y de nivel del Plata para el 12/8/1806 (sin ella, el viento concreto del día es incógnita aunque Gillespie ligue las bajantes a las brisas), un plano o croquis de la ribera del Retiro de 1806 que ubique el varado, y la nómina del grupo de jinetes. Los hitos del mapa sin fuente de ubicación (piezas de a 18, campamento, puesto de Liniers, camino sobre la barranca) se dibujan como **hipótesis** (trazo punteado y sufijo).
+
+## Ronda 6 (30-oct-2026): fuentes agregadas y estado
+
+| ID | Referencia | Estado de verificación |
+| --- | --- | --- |
+| S43 | Vidal, lámina "General view of Buenos Ayres, from the Plaza de Toros" (copia local `vidal_05_vista_general_plaza_de_toros.jpg`; ya dentro de S24). | Mirada en la copia local. Es de c. 1817-20; muestra la ciudad desde el circo, no el circo. Sin fecha exacta de dibujo. |
+| S44 | Gillespie 1818, p. 93: goleta del teniente Herrick "cerca de la playa" cañonea el campamento de Liniers (dentro de S9). | Cotejada con el OCR local (líneas ~3815-3835), no con el escaneo. Contexto naval previo, no del Retiro del 12. |
+
+Tabla de procedencia visual: `PROCEDENCIA_VISUAL.md`. Pendiente cotejar contra el escaneo (no el OCR) las páginas 93, 94 y 121 de Gillespie; el original de Obligado; AGN IX-11-5-1; TNA PC 1/3823; la fecha de inauguración del circo; Concha 15-ago.

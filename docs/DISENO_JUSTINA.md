@@ -472,3 +472,31 @@ El paquete propone 8-12 % con 83-150 m de desarrollo. La rampa de juego sigue en
 ### 16.5 Qué sigue abierto
 
 Playtest humano; banco expuesto (no está en esta versión); sustentar o descartar con fuente primaria la fecha de 1801 de la Plaza de Toros; cotejar Gillespie con el escaneo; Concha, oficio y parte de Liniers en original; el original de Obligado 1920; que `world_view` consuma las claves de `CONTRATO_JUSTINA.md` 10 (dos piezas, aspas, colocación de banderas, paleta, camino visual); que `main.gd` use `texts.briefing` corto y `texts.result_contrast` en la pantalla de resultado.
+
+## 17. Ronda 6 (30-oct-2026): rotulado, procedencia y balance reevaluado
+
+Pista «Mapa e historia», sexta pasada. Solo cambian datos y textos: la geometría y las reglas de balance **no** se tocaron, así que la matriz es la de la ronda 5 (se volvió a medir para confirmarlo).
+
+### 17.1 Área de 900 x 750 m: reevaluada, se mantiene la conciliación
+Se volvió a considerar jugar los 750 m completos. Se mantienen 900 x 520 m de reglas y 115 m de contexto por lado (z de -115 a 635). Razones de balance: los grupos parten a ~200 m de la barranca y las dos rutas ya recorren todo el ancho útil (la central por z 190-262 y la sur hasta z 406); más superficie no agrega decisiones, alarga el tiempo muerto del reconocimiento y cambia el ratio de exposición central/sur (objetivo >= 1,4) que sostiene la matriz. El contexto muestra ciudad alta, circo, barranca y ribera. La decisión es de diseño, no histórica; consta en `texts.map_decisions` (`area_reevaluada`) y `package_adoption`.
+
+### 17.2 Hallazgos de la ronda anterior corregidos en esta pista
+- Rotulado: los hitos de diseño llevan «(diseño)» **en el nombre** (no dependen de que la vista lea `marker_suffix`); el de tradición lo agrega el código. `label_policy.default_tag` = `diseno` (nunca `documentado` por omisión). Un test exige tag válido en hitos, rótulos extra y grupos.
+- «Camino de la barranca (diseño)» deja de llamarse Alameda (paquete C).
+- La reserva «de Pueyrredón» pasa a **tradición** (el nombre no está cotejado).
+- Gillespie p. 93: goleta de Herrick (`gillespie_context_p93`, hecho nuevo, S44). Contexto, no regla.
+- Nivel del río del HUD: `tide.hud_label` «Nivel de juego (diseño)».
+- Banco expuesto: sigue sin implementarse (quita el riesgo de ahogo); queda justificado en `map_decisions`.
+- Textos del jugador: se quitan «Ronda N», rutas de docs y «el paquete» de `history.json` y del parte final (`game_rules.gd`). `texts.fuentes_tab` indica qué texto mostrar una vez (se acaba la repetición del relato de Gillespie).
+- `package_adoption`: la paleta de caballos y jinetes figura como «datos listos, retinte pendiente» y no como hecho.
+- Procedencia del aspecto: `docs/historia/PROCEDENCIA_VISUAL.md` (Vidal, Boneo, Arrowsmith, Gillespie).
+
+### 17.3 Balance re-medido (14 semillas nuevas: 101,103,107,109,113,127,131,137,139,149,151,157,163,167; 18 estrategias, 252 corridas)
+Victorias: central_flank_pair 13/14, central_hasty 13/14, central_flank_lane 11, central_flank_noreply 10, south_full 11, south_noreply 11, mixed_split 7, central_flank_stagger 1; ciegas (rush, blind, center_lane, bare, wrong_crossing), pasiva y tardía: 0. Total 77; ninguna estrategia supera el 17 % (objetivo <= 60 %). Rutas: central 48, sur 22, mixta 7.
+- Duración: central 11,2-12,7 min (media 11,6-11,9), sur 14,0-15,2 min. El piso de 11 min del test se cumple; 12 min es objetivo blando.
+- Bajas en victoria: central 53-58 %, sur 41-52 %; central_flank_stagger (1 victoria, 85 % de bajas) es una línea marginal permitida (tope 92 %).
+- Las tres semillas donde la sur no gana (113, 131, 137) son las del río «breve» (sube desde 11:00): la sur pierde por plazo **por diseño** y solo las centrales rápidas llegan (la central_flank_pair solo pierde en la 137). No es un defecto del mapa sino la lectura de la barra de tiempo que el jugador debe hacer.
+- Cohorte de estrategias razonables: 50 % en calibración (48/96) y 50 % en validación (72/144).
+
+### 17.4 Lo que no se logra y por qué
+«Una partida humana razonable gana 40-60 %» **no se puede certificar**: las cifras son de guiones que conocen el mapa (las mejores líneas ganan ~93 % fuera de «breve»). Sin playtest humano no se declara cumplido. No se bajó el techo con más aleatoriedad porque cada cambio de geometría o de reglas obliga a re-medir toda la matriz y se prefirió no mover un balance que cumple todos los objetivos medibles. Pendiente: playtest con personas (>= 10 partidas) y, si el techo resulta alto, hacer que el sorteo por semilla también mueva el pozo central y el falso vado.

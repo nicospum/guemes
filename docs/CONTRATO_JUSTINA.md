@@ -581,3 +581,21 @@ Para `world_view.gd`, `main.gd` y `shaders/` (otras pistas; esta ronda no los to
 | `data/history.json`: fuentes `S41`, `S42`; `S9.pages`/`verification` corregidos; hecho «Qué se tomó del paquete…»; `pending_verification` reescrito | Para la pantalla de Fuentes | main |
 
 Sin cambio: `JUSTINE_SAVE_VERSION` (3), ids internos (`arias`, `zavala`, `bateria_abascal`), geometría de reglas. Formato: `justina_map.json` y `history.json` siguen con sangría de 2 espacios y LF.
+
+## 11. Claves nuevas y cambios (Ronda 6, 30-oct-2026, `map_version` 6 sin cambio)
+
+Para `world_view.gd`, `main.gd` y `shaders/` (otras pistas; esta ronda no los tocó). Aditivo salvo lo indicado. Los números de reglas **no** cambian.
+
+| Clave | Qué dice | Quién la lee |
+|---|---|---|
+| `label_policy` {default_tag `diseno`, suffix_in_name [`diseno`], suffix_added_by_code {tradicion}, suffix_none} | Política de rotulado. Si falta `tag`, usar `diseno` (no `documentado`). **No agregar** « (diseño)» a un nombre: ya lo trae. Solo la tradición recibe « (tradición)» del código | world_view (hoy usa `documentado` por omisión: cambiarlo) |
+| `landmarks[alameda].name` = «Camino de la barranca (diseño)»; `bateria_abascal.name` y `puesto_liniers.name` terminan en « (diseño)» | `marker_suffix` queda informativo | world_view |
+| `groups[zavala].tag` = `tradicion` | Rótulo de la reserva con la afirmación más débil | main/HUD |
+| `tide.hud_label` («Nivel de juego (diseño)»), `tide.hud_note` | Rotular así el nivel del río junto a la fecha en la cabecera | main |
+| `texts.fuentes_tab` {order[], omit[]} | La pestaña Fuentes muestra `briefing_long` una vez, sin `briefing` ni la advertencia fija; `texts.map_decisions.items[]` como lista con su tag | main |
+| `texts.map_decisions.items` + `area_reevaluada`, `banco_expuesto_variante`, `goleta_herrick` | Decisiones de diseño visibles | main |
+| `gillespie_context_p93` | Goleta de Herrick (contexto naval previo; reglas no la usan) | main (Fuentes) |
+| `package_adoption.items[paleta]`, `[area_reevaluada]` | La paleta de caballos y jinetes: datos listos, retinte pendiente | docs |
+| `ship.fire.cover_zone`, `palette.mounts/riders`, `palette.water.turbid_*`, `banners.*`, `barranca.ramps[].visual_path` | **Siguen sin lector** (R5); la vista los debe consumir o se quitan | world_view |
+| Cadena en `main.gd:2866` «Camino de la barranca (Alameda)» | Texto fijo en código: cambiar a «Camino de la barranca» | main |
+| `history.json`: fuentes S43, S44; hechos nuevos (Herrick, procedencia del aspecto) | Sin notas de ronda ni rutas de docs en textos visibles | main |
