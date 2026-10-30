@@ -1,6 +1,6 @@
 {
   "id": "justina",
-  "map_version": 6,
+  "map_version": 7,
   "title": "Justina · Retiro, 12 de agosto de 1806",
   "_leeme": "Unico origen de numeros del escenario Justina. Lo leen game_rules.gd (via map_data()) y, a traves de rules, world_view.gd y main.gd. Ningun otro archivo debe repetir estas cifras. Cada bloque lleva 'tag' (ver source_tags). Sentidos: +x = este (hacia el rio), -z = norte (+z = sur). Unidad = 1 m. Elevaciones en metros sobre el 'cero de bajante' (datum), + hacia arriba.",
   "units": {
@@ -981,7 +981,7 @@
   "landmarks": [
     {
       "id": "justina",
-      "name": "Buque Justina",
+      "name": "Buque Justina (ubicación hipotética)",
       "type": "ship",
       "x": 580.0,
       "z": 262.0,
@@ -1002,9 +1002,13 @@
         "fill_alpha": 0.08,
         "edge": "punteado",
         "color": "#D9B576",
-        "label": "Zona de incertidumbre del varado (≈ 120 m de radio)"
+        "label": "Zona de incertidumbre del varado (≈ 120 m de radio)",
+        "show_in_initial_view": true,
+        "label_short": "ubicación hipotética (±120 m)"
       },
-      "uncertainty_note": "Zona de reserva gráfica de diseño (el paquete usa 100-150 m): no es un intervalo estadístico. world_view puede dibujarla como mancha tenue."
+      "uncertainty_note": "Zona de reserva gráfica de diseño (el paquete usa 100-150 m): no es un intervalo estadístico. world_view puede dibujarla como mancha tenue.",
+      "location_confidence": "media-baja: solo divulgación (S3, S10, S11), no Gillespie; el LUGAR no está cartografiado como la Plaza de Toros (Boneo 1801, UWM 1808, Vidal)",
+      "marker_style": "hipotesis"
     },
     {
       "id": "bateria_abascal",
@@ -1198,7 +1202,23 @@
         "range_m": 420.0,
         "style": "contorno punteado muy tenue, solo con la capa de fuego activa o el buque seleccionado",
         "label": "Alcance de la artillería según Gillespie p. 94 (no simulado)",
-        "note": "Clave de CONTRATO visual (Ronda 5): world_view puede dibujar un segundo anillo, más tenue que el de 265 m, que indica hasta dónde 'batía' el buque según el testimonio (playa y calles). Las reglas NO lo usan: exposure_at() sigue limitado a range_m. 420 m = distancia del buque al pie de la barranca más ~30 m de playa alta; es una cifra de diseño."
+        "note": "Clave de CONTRATO visual (Ronda 5): world_view puede dibujar un segundo anillo, más tenue que el de 265 m, que indica hasta dónde 'batía' el buque según el testimonio (playa y calles). Las reglas NO lo usan: exposure_at() sigue limitado a range_m. 420 m = distancia del buque al pie de la barranca más ~30 m de playa alta; es una cifra de diseño.",
+        "rings": [
+          {
+            "id": "alcance_juego",
+            "range_m": 265.0,
+            "label": "Alcance del juego (diseño)",
+            "tag": "diseno",
+            "simulated": true
+          },
+          {
+            "id": "alcance_gillespie",
+            "range_m": 420.0,
+            "label": "Alcance según Gillespie (no simulado)",
+            "tag": "diseno",
+            "simulated": false
+          }
+        ]
       }
     },
     "crew": {
@@ -1350,7 +1370,12 @@
       "tag": "tradicion",
       "note": "La caballería que tomó el buque la nombra Gillespie (sin jefe); que fuera la de Pueyrredón es un relato posterior o tradición, sin cotejo del original (el paquete B/G2 dice «30, 50 o 60 jinetes: sin datos suficientes»). Rotulada con la afirmación más débil (tradición): el nombre de Pueyrredón no está cotejado. Cantidad, fuerza y composición: diseño. Identificador interno 'zavala' heredado, no se muestra.",
       "kit": "jinetes_pueyrredon",
-      "public_id": "reserva_pueyrredon"
+      "public_id": "reserva_pueyrredon",
+      "tag_parts": {
+        "vinculo_con_pueyrredon": "tradicion",
+        "existencia_de_caballeria_de_reserva": "reconstruccion",
+        "cantidad_y_ubicacion": "diseno"
+      }
     }
   ],
   "scouts": [
@@ -1472,7 +1497,7 @@
       "ship_morale_loss": 3.0,
       "volley_interval_add_s": 2.0,
       "requires_ammo": true,
-      "effect": "Cubre a exploradores y columnas pero gasta pólvora que no vuelve. La batería Abascal y tiradores de la barranca atraen el fuego del buque: durante 45 s la exposición baja a la mitad."
+      "effect": "Cubre a exploradores y columnas pero gasta pólvora que no vuelve. Las dos piezas de a 18 del Retiro (diseño) y los tiradores de la barranca atraen el fuego del buque: durante 45 s la exposición baja a la mitad."
     },
     "resupply": {
       "label": "Abastecer munición",
@@ -1652,7 +1677,8 @@
         "briefing"
       ],
       "note": "R6: la pestaña Fuentes muestra briefing_long UNA vez y no repite 'briefing' ni la advertencia fija; map_decisions.items[] se muestra como lista (tag por ítem)."
-    }
+    },
+    "boarding_not_described": "Las fuentes no describen un combate de abordaje: Gillespie fecha la toma «al cerrar el 12», con el buque en seco. La dotación disputando la cubierta es diseño."
   },
   "camera": {
     "initial_height_m": 90.0,
@@ -1667,7 +1693,20 @@
       235,
       265
     ],
-    "note": "El zoom inicial NO debe mostrar todo el mapa (síntesis P0 #3). Velocidad de paneo proporcional a la distancia."
+    "note": "El zoom inicial NO debe mostrar todo el mapa (síntesis P0 #3). Velocidad de paneo proporcional a la distancia.",
+    "initial_framing": {
+      "tag": "diseno",
+      "focus": [
+        330,
+        265
+      ],
+      "height_m": 380,
+      "note": "Encuadre propuesto para que orilla, barranca y buque entren juntos y los anillos no queden bajo el panel izquierdo. Lo consume main/world_view (otra pista); focus_start sigue siendo el valor actual.",
+      "must_include": [
+        "justina",
+        "alcance_gillespie"
+      ]
+    }
   },
   "minimap": {
     "default_size_px": [
@@ -1779,6 +1818,35 @@
         15.2
       ],
       "note": "Medido sin cambios de geometría ni reglas. La sur pierde en las semillas con río «breve» (113, 131, 137) por diseño. 40-60 % para una persona: sin playtest, no certificado."
+    },
+    "family_share_r7": {
+      "tag": "diseno",
+      "measured": "2026-10-30",
+      "seeds": [
+        101,
+        103,
+        107,
+        109,
+        113,
+        127,
+        131,
+        137,
+        139,
+        149,
+        151,
+        157,
+        163,
+        167
+      ],
+      "wins": 77,
+      "games": 252,
+      "central_family_wins": 48,
+      "south_family_wins": 22,
+      "mixed_wins": 7,
+      "central_family_share": 0.62,
+      "max_single_strategy_share": 0.17,
+      "experiment": "Ronda 7: daño del buque +5 % (8,46-12,80): la familia central baja a 59,7 % de las victorias (43/72) pero la victoria más cara de las líneas confiables llega a 78 % de bajas (tope 75 %, test_rules falla): pírrico. Se revierte.",
+      "decision": "El tope 0,6 de dominance rige POR ESTRATEGIA (cumple: máx. 17 %). La cuota de la familia central (62 %) se informa y se acepta: bajarla exige victorias más caras, lo que contradice «no pírricas». Se re-justifica; la salida real es el playtest humano y el modo banco expuesto (deudas en package_adoption.debts)."
     }
   },
   "reference_images": [
@@ -1943,7 +2011,7 @@
       },
       {
         "id": "orden_liniers_obligado",
-        "label": "Mensajero de Liniers por la Alameda (versión de Obligado)",
+        "label": "Mensajero de Liniers (versión de Obligado, tradición)",
         "tag": "tradicion",
         "kind": "relato",
         "color": "#D9B576",
@@ -1961,7 +2029,7 @@
             292
           ]
         ],
-        "note": "Obligado 1920 (secundaria): Güemes lleva la orden a Pueyrredón. Trazo ilustrativo; el lugar de Liniers y del campamento son hipótesis."
+        "note": "Obligado 1920 (secundaria): Güemes lleva la orden a Pueyrredón. Trazo ilustrativo; el lugar de Liniers y del campamento son hipótesis. La «Alameda» solo aparece como cita de Obligado: el trazo corre por el camino de la barranca (diseño)."
       }
     ]
   },
@@ -2035,7 +2103,7 @@
     "tag": "documentado",
     "note": "Gillespie p. 29: el Justinia es un mercante de 26 cañones 'de Messrs. Princeps y Saunders, de Londres'; p. 94: era un buque comercial que se había acercado a la ciudad 'para comerciar' (traffic) antes de ser aligerado y tripulado con oficiales y cien marineros de la escuadra. (Gillespie dice 'manned', tripulado; el armamento de 26 cañones ya existía.)",
     "owners": "Princeps y Saunders, de Londres",
-    "reason_in_river": "se había acercado a la ciudad para comerciar"
+    "reason_in_river": "Relato de Gillespie, p. 94: buque comercial acercado a la ciudad; su relación con p. 28-29 (mercante desviado desde Santa Elena con 180 hombres embarcados «en busca de mejor mercado») queda sin resolver. «Para comerciar» es nuestra lectura de «traffic», no un dato."
   },
   "historical_figures_roles": {
     "tag": "diseno",
@@ -2762,7 +2830,7 @@
       "zavala": {
         "label": "Reserva de caballería de Pueyrredón",
         "short_label": "Reserva",
-        "tag": "reconstruccion",
+        "tag": "tradicion",
         "headcount_hint": 10,
         "mounted": true,
         "composition": [
@@ -2778,7 +2846,11 @@
           }
         ],
         "kit_ref": "jinetes_pueyrredon",
-        "public_id": "reserva_pueyrredon"
+        "public_id": "reserva_pueyrredon",
+        "tag_parts": {
+          "vinculo_con_pueyrredon": "tradicion",
+          "cantidad": "diseno"
+        }
       }
     },
     "opposing": {
@@ -3235,21 +3307,23 @@
         "id": "jun_1806",
         "date": "junio de 1806",
         "text": "Desembarco y avance británico desde el sur: contexto del croquis asociado a Donnelly. No pertenece a este nivel.",
-        "tag": "documentado",
+        "tag": "reconstruccion",
         "in_game": false,
         "source_ids": [
           "P1"
-        ]
+        ],
+        "verification": "dato_paquete_sin_cotejo"
       },
       {
         "id": "10_ago",
         "date": "10 de agosto de 1806",
-        "text": "Las fuerzas de la Reconquista toman el Retiro: Gillespie cuenta un sargento y 17 soldados británicos apostados allí (pp. 94-95).",
-        "tag": "documentado",
+        "text": "Gillespie (pp. 94-95) cuenta que Liniers avanzó contra un sargento y 17 soldados británicos apostados cerca del Retiro y que estos cayeron; el texto no dice que el Retiro quedara «tomado» ese día (lectura nuestra, sin cotejo con el escaneo).",
+        "tag": "reconstruccion",
         "in_game": true,
         "source_ids": [
           "S9"
-        ]
+        ],
+        "verification": "lectura_gillespie"
       },
       {
         "id": "11_ago",
@@ -3259,7 +3333,8 @@
         "in_game": true,
         "source_ids": [
           "S13"
-        ]
+        ],
+        "verification": "segunda_mano"
       },
       {
         "id": "noche_11",
@@ -3269,7 +3344,8 @@
         "in_game": true,
         "source_ids": [
           "S9"
-        ]
+        ],
+        "verification": "lectura_ocr_gillespie"
       },
       {
         "id": "12_ago",
@@ -3279,38 +3355,42 @@
         "in_game": true,
         "source_ids": [
           "S9"
-        ]
+        ],
+        "verification": "lectura_ocr_gillespie"
       },
       {
         "id": "23_ago",
         "date": "23 de agosto de 1806",
         "text": "Acta del Cabildo sobre trofeos (guion del 71.º). No se sitúa en el abordaje.",
-        "tag": "documentado",
+        "tag": "reconstruccion",
         "in_game": false,
         "source_ids": [
           "S19",
           "S20"
-        ]
+        ],
+        "verification": "dato_paquete_sin_cotejo"
       },
       {
         "id": "21_sep",
         "date": "21 de septiembre de 1806",
         "text": "Bendición del estandarte de Húsares: posterior a la acción, no se anticipa.",
-        "tag": "documentado",
+        "tag": "reconstruccion",
         "in_game": false,
         "source_ids": [
           "P1"
-        ]
+        ],
+        "verification": "dato_paquete_sin_cotejo"
       },
       {
         "id": "1807",
         "date": "1807",
         "text": "Segunda invasión y obras nuevas (herrería del circo, fortificación de septiembre): excluidas del nivel.",
-        "tag": "documentado",
+        "tag": "reconstruccion",
         "in_game": false,
         "source_ids": [
           "P1"
-        ]
+        ],
+        "verification": "dato_paquete_sin_cotejo"
       },
       {
         "id": "15_ago",
@@ -3330,9 +3410,16 @@
         "in_game": false,
         "source_ids": [
           "S9"
-        ]
+        ],
+        "verification": "lectura_ocr_gillespie"
       }
-    ]
+    ],
+    "verification_legend": {
+      "lectura_gillespie": "Leído por el repo en el OCR de Gillespie; interpretación nuestra.",
+      "lectura_ocr_gillespie": "Leído en el OCR de Gillespie; falta cotejar con el escaneo.",
+      "dato_paquete_sin_cotejo": "Dato del paquete Justina_Retiro_1806 (P1) sin cotejo propio; no es «documentado» en este repo.",
+      "segunda_mano": "Parte reproducido en una compilación posterior."
+    }
   },
   "uncertainty_labels": {
     "tag": "diseno",
@@ -3491,7 +3578,36 @@
         "state": "adaptado",
         "reason": "reevaluado: se mantiene por balance"
       }
-    ]
+    ],
+    "debts": {
+      "tag": "diseno",
+      "items": [
+        {
+          "id": "banco_expuesto",
+          "date": "2026-10-30",
+          "text": "Se sacrificó fidelidad al testimonio (buque «en seco», Gillespie pp. 35-36) por una matriz de 18 estrategias. Prioridad: modo alternativo «banco expuesto» (agua del corredor 0-0,6 m), con su propia matriz.",
+          "state": "pendiente"
+        },
+        {
+          "id": "playtest_humano",
+          "date": "2026-10-30",
+          "text": "El 40-60 % de chance es la tasa de guiones que conocen el mapa; sin playtest humano no es un logro certificable.",
+          "state": "pendiente"
+        },
+        {
+          "id": "bajada_oblicua",
+          "date": "2026-10-30",
+          "text": "Bajada de 8-12 % y 83-150 m del paquete: solo visual (visual_path).",
+          "state": "pendiente"
+        },
+        {
+          "id": "cotejo_escaneo",
+          "date": "2026-10-30",
+          "text": "Cotejar pp. 93, 94, 121 de Gillespie con el escaneo antes de un release.",
+          "state": "pendiente"
+        }
+      ]
+    }
   },
   "label_policy": {
     "tag": "diseno",
@@ -3512,7 +3628,20 @@
     "tag": "documentado",
     "page": "p. 93",
     "quote_short": "a small schooner, under Lieutenant Herrick",
-    "note": "Gillespie p. 93 (OCR): antes del 12, una goleta británica al mando del teniente Herrick, 'cerca de la playa', cañoneó el campamento de Liniers y lo obligó a mudarlo. Es la única mención de época de fuego naval británico contra ese campamento; es de los días 6-9 de agosto y de otra costa que la del Retiro. Se usa solo como contexto de la presión naval sobre la playa; NO sitúa las piezas de a 18 (que vienen del parte de Liniers del 11, segunda mano) ni prueba que la goleta Dolores fuera la contraparte.",
-    "used_in_rules": false
+    "note": "Gillespie p. 93 (OCR, sin cotejar con el escaneo): una goleta británica al mando del teniente Herrick, «riding close to the beach», cañoneó el campamento de Liniers y lo obligó a mudarlo. El texto NO nombra el lugar: probablemente no es el Retiro (inferencia nuestra). Las fechas del pasaje son las lluvias del 4 al 8 y la reunión del ejército de Pueyrredón hasta el 9; el '6 de agosto' que figuraba antes era inferencia y se retira. Se usa solo como contexto de la presión naval sobre la playa; NO sitúa las piezas de a 18 ni prueba que la goleta Dolores fuera la contraparte.",
+    "used_in_rules": false,
+    "inference_tag": "reconstruccion",
+    "place_known": false
+  },
+  "ui_policy": {
+    "tag": "diseno",
+    "unit_glyph": "tomar glifo y color de source_tags[group.tag]; no usar tabla fija por id",
+    "legend_glyphs": {
+      "documentado": "●",
+      "tradicion": "◆",
+      "reconstruccion": "◇",
+      "diseno": "▲"
+    },
+    "visible_names": "ids internos arias/zavala/bateria_abascal no se muestran; usar groups[].label y landmarks[].name"
   }
 }

@@ -102,7 +102,7 @@
         },
         {
           "title": "El buque Justina: casco, cañones y dotación",
-          "text": "Mercante armado británico de 26 cañones (Gillespie, p. 28), de Messrs. Princeps y Saunders, de Londres (p. 29); se había acercado a la ciudad para comerciar (Gillespie, p. 94) y luego fue aligerado y tripulado con oficiales (Gillespie dice 'manned', no 'armed': el armamento de 26 cañones ya existía) y cien marineros de la escuadra además de su dotación propia. No es una fragata regular de la Royal Navy ni un 'HMS'. Los 26 cañones son en total (no por banda; el reparto 13/13 es diseño); los 180 hombres de Santa Elena (Gillespie pp. 28-29: se ordenó embarcarlos en el Justinia) probablemente son de otra fase: Gillespie no dice cuándo desembarcaron y esa lectura es una Reconstrucción (inferencia razonada), por eso no se pueblan la cubierta con ellos. El casco del juego mide 40 x 9 m, de diseño por comparables de catálogo (RMG SLR0583, LNG0016, MSA0204); no hay plano del Justina ni se conoce su calado. El daño en la mesana es hipótesis (un parte de Liniers menciona una mesana dañada en una fragata sin nombre); que un cañonazo derribara el palo entero es tradición discutida. El nombre es Justina; Gillespie escribe 'Justinia' y la conmemoración actual, 'Justine'. Una pista bibliográfica (Schlez) da un capitán Robert Morris y un sobrecargo William Dunn: no se verificó y el juego no usa esos nombres.",
+          "text": "Mercante armado británico de 26 cañones (Gillespie, p. 28), de Messrs. Princeps y Saunders, de Londres (p. 29); era un buque comercial acercado a la ciudad (Gillespie, p. 94; «para comerciar» es nuestra lectura de «traffic», y su relación con la llegada desde Santa Elena de pp. 28-29 queda sin resolver) y luego fue aligerado y tripulado con oficiales (Gillespie dice 'manned', no 'armed': el armamento de 26 cañones ya existía) y cien marineros de la escuadra además de su dotación propia. No es una fragata regular de la Royal Navy ni un 'HMS'. Los 26 cañones son en total (no por banda; el reparto 13/13 es diseño); los 180 hombres de Santa Elena (Gillespie pp. 28-29: se ordenó embarcarlos en el Justinia) probablemente son de otra fase: Gillespie no dice cuándo desembarcaron y esa lectura es una Reconstrucción (inferencia razonada), por eso no se pueblan la cubierta con ellos. El casco del juego mide 40 x 9 m, de diseño por comparables de catálogo (RMG SLR0583, LNG0016, MSA0204); no hay plano del Justina ni se conoce su calado. El daño en la mesana es hipótesis (un parte de Liniers menciona una mesana dañada en una fragata sin nombre); que un cañonazo derribara el palo entero es tradición discutida. El nombre es Justina; Gillespie escribe 'Justinia' y la conmemoración actual, 'Justine'. Una pista bibliográfica (Schlez) da un capitán Robert Morris y un sobrecargo William Dunn: no se verificó y el juego no usa esos nombres.",
           "kind": "documentado en transcripción (26 cañones, armadores, motivo comercial, refuerzo de marineros: Gillespie); reconstrucción (daño de mesana); diseño (casco 40 x 9 m, calado, reparto 13/13, capitán)",
           "source_ids": [
             "S9",
@@ -162,7 +162,7 @@
         },
         {
           "title": "La goleta de Herrick (contexto naval previo)",
-          "text": "Gillespie (p. 93) cuenta que, antes del 12, una goleta británica al mando del teniente Herrick, 'cerca de la playa', cañoneó el campamento de Liniers y lo obligó a mudarlo. Es la única mención de época de fuego naval británico contra ese campamento. Sirve de contexto de la presión sobre la playa y de las piezas de a 18 (Liniers, 11 de agosto, segunda mano); no las ubica ni identifica a su contraparte, y es de otros días y otra costa que el Retiro del 12.",
+          "text": "Gillespie (p. 93) cuenta que, antes del 12, una goleta británica al mando del teniente Herrick, 'cerca de la playa', cañoneó el campamento de Liniers y lo obligó a mudarlo. Es la única mención de época de fuego naval británico contra ese campamento. Sirve de contexto de la presión sobre la playa y de las piezas de a 18 (Liniers, 11 de agosto, segunda mano); no las ubica ni identifica a su contraparte, y el texto no nombra el lugar: probablemente no es el Retiro (inferencia nuestra, sin fecha precisa en el pasaje).",
           "kind": "testimonio de época (contexto)",
           "source_ids": [
             "S9"
@@ -555,6 +555,13 @@
       "url": "docs/referencias/justina/gillespie_1818_gleanings_and_remarks_djvu.txt",
       "kind": "testimonio retrospectivo de un participante británico (contexto naval previo)",
       "verification": "cotejado con el OCR local, no con el escaneo"
+    },
+    {
+      "id": "S45",
+      "title": "Paquete Justina_Retiro_1806 (30-oct-2026): informe A-K, tres investigaciones (info/*.md), láminas 01-04 y georef experimental",
+      "url": "paquete local del usuario (no se redistribuye)",
+      "kind": "informe de investigación del usuario; punto de partida, no fuente primaria",
+      "verification": "usado para área jugable, perfil de ribera, paleta y fichas; hitos de cronología con solo P1 quedan «dato del paquete, sin cotejo» (tag reconstruccion). El georef (residuo ~17 m) NO fija el encallamiento."
     }
   ],
   "justina_package": {

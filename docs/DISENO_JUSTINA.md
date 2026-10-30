@@ -500,3 +500,31 @@ Victorias: central_flank_pair 13/14, central_hasty 13/14, central_flank_lane 11,
 
 ### 17.4 Lo que no se logra y por qué
 «Una partida humana razonable gana 40-60 %» **no se puede certificar**: las cifras son de guiones que conocen el mapa (las mejores líneas ganan ~93 % fuera de «breve»). Sin playtest humano no se declara cumplido. No se bajó el techo con más aleatoriedad porque cada cambio de geometría o de reglas obliga a re-medir toda la matriz y se prefirió no mover un balance que cumple todos los objetivos medibles. Pendiente: playtest con personas (>= 10 partidas) y, si el techo resulta alto, hacer que el sorteo por semilla también mueva el pozo central y el falso vado.
+
+## 18. Ronda 7 (30-oct-2026): hallazgos de etiquetado, ubicación del buque y balance re-justificado
+
+`map_version` pasa a 7 (solo datos y textos; las reglas no cambian de número).
+
+### 18.1 Área de 900 x 750 m
+Se mantiene la conciliación (900 x 520 jugables + 115 m de contexto por lado = 750 m). Razón: la matriz de 18 estrategias está calibrada sobre esa geometría; ampliar al norte/sur con la ciudad alta añade terreno sin objetivos y alarga el cruce sin cambiar el abordaje. **Deuda con fecha (30-oct-2026)**, en `package_adoption.debts`: la fidelidad al testimonio (buque «en seco», Gillespie pp. 35-36; agua del corredor 0-0,6 m; bajada de 8-12 % y 83-150 m) se sacrificó por el balance. Prioridad siguiente: modo alternativo «banco expuesto» con su propia matriz.
+
+### 18.2 Hallazgos corregidos
+- Reserva de Pueyrredón: `tag` unificado a `tradicion` en `groups` y `forces` (vínculo = tradición, existencia = reconstrucción, cantidad = diseño, en `tag_parts`).
+- Ruta «Mensajero de Liniers»: ya no dice «por la Alameda»; la cita de Obligado se rotula «versión de Obligado, tradición».
+- «Distraer con fuego»: texto visible «las dos piezas de a 18 del Retiro (diseño)»; mensajes de reglas «Las piezas del Retiro todavía recargan». Cero apariciones visibles de «Abascal»/«batería».
+- Goleta de Herrick (p. 93): el lugar no consta («probablemente no es el Retiro», inferencia); se retira el «6 de agosto».
+- Cronología: `10_ago` pasa a «lectura de Gillespie» (tag reconstrucción); los hitos con solo P1 (jun-1806, 23-ago, 21-sep, 1807) quedan en reconstrucción con `verification: dato_paquete_sin_cotejo`. `documentado` solo para lo leído en OCR/transcripción, con su `verification`.
+- `owners_and_trade.reason_in_river`: «para comerciar» es nuestra lectura de «traffic»; relación con pp. 28-29 sin resolver.
+- Buque: nombre «Buque Justina (ubicación hipotética)»; `uncertainty_style.show_in_initial_view`; `location_confidence` (el lugar viene de divulgación S3/S10/S11, no de Gillespie ni de un plano, a diferencia de la Plaza de Toros).
+- Anillos de fuego rotulados: «Alcance del juego (diseño)» (265 m, simulado) y «Alcance según Gillespie (no simulado)» (420 m). `camera.initial_framing` propone un encuadre que no los tape.
+- `texts.boarding_not_described`: las fuentes no describen un combate de abordaje; la dotación disputando la cubierta es diseño. Gillespie fecha la toma «al cerrar el 12».
+
+### 18.3 Balance (APPDATA aislado)
+- `test_rules`: 547 comprobaciones previas; ahora con 4 más sobre etiquetas; 0 fallos con los números originales.
+- Matriz 18 x 14 semillas nuevas (101...167): 77/252 victorias; ciegas y pasiva 0/14; central_flank_pair 13/14, central_hasty 13/14, lane 11/14, south_full 11/14 (14,3 min), south_noreply 11/14; victorias en 11,2-12,7 min por la central y 14-15 min por el sur.
+- **Experimento**: daño del buque +5 % (8,46-12,80). La familia central baja de 62 % a 59,7 % de las victorias, pero la victoria más cara de las líneas confiables llega a 78 % de bajas (tope 75 %): test_rules falla. Se revierte. Entre cuota de familia y victorias no pírricas se prioriza no pírricas.
+- Re-justificación: el tope 0,6 de `play_targets.dominance` rige por estrategia (máx. 17 %, cumple). La cuota de familia (62 %) se informa en `play_targets.family_share_r7`.
+- El 40-60 % es de guiones que conocen el mapa; sin playtest humano no es un logro certificable.
+
+### 18.4 Pendientes
+Playtest humano; modo banco expuesto; bajada oblicua larga; cotejar Gillespie pp. 93, 94, 121 con el escaneo; Concha 15-ago, oficio y parte de Liniers del 11-ago en original; Obligado 1920; fuente primaria de 1801.

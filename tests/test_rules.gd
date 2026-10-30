@@ -1065,6 +1065,22 @@ func _test_labels_and_save_trim() -> void:
 		all_tags_ok = all_tags_ok and g.has("tag") and m.source_tags.has(str(g.tag))
 	check(all_tags_ok and str(m.label_policy.default_tag) == "diseno", "Todo hito, rótulo extra y grupo lleva una etiqueta de fuente válida; el valor por defecto es 'diseno'")
 	check(suffix_ok and not ("Alameda" in str(by_id.alameda.name)), "Los hitos de diseño llevan '(diseño)' en el nombre y el camino de la barranca no se llama 'Alameda'")
+	# Ronda 7: coherencia de etiquetas y de textos visibles
+	var zv := {}
+	for g7 in m.groups:
+		if str(g7.id) == "zavala":
+			zv = g7
+	check(str(zv.tag) == str(m.forces.groups.zavala.tag) and str(zv.tag) == "tradicion", "La Reserva de Pueyrredón lleva la misma etiqueta (tradición) en groups y en forces")
+	check(not ("Abascal" in str(m.actions.distract_fire.effect)) and not ("batería" in str(m.actions.distract_fire.effect).to_lower()), "El texto visible de 'Distraer con fuego' no nombra la batería Abascal")
+	var ok_ms := true
+	for it7 in m.milestones.items:
+		if str(it7.tag) == "documentado":
+			ok_ms = ok_ms and str(it7.get("verification", "")) in ["", "lectura_ocr_gillespie", "segunda_mano"]
+		else:
+			ok_ms = ok_ms and true
+	check(ok_ms and str(m.milestones.items[1].get("verification", "")) == "lectura_gillespie" and str(m.milestones.items[1].tag) != "documentado", "La cronología reserva 'documentado' a lo verificado; 10-ago es lectura de Gillespie")
+	var ring_ok: bool = m.ship.fire.cover_zone.has("rings") and m.ship.fire.cover_zone.rings.size() == 2 and bool(m.landmarks[0].has("name"))
+	check(ring_ok and str(by_id.justina.name).find("hipotética") >= 0 and m.has("ui_policy") and m.camera.has("initial_framing"), "Buque rotulado como ubicación hipotética, dos anillos rotulados, política de glifos y encuadre inicial")
 	var grp := {}
 	for g in m.groups:
 		grp[str(g.id)] = g
