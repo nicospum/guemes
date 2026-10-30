@@ -901,7 +901,7 @@ func _open_modal(title:String,width=800,height=600)->VBoxContainer:
  width=minf(float(width),vs.x-16.0);height=minf(float(height),vs.y-16.0)
  modal_paused=paused;paused=true
  modal=Control.new();modal.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);ui.add_child(modal)
- var shade=ColorRect.new();shade.color=Color(0.015,0.03,0.035,0.82);shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);modal.add_child(shade)
+ var shade=ColorRect.new();shade.color=Color(0.015,0.03,0.035,0.94);shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);modal.add_child(shade)
  var panel=_panel(modal,Vector2.ZERO,Vector2(width,height),Color("101f25"),Color("887750"))
  _anchor(panel,0.5,0.5,0.5,0.5,-width/2.0,-height/2.0,width/2.0,height/2.0)
  var box=_vbox(panel,14)
@@ -2463,14 +2463,14 @@ func _draw_map_widget():
  w.draw_circle(sp,5.0,Color("e9e3d4"));w.draw_arc(sp,7.5,0,TAU,20,Color(0.03,0.06,0.07),1.6)
  w.draw_string(font,sp+Vector2(-16,-11),"Buque",HORIZONTAL_ALIGNMENT_LEFT,-1,11,Color("f4efe0"))
  # leyenda del minimapa
- var lg=[[Color("5e5a45"),"barranca"],[Color("c8b88a"),"orilla"],[Color("4a5d63"),"agua"],[Color("6fb8a6"),"fondo conocido"],[Color("e8a0a0"),"incierto"]]
+ var lg=[[Color("5e5a45"),"barranca"],[Color("c8b88a"),"orilla"],[Color("4a5d63"),"agua"],[Color("6fb8a6"),"sondeado"],[Color("e8a0a0"),"dudoso"]]
  var lx=6.0;var ly=msz.y-16.0
  w.draw_rect(Rect2(0,ly-3,msz.x,19),Color(0.03,0.06,0.07,0.6))
  for e in lg:
   w.draw_rect(Rect2(lx,ly+2,9,9),e[0]);w.draw_rect(Rect2(lx,ly+2,9,9),Color(0,0,0,0.5),false,1.0)
   var tw=font.get_string_size(str(e[1]),HORIZONTAL_ALIGNMENT_LEFT,-1,10).x
   w.draw_string(font,Vector2(lx+12,ly+11),str(e[1]),HORIZONTAL_ALIGNMENT_LEFT,-1,10,Color("e9e3d4"))
-  lx+=tw+22.0
+  lx+=tw+17.0
  # grupos y exploradores
  for id in ALL_ACTORS:
   var a=_actor(id)
@@ -2486,7 +2486,7 @@ func _draw_map_widget():
   if sel_ids.has(id):w.draw_arc(pos,8.0,0,TAU,20,Color.WHITE,1.6)
  # N fija y brújula que gira con la guiñada (N hacia -z, E hacia +x)
  w.draw_string(font,Vector2(6,13),"N",HORIZONTAL_ALIGNMENT_LEFT,-1,12,Color("f4efe0"))
- w.draw_string(font,Vector2(20,13),"MINIMAPA · clic: mover vista · cuadro = tu cámara",HORIZONTAL_ALIGNMENT_LEFT,-1,9,Color(0.96,0.94,0.88,0.9))
+ w.draw_string(font,Vector2(20,13),"MINIMAPA · clic mueve la vista",HORIZONTAL_ALIGNMENT_LEFT,-1,9,Color(0.96,0.94,0.88,0.9))
  var cr=compass_rect();var cc=cr.position-minimap_rect().position+cr.size*0.5
  w.draw_circle(cc,25.0,Color(0.03,0.07,0.09,0.78));w.draw_arc(cc,25.0,0,TAU,28,Color("887750"),1.2)
  var nd=Vector2(sin(camera_yaw),-cos(camera_yaw));var ed=Vector2(cos(camera_yaw),sin(camera_yaw))
@@ -2767,7 +2767,7 @@ func _board_action():
     if not alive.is_empty():_select_ids(alive)
    if not _sel_scouts().is_empty():
     _enter_aim("probe")
-    _toast("Antes de abordar hay que reconocer el fondo hacia el buque. Elegí con un clic el punto del agua a sondear (cerca del buque); después N.",7,false);return
+    _toast("Antes de abordar hay que reconocer el fondo. Pasé la selección a un explorador (tu grupo no recibió ninguna orden): un clic en el agua cerca del buque sondea; después volvé a elegir el grupo (1-3) y N.",8,false);return
   _toast(fr,5,false);return
  if float(plan.get("unknown_m",0))>0.0 and not (confirm_action=="board" and confirm_timer>0):
   confirm_action="board";confirm_timer=5.0
@@ -2984,7 +2984,7 @@ func _update_place():
   if not over_ui:
    var g=world.ground_xz_from_screen(camera,hover_mouse)
    if g!=null:p=g as Vector2;pre="Bajo el cursor: "
- place_label.text="%s%s   ·   x %d  z %d" % [pre,_place_name(p),int(p.x),int(p.y)]
+ place_label.text="%s%s" % [pre,_place_name(p)]
 
 func _dist_polyline(p:Vector2,pts:Array)->float:
  var best=1e9
@@ -3547,7 +3547,7 @@ Gillespie escribe que el buque quedó «en seco» (left dry) y que lo abordó la
   var rt=_rich(sc,str(pair[1]),15);rt.custom_minimum_size.x=840
  var row=_hbox(box)
  var fresh=float(rules.state.elapsed)<0.5 and str(rules.state.status)=="playing"
- var go=_button(row,"Jugar" if fresh else "Volver a la partida",_close_modal,42);go.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ var go=_button(row,"Jugar (empieza en pausa)" if fresh else "Volver a la partida",_close_modal,42);go.size_flags_horizontal=Control.SIZE_EXPAND_FILL
  if fresh:_button(row,"Ver el despliegue",_deploy_dialog,42)
  _button(row,"Repetir tutorial",func():settings.tutorial=true;tut_step=0;_save_settings();_close_modal();_update_hud(),42)
  _button(row,"Fuentes e historia",_history_dialog,42)
