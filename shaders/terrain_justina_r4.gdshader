@@ -66,7 +66,7 @@ void fragment(){
 	float above = h - water_level + (j_fbm2(p * 0.05 + 40.0) - 0.5) * 0.9;
 	float ripple = j_noise(vec2(p.x * 0.9, p.y * 0.11)) * 0.6 + j_noise(vec2(p.x * 3.1, p.y * 0.4)) * 0.4;
 	vec3 sand = mix(vec3(0.56, 0.49, 0.34), vec3(0.65, 0.58, 0.42), ripple);
-	vec3 mud = vec3(0.46, 0.39, 0.26);
+	vec3 mud = vec3(0.36, 0.30, 0.20);   // R3-visual: barro mas oscuro y rico (antes casi igual a la arena)
 	// R4: la transicion barro-arena sigue ruido de dominio estirado (meandros y bancos irregulares), no la curva de nivel del suelo.
 	vec2 wp = p + vec2(j_noise(p * 0.05) - 0.5, j_noise(p * 0.05 + 7.0) - 0.5) * 18.0;
 	float hn = h * 0.30 + 0.35 + (j_fbm2(vec2(wp.x * 0.045, wp.y * 0.11) + 13.0) - 0.5) * 2.8 + (j_noise(wp * 0.35) - 0.5) * 0.30;
@@ -78,12 +78,20 @@ void fragment(){
 
 	// Barro humedo y brillo bajo/cerca del agua (bajante).
 	float wet = 1.0 - smoothstep(-0.1, 0.9 + 0.7 * (j_fbm2(p * 0.09 + 3.0) - 0.4), above);
-	c = mix(c, c * vec3(0.62, 0.58, 0.52), wet * 0.7);
+	c = mix(c, c * vec3(0.58, 0.55, 0.48), wet * 0.82);
 
 	// Charcas y vetas de barro alargadas (no manchas circulares): ruido estirado y torcido por dominio.
 	float blot = smoothstep(0.52, 0.78, j_fbm2(vec2(wp.x * 0.03, wp.y * 0.09) + 77.0)) * smoothstep(1.2, 0.2, h - water_level + 0.6) * beach;
 	c = mix(c, c * vec3(0.76, 0.72, 0.64), blot * 0.12);
+	// R3-visual: charcos de barro (isotropos, mate-oscuros con borde humedo) y grano fino; reemplazan la lectura de "veta borrosa".
+	float pud_n = j_fbm2(wp * 0.16 + 123.0);
+	float pud = smoothstep(0.60, 0.68, pud_n) * smoothstep(1.4, 0.3, h - water_level + 0.5) * beach;
+	float pud_rim = smoothstep(0.55, 0.60, pud_n) * (1.0 - smoothstep(0.60, 0.66, pud_n)) * smoothstep(1.4, 0.3, h - water_level + 0.5) * beach;
+	float grain = j_noise(wp * 2.3) * 0.6 + j_noise(wp * 6.1) * 0.4;
+	c *= 1.0 + (grain - 0.5) * 0.16 * beach * wet;
+	c = mix(c, vec3(0.20, 0.19, 0.12), pud * 0.62);
+	c = mix(c, c * vec3(0.72, 0.68, 0.60), pud_rim * 0.5);
 	ALBEDO = pow(c, vec3(color_gamma)) * (0.94 + fine * 0.10);
-	ROUGHNESS = mix(0.93, 0.35, wet * beach);
+	ROUGHNESS = mix(mix(0.93, 0.35, wet * beach), 0.12, pud);
 	SPECULAR = mix(0.2, 0.5, wet);
 }

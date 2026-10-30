@@ -270,3 +270,10 @@ Directriz: el juego manda sobre la fidelidad; el aspecto debe leerse y dar gusto
 - Los carteles-ficha (`_draw_chips_j` en `main.gd`) siguen tapando las fichas cuando los grupos estan juntos: reducir los no seleccionados a una barra fina (o mostrarlos solo al seleccionar/pasar el mouse) hara que las fichas de 3D se lean solas.
 - La veta de madera del casco del buque esta estirada (mapeo UV del GLB); no se toco el modelo.
 - Compatibility no verificado; sin captura a 1280x720 en esta ronda (vis_shots usa 1440x900).
+
+## Justina diversion ronda 3: aspecto (rio calido, barro, fichas)
+- `shaders/water_rio_plata.gdshader`: canal oliva-pardo (antes verde botella frio), orilla ocre limosa mas luminosa, reflejo de cielo calido con base minima visible desde altura, lomos largos de ola (fbm de gran escala) y destellos de sol anchos y discretos. Mismas entradas (UV/UV2): no revela bancos ni pozos ocultos.
+- `shaders/terrain_justina_r4.gdshader`: barro mas oscuro y humedo, charcos isotropos mate con borde humedo y grano fino (reemplazan la lectura de "veta borrosa").
+- `scripts/world_view.gd`: ficha de grupo de 58 px (antes 40), aparece antes (38-85 m) y centrada en la unidad (sin desplazar bajo los carteles); tejas del fuerte mas apagadas; rotulo 3D del buque al costado (el rotulo 2D que tapa el casco es de main.gd, fuera de esta pista).
+- Capturas antes/despues: `evidence/justina-ui/diversion_r3/` (`antes_*`, `r3b_*`, `r3c_*`). Benchmark media Justina 2,45 ms (base de main 2,64 ms en la misma sesion); `benchmark/` con las corridas. tests/test_rules y test_integration (perfil aislado): sin fallas.
+- Pendiente de esta pista: estandartes y aparejo del buque (sin Blender en esta ronda), cielo/horizonte, fichas con silueta de jinete/infante.
