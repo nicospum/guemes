@@ -252,6 +252,8 @@ func _run() -> void:
 	check(game.find_children("*", "CheckButton", true, false).any(func(c): return str(c.text).find("Pausa autom") >= 0), "Justina: el despliegue previo ofrece la pausa automatica")
 	check(game.find_children("*", "Button", true, false).any(func(c): return str(c.text).find("Norte") >= 0), "R3: el despliegue ofrece reubicar los puntos de partida")
 	check(game.clock_label.text.ends_with("min"), "R3: la cabecera dice minutos")
+	check(game.find_children("*", "Control", true, false).any(func(c): return c.tooltip_text.begins_with("Puntos de partida de las cinco")), "R7: el despliegue muestra un mapa con los puntos de partida")
+	check(game.find_children("*", "Button", true, false).any(func(c): return str(c.text).begins_with("Empezar a ordenar")), "R7: el despliegue ofrece empezar a ordenar en pausa")
 	await _shot("justina-despliegue")
 	game._close_modal()
 	await _frames(30)
@@ -471,6 +473,9 @@ func _run() -> void:
 	check(game.action_buttons["repel"].visible, "Justina: Rechazar aparece con un grupo abordando")
 	check(game.paused and game.alert_panel.visible and game.pause_banner.text.find("PAUSA AUTOMÁTICA") >= 0, "Justina: el contraataque pausa solo y muestra el aviso")
 	check(not game.hint_panel.visible, "Justina: el tutorial se oculta mientras hay un aviso critico")
+	check(str(game.reason_label.text).find("tutorial de arriba") < 0, "R7: no se manda a mirar un tutorial que no esta visible")
+	check(game.action_buttons["retreat_all"].tooltip_text.find("PELIGRO") >= 0, "R7: la retirada general lleva aviso de peligro")
+	check(game.top_stack.get_global_rect().end.x <= root.get_visible_rect().size.x and game.top_stack.get_global_rect().position.x >= 0.0, "R7: la pila central de avisos entra a lo ancho")
 	_justina_layout("Justina aviso")
 	await _shot("justina-aviso-contraataque")
 	boarder.stage = stage_backup

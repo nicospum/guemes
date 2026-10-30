@@ -1472,7 +1472,7 @@
       "ship_morale_loss": 3.0,
       "volley_interval_add_s": 2.0,
       "requires_ammo": true,
-      "effect": "Cubre a exploradores y columnas pero gasta pólvora que no vuelve. La batería Abascal y tiradores de la barranca atraen el fuego del buque: durante 45 s la exposición baja a la mitad."
+      "effect": "Cubre a exploradores y columnas pero gasta pólvora que no vuelve. Las dos piezas de a 18 del Retiro (diseño) y los tiradores de la barranca atraen el fuego del buque: durante 45 s la exposición baja a la mitad."
     },
     "resupply": {
       "label": "Abastecer munición",
@@ -2762,7 +2762,7 @@
       "zavala": {
         "label": "Reserva de caballería de Pueyrredón",
         "short_label": "Reserva",
-        "tag": "reconstruccion",
+        "tag": "tradicion",
         "headcount_hint": 10,
         "mounted": true,
         "composition": [

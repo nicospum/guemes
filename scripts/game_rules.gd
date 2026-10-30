@@ -1601,7 +1601,7 @@ func call_fire_support() -> Dictionary:
 	if int(state.ammo) < int(a.ammo_cost):
 		return _no("Faltan municiones: hacen falta %d y quedan %d." % [int(a.ammo_cost), int(state.ammo)])
 	if float(state.elapsed) < float(state.fire_support.ready_at):
-		return _no("La batería todavía recarga (%d s)." % ceili(float(state.fire_support.ready_at) - float(state.elapsed)))
+		return _no("Las piezas de a 18 todavía recargan (%d s)." % ceili(float(state.fire_support.ready_at) - float(state.elapsed)))
 	state.ammo = int(state.ammo) - int(a.ammo_cost)
 	state.fire_support = {"until": float(state.elapsed) + float(a.duration_s), "ready_at": float(state.elapsed) + float(a.cooldown_s)}
 	state.crew_morale = maxf(0.0, float(state.crew_morale) - float(a.ship_morale_loss))
@@ -1751,7 +1751,7 @@ func _fire_support_check() -> Dictionary:
 	if int(state.ammo) < int(a.ammo_cost):
 		return _no("Faltan municiones: hacen falta %d y quedan %d." % [int(a.ammo_cost), int(state.ammo)])
 	if float(state.elapsed) < float(state.fire_support.ready_at):
-		return _no("La batería todavía recarga (%d s)." % ceili(float(state.fire_support.ready_at) - float(state.elapsed)))
+		return _no("Las piezas de a 18 todavía recargan (%d s)." % ceili(float(state.fire_support.ready_at) - float(state.elapsed)))
 	return {"ok": true, "reason": "Disponible."}
 
 
