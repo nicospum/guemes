@@ -230,6 +230,71 @@ func _inside_scroll(n: Node) -> bool:
 func _modal_fits() -> bool:
 	return is_instance_valid(game.modal) and Rect2(Vector2.ZERO, root.get_visible_rect().size).encloses((game.modal.get_child(1) as Control).get_global_rect())
 
+func _ux_checks() -> void:
+	## Ronda 2 (ui_feel): mensajero, ultimo esfuerzo, reloj que arranca con la primera orden y un solo mensaje a la vez.
+	game._retry(false)
+	await _frames(4)
+	game._close_modal()
+	var r = game.rules
+	# Mensajero de Liniers forzado
+	var ch = null
+	for ev in r.map_data().get("field_events", {}).get("list", []):
+		if str(ev.kind) == "choice":
+			ch = ev
+			break
+	check(ch != null, "R2: el mapa trae un mensajero con eleccion")
+	if ch != null:
+		r.state.pending_choice = {"id": ch.id, "until": float(r.state.elapsed) + 30.0, "options": (ch.options as Array).duplicate(true), "default": str(ch.default)}
+		game.choice_text = str(ch.text)
+		game._choice_dialog()
+		await _frames(6)
+		check(is_instance_valid(game.modal) and _modal_text_all().find("ensajero") >= 0, "R2: el mensajero abre su dialogo")
+		check(_modal_fits(), "R2: el dialogo del mensajero entra en pantalla")
+		await _shot("justina-mensajero")
+		var first_label := str(ch.options[0].label)
+		var ob := _button(first_label)
+		check(ob != null, "R2: el mensajero ofrece la opcion «%s»" % first_label)
+		if ob != null:
+			await _click(ob.get_global_rect().get_center())
+			await _frames(4)
+		check(not is_instance_valid(game.modal) and r.state.pending_choice.is_empty(), "R2: elegir con el mensajero cierra el dialogo y resuelve la eleccion")
+	# Ultimo esfuerzo forzado
+	r.state.volunteers_pool = 100.0
+	for u in r.state.units:
+		u.shaken = true
+	r.state.last_effort = {"used": false, "until": float(r.state.elapsed) + 20.0}
+	game.paused = true
+	game._update_hud()
+	await _frames(6)
+	check(game.alert_panel.visible and game.alert_btn.visible and game.alert_btn.text.find("ltimo esfuerzo") >= 0 and not game.alert_btn.disabled, "R2: con todo quebrado aparece el aviso con el boton «¡Último esfuerzo!» activo")
+	check(not game.toast_label.visible, "R2: con un aviso critico en pantalla no hay otro cartel encima")
+	await _shot("justina-ultimo-esfuerzo")
+	await _click(game.alert_btn.get_global_rect().get_center())
+	await _frames(4)
+	check(bool(r.state.last_effort.used), "R2: el boton «¡Último esfuerzo!» lo ejecuta de verdad")
+	# El reloj arranca con la primera orden (tras «Empezar») y un cartel importante tapa la guia
+	game._retry(false)
+	await _frames(4)
+	game._close_modal()
+	game.paused = true
+	game.auto_start_pending = true
+	game._select_ids(["scout_1"])
+	check(game.paused, "R2: antes de la primera orden el reloj sigue detenido")
+	game.rules.issue_scout("scout_1", "probe", [Vector2(200, 264)])
+	game._update_hud()
+	check(not game.paused and not game.auto_start_pending, "R2: la primera orden arranca el reloj sola")
+	game.settings.tutorial = true
+	game.tut_step = 0
+	game.toast_timer = 0.0
+	game._update_hud()
+	check(game.hint_panel.visible, "R2: sin otros mensajes se ve la guia del tutorial")
+	game._toast("importante", 4.0, true, 2)
+	game._update_hud()
+	check(not game.hint_panel.visible, "R2: un cartel importante tapa la guia (un solo mensaje a la vez)")
+	game.toast_timer = 0.0
+	game.paused = true
+	await _frames(2)
+
 func _defeat_screen_checks() -> void:
 	## Ronda de diversion R1 (ui_feel): parte que ensena, reintento rapido con el mismo rio, diario, candado del Norte, menu de pausa.
 	var view := Rect2(Vector2.ZERO, root.get_visible_rect().size)
@@ -246,6 +311,13 @@ func _defeat_screen_checks() -> void:
 	for jg in game.JARGON_BLACKLIST:
 		check(all_txt.find(jg) < 0, "R1: el parte de derrota no usa la jerga «%s»" % jg)
 	check(_modal_fits(), "R1: el parte de derrota entra en pantalla")
+	var diary_b: Button = null
+	for b in _modal_buttons():
+		if str(b.text).begins_with("Abrir el diario"):
+			diary_b = b
+	check(diary_b != null and not diary_b.is_visible_in_tree(), "R2: lo secundario del parte (diario, parte completo, fuentes) queda plegado en «Más opciones»")
+	check(all_txt.find("Reintentar (mismo mapa)") >= 0 and all_txt.find("Mapa distinto") >= 0, "R2: los botones dicen qué hacen: mismo mapa / mapa distinto")
+	check(game._plain("Tropezaste en 1 pozo(s): sondeá").find("1 pozo:") >= 0 and game._plain("en 2 pozo(s)").find("2 pozos") >= 0, "R2: el plural de «pozo» se arma bien")
 	await _shot("justina-derrota")
 	check(int(game.progress.intentos) >= 1 and int(game.progress.derrotas_seguidas) >= 1, "R1: el intento perdido queda contado en el progreso")
 	check(not game.progress.diario.is_empty(), "R1: el diario anoto algo del intento (%d entradas)" % game.progress.diario.size())
@@ -392,11 +464,22 @@ func _defeat_screen_checks() -> void:
 	game.rules.state.elapsed = 640.0
 	game.outcome_shown = false
 	game.attempt_logged = false
+	game.beat_enabled = true
+	game._outcome_dialog()
+	await _frames(30)
+	check(is_instance_valid(game.outcome_beat) or game.qa_mode, "R2: la victoria arranca con un cierre breve (banner sobre el buque) antes del resultado")
+	await _shot("justina-victoria-cierre")
+	game._close_modal()
+	if is_instance_valid(game.outcome_beat):
+		game.outcome_beat.queue_free()
+	game.beat_enabled = false
+	game.outcome_shown = false
 	game._outcome_dialog()
 	await _frames(8)
 	var vt := _modal_text_all()
-	check(vt.find("MEDALLA DE") >= 0 and vt.find("Se desbloqueó: Sostener el Norte") >= 0 and vt.find("Ir a Sostener el Norte") >= 0, "R1: la victoria muestra medalla, desbloqueo y el paso al Norte")
+	check(vt.find("MEDALLA DE") >= 0 and vt.find("Se desbloqueó el escenario 2") >= 0 and vt.find("Ir a Sostener el Norte") >= 0, "R1: la victoria muestra medalla, desbloqueo y el paso al Norte")
 	check(bool(game.progress.justina_ganada), "R1: ganar fija justina_ganada en el progreso")
+	check(vt.find("Esta vez") >= 0 and vt.find("Tu mejor medalla") >= 0, "R2: la victoria separa la medalla de esta vez de la mejor")
 	await _shot("justina-victoria")
 	check(_modal_fits(), "R1: la pantalla de victoria entra en pantalla")
 	game._close_modal()
@@ -730,6 +813,7 @@ func _run() -> void:
 	_justina_layout("Justina parte")
 	await _defeat_screen_checks()
 	game._close_modal()
+	await _ux_checks()
 
 	# Reinicio con R y confirmacion
 	var el0: float = game.rules.state.elapsed
