@@ -39,9 +39,9 @@ void fragment(){
 	float slope = 1.0 - clamp(normalize(world_normal).y, 0.0, 1.0);
 
 	// Pasto de invierno: del verde oliva a la paja segun parches grandes; tierra pelada y matorral.
-	vec3 green = vec3(0.42, 0.40, 0.23);
-	vec3 straw = vec3(0.66, 0.57, 0.37);
-	float dry = smoothstep(0.30, 0.72, big * 0.8 + (mid - 0.5) * 0.7 + 0.12);
+	vec3 green = vec3(0.47, 0.42, 0.25);   // R7: menos verde, hacia #A38D6B / #7C8159 del paquete
+	vec3 straw = vec3(0.68, 0.58, 0.40);
+	float dry = smoothstep(0.22, 0.66, big * 0.8 + (mid - 0.5) * 0.7 + 0.20);
 	vec3 pasture = mix(green, straw, dry);
 	pasture *= 0.88 + (fine - 0.5) * 0.30 + (micro - 0.5) * 0.14;
 	c = mix(c, pasture, veg * 0.85);

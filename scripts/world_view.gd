@@ -1318,7 +1318,18 @@ const SCALE_Z0 = 312.0
 
 func _house_at(x:float,z:float,w:float,d:float,yaw:float,col_tint:Color=Color.WHITE):
  var hv=fposmod(sin(x*7.31+z*3.17)*9631.7,1.0)
- if not _glb_ok("house_colonial") or hv<0.38:
+ if hv>=0.30 and hv<0.80:
+  # R7: variedad (informe F/E2: casas bajas de azotea, ranchos de paja y tejados; Vidal 1820). Reconstruccion estetica, no inventario.
+  var hb=_far_h(x,z);var thatch=hv<0.46
+  var wh=2.3+1.4*fposmod(sin(x*1.7+z*4.1)*431.3,1.0)
+  var wc=Color("d8cfb8").lerp(Color("a38d6b"),fposmod(sin(x*3.3+z*2.7)*377.7,1.0)*(0.9 if thatch else 0.5)).darkened(0.10)
+  var ww=w*(0.75 if thatch else 0.9);var dd=d*(0.7 if thatch else 0.85)
+  _inst_r("box",Vector3(x,hb+wh*0.5,z),Vector3(ww,wh,dd),yaw,wc)
+  var roof=Color("b9a57c").darkened(0.12) if thatch else Color("8e5a47").lerp(Color("7e5b48"),fposmod(sin(x+z)*99.9,1.0))
+  var rh=ww*(0.34 if thatch else 0.22)
+  _inst_r("prism",Vector3(x,hb+wh+rh*0.5-0.02,z),Vector3(ww*1.08,rh,dd*1.12),yaw+PI*0.5,roof)
+  return
+ if not _glb_ok("house_colonial") or hv<0.30:
   # Casa de azotea (Vidal 1820: techos planos con parapeto, revoque claro) o sin GLB: caja con parapeto, alturas y tonos variados. Reconstruccion.
   var hh=3.2+1.8*fposmod(sin(x*2.1+z*5.3)*777.7,1.0)
   var base=_far_h(x,z)
@@ -1557,6 +1568,13 @@ func _strip_ladder(root:Node3D)->void:
       if not (in_ladder or in_rudder):inside=false
      if not inside:keep.append_array(PackedInt32Array([ix[t*3],ix[t*3+1],ix[t*3+2]]))
     a[Mesh.ARRAY_INDEX]=keep
+   elif mat!=null and str(mat.resource_name)=="PBR | sail":
+    # R7: velas recogidas (Gillespie: el buque fue «aligerado» y estaba varado; no navegaba): se comprimen hacia la verga. Aspecto, no dato.
+    var v2:PackedVector3Array=a[Mesh.ARRAY_VERTEX]
+    for vi in range(v2.size()):
+     var q=v2[vi];var ytop=8.45 if q.z<-2.0 else 9.85
+     v2[vi]=Vector3(q.x,ytop-(ytop-q.y)*0.34,q.z)
+    a[Mesh.ARRAY_VERTEX]=v2
    out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,a)
    out.surface_set_material(out.get_surface_count()-1,mat)
   mi.mesh=out
@@ -1850,6 +1868,7 @@ func _create_group_j(unit:Dictionary):
 const GROUP_PAL = {"guemes":["a88943","4c372b"],"arias":["d8cfb8","4c372b"],"zavala":["33475b","d8cfb8"]}
 var group_markers: Array = []
 var label_far:Dictionary={}
+var label_d:Dictionary={}
 var ship_far_k=1.0
 var far_k:Dictionary={}   # R6: tamaño minimo en pantalla de las figuras de un grupo (simbolico: 1 hasta ~150 m de camara, hasta x3,4 a 600 m)
 
@@ -1878,7 +1897,7 @@ func _update_markers_j(cam:Camera3D)->void:
  # R6: el buque (objetivo del juego) crece hasta x2,3 con la distancia de camara para no quedar en 25 px (tamaño minimo en pantalla; simbolico).
  if is_instance_valid(ship):
   var ds=cam.global_position.distance_to(ship.global_position)
-  var ks=clampf(ds/380.0,1.0,2.3)
+  var ks=clampf(ds/300.0,1.0,2.9)
   if absf(ks-ship_far_k)>0.03:
    ship_far_k=ks
    ship.scale=Vector3(SHIP_SX,SHIP_SY,SHIP_SZ)*ks
@@ -1893,6 +1912,7 @@ func _update_markers_j(cam:Camera3D)->void:
   g.ring.scale=Vector3.ONE*clampf(d*0.0055,1.0,6.0)
   var gid=str(r.name).trim_prefix("Grupo_")
   label_far[gid]=d>230.0
+  label_d[gid]=d
   var fk=clampf(d/160.0,1.0,3.4)
   if absf(fk-float(far_k.get(gid,1.0)))>0.06:
    far_k[gid]=fk
@@ -2016,6 +2036,10 @@ func _layout_group_j(entry:Dictionary,u:Dictionary,moving:bool,stage:String):
 func _update_label_j(id:String,u,stage:String,root:Node3D,h:float):
  var label:Label3D=unit_labels[id]
  var txt:String
+ # R7: rotulos apilados escalonados en altura segun la distancia de camara (las 5 fichas no se pisan); cerca vuelven a su altura.
+ var rank=unit_nodes.keys().find(id)
+ var far_stack=label_far.get(id,false) and not (id in selected_ids or id==selected) and rank>=0
+ label.position.y=h+(float(rank)*float(label_d.get(id,0.0))*0.042 if far_stack else 0.0)
  if u.has("strength"):
   var tag=str(u.get("tag","diseno"))
   var short=str(u.name).split(" · ")[0]
@@ -2281,7 +2305,7 @@ func _update_ship_j(delta:float):
  var gk=1.0-clampf((level_m-g_lo)/maxf(g_hi-g_lo,0.05),0.0,1.0)   # 1 = apoyado, 0 = flotando
  var heel:Array=gv.get("heel_deg",[4.0,7.0])
  ship.rotation.z=lerpf(0.045,deg_to_rad(float(heel[1])),gk);ship.rotation.x=lerpf(0.012,0.034,gk)
- ship.position.y=ship_y0-float(gv.get("sink_m",0.6))*gk
+ ship.position.y=ship_y0-(float(gv.get("sink_m",0.6))+1.1)*gk   # R7: +1,1 m: la quilla queda enterrada en el banco (antes se veia luz bajo el casco)
  if is_instance_valid(ship_mud):
   ship_mud.visible=gk>0.02
   ship_mud.position.y=level_m+0.04
