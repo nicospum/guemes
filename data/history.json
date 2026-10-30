@@ -1,17 +1,17 @@
 {
   "schema_version": 1,
   "language": "es-AR",
-  "reviewed_on": "2026-10-29",
+  "reviewed_on": "2026-10-30",
   "general_notice": "Recreación histórica. El terreno, los grupos, las rutas, los tiempos y las reglas simplifican acontecimientos reales. Los resultados de tu partida pueden diferir de la historia. Las etiquetas significan: Documentado, un hecho que consta en un testimonio o documento de época (a veces solo en su transcripción) o en un plano de época; Tradición, una atribución transmitida y no probada; Reconstrucción, algo que se apoya en fuentes secundarias o divulgativas, o que se infiere de planos y vistas posteriores, y cuyo detalle exacto no está comprobado; Diseño, una regla, cifra o geografía inventada para que el juego funcione, que no es dato histórico.",
   "scenarios": {
     "justine": {
       "title": "La toma de la Justina",
       "date": "12 de agosto de 1806",
       "place": "Frente al Retiro, Buenos Aires",
-      "context": "Durante la Reconquista de Buenos Aires, un mercante armado británico de 26 cañones, que había combatido el día de la rendición, fue tomado por caballería cuando el río bajó de golpe. Gillespie no dice dónde estaba; fuentes divulgativas lo sitúan varado frente al Retiro, junto a la Plaza de Toros.",
+      "context": "Durante la Reconquista de Buenos Aires, un mercante armado británico de 26 cañones, que había combatido el día de la rendición, fue tomado por caballería cuando el río bajó de golpe. Gillespie no dice dónde estaba; fuentes divulgativas lo sitúan varado frente al Retiro, junto a la Plaza de Toros. El juego representa una zona, no un punto histórico.",
       "notice": "Reconstrucción jugable, no crónica. Güemes protagoniza aquí una atribución tradicional: su intervención personal no está probada y las versiones difieren. Gillespie no identifica al jefe de la caballería; el relato de Obligado (1920) lo muestra transmitiendo una orden de Liniers a Pueyrredón; notas posteriores lo hacen jefe del grupo de jinetes.",
       "name_note": "Justina y Justine son variantes presentes en las fuentes (Gillespie escribe «Justinia»). El juego usa Justina; el identificador interno del escenario sigue siendo «justine».",
-      "art_note": "Ribera, casco del buque, vestuario y transición de abordaje son reconstrucciones artísticas. El buque era británico: no se dibuja bandera argentina (en 1806 no existía) ni Infernales. Sin tipo, tonelaje ni capitán documentados.",
+      "art_note": "Ribera, casco del buque, vestuario y transición de abordaje son reconstrucciones artísticas. El buque era británico: no se dibuja bandera argentina (en 1806 no existía) ni Infernales. Sin tipo, tonelaje ni capitán documentados. El pabellón del buque (Red Ensign) y la bandera del circo son hipótesis/inferencias etiquetadas, y los colores salen de una paleta de diseño, no de mediciones.",
       "facts": [
         {
           "title": "Una oportunidad del río",
@@ -34,36 +34,101 @@
         },
         {
           "title": "Dónde varó",
-          "text": "Gillespie no da el lugar. Que varó frente al Retiro, cerca de la Plaza de Toros y de la batería de Abascal, lo sostienen fuentes divulgativas (edisalta, La Nación, Recalada Náutica), de confianza media: se usa como reconstrucción. La costa de 1806 estaba al pie de la barranca; los ~390 m al buque son una cifra divulgativa que el juego mide desde el pie de la barranca. La existencia y posición de la batería de Abascal no se cotejó con un documento primario.",
-          "kind": "fuentes secundarias divulgativas; reconstrucción",
+          "text": "Gillespie no da el lugar. Que varó frente al Retiro, cerca de la Plaza de Toros, lo sostienen fuentes divulgativas (edisalta, La Nación, Recalada Náutica), de confianza media: se usa como reconstrucción, y se dibuja una ZONA, no un pin (ni la Torre Monumental, de 1916, ni ninguna parcela actual marca el punto). La costa de 1806 estaba al pie de la barranca. La cifra de ~400 m viene de un material bonaerense de 2006 (p. 93), tradición discutida y sin medición contemporánea: el juego usa 390 m medidos desde el pie de la barranca (diseño). La 'batería Abascal' no se cotejó con un documento primario: lo que consta (parte de Liniers del 11 de agosto, reproducido por Luis Güemes) son dos piezas de a 18 traídas de la goleta Dolores.",
+          "kind": "fuentes secundarias divulgativas; tradición discutida (400 m); reconstrucción",
           "verification": "parcial",
           "source_ids": [
             "S3",
             "S10",
-            "S11"
+            "S11",
+            "S13",
+            "S26"
           ]
         },
         {
           "title": "La caballería de Pueyrredón",
-          "text": "Gillespie habla de caballería sin nombrar al jefe. Que fuera la vanguardia de Pueyrredón consta en documentos de época que cita la investigación del proyecto: el parte de Concha del 15 de agosto de 1806 (40 a 60 jinetes en la avanzada) y un oficio de Liniers (Archivo Pueyrredón, t. I, p. 54); no se cotejaron con sus originales. La orden de avance de Liniers y los detalles del relato (anteojo, mensajero por la Alameda, rendición con pañuelo) vienen de Obligado (1920) y de la divulgación: son tradición, no documento. Las cantidades y la fuerza relativa de cada grupo del juego son diseño.",
-          "kind": "documental (Concha, Liniers, citados por la investigación) con detalles de relato secundario",
+          "text": "Gillespie habla de caballería sin nombrar al jefe ('boarded, and taken by cavalry', p. 94). Que fuera la de Pueyrredón se apoya en documentos de época que cita la investigación del proyecto (parte de Concha del 15 de agosto de 1806, oficio de Liniers en el Archivo Pueyrredón, t. I, p. 54), que NO se cotejaron con sus originales; el paquete de investigación del 30-oct-2026 reconstruye ese vínculo por relatos posteriores y considera 'sin datos suficientes' la cantidad de jinetes (30, 50 o 60 según el relato): la cifra '40 a 60' que citaba esta ficha queda como no verificada. La orden de avance de Liniers y los detalles del relato (anteojo, mensajero por la Alameda, rendición con pañuelo) vienen de Obligado (1920) y de la divulgación: son tradición. Las cantidades de cada grupo del juego son diseño.",
+          "kind": "reconstrucción: citas de la investigación del repo sin cotejo del original; detalles del relato son tradición",
           "source_ids": [
             "S9",
-            "S3"
+            "S3",
+            "S13"
           ],
           "verification": "parcial"
         },
         {
           "title": "La tradición de Güemes",
-          "text": "Pastor Obligado (1920) lo presenta como ayudante de Liniers que lleva a la caballería de Pueyrredón la orden de avanzar por la playa. El Ideario conserva ese relato, declara no probada su intervención y registra que ese día regresaba de Córdoba (p. 33). En el juego la vanguardia lleva su nombre con la marca de tradición, y la orden de avance de Liniers es una regla de juego.",
+          "text": "Pastor Obligado (1920) lo presenta como ayudante de Liniers que lleva a la caballería de Pueyrredón la orden de avanzar por la playa; Luis Güemes identifica a Obligado como fuente de la atribución. Lo documentado es otra cosa: un papel del 11 de agosto lo da como cadete (21 años) del Regimiento de Infantería de Buenos Aires —no 'cadete de caballería', como repite una nota oficial— y una cuenta firmada en Candelaria ese mismo día; que estuviera en Buenos Aires el 12 y subiera al buque queda sin datos suficientes. El Ideario (p. 33) declara no probada su intervención y lo da volviendo de Córdoba (dato no cotejado con el paquete). Montar a caballo no cambia su adscripción administrativa. En el juego el grupo lleva su nombre con la marca de tradición, y la orden de avance de Liniers es una regla de juego.",
           "kind": "tradición discutida",
           "source_ids": [
             "S1",
-            "S3"
-          ]
+            "S3",
+            "S13",
+            "S14",
+            "S2"
+          ],
+          "verification": "parcial"
+        },
+        {
+          "title": "Cómo se ve el Retiro: ciudad alta, circo y barranca",
+          "text": "El lugar se entiende como una sucesión de superficies: ciudad alta, borde de barranca, franja baja de playa y bajos, y un río somero y turbio. En el alto está la Plaza de Toros (inaugurada en 1801), de exterior octogonal y ruedo circular, con dependencias militares cerca del borde; hacia el sur la trama se densifica hacia Santa Catalina, la Alameda del frente central, la Plaza Mayor y el Fuerte. Dimensiones (90 m entre vértices del circo, 9-14 m de desnivel, bajadas, ancho de la playa) y cotas son diseño; la posición relativa de los conjuntos está mejor respaldada que su geometría. No hay muelle continuo, avenida costanera ni césped ornamental: el juego muestra costa irregular, arena húmeda y barro.",
+          "kind": "reconstrucción (plano de 1801 y vistas de Vidal) y diseño",
+          "source_ids": [
+            "S21",
+            "S22",
+            "S24",
+            "S23",
+            "S25"
+          ],
+          "verification": "parcial"
+        },
+        {
+          "title": "El buque Justina: casco, cañones y dotación",
+          "text": "Mercante armado británico (de Princeps y Saunders, de Londres, según el paquete); no una fragata regular de la Royal Navy ni un 'HMS'. Los 26 cañones son en total (no por banda; el reparto 13/13 es diseño); la tripulación de la acción era la dotación propia, oficiales y cien marineros de la escuadra, no los 180 hombres de Santa Elena (otra fase). El casco del juego mide 40 x 9 m, de diseño por comparables de catálogo (RMG SLR0583, LNG0016, MSA0204); no hay plano del Justina ni se conoce su calado. El daño en la mesana es hipótesis (un parte de Liniers menciona una mesana dañada en una fragata sin nombre); que un cañonazo derribara el palo entero es tradición discutida. El nombre es Justina; Gillespie escribe 'Justinia' y la conmemoración actual, 'Justine'. Una pista bibliográfica (Schlez) da un capitán Robert Morris y un sobrecargo William Dunn: no se verificó y el juego no usa esos nombres.",
+          "kind": "documentado en transcripción (descripción) y diseño (casco)",
+          "source_ids": [
+            "S9",
+            "S13",
+            "S15",
+            "S27"
+          ],
+          "verification": "parcial"
+        },
+        {
+          "title": "Agua, banco y estados del río",
+          "text": "Gillespie ve la causa en un descenso súbito del río. 'Encallado' (el casco toca fondo), 'vadeable' (se cruza a pie o a caballo) y 'en seco' (sin agua sobre esa superficie) son condiciones distintas: el juego modela la variante principal, banco parcialmente inundado, con el casco apoyado, agua a los lados, canal persistente y una ruta de vadeo de diseño de ~1 m con el río en mínimo. La variante 'banco localmente expuesto' queda como alternativa no implementada. Las mareas, los vientos del oeste y noroeste que explican bajantes modernas y el nivel de 1,65 m no son observaciones del 12 de agosto de 1806: no se halló una secuencia horaria de viento, presión y nivel.",
+          "kind": "testimonio y diseño",
+          "source_ids": [
+            "S9",
+            "S23",
+            "S28"
+          ],
+          "verification": "parcial"
+        },
+        {
+          "title": "Banderas, estandartes y ropa",
+          "text": "Sin bandera celeste y blanca ni escarapela nacional (de 1812), sin Infernales (1815), sin Húsares ni Patricios ceremoniales, sin marinería reglada de 1857. Hipótesis dibujada en el buque: Red Ensign mercante posterior a 1801 (la bandera concreta del Justina no está identificada). Inferencia dibujada en el circo: bandera blanca con escudo español pintado, por una cuenta de 1803 citada por Pillado. La Union Flag larga 'del Retiro' (Trofeos 1882, lám. V) y el guion del 71.º (MC1256) son trofeos o variantes de tradición, no se colocan en el abordaje. Güemes viste azul con acentos encarnados por inferencia (Beruti describe el Fijo en 1810); los jinetes, ropa rural y civil variada sin uniforme común; la marinería, pantalón amplio y chaqueta corta. Los colores son aproximaciones de diseño.",
+          "kind": "inferencia razonada, tradición y diseño",
+          "source_ids": [
+            "S16",
+            "S17",
+            "S18",
+            "S19",
+            "S20",
+            "S24"
+          ],
+          "verification": "parcial"
         }
       ],
-      "reference_outcome": "La captura del buque es el desenlace histórico de referencia. Victoria y derrota de esta partida dependen de tus decisiones."
+      "reference_outcome": "La captura del buque es el desenlace histórico de referencia. Victoria y derrota de esta partida dependen de tus decisiones.",
+      "uncertainties": [
+        "¿Dónde y con quién estuvo Güemes el 12? Sin datos suficientes (AGN IX-11-5-1, IX-26-7-7).",
+        "Primera atribución localizada: Obligado, La Razón, 12-VIII-1920 y revista Güemes nº 57 (1921): no cotejada con el original.",
+        "Identidad del casco (TNA PC 1/3823; Morris/Dunn): no verificada.",
+        "Punto de encallamiento, sondajes y meteorología del día: sin datos; el juego usa una zona de diseño.",
+        "Dimensión y fachada del circo, puertas, cuarteles de agosto de 1806, bajada usada: parámetros abiertos.",
+        "Bandera que llevaba el buque: sin inventario de presa localizado; Red Ensign es hipótesis."
+      ]
     },
     "norte": {
       "title": "Sostener el norte",
@@ -132,7 +197,7 @@
       "id": "S2",
       "title": "Cultura de la Nación: toma del Justine, 2022",
       "url": "https://www.argentina.gob.ar/noticias/216-anos-de-la-toma-de-la-fragata-justine",
-      "kind": "conmemoración oficial"
+      "kind": "conmemoración oficial; contiene la atribución errónea de Güemes como 'Fijo de Caballería' (el documento del 11-ago lo da cadete de Infantería de Buenos Aires)"
     },
     {
       "id": "S3",
@@ -199,6 +264,107 @@
       "title": "Infobae: reconquista de Buenos Aires, 12-08-2024",
       "url": "https://www.infobae.com/historia/2024/08/12/como-fue-la-operacion-de-reconquista-de-buenos-aires-del-plan-de-liniers-a-la-desconfianza-de-los-ingleses/",
       "kind": "divulgación periodística; contexto cronológico de los días 10 a 12 de agosto"
+    },
+    {
+      "id": "S13",
+      "title": "Luis Güemes, Güemes documentado, t. I, Buenos Aires: Plus Ultra, 1979 (ed. póstuma de Francisco M. Güemes), pp. 49-50, 62, 66, 72-80, 90",
+      "url": "https://www.edisalta.ar/libros/guemes/g1.pdf",
+      "kind": "compilación con documentos, textos tardíos y defensa argumental; se leyó la reproducción impresa (paquete del usuario), no los manuscritos del AGN"
+    },
+    {
+      "id": "S14",
+      "title": "Educ.ar / Gabriel Di Meglio, «El inicio de la carrera militar de Güemes», 2021 (actualizado 2023)",
+      "url": "https://www.educ.ar/recursos/157266/el-inicio-de-la-carrera-militar-de-guemes",
+      "kind": "recurso divulgativo con cautela sobre la participación de Güemes; solo metadatos (paquete): video no visionado"
+    },
+    {
+      "id": "S15",
+      "title": "Mariano M. Schlez, «El tráfico comercial marítimo durante la invasión británica al Río de la Plata (1806-1807)», América Latina en la Historia Económica 27(1), 2020, e1030, p. 7 n. 8",
+      "url": "https://ri.conicet.gov.ar/bitstream/handle/11336/114526/CONICET_Digital_Nro.d90a0d9e-ab8c-4479-9e48-3332a5b2f369_A.pdf",
+      "kind": "pista secundaria (capitán Robert Morris, sobrecargo William Dunn, vía Hughes y TNA PC 1/3823); el expediente no se inspeccionó: NO verificado, no se usa en el juego"
+    },
+    {
+      "id": "S16",
+      "title": "Royal Museums Greenwich, ZBA8736 (pantalón marinero, comienzos del s. XIX)",
+      "url": "https://www.rmg.co.uk/collections/objects/rmgc-object-1135351",
+      "kind": "ficha de catálogo; prenda real, no uniforme del Justina; derechos remitidos a RMG Images"
+    },
+    {
+      "id": "S17",
+      "title": "W. G. Perrin, British Flags, Cambridge, 1922, pp. 130-133; RMG AAA0773 (Red Ensign 1801-1825)",
+      "url": "https://www.gutenberg.org/cache/epub/46370/pg46370-images.html",
+      "kind": "transcripción digital y ficha de catálogo; respaldan el pabellón mercante post-1801 como hipótesis, no la bandera del Justina"
+    },
+    {
+      "id": "S18",
+      "title": "José Antonio Pillado, Buenos Aires colonial, 1910, pp. 309-312 y 326",
+      "url": "https://commons.wikimedia.org/wiki/File:Buenos_Aires_colonial_-_Jose_Antonio_Pillado.pdf",
+      "kind": "estudio retrospectivo con documentos y dudas explícitas: cuatro puertas del circo, cuenta de 1803 de una bandera blanca con escudo español"
+    },
+    {
+      "id": "S19",
+      "title": "Municipalidad de la Capital, Trofeos de la Reconquista de la ciudad de Buenos Aires en el año 1806, Kraft, 1882, pp. 15-18 y láminas",
+      "url": "https://cervantesvirtual.com/obra/trofeos-de-la-reconquista-de-la-ciudad-de-buenos-aires-en-el-ano-1806/",
+      "kind": "inventario retrospectivo; Union Flag atribuida al asta del Retiro (4 x 1,45 m); no es imagen del combate"
+    },
+    {
+      "id": "S20",
+      "title": "Museo del Cabildo, MC1256 (guion del 71.º); foto GNC1808, CC BY-SA 4.0",
+      "url": "https://patrimonioargentino.cultura.gob.ar/index.php/Detail/objects/39241",
+      "kind": "objeto conservado; trofeo, no se sitúa en el abordaje"
+    },
+    {
+      "id": "S21",
+      "title": "Plano de Boneo y Villalonga, 1801 (Buenos Aires)",
+      "url": "docs/referencias/justina/boneo_villalonga_1801_plano_buenos_aires.jpg",
+      "kind": "plano de época; existencia de la Plaza de Toros y trama urbana; copia local"
+    },
+    {
+      "id": "S22",
+      "title": "Plan of the city of Buenos Ayres, 1808. UWM, American Geographical Society Library, am013303",
+      "url": "https://collections.lib.uwm.edu/digital/collection/agdm/id/19797",
+      "kind": "grabado para el proceso de Whitelocke; base urbana con control cronológico (1807). No es un plano del 12-ago-1806. Política de uso UWM: acceso educativo; sin licencia comercial verificada"
+    },
+    {
+      "id": "S23",
+      "title": "Graciela Favelukes, «Apuntes sobre una ribera imprecisa», REGISTROS 21(1), 2025, pp. 107-126",
+      "url": "https://revistasfaud.mdp.edu.ar/registros/article/download/712/592/7921",
+      "kind": "estudio urbano: barranca pampeana, franja baja de arenas, limos, barro y tosca; los ~20 m de terraza regional no son el corte de Retiro"
+    },
+    {
+      "id": "S24",
+      "title": "Emeric Essex Vidal, Picturesque Illustrations of Buenos Ayres and Monte Video, Londres, 1820 (vistas c. 1817)",
+      "url": "https://anaforas.fic.edu.uy/jspui/handle/123456789/113183",
+      "kind": "vistas posteriores en once años a la acción; dominio público; ropa rural, siluetas, relación circo-espacio abierto-ciudad; sin escarapelas revolucionarias"
+    },
+    {
+      "id": "S25",
+      "title": "Mario J. Buschiazzo, «Los cuarteles del Retiro», Anales del Instituto de Arte Americano 21, 1968, pp. 110-119; Cuaderno 3 del Instituto Histórico de Buenos Aires (Retiro)",
+      "url": "https://es.scribd.com/document/351796304/UBA-Anales-21",
+      "kind": "texto consultado por transcripción; separa etapas de los cuarteles; no se usa su confusión puntual de fechas de combate"
+    },
+    {
+      "id": "S26",
+      "title": "Diana Hamra (coord.), Bicentenario de la Reconquista de Buenos Aires 1806-2006, DGCyE La Plata, 2006, p. 93",
+      "url": "https://aprenderly.com/doc/3366061/bicentenario-de-la-reconquista-de-buenos-aires",
+      "kind": "material divulgativo de origen de la cifra de ~400 m desde la barranca de la Plaza de Toros: tradición discutida, no medición"
+    },
+    {
+      "id": "S27",
+      "title": "Royal Museums Greenwich, SLR0583, LNG0016, MSA0204 (comparables de mercantes)",
+      "url": "https://www.rmg.co.uk/collections/objects/rmgc-object-66544",
+      "kind": "fichas de catálogo (140 x 28 pies; 128 pies; 116 pies): analogía de escala; no planos del Justina"
+    },
+    {
+      "id": "S28",
+      "title": "Virna L. Meccia, Estudios de la circulación forzada por el viento en el estuario del Río de la Plata, tesis UBA, 2008",
+      "url": "https://bibliotecadigital.exactas.uba.ar/download/tesis/tesis_n4220_Meccia.pdf",
+      "kind": "mecánica moderna de bajantes extremas; no reconstruye el 12 de agosto de 1806"
     }
-  ]
+  ],
+  "justina_package": {
+    "name": "Justina_Retiro_1806 (paquete del usuario, 30-oct-2026)",
+    "status": "punto de partida; cotejado con docs/referencias/justina",
+    "note": "Las referencias [01]-[39] del informe se mapean a S9, S13-S28 en docs/historia/FUENTES.md (P1). El ajuste georreferenciado experimental (residuo ~17 m) no se usa para fijar el encallamiento."
+  }
 }

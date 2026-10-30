@@ -145,7 +145,7 @@ La selección no forma parte de las reglas. Los identificadores de las tres agru
 
 ## Verificación efectuada
 
-`tests/test_rules.gd` corre el núcleo real en Godot, sin ventana, con **474 comprobaciones** (373 antes de la tercera pasada). Los resultados se escriben en `user://rules-test-results.json` (perfil aislado): **no tocan `evidence/`**. Cubren: alturas de referencia, tabla de velocidades, mareas y ventanas, conocimiento antes y después de sondear, cada acción (éxito, rechazo, costo, efecto), vigencia y límite de la orden de avance, costos del abordaje (cuerpo a cuerpo, fuego x0,3, agua que sube, retirada), geografía (costa al pie de la barranca), etiquetas y textos históricos, `data/history.json`, resultado oculto (determinismo por semilla, un solo hoyo por grupo, hallazgos y guardado), recursos limitados, contraataques/heridos/marea, riesgo del explorador, tope de guardado en bytes con recorte de órdenes y sondas, **18 estrategias x 8 semillas** con criterios de no dominancia y de que reconocer mejora el éxito, velocidad nunca superada, ausencia de grupos varados, rescate, más de 40 mutaciones de guardado que deben rechazarse (Justina y Norte), rendimiento medido y todo lo del Norte (sin cambios). `godot --headless --path . --script res://tests/test_rules.gd -- --matrix [--only=A,B] [--seed=N | --seeds=a,b,c] [--trace=NOMBRE] [--expo] [--picks]` imprime la matriz de estrategias para calibrar; `-- --skip-strategies` salta la matriz (solo para iterar: tarda varios minutos con ella).
+`tests/test_rules.gd` corre el núcleo real en Godot, sin ventana, con **504 comprobaciones** (474 antes de la Ronda 1; 373 antes de la tercera pasada). Los resultados se escriben en `user://rules-test-results.json` (perfil aislado): **no tocan `evidence/`**. Cubren: alturas de referencia, tabla de velocidades, mareas y ventanas, conocimiento antes y después de sondear, cada acción (éxito, rechazo, costo, efecto), vigencia y límite de la orden de avance, costos del abordaje (cuerpo a cuerpo, fuego x0,3, agua que sube, retirada), geografía (costa al pie de la barranca), etiquetas y textos históricos, `data/history.json`, resultado oculto (determinismo por semilla, un solo hoyo por grupo, hallazgos y guardado), recursos limitados, contraataques/heridos/marea, riesgo del explorador, tope de guardado en bytes con recorte de órdenes y sondas, **18 estrategias x 8 semillas** con criterios de no dominancia y de que reconocer mejora el éxito, velocidad nunca superada, ausencia de grupos varados, rescate, más de 40 mutaciones de guardado que deben rechazarse (Justina y Norte), rendimiento medido y todo lo del Norte (sin cambios). `godot --headless --path . --script res://tests/test_rules.gd -- --matrix [--only=A,B] [--seed=N | --seeds=a,b,c] [--trace=NOMBRE] [--expo] [--picks]` imprime la matriz de estrategias para calibrar; `-- --skip-strategies` salta la matriz (solo para iterar: tarda varios minutos con ella).
 
 ### Estrategias simuladas (8 semillas: 3, 5, 7, 11, 13, 17, 19, 23; tres grupos, sin intervención humana)
 
@@ -175,6 +175,30 @@ Cada guion decide sobre lo que descubrió (p. ej. elige el carril firme según e
 Cinco estrategias ganan en alguna semilla y cuatro (`central_flank_lane`, `central_flank_pair`, `south_full`, `mixed_split`) en la mitad o más; la que más gana (`central_flank_pair`) concentra el **33 % de las victorias (8 de 24)**; hay victorias por la ruta central (16), la sur (4) y la mixta (4). Las victorias duran entre 12,4 y 16,2 min (el plazo es de 18). Los tests lo exigen (`play_targets.dominance`): máximo **60 %** de las victorias para una sola estrategia, ≥ 3 estrategias ganando en la mitad o más de las semillas, ninguna familia (centro, sur) por encima del 75 % de sus partidas, ninguna ruta por encima del 75 % de las victorias, y que reconocer mejore el éxito.
 
 **Reconocer mejora el éxito:** las estrategias ciegas (`rush_central`, `rush_gallop`, `blind_north_edge`, `south_wrong_crossing`) ganan 0 de 32 partidas; las que reconocen (`central_flank_lane|pair|stagger`, `south_full`, `mixed_split`) ganan 21 de 40 (52 %).
+
+### Ronda 1 (30-oct-2026): matriz re-medida con la geometría del paquete
+
+Cambios de balance explicados en `docs/DISENO_JUSTINA.md` sección 12 (daño del buque 8,2-12,4; exposición del abordaje 0,12; cuerpo a cuerpo 0,03/s; contraataque 16 de daño y 9 % de retroceso; bajadas de 40 m). `tests/test_rules.gd`: **504 comprobaciones, 0 fallas** (474 antes; 8 nuevas en `_test_victory_quality` y 22 en `_test_package_data`). 18 estrategias x 8 semillas de calibración (3, 5, 7, 11, 13, 17, 19, 23):
+
+| Estrategia | Victorias | Tiempo medio de victoria | Bajas / bajas (vict.) | Exposición cruce |
+| --- | --- | --- | --- | --- |
+| `rush_central` / `rush_gallop` / `blind_north_edge` / `south_wrong_crossing` | 0/8 cada una | — | 99 / 99 / 98 / 100 % | 111 / 106 / 188 / 47 |
+| `central_center_lane` | 5/8 | 717 s | 76 % / 63 % | 312 |
+| `central_flank_lane` | **8/8** | 738 s | 58 % | 238 |
+| `central_flank_pair` | **8/8** | 742 s | 56 % | 228 |
+| `central_hasty` | **8/8** | 717 s | 57 % | 231 |
+| `central_bare` | 0/8 | — | 73 % | 210 |
+| `central_flank_stagger` | 0/8 | — | 100 % | 246 |
+| `central_flank_noreply` | 8/8 | 784 s | 68 % | 238 |
+| `south_full` | **8/8** | 900 s (15,0 min) | 55 % | 151 |
+| `south_vado_only` / `south_bare` | 0/8 | — | 99 / 97 % | 127 / 148 |
+| `south_noreply` | 7/8 | 932 s | 67 % / 63 % | 151 |
+| `mixed_split` | 3/8 | 887 s | 78 % / 58 % | 205 |
+| `late_all_in` / `passive` | 0/8 | — | 0 % | 0 |
+
+55 victorias en 144 partidas; la que más gana concentra el 14,5 % de las victorias (8 de 55). Tiempos de victoria: 11-13 min por el centro y 14,5-16 min por el sur (objetivo `recon_then_south` < 960 s: mejor caso 865 s). Cohorte de 12 estrategias razonables: **55/96 = 57 %** (calibración) y **79/144 = 55 %** (12 semillas de validación: 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73). Bajas de las 134 victorias de la cohorte: mediana 60 %, máxima 75 % con defensa y 81 % sin defensa, 2 por encima de 80 %. Antes de la Ronda 1: 74-86 % de bajas en las victorias.
+
+**Cómo leer estas cifras.** Los guiones juegan con información perfecta del mapa y sin errores de ejecución: ganan casi siempre cuando el guion es completo. La cohorte incluye guiones recortados (sin cobertura, sin reunir, sin sondear el banco) que simulan a quien juega mal o a medias; su tasa es un proxy del 40-60 % de chance de una persona razonable, **no una medición con personas**. El balance sigue siendo un precipicio ante el daño del buque (se vio en las iteraciones: con 6,6-10,0 de daño las `noreply` ganan 8/8 y con 7,8-11,9 los pírricos vuelven).
 
 ### Lo que cumple y lo que no cumple el balance objetivo (`play_targets`)
 
@@ -211,3 +235,9 @@ Medido con `tests/test_rules.gd` (sección "Rendimiento"); el informe queda en `
 Ninguna cifra se jugó con personas; las estrategias están scripteadas con conocimiento del mapa que un jugador no tiene al principio, y los tiempos de victoria dependen de ese guion. **Vista y UI tras la integración (2026-10-29):** `main.gd` ya apunta «Sondeo cauteloso» como el sondeo normal (antes el botón no hacía nada para exploradores); `repel` y `evacuate` se dan con los botones genéricos de grupo. Siguen sin mostrarse en el HUD `signals_left`, `ammo_reserve`, `state.counter` ni el riesgo estimado del sondeo. `tools/ui_qa.gd` pasa 61/61 en 1280×720, 1920×1080 y 2560×1440, y `tools/justina_playthrough.gd` se reescribió con las estrategias de `tests/test_rules.gd` sobre la escena real (5 estilos ganan en 3 semillas, la derrota aparece con `rush_central`, `late_all_in`, etc.) más una partida por clics y teclas reales (`ui_real`, `central_flank_pair`): gana 2 de 3 semillas (5 y 11) y pierde la semilla 1806 por poco (captura 90 %). Las fuentes de La Nación y Recalada, y las de Concha y Liniers (Archivo Pueyrredón), no se cotejaron con sus originales; Recalada ya figura como S10 en `docs/historia/FUENTES.md`. El Norte no cambió y sus pruebas pasan como antes.
 
 Estos tiempos son **tiempo de simulación con órdenes automatizadas**, no mediciones de duración de jugadores humanos ni rendimiento gráfico.
+
+## Ronda 1 (30-oct-2026): reglas tocadas
+
+- `game_rules.gd::_bed_warp(x, z, toe_x)` y las claves `warp` / `warp_cfg` de `_S_geo`: desplazamiento del perfil base según `bed_warp` del JSON (si falta, cero). `terrain_height_at` usa `_interp(base, x - warp)`. La estimación del jugador (`_base_height`, perfil «suave» sin bancos) no usa el warp: el jugador estima un perfil liso y el fondo real tiene meandros.
+- Textos de eventos: «piezas del Retiro» en lugar de «batería Abascal» (el id `bateria_abascal` no cambia); la historia fija marca Reconstrucción para la caballería de Pueyrredón.
+- Sin cambios de estado guardado ni de `schema_version`; `map_version` pasa de 3 a 4 (partidas guardadas de la versión 3 siguen el mismo esquema).

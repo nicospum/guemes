@@ -452,3 +452,35 @@ UI ──pick_* / world_to_map / get_minimap_texture──▶ Vista
 - Si Reglas necesita un campo de estado nuevo, lo agrega, lo documenta en `docs/DISENO_REGLAS.md` y avisa para versionar el contrato; la UI y la Vista no pueden depender de campos no listados aquí.
 - El **Norte** queda para otra ronda (síntesis 1.2 y 4): este contrato no lo cambia.
 - Pendientes que no resuelve el contrato: contrastar posiciones con las láminas de Vidal (Vista), cotejar a Gillespie con el escaneo (historia), playtest humano (todas).
+
+## 6. Claves nuevas del JSON (Ronda 1, 30-oct-2026, `map_version` 4)
+
+Todas son **aditivas**: Reglas, Vista y UI siguen funcionando si las ignoran. Las lee quien las necesite con `rules.map_data().get("clave", ...)`. Etiquetas siempre en `tag` / `status` con los ids de `source_tags` (`documentado`, `tradicion`, `reconstruccion`, `diseno`). Coordenadas de juego (+x este, +z sur, 1 u = 1 m).
+
+| Clave | Contenido | Quién la consume |
+|---|---|---|
+| `size_note` | Decisión 900 x 520 simulado + contexto 900 x 750 | documentación |
+| `bed_warp` | `points_z_dx` (pares [z, dx]), `fade_in_from_toe_m`, `fade_in_len_m`, `fade_out_from_x`, `fade_out_to_x`. Ya lo aplica `terrain_height_at`; la Vista que dibuje con `terrain_height_at` lo recibe sola. **Quien use `bed_profile.points_x_elev` directamente (p. ej. shader de fondo en `world_view.gd`, línea ~859) ignora los meandros: debe pasar por `terrain_height_at`** | Vista |
+| `tide.states[]` | `id` (alto, bajante, minimo, subida), `label`, `level_m_range`, `shows` (texto), `visual.wet_sand_width_m`, `visual.water_clarity`, `visual.banks_visible`. Sirve para rotular el estado del agua y graduar arena húmeda y transparencia (un solo tono de agua, varía la transparencia) | Vista, UI |
+| `tide.alternative_variant` | Variante «banco expuesto»: `implemented:false` | documentación |
+| `hull` (+ `length_m`, `beam_m`, `heading_deg`, `note`) y `ship.hull_envelope`, `ship.position_candidates`, `ship.rigging`, `ship.crew_composition`, `ship.distance_note` | Casco visual 40 x 9 m, proa al norte; el círculo de `radius_m` 16 sigue siendo la zona de contacto. Mesana dañada (hipótesis, `tradicion` si se desarbola). Candidatos A (usado) y B (no) | Vista, UI |
+| `landmarks[justina]` (+ `hull_length_m`, `hull_beam_m`, `heading_deg`, `uncertainty_radius_m` 120) | Zona de incertidumbre del lugar: dibujarla como mancha tenue, no como pin | Vista |
+| `landmarks[plaza_toros]` (+ `tag_parts`, `shape: octagon`, `rotation_deg`, `vertex_span_m`, `ring_radius_m`, `wall_height_m`, `gates`, `previous_radius_m`) | El rótulo debe mostrar la parte débil: `tag` = `reconstruccion`; `tag_parts.existencia` = `documentado`. Dibujar exterior octogonal (circunradio `radius_m`) y ruedo circular | Vista, UI |
+| `landmarks[alameda]` | Ahora `diseno`, `trees:false`, polilínea corta. **No plantar arboleda regular** | Vista |
+| `landmarks[bateria_abascal]` | Nombre «Piezas de a 18 del Retiro»; el id no cambia | Vista, UI |
+| `scenery{tag, note, items[]}` | Decorado no jugable: `kind` ∈ dependencias_militares, casa, tapia, huellas, carros, bote, vegetacion; con `x,z,w,d,rot_deg` o `polyline`, `tag`, `source` | Vista |
+| `context{extent, north, south, skyline[], excluded_anachronisms[]}` | Contexto fuera de `size` (z -115..0 y 520..635): casas, ribera, siluetas de Santa Catalina, Fuerte y campanarios con `bearing_deg`. La cámara sigue acotada por `size` | Vista |
+| `palette{package, terrain, water, map_overlays}` | Hex de la paleta del paquete (azul del Fijo `#253B53`, encarnado `#983C3C`, etc.), terreno y agua turbia (`water.shallow/mid/deep`), `fire_arc_fill_alpha_max` 0,12: el abanico de fuego va como contorno tenue | Vista, UI (minimapa: usar `water`/`terrain`) |
+| `forces{groups, opposing, kits}` | Por grupo: etiqueta, `headcount_hint` (figuras a dibujar, no efectivos), `composition[]` con `status`, `kit_ref`; `kits` con colores por nombre de `palette.package`, silueta y `token_color` | Vista, UI |
+| `characters[]` | Fichas: Güemes (tradición; cadete de Infantería), Liniers, Pueyrredón, Gillespie (fuente), capitán sin nombre, marineros; `in_play` | UI (fichas), Vista |
+| `banners{items[], forbidden[]}` | `red_ensign_mercante` (popa del buque, `reconstruccion`, `draw_default:true`), `bandera_circo` (`reconstruccion`, `draw_default:true`), el resto `draw_default:false`. Etiqueta visible: «Pabellón mercante (hipótesis)», «Bandera del circo (inferencia)». **Prohibido** celeste y blanca, escarapela, Infernales | Vista, UI |
+| `play_targets.cohort_win_rate`, `victory_loss`, `max_victory_loss_pct` | Objetivos de la matriz (tests) | tests |
+| `package_ref` | Procedencia del paquete | documentación |
+| `data/history.json`: `uncertainties[]`, `justina_package`, `facts[]` (+4 hechos), `sources` S13-S28 | Pantalla de fuentes / parte | UI |
+
+**Para otras pistas (no son de Reglas):**
+- Vista: el rótulo «Pie de la barranca» (`world_view.gd` ~l. 1333) está fijo en (190, 60): ahora el pie está en x=190 (z=50) / 200 (z=100); usar `barranca.toe`. Los shaders de agua/playa deben leer `tide.states`; el color del agua sale de `palette.water` (turbio pardo-verdoso, sin rosa ni ocre saturado). Con la bajante, la playa baja sigue la curva con meandros (`terrain_height_at`).
+- Vista: `enemy_marker` («◆ REALISTAS», bandera roja, `royalist_1817`) es del Norte; verificar que no se muestre en Justina (el paquete excluye cualquier bandera ajena; no hay realistas en la escena).
+- UI: mostrar «Güemes y los jinetes (tradición)» en lugar de «Vanguardia» (`main.gd` l. 1166 abrevia por id: usar `forces.groups[id].label`); la acción «Volver» desconocida se detecta en el QA de UI, no es de datos.
+- Las posiciones de los hitos cambiaron: `plaza_toros` (112,225) r45; `bateria_abascal` (148,176); `campamento_pueyrredon` (148,292); `puesto_liniers` (140,345); `signal_liniers` y `muster` usan esos hitos (`muster.radius_m` 45).
+

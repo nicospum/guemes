@@ -24,6 +24,7 @@ func _initialize() -> void:
 	_test_fire_and_exposure()
 	_test_boarding_costs()
 	_test_geography_and_texts()
+	_test_package_data()
 	_test_hidden_layout()
 	_test_scarce_resources()
 	_test_capture_decisions()
@@ -105,7 +106,7 @@ func _test_map_and_terrain() -> void:
 		var h: float = r.terrain_height_at(ref[0], ref[1])
 		check(_near(h, ref[2], 0.02), "Altura de referencia (%d,%d) = %.2f (obtenida %.3f)" % [ref[0], ref[1], ref[2], h])
 	check(_near(r.terrain_height_at(130, 100), 12.0 + (13.0 - 12.0) * 0.0, 3.0) and r.terrain_height_at(130, 100) > 8.0, "La meseta está a 8-15 m")
-	check(r.terrain_height_at(199, 240) > 2.5 and r.terrain_height_at(199, 240) < r.terrain_height_at(170, 240) and float(r.state.units[0].x) - float(r.map_data().barranca.toe[3][0]) < 10.0, "La costa inicial está al pie de la barranca: los grupos parten a pocos metros del pie, sobre la playa alta")
+	check(r.terrain_height_at(199, 240) > 2.5 and r.terrain_height_at(199, 240) < r.terrain_height_at(170, 240) and float(r.state.units[0].x) - float(r.map_data().barranca.toe[5][0]) < 10.0, "La costa inicial está al pie de la barranca: los grupos parten a pocos metros del pie, sobre la playa alta")
 	check(_near(r.water_depth_at(199, 240), r.water_level_m() - r.terrain_height_at(199, 240), 1e-9), "water_depth_at = nivel - altura")
 	# tipos de suelo con el río en 1,65 m
 	var kinds := {"meseta": [130, 100], "barranca": [175, 100], "bajada": [178, 190], "obstaculo": [250, 120], "casco": [580, 262], "firme": [199, 240], "barro": [206, 240], "somera": [215, 240], "agua": [245, 240], "honda": [415, 264]}
@@ -113,7 +114,7 @@ func _test_map_and_terrain() -> void:
 		check(r.terrain_kind_at(kinds[k][0], kinds[k][1]) == k, "terrain_kind_at devuelve %s (obtenido %s)" % [k, r.terrain_kind_at(kinds[k][0], kinds[k][1])])
 	check(r.terrain_kind_at(-4, 10) == "obstaculo" and r.speed_at(-4, 10, "walk", true) == 0.0 and r.speed_at(901, 10, "walk", true) == 0.0, "Fuera del mapa no se transita")
 	# la bajada y el acceso a los hitos de la meseta son transitables; el resto de la meseta no
-	check(r.speed_at(178, 190, "trot", true) > 0.0 and r.speed_at(150, 205, "trot", true) > 0.0 and r.speed_at(148, 345, "trot", true) > 0.0, "Las bajadas y el acceso a la batería/puesto de Liniers son transitables")
+	check(r.speed_at(178, 190, "trot", true) > 0.0 and r.speed_at(150, 180, "trot", true) > 0.0 and r.speed_at(148, 345, "trot", true) > 0.0, "Las bajadas y el acceso a la batería/puesto de Liniers son transitables")
 	check(r.speed_at(130, 100, "trot", true) == 0.0 and r.speed_at(175, 100, "trot", true) == 0.0, "El resto de la meseta y la barranca no se pisan")
 	check(not r.is_walkable(345, 264) and r.is_walkable(199, 240) and not r.is_walkable(250, 120), "is_walkable compatible con la firma vieja")
 
@@ -531,7 +532,8 @@ func _test_boarding_costs() -> void:
 	var s0 := float(b.get_unit("guemes").strength)
 	_advance(b, 560.0)
 	var lost := s0 - float(b.get_unit("guemes").strength)
-	check(lost >= 60.0 * 0.05 * 0.9 and lost <= 60.0 * 0.05 * 1.05 + 0.01, "Abordar cuesta fuerza en el cuerpo a cuerpo: 0,05/s con la dotación entera (60 s: %.2f)" % lost)
+	var melee_rate := float(Rules.new().map_data().ship.capture.melee_loss_per_s)
+	check(lost >= 60.0 * melee_rate * 0.9 and lost <= 60.0 * melee_rate * 1.05 + 0.01, "Abordar cuesta fuerza en el cuerpo a cuerpo: %.3f/s con la dotación entera (60 s: %.2f)" % [melee_rate, lost])
 	check(float(b.state.stats.melee_loss) > 0.0 and b.state.capture > 0.0, "El parte registra la pérdida en el cuerpo a cuerpo y la captura avanza")
 	# con la moral de la dotación baja el cuerpo a cuerpo pierde fuerza
 	var weak := _boarding_game(500.0)
@@ -613,6 +615,74 @@ func _test_geography_and_texts() -> void:
 
 func _test_boarding_costs_placeholder() -> void:
 	pass
+
+## Ronda 1 (paquete Justina_Retiro_1806): datos de mapa e historia nuevos y coherentes con las advertencias del paquete.
+func _test_package_data() -> void:
+	var r := _new_j()
+	var m: Dictionary = r.map_data()
+	check(int(m.map_version) >= 4 and m.has("context") and m.has("scenery") and m.has("palette") and m.has("forces") and m.has("characters") and m.has("banners") and m.has("bed_warp"), "El mapa v4 trae context, scenery, palette, forces, characters, banners y bed_warp")
+	var ext: Dictionary = m.context.extent
+	check(r.map_size() == Vector2(900, 520) and _near(float(ext.z_max) - float(ext.z_min), 750.0, 0.01) and _near(float(ext.x_max) - float(ext.x_min), 900.0, 0.01), "Zona simulada 900 x 520 y contexto de 900 x 750 (decisión documentada)")
+	# costa irregular: la línea de agua, la cresta y el pie no son rectas
+	var sx: Array = []
+	for pt in m.shore_high.polyline:
+		sx.append(float(pt[0]))
+	var tx: Array = []
+	for pt in m.barranca.toe:
+		tx.append(float(pt[0]))
+	check(sx.max() - sx.min() >= 20.0 and tx.max() - tx.min() >= 20.0, "La costa y el pie de la barranca son irregulares (rango %.0f y %.0f m)" % [sx.max() - sx.min(), tx.max() - tx.min()])
+	# los meandros del fondo: a igual x, la altura cambia con z; y es continua en el pie y mar adentro
+	var h1: float = r.terrain_height_at(265.0, 120.0)
+	var h2: float = r.terrain_height_at(265.0, 230.0)
+	check(absf(h1 - h2) > 0.2, "bed_warp: la curva de nivel de la playa baja serpentea (x=265: %.2f m en z=120 y %.2f m en z=230)" % [h1, h2])
+	check(absf(r.terrain_height_at(600.0, 120.0) - r._base_height(600.0)) < 0.01, "bed_warp no toca el fondo mar adentro")
+	var toe_x: float = r._toe_x(120.0)
+	check(absf(r.terrain_height_at(toe_x + 0.5, 120.0) - r.terrain_height_at(toe_x - 0.5, 120.0)) < 0.35, "El terreno es continuo en el pie de la barranca")
+	# circo, casco y buque
+	var by_id := {}
+	for lm in m.landmarks:
+		by_id[str(lm.id)] = lm
+	check(_near(float(by_id.plaza_toros.radius_m) * 2.0, float(by_id.plaza_toros.vertex_span_m), 0.01) and str(by_id.plaza_toros.shape) == "octagon" and float(by_id.plaza_toros.vertex_span_m) == 90.0, "La Plaza de Toros es un octógono de 90 m entre vértices (diseño)")
+	var pt: Vector2 = Vector2(float(by_id.plaza_toros.x), float(by_id.plaza_toros.z))
+	check(pt.x + float(by_id.plaza_toros.radius_m) <= r._interp_crest(pt.y) + 1.0, "El circo no se sale de la cresta de la barranca")
+	check(float(m.hull.length_m) == 40.0 and float(m.hull.beam_m) == 9.0 and float(m.hull.radius_m) == 16.0 and str(m.hull.tag) == "diseno", "Casco visual 40 x 9 m (diseño); el círculo de 16 m es la zona de contacto")
+	check(str(m.ship.get("distance_tag", "")) == "diseno" and "400" in str(m.ship.distance_note) and "tradición discutida" in str(m.ship.distance_note).to_lower(), "Los ~400 m son tradición discutida y los 390 m, diseño, con una sola explicación")
+	# fuentes, personajes y banderas
+	var bn := {}
+	for b in m.banners.items:
+		bn[str(b.id)] = b
+	check(str(bn.red_ensign_mercante.status) == "reconstruccion" and "hipótesis" in str(bn.red_ensign_mercante.status_detail), "El pabellón mercante es una hipótesis etiquetada, no una bandera identificada")
+	check(str(bn.bandera_circo.status) == "reconstruccion" and not bool(bn.union_retiro.draw_default) and not bool(bn.guion_71.draw_default), "La bandera del circo es inferencia; la Union del Retiro y el guion del 71.º no se dibujan por defecto")
+	var forbidden := JSON.stringify(m.banners.forbidden).to_lower()
+	check("celeste y blanca" in forbidden and "infernales" in forbidden and "escarapela" in forbidden, "Se prohíben bandera celeste y blanca, escarapela e Infernales")
+	var gem := {}
+	for c in m.characters:
+		gem[str(c.id)] = c
+	check(str(gem.guemes.tag) == "tradicion" and "Infantería" in str(gem.guemes.role) and int(gem.guemes.age) == 21, "Güemes: tradición, 21 años, cadete del Regimiento de Infantería de Buenos Aires")
+	check(not ("morris" in str(gem.capitan_mercante.name).to_lower()) and not ("robert morris" in JSON.stringify(m.forces).to_lower()) and "no verificad" in str(gem.capitan_mercante.notes).to_lower(), "El capitán no lleva nombre: Morris y Dunn son una pista no verificada")
+	var pal: Dictionary = m.palette.package
+	check(str(pal.azul_fijo) == "#253B53" and str(pal.encarnado) == "#983C3C" and str(pal.buff_ante) == "#BEAA78" and str(pal.rojo_71) == "#B6453E", "La paleta del paquete está volcada (azul del Fijo, encarnado, buff, rojo del 71.º)")
+	for id in ["guemes", "arias", "zavala"]:
+		var kit: Dictionary = m.forces.kits[str(m.forces.groups[id].kit_ref)]
+		check(kit.has("token_color") and kit.has("colors"), "El grupo %s tiene kit de colores y color de ficha" % id)
+	var f := FileAccess.open("res://data/history.json", FileAccess.READ)
+	var hist: Dictionary = JSON.parse_string(f.get_as_text())
+	var ids := {}
+	for sr in hist.sources:
+		ids[str(sr.id)] = sr
+	var missing := 0
+	for fact in hist.scenarios.justine.facts:
+		for sid in fact.source_ids:
+			if not ids.has(str(sid)):
+				missing += 1
+	check(missing == 0 and ids.has("S13") and ids.has("S28") and "fijo de caballería" in str(ids.S2.kind).to_lower(), "history.json: todas las fuentes citadas existen (S13-S28) y S2 advierte del «Fijo de Caballería»")
+	var facts_txt := JSON.stringify(hist.scenarios.justine.facts).to_lower()
+	check("infantería de buenos aires" in facts_txt and "sin datos suficientes" in facts_txt and "40 a 60" in facts_txt and "no verificad" in facts_txt, "history.json: Güemes cadete de Infantería, presencia sin datos y «40 a 60 jinetes» no verificado")
+	var pue: Dictionary = {}
+	for fact in hist.scenarios.justine.facts:
+		if str(fact.title) == "La caballería de Pueyrredón":
+			pue = fact
+	check(str(pue.kind).begins_with("reconstrucción") and not ("documental" in str(pue.kind).to_lower()), "La caballería de Pueyrredón ya no se rotula documental")
 
 # ---------------------------------------------------------------------------
 # 5b. Resultado oculto por partida, recursos limitados, decisiones en la captura, riesgo del explorador, etiquetas y tope de guardado
@@ -859,8 +929,8 @@ func _test_labels_and_save_trim() -> void:
 		by_id[str(lm.id)] = lm
 	check(str(by_id.justina.tag) == "reconstruccion" and str(by_id.justina.tag_parts.descripcion) == "documentado" and str(by_id.justina.tag_parts.lugar) == "reconstruccion", "El hito del buque separa la descripción (Documentado) del lugar (Reconstrucción)")
 	check(str(m.ship.tag) == "reconstruccion" and str(m.ship.tag_parts.descripcion) == "documentado" and str(m.ship.tag_parts.lugar) == "reconstruccion", "La entidad 'ship' separa la descripción documentada del lugar reconstruido")
-	check(str(by_id.alameda.tag) == "reconstruccion", "La Alameda (lugar de fuente secundaria) es Reconstrucción")
-	check(str(by_id.plaza_toros.tag) == "documentado", "La Plaza de Toros (plano de 1801) sigue siendo Documentado")
+	check(str(by_id.alameda.tag) == "diseno" and not bool(by_id.alameda.trees) and by_id.alameda.polyline.size() <= 5, "La Alameda es un tramo corto de camino sin arboleda regular y de Diseño (paquete C: no extender una avenida ribereña a todo Retiro)")
+	check(str(by_id.plaza_toros.tag_parts.existencia) == "documentado" and str(by_id.plaza_toros.tag) == "reconstruccion" and str(by_id.plaza_toros.tag_parts.medidas) == "diseno", "La Plaza de Toros: existencia Documentada (plano de 1801); posición Reconstrucción; medidas Diseño")
 	var meaning := str(m.source_tags.documentado.meaning).to_lower()
 	check("transcripción" in meaning and "divulgativas no bastan" in meaning and "manuscrito" in meaning, "La definición de 'Documentado' que ve el jugador es la del proyecto (transcripción; las divulgativas no bastan)")
 	var note := str(m.time.note).to_lower()
@@ -1496,7 +1566,75 @@ func _test_strategies() -> void:
 	check("concha" in joined and "archivo pueyrredón" in joined, "La caballería de Pueyrredón se atribuye a Concha y a Liniers (Archivo Pueyrredón), no solo a Obligado")
 	check(not ("fragata" in joined) and not ("goleta" in joined) and not ("bandera argentina" in joined and "con bandera" in joined), "La historia no inventa tipo de buque")
 	check(not rep.is_empty() and rep.boarded_at > 0.0 and rep.level_at_boarding >= 0.0 and rep.ammo_used >= 0 and rep.groups[0].tag == "tradicion" and rep.has("horses_lost"), "El parte registra el abordaje, los caballos perdidos y las etiquetas")
+	_test_victory_quality(all)
 	print("ESTRATEGIAS: ", JSON.stringify(wins_by))
+
+## Estrategias "razonables" (reconocen y se comprometen, con o sin defensa del abordaje): el proxy de una partida humana. Excluye las ciegas, la pasiva y la tardía.
+const COHORT := ["central_center_lane", "central_flank_lane", "central_flank_pair", "central_hasty", "central_bare", "central_flank_stagger", "central_flank_noreply", "south_full", "south_vado_only", "south_bare", "south_noreply", "mixed_split"]
+## Semillas de VALIDACIÓN (no se usaron para calibrar los números del mapa; SEEDS sí).
+const VALIDATION_SEEDS := [29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73]
+
+## Calidad de las victorias (Ronda 1): una partida razonable gana ~40-60 % de las veces, también en semillas de validación, y las victorias no son pírricas.
+func _test_victory_quality(all: Dictionary) -> void:
+	var tg: Dictionary = Rules.new().map_data().play_targets
+	var vl: Dictionary = tg.victory_loss
+	var lo: float = float(tg.cohort_win_rate[0])
+	var hi: float = float(tg.cohort_win_rate[1])
+	var cal_w := 0
+	var cal_n := 0
+	var wins_loss: Array = []
+	var defended_max := 0.0
+	var undefended_max := 0.0
+	for p in COHORT:
+		for res in all[p]:
+			cal_n += 1
+			if res.status == "victory":
+				cal_w += 1
+				wins_loss.append(float(res.loss_pct))
+				if "noreply" in p:
+					undefended_max = maxf(undefended_max, float(res.loss_pct))
+				else:
+					defended_max = maxf(defended_max, float(res.loss_pct))
+	var val_w := 0
+	var val_n := 0
+	var val_by := {}
+	for p in COHORT:
+		val_by[p] = 0
+		for sd in VALIDATION_SEEDS:
+			var res := _run_strategy(p, sd)
+			val_n += 1
+			if res.status == "victory":
+				val_w += 1
+				val_by[p] = int(val_by[p]) + 1
+				wins_loss.append(float(res.loss_pct))
+				if "noreply" in p:
+					undefended_max = maxf(undefended_max, float(res.loss_pct))
+				else:
+					defended_max = maxf(defended_max, float(res.loss_pct))
+			if p in ["central_flank_pair", "south_full"]:
+				report.results.append({"scenario": "justine", "strategy": p, "seed": sd, "validation": true, "result": {"status": res.status, "t": res.t, "loss_pct": res.loss_pct}})
+	var cal_rate := float(cal_w) / float(cal_n)
+	var val_rate := float(val_w) / float(val_n)
+	check(cal_rate >= lo and cal_rate <= hi, "Estrategias razonables: tasa de victoria en las semillas de calibración %.0f %% dentro de %.0f-%.0f %% (%d/%d)" % [cal_rate * 100.0, lo * 100.0, hi * 100.0, cal_w, cal_n])
+	check(val_rate >= lo and val_rate <= hi, "...y en las %d semillas de VALIDACIÓN %.0f %% (%d/%d): no hay sobreajuste a las semillas de calibración" % [VALIDATION_SEEDS.size(), val_rate * 100.0, val_w, val_n])
+	check(absf(cal_rate - val_rate) <= 0.15, "La tasa de calibración y la de validación difieren a lo sumo 15 puntos (%.0f vs %.0f %%)" % [cal_rate * 100.0, val_rate * 100.0])
+	wins_loss.sort()
+	var median: float = float(wins_loss[wins_loss.size() / 2]) if not wins_loss.is_empty() else 100.0
+	var over80 := 0
+	for l in wins_loss:
+		if float(l) > 80.0:
+			over80 += 1
+	check(wins_loss.size() >= 20 and median <= float(vl.median_max_pct), "Victorias no pírricas: bajas medianas %.0f %% <= %d %% (%d victorias)" % [median, int(vl.median_max_pct), wins_loss.size()])
+	check(defended_max <= float(tg.max_victory_loss_pct), "Ninguna victoria con defensa del abordaje cuesta más del %d %% de la fuerza (máx. %.0f %%)" % [int(tg.max_victory_loss_pct), defended_max])
+	check(undefended_max <= float(vl.undefended_max_pct), "Ni siquiera sin defender el abordaje una victoria pasa del %d %% (máx. %.0f %%)" % [int(vl.undefended_max_pct), undefended_max])
+	check(float(over80) / float(maxi(1, wins_loss.size())) <= float(vl.share_over_80_max), "Pocas victorias al borde (>80 %% de bajas): %d de %d (máx. %.0f %%)" % [over80, wins_loss.size(), float(vl.share_over_80_max) * 100.0])
+	var winners_val := 0
+	for p in COHORT:
+		if int(val_by[p]) * 2 >= VALIDATION_SEEDS.size():
+			winners_val += 1
+	check(winners_val >= 4, "En validación al menos 4 estrategias distintas ganan la mitad o más de las semillas (%d): no depende de un guion único" % winners_val)
+	report.results.append({"scenario": "justine", "strategy": "calidad_victorias", "cal_rate": cal_rate, "val_rate": val_rate, "median_loss_pct": median, "defended_max_loss_pct": defended_max, "undefended_max_loss_pct": undefended_max, "over80": over80, "wins": wins_loss.size(), "val_by_strategy": val_by})
+	print("COHORTE: calibración %d/%d (%.0f %%), validación %d/%d (%.0f %%), bajas medianas %.0f %%, máx. con defensa %.0f %%, sin defensa %.0f %%, >80 %%: %d/%d | validación por estrategia %s" % [cal_w, cal_n, cal_rate * 100.0, val_w, val_n, val_rate * 100.0, median, defended_max, undefended_max, over80, wins_loss.size(), JSON.stringify(val_by)])
 
 func _test_speed_never_exceeded() -> void:
 	# Muestreo de 200+ pasos: el desplazamiento por paso nunca supera speed_at del punto de partida.
