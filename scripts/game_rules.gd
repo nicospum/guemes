@@ -37,6 +37,7 @@ const JUSTINE_STAGES := ["ready", "moving", "working", "stumbling", "rally", "bl
 ## Despliegue previo (Justina): paso y margen para reasignar fuerza inicial entre los tres grupos (UI de la ronda 1; aditivo, no toca el balance por defecto).
 const DEPLOY_STEP := 5.0
 const DEPLOY_MARGIN := 15.0
+const DEPLOY_MOVE_M := 14.0 ## Ronda 3: cuanto puede moverse el punto de partida (m) respecto del de diseno, sobre tierra firme
 const JUSTINE_ORDER_ACTIONS := ["move", "board", "rally", "withdraw", "muster", "resupply", "signal_liniers", "repel", "evacuate"]
 const SAVE_ORDERS_FALLBACK := 120      ## si el guardado se pasa del tope, se conservan solo las ultimas ordenes
 const SAVE_PROBE_STRIDE := 3           ## y las sondas se aligeran conservando 1 de cada N puntos (mas los extremos)
@@ -1317,6 +1318,39 @@ func deploy_transfer(from_id: String, to_id: String, amount: float = DEPLOY_STEP
 	state.stats.start_strength[to_id] = new_b
 	state.state_version = int(state.state_version) + 1
 	return {"ok": true, "reason": "Pasaste %d de fuerza de %s a %s (ahora %d y %d)." % [roundi(amount), a.name, b.name, roundi(new_a), roundi(new_b)]}
+
+## Ronda 3 (aditivo): reubica el punto de partida de un grupo o explorador antes de empezar y antes de la primera orden.
+## Limite: DEPLOY_MOVE_M metros del punto de diseno y solo sobre tierra firme (is_walkable). No toca fuerza ni reglas del Norte.
+func deploy_place(actor_id: String, x: float, z: float) -> Dictionary:
+	if state.get("scenario", "") != "justine" or state.get("status", "") != "playing":
+		return _no("El despliegue solo existe en la Justina.")
+	if float(state.elapsed) > 0.0 or not (state.orders as Array).is_empty():
+		return _no("El despliegue solo se ajusta antes de empezar y antes de dar órdenes.")
+	if not is_finite(x) or not is_finite(z):
+		return _no("Posición inválida.")
+	var actor := get_unit(actor_id)
+	var base := Vector2.ZERO
+	var found := false
+	for g in map_data().groups:
+		if str(g.id) == actor_id:
+			base = Vector2(float(g.x), float(g.z)); found = true
+	for s in map_data().scouts:
+		if str(s.id) == actor_id:
+			base = Vector2(float(s.x), float(s.z)); found = true
+	if actor.is_empty():
+		for s2 in state.scouts:
+			if str(s2.id) == actor_id:
+				actor = s2
+	if actor.is_empty() or not found:
+		return _no("Ese grupo no existe.")
+	if Vector2(x, z).distance_to(base) > DEPLOY_MOVE_M + 0.001:
+		return _no("Límite del despliegue: el punto de partida solo puede moverse hasta %d m del original." % roundi(DEPLOY_MOVE_M))
+	if not is_walkable(x, z, true) or water_depth_at(x, z) > 0.05:
+		return _no("Ese punto no es tierra firme: elegí un lugar seco de la playa alta.")
+	actor.x = x
+	actor.z = z
+	state.state_version = int(state.state_version) + 1
+	return {"ok": true, "reason": "%s parte ahora de x %d · z %d." % [str(actor.name), roundi(x), roundi(z)]}
 
 func cancel_order(group_id: String) -> Dictionary:
 	var u := get_unit(group_id)

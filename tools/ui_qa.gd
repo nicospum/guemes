@@ -245,6 +245,8 @@ func _run() -> void:
 	check(Rect2(Vector2.ZERO, root.get_visible_rect().size).encloses((game.modal.get_child(1) as Control).get_global_rect()), "Justina: el despliegue previo entra en pantalla")
 	check(game.find_children("*", "RichTextLabel", true, false).any(func(l): return str(l.text).find("Consecuencias") >= 0), "Justina: el despliegue previo muestra las consecuencias de la fuerza")
 	check(game.find_children("*", "CheckButton", true, false).any(func(c): return str(c.text).find("Pausa autom") >= 0), "Justina: el despliegue previo ofrece la pausa automatica")
+	check(game.find_children("*", "Button", true, false).any(func(c): return str(c.text).find("Norte") >= 0), "R3: el despliegue ofrece reubicar los puntos de partida")
+	check(game.clock_label.text.ends_with("min"), "R3: la cabecera dice minutos")
 	await _shot("justina-despliegue")
 	game._close_modal()
 	await _frames(30)

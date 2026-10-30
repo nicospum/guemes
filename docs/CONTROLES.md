@@ -77,7 +77,11 @@ La campaña del norte guarda automáticamente después de cada ronda. Hay un gua
 
 **Deshacer y cancelar.** **X** cancela la orden de los grupos seleccionados. **Ctrl+Z** (o el botón **Deshacer**) revierte la última orden dada: devuelve a cada grupo a lo que hacía o la cancela, y a los exploradores a la playa. No recupera señales, munición ni balizas ya gastadas, ni deshace lo que ya ocurrió.
 
-**Despliegue.** Antes de empezar (y de dar la primera orden) se puede pasar fuerza entre los tres grupos desde **Despliegue previo**: de a 5, hasta ±15 respecto de la partida y sin pasar de 100, conservando el total. Los exploradores y los puntos de partida no se reasignan (para mover un grupo, dale una orden con el tiempo detenido). El equilibrio se midió con el despliegue por defecto.
+**Despliegue.** Antes de empezar (y de dar la primera orden) **Despliegue previo** permite: pasar fuerza entre los tres grupos (de a 5, hasta ±15 respecto de la partida, sin pasar de 100, conservando el total) y **mover el punto de partida** de cada grupo o explorador (botones Norte/Sur/Oeste/Este, hasta 14 m del original y solo sobre tierra firme; `deploy_place` en `game_rules.gd`, cambio aditivo que no toca el Norte). Las rutas y el ritmo se ordenan después, con el tiempo detenido. El equilibrio se midió con el despliegue por defecto; moverlo es una libertad de diseño.
+
+**Lectura rápida de la cabecera.** «Quedan 18:00 min» son minutos y segundos hasta el plazo, no una hora del día. **Baliza**: estaca que se marca en un vado ya reconocido. **Pólvora de reserva**: munición extra que se reparte con «Abastecer munición». Una línea bajo las acciones muestra siempre el motivo de una acción en gris. Güemes aparece como «Güemes (trad.)» porque su presencia es tradición.
+
+**Sobre la fuente.** Gillespie escribe que el buque quedó «en seco»; el juego elige un casco apoyado con agua alrededor por jugabilidad (diseño) y la ayuda lo dice.
 
 La presencia de Güemes en esta toma recrea una atribución tradicional, no una intervención personal demostrada. **Ayuda → Fuentes e historia** explica la diferencia entre el testimonio, la tradición y las reglas de esta misión.
 

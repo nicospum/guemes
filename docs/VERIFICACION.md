@@ -134,3 +134,9 @@ godot --headless --path . --script tests/test_integration.gd
 ```
 
 Para reconstruir, seguir `docs/RECONSTRUIR.md`. En Linux, las pruebas renderizadas y de rendimiento se ejecutan con `tools/run_qa.py` y `tools/benchmark.py`. `tools/test_windows_wine.py` prueba el EXE dentro de un prefijo Wine aislado y conserva expresamente `native_windows_tested: false`. Ninguno de esos scripts sustituye una sesión en Windows nativo.
+
+## Ronda 3 · controles y tiempo real (rama ronda3-ui_tiempo_real)
+
+- Orden recomendado de las pruebas con el mismo perfil: `tools/ui_qa.gd` primero (borra `settings.cfg` al arrancar) y luego `tests/test_integration.gd`, que deja `auto_pause=false` en el perfil; con APPDATA aislado y limpio por suite no hay contaminación.
+- `ui_qa`: 130/130 en 1280x720, 1920x1080 y 2560x1440. `test_integration`: 245 comprobaciones sin fallos. `test_rules`: 505 sin fallos. `justina_playthrough`: 15 victorias, incluida la política `ui_real`.
+- Nuevo: `deploy_place` (reubicar puntos de partida, 14 m, tierra firme), cabecera «Quedan mm:ss min», «Güemes (trad.)» en fichas/chips, aviso de la fuente («en seco», cuatro millas), glosas, motivo visible de acciones en gris, toast y chips que no se pisan, recorte del cuadro de cámara al minimapa. Capturas: `evidence/justina-ui/calidad_r3_ui/`.
