@@ -198,3 +198,29 @@ Fiel/documentado: buque mercante britanico armado (Gillespie), Plaza de Toros (B
 - Camino de la barranca rojiblanco, rotulos superpuestos, camara inicial y textos de briefing: son de `main.gd`/mapa/UI (otras pistas).
 - Compatibility y 2560x1440 reales sin verificar visualmente. Bancos que emergen: se ven al bajar el nivel (comportamiento previo), sin cambio.
 - Hallazgos de historia (etiquetas Reconstruccion->Diseño, p. 94 de Gillespie vs alcance de 265 m, citas de pagina, acantilados 1807) pertenecen a la pista de mapa/historia.
+
+## Justina ronda 6: aspecto (pista visual)
+Solo aspecto: no cambia geometria, reglas, `main.gd` ni `game_rules.gd`. Capturas `antes_*` y `final_*` (27 vistas, ventana real 1440x900, Forward+) en `evidence/justina-ui/calidad_r6/`; UI en `calidad_r6_ui/`; benchmark en `calidad_r6/bench.json`.
+
+### Cambios
+- **Rio.** `water_rio_plata.gdshader` consume ahora `palette.water.turbid_near/mid/far` (antes ignoradas). Mas contraste: crestas claras y senos oscuros, manchas de viento de 20-50 m, borreguitos alargados de espuma lejos de la orilla, menos reflejo del cielo (Fresnel x0,4) y menos bruma. Niebla del entorno de 350-3700 m a 650-4200 m (curva 2,2): el terreno medio ya no se lava a crema. Sigue sin textura (sin mosaico) y sin delatar el fondo oculto.
+- **Banco bajo el buque.** El disco de borde circular era un cilindro (`ship_mud`). Ahora es un plano con `shaders/justina_mud.gdshader`: borde erosionado por ruido, arena a fango humedo, sin circulo.
+- **Buque.** Se quita la pala del timon (placa vertical que parecia suelta en la popa) con el mismo filtro de triangulos que la escalera. Crece hasta x2,3 con la distancia de camara (tamaño minimo en pantalla; simbolico, nunca mas de 2,3 veces), junto con el pabellon. La popa plana del GLB sigue sin regenerar (ver pendientes).
+- **Jinetes y caballos.** La piel del GLB se leia plateada (rugosidad/metal del mapa `rm`) y el color de vertice del GLB no mostraba bando. `_tinted_mesh` reclasifica los colores de vertice a `palette.riders` (casaca, vueltas, calzon, sombrero, camisa) y `palette.mounts` (pelaje por grupo: tostado, alazan, o uno al azar de 6 para exploradores) y pasa telas y pelaje a mate. Son colores de DISEÑO (el JSON lo declara), no uniformes documentados.
+- **Lectura de unidades.** Las figuras de un grupo crecen con la distancia de camara (x1 hasta ~160 m, hasta x3,4), con mayor separacion; guion hasta x3,4 y aro de ancla hasta x6. Colores y asta del guion salen de `banners.group_markers` del JSON: Reserva ya no es azul-blanco-azul (se leia como bandera argentina) sino arena y cuero.
+- **Rotulos de hito.** Todo hito de diseño o tradicion lleva `(diseño)` / `(tradición)` (usa `marker_suffix` del JSON; sin ese campo, segun la etiqueta). Un hito sin `tag` pasa a `diseno` (antes `documentado`); idem `labels_extra`. El nombre con sufijo tambien llega a `landmark_info` (lo muestra la interfaz).
+- **Zona de Gillespie.** Segundo anillo punteado y muy tenue a `ship.fire.cover_zone.range_m` (420 m) con rotulo "no simulado, diseño"; solo se ve con la capa de fuego.
+- **Retiro.** Las tapias eran tablones rectos que salian de las casas; ahora cierran un patio de cuatro lados cortos (con porton), asentados en el terreno. Matorral: mata baja, mata angulosa (prisma inclinado) y mechones de paja, tonos de `palette.terrain` (vegetacion_baja, arena_tierra, suelo_alto) en lugar de "huevos" oscuros iguales; 620 -> 520 matas.
+
+### Fiel a fuente vs estetica
+- Fiel/tomado de fuente: buque mercante armado de 26 piezas, posicion, circo octogonal, batería de las dos piezas de a 18 (Gillespie 1818; Boneo 1801; Vidal c.1820). Tradicion: Guemes. Hipotesis: Red Ensign. Inferencia: bandera blanca del circo.
+- Reconstruccion estetica / Diseño: color y olas del rio, borreguitos, tinte de uniformes y pelaje, guiones, escalado simbolico con la distancia, patios y tapias, matas y paja, anillo de 420 m, banco de arena irregular. Vidal 1820 se uso solo para el tono de campo pardo-dorado y el horizonte bajo (criterio visual, no colorimetria).
+
+### Medicion
+`benchmark.py --scenarios justine --repeat 3 --renderer forward_plus --max-frame-ms 3` (RTX 3080 Ti): baja 1,44 ms, media 2,54 ms de cuadro medio (p95 2,89 ms); presupuesto OK. `test_rules` 542/0, `test_integration` 252/0, `jev_contract` 15/0 (APPDATA aislado). `ui_qa` 1280x720 144/0 y 1920x1080 137/0 (con `--allow-clip`).
+
+### Pendiente
+- Popa plana del casco GLB (`tools/create_models.py`, no regenerado). Velas desplegadas con el casco apoyado: sin fuente, no se toco.
+- Rotulos de grupos que se pisan, texto "Centro de la vista", leyenda del minimapa, modales, avisos y tutorial: son de `main.gd` (otra pista). Renombrar "Camino de la barranca (Alameda)" es dato del JSON/`main.gd` (el paquete pide no extender la Alameda a Retiro); aqui solo se agrego el sufijo (diseño).
+- Muros del fuerte sin sillería ni garitas; guardias de escala junto al fuerte; pasto aun por vertice (sin textura propia).
+- Compatibility y 2560x1440 reales sin capturas.

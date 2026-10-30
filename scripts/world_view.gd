@@ -271,9 +271,9 @@ func _lighting():
   env.fog_sky_affect=0.0
   env.fog_mode=Environment.FOG_MODE_DEPTH
   env.fog_density=1.0
-  env.fog_depth_begin=350.0
-  env.fog_depth_end=3700.0
-  env.fog_depth_curve=1.9
+  env.fog_depth_begin=650.0
+  env.fog_depth_end=4200.0
+  env.fog_depth_curve=2.2
   env.ambient_light_energy=0.62
  if advanced_renderer and quality != "baja":
   # Solo Forward+/Mobile: oclusión ambiental y brillo suave. El perfil alto agrega niebla volumétrica leve.
@@ -1042,6 +1042,10 @@ func _water_j():
  water_mat.shader=load("res://shaders/water_rio_plata.gdshader")
  water_mat.set_shader_parameter("water_level",level_m)
  water_mat.set_shader_parameter("visible_depth_m",float(M.get("knowledge",{}).get("visibility_depth_m",0.3)))
+ # R6: el tono del agua sale de palette.water.turbid_* del JSON (antes no se leia).
+ var wp:Dictionary=M.get("palette",{}).get("water",{})
+ for pair in [["turbid_near","near_color"],["turbid_mid","mid_color"],["turbid_far","far_color"]]:
+  if wp.has(pair[0]):water_mat.set_shader_parameter(pair[1],Color(str(wp[pair[0]])))
  var sh=M.get("ship",{});var hdg=deg_to_rad(float(sh.get("heading_deg",0.0)))
  water_mat.set_shader_parameter("ship_xz",Vector2(float(sh.get("x",580.0)),float(sh.get("z",262.0))))
  water_mat.set_shader_parameter("ship_fwd",Vector2(sin(hdg),-cos(hdg)))
@@ -1095,8 +1099,12 @@ func _lm_pos(lm:Dictionary)->Vector2:
 
 func _landmarks_j():
  for lm in M.get("landmarks",[]):
-  var id=str(lm.id);var p=_lm_pos(lm);var tag=str(lm.get("tag","documentado"))
-  landmark_info[id]={"id":id,"name":str(lm.get("name",id)),"type":str(lm.get("type","")),"tag":tag,"source":str(lm.get("source","")),"x":p.x,"z":p.y}
+  var id=str(lm.id);var p=_lm_pos(lm);var tag=str(lm.get("tag","diseno"))   # R6: un hito sin etiqueta NO se muestra como documentado
+  # R6: sufijo visible para todo lo no documentado: marker_suffix del JSON, o (diseño)/(tradición) segun la etiqueta (history.json lo promete).
+  var suf=str(lm.get("marker_suffix",""))
+  if suf=="":suf=" (tradición)" if tag=="tradicion" else (" (diseño)" if tag=="diseno" else "")
+  var base_name=str(lm.get("name",id)).replace(" (diseño)","").replace(" (tradición)","")
+  landmark_info[id]={"id":id,"name":base_name+suf,"type":str(lm.get("type","")),"tag":tag,"source":str(lm.get("source","")),"x":p.x,"z":p.y}
   var top=_h(p.x,p.y)+6.0
   match str(lm.get("type","")):
    "bullring":
@@ -1113,14 +1121,14 @@ func _landmarks_j():
     top=level_m+26.0
    "cliff":
     top=_h(p.x,p.y)+3.0
-  var text=_tag_glyph(tag)+" "+str(lm.get("name",id))+(" (tradición)" if tag=="tradicion" else "")
+  var text=_tag_glyph(tag)+" "+base_name+suf
   var lab=_label_j(text,Vector3(p.x,top,p.y),_tag_color(tag).lerp(Color.WHITE,0.35),30,labels_root)
   lab.name="Rotulo_"+id
   lab.visibility_range_end=900.0
   landmark_labels_3d[id]=lab
  var ei=0
  for e in M.get("labels_extra",[]):
-  var tag2=str(e.get("tag","documentado"))
+  var tag2=str(e.get("tag","diseno"))
   var lab2=_label_j(_tag_glyph(tag2)+" "+str(e.text),Vector3(float(e.x),level_m+3.0,float(e.z)),_tag_color(tag2).lerp(Color.WHITE,0.35),28,labels_root)
   extra_labels.append({"id":"extra_"+str(ei),"label":lab2,"x":float(e.x),"z":float(e.z),"tag":tag2,"text":str(e.text),"cond":str(e.get("show_when",""))})
   ei+=1
@@ -1131,8 +1139,20 @@ func _landmarks_j():
   var hx=maxf(3.0,crest_x-14.0-decoration_rng.randf()*6.0)
   _house(Vector3(hx,_h(hx,hz),hz),7.5,8.5,false)
   _house(Vector3(hx-1.0,_h(hx-1.0,hz+9.5),hz+9.5),7.0,8.0,false)
-  _inst_r("box",Vector3(hx-1.5,_h(hx-1.5,hz+18.0)+0.8,hz+18.0),Vector3(0.5,1.6,11.0),0.0,Color("bdb096"))
-  _inst_r("box",Vector3(hx+4.5,_h(hx+4.5,hz+4.0)+0.8,hz+4.0),Vector3(0.5,1.6,22.0),0.0,Color("bdb096"))
+  # R6: tapia cerrando un patio (4 lados cortos, alineados con las casas y asentados en el terreno); antes eran tablones sueltos que salian al aire.
+  var tx0=hx-9.5;var tx1=hx+9.0;var tz0=hz-7.0;var tz1=hz+16.5
+  for seg_i in range(4):
+   var ax=[tx0,tx1,tx0,tx0][seg_i];var az=[tz1,tz0,tz0,tz0][seg_i]
+   var bx=[tx1,tx1,tx1,tx0][seg_i];var bz=[tz1,tz1,tz0,tz1][seg_i]
+   var segs=maxi(1,int(ceil(Vector2(bx-ax,bz-az).length()/4.0)))
+   for si in range(segs):
+    var f0=float(si)/float(segs);var f1=float(si+1)/float(segs)
+    var mx=lerpf(ax,bx,(f0+f1)*0.5);var mz=lerpf(az,bz,(f0+f1)*0.5)
+    var ln=Vector2(bx-ax,bz-az).length()/float(segs)
+    var along_x=seg_i%2==0
+    var wh=1.9-0.25*float(seg_i==3)
+    if seg_i==0 and si==segs/2:continue   # portón
+    _inst_r("box",Vector3(mx,_h(mx,mz)+wh*0.5-0.1,mz),Vector3(ln+0.05 if along_x else 0.5,wh,0.5 if along_x else ln+0.05),0.0,Color("bdb096"))
 
 func _bullring_j(lm:Dictionary):
  var c=Vector2(float(lm.x),float(lm.z));var r=float(lm.get("radius_m",24.0))
@@ -1326,7 +1346,7 @@ func _scenery_j():
   zj+=rng.randf_range(3.0,6.0)
  # --- matorral dentro del mapa (meseta y playa alta), densidad con ruido
  var placed=0;var tries=0
- while placed<620 and tries<6000:
+ while placed<520 and tries<6000:
   tries+=1
   var x=rng.randf_range(2.0,262.0);var z3=rng.randf_range(2.0,map_h-2.0)
   var cxx=_poly_x(crest,z3);var txx=_poly_x(toe,z3)
@@ -1335,10 +1355,20 @@ func _scenery_j():
   if absf(x-_poly_x(road_poly,z3))<5.0:continue
   if terrain_noise.get_noise_2d(x*0.045,z3*0.045+9.0)<-0.02:continue
   # Matas (ronda 3): no esferas verdes iguales; tamaños muy variados, achatadas o altas, tonos de pasto seco y matorral pardo (paleta de Vidal).
-  var w=rng.randf_range(0.7,3.4)*(1.0+0.5*float(rng.randf()<0.12));var hgt=w*rng.randf_range(0.30,0.85)
-  var sc=Color("4d4a2a").lerp(Color("8a7a48"),rng.randf()).lerp(Color("5a5e32"),rng.randf()*0.4)
-  _inst_r("sphere",Vector3(x,_h(x,z3)+hgt*0.28,z3),Vector3(w,hgt,w*rng.randf_range(0.6,1.3)),rng.randf()*TAU,sc)
-  _inst_r("sphere",Vector3(x+w*0.1,_h(x,z3)+0.02,z3+w*0.1),Vector3(w*1.5,0.1,w*1.4),rng.randf()*TAU,Color("3a3524"))
+  # R6: matas de formas y tonos distintos (antes "huevos" oscuros iguales): mata baja, mata angulosa y mechones de paja; tonos del suelo del paquete
+  # (vegetacion_baja #7C8159, arena_tierra #A38D6B, suelo_alto #C9BE98). Reconstruccion estetica; Vidal muestra campo pardo-dorado con poco arbolado.
+  var kind=rng.randf()
+  var tone=Color("6b6a3c").lerp(Color("a38d6b"),rng.randf()).lerp(Color("7c8159"),rng.randf()*0.5).lerp(Color("c9be98"),rng.randf()*0.25)
+  if kind<0.5:
+   var w=rng.randf_range(0.7,2.6)*(1.0+0.5*float(rng.randf()<0.1));var hgt=w*rng.randf_range(0.30,0.8)
+   _inst_r("sphere",Vector3(x,_h(x,z3)+hgt*0.28,z3),Vector3(w,hgt,w*rng.randf_range(0.6,1.3)),rng.randf()*TAU,tone.darkened(0.12))
+  elif kind<0.72:
+   var w2=rng.randf_range(0.8,2.0);var h2=rng.randf_range(0.7,1.6)
+   _inst_r("prism",Vector3(x,_h(x,z3)+h2*0.45,z3),Vector3(w2,h2,w2*rng.randf_range(0.7,1.2)),rng.randf()*TAU,tone.darkened(0.2),Vector3(rng.randf_range(-0.12,0.12),0,rng.randf_range(-0.12,0.12)))
+  else:
+   for st in range(6):
+    var ox=x+rng.randf_range(-0.5,0.5);var oz=z3+rng.randf_range(-0.5,0.5);var sh2=rng.randf_range(0.5,1.25)
+    _inst_r("cyl8",Vector3(ox,_h(ox,oz)+sh2*0.5-0.03,oz),Vector3(0.05,sh2,0.05),0.0,Color("a8996a").lerp(Color("c9be98"),rng.randf()),Vector3(rng.randf_range(-0.35,0.35),0,rng.randf_range(-0.35,0.35)))
   placed+=1
  # --- matorral de transicion alrededor del mapa (R4): el detalle del pasto sigue mas alla del tablero, sin corte
  placed=0;tries=0
@@ -1465,10 +1495,10 @@ func _ship_j():
  _strip_ladder(ship)
  # Anillo de fango y arena humeda alrededor del casco apoyado (Diseño: grounded_visual.mud_ring_radius_m).
  var mr:Array=M.get("ship",{}).get("grounded_visual",{}).get("mud_ring_radius_m",[22.0,34.0])
- var mc=CylinderMesh.new();mc.top_radius=float(mr[1]);mc.bottom_radius=float(mr[1]);mc.height=0.02;mc.radial_segments=32
- var mm=StandardMaterial3D.new();mm.albedo_color=Color(0.50,0.43,0.30,0.0);mm.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA;mm.roughness=0.9;mm.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
- ship_mud=MeshInstance3D.new();ship_mud.mesh=mc;ship_mud.material_override=mm;ship_mud.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
- ship_mud.position=Vector3(sx,level_m+0.04,sz);ship_mud.scale=Vector3(1.0,1.0,float(mr[0])/float(mr[1])*1.9);ship_mud.rotation.y=-deg_to_rad(heading);ship_mud.visible=false
+ var pm=PlaneMesh.new();pm.size=Vector2(float(mr[1])*2.2,float(mr[1])*2.2*1.3);pm.subdivide_width=1;pm.subdivide_depth=1
+ var mm=ShaderMaterial.new();mm.shader=load("res://shaders/justina_mud.gdshader");mm.set_shader_parameter("half_size",Vector2(float(mr[1])*1.1,float(mr[1])*1.43))
+ ship_mud=MeshInstance3D.new();ship_mud.mesh=pm;ship_mud.material_override=mm;ship_mud.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+ ship_mud.position=Vector3(sx,level_m+0.04,sz);ship_mud.rotation.y=-deg_to_rad(heading);ship_mud.visible=false
  add_child(ship_mud)
  # Cañones: 13 portas por banda es DISEÑO (Gillespie da 26 cañones en total, no el reparto; el paquete pide no dibujar 13 idénticos). Posiciones locales de las portas de babor (oeste con proa al norte).
  ship_gun_pos.clear()
@@ -1494,7 +1524,10 @@ func _strip_ladder(root:Node3D)->void:
      var inside=true
      for k in range(3):
       var p=v[ix[t*3+k]]
-      if not (p.x>-3.02 and p.x<-2.4 and p.z>2.2 and p.z<2.95 and p.y>-0.05 and p.y<3.8):inside=false
+      # escalera de babor (ronda 3) o pala del timon: en escala de juego se leia como una placa suelta saliente de la popa (R6)
+      var in_ladder=p.x>-3.02 and p.x<-2.4 and p.z>2.2 and p.z<2.95 and p.y>-0.05 and p.y<3.8
+      var in_rudder=absf(p.x)<0.25 and p.z>6.85 and p.z<7.4 and p.y>0.3 and p.y<4.1
+      if not (in_ladder or in_rudder):inside=false
      if not inside:keep.append_array(PackedInt32Array([ix[t*3],ix[t*3+1],ix[t*3+2]]))
     a[Mesh.ARRAY_INDEX]=keep
    out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,a)
@@ -1633,6 +1666,28 @@ func _exposure_j():
  var mi=MeshInstance3D.new();mi.mesh=mesh;mi.material_override=_overlay_mat();mi.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
  mi.custom_aabb=AABB(Vector3(-rng,-1,-rng),Vector3(rng*2,2,rng*2))
  exposure_root.add_child(mi)
+ # R6: segundo anillo, punteado y mas tenue, con ship.fire.cover_zone.range_m (420 m): hasta donde "batia" el buque segun Gillespie p. 94.
+ # Las reglas NO lo usan (exposure_at sigue limitado a range_m); es DISEÑO.
+ var cz:Dictionary=f.get("cover_zone",{})
+ var crng=float(cz.get("range_m",0.0))
+ if crng>rng:
+  var cv=PackedVector3Array();var cc=PackedColorArray();var ci=PackedInt32Array()
+  var seg=140
+  for k in range(seg):
+   if k%2==1:continue
+   var a0=TAU*float(k)/float(seg);var a1=TAU*float(k+1)/float(seg)
+   var b0=cv.size()
+   cv.append(Vector3(cos(a0),0,sin(a0))*(crng-0.4));cv.append(Vector3(cos(a0),0,sin(a0))*(crng+0.4))
+   cv.append(Vector3(cos(a1),0,sin(a1))*(crng-0.4));cv.append(Vector3(cos(a1),0,sin(a1))*(crng+0.4))
+   for _i in range(4):cc.append(Color(0.78,0.52,0.40,0.16))
+   ci.append_array(PackedInt32Array([b0,b0+2,b0+1,b0+1,b0+2,b0+3]))
+  var carr=[];carr.resize(Mesh.ARRAY_MAX);carr[Mesh.ARRAY_VERTEX]=cv;carr[Mesh.ARRAY_COLOR]=cc;carr[Mesh.ARRAY_INDEX]=ci
+  var cm=ArrayMesh.new();cm.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,carr)
+  var cmi=MeshInstance3D.new();cmi.name="CoberturaGillespie";cmi.mesh=cm;cmi.material_override=_overlay_mat();cmi.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+  cmi.custom_aabb=AABB(Vector3(-crng,-1,-crng),Vector3(crng*2,2,crng*2))
+  exposure_root.add_child(cmi)
+  var lc=_label_j("Hasta donde batía el buque según Gillespie p. 94 (no simulado, diseño)",Vector3(0,0.8,-crng),Color("d9b8a6"),18,exposure_root)
+  lc.outline_size=8
  var sx=float(M.ship.x);var sz=float(M.ship.z)
  exposure_root.position=Vector3(sx,level_m+0.18,sz)
  exposure_root.rotation.y=-deg_to_rad(float(M.ship.get("heading_deg",0.0)))
@@ -1670,10 +1725,74 @@ func _group_count(u:Dictionary)->int:
  if quality=="baja":n=maxi(2,n/2)
  return n
 
-func _mm_parts(root:Node3D,model_name:String,count:int)->Array:
+## R6: reparto cromatico de jinetes y caballos (palette.riders / palette.mounts del JSON, Diseño: no son uniformes ni colores de bando medidos).
+## Reclasifica el color de vertice del GLB (indigo, grana, pantalon, sombrero, camisa, pelaje) hacia la paleta del paquete, por grupo.
+const TINT_BASES = {
+ "casaca":Color(0.035,0.075,0.12),"vueltas":Color(0.30,0.035,0.04),"poncho":Color(0.31,0.035,0.026),"calzon":Color(0.18,0.17,0.13),
+ "sombrero":Color(0.021,0.023,0.021),"camisa":Color(0.61,0.58,0.45),"camisa2":Color(0.74,0.72,0.66),"pelaje":Color(0.205,0.082,0.033),
+ "pelaje_sombra":Color(0.095,0.032,0.012)}
+const GROUP_RIDERS = {"guemes":"guemes","arias":"voluntarios","zavala":"jinetes"}
+const ROLE_KEYS = {"casaca":["casaca","chaqueta","chaleco"],"vueltas":["vueltas","botones","chaleco"],"poncho":["poncho","chaleco","chaqueta"],
+ "calzon":["calzon","calzado"],"sombrero":["sombrero"],"camisa":["camisa"],"camisa2":["camisa"]}
+var tint_cache:Dictionary={}
+
+func _tinted_mesh(src:Mesh,group_id:String)->Mesh:
+ var key=str(src.get_rid().get_id())+"|"+group_id
+ if tint_cache.has(key):return tint_cache[key]
+ var pal:Dictionary=M.get("palette",{})
+ var riders:Dictionary=pal.get("riders",{}).get(GROUP_RIDERS.get(group_id,"jinetes"),{})
+ var mounts:Dictionary=pal.get("mounts",{})
+ if riders.is_empty() or mounts.is_empty():
+  tint_cache[key]=src;return src
+ var target:Dictionary={}
+ for role in ROLE_KEYS:
+  for k in ROLE_KEYS[role]:
+   if riders.has(k):target[role]=Color(str(riders[k])).srgb_to_linear();break
+ var pel_keys=["tostado","alazan","bayo","tordillo","rosillo","zaino"]
+ var pk:String=pel_keys[absi(group_id.hash())%pel_keys.size()]
+ if group_id=="guemes":pk="tostado"
+ elif group_id=="zavala":pk="alazan"
+ var pelaje=Color(str(mounts.get(pk,"#8A5A3A"))).srgb_to_linear()
+ target["pelaje"]=pelaje;target["pelaje_sombra"]=pelaje*0.45
+ var out=ArrayMesh.new()
+ for si in range(src.get_surface_count()):
+  var a=src.surface_get_arrays(si)
+  var mat=src.surface_get_material(si)
+  var nm=str(mat.resource_name) if mat!=null else ""
+  if a[Mesh.ARRAY_COLOR] is PackedColorArray and (nm.ends_with("wool") or nm.ends_with("linen") or nm.ends_with("coat")):
+   var cols:PackedColorArray=a[Mesh.ARRAY_COLOR]
+   var chg=0
+   for i in range(cols.size()):
+    var c=cols[i];var t=Color(0,0,0,0);var k=1.0
+    if nm.ends_with("coat"):
+     if c.r>c.g*1.6 and c.g>c.b*1.35 and c.r<0.5 and target.has("pelaje"):
+      t=target["pelaje"];k=clampf(c.r/0.16,0.35,2.4)
+     elif c.r<0.1 and c.g<0.07 and c.b<0.04 and c.r>c.b and target.has("pelaje_sombra"):
+      t=target["pelaje_sombra"];k=clampf(c.r/0.06,0.7,1.4)
+    elif nm.ends_with("wool"):
+     if c.r>0.3 and c.g<0.12 and target.has("vueltas"):t=target["vueltas"];k=clampf(c.r/0.48,0.8,1.2)
+     elif c.b>c.r*2.2 and c.b>0.1 and target.has("casaca"):t=target["casaca"];k=clampf(c.b/0.2,0.8,1.2)
+     elif c.r<0.08 and c.g<0.08 and c.b<0.08 and target.has("sombrero"):t=target["sombrero"];k=clampf(c.r/0.04,0.8,1.3)
+    elif nm.ends_with("linen") and c.r>0.6 and target.has("camisa"):
+     t=target["camisa"];k=clampf(c.r/0.98,0.8,1.1)
+    if t.a>0.0:chg+=1;cols[i]=Color(minf(t.r*k,1.0),minf(t.g*k,1.0),minf(t.b*k,1.0),c.a)
+   a[Mesh.ARRAY_COLOR]=cols
+  out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,a)
+  # El mapa rugosidad/metal del GLB da un brillo plateado a telas y pelaje a escala de juego: se pasa a mate (aspecto, no color de fuente).
+  if mat is BaseMaterial3D and not (nm.ends_with("metal") or nm.ends_with("gloss")):
+   var m2:BaseMaterial3D=mat.duplicate()
+   m2.metallic=0.0;m2.metallic_texture=null;m2.roughness=0.88;m2.roughness_texture=null;m2.metallic_specular=0.25
+   m2.vertex_color_use_as_albedo=true
+   out.surface_set_material(si,m2)
+  else:
+   out.surface_set_material(si,mat)
+ tint_cache[key]=out
+ return out
+
+func _mm_parts(root:Node3D,model_name:String,count:int,group_id:String="")->Array:
  var out=[]
  for part in _glb_parts(model_name):
-  var mm=MultiMesh.new();mm.transform_format=MultiMesh.TRANSFORM_3D;mm.mesh=part.mesh;mm.instance_count=count
+  var mm=MultiMesh.new();mm.transform_format=MultiMesh.TRANSFORM_3D;mm.mesh=(_tinted_mesh(part.mesh,group_id) if group_id!="" else part.mesh);mm.instance_count=count
   var mmi=MultiMeshInstance3D.new();mmi.multimesh=mm;mmi.custom_aabb=AABB(Vector3(-30,-5,-30),Vector3(60,20,60))
   root.add_child(mmi)
   out.append({"mmi":mmi,"mm":mm,"xf":part.xf})
@@ -1691,7 +1810,7 @@ func _create_group_j(unit:Dictionary):
  root.position=Vector3(float(unit.x),_h(float(unit.x),float(unit.z)),float(unit.z))
  var mounted=bool(unit.get("mounted",true))
  var n=_group_count(unit)
- var parts=_mm_parts(root,"rider_1806" if mounted else "dismounted_1806",n)
+ var parts=_mm_parts(root,"rider_1806" if mounted else "dismounted_1806",n,id)
  var ring=_ring_j(7.5,Color("e2bc72"),root)
  selected_rings[id]=ring
  var tag=str(unit.get("tag","diseno"))
@@ -1704,11 +1823,18 @@ func _create_group_j(unit:Dictionary):
 const GROUP_PAL = {"guemes":["a88943","4c372b"],"arias":["d8cfb8","4c372b"],"zavala":["33475b","d8cfb8"]}
 var group_markers: Array = []
 var label_far:Dictionary={}
+var ship_far_k=1.0
+var far_k:Dictionary={}   # R6: tamaño minimo en pantalla de las figuras de un grupo (simbolico: 1 hasta ~150 m de camara, hasta x3,4 a 600 m)
 
 func _group_marker_j(id:String,root:Node3D)->void:
  var pal:Array=GROUP_PAL.get(id,["7b6953","d8cfb8"])
+ # R6: colores del guion desde banners.group_markers del JSON (Diseño; antes fijos en el codigo). Evita el azul-blanco-azul que se leia como bandera.
+ var bj:Dictionary=M.get("banners",{}).get("group_markers",{})
+ var cj:Dictionary=bj.get("colors",{}).get(id,{})
+ if cj.has("pennant") and cj.has("trim"):pal=[str(cj.pennant).trim_prefix("#"),str(cj.trim).trim_prefix("#")]
+ var pole_c=Color(str(bj.get("pole",{}).get("color","#4C372B")))
  var m=Node3D.new();m.name="Guion_"+id;root.add_child(m)
- _cylinder(Vector3(0,1.9,0),0.05,3.8,Color("4c372b"),m)
+ _cylinder(Vector3(0,1.9,0),0.05,3.8,pole_c,m)
  # Silueta por tipo (no solo color): guemes = guion rectangular con franja; arias = banderin largo y bajo; zavala = cuadrado.
  var fw=1.5;var fh=0.9
  if id=="arias":fw=1.9;fh=0.5
@@ -1722,14 +1848,28 @@ func _group_marker_j(id:String,root:Node3D)->void:
  group_markers.append({"node":m,"ring":ring,"root":root})
 
 func _update_markers_j(cam:Camera3D)->void:
+ # R6: el buque (objetivo del juego) crece hasta x2,3 con la distancia de camara para no quedar en 25 px (tamaño minimo en pantalla; simbolico).
+ if is_instance_valid(ship):
+  var ds=cam.global_position.distance_to(ship.global_position)
+  var ks=clampf(ds/380.0,1.0,2.3)
+  if absf(ks-ship_far_k)>0.03:
+   ship_far_k=ks
+   ship.scale=Vector3(SHIP_SX,SHIP_SY,SHIP_SZ)*ks
+   var pv=get_node_or_null("Pabellon_hipotesis")
+   if pv!=null:pv.scale=Vector3.ONE*ks
  for g in group_markers:
   var r:Node3D=g.root
   var d=cam.global_position.distance_to(r.global_position)
-  var k=clampf(d*0.0045,1.0,3.0)   # R5: guion de ~3,7 m (1 u = 1 m) que crece solo hasta x3 a lo lejos (antes x7 = antenas de 40 m)
+  var k=clampf(d*0.0045,1.0,3.4)   # R5: guion de ~3,7 m (1 u = 1 m) que crece solo hasta x3 a lo lejos (antes x7 = antenas de 40 m)
   g.node.scale=Vector3.ONE*k
   g.ring.position.y=maxf(0.0,level_m-r.position.y)+0.35
-  g.ring.scale=Vector3.ONE*clampf(d*0.004,1.0,4.0)
-  label_far[str(r.name).trim_prefix("Grupo_")]=d>230.0
+  g.ring.scale=Vector3.ONE*clampf(d*0.0055,1.0,6.0)
+  var gid=str(r.name).trim_prefix("Grupo_")
+  label_far[gid]=d>230.0
+  var fk=clampf(d/160.0,1.0,3.4)
+  if absf(fk-float(far_k.get(gid,1.0)))>0.06:
+   far_k[gid]=fk
+   if unit_nodes.has(gid):unit_nodes[gid].dirty=true
 
 func _ensign_j(s:Dictionary)->void:
  # Red Ensign (H1, HIPÓTESIS/Reconstrucción: la bandera concreta del Justina no está identificada; Union posterior a 1801 en el cantón).
@@ -1759,7 +1899,7 @@ func _create_scouts_j():
   root.position=Vector3(float(sc.x),_h(float(sc.x),float(sc.z)),float(sc.z))
   var fig=Node3D.new();fig.name="Figura";root.add_child(fig)
   for part in _glb_parts("rider_1806"):
-   var mi=MeshInstance3D.new();mi.mesh=part.mesh;mi.transform=Transform3D(part.xf.basis.scaled_local(Vector3.ONE*RIDER_SCALE),part.xf.origin*RIDER_SCALE);fig.add_child(mi)
+   var mi=MeshInstance3D.new();mi.mesh=_tinted_mesh(part.mesh,str(id));mi.transform=Transform3D(part.xf.basis.scaled_local(Vector3.ONE*RIDER_SCALE),part.xf.origin*RIDER_SCALE);fig.add_child(mi)
   var lance=MeshInstance3D.new();var lm=CylinderMesh.new();lm.top_radius=0.03;lm.bottom_radius=0.05;lm.height=3.8;lm.radial_segments=6
   lance.mesh=lm;lance.material_override=_mat(Color("6f5a3c"));lance.position=Vector3(0.45,2.4,-0.3);lance.rotation=Vector3(0.15,0,-0.12);fig.add_child(lance)
   var ring=_ring_j(2.6,Color("e2bc72"),root)
@@ -1791,7 +1931,7 @@ func _update_group_j(u:Dictionary,delta:float):
  var n=_group_count(u)
  if entry.mounted!=mounted:
   for p in entry.parts:p.mmi.queue_free()
-  entry.parts=_mm_parts(entry.root,"rider_1806" if mounted else "dismounted_1806",n)
+  entry.parts=_mm_parts(entry.root,"rider_1806" if mounted else "dismounted_1806",n,id)
   entry.mounted=mounted;entry.dirty=true;entry.n=n
  elif n!=entry.n:
   for p in entry.parts:p.mm.instance_count=n
@@ -1824,11 +1964,12 @@ func _layout_group_j(entry:Dictionary,u:Dictionary,moving:bool,stage:String):
  var lanes=clampi(int(ceil(sqrt(float(n)*0.9))),1,4)
  var band=GROUP_BAND if mounted else 9.0
  var step_along=2.5 if mounted else 1.5
- var spread=2.4 if stage=="routed" else 1.0
+ var spread=(2.4 if stage=="routed" else 1.0)*lerpf(1.0,float(far_k.get(str(u.id),1.0)),0.8)
  var yaw:float=entry.yaw
  var rootpos:Vector3=entry.root.position
  var t=elapsed_visual
- var sc=RIDER_SCALE if mounted else FOOT_SCALE
+ var fk:float=float(far_k.get(str(u.id),1.0))
+ var sc=(RIDER_SCALE if mounted else FOOT_SCALE)*fk
  for i in range(n):
   var row=i/lanes;var lane=i%lanes
   var across=(float(lane)-float(lanes-1)*0.5)*band/float(lanes)*spread
@@ -2117,7 +2258,7 @@ func _update_ship_j(delta:float):
  if is_instance_valid(ship_mud):
   ship_mud.visible=gk>0.02
   ship_mud.position.y=level_m+0.04
-  (ship_mud.material_override as StandardMaterial3D).albedo_color.a=0.55*gk
+  (ship_mud.material_override as ShaderMaterial).set_shader_parameter("strength",gk)
  if water_mat!=null and absf(hd-ship_hd_applied)>0.01:
   ship_hd_applied=hd
   water_mat.set_shader_parameter("ship_fwd",Vector2(sin(deg_to_rad(hd)),-cos(deg_to_rad(hd))))

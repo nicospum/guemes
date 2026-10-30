@@ -76,4 +76,9 @@ func _run() -> void:
 	_cam(580, 262, 60, 12, -80); await _shot("22_buque_minimo_rasante")
 	_cam(450, 262, 260, 28, 0); await _shot("23_banco_minimo")
 	_tide(660.0); _cam(130, 150, 70, 20, 60); await _shot("24_circo_dependencias")
+	_cam(float(u0.x), float(u0.z), 14, 12, -70); await _shot("25_jinetes_muy_cerca")
+	var u2 = game.rules.state.units[2]
+	_cam(float(u2.x), float(u2.z), 22, 14, 60); await _shot("26_reserva_cerca")
+	var u1 = game.rules.state.units[1]
+	_cam(float(u1.x), float(u1.z), 22, 14, 60); await _shot("27_voluntarios_cerca")
 	quit()
