@@ -68,6 +68,16 @@ La campaña del norte guarda automáticamente después de cada ronda. Hay un gua
 - **Abajo a la izquierda:** el minimapa. Clic o arrastre mueve la cámara; el cuadro blanco es lo que ves; clic derecho ordena mover. Encima, botones para centrar en la selección (F), ir al buque (B), ver todo (0) y ampliar (M).
 - **En el mapa:** cada ruta termina en un círculo con la etiqueta «N → destino · mm:ss» (la ETA). La ruta de la selección se dibuja llena; las demás, punteadas.
 
+**Ronda 5: claridad.**
+
+- **Un solo mensaje guía.** Mientras el tutorial está en pantalla, la línea de abajo solo explica cómo leer los botones; al cerrarlo (o terminarlo) vuelve **SIGUIENTE ▸**. El motivo de una acción gris se corta en el punto final de la oración, no en un decimal («1,3 m»).
+- **Cargar y abordar sin camino reconocido.** Si N está bloqueado porque el fondo hasta el buque es solo una estimación, el juego lo dice («sondeá primero cerca del buque») y, con un explorador vivo, elige uno y abre el modo **Reconocer fondo** para que hagas clic en el agua; después N. SIGUIENTE también lo recomienda en ese caso.
+- **Señalar a Liniers (K)** es una marcha: el grupo va a pedir la orden y la ficha dice «Ir a pedir la orden a Liniers · ETA». Mientras tanto ese grupo no recibe otras órdenes.
+- **Sondeo fuera de alcance.** Si el punto queda demasiado adentro del agua, el aviso lo explica y pide un punto más cerca de la playa.
+- **Rótulo de lugar (arriba a la izquierda).** Dice «Bajo el cursor: …» cuando el mouse está sobre el mapa y «Centro de la vista: …» si no.
+- **Briefing (F1 / al empezar).** Botón principal **Jugar**; **Ver el despliegue** solo aparece antes de empezar. Las notas de producción no se muestran al jugador.
+- **Pantallas bajas (720p).** La interfaz de la Justina no se encoge por debajo de 1:1 (letra legible), el minimapa baja a 260×150 y los diálogos se ajustan a la altura disponible.
+
 **Cadena de órdenes para tomar el buque.**
 
 1. Elegí un explorador (4 o 5) y **Reconocer fondo** (Z); hacé clic en el agua. El aviso estima el riesgo de baja antes de confirmar (Mayús+Z lo hace cauteloso: más lento, la mitad de impactos).

@@ -675,7 +675,19 @@ func _justina_r1_ui() -> void:
 	# Acciones contextuales: motivo legible, siguiente paso, Volver sin error
 	var bb: Button = game.action_buttons["board"]
 	check(bb.disabled and str(bb.get_meta("why")).find("Señalar a Liniers") >= 0 and str(bb.get_meta("why")).find("K") >= 0, "Blocked board explains the Liniers chain in plain words: " + str(bb.get_meta("why")))
-	check(game.reason_label.text.begins_with("SIGUIENTE"), "With nothing hovered the bar says the next step: " + game.reason_label.text)
+	game.settings.tutorial = true
+	game.tut_step = 0
+	game._update_hud()
+	check(game.reason_label.text.begins_with("Seguí el tutorial"), "R5: with the tutorial on there is a single guide message (the bar only explains the buttons): " + game.reason_label.text)
+	var tut_prev: bool = bool(game.settings.tutorial)
+	game.settings.tutorial = false
+	game._update_hud()
+	check(game.reason_label.text.begins_with("SIGUIENTE"), "With nothing hovered and no tutorial the bar says the next step: " + game.reason_label.text)
+	check(game.reason_label.text.find("límite de 1 ") < 0 and game.reason_label.text.find("(tocá o pasá") < 0, "R5: the grey-reason note is not cut at the decimal: " + game.reason_label.text)
+	check(game._player_text("Texto. La variante con el banco expuesto es una decisión pendiente tuya.").find("pendiente") < 0, "R5: production notes are stripped from player text")
+	check(str(game._order_text("guemes")).length() > 0 and game._friendly_reason("board", "El fondo estimado en ese punto supera el límite de 1.3 m.").begins_with("El camino hasta el buque"), "R5: the board reason says to probe toward the ship first")
+	game.settings.tutorial = tut_prev
+	game._update_hud()
 	game._show_action_info("board")
 	check(game.reason_label.text.find("No disponible") >= 0 and game.reason_label.text.find("Liniers") >= 0, "Hovering a blocked action shows why")
 	game._show_action_info("")
