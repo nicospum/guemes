@@ -22,6 +22,8 @@ Para **0.2.0-alfa** se midió, en una PC con Windows 11, Ryzen 9 7950X y RTX 308
 
 **Tiempo real con pausa** (no por turnos): el reloj corre solo y la cabecera lo dice siempre («TIEMPO REAL · ▶ ×1» o «‖ EN PAUSA»). Con el tiempo detenido podés seguir dando órdenes. Tres agrupaciones de caballería parten de la ribera. La bajante cambia la profundidad y el tránsito. Podés elegir el banco central, más corto y expuesto, o el rodeo sur, más largo y protegido. Las órdenes de aproximación preparan el movimiento, esperan en la ribera si hace falta y reanudan el cruce al habilitarse.
 
+**Primeros 60 segundos:** Espacio inicia/pausa; 4 o 5 + Z sondea el agua; 1 + K señala a Liniers; N o clic derecho ordena el abordaje; coma rechaza el contraataque (14 s); F1 o ? es la ayuda. El detalle está en `docs/CONTROLES.md`.
+
 Al llegar al buque se representa un desmontaje de 12 segundos y la resolución de la captura; los caballos quedan fuera de la cubierta. La fuerza conservada afecta el progreso. Perdés si las agrupaciones se dispersan o se cierra la oportunidad sin capturar. No se simula combate individual en cubierta.
 
 **Para empezar:** mirá a la izquierda tus cinco agrupaciones (tres grupos y dos exploradores; clic o teclas 1-5 para elegirlas) y el **Despliegue previo**. El panel inferior dice siempre el siguiente paso: reconocer el fondo con un explorador (4 o 5, tecla Z), señalar a Liniers (K) para obtener la orden de avance y después cargar y abordar (N) o trazar la ruta con clic derecho. Espacio pausa y reanuda; X cancela una orden y Ctrl+Z la deshace. F1 o ? abren la ayuda.

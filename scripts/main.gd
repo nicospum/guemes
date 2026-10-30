@@ -191,13 +191,14 @@ const GROUP_ROLE = {
  "scout_1":{"kind":"Explorador","role":"Sondea el fondo con la lanza y marca el vado."},
  "scout_2":{"kind":"Explorador","role":"Sondea el fondo con la lanza y marca el vado."}}
 const TUT_STEPS = [
- "1/6 · TIEMPO REAL con pausa. El reloj corre solo (×1, ×2, ×4). Lo recomendado: pausá con Espacio, dá órdenes con el tiempo detenido y reanudá. Ahora pulsá Iniciar.",
+ "1/6 · TIEMPO REAL con pausa: el reloj corre solo (×1, ×2, ×4). Pausá con Espacio, ordená con el tiempo detenido y reanudá. «Pausa auto» (sí) frena los avisos críticos. Pulsá Iniciar.",
  "2/6 · Cámara: WASD o el borde del mapa mueven, la rueda acerca, el botón derecho arrastra. El minimapa (abajo a la izquierda) también mueve la vista; «Todo · 0» muestra el mapa entero.",
  "3/6 · El agua es turbia. Elegí un explorador (4 o 5, o su ficha a la izquierda) y «Reconocer fondo» (Z); después hacé clic en el agua para fijar el punto a sondear.",
  "4/6 · Elegí un grupo (1-3) y «Señalar a Liniers» (K): da la orden de avance, que vale unos minutos. Sin ella no se puede Cargar y abordar.",
  "5/6 · Con los grupos elegidos, clic derecho traza la ruta (la vista previa muestra riesgo y tiempo) o «Cargar y abordar» (N). Ctrl+Z deshace la última orden; X cancela.",
  "6/6 · Abordaje: cuando aparezca el aviso de CONTRAATAQUE tenés 14 s para «Rechazar» (coma). El juego se pausa solo en los avisos críticos (botón «Pausa auto»)."]
 var mode_label: Label
+var moral_label: RichTextLabel
 var speed_buttons = {}
 var top_stack: VBoxContainer
 var pause_banner: Label
@@ -889,6 +890,7 @@ func _open_modal(title:String,width=800,height=600)->VBoxContainer:
 func _close_modal():
  if is_instance_valid(modal):modal.queue_free()
  modal=null;paused=modal_paused
+ if _is_j():hover_info={};hover_mouse=Vector2(-1,-1)  # el cursor que quedó sobre el botón del diálogo no dispara una vista previa (ni un rechazo) hasta que se mueva
  if mode=="play":_update_hud()
 
 func _simple_dialog(title:String,text_value:String):
@@ -1208,7 +1210,7 @@ func _step_sector(direction:int):
 func _short_name(id:String)->String:
  if rules.state.scenario=="norte":return "Güemes" if id=="guemes" else ("Arias" if id=="arias" else "Partida del valle")
  if id in SCOUT_IDS:return "Explorador "+id.right(1)
- return "Vanguardia" if id=="guemes" else ("Voluntarios" if id=="arias" else "Reserva")
+ return "Güemes y jinetes" if id=="guemes" else ("Voluntarios" if id=="arias" else "Reserva")
 
 func _stage_badge(stage_id:String)->String:
  var pair=STAGE_TEXT.get(stage_id,["·",stage_id])
@@ -1811,6 +1813,7 @@ func _build_hud_j():
  goal_label=_rich(right_body,"",12)
  info_label=_rich(right_body,"",12)
  capture_bar=ProgressBar.new();capture_bar.custom_minimum_size.y=7;capture_bar.show_percentage=false;right_body.add_child(capture_bar)
+ moral_label=_rich(right_body,"",1);moral_label.visible=false
  moral_bar=ProgressBar.new();moral_bar.custom_minimum_size.y=7;moral_bar.show_percentage=false
  moral_bar.add_theme_stylebox_override("fill",_style(Color("c98f6f"),Color.TRANSPARENT,0,3,0));right_body.add_child(moral_bar)
  state_label=_rich(right_body,"",12)
@@ -2202,6 +2205,9 @@ func _declutter_world_labels():
   for ch in world.scale_root.find_children("*","Label3D",true,false):labels.append(ch)
  for l in labels:
   if not is_instance_valid(l):continue
+  if str(l.name)=="Rotulo_escala":
+   l.visible=false  # la escala de 100 m se lee en la barra del minimapa; el rótulo 3D flotaba sobre rutas y rótulos
+   continue
   var p=l.global_position
   if camera.is_position_behind(p):continue
   var sp=camera.unproject_position(p)
@@ -2253,6 +2259,9 @@ func _deploy_dialog():
   var pl=_label(grid,"x %d · z %d\n%s" % [int(p0.x),int(p0.y),_place_name(p0)],13,PAPER);pl.custom_minimum_size.x=130
   var tg=str(a.get("tag","diseno"))
   var sl=_label(grid,"%s %s" % [_tag_glyph(tg),_tag_label(tg)],13,_tag_color(tg));sl.custom_minimum_size.x=130
+ var cons=_rich(box,_deploy_consequences(),13);cons.custom_minimum_size.x=1000
+ var apb=CheckButton.new();apb.text="Pausa automática en avisos críticos (recomendada: el contraataque dura 14 s)";apb.button_pressed=bool(settings.auto_pause)
+ apb.toggled.connect(func(on):settings.auto_pause=on;_save_settings();_update_hud());box.add_child(apb)
  var row=_hbox(box,8)
  _label(row,"Pasar %d de fuerza de" % int(rules.DEPLOY_STEP),14,PAPER)
  var from_o=OptionButton.new();var to_o=OptionButton.new()
@@ -2267,6 +2276,20 @@ func _deploy_dialog():
  var brow=_hbox(box,8)
  var start=_button(brow,"Empezar a ordenar (en pausa)",_close_modal,42);start.size_flags_horizontal=Control.SIZE_EXPAND_FILL
  _button(brow,"Ver todo el mapa",func():_close_modal();_view_all(),42)
+
+# Qué cambia en el juego con la fuerza de cada grupo (cuentas simples, las mismas del motor: fuerza = potencia de abordaje y de captura).
+func _deploy_consequences()->String:
+ var tot=0.0;var parts=[]
+ for id in GROUP_IDS:
+  var a=_actor(id)
+  if a.is_empty():continue
+  tot+=float(a.strength)
+  parts.append("%s %d" % [_short_name(id),int(a.strength)])
+ var shares=[]
+ for id in GROUP_IDS:
+  var a2=_actor(id)
+  if not a2.is_empty() and tot>0.0:shares.append("%s %d %%" % [_short_name(id),roundi(100.0*float(a2.strength)/tot)])
+ return "[b]Consecuencias.[/b] Fuerza total del abordaje: [b]%d[/b] (%s). Reparto de la captura: %s. Un grupo con más fuerza aporta más potencia de abordaje (la captura sube y la moral de la dotación baja más rápido) y tarda más en dispersarse. La marcha depende del ritmo y del terreno, no de la fuerza." % [int(tot),", ".join(parts),", ".join(shares)]
 
 func _deploy_transfer(from_i:int,to_i:int):
  var r=rules.deploy_transfer(GROUP_IDS[from_i],GROUP_IDS[to_i],rules.DEPLOY_STEP)
@@ -2728,12 +2751,22 @@ func _plan_for(id:String,p:Vector2,wps:Array)->Dictionary:
  return rules.plan_route(id,p,pace,opts)
 
 func _plan_text(pl:Dictionary)->String:
- if not bool(pl.get("ok",false)):return str(pl.get("reason","Sin ruta."))
+ if not bool(pl.get("ok",false)):return _reason_with_help(str(pl.get("reason","Sin ruta.")))
  var t="%d m · %s" % [int(float(pl.length_m)),_clock(float(pl.eta_s))]
  if float(pl.get("unknown_m",0))>0.0:t+=" · %d m sin reconocer" % int(float(pl.unknown_m))
  t+=" · riesgo "+str(pl.get("risk","?"))
  if float(pl.get("exposed_s",0))>0.5:t+=" · expuesto %d s" % int(float(pl.exposed_s))
  return t
+
+# Cada rechazo dice la causa y qué hacer: dónde sí se puede y cómo conseguir el dato que falta.
+func _reason_with_help(why:String)->String:
+ if why.find("fondo estimado")>=0:
+  return why+" Es una estimación sin reconocer (no el nivel real del río): mandá un explorador (4 o 5, Z) a sondear o elegí un punto más cerca de la playa."
+ if why.find("barranca solo se sube")>=0:
+  return why+" Bajá por el Camino de la barranca (Alameda) o quedate en la playa."
+ if why.find("Agua demasiado honda")>=0:
+  return why+" Buscá el vado junto al buque (se marca en el mapa) o esperá la bajante."
+ return why
 
 func _spread_targets(groups:Array,p:Vector2)->Array:
  var c=Vector2.ZERO
@@ -2790,7 +2823,9 @@ func _update_hover_j(delta):
  var mp=hover_mouse
  if not get_viewport().get_visible_rect().has_point(mp):hover_info={};return
  for r in _blocked_rects():
-  if r.has_point(mp):return
+  if r.has_point(mp):
+   hover_info={}  # sobre un panel o el minimapa no queda ningún cartel de ruta/error colgado
+   return
  if rmb_down or lmb_down:return
  var g=world.ground_xz_from_screen(camera,mp)
  if g==null:hover_info={};return
@@ -3005,7 +3040,9 @@ func _update_hud_j():
  var res=rules.resources()
  var ss=rules.ship_state()
  goal_label.text="[b]OBJETIVO[/b] Rendir al Buque Justina antes del plazo."
- info_label.text="Captura [b]%d %%[/b]   ·   Moral de la dotación [b]%d %%[/b]" % [int(st.capture),int(ss.crew_morale)]
+ info_label.text="[b]Captura del buque %d %%[/b] (100 = victoria)
+Moral de la dotación [b]%d %%[/b]" % [int(st.capture),int(ss.crew_morale)]
+ moral_label.text="Moral de la dotación"
  capture_bar.value=float(st.capture);moral_bar.value=float(ss.crew_morale)
  tide_label.text=_tide_text()
  var adv="[color=#f4a58d]pendiente[/color] (Señalar a Liniers · K)"
@@ -3042,7 +3079,7 @@ Buque: próxima descarga en [b]%d s[/b]" % [int(res.ammo),int(res.ammo_max),int(
  _tut_update()
  tutorial_label.text=_tutorial_j() if bool(settings.tutorial) else ""
  last_hint_text=tutorial_label.text
- if is_instance_valid(hint_panel):hint_panel.visible=not tutorial_label.text.is_empty()
+ if is_instance_valid(hint_panel):hint_panel.visible=not tutorial_label.text.is_empty() and not (is_instance_valid(alert_panel) and alert_panel.visible)
 
 func _selection_text()->String:
  var groups=_sel_groups();var scouts=_sel_scouts()
@@ -3292,7 +3329,7 @@ func _draw_chips_j(font,placed:Array,blocked:Array=[]):
    continue
   var strength=float(u.strength)
   var bar_color=GREEN if strength>=60 else (GOLD if strength>=35 else RED)
-  var title=str(UNIT_GLYPHS[id])+" "+str(_actor_number(id))+" "+_short_name(id)
+  var title=str(UNIT_GLYPHS[id])+" "+str(_actor_number(id))+" "+("Güemes" if id=="guemes" else _short_name(id))
   var tg_mark=_tag_glyph(str(u.get("tag","diseno")))
   title+=" "+tg_mark
   if is_sel:
