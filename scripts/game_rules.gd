@@ -167,6 +167,7 @@ static func _build_geo() -> void:
 	_S_geo = {
 		"crest": _vpoly(b.crest, true), "toe": _vpoly(b.toe, true), "crest_h": crest_h,
 		"base": _vpoly(m.bed_profile.points_x_elev), "layers": layers, "obstacles": obstacles,
+		"warp": _vpoly(m.get("bed_warp", {}).get("points_z_dx", [])), "warp_cfg": m.get("bed_warp", {}),
 		"hull_c": Vector2(float(m.hull.center[0]), float(m.hull.center[1])), "hull_r": float(m.hull.radius_m),
 		"ramps": [], "access": []
 	}
@@ -364,7 +365,7 @@ func terrain_height_at(x: float, z: float) -> float:
 	var tx := _interp(g.toe, z)
 	if x < tx:
 		return lerpf(_interp(g.crest_h, z), float(m.barranca.toe_elevation_m), smoothstep(0.0, 1.0, (x - cx) / (tx - cx)))
-	var e := _interp(g.base, x)
+	var e := _interp(g.base, x - _bed_warp(x, z, tx))
 	var p := Vector2(x, z)
 	for layer in g.layers:
 		if not layer.rect.has_point(p):
@@ -387,6 +388,20 @@ func terrain_height_at(x: float, z: float) -> float:
 		else:
 			e = lerpf(e, layer.value, w)
 	return e
+
+## Desplazamiento (m) en x del perfil de fondo: meandros y bahías de la playa baja (data bed_warp, Diseño). Cero al pie de la barranca y mar adentro,
+## para que el terreno quede continuo; solo mueve las curvas de nivel de la franja húmeda.
+func _bed_warp(x: float, z: float, toe_x: float) -> float:
+	var w: PackedVector2Array = _S_geo.warp
+	if w.is_empty():
+		return 0.0
+	var c: Dictionary = _S_geo.warp_cfg
+	var fin := smoothstep(toe_x + float(c.fade_in_from_toe_m), toe_x + float(c.fade_in_from_toe_m) + float(c.fade_in_len_m), x)
+	var fout := 1.0 - smoothstep(float(c.fade_out_from_x), float(c.fade_out_to_x), x)
+	return _interp(w, z) * fin * fout
+
+func _interp_crest(z: float) -> float:
+	return _interp(_S_geo.crest, z)
 
 func _base_height(x: float) -> float:
 	return _interp(_S_geo.base, x)
@@ -1162,7 +1177,7 @@ func _check_group_action(u: Dictionary, action: String) -> Dictionary:
 			if int(state.ammo) >= int(state.ammo_max):
 				return _no("El depósito de munición está lleno (%d/%d)." % [int(state.ammo), int(state.ammo_max)])
 			if int(state.ammo_reserve) <= 0:
-				return _no("La batería Abascal no tiene más pólvora de reserva.")
+				return _no("Las piezas del Retiro no tienen más pólvora de reserva.")
 		"signal_liniers":
 			if bool(state.advance_authorized):
 				return _no("La orden de avance de Liniers ya fue concedida.")
@@ -1482,7 +1497,7 @@ func call_fire_support() -> Dictionary:
 	state.stats.fire_support_uses = int(state.stats.fire_support_uses) + 1
 	state.stats.ammo_used = int(state.stats.ammo_used) + int(a.ammo_cost)
 	var bat := _landmark(str(a.from))
-	_event("La batería Abascal y los tiradores de la barranca atraen el fuego del buque durante %d s." % int(a.duration_s), "fire_support", {"pos": {"x": float(bat.x), "z": float(bat.z)}, "tag": str(a.tag)})
+	_event("Las piezas de a 18 del Retiro y los tiradores de la barranca atraen el fuego del buque durante %d s." % int(a.duration_s), "fire_support", {"pos": {"x": float(bat.x), "z": float(bat.z)}, "tag": str(a.tag)})
 	_record_order("global", "distract_fire", {})
 	return {"ok": true, "reason": "Fuego de distracción en curso."}
 
@@ -2006,7 +2021,7 @@ func _finish_work(u: Dictionary) -> void:
 			var got := mini(mini(int(a.ammo_gain), int(state.ammo_max) - int(state.ammo)), int(state.ammo_reserve))
 			state.ammo = int(state.ammo) + got
 			state.ammo_reserve = int(state.ammo_reserve) - got
-			_event("%s abastece munición en la batería Abascal: +%d (quedan %d de reserva)." % [u.name, got, int(state.ammo_reserve)], "ammo", {"unit": u.id, "pos": pos})
+			_event("%s abastece munición en las piezas del Retiro: +%d (quedan %d de reserva)." % [u.name, got, int(state.ammo_reserve)], "ammo", {"unit": u.id, "pos": pos})
 		"signal":
 			a = map_data().actions.signal_liniers
 			state.advance_authorized = true
@@ -2351,10 +2366,10 @@ func _history_lines() -> Array:
 		tags[str(g.id)] = g
 	return [
 		{"text": "Un mercante británico de %d cañones, que combatió el día de la rendición, fue tomado por caballería al cerrar el 12 de agosto de 1806 por una súbita bajada del río (Gillespie 1818, documentado en transcripción; sin tipo, tonelaje ni capitán documentados)." % int(ship.guns_total), "tag": str(ship.get("tag_parts", {}).get("descripcion", "documentado"))},
-		{"text": "Fuentes divulgativas (edisalta, La Nación, Recalada; aún no incorporadas a la bibliografía S1-S8) lo ubican varado frente al Retiro, cerca de la Plaza de Toros y de la batería de Abascal; Gillespie no da el lugar, por eso el lugar es reconstrucción.", "tag": "reconstruccion"},
-		{"text": "Que la caballería fuera la de Pueyrredón figura en Concha (15 de agosto de 1806) y en Liniers (Archivo Pueyrredón, t. I, p. 54) según la investigación del repo, sin cotejo propio del original; Obligado 1920 cuenta además que Liniers dio la orden de avanzar.", "tag": "documentado"},
+		{"text": "Fuentes divulgativas (edisalta, La Nación, Recalada; aún no incorporadas a la bibliografía S1-S8) lo ubican varado frente al Retiro, cerca de la Plaza de Toros; Gillespie no da el lugar, por eso el lugar es reconstrucción. El paquete de investigación Justina_Retiro_1806 (30-oct-2026) lo trata como zona, no como punto.", "tag": "reconstruccion"},
+		{"text": "Que la caballería fuera la de Pueyrredón figura en Concha (15 de agosto de 1806) y en Liniers (Archivo Pueyrredón, t. I, p. 54) según la investigación del repo, sin cotejo propio del original (por eso se rotula Reconstrucción); Obligado 1920 cuenta además que Liniers dio la orden de avanzar.", "tag": "reconstruccion"},
 		{"text": "Güemes al frente de los jinetes es una tradición no probada (Ideario pp. 33, 390-392): Obligado 1920 lo hace ayudante de Liniers, y Gillespie no nombra al jefe.", "tag": str(tags["guemes"].tag)},
-		{"text": "La distancia de ~%d m al buque (cifra divulgativa, medida desde el pie de la barranca, donde estaba la costa de 1806) y los %.1f m de agua del vado con el río en mínimo son diseño." % [roundi(float(ship.distance_from_shore_high_m)), depth_low], "tag": str(ship.distance_tag)},
+		{"text": "La distancia de ~%d m al buque (un material bonaerense de 2006 habla de ~400 m desde la barranca: tradición discutida; el juego mide %d m desde el pie de la barranca) y los %.1f m de agua del vado con el río en mínimo son diseño." % [roundi(float(ship.distance_from_shore_high_m)), roundi(float(ship.distance_from_shore_high_m)), depth_low], "tag": str(ship.distance_tag)},
 		{"text": "Bancos, canal, vados, hoyos, tiempos de bajante, fuerzas, munición, el cuerpo a cuerpo y el puesto de Liniers son diseño del juego: no existe sondeo de 1806 del Retiro.", "tag": "diseno"}
 	]
 

@@ -1,15 +1,40 @@
 {
   "id": "justina",
-  "map_version": 3,
+  "map_version": 4,
   "title": "Justina · Retiro, 12 de agosto de 1806",
   "_leeme": "Unico origen de numeros del escenario Justina. Lo leen game_rules.gd (via map_data()) y, a traves de rules, world_view.gd y main.gd. Ningun otro archivo debe repetir estas cifras. Cada bloque lleva 'tag' (ver source_tags). Sentidos: +x = este (hacia el rio), -z = norte (+z = sur). Unidad = 1 m. Elevaciones en metros sobre el 'cero de bajante' (datum), + hacia arriba.",
-  "units": { "length": "m", "x_axis": "este (+x, hacia el rio)", "z_axis": "sur (+z); el norte es -z", "elevation_datum": "nivel minimo del rio en la partida (bajante total) = 0 m" },
-  "size": { "w": 900.0, "h": 520.0 },
+  "units": {
+    "length": "m",
+    "x_axis": "este (+x, hacia el rio)",
+    "z_axis": "sur (+z); el norte es -z",
+    "elevation_datum": "nivel minimo del rio en la partida (bajante total) = 0 m"
+  },
+  "size": {"w": 900.0, "h": 520.0},
   "source_tags": {
-    "documentado": { "label": "Documentado", "glyph": "●", "color": "#9ac4ab", "meaning": "Documentado en transcripción: testimonio, plano o parte reproducido en una compilación o fuente académica citada en docs/historia/FUENTES.md (no se inspeccionó el manuscrito). Las fuentes divulgativas no bastan: lo que solo ellas sostienen es Reconstrucción. Vale para el hecho o la descripción, nunca para el trazado exacto ni para las cifras del juego." },
-    "tradicion":   { "label": "Tradición", "glyph": "◆", "color": "#d9b576", "meaning": "Atribución transmitida y no probada (p. ej. Güemes al frente de los jinetes). Ideario pp. 33, 390-392." },
-    "reconstruccion": { "label": "Reconstrucción", "glyph": "◇", "color": "#8fb4d9", "meaning": "Posición o forma inferida de planos y vistas posteriores, o hecho sostenido solo por fuentes secundarias o divulgativas; el trazado exacto no está documentado." },
-    "diseno":      { "label": "Diseño", "glyph": "▲", "color": "#d48f79", "meaning": "Regla, cifra o geografía inventada para que el juego funcione. No es dato histórico." }
+    "documentado": {
+      "label": "Documentado",
+      "glyph": "●",
+      "color": "#9ac4ab",
+      "meaning": "Documentado en transcripción: testimonio, plano o parte reproducido en una compilación o fuente académica citada en docs/historia/FUENTES.md (no se inspeccionó el manuscrito). Las fuentes divulgativas no bastan: lo que solo ellas sostienen es Reconstrucción. Vale para el hecho o la descripción, nunca para el trazado exacto ni para las cifras del juego."
+    },
+    "tradicion": {
+      "label": "Tradición",
+      "glyph": "◆",
+      "color": "#d9b576",
+      "meaning": "Atribución transmitida y no probada (p. ej. Güemes al frente de los jinetes). Ideario pp. 33, 390-392."
+    },
+    "reconstruccion": {
+      "label": "Reconstrucción",
+      "glyph": "◇",
+      "color": "#8fb4d9",
+      "meaning": "Posición o forma inferida de planos y vistas posteriores, o hecho sostenido solo por fuentes secundarias o divulgativas; el trazado exacto no está documentado."
+    },
+    "diseno": {
+      "label": "Diseño",
+      "glyph": "▲",
+      "color": "#d48f79",
+      "meaning": "Regla, cifra o geografía inventada para que el juego funcione. No es dato histórico."
+    }
   },
   "time": {
     "step_s": 0.25,
@@ -24,173 +49,448 @@
   "tide": {
     "level_high_m": 1.65,
     "level_low_m": 0.0,
-    "legacy_normalized": { "high": 0.95, "low": 0.05, "note": "state.water_level = 0.05 + 0.9 * level_m / 1.65, para el shader viejo" },
-    "tag": "diseno"
+    "legacy_normalized": {"high": 0.95, "low": 0.05, "note": "state.water_level = 0.05 + 0.9 * level_m / 1.65, para el shader viejo"},
+    "tag": "diseno",
+    "states": [
+      {"id": "alto", "label": "Río alto", "level_m_range": [1.2, 1.65], "tag": "diseno", "shows": "Agua al pie de la playa alta; solo emerge el suelo firme junto a la barranca. Bancos cubiertos por 1,45-1,9 m. Sin franja húmeda visible.", "visual": {"wet_sand_width_m": 0, "water_clarity": "turbia", "banks_visible": false}},
+      {"id": "bajante", "label": "Bajante", "level_m_range": [0.35, 1.2], "tag": "diseno", "shows": "Emergen playa baja, arena húmeda y barro con meandros; el banco central sigue cubierto (0,6-1,45 m). Aparecen huellas y charcos entre la barranca y el agua.", "visual": {"wet_sand_width_m": 40, "water_clarity": "turbia", "banks_visible": false}},
+      {"id": "minimo", "label": "Mínimo (banco húmedo)", "level_m_range": [0.0, 0.35], "tag": "diseno", "shows": "Variante principal del paquete D4/J: 'banco parcialmente inundado'. El casco toca fondo en el vado del buque (1,0 m) y queda agua a los lados; el banco central asoma a 0,25 m de la superficie y el canal de la ribera persiste. Franja húmeda ancha (~60 m) con meandros. NO es 'en seco'.", "visual": {"wet_sand_width_m": 60, "water_clarity": "turbia, más clara sobre bajos", "banks_visible": "como manchas de agua más clara (el fondo sigue sin verse)"}},
+      {"id": "subida", "label": "Subida", "level_m_range": [0.35, 1.65], "tag": "diseno", "shows": "El agua vuelve en 120 s: cubre el banco y el vado; los grupos que sigan abordando se ahogan si pasan el límite de vadeo.", "visual": {"wet_sand_width_m": 30, "water_clarity": "turbia", "banks_visible": false}}
+    ],
+    "alternative_variant": {
+      "id": "banco_expuesto",
+      "implemented": false,
+      "tag": "diseno",
+      "note": "Variante alternativa del paquete (D4/J): banco localmente descubierto con canal aún inundado, más cercana al relato de 'nave en seco'. No se implementó: exigiría subir los bancos por encima de 0 m y rehacer el balance (queda como opción de Ronda 2, ver pendientes)."
+    }
   },
   "movement": {
     "tag": "diseno",
-    "paces_mps": { "walk": 1.3, "trot": 3.0, "gallop": 7.0 },
+    "paces_mps": {"walk": 1.3, "trot": 3.0, "gallop": 7.0},
     "gallop_requires": "terreno firme: altura sobre el agua >= firm_min_height_m y fuera de barro",
-    "mud": { "firm_min_height_m": 0.6, "speed_at_top_mps": 1.5, "speed_at_waterline_mps": 1.0 },
-    "shallow_water": { "max_depth_m": 0.6, "horse_mps": 2.0, "foot_mps": 1.0 },
-    "deep_water": { "horse_max_depth_m": 1.3, "foot_max_depth_m": 1.2, "speed_mps": 0.8 },
+    "mud": {"firm_min_height_m": 0.6, "speed_at_top_mps": 1.5, "speed_at_waterline_mps": 1.0},
+    "shallow_water": {"max_depth_m": 0.6, "horse_mps": 2.0, "foot_mps": 1.0},
+    "deep_water": {"horse_max_depth_m": 1.3, "foot_max_depth_m": 1.2, "speed_mps": 0.8},
     "ramp_speed_factor": 0.7,
     "column_unmarked_lane_factor": 0.75,
-    "fatigue_per_s": { "walk": 0.02, "trot": 0.05, "gallop": 0.12, "mud_mult": 1.5, "water_mult": 1.6 },
+    "fatigue_per_s": {"walk": 0.02, "trot": 0.05, "gallop": 0.12, "mud_mult": 1.5, "water_mult": 1.6},
     "note": "Velocidades de equitación comunes (docs/investigacion síntesis 1.1). Profundidad de pecho/cuello de caballo 1-1,5 m según la fuente; sin sondeo de época."
   },
   "shore_high": {
     "tag": "reconstruccion",
-    "note": "Línea de agua con el río en su nivel alto inicial (nivel 1,65 m). En 1806 la costa estaba al pie de la barranca / Plaza de Toros: la línea queda a ~20 m del pie, sobre una franja de playa alta. La cifra divulgativa de ~390 m al buque se mide desde el pie de la barranca (x≈190), no desde una orilla adelantada.",
-    "polyline": [[208,0],[210,80],[212,160],[210,240],[208,320],[210,400],[209,470],[207,520]]
+    "note": "Línea de agua con el río en su nivel alto inicial (nivel 1,65 m). Costa IRREGULAR (paquete Justina_Retiro_1806, A y F: sin línea de agua fija ni borde recto): entrantes y salientes de ±10-15 m sobre una franja de playa alta de 20-35 m al pie de la barranca. En 1806 la costa estaba al pie de la barranca / Plaza de Toros. Los ~390 m al buque se miden desde el pie de la barranca (x≈190 en z=262), no desde esta línea. Trazado: reconstrucción (sin levantamiento de 1806).",
+    "polyline": [[212, 0], [222, 50], [236, 100], [214, 150], [210, 190], [214, 240], [212, 290], [208, 335], [204, 380], [196, 430], [214, 475], [222, 520]]
   },
   "barranca": {
     "tag": "reconstruccion",
-    "note": "Barranca del Retiro sobre el río. Altura 8-15 m. El pie de la barranca está a ~20 m de la línea de agua inicial (la costa de 1806 estaba al pie de la barranca): reconstrucción. La pendiente no se pisa salvo por las bajadas.",
-    "crest": [[150,0],[156,90],[162,170],[164,240],[160,320],[154,400],[150,470],[148,520]],
-    "crest_height_m": [12,14,13,15,12,9,8,11],
-    "toe": [[182,0],[186,90],[192,170],[194,240],[190,320],[184,400],[180,470],[178,520]],
+    "note": "Barranca del Retiro sobre el río. Altura local 9-14 m (paquete: contraste local de 10-12 m, Diseño; los ~20 m de terraza regional de Favelukes no son el corte de Retiro). Borde irregular, erosionado, no una muralla continua. El pie está a 20-35 m de la línea de agua inicial. La pendiente no se pisa salvo por las bajadas: en el juego la bajada mide ~30 m de recorrido (pendiente de juego ~25-30 %); el paquete propone 8-12 % con 83-150 m de desarrollo, que aquí no cabe sin mover a los grupos: queda como `ramps[].desarrollo_paquete_m` (ver DISENO_JUSTINA 1.1).",
+    "crest": [[146, 0], [158, 50], [166, 100], [158, 150], [162, 190], [166, 240], [160, 290], [156, 335], [148, 380], [140, 430], [152, 475], [156, 520]],
+    "crest_height_m": [11, 12, 13, 13, 12, 12, 13, 12, 10, 9, 10, 11],
+    "toe": [[178, 0], [190, 50], [200, 100], [190, 150], [192, 190], [194, 240], [192, 290], [190, 335], [182, 380], [170, 430], [184, 475], [190, 520]],
     "toe_elevation_m": 3.0,
     "plateau_elevation_note": "Al oeste de la cresta el terreno es meseta a la altura de crest_height_m (interpolada); no es jugable salvo Plaza de Toros, Alameda, batería y puesto de mando.",
     "ramps": [
-      { "id": "bajada_norte", "center": [178,190], "width_m": 24.0, "tag": "diseno" },
-      { "id": "bajada_sur",   "center": [172,335], "width_m": 24.0, "tag": "diseno" }
+      {"id": "bajada_norte", "center": [178, 190], "width_m": 40.0, "tag": "diseno", "desarrollo_paquete_m": 145, "note": "Bajada puntual (paquete F05: acceso por inferencia; trazado, ancho y pendiente son diseño). Marca de tránsito y escorrentía, sin pavimento."},
+      {"id": "bajada_sur", "center": [172, 335], "width_m": 40.0, "tag": "diseno", "desarrollo_paquete_m": 110, "note": "Segunda bajada, más al sur. No se fija una calle histórica (J: 'no fijar una calle como hecho')."}
     ]
   },
   "bed_profile": {
     "tag": "diseno",
     "note": "Fondo base por x (igual para todo z) desde el pie de la barranca hasta el borde este. Pendiente media mar adentro ~0,004 m/m (síntesis 1.1); los bancos y canales la modifican. Sin sondeo de época (Arrowsmith 1806 y Gillespie 1818 solo orientan).",
-    "points_x_elev": [[170,3.0],[196,3.0],[203,2.4],[210,1.65],[222,1.2],[245,0.5],[270,0.0],[330,-0.35],[420,-0.7],[500,-1.05],[580,-1.5],[700,-2.2],[900,-3.0]]
+    "points_x_elev": [[170, 3.0], [196, 3.0], [203, 2.4], [210, 1.65], [222, 1.2], [245, 0.5], [270, 0.0], [330, -0.35], [420, -0.7], [500, -1.05], [580, -1.5], [700, -2.2], [900, -3.0]]
+  },
+  "bed_warp": {
+    "tag": "diseno",
+    "note": "Meandros y bahías de la playa baja y la franja húmeda (paquete D3/F06-F07: 'costa irregular', bahías de ±20-40 m). x_efectiva = x - desplazamiento(z): corre las curvas de nivel del perfil base entre el pie de la barranca y x≈400. Valor cero junto al pie y mar adentro (el terreno es continuo). No toca bancos, canal, vados ni hoyos.",
+    "points_z_dx": [[0, -18], [60, 10], [120, 28], [180, 12], [230, -10], [290, 16], [340, -14], [400, 24], [460, 6], [520, -20]],
+    "fade_in_from_toe_m": 10.0,
+    "fade_in_len_m": 50.0,
+    "fade_out_from_x": 300.0,
+    "fade_out_to_x": 400.0
   },
   "bed_layers_order": ["base", "banks (modo max)", "channels (modo set)", "fords (modo set)", "hazards (modo set)", "hull (modo set)"],
   "banks": [
-    { "id": "banco_central", "name": "Banco central", "tag": "diseno", "centerline": [[272,266],[500,264]], "half_width_m": 20.0, "top_m": -0.25, "blend_m": 18.0,
-      "note": "Ruta directa: corta y expuesta; contiene el pozo oculto." },
-    { "id": "banco_sur", "name": "Banco sur", "tag": "diseno", "centerline": [[332,404],[380,430],[450,455],[520,440],[565,390],[572,320],[556,282]], "half_width_m": 14.0, "top_m": -0.45, "blend_m": 14.0,
-      "note": "Ruta larga y menos expuesta; solo se alcanza por el vado de la ribera, que hay que descubrir." },
-    { "id": "banco_norte", "name": "Banco norte", "tag": "diseno", "centerline": [[300,150],[480,150]], "half_width_m": 35.0, "top_m": -0.1, "blend_m": 20.0,
-      "note": "Banco sin salida: señuelo. Termina a ~136 m del buque, dentro de su alcance." }
+    {
+      "id": "banco_central",
+      "name": "Banco central",
+      "tag": "diseno",
+      "centerline": [[272, 266], [500, 264]],
+      "half_width_m": 20.0,
+      "top_m": -0.25,
+      "blend_m": 18.0,
+      "note": "Ruta directa: corta y expuesta; contiene el pozo oculto."
+    },
+    {
+      "id": "banco_sur",
+      "name": "Banco sur",
+      "tag": "diseno",
+      "centerline": [[332, 404], [380, 430], [450, 455], [520, 440], [565, 390], [572, 320], [556, 282]],
+      "half_width_m": 14.0,
+      "top_m": -0.45,
+      "blend_m": 14.0,
+      "note": "Ruta larga y menos expuesta; solo se alcanza por el vado de la ribera, que hay que descubrir."
+    },
+    {
+      "id": "banco_norte",
+      "name": "Banco norte",
+      "tag": "diseno",
+      "centerline": [[300, 150], [480, 150]],
+      "half_width_m": 35.0,
+      "top_m": -0.1,
+      "blend_m": 20.0,
+      "note": "Banco sin salida: señuelo. Termina a ~136 m del buque, dentro de su alcance."
+    }
   ],
   "channels": [
-    { "id": "canal_ribera", "name": "Canal de la ribera", "tag": "diseno", "centerline": [[300,320],[310,480]], "half_width_m": 18.0, "bed_m": -2.0, "blend_m": 10.0,
-      "stumble": { "stop_s": 40.0, "fatigue": 30.0, "strength_loss": 38.0 },
-      "note": "Separa la playa del banco sur. Intransitable salvo por el vado_sur." }
+    {
+      "id": "canal_ribera",
+      "name": "Canal de la ribera",
+      "tag": "diseno",
+      "centerline": [[300, 320], [310, 480]],
+      "half_width_m": 18.0,
+      "bed_m": -2.0,
+      "blend_m": 10.0,
+      "stumble": {"stop_s": 40.0, "fatigue": 30.0, "strength_loss": 38.0},
+      "note": "Separa la playa del banco sur. Intransitable salvo por el vado_sur."
+    }
   ],
   "fords": [
-    { "id": "vado_sur", "name": "Vado de la ribera (sur)", "tag": "diseno", "centerline": [[268,400],[342,406]], "half_width_m": 10.0, "top_m": -0.9, "blend_m": 6.0, "hidden": true,
-      "note": "Único paso al banco sur. Abre con nivel <= 0,4 m (t >= ~355 s). Oculto hasta explorarlo." },
-    { "id": "vado_buque", "name": "Vado junto al buque", "tag": "diseno", "center": [548,262], "radius_m": 22.0, "top_m": -1.0, "blend_m": 8.0, "hidden": false,
-      "note": "Zona de abordaje: profundidad 1,0 m con el río en mínimo (caballo hasta el pecho); transitable para caballos con nivel <= 0,3 m (t ~379 a ~982 s; a pie, hasta ~t 974 s)." }
+    {
+      "id": "vado_sur",
+      "name": "Vado de la ribera (sur)",
+      "tag": "diseno",
+      "centerline": [[268, 400], [342, 406]],
+      "half_width_m": 10.0,
+      "top_m": -0.9,
+      "blend_m": 6.0,
+      "hidden": true,
+      "note": "Único paso al banco sur. Abre con nivel <= 0,4 m (t >= ~355 s). Oculto hasta explorarlo."
+    },
+    {
+      "id": "vado_buque",
+      "name": "Vado junto al buque",
+      "tag": "diseno",
+      "center": [548, 262],
+      "radius_m": 22.0,
+      "top_m": -1.0,
+      "blend_m": 8.0,
+      "hidden": false,
+      "note": "Zona de abordaje: profundidad 1,0 m con el río en mínimo (caballo hasta el pecho); transitable para caballos con nivel <= 0,3 m (t ~379 a ~982 s; a pie, hasta ~t 974 s)."
+    }
   ],
   "hazards": [
-    { "id": "pozo_central", "name": "Pozo del banco central", "kind": "pozo", "tag": "diseno", "center": [345,264], "radius_m": 11.0, "bed_m": -1.9, "hidden": true,
-      "stumble": { "stop_s": 45.0, "fatigue": 35.0, "strength_loss": 45.0 },
-      "note": "Hoyo oculto en la ruta directa. Sin reconocimiento, un grupo que cae en él pierde caballos y jinetes (28 de fuerza), queda 35 s detenido y agotado." },
-    { "id": "vado_falso_norte", "name": "Falso vado del borde norte", "kind": "falso_vado", "tag": "diseno", "center": [352,222], "radius_m": 9.0, "bed_m": -1.9, "hidden": true,
-      "stumble": { "stop_s": 30.0, "fatigue": 25.0, "strength_loss": 32.0 },
-      "note": "Parece un paso somero junto al borde norte del banco central y es un hoyo. Quien lo rodea por el norte sin sondear lo paga." },
-    { "id": "vado_falso_sur", "name": "Falso vado del borde sur", "kind": "falso_vado", "tag": "diseno", "center": [372,306], "radius_m": 9.0, "bed_m": -1.9, "hidden": true,
-      "stumble": { "stop_s": 30.0, "fatigue": 25.0, "strength_loss": 32.0 },
-      "note": "Segundo hoyo, junto al borde sur del banco central. Entre los dos falsos vados y el pozo, ningún trazado a ciegas por el banco central es seguro." },
-    { "id": "pozo_flanco_norte", "name": "Hoyo del flanco norte del banco central", "kind": "pozo", "tag": "diseno", "center": [348,240], "radius_m": 9.0, "bed_m": -1.9, "hidden": true, "variant_group": "flanco_central",
-      "stumble": { "stop_s": 40.0, "fatigue": 30.0, "strength_loss": 38.0 },
-      "note": "Variante oculta: existe solo en las partidas donde el sorteo de la semilla la elige. Cierra el rodeo por el norte del pozo central." },
-    { "id": "pozo_flanco_sur", "name": "Hoyo del flanco sur del banco central", "kind": "pozo", "tag": "diseno", "center": [348,288], "radius_m": 9.0, "bed_m": -1.9, "hidden": true, "variant_group": "flanco_central",
-      "stumble": { "stop_s": 40.0, "fatigue": 30.0, "strength_loss": 38.0 },
-      "note": "Variante oculta: existe solo en las partidas donde el sorteo de la semilla la elige. Cierra el rodeo por el sur del pozo central." },
-    { "id": "pozo_sur_a", "name": "Hoyo del banco sur (salida del vado)", "kind": "pozo", "tag": "diseno", "center": [362,419], "radius_m": 9.0, "bed_m": -1.9, "hidden": true, "variant_group": "hoyo_banco_sur",
-      "stumble": { "stop_s": 40.0, "fatigue": 30.0, "strength_loss": 38.0 },
-      "note": "Variante oculta sobre el eje del banco sur, justo después del vado." },
-    { "id": "pozo_sur_b", "name": "Hoyo del banco sur (tramo medio)", "kind": "pozo", "tag": "diseno", "center": [380,429], "radius_m": 9.0, "bed_m": -1.9, "hidden": true, "variant_group": "hoyo_banco_sur",
-      "stumble": { "stop_s": 40.0, "fatigue": 30.0, "strength_loss": 38.0 },
-      "note": "Variante oculta sobre el eje del banco sur, antes del codo." }
+    {
+      "id": "pozo_central",
+      "name": "Pozo del banco central",
+      "kind": "pozo",
+      "tag": "diseno",
+      "center": [345, 264],
+      "radius_m": 11.0,
+      "bed_m": -1.9,
+      "hidden": true,
+      "stumble": {"stop_s": 45.0, "fatigue": 35.0, "strength_loss": 45.0},
+      "note": "Hoyo oculto en la ruta directa. Sin reconocimiento, un grupo que cae en él pierde caballos y jinetes (28 de fuerza), queda 35 s detenido y agotado."
+    },
+    {
+      "id": "vado_falso_norte",
+      "name": "Falso vado del borde norte",
+      "kind": "falso_vado",
+      "tag": "diseno",
+      "center": [352, 222],
+      "radius_m": 9.0,
+      "bed_m": -1.9,
+      "hidden": true,
+      "stumble": {"stop_s": 30.0, "fatigue": 25.0, "strength_loss": 32.0},
+      "note": "Parece un paso somero junto al borde norte del banco central y es un hoyo. Quien lo rodea por el norte sin sondear lo paga."
+    },
+    {
+      "id": "vado_falso_sur",
+      "name": "Falso vado del borde sur",
+      "kind": "falso_vado",
+      "tag": "diseno",
+      "center": [372, 306],
+      "radius_m": 9.0,
+      "bed_m": -1.9,
+      "hidden": true,
+      "stumble": {"stop_s": 30.0, "fatigue": 25.0, "strength_loss": 32.0},
+      "note": "Segundo hoyo, junto al borde sur del banco central. Entre los dos falsos vados y el pozo, ningún trazado a ciegas por el banco central es seguro."
+    },
+    {
+      "id": "pozo_flanco_norte",
+      "name": "Hoyo del flanco norte del banco central",
+      "kind": "pozo",
+      "tag": "diseno",
+      "center": [348, 240],
+      "radius_m": 9.0,
+      "bed_m": -1.9,
+      "hidden": true,
+      "variant_group": "flanco_central",
+      "stumble": {"stop_s": 40.0, "fatigue": 30.0, "strength_loss": 38.0},
+      "note": "Variante oculta: existe solo en las partidas donde el sorteo de la semilla la elige. Cierra el rodeo por el norte del pozo central."
+    },
+    {
+      "id": "pozo_flanco_sur",
+      "name": "Hoyo del flanco sur del banco central",
+      "kind": "pozo",
+      "tag": "diseno",
+      "center": [348, 288],
+      "radius_m": 9.0,
+      "bed_m": -1.9,
+      "hidden": true,
+      "variant_group": "flanco_central",
+      "stumble": {"stop_s": 40.0, "fatigue": 30.0, "strength_loss": 38.0},
+      "note": "Variante oculta: existe solo en las partidas donde el sorteo de la semilla la elige. Cierra el rodeo por el sur del pozo central."
+    },
+    {
+      "id": "pozo_sur_a",
+      "name": "Hoyo del banco sur (salida del vado)",
+      "kind": "pozo",
+      "tag": "diseno",
+      "center": [362, 419],
+      "radius_m": 9.0,
+      "bed_m": -1.9,
+      "hidden": true,
+      "variant_group": "hoyo_banco_sur",
+      "stumble": {"stop_s": 40.0, "fatigue": 30.0, "strength_loss": 38.0},
+      "note": "Variante oculta sobre el eje del banco sur, justo después del vado."
+    },
+    {
+      "id": "pozo_sur_b",
+      "name": "Hoyo del banco sur (tramo medio)",
+      "kind": "pozo",
+      "tag": "diseno",
+      "center": [380, 429],
+      "radius_m": 9.0,
+      "bed_m": -1.9,
+      "hidden": true,
+      "variant_group": "hoyo_banco_sur",
+      "stumble": {"stop_s": 40.0, "fatigue": 30.0, "strength_loss": 38.0},
+      "note": "Variante oculta sobre el eje del banco sur, antes del codo."
+    }
   ],
   "hidden_layout": {
     "tag": "diseno",
     "note": "Resultado oculto fijo por partida (se sortea una vez con la semilla y no cambia). Cada grupo tiene variantes de hoyo y solo UNA existe en el fondo de esa partida; las demás no existen ni en el terreno ni en la malla. Quien no sondeó el flanco apuesta a un lado: acierta o cae, de forma determinista para esa semilla. Solo un sondeo (o un tropiezo) revela cuál es.",
     "groups": [
-      { "id": "flanco_central", "name": "Hoyo de flanco del banco central", "variants": ["pozo_flanco_norte", "pozo_flanco_sur"],
-        "note": "Con el pozo central descubierto, el planificador rodea por el flanco que cree libre. Una de las dos orillas tiene un segundo hoyo; la otra es firme. Sondear un carril por cada flanco (z=240 y z=288) lo resuelve." },
-      { "id": "hoyo_banco_sur", "name": "Hoyo del banco sur", "variants": ["pozo_sur_a", "pozo_sur_b"],
-        "note": "El banco sur tiene un hoyo en uno de dos puntos de su eje. Un sondeo del eje del banco, con el vado ya abierto, lo descubre antes de cargar." }
+      {"id": "flanco_central", "name": "Hoyo de flanco del banco central", "variants": ["pozo_flanco_norte", "pozo_flanco_sur"], "note": "Con el pozo central descubierto, el planificador rodea por el flanco que cree libre. Una de las dos orillas tiene un segundo hoyo; la otra es firme. Sondear un carril por cada flanco (z=240 y z=288) lo resuelve."},
+      {"id": "hoyo_banco_sur", "name": "Hoyo del banco sur", "variants": ["pozo_sur_a", "pozo_sur_b"], "note": "El banco sur tiene un hoyo en uno de dos puntos de su eje. Un sondeo del eje del banco, con el vado ya abierto, lo descubre antes de cargar."}
     ]
   },
-  "hull": { "center": [580,262], "radius_m": 16.0, "bed_m": -1.5 },
+  "hull": {
+    "center": [580, 262],
+    "radius_m": 16.0,
+    "bed_m": -1.5,
+    "length_m": 40.0,
+    "beam_m": 9.0,
+    "heading_deg": 0.0,
+    "tag": "diseno",
+    "note": "Radio 16 m = ZONA DE CONTACTO del casco en las reglas (bloquea el paso). Envolvente visual del casco: 40 x 9 m, proa al norte (-z), de DISEÑO por comparables RMG SLR0583 (~42,7 x 8,5 m), LNG0016 (~39 m) y MSA0204 (~35,4 m); no es el plano del Justina, cuyo calado y dimensiones se desconocen. Bauprés y vergas exceden esas medidas."
+  },
   "obstacles": [
-    { "id": "canaveral_norte", "kind": "vegetacion", "tag": "diseno", "x": 250.0, "z": 120.0, "w": 40.0, "d": 22.0 },
-    { "id": "canaveral_sur", "kind": "vegetacion", "tag": "diseno", "x": 240.0, "z": 470.0, "w": 50.0, "d": 25.0 },
-    { "id": "carretas_varadas", "kind": "carretas", "tag": "diseno", "x": 218.0, "z": 345.0, "w": 14.0, "d": 6.0 }
+    {"id": "canaveral_norte", "kind": "vegetacion", "tag": "diseno", "x": 250.0, "z": 120.0, "w": 40.0, "d": 22.0},
+    {"id": "canaveral_sur", "kind": "vegetacion", "tag": "diseno", "x": 240.0, "z": 470.0, "w": 50.0, "d": 25.0},
+    {"id": "carretas_varadas", "kind": "carretas", "tag": "diseno", "x": 218.0, "z": 345.0, "w": 14.0, "d": 6.0}
   ],
   "landmarks": [
-    { "id": "justina", "name": "Buque Justina", "type": "ship", "x": 580.0, "z": 262.0, "tag": "reconstruccion",
-      "tag_parts": { "descripcion": "documentado", "lugar": "reconstruccion", "posicion_casco": "diseno" },
-      "source": "DESCRIPCIÓN (Documentado en transcripción): Gillespie 1818, traducción reproducida en el Ideario y pendiente de cotejo con el escaneo: mercante británico de 26 cañones que combatió el día de la rendición y fue tomado por caballería por una súbita bajada del río. LUGAR (Reconstrucción): el varado frente al Retiro NO viene de Gillespie; lo sostienen fuentes divulgativas (edisalta, La Nación, Recalada), de confianza media y aún no incorporadas a la bibliografía S1-S8 de docs/historia/FUENTES.md. POSICIÓN exacta del casco: diseño.",
-      "no_inventar": "Sin tipo de buque, tonelaje ni capitán documentados. No rotular fragata/goleta ni nombrar capitán. Sin bandera argentina." },
-    { "id": "bateria_abascal", "name": "Batería Abascal", "type": "battery", "x": 156.0, "z": 205.0, "w": 22.0, "d": 14.0, "tag": "reconstruccion",
-      "source": "Existencia y zona del Retiro: fuentes divulgativas secundarias, sin plano ni documento primario cotejado. Posición exacta sobre la barranca: reconstrucción. Que su fuego alcance al buque: diseño (rango 600 m)." },
-    { "id": "plaza_toros", "name": "Plaza de Toros del Retiro", "type": "bullring", "x": 134.0, "z": 225.0, "radius_m": 24.0, "tag": "documentado",
-      "source": "Plaza de Toros del Retiro (hoy Plaza San Martín): su existencia figura en el plano de Boneo-Villalonga 1801 y en vistas de Vidal 1816-20 (docs/referencias/justina). Posición exacta junto a la cresta: reconstrucción." },
-    { "id": "alameda", "name": "Alameda", "type": "road", "tag": "reconstruccion",
-      "source": "Alameda sobre la barranca (hoy Alem): su lugar proviene de fuentes secundarias sin plano cotejado, por eso es Reconstrucción y no Documentado. Trazado: reconstrucción.",
-      "polyline": [[140,0],[146,90],[152,170],[154,240],[150,320],[144,400],[140,470],[138,520]] },
-    { "id": "campamento_pueyrredon", "name": "Campamento de Pueyrredón", "type": "camp", "x": 140.0, "z": 275.0, "radius_m": 20.0, "tag": "reconstruccion",
-      "source": "Que la caballería de Pueyrredón tomó el buque figura en documentos de la época según la investigación del repo (Concha, 15-ago-1806; Liniers, Archivo Pueyrredón t. I, p. 54; REDISENO_SINTESIS_2026-10-29), aún sin cotejo propio del original; Obligado 1920 lo cuenta con Liniers dando la orden; Gillespie solo habla de 'caballería'. El campamento y su posición exacta: reconstrucción." },
-    { "id": "puesto_liniers", "name": "Puesto de mando de Liniers", "type": "command", "x": 148.0, "z": 345.0, "radius_m": 12.0, "tag": "diseno",
-      "source": "Que Liniers dio la orden de avanzar a Pueyrredón lo cuenta Obligado 1920 (fuente secundaria); el lugar donde estaba Liniers NO está documentado: posición de diseño." },
-    { "id": "barranca_retiro", "name": "Barranca del Retiro", "type": "cliff", "x": 174.0, "z": 120.0, "tag": "reconstruccion", "source": "Accidente geográfico real; altura 8-15 m: reconstrucción." }
+    {
+      "id": "justina",
+      "name": "Buque Justina",
+      "type": "ship",
+      "x": 580.0,
+      "z": 262.0,
+      "tag": "reconstruccion",
+      "tag_parts": {"descripcion": "documentado", "lugar": "reconstruccion", "posicion_casco": "diseno"},
+      "source": "DESCRIPCIÓN (Documentado en transcripción): Gillespie 1818 (pp. 28-29 y 94): mercante británico de 26 cañones —no 26 por banda—, aligerado, con oficiales y cien marineros de la escuadra además de su dotación, que combatió el día de la rendición y fue 'abordado y tomado por caballería' tras una súbita bajada del río. LUGAR (Reconstrucción): el varado frente al Retiro NO viene de Gillespie; lo sostienen fuentes divulgativas (edisalta, La Nación, Recalada), de confianza media y aún no incorporadas a la bibliografía S1-S8 de docs/historia/FUENTES.md. La cifra de ~400 m es de un material bonaerense de 2006 (p. 93, tradición discutida; sin medición contemporánea). POSICIÓN exacta, rumbo, escora y casco de 40 x 9 m: diseño. Se representa una ZONA, no un pin histórico (paquete B/C). La Torre Monumental (1916) no marca el punto del buque.",
+      "no_inventar": "Sin tipo de buque, tonelaje ni capitán documentados (el nombre 'Morris'/'Dunn' de Schlez es una pista no verificada: no se usa). No rotular fragata/goleta ni HMS. Sin bandera argentina. La mesana dañada es hipótesis, no 'desarbolado'.",
+      "hull_length_m": 40.0,
+      "hull_beam_m": 9.0,
+      "heading_deg": 0.0,
+      "uncertainty_radius_m": 120.0,
+      "uncertainty_note": "Zona de reserva gráfica de diseño (el paquete usa 100-150 m): no es un intervalo estadístico. world_view puede dibujarla como mancha tenue."
+    },
+    {
+      "id": "bateria_abascal",
+      "name": "Piezas de a 18 del Retiro",
+      "type": "battery",
+      "x": 148.0,
+      "z": 176.0,
+      "w": 22.0,
+      "d": 14.0,
+      "tag": "reconstruccion",
+      "source": "Liniers (parte del 11-ago-1806, reproducido en Güemes documentado) sitúa la llegada de dos piezas de a 18 de la goleta Dolores y su empleo contra embarcaciones; el paquete Justina_Retiro_1806 (F03) las trata como contexto del 11-12 con EMPLAZAMIENTO ABIERTO. La 'batería Abascal' (nombre heredado del id interno) viene solo de divulgación (Recalada, La Nación) sin plano ni documento primario cotejado: se mantiene el id, pero el juego muestra 'piezas del Retiro'. Posición sobre la barranca: reconstrucción. Que su fuego alcance al buque (rango 600 m): diseño.",
+      "id_note": "id interno 'bateria_abascal' heredado; no es una afirmación sobre Abascal."
+    },
+    {
+      "id": "plaza_toros",
+      "name": "Plaza de Toros del Retiro",
+      "type": "bullring",
+      "x": 112.0,
+      "z": 225.0,
+      "radius_m": 45.0,
+      "tag": "reconstruccion",
+      "source": "EXISTENCIA (Documentado): la Plaza de Toros del Retiro (inaugurada en 1801; hoy Plaza San Martín) figura en Boneo-Villalonga 1801, en la leyenda 3 del plano de 1808 (UWM) y en las vistas de Vidal (c. 1817-20) (docs/referencias/justina); Pillado 1910 da cuatro puertas sin fijar su orientación. POSICIÓN (Reconstrucción): 'próxima al borde, al sur del Retiro más abierto'; la huella exacta es incierta. MEDIDAS (Diseño): 90 m entre vértices exteriores opuestos (circunradio 45 m), exterior octogonal, ruedo circular de 30 m, 9 m de altura; el radio previo de 24 m del juego era diseño propio. Fachada sobria: no un edificio neomudéjar (J, F).",
+      "tag_parts": {"existencia": "documentado", "posicion": "reconstruccion", "medidas": "diseno"},
+      "shape": "octagon",
+      "rotation_deg": 22.5,
+      "vertex_span_m": 90.0,
+      "ring_radius_m": 30.0,
+      "wall_height_m": 9.0,
+      "gates": 4,
+      "previous_radius_m": 24.0
+    },
+    {
+      "id": "alameda",
+      "name": "Camino de la barranca (Alameda)",
+      "type": "road",
+      "tag": "diseno",
+      "source": "La Alameda es del frente central de la ciudad (paquete C: 'no extender una avenida ribereña uniforme hasta todo Retiro por analogía'). Aquí se muestra solo un TRAMO CORTO e irregular de camino sobre la barranca, sin arboleda regular, porque Obligado 1920 (secundaria) cuenta un mensajero de Liniers 'por la Alameda'. Trazado y existencia en Retiro: diseño.",
+      "polyline": [[152, 262], [149, 300], [151, 345], [144, 386]],
+      "trees": false
+    },
+    {
+      "id": "campamento_pueyrredon",
+      "name": "Campamento de Pueyrredón",
+      "type": "camp",
+      "x": 148.0,
+      "z": 292.0,
+      "radius_m": 18.0,
+      "tag": "reconstruccion",
+      "source": "Que la caballería de Pueyrredón tomó el buque figura en documentos de la época según la investigación del repo (Concha, 15-ago-1806; Liniers, Archivo Pueyrredón t. I, p. 54; REDISENO_SINTESIS_2026-10-29), aún sin cotejo propio del original; Obligado 1920 lo cuenta con Liniers dando la orden; Gillespie solo habla de 'caballería'. El campamento y su posición exacta: reconstrucción."
+    },
+    {
+      "id": "puesto_liniers",
+      "name": "Puesto de mando de Liniers",
+      "type": "command",
+      "x": 140.0,
+      "z": 345.0,
+      "radius_m": 12.0,
+      "tag": "diseno",
+      "source": "Que Liniers dio la orden de avanzar a Pueyrredón lo cuenta Obligado 1920 (fuente secundaria); el lugar donde estaba Liniers NO está documentado: posición de diseño."
+    },
+    {
+      "id": "barranca_retiro",
+      "name": "Barranca del Retiro",
+      "type": "cliff",
+      "x": 174.0,
+      "z": 120.0,
+      "tag": "reconstruccion",
+      "source": "Accidente geográfico real; altura 8-15 m: reconstrucción."
+    }
   ],
   "labels_extra": [
-    { "text": "Río de la Plata", "x": 760.0, "z": 120.0, "tag": "documentado" },
-    { "text": "Banco central", "x": 400.0, "z": 300.0, "tag": "diseno", "show_when": "known_or_emerged" }
+    {
+      "text": "Río de la Plata",
+      "x": 760.0,
+      "z": 120.0,
+      "tag": "documentado",
+      "note": "rótulo de orientación; no afirma nada del episodio"
+    },
+    {"text": "Banco central", "x": 400.0, "z": 300.0, "tag": "diseno", "show_when": "known_or_emerged"}
   ],
   "ship": {
     "tag": "reconstruccion",
-    "tag_parts": { "descripcion": "documentado", "lugar": "reconstruccion", "banda_13_canones": "diseno", "distancia_390_m": "diseno" },
+    "tag_parts": {"descripcion": "documentado", "lugar": "reconstruccion", "banda_13_canones": "diseno", "distancia_390_m": "diseno"},
     "tag_note": "La entidad se rotula Reconstrucción porque su lugar es de fuente divulgativa; solo la descripción (mercante británico de 26 cañones que combatió) es Documentado en transcripción (Gillespie).",
     "guns_total": 26,
     "broadside_guns": 13,
     "broadside_note": "Los 26 cañones son documentados en transcripción (Gillespie); que 13 den a cada banda es diseño.",
     "nationality_note": "Gillespie lo describe como mercante británico que combatió el día de la rendición; sin tipo, tonelaje ni capitán documentados.",
-    "x": 580.0, "z": 262.0,
+    "x": 580.0,
+    "z": 262.0,
     "heading_deg": 0.0,
     "heading_note": "0 = proa al norte (-z), la banda de babor (13 cañones) mira al oeste/tierra. Diseño.",
     "distance_from_shore_high_m": 390.0,
-    "distance_note": "Cifra divulgativa (<400 m) sin cita primaria. Se mide desde el pie de la barranca (x≈190 en z=262), donde estaba la costa de 1806, hasta el casco (x=580): 390 m. La línea de agua inicial del juego queda ~20 m más al este.",
+    "distance_note": "~400 m 'desde las barrancas de la Plaza de Toros' según un material bonaerense de 2006 (p. 93; tradición discutida, sin medición contemporánea); el juego usa 390 m medidos desde el pie de la barranca (x≈190 en z=262) hasta el casco (x=580), cifra de DISEÑO. La línea de agua inicial queda ~20-30 m más al este. No medir 400 m desde la orilla moderna.",
     "distance_tag": "diseno",
     "fire": {
       "range_m": 265.0,
       "volley_interval_s": 7.5,
-      "damage_min": 7.8, "damage_max": 11.9,
-      "arc_factors": { "broadside_half_deg": 40.0, "broadside": 1.0, "quarter_half_deg": 70.0, "quarter": 0.4, "chaser": 0.15 },
+      "damage_min": 8.2,
+      "damage_max": 12.4,
+      "arc_factors": {"broadside_half_deg": 40.0, "broadside": 1.0, "quarter_half_deg": 70.0, "quarter": 0.4, "chaser": 0.15},
       "morale_floor": 0.2,
-      "target_weights": { "group": 1.0, "scout": 0.15 },
+      "target_weights": {"group": 1.0, "scout": 0.15},
       "scout_hit_chance": 0.4,
       "tag": "diseno"
     },
-    "crew": { "morale": 100.0, "tag": "diseno" },
-    "capture": { "rate_per_power_per_s": 0.55, "morale_loss_per_power_per_s": 0.12, "dismount_s": 12.0, "boarding_point": [548,262], "boarding_radius_m": 24.0,
-      "melee_loss_per_s": 0.05, "boarding_exposure_mult": 0.3, "drown_loss_per_m_s": 3.0,
-      "wounded_share": 0.5, "evacuate_s": 10.0, "evacuate_recover": 0.6, "evacuate_min_wounded": 3.0,
+    "crew": {"morale": 100.0, "tag": "diseno"},
+    "capture": {
+      "rate_per_power_per_s": 0.55,
+      "morale_loss_per_power_per_s": 0.12,
+      "dismount_s": 12.0,
+      "boarding_point": [548, 262],
+      "boarding_radius_m": 24.0,
+      "melee_loss_per_s": 0.03,
+      "boarding_exposure_mult": 0.12,
+      "drown_loss_per_m_s": 3.0,
+      "wounded_share": 0.5,
+      "evacuate_s": 10.0,
+      "evacuate_recover": 0.6,
+      "evacuate_min_wounded": 3.0,
       "tide_warn_fraction": 0.85,
-      "counter": { "first_after_boarding_s": 30.0, "interval_s": 55.0, "jitter_s": 12.0, "window_s": 14.0, "damage": 22.0, "capture_loss_pct": 8.0, "repelled_mult": 0.25, "repel_ammo": 3, "min_crew_morale": 15.0, "tag": "diseno",
-        "note": "Cada ~55 s la dotación contraataca. Hay 14 s para rechazarlo (acción 'Rechazar', 2 de munición): sin respuesta cae la captura 7 puntos y los grupos abordando reparten 14 de daño; rechazado, un cuarto de eso. La mitad de lo perdido en el abordaje (cuerpo a cuerpo y contraataques) son heridos que 'Evacuar heridos' recupera en parte." },
-      "note": "Los grupos que abordan reciben el fuego del buque (x0,5), pierden fuerza en el cuerpo a cuerpo mientras la dotación conserve la moral (melee_loss_per_s x moral/100) y, si el río sube más allá de lo que un hombre a pie puede vadear, se ahogan a drown_loss_per_m_s de fuerza por metro de exceso y por segundo. Diseño." }
+      "counter": {"first_after_boarding_s": 30.0, "interval_s": 55.0, "jitter_s": 12.0, "window_s": 14.0, "damage": 16.0, "capture_loss_pct": 9.0, "repelled_mult": 0.25, "repel_ammo": 3, "min_crew_morale": 15.0, "tag": "diseno", "note": "Cada ~55 s la dotación contraataca. Hay 14 s para rechazarlo (acción 'Rechazar', 2 de munición): sin respuesta cae la captura 9 puntos y los grupos abordando reparten 16 de daño; rechazado, un cuarto de eso (valores de Ronda 1). La mitad de lo perdido en el abordaje (cuerpo a cuerpo y contraataques) son heridos que 'Evacuar heridos' recupera en parte."},
+      "note": "Los grupos que abordan reciben el fuego del buque (x0,5), pierden fuerza en el cuerpo a cuerpo mientras la dotación conserve la moral (melee_loss_per_s x moral/100) y, si el río sube más allá de lo que un hombre a pie puede vadear, se ahogan a drown_loss_per_m_s de fuerza por metro de exceso y por segundo. Diseño.",
+      "access_note": "Desmontar y acceder a cubierta por escala/cabo es una opción lúdica del paquete (D5, J), no un detalle comprobado del abordaje. Los caballos no suben a cubierta."
+    },
+    "position_candidates": [
+      {"id": "A", "x": 580.0, "z": 262.0, "used": true, "note": "Posición A del paquete (banco conectado a la ribera, favorece la aproximación). Diseño."},
+      {"id": "B", "x": 700.0, "z": 360.0, "used": false, "note": "Posición B del paquete: más exterior, mayor exposición y cruce. Alternativa NO simultánea con A; no implementada (cambiaría el balance). Coordenadas orientativas."}
+    ],
+    "hull_envelope": {"length_m": 40.0, "beam_m": 9.0, "tag": "diseno", "comparables": ["RMG SLR0583", "RMG LNG0016", "RMG MSA0204"]},
+    "rigging": {
+      "mizzen_state": "dañada (hipótesis)",
+      "tag": "tradicion",
+      "note": "Un parte de Liniers menciona daño en una parte de la mesana de una fragata sin nombre; que un cañonazo derribara el palo entero es tradición discutida. Mostrar aparejo dañado, no desarbolado obligatorio."
+    },
+    "crew_composition": {
+      "own_crew": {"tag": "documentado", "note": "Dotación propia del mercante (Princeps y Saunders, de Londres, según el paquete). Total sin datos suficientes."},
+      "navy_reinforcement": {"count": 100, "tag": "documentado", "note": "Cien marineros de la escuadra, más oficiales (Gillespie 1818, p. 94). No son soldados de casaca roja."},
+      "santa_elena_180": {"used": false, "note": "Los 180 hombres de Santa Elena (Gillespie pp. 28-29) son tropas embarcadas durante la expedición, otra fase: no poblar la cubierta con ellos."},
+      "gun_layout": {"tag": "diseno", "note": "26 en total; 13 por banda es diseño. No dibujar 13 idénticos por banda sin pruebas; los sectores de tiro son inferencias geométricas."}
+    }
   },
   "groups": [
-    { "id": "guemes", "name": "Vanguardia · Güemes (tradición)", "x": 199.0, "z": 240.0, "strength": 100.0, "tag": "tradicion",
-      "note": "El mando de Güemes sobre los jinetes es tradición no probada. Obligado 1920 lo hace ayudante de Liniers que lleva la orden a Pueyrredón; la tropa montada era de Pueyrredón. Ideario p. 33." },
-    { "id": "arias", "name": "Voluntarios de la ribera", "x": 200.0, "z": 268.0, "strength": 70.0, "tag": "diseno",
-      "note": "Identificador interno 'arias' heredado; NO atribuye presencia de Arias en 1806." },
-    { "id": "zavala", "name": "Reserva de caballería de Pueyrredón", "x": 198.0, "z": 296.0, "strength": 60.0, "tag": "reconstruccion",
-      "note": "Que caballería tomó el buque lo dice Gillespie; que fuera la de Pueyrredón figura en Concha (15-ago-1806) y Liniers (Archivo Pueyrredón t. I, p. 54) según la investigación del repo, sin cotejo propio del original, y Obligado 1920 la relata. La cantidad, la fuerza relativa y la composición de cada grupo son diseño/reconstrucción. Identificador interno 'zavala' heredado." }
+    {
+      "id": "guemes",
+      "name": "Güemes y los jinetes (tradición)",
+      "x": 199.0,
+      "z": 240.0,
+      "strength": 100.0,
+      "tag": "tradicion",
+      "note": "Tradición discutida: Güemes dirigiendo personalmente la toma (Obligado 1920 → Luis Güemes; Gillespie no lo nombra). Dato firme: 21 años, cadete del Regimiento de Infantería de Buenos Aires según un documento del 11 de agosto (no 'cadete de caballería'); su presencia en el buque el 12 queda 'sin datos suficientes': no se convierte posibilidad de viaje en presencia comprobada. Ideario p. 33 lo da volviendo de Córdoba (no cotejado con el paquete). El grupo es de jinetes de Pueyrredón; Güemes es su rostro narrativo.",
+      "kit": "guemes"
+    },
+    {
+      "id": "arias",
+      "name": "Voluntarios de la ribera",
+      "x": 200.0,
+      "z": 268.0,
+      "strength": 70.0,
+      "tag": "diseno",
+      "note": "Identificador interno 'arias' heredado; NO atribuye presencia de Arias en 1806.",
+      "kit": "voluntarios"
+    },
+    {
+      "id": "zavala",
+      "name": "Reserva de caballería de Pueyrredón",
+      "x": 198.0,
+      "z": 296.0,
+      "strength": 60.0,
+      "tag": "reconstruccion",
+      "note": "Que caballería tomó el buque lo dice Gillespie; que fuera la de Pueyrredón figura en Concha (15-ago-1806) y Liniers (Archivo Pueyrredón t. I, p. 54) según la investigación del repo, sin cotejo del original, y Obligado 1920 la relata. El paquete (B, G2) reconstruye el vínculo por relatos posteriores y dice que '30, 50 o 60 jinetes' es 'sin datos suficientes'. Cantidad, fuerza relativa y composición: diseño. Identificador interno 'zavala' heredado.",
+      "kit": "jinetes_pueyrredon"
+    }
   ],
   "scouts": [
-    { "id": "scout_1", "name": "Explorador 1", "x": 204.0, "z": 255.0, "tag": "diseno" },
-    { "id": "scout_2", "name": "Explorador 2", "x": 204.0, "z": 283.0, "tag": "diseno" }
+    {"id": "scout_1", "name": "Explorador 1", "x": 204.0, "z": 255.0, "tag": "diseno"},
+    {"id": "scout_2", "name": "Explorador 2", "x": 204.0, "z": 283.0, "tag": "diseno"}
   ],
   "resources": {
     "tag": "diseno",
-    "ammo_start": 12, "ammo_max": 40, "ammo_reserve": 16, "signals_max": 2,
+    "ammo_start": 12,
+    "ammo_max": 40,
+    "ammo_reserve": 16,
+    "signals_max": 2,
     "reserve_note": "Recursos limitados que obligan a elegir: la batería solo tiene 16 de pólvora de reserva (se retira de una vez con 'Abastecer'), Liniers concede como mucho 2 órdenes de avance, quedan 60 voluntarios y 16 balizas. Munición total disponible ≈ 12 + 2×8 + 16 = 44; el fuego de distracción cuesta 8, reunir 4, rechazar un contraataque 3.",
     "balizas_start": 16,
     "volunteers_pool": 60.0,
@@ -206,36 +506,149 @@
     "marked_corridor_width_m": 16.0
   },
   "actions": {
-    "move": { "label": "Mover", "tag": "diseno", "actor": "group", "cost": { "time": "recorrido a ritmo elegido", "fatigue": "según fatiga por segundo" }, "effect": "Marcha a un punto con ritmo walk, trot o gallop (gallop solo en firme)." },
-    "probe": { "label": "Reconocer fondo", "tag": "diseno", "actor": "scout", "waypoints_max": 3, "speed_mps_water": 1.0, "speed_mps_dry": 3.0, "max_depth_m": 1.3, "cost": { "scout_busy": true, "risk": "dentro del alcance del buque recibe fuego (4 de salud; cada impacto acierta con probabilidad 0,4 x exposición); el fuego de distracción lo protege" }, "effect": "Sondea con lanza una franja de 6 m de ancho; revela el fondo real en esa franja y descubre pozos y vados." },
-    "probe_careful": { "label": "Sondeo cauteloso", "tag": "diseno", "actor": "scout", "waypoints_max": 3, "speed_mult": 0.7, "hit_mult": 0.5, "cost": { "scout_busy": true, "time": "30 % más lento donde hay fuego" }, "effect": "Igual que reconocer, pero donde el buque alcanza el explorador avanza agachado entre cañaverales y la sombra del casco: a 0,7 de la velocidad y con la mitad de la probabilidad de ser alcanzado. Al ordenarlo se informa el riesgo estimado de baja." },
-    "mark_ford": { "label": "Marcar vado", "tag": "diseno", "actor": "scout", "work_mps": 1.0, "balizas_per_10m": 1, "cost": { "balizas": "1 por cada 10 m", "scout_busy": true }, "requires": "tramo ya sondeado (probe)", "effect": "Ensancha el carril sondeado a 16 m: las columnas lo cruzan a velocidad plena y sin tropezar." },
-    "muster": { "label": "Reunir jinetes", "tag": "diseno", "actor": "group", "at": "plaza_toros", "radius_m": 30.0, "work_s": 40.0, "strength_gain": 20.0, "fatigue_gain": 20.0, "ammo_cost": 4, "cost": { "time_s": 40, "ammo": 4, "fatigue": 20, "pool": "volunteers_pool", "travel": "subir por una bajada" }, "effect": "Suma hasta 20 de fuerza (tope 100) tomando del reservorio de voluntarios. Los reclutas llegan sin entrenar (+20 de fatiga al grupo) y se les reparten 4 de munición." },
-    "distract_fire": { "label": "Distraer con fuego", "tag": "diseno", "actor": "global", "from": "bateria_abascal", "range_m": 600.0, "ammo_cost": 8, "duration_s": 45.0, "cooldown_s": 90.0, "exposure_mult": 0.5, "ship_morale_loss": 3.0, "volley_interval_add_s": 2.0, "requires_ammo": true, "effect": "Cubre a exploradores y columnas pero gasta pólvora que no vuelve. La batería Abascal y tiradores de la barranca atraen el fuego del buque: durante 45 s la exposición baja a la mitad." },
-    "resupply": { "label": "Abastecer munición", "tag": "diseno", "actor": "group", "at": "bateria_abascal", "radius_m": 30.0, "work_s": 25.0, "ammo_gain": 16, "cost": { "time_s": 25, "travel": "subir por una bajada" }, "effect": "+16 de munición (tope ammo_max) retirados de la reserva de la batería (16 en total: se agota)." },
-    "signal_liniers": { "label": "Señalar a Liniers", "tag": "diseno", "actor": "group", "at": "puesto_liniers", "radius_m": 20.0, "work_s": 10.0, "ammo_gain": 8, "valid_s": 420.0, "uses_max": 2, "crew_morale_effect": 0, "grants": "advance_authorized", "effect": "Se obtiene la orden de avanzar (necesaria para cargar/abordar) durante 420 s y +8 de munición; solo hay 2 señales en toda la partida. Si vence mientras un grupo marcha hacia el buque, el grupo se detiene. Es una regla de juego: que Liniers ordenó avanzar a la caballería lo cuenta Obligado 1920 (fuente secundaria). Güemes como mensajero de esa orden es tradición no probada y no se afirma." },
-    "board": { "label": "Cargar y abordar", "tag": "diseno", "actor": "group", "requires": "advance_authorized", "effect": "Marcha al vado junto al buque, desmonta (12 s) y suma poder de captura. Los caballos quedan en el vado. En el abordaje el grupo recibe fuego del buque, pierde fuerza en el cuerpo a cuerpo y se ahoga si el río sube; se puede retirar (a pie, hacia la playa)." },
-    "withdraw": { "label": "Retirar", "tag": "diseno", "actor": "group", "to": "playa_seca", "pace_max": "trot", "effect": "Vuelve a la playa seca a ritmo seguro; deja de recibir fuego fuera de alcance. 'retreat_all' ordena retirada general y cierra la partida como derrota ordenada.", "retreat_all_ends": "defeat" },
-    "repel": { "label": "Rechazar contraataque", "tag": "diseno", "actor": "group", "ammo_cost": 3, "fatigue_gain": 3.0, "requires": "contraataque de la dotación en curso (ventana de 14 s) y un grupo abordando", "cost": { "ammo": 3, "fatigue": 3 }, "effect": "El grupo que abordó cierra filas y rechaza el contraataque: la captura no retrocede y el daño se reduce a la cuarta parte." },
-    "evacuate": { "label": "Evacuar heridos", "tag": "diseno", "actor": "group", "work_s": 10.0, "requires": "grupo abordando con al menos 3 de heridos", "cost": { "time_s": 10, "capture_power": "el grupo no aporta captura mientras tanto" }, "effect": "Retira a los heridos a la balsa del vado: recupera el 60 % de lo perdido por cuerpo a cuerpo y contraataques como fuerza. Durante 10 s el grupo no suma poder de captura." },
-    "rally": { "label": "Reagrupar", "tag": "diseno", "actor": "group", "regen_fatigue_per_s": 0.18, "regen_strength_per_s": 0.025, "regen_requires": "x < shore_high + 40 y fuera de alcance", "effect": "Descansa: baja fatiga y recupera fuerza lentamente en la playa seca." },
-    "cancel": { "label": "Cancelar", "tag": "diseno", "actor": "any", "effect": "Anula la orden en curso; el grupo se detiene." }
+    "move": {
+      "label": "Mover",
+      "tag": "diseno",
+      "actor": "group",
+      "cost": {"time": "recorrido a ritmo elegido", "fatigue": "según fatiga por segundo"},
+      "effect": "Marcha a un punto con ritmo walk, trot o gallop (gallop solo en firme)."
+    },
+    "probe": {
+      "label": "Reconocer fondo",
+      "tag": "diseno",
+      "actor": "scout",
+      "waypoints_max": 3,
+      "speed_mps_water": 1.0,
+      "speed_mps_dry": 3.0,
+      "max_depth_m": 1.3,
+      "cost": {"scout_busy": true, "risk": "dentro del alcance del buque recibe fuego (4 de salud; cada impacto acierta con probabilidad 0,4 x exposición); el fuego de distracción lo protege"},
+      "effect": "Sondea con lanza una franja de 6 m de ancho; revela el fondo real en esa franja y descubre pozos y vados."
+    },
+    "probe_careful": {
+      "label": "Sondeo cauteloso",
+      "tag": "diseno",
+      "actor": "scout",
+      "waypoints_max": 3,
+      "speed_mult": 0.7,
+      "hit_mult": 0.5,
+      "cost": {"scout_busy": true, "time": "30 % más lento donde hay fuego"},
+      "effect": "Igual que reconocer, pero donde el buque alcanza el explorador avanza agachado entre cañaverales y la sombra del casco: a 0,7 de la velocidad y con la mitad de la probabilidad de ser alcanzado. Al ordenarlo se informa el riesgo estimado de baja."
+    },
+    "mark_ford": {
+      "label": "Marcar vado",
+      "tag": "diseno",
+      "actor": "scout",
+      "work_mps": 1.0,
+      "balizas_per_10m": 1,
+      "cost": {"balizas": "1 por cada 10 m", "scout_busy": true},
+      "requires": "tramo ya sondeado (probe)",
+      "effect": "Ensancha el carril sondeado a 16 m: las columnas lo cruzan a velocidad plena y sin tropezar."
+    },
+    "muster": {
+      "label": "Reunir jinetes",
+      "tag": "diseno",
+      "actor": "group",
+      "at": "plaza_toros",
+      "radius_m": 45.0,
+      "work_s": 40.0,
+      "strength_gain": 20.0,
+      "fatigue_gain": 20.0,
+      "ammo_cost": 4,
+      "cost": {"time_s": 40, "ammo": 4, "fatigue": 20, "pool": "volunteers_pool", "travel": "subir por una bajada"},
+      "effect": "Suma hasta 20 de fuerza (tope 100) tomando del reservorio de voluntarios. Los reclutas llegan sin entrenar (+20 de fatiga al grupo) y se les reparten 4 de munición."
+    },
+    "distract_fire": {
+      "label": "Distraer con fuego",
+      "tag": "diseno",
+      "actor": "global",
+      "from": "bateria_abascal",
+      "range_m": 600.0,
+      "ammo_cost": 8,
+      "duration_s": 45.0,
+      "cooldown_s": 90.0,
+      "exposure_mult": 0.5,
+      "ship_morale_loss": 3.0,
+      "volley_interval_add_s": 2.0,
+      "requires_ammo": true,
+      "effect": "Cubre a exploradores y columnas pero gasta pólvora que no vuelve. La batería Abascal y tiradores de la barranca atraen el fuego del buque: durante 45 s la exposición baja a la mitad."
+    },
+    "resupply": {
+      "label": "Abastecer munición",
+      "tag": "diseno",
+      "actor": "group",
+      "at": "bateria_abascal",
+      "radius_m": 30.0,
+      "work_s": 25.0,
+      "ammo_gain": 16,
+      "cost": {"time_s": 25, "travel": "subir por una bajada"},
+      "effect": "+16 de munición (tope ammo_max) retirados de la reserva de la batería (16 en total: se agota)."
+    },
+    "signal_liniers": {
+      "label": "Señalar a Liniers",
+      "tag": "diseno",
+      "actor": "group",
+      "at": "puesto_liniers",
+      "radius_m": 20.0,
+      "work_s": 10.0,
+      "ammo_gain": 8,
+      "valid_s": 420.0,
+      "uses_max": 2,
+      "crew_morale_effect": 0,
+      "grants": "advance_authorized",
+      "effect": "Se obtiene la orden de avanzar (necesaria para cargar/abordar) durante 420 s y +8 de munición; solo hay 2 señales en toda la partida. Si vence mientras un grupo marcha hacia el buque, el grupo se detiene. Es una regla de juego: que Liniers ordenó avanzar a la caballería lo cuenta Obligado 1920 (fuente secundaria). Güemes como mensajero de esa orden es tradición no probada y no se afirma."
+    },
+    "board": {
+      "label": "Cargar y abordar",
+      "tag": "diseno",
+      "actor": "group",
+      "requires": "advance_authorized",
+      "effect": "Marcha al vado junto al buque, desmonta (12 s) y suma poder de captura. Los caballos quedan en el vado. En el abordaje el grupo recibe fuego del buque, pierde fuerza en el cuerpo a cuerpo y se ahoga si el río sube; se puede retirar (a pie, hacia la playa)."
+    },
+    "withdraw": {
+      "label": "Retirar",
+      "tag": "diseno",
+      "actor": "group",
+      "to": "playa_seca",
+      "pace_max": "trot",
+      "effect": "Vuelve a la playa seca a ritmo seguro; deja de recibir fuego fuera de alcance. 'retreat_all' ordena retirada general y cierra la partida como derrota ordenada.",
+      "retreat_all_ends": "defeat"
+    },
+    "repel": {
+      "label": "Rechazar contraataque",
+      "tag": "diseno",
+      "actor": "group",
+      "ammo_cost": 3,
+      "fatigue_gain": 3.0,
+      "requires": "contraataque de la dotación en curso (ventana de 14 s) y un grupo abordando",
+      "cost": {"ammo": 3, "fatigue": 3},
+      "effect": "El grupo que abordó cierra filas y rechaza el contraataque: la captura no retrocede y el daño se reduce a la cuarta parte."
+    },
+    "evacuate": {
+      "label": "Evacuar heridos",
+      "tag": "diseno",
+      "actor": "group",
+      "work_s": 10.0,
+      "requires": "grupo abordando con al menos 3 de heridos",
+      "cost": {"time_s": 10, "capture_power": "el grupo no aporta captura mientras tanto"},
+      "effect": "Retira a los heridos a la balsa del vado: recupera el 60 % de lo perdido por cuerpo a cuerpo y contraataques como fuerza. Durante 10 s el grupo no suma poder de captura."
+    },
+    "rally": {
+      "label": "Reagrupar",
+      "tag": "diseno",
+      "actor": "group",
+      "regen_fatigue_per_s": 0.18,
+      "regen_strength_per_s": 0.025,
+      "regen_requires": "x < shore_high + 40 y fuera de alcance",
+      "effect": "Descansa: baja fatiga y recupera fuerza lentamente en la playa seca."
+    },
+    "cancel": {"label": "Cancelar", "tag": "diseno", "actor": "any", "effect": "Anula la orden en curso; el grupo se detiene."}
   },
   "texts": {
     "title": "Justina · Retiro, 12 de agosto de 1806",
-    "briefing": "Reconstrucción jugable, no una crónica, del 12 de agosto de 1806. Gillespie (1818) cuenta que un mercante británico de 26 cañones, que había combatido ese día, fue tomado por caballería al cerrar la jornada, por una súbita bajada del río. Fuentes divulgativas lo ubican varado frente al Retiro; que la caballería fuera la de Pueyrredón figura en Concha y Liniers (Archivo Pueyrredón) según la investigación del repo, y el papel de Liniers lo cuenta Obligado (1920). Lugares: reconstruidos a partir de planos y vistas posteriores. Fondo, bancos, vados, tiempos y cifras: diseño del juego. Que Güemes mandara a los jinetes es una tradición no probada.",
-    "historical_note": "Reconquista, 12 de agosto de 1806. Documentado en transcripción (Gillespie 1818): mercante británico de 26 cañones, que combatió el día de la rendición, tomado por caballería por una súbita bajada del río; que la caballería era la de Pueyrredón figura en Concha y Liniers según la investigación del repo. Reconstrucción (fuentes divulgativas): varado frente al Retiro, cerca de la Plaza de Toros. Tradición no probada: Güemes al frente de los jinetes. Diseño: mapa de bancos y vados, tiempos, fuerzas y munición. Los ~390 m desde el pie de la barranca son una cifra divulgativa.",
+    "briefing": "Reconstrucción jugable, no una crónica, del 12 de agosto de 1806. Gillespie (1818) cuenta que un mercante británico de 26 cañones, que había combatido ese día, fue tomado por caballería al cerrar la jornada, por una súbita bajada del río. Fuentes divulgativas lo ubican varado frente al Retiro (una zona, no un punto: Gillespie no da el lugar); que la caballería fuera la de Pueyrredón figura en Concha y Liniers (Archivo Pueyrredón) según la investigación del repo, y el papel de Liniers lo cuenta Obligado (1920). Lugares: reconstruidos a partir de planos (Boneo 1801, UWM 1808) y vistas posteriores (Vidal). Fondo, bancos, vados, tiempos y cifras: diseño del juego. Que Güemes —cadete de 21 años del Regimiento de Infantería de Buenos Aires— mandara a los jinetes es una tradición no probada.",
+    "historical_note": "Reconquista, 12 de agosto de 1806. Documentado en transcripción (Gillespie 1818): mercante británico de 26 cañones, que combatió el día de la rendición, tomado por caballería por una súbita bajada del río; que la caballería era la de Pueyrredón figura en Concha y Liniers según la investigación del repo (Reconstrucción hasta cotejar los originales). Reconstrucción (fuentes divulgativas): varado frente al Retiro, cerca de la Plaza de Toros. Tradición no probada: Güemes al frente de los jinetes (documentado: cadete de Infantería de Buenos Aires, sin datos de su presencia el 12). Diseño: mapa de bancos y vados, tiempos, fuerzas y munición. Los ~400 m son de un material de 2006 (tradición discutida); el juego mide 390 m desde el pie de la barranca (diseño).",
     "objective": "Descubrí el fondo con los exploradores mientras baja el río, elegí ruta y tomá el buque antes de que el agua vuelva a subir.",
-    "tips": [
-      "El agua es turbia y el fondo cambia de una partida a otra: un trazado a ciegas por el banco central cae en un hoyo y cuesta caballos. Reconocer es la única forma de saber.",
-      "Con el pozo central a la vista queda un segundo hoyo en uno de los dos flancos: un carril sondeado por un flanco dice cuál, porque solo hay uno.",
-      "La ruta central es corta y expuesta al fuego; la sur es larga, poco expuesta y exige descubrir y marcar el vado y sondear el banco.",
-      "Liniers concede solo 2 órdenes de avance de 420 s: si vence con un grupo en marcha, el grupo se detiene. Señalá cuando estés por cruzar.",
-      "La pólvora no alcanza para todo (reserva de 16): elegí entre cubrir exploradores, cubrir el cruce, armar reclutas y rechazar contraataques.",
-      "Sondeá agachado (Sondeo cauteloso) donde el buque alcanza: es más lento, pero el riesgo estimado de baja se reduce a la mitad.",
-      "En el abordaje la dotación contraataca cada ~55 s: rechazalo en 14 s o pierde terreno. Evacuá heridos y retirá grupos antes de que el agua suba.",
-      "Los caballos no pasan de 1,3 m de agua y la infantería, de 1,2 m. Si el río sube con tu gente en el vado, se ahoga."
-    ]
+    "tips": ["El agua es turbia y el fondo cambia de una partida a otra: un trazado a ciegas por el banco central cae en un hoyo y cuesta caballos. Reconocer es la única forma de saber.", "Con el pozo central a la vista queda un segundo hoyo en uno de los dos flancos: un carril sondeado por un flanco dice cuál, porque solo hay uno.", "La ruta central es corta y expuesta al fuego; la sur es larga, poco expuesta y exige descubrir y marcar el vado y sondear el banco.", "Liniers concede solo 2 órdenes de avance de 420 s: si vence con un grupo en marcha, el grupo se detiene. Señalá cuando estés por cruzar.", "La pólvora no alcanza para todo (reserva de 16): elegí entre cubrir exploradores, cubrir el cruce, armar reclutas y rechazar contraataques.", "Sondeá agachado (Sondeo cauteloso) donde el buque alcanza: es más lento, pero el riesgo estimado de baja se reduce a la mitad.", "En el abordaje la dotación contraataca cada ~55 s: rechazalo en 14 s o pierde terreno. Evacuá heridos y retirá grupos antes de que el agua suba.", "Los caballos no pasan de 1,3 m de agua y la infantería, de 1,2 m. Si el río sube con tu gente en el vado, se ahoga."]
   },
   "camera": {
     "initial_height_m": 90.0,
@@ -253,10 +666,18 @@
     "default_size_px": [260, 150],
     "large_size_px": [520, 300],
     "refresh_s": 2.0,
-    "colors": { "land": "#8a7a58", "barranca": "#5e5a45", "emerged": "#c8b88a", "water_unknown": "#4a5d63", "probe_lane": "#6fb8a6", "marked": "#e2c46b", "danger": "#d48f79" }
+    "colors": {
+      "land": "#8a7a58",
+      "barranca": "#5e5a45",
+      "emerged": "#c8b88a",
+      "water_unknown": "#4a5d63",
+      "probe_lane": "#6fb8a6",
+      "marked": "#e2c46b",
+      "danger": "#d48f79"
+    }
   },
   "outcome": {
-    "victory": { "capture_pct": 100.0 },
+    "victory": {"capture_pct": 100.0},
     "defeat": ["todos los grupos dispersos (fuerza <= 5)", "plazo agotado (deadline_s) sin captura", "retirada general (retreat_all)"],
     "routed_strength_threshold": 5.0
   },
@@ -264,17 +685,219 @@
     "tag": "diseno",
     "total_minutes": [12, 18],
     "note": "Objetivos de balance para los tests de Reglas (ver DISENO_JUSTINA.md 10).",
-    "rush_central_no_recon": { "min_strength_loss_pct": 30, "must_stumble": true },
-    "recon_then_central": { "victory_before_s": 900 },
-    "recon_then_south": { "victory_before_s": 960, "central_vs_south_exposure_ratio_min": 1.4 },
-    "passive": { "defeat_at_s": 1080 },
-    "dominance": { "max_win_share": 0.6, "min_winning_strategies": 3, "strategies_min": 10, "seeds_min": 8 }
+    "rush_central_no_recon": {"min_strength_loss_pct": 30, "must_stumble": true},
+    "recon_then_central": {"victory_before_s": 900},
+    "recon_then_south": {"victory_before_s": 960, "central_vs_south_exposure_ratio_min": 1.4},
+    "passive": {"defeat_at_s": 1080},
+    "dominance": {"max_win_share": 0.6, "min_winning_strategies": 3, "strategies_min": 10, "seeds_min": 8},
+    "max_victory_loss_pct": 75,
+    "cohort_win_rate": [0.40, 0.60],
+    "victory_loss": {"median_max_pct": 65, "undefended_max_pct": 92, "share_over_80_max": 0.15,
+      "note": "Ronda 1: victorias no pírricas. max_victory_loss_pct vale para las estrategias que defienden el abordaje (repelen y evacúan); sin defensa el tope es undefended_max_pct. Antes de la ronda las victorias costaban 73-94 % de la fuerza."},
+    "cohort_note": "Estrategias razonables (COHORT en tests/test_rules.gd: reconocen y se comprometen): ganan 40-60 % de las partidas tanto en las 8 semillas de calibración como en 12 de validación. Las ciegas, la pasiva y la tardía siguen en ~0 %."
   },
   "reference_images": [
-    { "file": "docs/referencias/justina/vidal_05_vista_general_plaza_de_toros.jpg", "use": "silueta de barranca y ribera desde la Plaza de Toros (1820)" },
-    { "file": "docs/referencias/justina/vidal_02_fuerte_rivera_norte.jpg", "use": "costa baja y ribera" },
-    { "file": "docs/referencias/justina/vidal_01_landing_place_hires.png", "use": "caballos y carretas entrando al agua" },
-    { "file": "docs/referencias/justina/boneo_villalonga_1801_plano_buenos_aires.jpg", "use": "Retiro y trazado urbano" },
-    { "file": "docs/referencias/justina/gillespie_1818_p047_pilotaje_carta.jpg", "use": "carta del Plata (solo orientación)" }
-  ]
+    {
+      "file": "docs/referencias/justina/vidal_05_vista_general_plaza_de_toros.jpg",
+      "use": "silueta de barranca y ribera desde la Plaza de Toros (1820)"
+    },
+    {"file": "docs/referencias/justina/vidal_02_fuerte_rivera_norte.jpg", "use": "costa baja y ribera"},
+    {"file": "docs/referencias/justina/vidal_01_landing_place_hires.png", "use": "caballos y carretas entrando al agua"},
+    {"file": "docs/referencias/justina/boneo_villalonga_1801_plano_buenos_aires.jpg", "use": "Retiro y trazado urbano"},
+    {
+      "file": "docs/referencias/justina/gillespie_1818_p047_pilotaje_carta.jpg",
+      "use": "carta del Plata (solo orientación)"
+    },
+    {
+      "file": "docs/referencias/justina/vidal_03_plaza_victoria_desde_recova.jpg",
+      "use": "tránsito, plaza abierta y silueta (c. 1817-20)"
+    }
+  ],
+  "size_note": "Zona simulada y jugable: 900 x 520 m (decisión Ronda 1, ver docs/DISENO_JUSTINA.md 1.0). El paquete Justina_Retiro_1806 propone 900 x 750 m; esos 230 m extra (norte y sur) se conservan como CONTEXTO visual en el bloque 'context' (no transitable, sin reglas): ciudad alta, siluetas y borde de ribera que continúan.",
+  "context": {
+    "tag": "diseno",
+    "note": "Decisión de Ronda 1: la zona simulada se queda en 900 x 520 m y el paquete (900 x 750 m, prototipo de nivel con origen arbitrario) se concilia como CONTEXTO: 115 m al norte (z<0) y 115 m al sur (z>520) donde la ribera y la barranca continúan sin reglas, con ciudad alta y siluetas. Razones: el balance (matriz de 18 estrategias) y el minimapa/UI dependen de la proporción 900 x 520; el prototipo del paquete tiene la costa en diagonal NO-SE sin coordenadas históricas.",
+    "extent": {"x_min": 0.0, "x_max": 900.0, "z_min": -115.0, "z_max": 635.0, "playable_z": [0.0, 520.0]},
+    "north": {
+      "label": "Noroeste menos compacto",
+      "note": "La ciudad se vuelve menos densa hacia el norte (paquete A). Casas dispersas, tapias y baldíos; barranca y ribera siguen con meandros.",
+      "features": [
+        {"id": "casas_norte", "kind": "casas", "x": 60.0, "z": -60.0, "w": 200.0, "d": 90.0, "density": "baja", "tag": "reconstruccion"},
+        {"id": "ribera_norte", "kind": "ribera", "polyline": [[212, 0], [205, -40], [218, -80], [210, -115]], "tag": "diseno"}
+      ]
+    },
+    "south": {
+      "label": "Trama más densa hacia Santa Catalina",
+      "note": "Hacia el sur la trama urbana gana densidad (paquete A, F12-F14).",
+      "features": [
+        {"id": "casas_sur", "kind": "casas", "x": 70.0, "z": 575.0, "w": 260.0, "d": 110.0, "density": "alta", "tag": "reconstruccion"},
+        {"id": "ribera_sur", "kind": "ribera", "polyline": [[222, 520], [230, 560], [218, 600], [226, 635]], "tag": "diseno"}
+      ]
+    },
+    "skyline": [
+      {"id": "santa_catalina", "name": "Santa Catalina", "bearing_deg": 185.0, "approx_km": 1.0, "kind": "iglesia", "tag": "reconstruccion", "note": "Hito colonial entre Retiro y el centro (plano UWM 1808). Silueta de masa eclesiástica sobre el caserío; la distancia es una estimación del repo, sin medir, y se comprime a la línea del horizonte."},
+      {"id": "fuerte_plaza_mayor", "name": "Fuerte y Plaza Mayor", "bearing_deg": 170.0, "approx_km": 2.0, "kind": "fuerte", "tag": "reconstruccion", "note": "Fondo urbano lejano al sur; sin Casa Rosada actual ni interior de nivel (F14). Estimación de distancia del repo."},
+      {"id": "campanarios", "name": "Campanarios sobre construcciones bajas", "bearing_deg": 200.0, "approx_km": 1.5, "kind": "campanarios", "tag": "reconstruccion", "note": "Brambila y Vidal: horizonte bajo con iglesias como protagonistas."}
+    ],
+    "excluded_anachronisms": ["Torre Monumental (1916)", "estaciones y vías de Retiro", "grúas y dársenas modernas", "Paseo del Bajo", "edificios altos", "Casa Rosada actual", "jardines y escalinatas de Plaza San Martín", "arbolado alineado actual (palos borrachos de 1936)", "cuarteles almenados tardíos y arcadas largas", "herrería adosada al circo (1807)", "fortificación pétrea de septiembre de 1807", "bandera celeste y blanca y escarapela nacional", "botones con escudo argentino", "Infernales", "Húsares o Patricios ceremoniales", "marinería reglada de 1857", "71.º como en Waterloo", "muelle continuo en Retiro", "césped ornamental continuo"]
+  },
+  "scenery": {
+    "tag": "reconstruccion",
+    "note": "Decorado NO jugable para world_view (todo es reconstrucción/diseño; ninguna huella es documentada). Coordenadas de juego (+x este, +z sur). Prioridad del paquete F: P0 circo/barranca/bajada/buque; P1 dependencias, casas y caballos; P2 siluetas, botes, carros, vegetación.",
+    "items": [
+      {"id": "cuartel_norte", "kind": "dependencias_militares", "x": 138.0, "z": 126.0, "w": 40.0, "d": 18.0, "rot_deg": 10.0, "tag": "reconstruccion", "source": "F02: núcleo militar previo a 1806 entre el circo y el borde; huellas y alturas sin datos. Volúmenes bajos de fábrica y patios; no importar las obras de 1807."},
+      {"id": "cuartel_sur", "kind": "dependencias_militares", "x": 130.0, "z": 312.0, "w": 34.0, "d": 16.0, "rot_deg": -8.0, "tag": "reconstruccion", "source": "F02, ídem."},
+      {"id": "casa_o1", "kind": "casa", "x": 62.0, "z": 70.0, "w": 30.0, "d": 20.0, "rot_deg": 4.0, "tag": "reconstruccion"},
+      {"id": "casa_o2", "kind": "casa", "x": 96.0, "z": 104.0, "w": 26.0, "d": 18.0, "rot_deg": -6.0, "tag": "reconstruccion"},
+      {"id": "casa_o3", "kind": "casa", "x": 40.0, "z": 160.0, "w": 34.0, "d": 20.0, "rot_deg": 2.0, "tag": "reconstruccion"},
+      {"id": "casa_s1", "kind": "casa", "x": 60.0, "z": 350.0, "w": 34.0, "d": 20.0, "rot_deg": 0.0, "tag": "reconstruccion"},
+      {"id": "casa_s2", "kind": "casa", "x": 98.0, "z": 392.0, "w": 30.0, "d": 22.0, "rot_deg": 7.0, "tag": "reconstruccion"},
+      {"id": "casa_s3", "kind": "casa", "x": 52.0, "z": 440.0, "w": 36.0, "d": 20.0, "rot_deg": -3.0, "tag": "reconstruccion"},
+      {"id": "casa_s4", "kind": "casa", "x": 104.0, "z": 478.0, "w": 28.0, "d": 20.0, "rot_deg": 5.0, "tag": "reconstruccion"},
+      {"id": "tapia_1", "kind": "tapia", "polyline": [[70, 128], [118, 134], [122, 160]], "tag": "reconstruccion"},
+      {"id": "tapia_2", "kind": "tapia", "polyline": [[78, 300], [120, 296], [124, 330]], "tag": "reconstruccion"},
+      {"id": "huellas_norte", "kind": "huellas", "polyline": [[176, 190], [215, 198], [246, 212]], "tag": "diseno", "source": "Huellas de carros y caballos en el pie de la bajada norte: muestran tránsito, no firmeza del fondo (D2 zona 4)."},
+      {"id": "huellas_sur", "kind": "huellas", "polyline": [[172, 335], [208, 346], [238, 352]], "tag": "diseno"},
+      {"id": "carros_ribera", "kind": "carros", "x": 218.0, "z": 345.0, "w": 14.0, "d": 6.0, "tag": "diseno", "source": "F15: pocos y opcionales; coincide con el obstáculo carretas_varadas."},
+      {"id": "bote_justina", "kind": "bote", "x": 552.0, "z": 290.0, "w": 6.0, "d": 2.5, "tag": "diseno", "source": "F11: bote y cabos opcionales junto al buque; presencia sin datos suficientes."},
+      {"id": "monte_bajo_n", "kind": "vegetacion", "x": 250.0, "z": 120.0, "w": 40.0, "d": 22.0, "tag": "diseno", "source": "Juncal/hierba baja; coincide con canaveral_norte. Vegetación baja y discontinua en la playa activa; sin césped continuo (D3)."},
+      {"id": "monte_bajo_s", "kind": "vegetacion", "x": 240.0, "z": 470.0, "w": 50.0, "d": 25.0, "tag": "diseno"},
+      {"id": "arbustos_meseta", "kind": "vegetacion", "x": 40.0, "z": 250.0, "w": 60.0, "d": 60.0, "density": "dispersa", "tag": "diseno", "source": "F16: arbustos y árboles dispersos en el alto; sin alineaciones modernas."}
+    ]
+  },
+  "palette": {
+    "tag": "diseno",
+    "note": "Colores del paquete (lámina 04): aproximaciones digitales, 'no valores históricos medidos ni colores universales de cada bando'. Los de terreno/agua son propuesta de Ronda 1 contra la crítica 'río marrón plano' y contra Vidal (cielo cálido claro, barranca ocre, horizonte bajo): agua turbia pardo-verdosa desaturada que se aclara sobre bajos y se enfría mar adentro; sin rosados ni ocres saturados; un solo tono de agua entre mareas (varía la transparencia).",
+    "package": {
+      "azul_fijo": "#253B53",
+      "encarnado": "#983C3C",
+      "lino_crudo": "#D8CFB8",
+      "rojo_71": "#B6453E",
+      "buff_ante": "#BEAA78",
+      "azul_marinero": "#33475B",
+      "cuero_marron": "#4C372B",
+      "cuero_oscuro": "#282827",
+      "ropa_civil": "#7B6953",
+      "arena_tierra": "#A38D6B",
+      "metal_blanco": "#ABA9A0",
+      "laton": "#A88943"
+    },
+    "terrain": {
+      "suelo_alto": "#C9BE98",
+      "barranca_corte": "#A98F68",
+      "tosca": "#B8AE96",
+      "playa_alta": "#B9A57C",
+      "arena_humeda": "#A8987A",
+      "barro": "#7A6B55",
+      "vegetacion_baja": "#7C8159",
+      "camino_huellas": "#9C8A66"
+    },
+    "water": {
+      "shallow": "#8F9B84",
+      "mid": "#6F8281",
+      "deep": "#52696E",
+      "sky_glint": "#B7C4C0",
+      "foam": "#DCE0D4",
+      "channel_hint": "#5F7A7F",
+      "bank_hint": "#9AA58C"
+    },
+    "map_overlays": {
+      "fire_arc_fill_alpha_max": 0.12,
+      "fire_arc_outline": "#B6453E",
+      "note": "El abanico de fuego debe verse como contorno tenue (relleno ≤ 0,12), no como mancha que domine el agua; más fuerte solo con la selección. Tinte cálido y niebla leve en el fondo (Vidal)."
+    }
+  },
+  "forces": {
+    "tag": "diseno",
+    "note": "Conjuntos y composiciones. La 'fuerza' de cada grupo es un puntaje de juego, NO una nómina: el paquete dice que atacaron 30, 50 o 60 jinetes (sin datos suficientes) y que la cantidad se elige por escala de escena y se marca como diseño. headcount_hint = figuras a mostrar.",
+    "groups": {
+      "guemes": {"label": "Güemes y los jinetes (tradición)", "tag": "tradicion", "headcount_hint": 14, "mounted": true, "composition": [{"who": "Güemes, cadete de 21 años (Regimiento de Infantería de Buenos Aires)", "status": "documentado", "detail": "Adscripción según el documento del 11 de agosto (compilación de Luis Güemes, p. 66); su papel en la captura es la parte discutida."}, {"who": "Jinetes voluntarios de Pueyrredón", "status": "reconstruccion", "detail": "Composición individual y vínculo por relatos posteriores (G2); sin nómina."}], "kit_ref": "guemes"},
+      "arias": {"label": "Voluntarios de la ribera", "tag": "diseno", "headcount_hint": 12, "mounted": true, "composition": [{"who": "Voluntarios civiles montados y a pie", "status": "diseno", "detail": "No hay nómina. Identificador interno heredado; no atribuye presencia de Arias en 1806."}], "kit_ref": "voluntarios"},
+      "zavala": {"label": "Reserva de caballería de Pueyrredón", "tag": "reconstruccion", "headcount_hint": 10, "mounted": true, "composition": [{"who": "Jinetes de la reserva de Pueyrredón", "status": "reconstruccion", "detail": "Que la caballería era la de Pueyrredón: Concha y Liniers según la investigación del repo, sin cotejo; cantidad: diseño."}], "kit_ref": "jinetes_pueyrredon"}
+    },
+    "opposing": {
+      "ship_crew": {"label": "Dotación del Justina", "tag": "documentado", "composition": [{"who": "Dotación propia del mercante, con oficiales", "status": "documentado", "detail": "Total y reparto de puestos sin datos suficientes."}, {"who": "Cien marineros de la escuadra (refuerzo)", "status": "documentado", "detail": "Gillespie p. 94; no son soldados de casaca roja."}, {"who": "Capitán / oficiales", "status": "diseno", "detail": "Sin nombre en el juego (Morris/Dunn de Schlez: pista no verificada)."}], "kit_ref": "marineria_mercante"},
+      "land_troops_71": {"label": "71.º en tierra (contexto opcional)", "tag": "reconstruccion", "in_play": false, "note": "Su presencia en tierra no demuestra que guarneciera al Justina. No se coloca en la escena.", "kit_ref": "soldado_71"}
+    },
+    "kits": {
+      "guemes": {"tag": "reconstruccion", "silhouette": "joven, casaca entallada con faldones", "colors": {"casaca": "azul_fijo", "cuello_vueltas": "encarnado", "botones": "metal_blanco", "sombrero": "cuero_oscuro", "calzado": "cuero_marron"}, "note": "Azul/rojo del Fijo: Beruti lo describe en 1810; aplicarlo a agosto de 1806 es inferencia razonada, no un inventario de su ropa. Sin charreteras de general ni medallas. Rostro joven; sin retrato del natural.", "token_color": "#253B53"},
+      "voluntarios": {"tag": "diseno", "silhouette": "ropa civil variada, sombreros distintos", "colors": {"base": "ropa_civil", "camisa": "lino_crudo", "poncho": "arena_tierra"}, "note": "Diversidad no equivale a harapos; sin poncho rojo colectivo.", "token_color": "#7B6953"},
+      "jinetes_pueyrredon": {"tag": "reconstruccion", "silhouette": "jinetes con prendas rurales mezcladas, sin uniforme común", "colors": {"base": "lino_crudo", "tierras": "arena_tierra", "azules": "azul_marinero", "cuero": "cuero_marron"}, "note": "Vidal 1820 como referencia de perfiles; quitar escarapelas revolucionarias. No llamarlos Infernales; sin bombacha estandarizada ni plata en todos.", "token_color": "#A38D6B"},
+      "marineria_mercante": {"tag": "reconstruccion", "silhouette": "ancha y baja; pantalón amplio, chaqueta corta", "colors": {"pantalon": "azul_marinero", "camisa": "lino_crudo", "chaleco": "cuero_oscuro"}, "note": "RMG ZBA8736 demuestra una posibilidad de tejido y corte, no que todo el barco vistiera igual. Sin uniforme de la Royal Navy de 1857.", "token_color": "#33475B"},
+      "soldado_71": {"tag": "reconstruccion", "colors": {"casaca": "rojo_71", "vueltas": "buff_ante", "correaje": "lino_crudo"}, "note": "Pantalón/kilt/trews sin resolver; reservado para contexto terrestre."}
+    }
+  },
+  "characters": [
+    {
+      "id": "guemes",
+      "name": "Martín Miguel de Güemes",
+      "in_play": true,
+      "tag": "tradicion",
+      "age": 21,
+      "role": "Cadete del Regimiento de Infantería de Buenos Aires (documentado). Líder de los jinetes en la Justina: tradición.",
+      "notes": "Cuidado: el paquete corrige la fórmula moderna \"cadete de caballería\". Presencia el 12: sin datos suficientes (cuenta firmada en Candelaria el 11).",
+      "sources": ["S1", "S3", "S13", "S14"]
+    },
+    {
+      "id": "liniers",
+      "name": "Santiago de Liniers",
+      "in_play": true,
+      "tag": "documentado",
+      "role": "Jefe de la Reconquista. El juego lo usa como autoridad que concede la orden de avance (regla de diseño). Su parte reproducido sitúa dos piezas de a 18 de la goleta Dolores el 11 de agosto.",
+      "notes": "La orden de avance por mensajero es de Obligado 1920 (secundaria).",
+      "sources": ["S1", "S13"]
+    },
+    {
+      "id": "pueyrredon",
+      "name": "Juan Martín de Pueyrredón",
+      "in_play": false,
+      "tag": "reconstruccion",
+      "role": "Jefe de la caballería voluntaria según Concha y Liniers citados por el repo (sin cotejo). No se dibuja como personaje; su estandarte de Húsares es de septiembre de 1806 y no se anticipa.",
+      "sources": ["S1", "S13"]
+    },
+    {
+      "id": "gillespie",
+      "name": "Alexander Gillespie",
+      "in_play": false,
+      "tag": "documentado",
+      "role": "Participante británico de la expedición y testigo retrospectivo (1818). Es fuente, no personaje: no ve el abordaje personalmente.",
+      "sources": ["S9"]
+    },
+    {
+      "id": "capitan_mercante",
+      "name": "Capitán del mercante (sin nombre)",
+      "in_play": true,
+      "tag": "diseno",
+      "role": "Figura de la cubierta. Variante principal: casaca azul o marrón de buen paño, sombrero negro, sin insignias de rango naval.",
+      "notes": "Schlez cita capitán Robert Morris y sobrecargo William Dunn vía TNA PC 1/3823: pista trazable pero NO verificada (expediente no inspeccionado): no se usa.",
+      "sources": ["S15"]
+    },
+    {
+      "id": "marineros",
+      "name": "Marineros",
+      "in_play": true,
+      "tag": "reconstruccion",
+      "role": "Cien marineros de la escuadra más dotación propia; pantalones amplios y chaquetas cortas.",
+      "sources": ["S9", "S16"]
+    }
+  ],
+  "banners": {
+    "tag": "diseno",
+    "rule": "Ninguna bandera argentina ni escarapela en 1806. Las banderas son hipótesis o inferencias etiquetadas, con 'status' visible; ninguna se presenta como identificada.",
+    "items": [
+      {"id": "red_ensign_mercante", "name": "Pabellón mercante (Red Ensign posterior a 1801)", "where": "buque Justina, popa", "status": "reconstruccion", "status_detail": "hipótesis principal del paquete H1; la bandera concreta del Justina no quedó identificada", "draw_default": true, "design": {"field": "encarnado", "canton": "union_1801", "ratio_hint": "sin forzar 2:1"}, "source_ids": ["S16", "S17"], "label": "Pabellón mercante (hipótesis)"},
+      {"id": "bandera_circo", "name": "Bandera blanca con escudo español pintado", "where": "Plaza de Toros", "status": "reconstruccion", "status_detail": "inferencia razonada: cuenta de 1803 (pago a Josef Cañete) citada por Pillado; no prueba que estuviera izada el 12", "draw_default": true, "design": {"field": "lino_crudo", "device": "escudo español pintado (sin escudo argentino)"}, "source_ids": ["S18"], "label": "Bandera del circo (inferencia)"},
+      {"id": "union_retiro", "name": "Union Flag larga \"del Retiro\"", "where": "asta del Retiro", "status": "tradicion", "status_detail": "Trofeos 1882, lám. V: 4 x 1,45 m; la cadena Retiro-barco-captura es interpretación de Luis Güemes", "draw_default": false, "note": "Variante opcional; no presentar como presa inequívoca del buque.", "source_ids": ["S19"]},
+      {"id": "guion_71", "name": "Guion del 71.º (MC1256)", "where": "trofeo", "status": "documentado", "status_detail": "objeto conservado; capturado por Pueyrredón según acta del 23 de agosto, no se sitúa en el abordaje", "draw_default": false, "source_ids": ["S19", "S20"]},
+      {"id": "pabellon_naval_espanol_1785", "name": "Pabellón naval español de 1785", "status": "documentado", "status_detail": "diseño vigente; sin izado concreto localizado", "draw_default": false},
+      {"id": "estandarte_husares", "name": "Estandarte de Húsares / de Luján", "status": "diseno", "status_detail": "posterior (21-sep-1806) o sin procedencia: NO usar", "draw_default": false}
+    ],
+    "forbidden": ["bandera celeste y blanca", "escarapela nacional", "botones con escudo argentino", "Infernales", "White Ensign moderna", "cruz roja uniforme en cada edificio"]
+  },
+  "package_ref": {
+    "name": "Justina_Retiro_1806_Paquete_Editable",
+    "date": "2026-10-30",
+    "use": "Punto de partida; contrastado con Vidal, Boneo 1801, Arrowsmith 1806 y Gillespie (docs/referencias/justina). Ver docs/historia/FUENTES.md (P1) y MATRIZ_HISTORICA.md sección C.",
+    "georef": "metodo/georef_experimental.json (residuo ~17 m, controles gráficos): NO se usa para fijar el encallamiento."
+  }
 }
