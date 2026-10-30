@@ -20,7 +20,7 @@ Para **0.2.0-alfa** se midió, en una PC con Windows 11, Ryzen 9 7950X y RTX 308
 
 ### I. Tomar la Justina · 1806
 
-**Tiempo real con pausa** (no por turnos): el reloj corre solo y la cabecera lo dice siempre («TIEMPO REAL · ▶ ×1» o «‖ EN PAUSA»). Con el tiempo detenido podés seguir dando órdenes. Tres agrupaciones de caballería parten de la ribera. La bajante cambia la profundidad y el tránsito. Podés elegir el banco central, más corto y expuesto, o el rodeo sur, más largo y protegido. Las órdenes de aproximación preparan el movimiento, esperan en la ribera si hace falta y reanudan el cruce al habilitarse.
+**Tiempo real con pausa** (no por turnos): el reloj corre solo y la cabecera lo dice siempre («TIEMPO REAL · ▶ ×1» o «‖ EN PAUSA»). Con el tiempo detenido podés seguir dando órdenes. Cinco agrupaciones parten de la ribera: Güemes y jinetes (tradición), Voluntarios, Caballería de reserva y dos exploradores a pie. La bajante cambia la profundidad y el tránsito. Podés elegir el banco central, más corto y expuesto, o el rodeo sur, más largo y protegido. Las órdenes de aproximación preparan el movimiento, esperan en la ribera si hace falta y reanudan el cruce al habilitarse.
 
 **Primeros 60 segundos:** Espacio inicia/pausa; 4 o 5 + Z sondea el agua; 1 + K señala a Liniers; N o clic derecho ordena el abordaje; coma rechaza el contraataque (14 s); F1 o ? es la ayuda. El detalle está en `docs/CONTROLES.md`.
 
@@ -53,14 +53,14 @@ Las pruebas comprobaron dos estrategias ganadoras distintas, en rondas 10 y 11, 
 | Mover | Clic derecho |
 | Pausa o reanudar (Justina, tiempo real) / resolver ronda (norte) | Espacio |
 | Velocidad de la Justina (×1, ×2, ×4) | Botones ×1 ×2 ×4, F2 / F3 / F4 o + / − |
-| Ciclar la selección (Justina) | Tab |
+| Ciclar la selección (Justina; en el Norte Tab recorre la interfaz) | Tab |
 | Deshacer la última orden (Justina) | Ctrl+Z |
 | Rechazar contraataque / evacuar heridos (Justina) | Coma (,) / punto (.) |
 | Cancelar orden | X |
 | Guardar / cargar | F5 / F9 |
 | Reiniciar escenario | R |
-| Enfocar objetivo | O |
-| Ayuda (Justina: F1 o ?) / fuentes | F1 / H |
+| Enfocar objetivo (solo Norte; en la Justina, O es «Distraer con fuego» y 0 «Ver todo») | O |
+| Ayuda (Justina: F1 o ?) / fuentes (Norte; en la Justina H es «Marcar vado») | F1 / H |
 | Pantalla completa | F11 |
 
 El detalle, la ayuda contextual y el sonido se cambian en Ajustes. El perfil bajo reduce resolución 3D, cantidad de figuras decorativas, sombras y antialiasing; la interfaz mantiene su resolución. Las cifras de las agrupaciones representan fuerzas agregadas, no el número literal de figuras visibles.

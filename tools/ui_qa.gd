@@ -270,7 +270,7 @@ func _run() -> void:
 	game._close_modal()
 	game._update_hover_j(0.2)
 	check(game.hover_info.is_empty() or game.hover_mouse == Vector2(-1, -1), "Justina: no hay cartel de error colgado al empezar")
-	check(game.settings.auto_pause == true and game.autopause_button.text.find("sí") >= 0, "Justina: la pausa automatica esta activa en la primera partida")
+	check(game.settings.auto_pause == true and game.autopause_button.text.find("☑") >= 0, "Justina: la pausa automatica esta activa en la primera partida")
 	check(str(game._reason_with_help("El fondo estimado en ese punto supera el límite de 1.3 m.")).find("explorador") >= 0, "Justina: el rechazo por fondo estimado dice que hacer")
 	await _shot("justina-pausa-tutorial")
 	notes["justina_overlaps_inicio"] = _overlaps(game.last_overlay_rects)
@@ -449,10 +449,25 @@ func _run() -> void:
 	game.rules.state.counter.until = float(game.rules.state.elapsed) + 14.0
 	game._update_hud()
 	await _frames(12)
+	# Sin ningun grupo abordando, el contraataque avisa pero NO pausa y dice que hacer.
+	check(not game.paused and game.alert_panel.visible and game.alert_label.text.find("Ningún grupo aborda") >= 0, "Justina: contraataque sin grupo abordando no pausa y explica la accion util")
+	check(game.action_buttons.has("repel") and not game.action_buttons["repel"].visible, "Justina: Rechazar no se muestra si nadie aborda")
+	game.tut_step = 5
+	game.settings.tutorial = true
+	check(game._tutorial_j().is_empty() or game.rules.state.counter.active, "Justina: el paso 6/6 del tutorial no aparece sin abordaje")
+	var boarder: Dictionary = game.rules.get_unit("guemes")
+	var stage_backup = boarder.stage
+	boarder.stage = "boarding"
+	game.alert_ids_seen = {}
+	game._update_hud()
+	await _frames(12)
+	check(game.action_buttons["repel"].visible, "Justina: Rechazar aparece con un grupo abordando")
 	check(game.paused and game.alert_panel.visible and game.pause_banner.text.find("PAUSA AUTOMÁTICA") >= 0, "Justina: el contraataque pausa solo y muestra el aviso")
 	check(not game.hint_panel.visible, "Justina: el tutorial se oculta mientras hay un aviso critico")
 	_justina_layout("Justina aviso")
 	await _shot("justina-aviso-contraataque")
+	boarder.stage = stage_backup
+	game.tut_step = 0
 	game.rules.state.counter = counter_backup
 	game.alert_ids_seen = {}
 	game.pause_reason = ""

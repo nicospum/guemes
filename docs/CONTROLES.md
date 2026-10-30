@@ -57,14 +57,14 @@ La campaña del norte guarda automáticamente después de cada ronda. Hay un gua
 
 **Objetivo: abordar y rendir al Buque Justina antes del plazo (18:00), sin que el agua vuelva a subir y conservando fuerza.** El agua es turbia y el fondo cambia de una partida a otra: reconocer es la única forma de saber por dónde se puede cruzar.
 
-**Tiempo real con pausa.** En la cabecera hay un indicador permanente: **TIEMPO REAL · ▶ ×1** (o ×2, ×4) mientras corre y **‖ EN PAUSA** cuando está detenido, con un cartel que lo aclara («podés dar órdenes con el tiempo detenido»). La partida empieza en pausa. Lo recomendado es la **pausa activa**: pausar con Espacio, mirar, seleccionar y ordenar, y reanudar. Los botones **×1 ×2 ×4** (o F2, F3, F4, o + y −) cambian la velocidad. **Pausa auto** (en la cabecera y en Ajustes) detiene el juego solo cuando aparece un aviso crítico: el **contraataque** de la dotación (hay 14 s para rechazarlo, y el reloj de esos 14 s también se detiene), el **vencimiento de la orden de Liniers** con un grupo marchando al buque y la **subida del agua**.
+**Tiempo real con pausa.** En la cabecera hay un indicador permanente: **TIEMPO REAL · ▶ ×1** (o ×2, ×4) mientras corre y **‖ EN PAUSA** cuando está detenido, con un cartel que lo aclara («podés dar órdenes con el tiempo detenido»). La partida empieza en pausa. Lo recomendado es la **pausa activa**: pausar con Espacio, mirar, seleccionar y ordenar, y reanudar. Los botones **×1 ×2 ×4** (o F2, F3, F4, o + y −) cambian la velocidad. **Pausa auto** (casilla ☑/☐ en la cabecera y en Ajustes) detiene el juego solo cuando aparece un aviso crítico: el **contraataque** de la dotación (hay 14 s para rechazarlo, y el reloj de esos 14 s también se detiene; si ningún grupo está abordando, el aviso no pausa y te dice que mandes uno a abordar), el **vencimiento de la orden de Liniers** con un grupo marchando al buque y la **subida del agua**.
 
 **Qué hay en pantalla.**
 
 - **Izquierda, siempre visible:** las cinco agrupaciones (tres grupos y dos exploradores). Cada ficha muestra nombre, tipo, fuerza, munición, estado, orden actual y ETA. Un clic en la ficha la selecciona (Mayús suma, Ctrl alterna). **Despliegue previo** abre la composición, el rol y el punto de partida de cada una.
-- **Centro arriba:** el aviso de pausa, los avisos críticos (con su cuenta regresiva y un botón) y el **tutorial** de 6 pasos (se puede saltar paso a paso o cerrar; F1 o ? lo repite).
+- **Centro arriba:** el aviso de pausa, los avisos críticos (con su cuenta regresiva y un botón) y el **tutorial** de 6 pasos (el 6/6, de abordaje, solo aparece con un grupo abordando; se puede saltar paso a paso o cerrar; F1 o ? lo repite). La ayuda (F1) tiene tres pestañas: Cómo jugar, Teclas y Fuentes.
 - **Derecha:** objetivo, captura y moral, río y ventanas de vado, tiempo hasta la bajante y la subida, munición y pólvora de reserva, señales de Liniers restantes, orden de avance (con su cuenta regresiva) y riesgo del sondeo.
-- **Abajo:** la selección y su orden actual, el ritmo de marcha y las **acciones contextuales**. Las disponibles se ven resaltadas, con su tecla; la recomendada lleva borde dorado. Las no disponibles quedan en gris: al pasar el mouse (o hacer clic) se lee el motivo. Con nada señalado, una línea dice el **SIGUIENTE** paso.
+- **Abajo:** la selección y su orden actual, el ritmo de marcha y las **acciones contextuales**. Las disponibles se ven resaltadas, con su tecla; la recomendada lleva borde dorado. **Rechazar** y **Evacuar** solo aparecen cuando un grupo está abordando. Las demás no disponibles quedan en gris: al pasar el mouse (o hacer clic) se lee el motivo. Con nada señalado, una línea dice el **SIGUIENTE** paso.
 - **Abajo a la izquierda:** el minimapa. Clic o arrastre mueve la cámara; el cuadro blanco es lo que ves; clic derecho ordena mover. Encima, botones para centrar en la selección (F), ir al buque (B), ver todo (0) y ampliar (M).
 - **En el mapa:** cada ruta termina en un círculo con la etiqueta «N → destino · mm:ss» (la ETA). La ruta de la selección se dibuja llena; las demás, punteadas.
 
@@ -147,7 +147,7 @@ Esta tabla es la de `J_KEY_TABLE` y `ACTION_KEYS` en `scripts/main.gd`; `tests/t
 | X | Cancelar la orden. |
 | Z | Reconocer fondo (explorador). Mayús+Z: sondeo cauteloso. |
 | H | Marcar vado (explorador). |
-| I | Volver (explorador) o plegar el panel de objetivo y estado. |
+| I | Con un explorador elegido: Volver a la playa. Sin explorador: pliega el panel de objetivo y estado. |
 | O | Distraer con fuego. |
 | Comma | La tecla coma (,): Rechazar el contraataque (un grupo que aborda). |
 | Period | La tecla punto (.): Evacuar heridos (un grupo que aborda). |
