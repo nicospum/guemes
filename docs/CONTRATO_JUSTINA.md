@@ -618,3 +618,79 @@ Aditivo. Los números de reglas no cambian. Para main/world_view (otras pistas):
 | Mensajes de reglas | «La batería todavía recarga» pasa a «Las piezas del Retiro todavía recargan» | game_rules |
 
 Anotado para main (fuera de mi pista): confirmación de dos pasos para «Retirada general».
+
+## 13. Ronda 9 (30-oct-2026, pista `mapa_reglas`): ciclo de campaña, ritmo comprimido y eventos. Interfaz para `ui_feel`
+
+Lo de esta sección ya está implementado en `scripts/game_rules.gd`, `scripts/campaign.gd` y `data/justina_map.json` (`map_version` 8). **`main.gd` y `world_view.gd` no se tocaron**: lo que sigue es lo que la UI debe llamar y mostrar. Directriz vigente: la diversión manda sobre la fidelidad (se conservan solo: sin bandera argentina ni Infernales en 1806, nada inventado como documentado).
+
+### 13.1 Ciclo de campaña (`CampaignProgress`, `scripts/campaign.gd`, `class_name CampaignProgress`)
+
+Lógica pura (sin nodos). Guarda el **progreso**, no la partida, en `user://campaign.json` (escritura atómica; si el archivo está dañado se empieza de cero y `load_note` explica por qué: nunca bloquea).
+
+```gdscript
+var campaign := CampaignProgress.new()          # path opcional (pruebas)
+campaign.load_progress()                         # una vez al arrancar; false = perfil nuevo o dañado (ver campaign.load_note)
+var seed := campaign.world_seed()                # REEMPLAZA forced_seed / Time.get_ticks_usec() de main.gd:432. Fijo hasta ganar.
+rules.new_game("justine", seed)
+campaign.begin_attempt(rules)                    # cuenta el intento y le da a rules.diary_marks las marcas «anotado»
+# ayudas (opcionales, solo si se ofrecen):
+for o in campaign.offered_assists(rules): ...    # [{id:"baqueano"|"bajante_generosa", label, text}] según la racha de derrotas
+campaign.apply_assists(rules, ["baqueano"])      # solo aplica las ofrecidas; devuelve las aplicadas
+# ... partida ...
+var res := campaign.record_result(rules)         # al terminar (status != "playing")
+```
+
+`record_result` devuelve:
+
+| Clave | Cuándo | Contenido |
+|---|---|---|
+| `won`, `medal` (`""`/`bronce`/`plata`/`oro`), `facts` {capture_pct, loss_pct, time_mmss}, `assists_used[]` | siempre | |
+| `cause` (≤ 140 car.), `advice`, `hint` (puede ser `""`), `defeats_in_row` | derrota | Texto de jugador, sin jerga. `hint` aparece desde la 2.ª derrota seguida («Pozo del flanco norte (anotado 2 veces).») |
+| `offered_assists[]` | siempre | derrota 3 seguida → baqueano; derrota 5 → también bajante generosa. Nunca se imponen |
+| `lines[]` (3-4 líneas), `unlocked_north`, `new_best_medal` | victoria | La última línea es «Se desbloqueó: Sostener el Norte.» |
+| `new_diary[]` | siempre | Entradas nuevas del diario → globo «anotamos lo que descubriste» |
+
+Otros métodos: `new_world()` («Río nuevo»: cambia pozos, vado y variante; borra las marcas), `diary_entries()`, `diary_marks()`, `north_unlocked()` (**el botón del Norte debe estar deshabilitado mientras sea `false`; una derrota nunca muestra «Ir a la campaña del norte»**), `tutorial_pending()` / `mark_tutorial_seen()` (tutorial una vez por perfil), `reset_all()`.
+
+Reglas del ciclo (ya implementadas): el mundo no cambia entre intentos ni entre sesiones hasta ganar; al ganar el mundo se vuelve a sortear («Rejugar»); las marcas del diario (`rules.diary_marks`: `{key, kind: pozo|vado|fuego, text, x, z, confirmed: false}`) son **solo para dibujar tenue en el mapa** y **no cuentan como conocimiento confirmado** (`hazards_found` y `fords_found` siguen vacíos hasta sondear): el reconocimiento sigue siendo necesario.
+
+### 13.2 Eventos nuevos que la UI debe mostrar (`rules.tick()` los devuelve; también quedan en `state.log`)
+
+| `kind` | Extras | Qué hacer en la UI |
+|---|---|---|
+| `shot_warning` | `unit`, `pos{x,z}` (punto apuntado), `eta` (s hasta el impacto, ≥ 2,5; ≥ 3,5 si `strong`), `strong`, `radius` | **C7**: círculo en el suelo de radio `radius` en `pos`, cuenta regresiva `eta` sobre el grupo apuntado, humo del cañón. Cada 6.ª descarga (≈ 45 s) es `strong` (más grande y roja). Reaccionar = mover el grupo más de `radius` durante el aviso |
+| `shot` | `unit`, `pos`, `strong`, `dodged` (true si cayó al agua) | Impacto o chapoteo |
+| `counter_warning` | `eta` (5 s) | Aviso previo del contraataque; luego llega `counter` (ventana de 12 s) |
+| `mission` | `field_event:"aviso_mision"` | Línea de variante de misión en el segundo ≈ 4 (también `rules.mission()` → `{id, label, consequence, favors}` para mostrarla desde el 0:00) |
+| `liniers`, `hint`, `tide`, `reinforce`, `assist`, `last_effort`, `choice_done` | `field_event` | Mensaje de campo (toast/registro). Pausa automática **corta (2 s)** o ninguna; **al llegar uno de estos eventos, si la velocidad es ×2/×3, volver a ×1** (C19) |
+| `choice` | `options[]` {id,label,ammo?/volunteers?}, `until` | Mensajero: botones; `rules.resolve_choice(option_id)`; sin elegir, a los 25 s se toma la pólvora |
+
+Estado nuevo legible (`rules.state`): `pending_shot` ({} si no hay), `pending_choice` ({} si no hay), `last_effort` {used, until} (`until ≥ 0` = ventana abierta: botón «Último esfuerzo» grande, 15 s), `assists` {baqueano, bajante_generosa}, `units[].shaken` (quebrado: dibujar apagado/gris), `volley_n`, `no_return_s`.
+
+### 13.3 Acciones nuevas
+
+- `rules.last_effort_available()` → `{ok, reason}`; `rules.last_effort()` (una vez por partida; +30 de fuerza a cada grupo en pie y los saca del quiebre; cuesta 40 de voluntarios de reserva). Con todos los grupos quebrados y captura ≥ 30 % se abre una ventana de 15 s antes de la derrota.
+- `rules.resolve_choice(option_id)`; `rules.apply_assist(kind)` (lo llama `CampaignProgress.apply_assists`).
+- «Retirada general» (`rules.retreat_all()`) debe pedir 2 clics y salir de la barra principal (menú de pausa).
+
+### 13.4 Ritmo y números que la UI debe usar (todo sale del JSON; nada duplicado)
+
+| Dato | Valor | Dónde |
+|---|---|---|
+| Bajante / mínimo / subida / plazo | 0:30–4:10 / hasta 11:40 / hasta 13:50 / **14:00** | `time.*` (`rules.tide_marks()` para la barra de tiempo) |
+| Vado abre | ≈ 3:30 (≤ 3:30 en todas las variantes) | `rules.ford_window` |
+| Punto sin retorno | **11:00** (`time.no_return_s`); avisos de Liniers a los 7:00, 9:00 y 10:30. Derrota por inacción si nadie salió a cargar | `state.no_return_s`, `time.no_return_warn_s[]` → marcar en la barra de tiempo |
+| Variantes de misión | 4 (`mission_variants.list[]`), fijas por semilla | `rules.mission()` |
+| Medallas | bronce = ganar; plata = bajas < 55 % y vado marcado (≥ 10 m); oro = bajas < 32 %, antes de 9:00 y sin ayudas | `outcome.medals`, `campaign_report().medal` |
+| Textos de causa/consejo | `campaign.defeat_causes.{plazo,dispersos,retirada,inaccion}` | ya los arma `CampaignProgress` |
+
+`campaign_report()` gana: `medal`, `assists_used[]`, `mission_id`, `mission_label`, `last_effort_used`, `shots_dodged`, `shaken_events`, `powder_lost`, `deadline_s`, `capture_pct`; y `outcome_title` nuevo «Sin retorno: nadie cargó» (causa `inaccion`).
+
+### 13.5 Claves nuevas del JSON (`map_version` 8)
+
+`time.no_return_s`, `time.no_return_warn_s`, `time.variants` (se quitó `breve`; `sostenida` = «viento fuerte», `lenta` reservada), `ship.fire.telegraph`, `ship.capture.counter.{warn_s, shake_on_unanswered, repel_fatigue}`, `ship.capture.route_premium`, `ship.capture.south_powder`, `outcome.shaken`, `outcome.last_effort`, `outcome.medals`, `mission_variants`, `field_events`, `campaign`, `play_targets` (reescrito). La velocidad en barro/agua **no** cambió (probé +30 %: la ruta sur pasó a una trayectoria por aguas profundas y dejó de ser viable; se descartó).
+
+### 13.6 Lo que NO está hecho en esta pista
+
+- **C4 «Desde el cruce»** (snapshot automático): no se implementó. `snapshot()` / `load_game()` existen y validan, pero reanudar exactamente (hash de estado) exige tocar el flujo de `main.gd`. Sin él, C1 + reinicio inmediato ya cumplen el espíritu.
+- Dibujo de las marcas «anotado», del círculo de aviso, de los grupos quebrados y de la barra de tiempo con el punto sin retorno: pista visual / UI.

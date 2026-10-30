@@ -104,6 +104,7 @@ class Sim:
 	var t := 0.0
 	var cfg: Dictionary = {}
 	var rng: RandomNumberGenerator = null
+	var rng: RandomNumberGenerator = null
 
 const GROUP_IDS := ["guemes", "arias", "zavala"]
 const SEEDS := [3, 5, 7, 11, 13, 17, 19, 23]
@@ -235,7 +236,7 @@ func _policy_cfg(s: Sim) -> void:
 	if c.has("mark_t") and s.t >= float(c.mark_t) and not s.mem.has("mark_south") and "vado_sur" in st.fords_found and r.get_scout("scout_2").stage == "idle":
 		s.mem.mark_south = r.issue_scout("scout_2", "mark_ford", MARK_SOUTH).ok
 	## Un jugador que lee la variante de misión cuida la pólvora: no gasta fuego de distracción por debajo del piso que reserva para rechazar contraataques.
-	var ammo_floor: int = int(c.get("ammo_floor", 6))
+	var ammo_floor: int = int(c.get("ammo_floor", 12))
 	if c.get("cover", false) and int(st.ammo) >= 8 + ammo_floor:
 		for sc2 in st.scouts:
 			if sc2.stage == "probing" and r.exposure_at(float(sc2.x), float(sc2.z)) > 0.0:
@@ -552,8 +553,8 @@ func _ui_step(r, t: float) -> void:
 	for u in st.units:
 		if r.exposure_at(float(u.x), float(u.z)) > 0.0 and u.stage in ["moving", "dismounting", "boarding"]:
 			exposed = true
-	## Ronda 9: se cuida la pólvora para rechazar contraataques (piso de 6 tras gastar 8).
-	if exposed and int(st.ammo) >= 14 and float((st.get("fire_support", {}) as Dictionary).get("ready_at", 0.0)) <= t and t >= float(mem.get("fire_wait", 0.0)):
+	## Ronda 9: se cuida la pólvora para rechazar contraataques (piso de 12 tras gastar 8).
+	if exposed and int(st.ammo) >= 20 and float((st.get("fire_support", {}) as Dictionary).get("ready_at", 0.0)) <= t and t >= float(mem.get("fire_wait", 0.0)):
 		mem.fire_wait = t + 12.0
 		if await _press("Distraer con fuego", "fuego de distraccion"):
 			return

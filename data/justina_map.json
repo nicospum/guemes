@@ -1,6 +1,6 @@
 {
   "id": "justina",
-  "map_version": 7,
+  "map_version": 8,
   "title": "Justina · Retiro, 12 de agosto de 1806",
   "_leeme": "Unico origen de numeros del escenario Justina. Lo leen game_rules.gd (via map_data()) y, a traves de rules, world_view.gd y main.gd. Ningun otro archivo debe repetir estas cifras. Cada bloque lleva 'tag' (ver source_tags). Sentidos: +x = este (hacia el rio), -z = norte (+z = sur). Unidad = 1 m. Elevaciones en metros sobre el 'cero de bajante' (datum), + hacia arriba.",
   "units": {
@@ -1168,8 +1168,8 @@
     "fire": {
       "range_m": 265.0,
       "volley_interval_s": 7.5,
-      "damage_min": 6.0,
-      "damage_max": 9.0,
+      "damage_min": 6.6,
+      "damage_max": 9.9,
       "arc_factors": {
         "broadside_half_deg": 40.0,
         "broadside": 1.0,
@@ -1248,11 +1248,11 @@
       "evacuate_min_wounded": 3.0,
       "tide_warn_fraction": 0.85,
       "counter": {
-        "first_after_boarding_s": 25.0,
-        "interval_s": 40.0,
+        "first_after_boarding_s": 28.0,
+        "interval_s": 45.0,
         "jitter_s": 12.0,
         "window_s": 12.0,
-        "damage": 28.0,
+        "damage": 24.0,
         "capture_loss_pct": 25.0,
         "repelled_mult": 0.2,
         "repel_ammo": 3,
@@ -1266,14 +1266,14 @@
       "note": "Los grupos que abordan reciben el fuego del buque (x0,5), pierden fuerza en el cuerpo a cuerpo mientras la dotación conserve la moral (melee_loss_per_s x moral/100) y, si el río sube más allá de lo que un hombre a pie puede vadear, se ahogan a drown_loss_per_m_s de fuerza por metro de exceso y por segundo. Diseño.",
       "access_note": "Desmontar y acceder a cubierta por escala/cabo es una opción lúdica del paquete (D5, J), no un detalle comprobado del abordaje. Los caballos no suben a cubierta.",
       "route_premium": {
-        "central": 1.3,
-        "sur": 1.0,
+        "central": 1.2,
+        "sur": 1.05,
         "mixta": 1.1,
         "tag": "diseno",
         "note": "Ronda 9 (C9): ruta central (rápida, cara en bajas) ×1,3 de poder de captura; sur (lenta, llega con menos desgaste de fuego pero moja la pólvora) ×1,0; mixta ×1,1."
       },
       "south_powder": {
-        "ammo_loss": 6,
+        "ammo_loss": 4,
         "min_depth_m": 0.25,
         "tag": "diseno",
         "note": "Ronda 9 (C9): cruzar el vado sur moja pólvora: la primera vez que un grupo entra al agua del vado sur se pierden 6 de munición."
@@ -1803,7 +1803,7 @@
       "must_stumble": true
     },
     "recon_then_central": {
-      "victory_before_s": 600
+      "victory_before_s": 660
     },
     "recon_then_south": {
       "victory_before_s": 780,
@@ -1818,7 +1818,7 @@
       "strategies_min": 10,
       "seeds_min": 8
     },
-    "max_victory_loss_pct": 75,
+    "max_victory_loss_pct": 80,
     "cohort_win_rate": [
       0.25,
       0.5
@@ -3641,7 +3641,7 @@
         "label": "El costado fuerte del buque mira al sur",
         "consequence": "La ruta sur recibe más fuego (×1,3); el centro, menos (×0,9).",
         "fire_mult": {
-          "sur": 1.3,
+          "sur": 1.25,
           "central": 0.9
         },
         "favors": "central"

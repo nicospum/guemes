@@ -1715,7 +1715,7 @@ func _policy_cfg(s: Sim) -> void:
 	if c.has("mark_t") and s.t >= float(c.mark_t) and not s.mem.has("mark_south") and "vado_sur" in st.fords_found and r.get_scout("scout_2").stage == "idle":
 		s.mem.mark_south = r.issue_scout("scout_2", "mark_ford", MARK_SOUTH).ok
 	## Un jugador que lee la variante de misión cuida la pólvora: no gasta fuego de distracción por debajo del piso que reserva para rechazar contraataques.
-	var ammo_floor: int = int(c.get("ammo_floor", 6))
+	var ammo_floor: int = int(c.get("ammo_floor", 12))
 	if c.get("cover", false) and int(st.ammo) >= 8 + ammo_floor:
 		for sc2 in st.scouts:
 			if sc2.stage == "probing" and r.exposure_at(float(sc2.x), float(sc2.z)) > 0.0:
@@ -3008,7 +3008,7 @@ func _human_cfg(prof: Dictionary, rng: RandomNumberGenerator, attempt: int, miss
 	cfg.repel = true
 	cfg.repel_p = float(good.call(prof.repel_p))
 	cfg.last_effort_p = float(good.call(prof.last_p))
-	cfg.ammo_floor = 6 if rng.randf() < float(good.call(prof.floor_p)) else 0
+	cfg.ammo_floor = 12 if rng.randf() < float(good.call(prof.floor_p)) else 0
 	if known_flank != "":
 		cfg.flank_known = known_flank
 	return cfg
