@@ -246,7 +246,7 @@ func pista(rules: RefCounted) -> String:
 			best = e
 	if best.is_empty():
 		return ""
-	return "%s (anotado %d %s)." % [str(best.text), int(best.n), "vez" if int(best.n) == 1 else "veces"]
+	return "%s (anotado %d %s)." % [str(best.text).trim_suffix("."), int(best.n), "vez" if int(best.n) == 1 else "veces"]
 
 # ---------------------------------------------------------------------------
 # Diario del Bañado (C2)

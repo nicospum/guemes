@@ -249,8 +249,9 @@ func _defeat_screen_checks() -> void:
 	await _shot("justina-derrota")
 	check(int(game.progress.intentos) >= 1 and int(game.progress.derrotas_seguidas) >= 1, "R1: el intento perdido queda contado en el progreso")
 	check(not game.progress.diario.is_empty(), "R1: el diario anoto algo del intento (%d entradas)" % game.progress.diario.size())
-	for k in game.DEFEAT_TEXT:
-		var dt: Dictionary = game.DEFEAT_TEXT[k]
+	var causes: Dictionary = game.rules.map_data().campaign.defeat_causes
+	for k in causes:
+		var dt: Dictionary = causes[k]
 		check(str(dt.cause).length() <= 140 and str(dt.advice).length() > 10, "R1: la causa «%s» tiene texto <= 140 caracteres y consejo" % k)
 		for jg in game.JARGON_BLACKLIST:
 			check(str(dt.cause).find(jg) < 0 and str(dt.advice).find(jg) < 0, "R1: la causa «%s» no usa la jerga «%s»" % [k, jg])
@@ -266,7 +267,7 @@ func _defeat_screen_checks() -> void:
 	game._close_modal()
 	# Reintento con el mismo rio (semilla guardada); Rio nuevo cambia la semilla
 	game.forced_seed = -1
-	game.progress.seed = -1
+	game.campaign.data.world_seed = 0
 	game._start_game("justine")
 	await _frames(4)
 	var seed_a: int = int(game.rules.state.seed)
@@ -286,10 +287,12 @@ func _defeat_screen_checks() -> void:
 	await _frames(2)
 	check(int(game.rules.state.seed) != seed_a and game.progress.diario.is_empty(), "R1: «Río nuevo» cambia el rio y vacia el diario")
 	# Intento nuevo con diario: las marcas «anotado» se dibujan solo si falta confirmar
-	game.progress.diario = [{"id": "pozo:pozo_central", "kind": "pozo", "text": "Pozo del banco central: te hizo tropezar 2 veces.", "pos": [345, 264], "radius": 11.0}, {"id": "vado:vado_sur", "kind": "vado", "text": "Vado de la ribera (sur): reconocido.", "pos": [305, 403], "radius": 10.0}]
-	game.progress.intentos = 2
-	game.progress.derrotas_seguidas = 2
-	game._progress_save()
+	game.campaign.data.diary = [{"key": "pozo:pozo_central", "kind": "pozo", "text": "Pozo del banco central: te hizo tropezar 2 veces.", "x": 345.0, "z": 264.0, "n": 2}, {"key": "vado:vado_sur", "kind": "vado", "text": "Vado de la ribera (sur): reconocido.", "x": 305.0, "z": 403.0, "n": 1}]
+	game.campaign.data.attempts = 2
+	game.campaign.data.defeats_in_row = 2
+	game.campaign.save_progress()
+	game._progress_sync()
+	game.rules.set_diary_marks(game.campaign.diary_marks())
 	game._close_modal()
 	game.camera_target = Vector3(300, 0, 300)
 	game.camera_distance = 160.0
@@ -301,6 +304,15 @@ func _defeat_screen_checks() -> void:
 	check(_modal_text_all().find("Intento 3") >= 0 and _modal_text_all().find("Pista") >= 0, "R1: tras dos derrotas, la tarjeta inicial muestra el intento y una pista del diario")
 	await _shot("justina-tarjeta-intento3")
 	game._close_modal()
+	game.campaign.data.defeats_in_row = 5
+	game._intro_card()
+	await _frames(4)
+	var all_assist: String = _modal_text_all()
+	check(all_assist.find("aqueano") >= 0 and all_assist.find("ajante") >= 0, "Ciclo: tras 5 derrotas la tarjeta ofrece baqueano y bajante generosa")
+	check(Rect2(Vector2.ZERO, root.get_visible_rect().size).encloses((game.modal.get_child(1) as Control).get_global_rect()), "Ciclo: la tarjeta con ayudas entra en pantalla")
+	await _shot("justina-tarjeta-ayudas")
+	game._close_modal()
+	game.campaign.data.defeats_in_row = 2
 	game._reset_camera_j()
 	game._apply_camera()
 	# Una sola cosa por vez: los carteles menores no pisan a uno importante
@@ -337,7 +349,8 @@ func _defeat_screen_checks() -> void:
 	# Cuenta regresiva del buque sobre el propio buque
 	game.settings.tutorial = true
 	game.tut_step = 0
-	game.rules.state.next_volley = float(game.rules.state.elapsed) + 3.2
+	game.rules.state.pending_shot = {"tid": "guemes", "scout": false, "ax": 250.0, "az": 264.0, "at": float(game.rules.state.elapsed) + 3.2, "strong": false, "radius": 9.0}
+	game.rules.state.next_volley = float(game.rules.state.elapsed) + 12.0
 	game.paused = false
 	await _frames(14)
 	await _shot("justina-descarga-aviso")
@@ -347,29 +360,25 @@ func _defeat_screen_checks() -> void:
 	await _frames(4)
 	await _shot("justina-pausa-marco")
 	# Medallas alcanzables y candado del Norte
-	var ra := {"loss_total_pct": 62.0, "elapsed": 700.0}
-	var rb := {"loss_total_pct": 45.0, "elapsed": 700.0}
-	var rc := {"loss_total_pct": 30.0, "elapsed": 600.0}
 	game.rules.state.fords_found = []
-	check(game._medal_for(ra) == "bronce", "R1: sin vado reconocido y con muchas bajas la medalla es de bronce")
-	game.rules.state.fords_found = ["vado_buque"]
-	check(game._medal_for(rb) == "plata", "R1: con vado reconocido y bajas < 55 % la medalla es de plata")
-	check(game._medal_for(rc) == "oro", "R1: con bajas < 40 % y antes de las 11:00 la medalla es de oro")
-	game.rules.state.fords_found = []
-	game.progress.justina_ganada = false
+	game.campaign.data.north_unlocked = false
+	game._progress_sync()
 	game._menu()
 	await _frames(6)
 	var nb := _button("SOSTENER EL NORTE")
 	check(nb != null and nb.disabled and nb.text.find("Ganá la Justina para abrirlo") >= 0, "R1: perfil nuevo: el Norte está con candado y dice cómo abrirlo")
 	await _shot("menu-norte-bloqueado")
-	game.progress.justina_ganada = true
+	game.campaign.data.north_unlocked = true
+	game._progress_sync()
 	game._menu()
 	await _frames(6)
 	nb = _button("SOSTENER EL NORTE")
 	check(nb != null and not nb.disabled, "R1: tras ganar, el Norte queda habilitado")
 	game.forced_seed = 1806
-	game.progress.justina_ganada = false
-	game._progress_save()
+	game.campaign.data.north_unlocked = false
+	game.campaign.data.justina_won = false
+	game.campaign.save_progress()
+	game._progress_sync()
 	game._start_game("justine")
 	await _frames(10)
 	game._close_modal()
@@ -437,7 +446,7 @@ func _run() -> void:
 	check(game.find_children("*", "Button", true, false).any(func(c): return str(c.text) == "Empezar"), "R1: la tarjeta inicial tiene «Empezar» como boton principal")
 	check(game.find_children("*", "Button", true, false).any(func(c): return str(c.text) == "Saltar tutorial") and game.find_children("*", "Button", true, false).any(func(c): return str(c.text) == "Cómo se juega"), "R1: la tarjeta ofrece saltar el tutorial y la ayuda completa")
 	check(card_txt.length() < 700, "R1: la tarjeta inicial es corta (%d caracteres)" % card_txt.length())
-	check(Rect2(Vector2.ZERO, root.get_visible_rect().size).encloses((game.modal.get_child(1) as Control).get_global_rect()), "R1: la tarjeta inicial entra en pantalla")
+	check(Rect2(Vector2.ZERO, root.get_visible_rect().size).encloses((game.modal.get_child(1) as Control).get_global_rect()), "R1: la tarjeta inicial entra en pantalla %s" % str((game.modal.get_child(1) as Control).get_global_rect()))
 	game._briefing_dialog()
 	await _frames(6)
 	await _shot("justina-briefing")

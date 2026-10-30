@@ -106,8 +106,8 @@ const J_KEY_TABLE = [
 ]
 const ACTION_FALLBACK = {"undo":{"label":"Deshacer","tag":"diseno","effect":"Deshace la última orden dada: devuelve a cada grupo a lo que hacía o la cancela, y a los exploradores a la playa. No recupera recursos ya gastados (señales, munición, balizas)."},"recall":{"label":"Volver","tag":"diseno","effect":"El explorador vuelve a la playa seca."},"retreat_all":{"label":"Retirada general","tag":"diseno","effect":"Termina la partida como derrota ordenada."}}
 const RISK_COLORS = {"bajo":Color("a6e3b8"),"medio":Color("e0bf81"),"alto":Color("f4a58d"),"desconocido":Color("aab7b5")}
-const KIND_ICON = {"counter":"⚔","objective":"◎","tide":"≈","warning":"!","shot":"✸","boarding":"■","recon":"◈","ford":"≈","stumble":"!","muster":"+","ammo":"•","signal":"◆","fire_support":"✸","victory":"★","defeat":"✕","load":"↻","info":"i"}
-const KIND_COLOR = {"counter":Color("f4a58d"),"warning":Color("f4a58d"),"stumble":Color("f4a58d"),"defeat":Color("f4a58d"),"victory":Color("a6e3b8"),"tide":Color("8fb4d9"),"ford":Color("8fb4d9"),"recon":Color("6fb8a6"),"signal":Color("d9b576"),"muster":Color("a6e3b8"),"ammo":Color("e0bf81")}
+const KIND_ICON = {"shot_warning":"✸","counter_warning":"⚔","last_effort":"✸","choice":"✉","choice_done":"✉","reinforce":"+","assist":"+","mission":"◎","liniers":"◆","hint":"i","counter":"⚔","objective":"◎","tide":"≈","warning":"!","shot":"✸","boarding":"■","recon":"◈","ford":"≈","stumble":"!","muster":"+","ammo":"•","signal":"◆","fire_support":"✸","victory":"★","defeat":"✕","load":"↻","info":"i"}
+const KIND_COLOR = {"shot_warning":Color("f4a58d"),"counter_warning":Color("f4a58d"),"last_effort":Color("f4a58d"),"choice":Color("e0bf81"),"reinforce":Color("a6e3b8"),"counter":Color("f4a58d"),"warning":Color("f4a58d"),"stumble":Color("f4a58d"),"defeat":Color("f4a58d"),"victory":Color("a6e3b8"),"tide":Color("8fb4d9"),"ford":Color("8fb4d9"),"recon":Color("6fb8a6"),"signal":Color("d9b576"),"muster":Color("a6e3b8"),"ammo":Color("e0bf81")}
 const PITCH_MIN = 0.436
 const PITCH_MAX = 1.396
 var world_script = World
@@ -434,6 +434,8 @@ func _start_game(scenario_name:String):
  jev.invalidate();pending_round=false;resolution_remaining=0;outcome_shown=false
  attempt_logged=false;shake=0.0;flash_alpha=0.0;toast_prio=0;volley_warned=-1.0;toast_timer=0.0;details_open=false
  rules.new_game(scenario_name,_justina_seed() if scenario_name=="justine" else 1817)
+ intro_assists=[];last_result={}
+ if scenario_name=="justine":campaign.begin_attempt(rules);_progress_sync()
  selected="guemes";sector="lerma";mode="play";paused=scenario_name=="justine";speed=1
  sel_ids=["guemes"];pace="trot";aim="";aim_pts=[];wp_list=[];pending_pt=null;tut_step=0;mm_big=false
  camera_target=Vector3(-6,0,0) if scenario_name=="justine" else Vector3(1,0,4)
@@ -1990,6 +1992,10 @@ func _compute_alerts()->Array:
   var rem=maxf(0.0,float(c.until)-t)
   var anyb=_anyone_boarding()
   out.append({"id":"counter%d" % int(c.count),"level":"crit" if anyb else "warn","nopause":not anyb,"short":"contraataque de la dotación: tenés %d s para rechazarlo." % int(float(cap.get("window_s",14))),"text":"⚔ ¡CONTRAATAQUE! Quedan %d s: «Rechazar» (coma) con un grupo que aborda cuesta %d de munición; si no, perdés fuerza y captura.%s" % [ceili(rem),int(cap.get("repel_ammo",3)),"" if anyb else " Ningún grupo aborda: mandá uno con «Cargar y abordar» (N)."],"btn":"Rechazar ahora (,)","fn":"repel"})
+ var le=st.get("last_effort",{})
+ if float(le.get("until",-1.0))>=0.0 and not bool(le.get("used",false)):
+  var left_le=maxf(0.0,float(le.until)-t)
+  out.append({"id":"lasteffort","level":"crit","nopause":true,"short":"todos los grupos están quebrados: queda el último esfuerzo.","text":"✸ ¡TODOS LOS GRUPOS QUEBRADOS! Quedan %d s para lanzar el ÚLTIMO ESFUERZO con los voluntarios de reserva, o la toma se pierde." % ceili(left_le),"btn":"¡Último esfuerzo!","fn":"last_effort"})
  var res=rules.resources()
  var marching=false
  for id in GROUP_IDS:
@@ -2719,6 +2725,9 @@ func _refresh_actions_j():
  _update_action_states()
 
 func _avail(action:String)->Dictionary:
+ if action=="last_effort":
+  var le_ok=rules.last_effort_available()
+  return {"ok":bool(le_ok.get("ok",false)),"reason":str(le_ok.get("reason","")),"cost_text":"voluntarios de reserva","tag":"diseno"}
  if action=="undo":
   var okk=not order_log.is_empty() and str(rules.state.status)=="playing"
   return {"ok":okk,"reason":"" if okk else "Todavía no diste ninguna orden que se pueda deshacer.","cost_text":"última orden","tag":"diseno"}
@@ -2811,6 +2820,9 @@ func _do_action(action:String):
  if mode!="play" or str(rules.state.status)!="playing":return
  match action:
   "undo":_undo_order();return
+  "last_effort":
+   var lr=rules.last_effort()
+   _toast(str(lr.get("reason","")),5,bool(lr.get("ok",false)),3);_sound("order" if bool(lr.get("ok",false)) else "error");_juice("counter")
   "distract_fire":
    var r=rules.call_fire_support()
    _toast(str(r.get("reason","")),4,bool(r.get("ok",false)));_sound("order" if bool(r.get("ok",false)) else "error")
@@ -3602,7 +3614,7 @@ func _draw_top_j():
  _tip_box(_font(),prefix+str(hover_info.text),hover_mouse+Vector2(18,22),rc,get_viewport().get_visible_rect().size)
 
 # ---------- Eventos ----------
-const KIND_PRIO = {"warning":3,"stumble":3,"counter":3,"victory":3,"defeat":3,"boarding":2,"ford":2,"signal":2,"tide":2,"recon":1,"muster":1,"ammo":1,"fire_support":1,"blocked":1}
+const KIND_PRIO = {"shot_warning":3,"counter_warning":3,"last_effort":3,"choice":2,"choice_done":1,"reinforce":2,"assist":2,"mission":1,"liniers":2,"hint":2,"warning":3,"stumble":3,"counter":3,"victory":3,"defeat":3,"boarding":2,"ford":2,"signal":2,"tide":2,"recon":1,"muster":1,"ammo":1,"fire_support":1,"blocked":1}
 func _handle_events_j(events:Array):
  var best=null;var best_prio=-1
  for event in events:
@@ -3613,10 +3625,17 @@ func _handle_events_j(events:Array):
    "defeat":_sound("defeat")
    "warning":_sound("alert")
    "stumble":_juice("stumble")
+   "shot_warning":_sound("volley_warn");_flash(Color(0.95,0.5,0.25),0.08)
+   "counter_warning":_sound("alert");_flash(Color(0.9,0.25,0.2),0.1)
+   "choice":
+    if not is_instance_valid(modal) and mode=="play":choice_text=str(event.get("text",""));call_deferred("_choice_dialog")
    "counter":_juice("counter")
    "ford":_juice("ford")
    "boarding":_sound("dismount")
    "signal":_sound("order")
+  # Los avisos de campo no dejan seguir a ×2/×4: se vuelve a ×1 para poder reaccionar (C19).
+  if event.has("field_event") and speed>1.0:
+   speed=1.0
   if kind in ["shot","info","load","objective"]:continue
   var pr=int(KIND_PRIO.get(kind,1))
   if pr>=best_prio:best_prio=pr;best=event
@@ -3634,6 +3653,25 @@ func _handle_events_j(events:Array):
  _toast(text,6,true,best_prio)
  if is_instance_valid(toast_label):toast_label.modulate=KIND_COLOR.get(kind2,Color.WHITE)
  toast_pos=pos  # el botón «ver» del cartel lleva la cámara al hecho; no se mueve sola para no pisar la orden del jugador
+
+func _choice_dialog():
+ var pc=rules.state.get("pending_choice",{})
+ if pc.is_empty() or is_instance_valid(modal) or str(rules.state.status)!="playing":return
+ var box=_open_modal("Un mensajero",760,_scroll_h(330.0,40.0))
+ var tx=choice_text
+ var cut=tx.find(" (Se toma")
+ if cut>0:tx=tx.substr(0,cut)
+ _rich(box,"[font_size=20]%s[/font_size]" % _plain(tx),20).custom_minimum_size.x=700
+ _rich(box,"[color=#aab7b5]El reloj está detenido mientras elegís.[/color]",14).custom_minimum_size.x=700
+ for o in pc.options:
+  var oid=str(o.id)
+  var b=_button(box,str(o.label),func():_choice_pick(oid),50);b.add_theme_font_size_override("font_size",18)
+
+func _choice_pick(oid:String):
+ var r=rules.resolve_choice(oid)
+ _close_modal()
+ _toast(str(r.get("reason","")) if bool(r.get("ok",false)) else "No se pudo elegir.",4,bool(r.get("ok",false)),2)
+ _sound("order");_update_hud()
 
 func _toast_view_click():
  if toast_pos!=null:_center_on(toast_pos as Vector2,minf(camera_distance,80.0))
@@ -3768,17 +3806,13 @@ func _report_dialog(final:bool=false):
 # ---------- Progreso, diario, intro y partes (ronda de diversión R1: ui_feel) ----------
 # El progreso vive en user://justina_progress.json, separado de la partida: el mismo río hasta ganar,
 # lo aprendido (diario) y el candado del Norte. forced_seed>=0 (pruebas) manda sobre la semilla guardada.
-const PROGRESS_PATH="user://justina_progress.json"
-const MEDAL_RANK={"":0,"bronce":1,"plata":2,"oro":3}
 const MEDAL_COLOR={"bronce":Color("d49a64"),"plata":Color("cfd8dc"),"oro":Color("f0d27a")}
-const DEFEAT_TEXT={
- "plazo":{"cause":"Se acabó el tiempo: el río volvió a subir y el buque quedó sin tomar.","advice":"Salí antes: mandá un explorador en los primeros 30 segundos y cargá apenas el vado ceda."},
- "dispersos":{"cause":"Tus grupos se quedaron sin fuerzas y se dispersaron.","advice":"Evitá el banco que el buque vigila, medí el agua antes de cruzar y retirá a un grupo herido a la playa."},
- "retirada":{"cause":"Ordenaste la retirada general: el intento terminó ahí.","advice":"Para sacar a un solo grupo usá «Retirar» (L). La retirada general está en el menú de pausa."},
- "inaccion":{"cause":"Pasó demasiado tiempo sin avanzar y el momento se perdió.","advice":"Mandá un explorador enseguida: cada minuto quieto es un minuto menos de bajante."},
- "quebrado":{"cause":"Tus grupos quedaron quebrados y ya no podían seguir.","advice":"Reagrupalos (Y) antes de volver a exponerlos al fuego del buque."}}
 const JARGON_BLACKLIST=["ZOC","halted_by_expiry","defeat_cause","stumble_at","exposure_s"]
 var progress:Dictionary={"seed":-1,"diario":[],"intentos":0,"derrotas_seguidas":0,"mejor_medalla":"","justina_ganada":false,"intro_vista":false}
+var choice_text=""
+var campaign:CampaignProgress=CampaignProgress.new()
+var last_result:Dictionary={}
+var intro_assists:Array=[]
 var last_learned:Array=[]
 var last_medal=""
 var last_first_win=false
@@ -3795,29 +3829,29 @@ var detail_ctls:Array=[]
 var attempt_logged=false
 
 func _progress_load():
- progress={"seed":-1,"diario":[],"intentos":0,"derrotas_seguidas":0,"mejor_medalla":"","justina_ganada":false,"intro_vista":false}
- if not FileAccess.file_exists(PROGRESS_PATH):return
- var data=JSON.parse_string(FileAccess.get_file_as_string(PROGRESS_PATH))
- if not data is Dictionary:return
- progress.seed=int(data.get("seed",-1));progress.intentos=int(data.get("intentos",0));progress.derrotas_seguidas=int(data.get("derrotas_seguidas",0))
- progress.mejor_medalla=str(data.get("mejor_medalla",""));progress.justina_ganada=bool(data.get("justina_ganada",false));progress.intro_vista=bool(data.get("intro_vista",false))
- if not MEDAL_RANK.has(progress.mejor_medalla):progress.mejor_medalla=""
- if data.get("diario",[]) is Array:
-  for e in data.diario:
-   if e is Dictionary and e.has("id") and e.has("text"):progress.diario.append(e)
+ campaign.load_progress();_progress_sync()
+
+# `progress` es una vista de lo que guarda CampaignProgress (scripts/campaign.gd, user://campaign.json).
+func _progress_sync():
+ var d=campaign.data
+ progress.seed=int(d.world_seed);progress.intentos=int(d.attempts);progress.derrotas_seguidas=int(d.defeats_in_row)
+ progress.mejor_medalla=str(d.best_medal);progress.justina_ganada=campaign.north_unlocked();progress.intro_vista=not campaign.tutorial_pending()
+ progress.diario=[]
+ for e in campaign.diary_entries():progress.diario.append(_diary_view(e))
+
+func _diary_view(e:Dictionary)->Dictionary:
+ return {"id":str(e.key),"kind":str(e.kind),"text":str(e.text),"pos":[float(e.x),float(e.z)],"n":int(e.get("n",1))}
 
 func _progress_save():
- var f=FileAccess.open(PROGRESS_PATH,FileAccess.WRITE)
- if f:f.store_string(JSON.stringify(progress));f.close()
+ campaign.save_progress()
 
 func _justina_seed()->int:
  if forced_seed>=0:return forced_seed
- if int(progress.seed)<0:
-  progress.seed=int(Time.get_ticks_usec()%1000003);_progress_save()
- return int(progress.seed)
+ var sd=campaign.world_seed();_progress_sync()
+ return sd
 
 func _new_river():
- progress.seed=-1;progress.diario=[];progress.derrotas_seguidas=0;_progress_save()
+ campaign.new_world();_progress_sync()
 
 func _retry(fresh_river:bool=false):
  if fresh_river:_new_river()
@@ -3825,94 +3859,22 @@ func _retry(fresh_river:bool=false):
  modal=null;paused=true
  _sound("order");_start_game("justine")
 
-func _diary_merge(entries:Array)->Array:
- var changed=[]
- for ne in entries:
-  var found=false
-  for i in range(progress.diario.size()):
-   if str(progress.diario[i].id)==str(ne.id):
-    found=true
-    var keep_old=str(ne.id).begins_with("pozo:") and str(progress.diario[i].text).find("tropezar")>=0 and str(ne.text).find("tropezar")<0
-    if str(progress.diario[i].text)!=str(ne.text) and not keep_old:
-     progress.diario[i]=ne;changed.append(ne)
-    break
-  if not found:progress.diario.append(ne);changed.append(ne)
- return changed
-
-# Qué se anota de un intento: pozos hallados o sufridos, vados reconocidos, el fuego del buque y la hora del río.
-func _learn_from_run(r:Dictionary)->Array:
- var out=[]
- var st=rules.state
- var m=_jmap()
- var stumbles:Dictionary=st.stats.get("stumble_at",{})
- for hz in m.get("hazards",[]):
-  var hid=str(hz.id)
-  var n=int(stumbles.get(hid,0))
-  if n>0 or hid in st.hazards_found:
-   var c=Vector2(float(hz.center[0]),float(hz.center[1]))
-   var tx=str(hz.name)+(": te hizo tropezar %d %s." % [n,"vez" if n==1 else "veces"] if n>0 else ": lo descubriste con el sondeo.")
-   out.append({"id":"pozo:"+hid,"kind":"pozo","text":tx,"pos":[c.x,c.y],"radius":float(hz.get("radius_m",10.0))})
- for f in m.get("fords",[]):
-  if str(f.id) in st.fords_found:
-   var c2=Vector2.ZERO
-   if f.has("center"):c2=Vector2(float(f.center[0]),float(f.center[1]))
-   elif f.has("centerline"):c2=(Vector2(float(f.centerline[0][0]),float(f.centerline[0][1]))+Vector2(float(f.centerline[1][0]),float(f.centerline[1][1])))*0.5
-   out.append({"id":"vado:"+str(f.id),"kind":"vado","text":str(f.name)+": reconocido, se puede cruzar cuando baje el río.","pos":[c2.x,c2.y],"radius":float(f.get("half_width_m",f.get("radius_m",12.0)))})
- var ex:Dictionary=r.get("exposure_s",{})
- for bank in ["central","sur"]:
-  if float(ex.get(bank,0))>=20.0:
-   out.append({"id":"fuego:"+bank,"kind":"fuego","text":"El buque te vio %d s en el banco %s." % [int(ex[bank]),bank]})
- if str(st.get("defeat_cause",""))=="plazo":
-  out.append({"id":"plazo","kind":"tiempo","text":"Llegaste tarde: el río empezó a subir a los %s." % _clock(float(rules.tide_marks().low_hold_end))})
- return out
-
-func _medal_rank(m:String)->int:
- return int(MEDAL_RANK.get(m,0))
-
-func _medal_for(r:Dictionary)->String:
- var loss=float(r.get("loss_total_pct",100.0));var t=float(r.get("elapsed",9999.0))
- var forded=not rules.state.get("fords_found",[]).is_empty()
- if loss<40.0 and t<660.0:return "oro"
- if forded and loss<55.0:return "plata"
- return "bronce"
-
-# Se llama una sola vez por intento terminado (antes de mostrar el parte).
 func _record_attempt(r:Dictionary):
  if attempt_logged:return
  attempt_logged=true
  last_attempt_report=r
- var won=str(rules.state.status)=="victory"
- progress.intentos=int(progress.intentos)+1
- last_learned=_diary_merge(_learn_from_run(r))
- last_medal="";last_first_win=false
- if won:
-  last_first_win=not bool(progress.justina_ganada)
-  progress.justina_ganada=true;progress.derrotas_seguidas=0
-  last_medal=_medal_for(r)
-  if _medal_rank(last_medal)>_medal_rank(str(progress.mejor_medalla)):progress.mejor_medalla=last_medal
-  progress.seed=-1;progress.diario=[]  # al ganar, el siguiente intento sortea un río nuevo
- else:progress.derrotas_seguidas=int(progress.derrotas_seguidas)+1
- _progress_save()
+ last_result=campaign.record_result(rules)
+ last_medal=str(last_result.get("medal",""));last_first_win=bool(last_result.get("unlocked_north",false))
+ last_learned=[]
+ for e in last_result.get("new_diary",[]):last_learned.append(_diary_view(e))
+ _progress_sync()
 
-func _defeat_text(r:Dictionary)->Dictionary:
- var cause=str(rules.state.get("defeat_cause",""))
- var d:Dictionary=DEFEAT_TEXT.get(cause,{"cause":"El intento terminó sin tomar el buque.","advice":"Mirá lo aprendido y probá otra ruta: lo que anotaste vale para el próximo intento."})
- var cs=str(d.cause);var ad=str(d.advice)
- if cause=="plazo" and float(r.get("boarded_at",-1.0))<0.0 and int(r.get("stumbles",0))>0:
-  ad="Un pozo te hizo perder tiempo: está anotado en el diario. Rodealo o medí el agua antes."
- elif cause=="plazo" and float(r.get("boarded_at",-1.0))>=0.0:
-  cs="Subiste al buque, pero se acabó el tiempo antes de rendirlo.";ad="Cargá con todos los grupos juntos y rechazá los contraataques para que la captura no retroceda."
- elif cause=="dispersos" and float(rules.state.get("capture",0.0))>=70.0:
-  cs="Estuviste a un paso: la captura iba bien, pero tus grupos se dispersaron.";ad="Evacuá a los heridos (punto) y rechazá los contraataques para no perder gente en cubierta."
- return {"cause":cs,"advice":ad}
+func _defeat_text(_r:Dictionary)->Dictionary:
+ return {"cause":str(last_result.get("cause","El intento terminó sin tomar el buque.")),"advice":str(last_result.get("advice","Mirá lo aprendido y probá otra ruta."))}
 
 func _aprendido_hint()->String:
- # Pista concreta del diario para el intento siguiente (a partir de la segunda derrota seguida).
- for e in progress.diario:
-  if str(e.kind)=="pozo" and str(e.text).find("tropezar")>=0:return str(e.text)
- for e in progress.diario:
-  if str(e.kind) in ["pozo","vado","tiempo"]:return str(e.text)
- return ""
+ if last_result.has("hint"):return str(last_result.hint)
+ return campaign.pista(rules)
 
 func _stat_chip(parent:Node,title:String,value:String,col:Color=PAPER):
  var p=_panel(parent,Vector2.ZERO,Vector2(0,0),Color(0.07,0.13,0.15,1),Color("394c49"),8)
@@ -3972,13 +3934,12 @@ func _victory_dialog(r:Dictionary):
  var box=_open_modal("¡Buque tomado!",900,_scroll_h(580.0,40.0))
  var med=last_medal if not last_medal.is_empty() else "bronce"
  var ml=_label(box,"MEDALLA DE "+med.to_upper(),30,MEDAL_COLOR.get(med,GOLD),true);ml.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
- var why="• Rendiste al Justina a los %s.\n• Perdiste el %d %% de tus hombres.\n" % [_clock(float(r.get("elapsed",0.0))),int(float(r.get("loss_total_pct",0.0)))]
- if not rules.state.get("fords_found",[]).is_empty():why+="• Reconociste el fondo antes de cruzar.\n"
- else:why+="• Cruzaste sin reconocer el fondo: la próxima, medilo y ganás más.\n"
- if med=="bronce":why+="• Para la plata: reconocé un vado y perdé menos del 55 %."
- elif med=="plata":why+="• Para el oro: menos del 40 % de bajas y antes de las 11:00."
- else:why+="• Es la medalla máxima."
- _rich(box,why,18).custom_minimum_size.x=840
+ var why=""
+ for ln in last_result.get("lines",[]):
+  if str(ln).begins_with("Se desbloqueó"):continue
+  why+="• "+str(ln)+"
+"
+ _rich(box,why.strip_edges(),18).custom_minimum_size.x=840
  if last_first_win:
   var un=_label(box,"Se desbloqueó: Sostener el Norte",20,GREEN,true);un.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
  var chips=_hbox(box,10)
@@ -4022,7 +3983,7 @@ func _diary_new_river():
  else:_close_modal()
 
 func _intro_card():
- var box=_open_modal("Justina · Buenos Aires, 12 de agosto de 1806",760,_scroll_h(370.0,40.0))
+ var box=_open_modal("Justina · Buenos Aires, 12 de agosto de 1806",760,_scroll_h(500.0,40.0))
  _rich(box,"[font_size=22][b]Objetivo:[/b] tomar el buque Justina, varado en el río, antes de que suba la marea.[/font_size]",22).custom_minimum_size.x=700
  _rich(box,"[font_size=18]Perder no es grave: volvés a jugar con [b]el mismo río[/b] y con lo que anotaste en el diario.[/font_size]",18).custom_minimum_size.x=700
  var n=int(progress.intentos)
@@ -4031,6 +3992,14 @@ func _intro_card():
   var hint=_aprendido_hint() if int(progress.derrotas_seguidas)>=2 else ""
   if not hint.is_empty():line+="\n[color=#f0d27a]Pista:[/color] "+_plain(hint)
   _rich(box,"[color=#aab7b5]"+line+"[/color]",15).custom_minimum_size.x=700
+ for o in campaign.offered_assists(rules):
+  var cb=CheckBox.new();cb.text="%s: %s" % [str(o.label),str(o.text)];cb.add_theme_font_size_override("font_size",14);cb.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;cb.custom_minimum_size.x=700
+  cb.tooltip_text="Ayuda opcional. Con ayuda no hay medalla de oro."
+  var oid=str(o.id)
+  cb.toggled.connect(func(on):
+   if on and not intro_assists.has(oid):intro_assists.append(oid)
+   elif not on:intro_assists.erase(oid))
+  box.add_child(cb)
  _rich(box,"[color=#aab7b5]Tres pasos: medí el agua con un explorador, esperá a que el vado ceda, pedí carga a Liniers y abordá. El reloj arranca cuando apretás Espacio.[/color]",15).custom_minimum_size.x=700
  var row=_hbox(box,10)
  var go=_button(row,"Empezar",_intro_close,54);go.size_flags_horizontal=Control.SIZE_EXPAND_FILL;go.add_theme_font_size_override("font_size",20)
@@ -4043,7 +4012,10 @@ func _intro_skip_tutorial():
  settings.tutorial=false;_save_settings();_intro_close()
 
 func _intro_close():
- progress.intro_vista=true;_progress_save()
+ campaign.mark_tutorial_seen()
+ var ap=campaign.apply_assists(rules,intro_assists)
+ if not ap.is_empty():_toast("Ayuda en uso: "+", ".join(ap)+". La medalla de oro queda fuera.",6)
+ _progress_sync()
  _close_modal();_update_hud()
 
 func _pause_menu():
@@ -4105,23 +4077,30 @@ func _ford_soon()->bool:
 
 # Cuenta regresiva de la descarga del buque sobre el propio buque (presión visible y avisada).
 func _draw_volley_warning():
- if str(rules.state.status)!="playing" or paused:return
- var ss=rules.ship_state()
- var left=float(ss.next_volley_in)
- if left<=0.0 or left>4.0:return
+ if str(rules.state.status)!="playing":return
+ var ps=rules.state.get("pending_shot",{})
+ if ps.is_empty():return
+ var left=maxf(0.0,float(ps.at)-float(rules.state.elapsed))
+ var strong=bool(ps.strong)
+ var ax=float(ps.ax);var az=float(ps.az);var rad=float(ps.radius)
+ var pulse=0.5+0.5*sin(Time.get_ticks_msec()*0.014)
+ var base=Color(0.95,0.18,0.12) if strong else Color(0.98,0.55,0.2)
+ var ring=_ground_circle(Vector3(ax,_ground_y(ax,az)+0.4,az),rad,40)
+ if ring.size()>=2:
+  for i in range(0,ring.size()-1,2):overlay_top.draw_line(ring[i],ring[i+1],Color(base.r,base.g,base.b,0.6+0.35*pulse),4.0 if strong else 3.0)
+ var pc=_project(Vector3(ax,_ground_y(ax,az)+3.0,az))
+ var font=_font()
+ var txt=("¡ANDANADA FUERTE %d!" if strong else "¡DESCARGA %d!") % ceili(left)
+ var sz=font.get_string_size(txt,HORIZONTAL_ALIGNMENT_LEFT,-1,18)
+ if pc!=null:
+  var rc=Rect2(pc+Vector2(-sz.x*0.5-8,-sz.y-14),sz+Vector2(16,8))
+  overlay_top.draw_rect(rc,Color(0.3,0.05,0.04,0.92));overlay_top.draw_rect(rc,Color(base.r,base.g,base.b,1.0),false,2.0)
+  overlay_top.draw_string(font,rc.position+Vector2(8,sz.y-1),txt,HORIZONTAL_ALIGNMENT_LEFT,-1,18,Color("ffd9cf"))
+  var hint="Salí del círculo" if left>0.6 else ""
+  if hint!="":overlay_top.draw_string(font,rc.position+Vector2(8,sz.y+20),hint,HORIZONTAL_ALIGNMENT_LEFT,-1,13,Color("ffd9cf"))
  var sp=rules.ship_position()
  var p=_project(Vector3(sp.x,_ground_y(sp.x,sp.y)+6.0,sp.y))
- if p==null:return
- var pulse=0.5+0.5*sin(Time.get_ticks_msec()*0.014)
- overlay_top.draw_arc(p,26.0+pulse*8.0,0,TAU,32,Color(0.95,0.3,0.2,0.55+0.3*pulse),3.0)
- var font=_font()
- var txt="¡DESCARGA %d!" % ceili(left)
- var sz=font.get_string_size(txt,HORIZONTAL_ALIGNMENT_LEFT,-1,18)
- var rc=Rect2(p+Vector2(-sz.x*0.5-8,-62),sz+Vector2(16,8))
- overlay_top.draw_rect(rc,Color(0.3,0.05,0.04,0.9));overlay_top.draw_rect(rc,Color(0.95,0.4,0.3),false,2.0)
- overlay_top.draw_string(font,rc.position+Vector2(8,sz.y-1),txt,HORIZONTAL_ALIGNMENT_LEFT,-1,18,Color("ffd9cf"))
- if volley_warned!=float(rules.state.get("next_volley",0.0)) and left<=3.2:
-  volley_warned=float(rules.state.get("next_volley",0.0));_sound("volley_warn")
+ if p!=null:overlay_top.draw_arc(p,26.0+pulse*8.0,0,TAU,32,Color(base.r,base.g,base.b,0.55+0.3*pulse),3.0)
 
 # Marco ámbar mientras el tiempo está detenido: se ve de un vistazo si el reloj corre.
 func _draw_pause_frame():
@@ -4132,19 +4111,21 @@ func _draw_pause_frame():
 
 # Marcas «anotado» del diario: tenues, sobre los sitios que el intento anterior descubrió o sufrió.
 func _draw_diary_marks(font):
- if progress.diario.is_empty() or not is_instance_valid(world):return
+ var marks:Array=rules.diary_marks
+ if marks.is_empty() or not is_instance_valid(world):return
  var found=rules.state.get("hazards_found",[])
  var fords=rules.state.get("fords_found",[])
- for e in progress.diario:
-  if not e.has("pos"):continue
-  var ide=str(e.id)
+ var radii={}
+ for hz in _jmap().get("hazards",[]):radii[str(hz.id)]=float(hz.get("radius_m",10.0))
+ for e in marks:
+  var ide=str(e.key)
   var kind=str(e.kind)
   if kind=="pozo" and found.has(ide.trim_prefix("pozo:")):continue
   if kind=="vado" and fords.has(ide.trim_prefix("vado:")):continue
-  var c=Vector2(float(e.pos[0]),float(e.pos[1]))
-  var rad=float(e.get("radius",10.0))
+  var c=Vector2(float(e.x),float(e.z))
+  var rad=float(radii.get(ide.trim_prefix("pozo:"),12.0))
   var ring=_ground_circle(Vector3(c.x,_ground_y(c.x,c.y)+0.3,c.y),rad,36)
-  var col=Color(0.96,0.65,0.55,0.55) if kind=="pozo" else Color(0.56,0.74,0.9,0.55)
+  var col=Color(0.96,0.65,0.55,0.55) if kind=="pozo" else (Color(0.56,0.74,0.9,0.55) if kind=="vado" else Color(0.9,0.75,0.45,0.45))
   if ring.size()>=2:
    for i in range(0,ring.size()-1,2):overlay.draw_line(ring[i],ring[i+1],col,2.0)
   var pc=_project(Vector3(c.x,_ground_y(c.x,c.y)+0.6,c.y))

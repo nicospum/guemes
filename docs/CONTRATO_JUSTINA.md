@@ -694,3 +694,7 @@ Estado nuevo legible (`rules.state`): `pending_shot` ({} si no hay), `pending_ch
 
 - **C4 «Desde el cruce»** (snapshot automático): no se implementó. `snapshot()` / `load_game()` existen y validan, pero reanudar exactamente (hash de estado) exige tocar el flujo de `main.gd`. Sin él, C1 + reinicio inmediato ya cumplen el espíritu.
 - Dibujo de las marcas «anotado», del círculo de aviso, de los grupos quebrados y de la barra de tiempo con el punto sin retorno: pista visual / UI.
+
+## 14. Integración ronda 1 de diversión (30-oct-2026)
+
+`main.gd` usa `CampaignProgress` (`user://campaign.json`) como única fuente del progreso; `progress` es solo una vista sincronizada con `_progress_sync()`. Se muestran el círculo de aviso de la descarga (`state.pending_shot`), el mensajero (`choice`, con reloj detenido), el aviso de último esfuerzo (botón en la franja de alertas) y las ayudas opcionales (baqueano, bajante generosa) en la tarjeta inicial. Los eventos de campo devuelven la velocidad a ×1. Pendiente: «Desde el cruce» (C4), íconos de rol, estandartes, grupos quebrados apagados y marca del punto sin retorno en la barra de tiempo.

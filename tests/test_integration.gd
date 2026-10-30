@@ -487,12 +487,14 @@ func _norte() -> void:
 	game._return_menu()
 	await process_frame
 	check(game.mode == "menu", "Return-menu flow reaches scenario selection")
-	game.progress.justina_ganada = false
+	game.campaign.data.north_unlocked = false
+	game._progress_sync()
 	game._menu()
 	await process_frame
 	var north_btn := _find_button("SOSTENER EL NORTE")
 	check(north_btn != null and north_btn.disabled and north_btn.text.find("Ganá la Justina para abrirlo") >= 0, "R1: sin haber ganado la Justina el Norte esta con candado")
-	game.progress.justina_ganada = true
+	game.campaign.data.north_unlocked = true
+	game._progress_sync()
 	game._menu()
 	await process_frame
 	north_btn = _find_button("SOSTENER EL NORTE")
