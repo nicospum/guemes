@@ -10,9 +10,9 @@ render_mode blend_mix, depth_draw_always, cull_disabled, shadows_disabled, specu
 // Asi el color no delata el fondo oculto: los bancos aparecen solo al bajar el nivel (el suelo real emerge) o dentro de 0,3 m.
 uniform float water_level = 1.65;
 uniform float visible_depth_m = 0.3;
-uniform vec3 near_color : source_color = vec3(0.560, 0.608, 0.518);   // paleta del paquete water.shallow #8F9B84
-uniform vec3 mid_color : source_color = vec3(0.435, 0.510, 0.506);   // paquete water.mid #6F8281
-uniform vec3 far_color : source_color = vec3(0.322, 0.412, 0.431);   // paquete water.deep #52696E
+uniform vec3 near_color : source_color = vec3(0.500, 0.455, 0.305);   // R5: limo ocre-verdoso (arena/tierra #A38D6B apagada)
+uniform vec3 mid_color : source_color = vec3(0.340, 0.355, 0.255);   // R5: pardo-oliva turbio
+uniform vec3 far_color : source_color = vec3(0.215, 0.275, 0.235);   // R5: canal, verde botella turbio
 uniform vec3 sky_horizon : source_color = vec3(0.80, 0.76, 0.64);    // bruma cremosa de Vidal
 uniform vec3 sky_zenith : source_color = vec3(0.42, 0.50, 0.56);
 uniform vec3 sun_dir = vec3(0.42, 0.62, 0.66);
@@ -63,7 +63,7 @@ void fragment(){
 	vec3 view_w = normalize((INV_VIEW_MATRIX * vec4(VIEW, 0.0)).xyz);
 	vec3 r = reflect(-view_w, n_w);
 	float ndv = clamp(dot(n_w, view_w), 0.0, 1.0);
-	float fres = 0.02 + 0.98 * pow(1.0 - ndv, 4.0);
+	float fres = 0.02 + 0.98 * pow(1.0 - ndv, 5.0);
 
 	// Color del cuerpo: limo claro y verdoso sobre los bajos, verde-pardo turbio medio y canal oscuro; plumas de sedimento.
 	float shallow = 1.0 - smoothstep(0.1, 1.4, est);
@@ -124,13 +124,13 @@ void fragment(){
 
 	vec3 sky = mix(sky_horizon, sky_zenith, clamp(r.y * 1.6, 0.0, 1.0));
 	float sd_dot = max(dot(r, normalize(sun_dir)), 0.0);
-	float glint = pow(sd_dot, 60.0) * 0.05 + pow(sd_dot, 400.0) * 0.14 * (0.5 + h0);
+	float glint = pow(sd_dot, 60.0) * 0.03 + pow(sd_dot, 400.0) * 0.14 * (0.5 + h0);
 
-	ALBEDO = mix(mix(body, sky_horizon * 0.85, haze * 0.55), vec3(0.88, 0.86, 0.76), foam * 0.8);
-	EMISSION = sky * (fres * 0.26 + 0.010) * mix(vec3(0.82, 0.88, 0.84), vec3(1.0), fres) + vec3(1.0, 0.93, 0.8) * glint;
+	ALBEDO = mix(mix(body, sky_horizon * 0.62, haze * 0.42), vec3(0.88, 0.86, 0.76), foam * 0.8);
+	EMISSION = sky * (fres * 0.13 + 0.004) * mix(vec3(0.82, 0.88, 0.84), vec3(1.0), fres) + vec3(1.0, 0.93, 0.8) * glint;
 	METALLIC = 0.0;
-	ROUGHNESS = mix(0.10, 0.7, foam);
-	SPECULAR = 0.5;
+	ROUGHNESS = mix(0.22, 0.7, foam);
+	SPECULAR = 0.12;
 
 	// Transparencia: arena mojada visible en el primer centimetro, luego agua translucida sobre bajos, opaca-turbia en el canal.
 	float a = mix(0.86, 0.98, smoothstep(0.0, 0.7, est));

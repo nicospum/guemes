@@ -778,6 +778,7 @@ var minimap_sig = ""
 var minimap_timer = 0.0
 var minimap_last_size = Vector2i(260,150)
 var ship_hull: Node3D
+var ship_mud: MeshInstance3D
 var ship_y0=0.0
 var ship_gun_pos: Array = []
 var smoke_pool: Array = []
@@ -1167,10 +1168,18 @@ func _bullring_j(lm:Dictionary):
   _inst_r("box",Vector3(ax,_h(ax,az)+2.0,az),Vector3(r*0.55,4.0,r*0.55),0.0,Color("cfc4a8"))
   _inst_r("box",Vector3(ax,_h(ax,az)+4.25,az),Vector3(r*0.6,0.5,r*0.6),0.0,Color("8e5a47"))
  # Bandera blanca con escudo español pintado: INFERENCIA (cuenta de 1803, Pillado; paquete H4). Sin escudo argentino.
+ # R5: antes un cuadrado rojo sobre blanco (se leia como otra bandera). Ahora paño blanco con un escudo pintado (borde latón,
+ # cuarteles rojo y crudo, corona): el escudo exacto NO tiene datos, es un esquema de lectura (Diseño). Asta fina de 8 m.
  var fp=Vector3(c.x,y0+wall_h,c.y)
  _cylinder(Vector3(fp.x,fp.y+4.0,fp.z),0.12,8.0,Color("4c372b"))
- _box(Vector3(fp.x+1.3,fp.y+7.0,fp.z),Vector3(2.6,1.6,0.06),Color("e9e3d2"))
- _box(Vector3(fp.x+1.3,fp.y+7.0,fp.z+0.05),Vector3(0.7,0.8,0.05),Color("983c3c"))
+ var fz=fp.z;var fy=fp.y+6.7;var fx=fp.x+1.9
+ _box(Vector3(fx,fy,fz),Vector3(3.8,2.4,0.06),Color("e9e3d2"))
+ _box(Vector3(fx,fy-0.1,fz+0.04),Vector3(1.05,1.2,0.05),Color("a88943"))           # borde del escudo
+ _box(Vector3(fx-0.25,fy+0.15,fz+0.08),Vector3(0.45,0.45,0.05),Color("983c3c"))
+ _box(Vector3(fx+0.25,fy-0.35,fz+0.08),Vector3(0.45,0.45,0.05),Color("983c3c"))
+ _box(Vector3(fx+0.25,fy+0.15,fz+0.08),Vector3(0.45,0.45,0.05),Color("d8cfb8"))
+ _box(Vector3(fx-0.25,fy-0.35,fz+0.08),Vector3(0.45,0.45,0.05),Color("d8cfb8"))
+ _box(Vector3(fx,fy+0.75,fz+0.06),Vector3(0.7,0.22,0.05),Color("a88943"))          # corona (esquema)
 
 func _battery_j(lm:Dictionary):
  var c=Vector2(float(lm.x),float(lm.z));var w=float(lm.get("w",22.0));var d=float(lm.get("d",14.0))
@@ -1178,16 +1187,17 @@ func _battery_j(lm:Dictionary):
  var low=minf(_h(c.x+w*0.5,c.y),_h(c.x+w*0.5,c.y-d*0.5))
  var thick=maxf(1.0,top-low+0.6)
  _inst_t("box",Transform3D(Basis.from_scale(Vector3(w,thick,d)),Vector3(c.x,top+0.1-thick*0.5,c.y)),Color("7d6c47"))
- # Parapeto de tierra del lado del rio, cuatro piezas (la cifra de piezas es de diseño; la existencia de la bateria, documentada).
+ # Parapeto de tierra del lado del rio con DOS piezas de a 18 (unica cifra con fuente: parte de Liniers del 11-ago, citado por L. Guemes; ronda 5).
+ # Emplazamiento, parapeto y gaviones son DISEÑO (no hay plano ni descripcion); solo la existencia de las dos piezas tiene respaldo, y por cita.
  var px=c.x+w*0.5-1.6
  _inst_t("box",Transform3D(Basis.from_scale(Vector3(3.2,2.0,d)),Vector3(px,top+1.0,c.y)),Color("6e5f3e"))
- for i in range(4):
-  var gz=c.y-d*0.5+d*(float(i)+0.5)/4.0
+ for i in range(2):
+  var gz=c.y-d*0.5+d*(float(i)*2.0+1.0)/4.0
   _inst_t("box",Transform3D(Basis.from_scale(Vector3(3.0,0.5,1.2)),Vector3(px-2.8,top+0.4,gz)),Color("4d3d28"))
   var tr=Transform3D(Basis(Vector3(0,0,1),PI/2.0).scaled_local(Vector3(0.55,3.4,0.55)),Vector3(px-2.3,top+1.2,gz))
   _inst_t("cyl8",tr,Color("2f2f2c"))
- for g in range(7):
-  _inst_t("cyl8",Transform3D(Basis.from_scale(Vector3(0.9,1.0,0.9)),Vector3(px+0.3,top+2.5,c.y-d*0.5+d*(float(g)+0.5)/7.0)),Color("8f7f58"))
+ for g in range(5):
+  _inst_t("cyl8",Transform3D(Basis.from_scale(Vector3(0.9,1.0,0.9)),Vector3(px+0.3,top+2.5,c.y-d*0.5+d*(float(g)+0.5)/5.0)),Color("8f7f58"))
  battery_pos=Vector3(px+0.5,top+1.3,c.y)
 
 func _alameda_j(lm:Dictionary):
@@ -1390,6 +1400,24 @@ func _scenery_j():
    bx+=117.0
   bz+=117.0
 
+ # R5: ciudad alta tras la meseta (silueta de Vidal 1820: casas bajas de azotea con torres sobre campo ocre). Reconstruccion estetica:
+ # solo se toma de Boneo 1801 el tamaño de cuadra y que la traza urbana sube hacia el oeste y el sur del Retiro; lotes y torres son Diseño.
+ var rng2=RandomNumberGenerator.new();rng2.seed=1820
+ var towers=0
+ for ring_i in range(3):
+  var x0=-110.0-float(ring_i)*190.0
+  var bz2=-60.0
+  while bz2<700.0:
+   var dens=clampf(0.25+bz2/900.0,0.25,0.9)-float(ring_i)*0.12
+   if rng2.randf()<dens:
+    for k in range(5):
+     var hx=x0+rng2.randf_range(-58.0,58.0);var hz=bz2+rng2.randf_range(-58.0,58.0)
+     if _far_h(hx,hz)>3.0:_house_at(hx,hz,rng2.randf_range(8.0,12.0),rng2.randf_range(9.0,13.0),(0.0 if rng2.randf()<0.5 else PI*0.5))
+    if towers<7 and ring_i<2 and rng2.randf()<0.10 and _glb_ok("church_colonial"):
+     towers+=1
+     _inst_glb("church_colonial",Transform3D(Basis.from_scale(Vector3.ONE*1.15),Vector3(x0,_far_h(x0,bz2),bz2)))
+   bz2+=117.0
+
 # ---------------------------------------------------------------- escala y referencias
 func _scale_bar_j():
  scale_root=Node3D.new();scale_root.name="Escala100m";add_child(scale_root)
@@ -1435,6 +1463,13 @@ func _ship_j():
  ship.rotation=Vector3(0.012,-deg_to_rad(heading),0.045)
  ship_hull=ship;ship_y0=ship.position.y
  _strip_ladder(ship)
+ # Anillo de fango y arena humeda alrededor del casco apoyado (Diseño: grounded_visual.mud_ring_radius_m).
+ var mr:Array=M.get("ship",{}).get("grounded_visual",{}).get("mud_ring_radius_m",[22.0,34.0])
+ var mc=CylinderMesh.new();mc.top_radius=float(mr[1]);mc.bottom_radius=float(mr[1]);mc.height=0.02;mc.radial_segments=32
+ var mm=StandardMaterial3D.new();mm.albedo_color=Color(0.50,0.43,0.30,0.0);mm.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA;mm.roughness=0.9;mm.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
+ ship_mud=MeshInstance3D.new();ship_mud.mesh=mc;ship_mud.material_override=mm;ship_mud.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+ ship_mud.position=Vector3(sx,level_m+0.04,sz);ship_mud.scale=Vector3(1.0,1.0,float(mr[0])/float(mr[1])*1.9);ship_mud.rotation.y=-deg_to_rad(heading);ship_mud.visible=false
+ add_child(ship_mud)
  # Cañones: 13 portas por banda es DISEÑO (Gillespie da 26 cañones en total, no el reparto; el paquete pide no dibujar 13 idénticos). Posiciones locales de las portas de babor (oeste con proa al norte).
  ship_gun_pos.clear()
  for i in range(13):
@@ -1588,9 +1623,9 @@ func _exposure_j():
   idx.append_array(PackedInt32Array([base,base+2,base+1]))
   # Anillo del alcance.
   var rb=verts.size()
-  var ring_col=Color(0.82,0.36,0.30,0.55)
-  verts.append(Vector3(cos(a0),0,sin(a0))*(rng-1.0));verts.append(Vector3(cos(a0),0,sin(a0))*(rng+1.0))
-  verts.append(Vector3(cos(a1),0,sin(a1))*(rng-1.0));verts.append(Vector3(cos(a1),0,sin(a1))*(rng+1.0))
+  var ring_col=Color(0.78,0.40,0.32,0.26)   # R5: aro mas tenue y fino (antes 0,55 y 2 m)
+  verts.append(Vector3(cos(a0),0,sin(a0))*(rng-0.5));verts.append(Vector3(cos(a0),0,sin(a0))*(rng+0.5))
+  verts.append(Vector3(cos(a1),0,sin(a1))*(rng-0.5));verts.append(Vector3(cos(a1),0,sin(a1))*(rng+0.5))
   for _i in range(4):cols.append(ring_col)
   idx.append_array(PackedInt32Array([rb,rb+2,rb+1,rb+1,rb+2,rb+3]))
  var arr=[];arr.resize(Mesh.ARRAY_MAX);arr[Mesh.ARRAY_VERTEX]=verts;arr[Mesh.ARRAY_COLOR]=cols;arr[Mesh.ARRAY_INDEX]=idx
@@ -1666,21 +1701,22 @@ func _create_group_j(unit:Dictionary):
  unit_nodes[id]={"root":root,"figures":root,"mounted":mounted,"anims":[],"last":root.position,"parts":parts,"n":n,"yaw":-PI/2.0,"kind":"group","dirty":true,"pos2":Vector2(float(unit.x),float(unit.z)),"moving":false,"stage":""}
 
 ## Paleta del paquete (04_paleta_diseno). Guion de lectura de cada grupo: color de DISEÑO para distinguir, NO es un estandarte histórico.
-const GROUP_PAL = {"guemes":["253b53","983c3c"],"arias":["d8cfb8","7b6953"],"zavala":["a38d6b","33475b"]}
+const GROUP_PAL = {"guemes":["a88943","4c372b"],"arias":["d8cfb8","4c372b"],"zavala":["33475b","d8cfb8"]}
 var group_markers: Array = []
 var label_far:Dictionary={}
 
 func _group_marker_j(id:String,root:Node3D)->void:
  var pal:Array=GROUP_PAL.get(id,["7b6953","d8cfb8"])
  var m=Node3D.new();m.name="Guion_"+id;root.add_child(m)
- _cylinder(Vector3(0,3.0,0),0.07,6.0,Color("4c372b"),m)
+ _cylinder(Vector3(0,1.9,0),0.05,3.8,Color("4c372b"),m)
  # Silueta por tipo (no solo color): guemes = guion rectangular con franja; arias = banderin largo y bajo; zavala = cuadrado.
- var fw=2.8;var fh=1.7
- if id=="arias":fw=3.6;fh=0.95
- elif id=="zavala":fw=1.9;fh=1.9
- _box(Vector3(fw*0.5,3.9-fh*0.5+0.5,0),Vector3(fw,fh,0.06),Color(pal[0]),m)
- _box(Vector3(fw*0.5,3.9-fh*0.5+0.5,0.05),Vector3(fw,fh*0.3,0.06),Color(pal[1]),m)
- if id=="arias":_box(Vector3(fw+0.5,3.9-fh*0.5+0.5,0),Vector3(1.0,fh*0.45,0.06),Color(pal[0]),m)
+ var fw=1.5;var fh=0.9
+ if id=="arias":fw=1.9;fh=0.5
+ elif id=="zavala":fw=1.0;fh=1.0
+ var top=3.7
+ _box(Vector3(fw*0.5,top-fh*0.5,0),Vector3(fw,fh,0.04),Color(pal[0]),m)
+ _box(Vector3(fw*0.5,top-fh*0.5,0.03),Vector3(fw,fh*0.3,0.04),Color(pal[1]),m)
+ if id=="arias":_box(Vector3(fw+0.25,top-fh*0.5,0),Vector3(0.5,fh*0.45,0.04),Color(pal[0]),m)
  var ring=_ring_j(3.0,Color(pal[0]).lerp(Color("f4efdc"),0.35),root)
  ring.name="Ancla";ring.scale=Vector3(1,1,1)
  group_markers.append({"node":m,"ring":ring,"root":root})
@@ -1689,7 +1725,7 @@ func _update_markers_j(cam:Camera3D)->void:
  for g in group_markers:
   var r:Node3D=g.root
   var d=cam.global_position.distance_to(r.global_position)
-  var k=clampf(d*0.012,1.0,7.0)   # legible desde lejos: crece con la distancia, 1 u = 1 m a corta distancia
+  var k=clampf(d*0.0045,1.0,3.0)   # R5: guion de ~3,7 m (1 u = 1 m) que crece solo hasta x3 a lo lejos (antes x7 = antenas de 40 m)
   g.node.scale=Vector3.ONE*k
   g.ring.position.y=maxf(0.0,level_m-r.position.y)+0.35
   g.ring.scale=Vector3.ONE*clampf(d*0.004,1.0,4.0)
@@ -1706,11 +1742,15 @@ func _ensign_j(s:Dictionary)->void:
  var fy=14.55
  _box(Vector3(px,fy,pz-1.6),Vector3(0.05,1.8,3.2),Color("b6453e"),root)         # campo rojo
  var cx=pz-0.62;var cy=fy+0.45
- _box(Vector3(px,cy,cx),Vector3(0.06,0.9,1.24),Color("33475b"),root)             # canton Union (esquema)
- _box(Vector3(px,cy,cx),Vector3(0.08,0.15,1.24),Color("d8cfb8"),root)
- _box(Vector3(px,cy,cx),Vector3(0.08,0.9,0.15),Color("d8cfb8"),root)
- _box(Vector3(px,cy,cx),Vector3(0.09,0.07,1.24),Color("983c3c"),root)
- _box(Vector3(px,cy,cx),Vector3(0.09,0.9,0.07),Color("983c3c"),root)
+ _box(Vector3(px,cy,cx),Vector3(0.06,0.9,1.24),Color("33475b"),root)             # canton Union 1801 (esquema: aspas + cruz)
+ var ang=atan2(0.9,1.24);var dl=sqrt(0.9*0.9+1.24*1.24)
+ for sgn in [-1.0,1.0]:
+  var w=_box(Vector3(px,cy,cx),Vector3(0.07,0.20,dl),Color("d8cfb8"),root);w.rotation.x=ang*sgn   # San Andres (blanca)
+  var r2=_box(Vector3(px,cy,cx),Vector3(0.08,0.07,dl),Color("983c3c"),root);r2.rotation.x=ang*sgn  # San Patricio (roja, fina)
+ _box(Vector3(px,cy,cx),Vector3(0.09,0.30,1.24),Color("d8cfb8"),root)             # cruz de San Jorge: blanca ...
+ _box(Vector3(px,cy,cx),Vector3(0.09,0.9,0.30),Color("d8cfb8"),root)
+ _box(Vector3(px,cy,cx),Vector3(0.10,0.15,1.24),Color("983c3c"),root)             # ... y roja
+ _box(Vector3(px,cy,cx),Vector3(0.10,0.9,0.15),Color("983c3c"),root)
 
 func _create_scouts_j():
  for sc in rules.state.get("scouts",[]):
@@ -2067,9 +2107,17 @@ func _update_ship_j(delta:float):
  var hd=float(ss.get("heading_deg",M.ship.get("heading_deg",0.0)))
  ship.rotation.y=-deg_to_rad(hd)
  # R4: con la bajante el casco apoya en el banco: escora a babor y se asienta (aspecto; la regla del vado no cambia).
- var lk=clampf(level_m/maxf(level_high_m,0.1),0.0,1.0)
- ship.rotation.z=lerpf(0.13,0.045,lk);ship.rotation.x=lerpf(0.034,0.012,lk)
- ship.position.y=ship_y0-0.30*(1.0-lk)
+ # R5: consume ship.grounded_visual (apoyado bajo grounded_below_m, flota sobre floating_above_m): escora, asiento y anillo de fango.
+ var gv:Dictionary=M.get("ship",{}).get("grounded_visual",{})
+ var g_lo=float(gv.get("grounded_below_m",0.35));var g_hi=float(gv.get("floating_above_m",0.9))
+ var gk=1.0-clampf((level_m-g_lo)/maxf(g_hi-g_lo,0.05),0.0,1.0)   # 1 = apoyado, 0 = flotando
+ var heel:Array=gv.get("heel_deg",[4.0,7.0])
+ ship.rotation.z=lerpf(0.045,deg_to_rad(float(heel[1])),gk);ship.rotation.x=lerpf(0.012,0.034,gk)
+ ship.position.y=ship_y0-float(gv.get("sink_m",0.6))*gk
+ if is_instance_valid(ship_mud):
+  ship_mud.visible=gk>0.02
+  ship_mud.position.y=level_m+0.04
+  (ship_mud.material_override as StandardMaterial3D).albedo_color.a=0.55*gk
  if water_mat!=null and absf(hd-ship_hd_applied)>0.01:
   ship_hd_applied=hd
   water_mat.set_shader_parameter("ship_fwd",Vector2(sin(deg_to_rad(hd)),-cos(deg_to_rad(hd))))
