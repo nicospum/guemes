@@ -641,6 +641,25 @@ func _justina_r1_ui() -> void:
 		game.rules.get_unit(gid).strength = base
 	check(not bool(game.rules.deploy_transfer("zavala", "zavala", 5.0).ok), "Deployment rejects the same group twice")
 	check(g0 == 100.0, "Guemes keeps its starting strength")
+	# Ronda 3: reubicar puntos de partida (limite 14 m, solo tierra firme) y textos de claridad
+	var e0 := Vector2(float(game.rules.get_unit("arias").x), float(game.rules.get_unit("arias").z))
+	var pl: Dictionary = game.rules.deploy_place("arias", e0.x, e0.y - 7.0)
+	check(bool(pl.ok) and is_equal_approx(float(game.rules.get_unit("arias").z), e0.y - 7.0), "R3: deployment moves a starting point on dry land: " + str(pl.reason))
+	check(not bool(game.rules.deploy_place("arias", e0.x, e0.y - 40.0).ok), "R3: deployment refuses a start more than 14 m from the original")
+	check(not bool(game.rules.deploy_place("arias", e0.x + 12.0, e0.y).ok) or game.rules.water_depth_at(e0.x + 12.0, e0.y) <= 0.05, "R3: deployment never puts a group in the water")
+	check(not bool(game.rules.deploy_place("nadie", 0.0, 0.0).ok), "R3: deployment rejects an unknown actor")
+	game._deploy_nudge(0, Vector2(0, 7))
+	game._close_modal()
+	check(game.clock_label.text.ends_with("min") and game.clock_label.text.find("Quedan") == 0, "R3: the header says the remaining time is in minutes: " + game.clock_label.text)
+	check(game._short_name("guemes").find("trad.") >= 0, "R3: the Guemes group name carries the tradition mark")
+	game.rules.state.elapsed = 5.0
+	check(not bool(game.rules.deploy_place("arias", e0.x, e0.y).ok), "R3: deployment is closed once the clock has run")
+	game.rules.state.elapsed = 0.0
+	game.rules.get_unit("arias").z = e0.y
+	game.rules.get_unit("guemes").z = 240.0
+	game._briefing_dialog()
+	check(_modal_text().find("en seco") >= 0 and _modal_text().find("Baliza") >= 0, "R3: the help says Gillespie writes left dry and glosses baliza")
+	game._close_modal()
 	# Orden con ETA y deshacer
 	game._select_ids(["guemes"])
 	var sx: float = float(game.rules.get_unit("guemes").x)
