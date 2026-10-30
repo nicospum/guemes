@@ -20,6 +20,8 @@ Para **0.2.0-alfa** se midió, en una PC con Windows 11, Ryzen 9 7950X y RTX 308
 
 ### I. Tomar la Justina · 1806
 
+> Ronda de diversión R1: tarjeta de objetivo de 30 s, guía de 4 pasos, parte de derrota que enseña con «Reintentar · mismo río», diario del Bañado, medallas, Norte con candado hasta ganar y feedback (cuenta regresiva del buque, destellos, pausa automática). Ver `docs/CONTROLES.md`.
+
 **Tiempo real con pausa** (no por turnos): el reloj corre solo y la cabecera lo dice siempre («TIEMPO REAL · ▶ ×1» o «‖ EN PAUSA»). Con el tiempo detenido podés seguir dando órdenes. Cinco agrupaciones parten de la ribera: Güemes y jinetes (tradición), Voluntarios, Caballería de reserva y dos exploradores a pie. La bajante cambia la profundidad y el tránsito. Podés elegir el banco central, más corto y expuesto, o el rodeo sur, más largo y protegido. Las órdenes de aproximación preparan el movimiento, esperan en la ribera si hace falta y reanudan el cruce al habilitarse.
 
 **Primeros 60 segundos:** Espacio inicia/pausa; 4 o 5 + Z sondea el agua; 1 + K señala a Liniers; N o clic derecho ordena el abordaje; coma rechaza el contraataque (14 s); F1 o ? es la ayuda. El detalle está en `docs/CONTROLES.md`.

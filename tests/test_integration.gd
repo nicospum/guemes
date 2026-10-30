@@ -72,6 +72,10 @@ func _justina() -> void:
 	check(game.world.unit_nodes.size() >= 5, "Three groups and two scouts have 3D nodes")
 	# Briefing inicial
 	check(is_instance_valid(game.modal), "Briefing modal opens at the start")
+	var ctxt := _modal_text()
+	check(ctxt.find("Objetivo") >= 0 and ctxt.find("Perder no es grave") >= 0 and ctxt.find("Empezar") >= 0, "R1: la tarjeta inicial dice el objetivo, que perder no es grave y ofrece Empezar")
+	check(ctxt.length() < 900, "R1: la tarjeta inicial es corta (%d caracteres)" % ctxt.length())
+	game._briefing_dialog()
 	var btxt := _modal_text()
 	check(btxt.find("Tradición") >= 0 and btxt.find("Documentado") >= 0 and btxt.find("Reconstrucción") >= 0 and btxt.find("Diseño") >= 0, "Briefing shows the four source tags")
 	check(btxt.find(str(game.rules.state.briefing).substr(0, 40)) >= 0, "Briefing shows state.briefing")
@@ -404,15 +408,23 @@ func _justina() -> void:
 	await process_frame
 	check(game.rules.state.status in ["victory", "defeat"] and game.outcome_shown, "A scripted blind crossing (no reconnaissance, no support) ends the game (%s, %s) and opens the campaign report" % [game.rules.state.status, str(game.rules.state.get("defeat_cause", ""))])
 	check(is_instance_valid(game.modal), "The campaign report is a modal")
+	var won_run: bool = game.rules.state.status == "victory"
+	var ot := _modal_text()
+	if won_run:
+		check(ot.find("MEDALLA DE") >= 0 and ot.find("Ir a Sostener el Norte") >= 0 and bool(game.progress.justina_ganada), "R1: la victoria muestra medalla y el paso al Norte, y fija el progreso")
+	else:
+		check(ot.find("Probá esto") >= 0 and ot.find("Reintentar") >= 0 and ot.find("Ir a Sostener el Norte") < 0 and ot.find("campaña del norte") < 0, "R1: la derrota explica y ofrece reintentar, nunca el Norte")
 	var rep: Dictionary = game.rules.campaign_report()
+	game._report_dialog(true)
 	var mt := _modal_text()
 	check(mt.find(str(rep.outcome_title)) >= 0 or mt.find(str(rep.reason)) >= 0, "The report shows the title/outcome of campaign_report()")
 	for g in rep.groups:
 		check(mt.find(str(g.name)) >= 0, "The report lists group " + str(g.name))
 	check(mt.find("Qué fue historia") >= 0 and mt.find("Tradición") >= 0 and mt.find("Documentado") >= 0, "The report ends with 'Qué fue historia' tagged lines")
-	check(_find_button("Ir a la campaña del norte") != null, "Victory offers continuation to the second scenario")
+	check((_find_button("Ir a la campaña del norte") != null) == won_run, "The full report offers the second scenario after a win and only then")
 	_layout_checks("Justina parte")
-	check(_press("Volver a jugar"), "Outcome provides a working restart")
+	game._outcome_dialog()
+	check(_press("Rejugar") if won_run else _press("Reintentar"), "Outcome provides a working restart")
 	await process_frame
 	await process_frame
 	check(game.rules.state.status == "playing" and float(game.rules.state.capture) == 0, "Restart resets capture and terminal state")
@@ -423,7 +435,7 @@ func _justina() -> void:
 	game._process(0.0)
 	await process_frame
 	check(game.rules.state.status == "defeat" and game.outcome_shown, "Passivity ends in defeat and opens the report")
-	check(_find_button("Volver a jugar") != null, "Defeat also permits immediate restart")
+	check(_find_button("Reintentar") != null, "Defeat also permits immediate restart")
 	game._close_modal()
 	# Retirada general con confirmacion
 	game.forced_seed=1806
@@ -475,6 +487,16 @@ func _norte() -> void:
 	game._return_menu()
 	await process_frame
 	check(game.mode == "menu", "Return-menu flow reaches scenario selection")
+	game.progress.justina_ganada = false
+	game._menu()
+	await process_frame
+	var north_btn := _find_button("SOSTENER EL NORTE")
+	check(north_btn != null and north_btn.disabled and north_btn.text.find("Ganá la Justina para abrirlo") >= 0, "R1: sin haber ganado la Justina el Norte esta con candado")
+	game.progress.justina_ganada = true
+	game._menu()
+	await process_frame
+	north_btn = _find_button("SOSTENER EL NORTE")
+	check(north_btn != null and not north_btn.disabled, "R1: tras ganar la Justina el Norte se abre")
 	check(_press("SOSTENER EL NORTE"), "North starts through its menu button")
 	await process_frame
 	check(game.rules.state.scenario == "norte" and game.world.scenario == "norte", "Northern rules and world agree")
@@ -607,7 +629,10 @@ func _justina_r1_ui() -> void:
 	game.paused = true
 	game._update_hud()
 	check(game.mode_label.text.find("PAUSA") >= 0, "Header shows EN PAUSA while paused")
-	check(game.pause_banner.visible and game.pause_banner.text.find("órdenes con el tiempo detenido") >= 0, "A banner explains that orders can be given while paused")
+	game.settings.tutorial = true
+	game.tut_step = 0
+	game._update_hud()
+	check(game.hint_panel.visible and game.tutorial_label.text.find("Espacio") >= 0 and not game.pause_banner.visible, "R1: while paused at the start the guide says Espacio starts the clock (no duplicate banner)")
 	check(game.pause_button.text.find("Iniciar") >= 0, "Before the first second the pause button says Iniciar")
 	game.paused = false
 	game._update_hud()
@@ -684,11 +709,11 @@ func _justina_r1_ui() -> void:
 	check(game.action_buttons["undo"].disabled, "Deshacer is greyed out with nothing to undo")
 	# Acciones contextuales: motivo legible, siguiente paso, Volver sin error
 	var bb: Button = game.action_buttons["board"]
-	check(bb.disabled and str(bb.get_meta("why")).find("Señalar a Liniers") >= 0 and str(bb.get_meta("why")).find("K") >= 0, "Blocked board explains the Liniers chain in plain words: " + str(bb.get_meta("why")))
+	check(bb.disabled and str(bb.get_meta("why")).find("Pedir carga a Liniers") >= 0 and str(bb.get_meta("why")).find("K") >= 0, "Blocked board explains the Liniers chain in plain words: " + str(bb.get_meta("why")))
 	game.settings.tutorial = true
 	game.tut_step = 0
 	game._update_hud()
-	check(game.reason_label.text.begins_with("Seguí el tutorial"), "R5: with the tutorial on there is a single guide message (the bar only explains the buttons): " + game.reason_label.text)
+	check(game.reason_label.text.begins_with("Seguí la guía"), "R5: with the tutorial on there is a single guide message (the bar only explains the buttons): " + game.reason_label.text)
 	var tut_prev: bool = bool(game.settings.tutorial)
 	game.settings.tutorial = false
 	game._update_hud()
@@ -712,9 +737,9 @@ func _justina_r1_ui() -> void:
 	game.settings.tutorial = true
 	game.tut_step = 0
 	game._update_hud()
-	check(game.hint_panel.visible and game.tutorial_label.text.begins_with("1/6"), "Tutorial step 1/6 is shown: " + game.tutorial_label.text)
+	check(game.hint_panel.visible and game.tutorial_label.text.begins_with("1/4"), "Tutorial step 1/4 is shown: " + game.tutorial_label.text)
 	game._tut_skip()
-	check(game.tutorial_label.text.begins_with("2/6"), "Tutorial steps can be skipped")
+	check(game.tutorial_label.text.begins_with("2/4"), "Tutorial steps can be skipped")
 	game._tut_close()
 	check(not game.hint_panel.visible and not bool(game.settings.tutorial), "The tutorial can be closed")
 	game.settings.tutorial = true
@@ -737,7 +762,7 @@ func _justina_r1_ui() -> void:
 	game._update_hud()
 	check(game.action_buttons["repel"].visible, "Rechazar appears when a group is boarding")
 	check(game.paused and game.alert_panel.visible and game.alert_label.text.find("CONTRAATAQUE") >= 0 and game.alert_label.text.find("14") >= 0, "A counterattack alert pauses the game and shows the countdown: " + game.alert_label.text)
-	check(game.pause_banner.visible and game.pause_banner.text.find("PAUSA AUTOMÁTICA") >= 0, "The banner says the pause was automatic")
+	check(game.pause_banner.text.find("PAUSA AUTOMÁTICA") >= 0 and not game.pause_banner.visible, "R1: the pause was automatic and its reason lives in the alert (the banner does not repeat it)")
 	check(game.alert_btn.visible and game.alert_btn.text.find("Rechazar") >= 0, "The alert offers a Rechazar button")
 	check(not game.hint_panel.visible, "The tutorial panel hides while a critical alert is on screen")
 	check(game._reason_with_help("El fondo estimado en ese punto supera el límite de 1.3 m.").find("explorador") >= 0 and game._reason_with_help("La barranca solo se sube por las dos bajadas; ese punto no es transitable.").find("Camino de la barranca") >= 0, "Rejected destinations say the cause and the alternative")
