@@ -1,4 +1,4 @@
-# Diseño del escenario Justina (rediseño 2026-10-29, tercera pasada de Reglas; Ronda 1 de mapa e historia 2026-10-30)
+# Diseño del escenario Justina (rediseño 2026-10-29, tercera pasada de Reglas; Rondas 1 a 5 de mapa e historia, 2026-10-30)
 
 > **Ronda 1 (30-oct-2026, pista Mapa e Historia):** el paquete `Justina_Retiro_1806_Paquete_Editable` del usuario reconstruye el Retiro (ciudad alta, circo octogonal, barranca, ribera variable, buque apoyado). Qué se adoptó, qué se adaptó y qué se descartó está en `docs/historia/MATRIZ_HISTORICA.md` (sección C) y las fuentes en `docs/historia/FUENTES.md` (P1, S13-S28). Cambios de geometría y balance: sección 12 de este documento. Donde una tabla de abajo discrepa de la sección 12 o del JSON, vale el JSON (`data/justina_map.json`, `map_version` 4).
 
@@ -265,7 +265,7 @@ Medidos con **18 estrategias scripteadas x 8 semillas de calibración** (3, 5, 7
 | Sondear solo el eje del centro (o solo el vado sur) **no basta**: el hoyo oculto cobra | `central_center_lane` vs `central_flank_lane`; `south_vado_only` vs `south_full` |
 | Rechazar contraataques y evacuar heridos paga (menos pérdida por contraataque, no menos victorias); con captura activa hay una ventana de decisión cada ≲ 90 s | `central_flank_noreply`, `south_noreply`; ventana en todas las victorias |
 | **Ruta sur: mejor victoria < 960 s** y **exposición centro/sur ≥ 1,4**; la central gana antes (media < 900 s) y la sur con menos bajas | `south_full` vs `central_flank_lane` |
-| Las victorias duran entre 10 y 18 min (Ronda 3: típicamente 11,1-12,3 min por el centro y 14-15,6 min por el sur; ver 14) | tiempos de todas las victorias |
+| Las victorias duran entre 11 y 18 min y la mediana es de al menos 12 min (Ronda 5: central 11,2-14,3 min, típico 12-12,4; sur 13,9-15,3; ver 16.3) | tiempos de todas las victorias |
 | Salir tarde pierde; pasividad pierde exactamente en t=1080 s | `late_all_in`, `passive` |
 | La métrica de bajas queda entre 0 y 100 en todas las partidas (`campaign_report().loss_total_pct`) | todas |
 | Guardar/cargar en cualquier momento: estado idéntico (1e-6); guardado compacto bajo 3 MB **medido en bytes**, con recorte de registro, órdenes y sondas | `_test_justine_persistence`, `_test_save_size`, `_test_labels_and_save_trim` |
@@ -419,3 +419,56 @@ Ver `docs/historia/MATRIZ_HISTORICA.md` sección F. En resumen: Pueyrredón y su
 * **Partida humana 40-60 %:** no medible desde aquí. La cohorte son guiones que conocen el mapa; falta un playtest humano. No se simuló una persona.
 * **ui_real perdió una semilla** por dispersión de grupos: es de la pista de UI/tiempo real; no se tocó.
 
+## 16. Ronda 5 (30-oct-2026): mapa e historia con el paquete completo, textos sin notas de producción y balance re-medido
+
+Pista «Mapa e historia», quinta pasada. Se leyó entero el paquete `Justina_Retiro_1806_Paquete_Editable` (LEEME, informe A-K, láminas 01-04, georef, tres investigaciones de `info/`) y se contrastó con `docs/referencias/justina` (Vidal, Boneo 1801, Arrowsmith 1806, Gillespie en OCR). Cambios en `data/justina_map.json`, `data/history.json`, `scripts/game_rules.gd` (solo el aviso de guardado), `tests/test_rules.gd` y `docs/`. **No se tocaron** `world_view.gd`, `main.gd` ni `shaders/`: las claves nuevas están en `CONTRATO_JUSTINA.md` 10.
+
+### 16.1 Área jugable 900 x 750 m: conciliada, no ampliada (decisión visible)
+
+Se mantiene 900 x 520 m de reglas. Pero los 115 m de contexto por lado (`context.extent`, z de -115 a 635) **suman exactamente los 750 m del paquete**: el jugador ve la ciudad alta y la barranca que continúan al norte, la trama más densa hacia Santa Catalina al sur, el circo y la ribera irregular, y la zona de reglas queda donde está el balance (390 m de playa y banco entre el pie de la barranca y el casco, dos bajadas, dos rutas). Se reabre solo si se rehace la banda de fuego. La tabla `package_adoption` (en el JSON) registra por parámetro del paquete si se adopta, se adapta o se descarta, y por qué (histórica o de balance).
+
+### 16.2 Qué se tomó del paquete y qué se corrigió en los datos
+
+| Tema | Hallazgo previo | Cambio |
+|---|---|---|
+| Piezas de a 18 | Se dibujaban 4 con 7 gaviones; la fuente da **dos** | `landmarks.bateria_abascal.guns = 2`, `gabions.max_drawn = 4` (ornamento de diseño), `tag` = Diseño (el emplazamiento es abierto), sufijo «(diseño)» |
+| Textos de desarrollador | «decisión pendiente tuya» en briefing, `dry_note` y la ficha del agua | Briefing de un párrafo (`texts.briefing`) con remisión a «Fuentes»; el texto largo pasa a `briefing_long` y `sources_detail`, sin notas de producción |
+| Etiquetas | Cuarteles, casas, manzanas, costa irregular y campamento de Pueyrredón figuraban como Reconstrucción | Existencia y área general: Reconstrucción; volúmenes, lotes, posición y trazado: **Diseño**; el campamento: **Tradición** con posición de Diseño |
+| Gillespie p. 94 («batía playa y calles») | El juego no declaraba la contradicción con su alcance de 265 m | `ship.fire.p94_tension` y `ship.fire.cover_zone` (anillo visual de 420 m, **no simulado**) |
+| Plaza de Toros | «inaugurada en 1801» como documentado; p. 121 usada como prueba de existencia | «En uso desde c. 1801 (Boneo la muestra)»; la cita de p. 121 conserva su matiz (retrospectiva, una sola corrida) |
+| Páginas de Gillespie | 26 cañones citados en p. 29 | 26 cañones p. 28; armadores p. 29 (por el marcador de página del OCR) |
+| Material sin usar | Perros del Retiro (noche del 11) y acantilados | p. 95 (`tide_gillespie.dogs_p95`, hito `noche_11`) y p. 274 (`barranca.gillespie_cliffs_1807`, con aviso de que es 1807) |
+| Banderas | Red Ensign sin aspas; bandera blanca con cuadrado rojo en el fuerte; estandarte rojo/azul de jinetes sin respaldo | `canton_layers` (cruces y aspas de la Union de 1801), `bandera_cuartel` (opcional, aspa de Borgoña; **prohibido** el círculo o cuadrado rojo centrado), `placements`, colores neutros y asta oscura de 3-4 m en `group_markers` |
+| Güemes como hecho | La mecánica central depende de Obligado 1920 y el jugador la vive como la historia | `texts.result_contrast` (pantalla de resultado: «Gillespie: tomado por caballería, sin jefe ni orden…») y `texts.tradition_context` |
+| Colores de caballos/jinetes/agua | Caballos crema uniformes, agua pálida | `palette.mounts`, `palette.riders`, `palette.water.turbid_near/mid/far` |
+| Fuentes sin cotejar | Concha, oficio de Liniers, parte del 11-ago, Obligado | Quedan «parcial / sin ver la fuente» en pantalla (`uncertainty_labels.sin_ver_fuente`) y como **Reconstrucción**; la cifra de jinetes de la investigación de apoyo (S41) **no se muestra** |
+
+### 16.3 Balance re-medido (APPDATA aislado, 18 estrategias x 8 semillas de calibración + 12 de validación para las 12 razonables)
+
+Se atendieron los hallazgos «ruta central domina por familia», «victorias de ~11-12 min con borde duro» y «pírricas al límite» con **dos cambios de datos** (ninguna regla nueva):
+
+1. `ship.fire.damage_min/max` 7,6 / 11,5 → **8,06 / 12,19** (+6 %). La ruta central, que es la que atraviesa la banda de fuego, cuesta algo más y su captura es algo más lenta. Se probó +15 % (central 62-65 % de bajas) y +10 % (máx. con defensa 77 %, por encima del tope de 75 %): se descartaron por pírricos.
+2. `time.variants[lenta]`: la bajante arranca a los 75 s y termina a los 470 s (antes 90 / 490). Con 90 / 490 la ruta sur **perdía las 5 partidas «lentas»** de la matriz (el vado abre justo después de las salidas de los guiones). Ahora la sur gana en «lenta», y sigue justa.
+
+| Medida | Ronda 4 | Ronda 5 |
+|---|---|---|
+| Cohorte razonable, calibración / validación | 44 % / 46 % | **50 % (48/96) / 50 % (72/144)** |
+| Bajas medianas de las victorias / máx. con defensa / sin defensa | 51 % / 68 % / 78 % | **53 % / 68 % / 82 %** (tope 92 % sin defensa) |
+| Victorias por encima de 80 % de bajas | 0 de 108 | 5 de 120 (4 %; tope 15 %) |
+| Central: mejores líneas (lane, pair, hasty) | 7/8 y 11/12 | 7/8 y 11/12, **bajas 53-61 %**, victorias de 11,2-14,3 min (típico 12-12,4) |
+| Sur: `south_full` / `south_noreply` | 5/8 y 8/12 | **7/8 y 11/12**, bajas 41-52 %, victorias de 13,9-15,3 min |
+| Victorias por familia (centro / sur+mixta) | 29 / 13 (69 % centro) | 31 / 17 (65 % centro) |
+| Duración de las victorias | 11,1-15,6 min | 11,2-15,3 min; mediana ≥ 12 min (test nuevo) |
+| Pruebas de reglas | 520 / 0 | **542 / 0** |
+
+Lectura honesta: ahora la mejor línea de cada ruta gana lo mismo (≈ 90 % fuera de la condición «breve», que ninguna gana), con precios distintos (la central es rápida y cara; la sur, lenta y barata). La «dominancia de la familia central» (65 %) sigue siendo mayormente un artefacto de contar siete variantes de guion central contra tres de sur: no se la persiguió con más castigo porque cada punto extra de daño empuja las victorias centrales a bajas pírricas. **No hubo playtest humano**: «una partida humana razonable tiene 40-60 %» sigue siendo una estimación a partir de guiones que conocen el mapa, y las victorias no dependen de un guion único (cuatro estilos de central, dos de sur y la mixta ganan, y la condición del río y los hoyos cambian por semilla), pero un jugador nuevo probablemente quede por debajo.
+
+**Duraciones.** El objetivo real es 12-16 min con un borde blando: la central apurada llega a 11,2 min en la semilla más favorable, y el único corte duro es la condición «breve» (el río vuelve a subir desde 11:00), que es un rasgo de diseño y no un acantilado accidental.
+
+### 16.4 La bajada: pendiente de juego y camino visual
+
+El paquete propone 8-12 % con 83-150 m de desarrollo. La rampa de juego sigue en ~30 m (25-30 %): los grupos parten a 20-30 m de la barranca y alargarla cambia el despliegue y el balance de las dos rutas. Para que **se vea** una bajada suave, cada rampa trae `visual_path` (camino de tierra en diagonal sobre la meseta y la cresta, ~95-100 m, ≈ 9 %), solo visual: no toca `terrain_height_at` ni las rutas. Se dice en `texts.map_decisions` (`bajada_suave`).
+
+### 16.5 Qué sigue abierto
+
+Playtest humano; banco expuesto (no está en esta versión); sustentar o descartar con fuente primaria la fecha de 1801 de la Plaza de Toros; cotejar Gillespie con el escaneo; Concha, oficio y parte de Liniers en original; el original de Obligado 1920; que `world_view` consuma las claves de `CONTRATO_JUSTINA.md` 10 (dos piezas, aspas, colocación de banderas, paleta, camino visual); que `main.gd` use `texts.briefing` corto y `texts.result_contrast` en la pantalla de resultado.

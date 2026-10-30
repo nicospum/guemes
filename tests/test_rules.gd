@@ -25,6 +25,7 @@ func _initialize() -> void:
 	_test_boarding_costs()
 	_test_geography_and_texts()
 	_test_package_data()
+	_test_round5_data()
 	_test_hidden_layout()
 	_test_tide_variants()
 	_test_scarce_resources()
@@ -621,6 +622,77 @@ func _test_boarding_costs_placeholder() -> void:
 	pass
 
 ## Ronda 1 (paquete Justina_Retiro_1806): datos de mapa e historia nuevos y coherentes con las advertencias del paquete.
+## Ronda 5 (mapa e historia): textos del jugador sin notas de producción, dos piezas de a 18, etiquetas Diseño en el decorado, banderas con colocación, paleta, adopción del paquete.
+func _test_round5_data() -> void:
+	var r := _new_j(5)
+	var m: Dictionary = r.map_data()
+	var by_id := {}
+	for lm in m.landmarks:
+		by_id[str(lm.id)] = lm
+	var player_txt := (str(m.texts.briefing) + " " + str(m.texts.briefing_long) + " " + str(m.texts.dry_note) + " " + str(m.tide_gillespie.on_screen_note) + " " + str(m.texts.sources_detail) + " " + str(m.texts.result_contrast)).to_lower()
+	check(not ("tuya" in player_txt) and not ("del usuario" in player_txt) and not ("decisión pendiente" in player_txt), "Los textos del jugador no llevan notas de producción («decisión pendiente tuya»)")
+	check(str(m.texts.briefing).length() <= 700 and "británico" in str(m.texts.briefing) and "«Fuentes»" in str(m.texts.briefing), "El briefing es un párrafo corto que remite a «Fuentes»")
+	check("gillespie" in str(m.texts.result_contrast).to_lower() and "tradición" in str(m.texts.result_contrast).to_lower() and m.texts.has("tradition_context"), "Hay una línea de resultado que contrasta a Gillespie con la tradición de Güemes")
+	var bat: Dictionary = by_id.bateria_abascal
+	check(int(bat.guns) == 2 and str(bat.tag) == "diseno" and str(bat.tag_parts.emplazamiento) == "diseno" and int(bat.gabions.max_drawn) <= 4, "Las piezas de a 18 son dos (parte de Liniers) y su emplazamiento es Diseño")
+	check("hipótesis" not in str(bat.marker_suffix) and str(by_id.campamento_pueyrredon.tag) == "tradicion" and str(by_id.campamento_pueyrredon.tag_parts.posicion_exacta) == "diseno", "El campamento de Pueyrredón es Tradición con posición de Diseño y las piezas ya no dicen «hipótesis»")
+	var scen_ok := true
+	for it in m.scenery.items:
+		if str(it.id).begins_with("cuartel_") or str(it.id).begins_with("casa_") or str(it.id).begins_with("tapia_"):
+			scen_ok = scen_ok and str(it.tag) == "diseno" and str(it.tag_parts.values()[0]) == "reconstruccion"
+	for b in m.scenery.blocks:
+		scen_ok = scen_ok and str(b.tag) == "diseno"
+	check(scen_ok and str(m.shore_high.tag) == "diseno", "Volúmenes, lotes y costa irregular del decorado son Diseño (solo la existencia y el área general son Reconstrucción)")
+	var pt: Dictionary = by_id.plaza_toros
+	check("c. 1801" in str(pt.in_use_since) and "una sola vez" in str(pt.source) and "inaugurada en 1801" not in str(pt.source) and str(pt.tag_parts.existencia) == "documentado", "La Plaza de Toros: en uso desde c. 1801 y la cita de Gillespie p. 121 con su matiz")
+	var fire: Dictionary = m.ship.fire
+	check(float(fire.range_m) == 265.0 and fire.has("p94_tension") and str(fire.p94_tension.page) == "94" and not bool(fire.cover_zone.implemented) and float(fire.cover_zone.range_m) > float(fire.range_m), "La tensión con Gillespie p. 94 (batía playa y calles) está declarada y el anillo de cobertura no se simula")
+	var sp: Vector2 = r.ship_position()
+	check(r.exposure_at(sp.x - 300.0, sp.y) == 0.0 and r.exposure_at(sp.x - 200.0, sp.y) > 0.0, "El fuego sigue limitado a range_m (la cobertura de 420 m es solo un dato visual)")
+	var bn: Dictionary = m.banners
+	var red_layers := JSON.stringify(_banner_by_id(bn, "red_ensign_mercante").design.canton_layers)
+	check("aspa_san_andres" in red_layers and "aspa_san_patricio" in red_layers and "cruz_san_jorge" in red_layers, "El cantón del Red Ensign lleva las aspas de San Andrés y San Patricio y la cruz de San Jorge")
+	check(bn.placements.cuartel == null and str(bn.placements.buque_popa) == "red_ensign_mercante" and str(bn.placements.plaza_toros) == "bandera_circo" and not bool(_banner_by_id(bn, "bandera_cuartel").draw_default), "Colocación de banderas: buque y circo; el cuartel no lleva bandera por defecto")
+	check("japonesa" in str(_banner_by_id(bn, "bandera_cuartel").design.forbidden_look) and bn.forbidden.size() >= 9, "Se prohíbe la bandera blanca con círculo o cuadrado rojo central")
+	var gm_ok: bool = str(bn.group_markers.pole.color).to_upper() != "#FFFFFF" and float(bn.group_markers.pole.height_m) <= 4.0 and bn.group_markers.colors.size() == 3
+	check(gm_ok, "Los marcadores de grupo usan colores de la paleta y un asta de 3-4 m, no blanca")
+	check(m.palette.mounts.keys().size() >= 8 and m.palette.riders.has("jinetes") and m.palette.water.has("turbid_near"), "La paleta tiene pelajes de caballos, ropa de jinetes y agua turbia cercana")
+	var ids := {}
+	for it in m.package_adoption.items:
+		ids[str(it.id)] = it
+	check(ids.size() >= 15 and str(ids.bajada.state) == "adaptado" and str(ids.agua_corredor.state) == "no adoptado" and str(ids.banco_expuesto.state) == "no implementado" and str(ids.piezas_18.state) == "adoptado", "package_adoption registra qué se adopta, adapta o descarta del paquete")
+	var vp_ok := true
+	for rp in m.barranca.ramps:
+		vp_ok = vp_ok and rp.visual_path.polyline.size() >= 5 and float(rp.slope_game_pct[0]) >= 25.0
+	check(vp_ok, "Las bajadas llevan camino visual largo sin cambiar la pendiente de juego")
+	var lenta: Dictionary = {}
+	for v in m.time.variants:
+		if str(v.id) == "lenta":
+			lenta = v
+	check(float(lenta.drop_start_s) == 75.0 and float(lenta.drop_end_s) == 470.0 and float(lenta.low_hold_end_s) == 960.0, "La condición «lenta» corre la bajante 15-20 s (no 30-40)")
+	var f := FileAccess.open("res://data/history.json", FileAccess.READ)
+	var hist: Dictionary = JSON.parse_string(f.get_as_text())
+	var htxt := JSON.stringify(hist.scenarios.justine).to_lower()
+	var src := {}
+	for sr in hist.sources:
+		src[str(sr.id)] = sr
+	check(not ("tuya" in htxt) and not ("del usuario" in htxt) and "inaugurada en 1801" not in htxt and "una sola vez" in htxt and "perros" in htxt and "acantilados" in htxt, "history.json: sin notas de producción, sin «inaugurada en 1801», con p. 121, p. 95 y p. 274 de Gillespie")
+	check(src.has("S41") and src.has("S42") and "28 (26 cañones)" in str(src.S9.pages) and "29 (armadores" in str(src.S9.pages), "history.json: fuentes nuevas S41-S42 y páginas de Gillespie corregidas (26 cañones p. 28, armadores p. 29)")
+	var chars := {}
+	for c in m.characters:
+		chars[str(c.id)] = c
+	check(chars.has("concha") and not bool(chars.concha.in_play) and chars.has("obligado") and str(chars.obligado.tag) == "tradicion", "Concha y Obligado figuran como fuentes, no como personajes jugables")
+	var old2: Dictionary = r.snapshot()
+	old2.schema_version = 2
+	var chk2: Dictionary = r.validate_snapshot(old2)
+	check(not chk2.ok and "versión anterior del escenario Justina" in str(chk2.reason), "Un guardado de Justina v2 (preview 3) muestra el aviso claro de versión anterior")
+
+func _banner_by_id(bn: Dictionary, id: String) -> Dictionary:
+	for it in bn.items:
+		if str(it.id) == id:
+			return it
+	return {}
+
 func _test_package_data() -> void:
 	var r := _new_j()
 	var m: Dictionary = r.map_data()
@@ -1438,7 +1510,14 @@ func _test_strategies() -> void:
 			if res.status == "victory":
 				tmin = minf(tmin, res.t)
 				tmax = maxf(tmax, res.t)
-	check(total_wins > 0 and tmin >= 10.0 * 60.0 and tmax <= 18.0 * 60.0 + 0.001, "Las victorias duran entre ~10 y 18 min (%.1f a %.1f min)" % [tmin / 60.0, tmax / 60.0])
+	check(total_wins > 0 and tmin >= 11.0 * 60.0 and tmax <= 18.0 * 60.0 + 0.001, "Las victorias duran entre ~11 y 18 min (%.1f a %.1f min)" % [tmin / 60.0, tmax / 60.0])
+	var vts: Array = []
+	for p in STRATEGY_NAMES:
+		for res in all[p]:
+			if res.status == "victory":
+				vts.append(float(res.t))
+	vts.sort()
+	check(vts.size() > 0 and float(vts[vts.size() / 2]) >= 12.0 * 60.0, "La victoria típica (mediana) dura al menos 12 min (%.1f min)" % [float(vts[vts.size() / 2]) / 60.0])
 	# reconocer pesa: a ciegas se pierde (y por mecanismos deterministas); reconociendo mejora la tasa de exito
 	var blind_names := ["rush_central", "rush_gallop", "blind_north_edge", "south_wrong_crossing"]
 	var blind_wins := 0

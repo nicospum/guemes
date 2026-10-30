@@ -548,3 +548,36 @@ Para `world_view.gd`, `main.gd` y `shaders/` (otras pistas; esta ronda no los to
 * **Para `main.gd` (anotado, no tocado):** reemplazar «Recreación histórica»/«Historia y recreación» (líneas ~405 y ~910) por «Reconstrucción jugable»; el aviso de contraataque no debe dispararse sin grupo abordando; la cámara inicial y el solape de rótulos siguen abiertos.
 * **Guardados.** `JUSTINE_SAVE_VERSION` no se subió: la geometría cambió (costa inclinada) y un guardado anterior cargaría con el terreno nuevo bajo posiciones viejas; es aceptable en alfa, pero conviene subir el schema en la integración.
 
+## 10. Claves nuevas y cambios (Ronda 5, 30-oct-2026, `map_version` 6 sin cambio)
+
+Para `world_view.gd`, `main.gd` y `shaders/` (otras pistas; esta ronda no los tocó). Todo es aditivo salvo los valores indicados.
+
+**Reglas (cambian números).** `ship.fire.damage_min/max` = 8,06 / 12,19 (antes 7,6 / 11,5); `time.variants[lenta].drop_start_s/drop_end_s` = 75 / 470 (antes 90 / 490). Son los únicos cambios de balance (DISENO_JUSTINA 16.3). `game_rules.gd` solo cambia el aviso de guardado: cualquier `schema_version` de Justina menor que 3 (v1 y v2 de la preview 3) responde «Este guardado es de una versión anterior del escenario Justina y no es compatible.».
+
+| Clave | Qué dice | Quién la lee |
+|---|---|---|
+| `landmarks[bateria_abascal].guns` (= 2), `.gabions.max_drawn` (≤ 4), `.tag_parts`, `.marker_suffix` (« (diseño)») | **Dibujar dos piezas**, no cuatro; los gaviones son ornamento de diseño (≤ 4). Corregir el comentario de `_battery_j`: la cifra de piezas es documentada en segunda mano (parte de Liniers) y el emplazamiento es Diseño | world_view, UI |
+| `landmarks[campamento_pueyrredon].tag` = `tradicion`, `.marker_suffix` (« (tradición)»); `puesto_liniers` y `alameda`: sufijo « (diseño)» | Dejan de decir «(hipótesis)» | UI |
+| `landmarks[plaza_toros].in_use_since`, `.gillespie_p121_caveat` | «En uso desde c. 1801» en lugar de «inaugurada en 1801»; p. 121 es retrospectiva | UI (ficha) |
+| `scenery.items[cuartel_*|casa_*|tapia_*].tag` = `diseno` + `tag_parts`; `scenery.blocks[].tag` = `diseno`; `shore_high.tag` = `diseno` | Reconstrucción solo para la existencia/área general | UI (rótulos) |
+| `ship.fire.p94_tension`, `ship.fire.cover_zone` {implemented:false, range_m:420, style, label} | Anillo opcional **más tenue** (punteado, solo con la capa de fuego o el buque seleccionado) con el rótulo «Alcance de la artillería según Gillespie p. 94 (no simulado)». `exposure_at()` no lo usa. El anillo de 265 m debe ser contorno tenue (`palette.map_overlays.fire_arc_fill_alpha_max` 0,12) y no mostrarse en el menú | world_view, main |
+| `barranca.ramps[].visual_path` {polyline, note}, `.slope_game_pct`, `.run_game_m`, `.slope_package_pct`, `.balance_note`; `barranca.gillespie_cliffs_1807` | Dibujar el camino de bajada (tierra, huella marrón; **no** línea rojiblanca) siguiendo `visual_path.polyline` sobre la meseta y la cresta. No altera el terreno de reglas | world_view |
+| `banners.items[red_ensign_mercante].design.canton_layers[]` {id, color, note}, `.canton_note` | Dibujar la Union de 1801: campo azul, aspa blanca de San Andrés, aspa roja de San Patricio (más fina) y cruz de San Jorge (blanca con roja encima). Mantener «hipótesis» | world_view |
+| `banners.items[bandera_cuartel]` (`draw_default` false, `design.forbidden_look`) | Si el cuartel necesita bandera: aspa de Borgoña roja sobre blanco. **Nunca** círculo o cuadrado rojo centrado (parece la japonesa) | world_view |
+| `banners.placements` {buque_popa, plaza_toros, cuartel:null, cuartel_if_needed, …} | Qué bandera va dónde | world_view |
+| `banners.group_markers.colors{guemes,arias,zavala}` {pennant, trim, token}, `.pole` {color #4C372B, height_m 3.5, thickness_m 0.05}, `.flag_size_m` | Reemplaza los palos blancos largos: asta oscura de 3-4 m (1 u = 1 m) y banderín de 1,1 x 0,7 m con colores de la paleta; de lejos, ícono con número en lugar del asta | world_view, main |
+| `palette.mounts` {zaino, alazan, bayo, tordillo, rosillo, tostado, riders_hat[]}, `palette.riders{guemes,jinetes,voluntarios,marineros}` | Mezclar al menos cuatro pelajes por grupo; ropa y cuero de la paleta del paquete | world_view |
+| `palette.water.turbid_near/mid/far`, `.note_round5` | Propuesta para la pista visual: agua cercana a la costa tira al pardo-ocre; sin lámina pálida casi blanca. Las claves anteriores no cambiaron | shaders, world_view |
+| `palette.map_overlays.fire_range_cover_outline/alpha` | Estilo del anillo de 420 m | world_view |
+| `texts.briefing` (corto), `texts.briefing_long`, `texts.sources_detail`, `texts.tradition_context` | `state.briefing` ahora es el párrafo corto; la pestaña «Fuentes» (`main._briefing_dialog`) debe usar `briefing_long`/`sources_detail` y el botón principal del briefing debe ser «Jugar» | main |
+| `texts.result_contrast`, `texts.result_contrast_short` | Mostrar en la pantalla de resultado (victoria o derrota): contraste entre Gillespie (caballería, sin jefe ni orden) y lo jugado (tradición de Güemes) | main |
+| `texts.dry_note`, `tide_gillespie.on_screen_note`, `texts.map_decisions.items` (+ `bajada_suave`, `alcance_fuego`) | Sin frases de producción | main |
+| `tide_gillespie.dogs_p95` | Ambientación de la noche del 11 (Gillespie p. 95) | UI, audio |
+| `forces.groups.zavala.composition[]` (orden de magnitud, sin cifra), `forces.opposing.garrison_retiro_10_ago`, `forces.opposing.spanish_context` | Composiciones documentadas vs reconstruidas para el Despliegue | main |
+| `characters[concha|obligado]` | Fuentes, no personajes jugables (`in_play` false) | UI (ficha de fuentes) |
+| `milestones.items[noche_11|15_ago|sep_1807]`; `uncertainty_labels.items.sin_ver_fuente|dato_de_apoyo` | Cronología ampliada | UI |
+| `package_adoption.items[]` {id, package, game, state, reason} | Tabla de lo adoptado / adaptado / no adoptado / no implementado del paquete; mostrarla en «Fuentes e historia» | main |
+| `play_targets.victory_minutes_observed` = [11,2; 15,3], `.cohort_note` | Valores medidos en la Ronda 5 | tests, doc |
+| `data/history.json`: fuentes `S41`, `S42`; `S9.pages`/`verification` corregidos; hecho «Qué se tomó del paquete…»; `pending_verification` reescrito | Para la pantalla de Fuentes | main |
+
+Sin cambio: `JUSTINE_SAVE_VERSION` (3), ids internos (`arias`, `zavala`, `bateria_abascal`), geometría de reglas. Formato: `justina_map.json` y `history.json` siguen con sangría de 2 espacios y LF.
