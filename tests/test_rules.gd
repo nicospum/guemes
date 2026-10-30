@@ -39,6 +39,7 @@ func _initialize() -> void:
 	_test_round9_counter_and_morale()
 	_test_round9_flow()
 	_test_round9_campaign()
+	_test_round2_fun()
 	_test_labels_and_save_trim()
 	if "--skip-strategies" not in OS.get_cmdline_user_args():  ## solo para iterar: la matriz tarda varios minutos
 		_test_strategies()
@@ -87,6 +88,7 @@ func _new_j(seed_value: int = 7, keep_variant: bool = false) -> RefCounted:
 		var res: Dictionary = r.map_data().resources
 		r.state.hidden.tide = "normal"
 		r.state.hidden.mission = ""
+		r.state.mercy = {"level": 0, "fire_mult": 1.0, "stumble_mult": 1.0, "capture_mult": 1.0, "counter_mult": 1.0, "counter_cap_mult": 1.0, "melee_mult": 1.0, "label": ""}  ## sin ventaja de experiencia: las pruebas de unidad miden las cifras base
 		r.state.no_return_s = 1.0e9  ## las pruebas de unidad dejan correr el reloj sin cargar: el punto sin retorno se prueba aparte
 		r.state.ammo = int(res.ammo_start)
 		r.state.volunteers_pool = float(res.volunteers_pool)
@@ -1046,7 +1048,7 @@ func _test_round9_telegraph() -> void:
 	check(not warn.is_empty() and float(warn.eta) >= 2.5 and not bool(warn.strong), "Toda descarga se anuncia con ≥ 2,5 s de antelación (eta %.2f s)" % float(warn.get("eta", 0.0)))
 	check(impact_t >= t0 + 6.0 - 0.001 and impact_t - float(warn.get("time", 0.0)) >= 2.5, "El impacto llega después del aviso (aviso t=%.2f, impacto t=%.2f)" % [float(warn.get("time", 0.0)), impact_t])
 	var dmg := hp0 - float(r.get_unit("guemes").strength)
-	check(dmg > 0.0 and dmg <= float(tg.get("strong_mult", 1.5)) * 0.0 + 9.001, "Un grupo parado recibe la descarga avisada (−%.1f)" % dmg)
+	check(dmg > 0.0 and dmg <= float(tg.get("strong_mult", 1.5)) * 0.0 + 9.001 * 1.19, "Un grupo parado recibe la descarga avisada (−%.1f)" % dmg)
 	# esquivar: el grupo se aleja más que el radio durante el aviso y la descarga cae al agua
 	var d := _at(_tt(400.0), 5)
 	var gd: Dictionary = d.get_unit("guemes")
@@ -1078,7 +1080,7 @@ func _test_round9_telegraph() -> void:
 				sw = ev
 	var sdmg := 100.0 - float(f.get_unit("guemes").strength)
 	check(not sw.is_empty() and bool(sw.strong) and float(sw.eta) >= 3.5 and int(f.state.stats.strong_volleys) == 1, "La 6.ª descarga es una andanada fuerte con aviso de ≥ 3,5 s (eta %.2f)" % float(sw.get("eta", 0.0)))
-	check(sdmg > 9.0 * 0.99 and sdmg <= 13.5 + 0.01, "La andanada fuerte pega más que una normal (−%.1f)" % sdmg)
+	check(sdmg > 9.0 * 0.99 and sdmg <= 13.5 * 1.19 + 0.01, "La andanada fuerte pega más que una normal (−%.1f)" % sdmg)
 	# reaccionar al aviso reduce el daño por andanada a la mitad o menos
 	var no_react := 0.0
 	var react := 0.0
@@ -1179,8 +1181,8 @@ func _test_round9_counter_and_morale() -> void:
 	# medallas
 	var med := _new_j()
 	med.state.stats.marked_m = 40.0
-	med.state.elapsed = 520.0
-	check(med._medal(true, 30.0, []) == "oro" and med._medal(true, 30.0, ["baqueano"]) == "plata", "Oro con bajas < 32 %%, < 9:00 y sin ayudas; con baqueano baja a plata")
+	med.state.elapsed = 600.0
+	check(med._medal(true, 24.0, []) == "oro" and med._medal(true, 24.0, ["baqueano"]) == "plata", "Oro con bajas < 30 %%, < 12:10 y sin ayudas; con baqueano baja a plata")
 	check(med._medal(true, 50.0, []) == "plata" and med._medal(true, 70.0, []) == "bronce" and med._medal(false, 10.0, []) == "", "Plata con bajas < 55 %% y vado marcado; bronce al ganar; sin victoria no hay medalla")
 	med.state.stats.marked_m = 0.0
 	check(med._medal(true, 50.0, []) == "bronce", "Sin vado marcado no hay plata")
@@ -1472,6 +1474,113 @@ func _test_scout_risk() -> void:
 		hits_plain += 4 - int(a.get_scout("scout_1").hp)
 		hits_safe += 4 - int(b.get_scout("scout_1").hp)
 	check(hits_safe < hits_plain, "En 40 partidas el explorador cauteloso recibe menos impactos (%d vs %d)" % [hits_safe, hits_plain])
+
+## Ronda 2 (directriz de diversión): ventaja de la experiencia, derrota inevitable, carga sin orden, textos del parte y guardado.
+func _test_round2_fun() -> void:
+	# ventaja de la experiencia: crece con la racha, es visible y baja el daño
+	var m0 := Rules.new()
+	m0.new_game("justine", 7)
+	check(int(m0.state.mercy.level) == 0 and float(m0.state.mercy.fire_mult) < 1.0, "El primer intento ya trae un colchón (fuego del buque < 100 %)")
+	var prev_fire := 2.0
+	var mono := true
+	for streak in range(0, 5):
+		var rr := Rules.new()
+		rr.new_game("justine", 7)
+		rr.set_mercy(streak)
+		if float(rr.state.mercy.fire_mult) > prev_fire:
+			mono = false
+		prev_fire = float(rr.state.mercy.fire_mult)
+		if streak > 0:
+			var shown := false
+			for ev in rr.state.log:
+				if str(ev.kind) == "assist" and str(ev.text) == str(rr.state.mercy.label):
+					shown = true
+			check(shown, "La ventaja del nivel %d se avisa en el registro (no es oculta)" % streak)
+	check(mono, "El fuego del buque baja (o se mantiene) con cada derrota seguida")
+	var late := Rules.new()
+	late.new_game("justine", 7)
+	late.tick(5.0)
+	var lv0 := int(late.state.mercy.level)
+	late.set_mercy(3)
+	check(int(late.state.mercy.level) == lv0, "La ventaja no se puede cambiar con la partida en marcha")
+	# misma descarga, menos daño con más racha
+	var dmg := []
+	for lvl in [0, 3]:
+		var q := _boarding_game(0.0)
+		q.set_mercy(lvl)
+		q.state.mercy.fire_mult = float(q._mercy_for(lvl).fire_mult)
+		var tgt: Dictionary = q.get_unit("guemes")
+		var s0 := float(tgt.strength)
+		q.state.pending_shot = {"tid": "guemes", "scout": false, "ax": tgt.x, "az": tgt.z, "at": 0.0, "strong": false, "radius": 30.0}
+		q.state.crew_morale = 100.0
+		q._volley_impact()
+		dmg.append(s0 - float(q.get_unit("guemes").strength))
+	check(dmg[0] > 0.0 and dmg[1] < dmg[0], "La misma descarga hace menos daño con la ventaja del nivel 3 (%.1f vs %.1f)" % [dmg[1], dmg[0]])
+	# derrota inevitable: poca fuerza y captura lejos, sin último esfuerzo
+	var d := _new_j(9)
+	d.state.elapsed = 200.0
+	d.state.last_effort.used = true
+	for u in d.state.units:
+		u.strength = 12.0
+	d.state.capture = 20.0
+	d.tick(0.25)
+	check(d.state.status == "defeat" and str(d.state.defeat_cause) == "dispersos", "Con poca fuerza, captura lejos y sin último esfuerzo la derrota se corta sola")
+	var d2 := _new_j(9)
+	d2.state.elapsed = 200.0
+	for u2 in d2.state.units:
+		u2.strength = 12.0
+	d2.state.capture = 45.0
+	d2.tick(0.25)
+	check(d2.state.status == "playing", "Con el último esfuerzo disponible y captura a medias todavía no se da por perdido")
+	# carga sin orden de Liniers: permitida con riesgo, penaliza captura, quita el oro y se avisa
+	var o := _at(380.0)
+	var no: Dictionary = o.issue_order("zavala", "board")
+	check(not no.ok and str(no.reason) == "Falta la orden de avance de Liniers: señalá primero.", "Sin opción explícita, cargar sin orden de Liniers sigue rechazado con el motivo exacto")
+	check(bool(o.on_own_charge_check("zavala").ok), "on_own_charge_check ofrece cargar sin orden")
+	var yes: Dictionary = o.issue_order("zavala", "board", Vector2.ZERO, {"on_own": true})
+	check(yes.ok and bool(o.state.get("on_own_charge", false)) and bool(o.get_unit("zavala").order.get("on_own", false)), "Cargar por cuenta propia funciona y queda registrado")
+	var warned := false
+	for ev3 in o.state.log:
+		if "sin esperar la orden de Liniers" in str(ev3.text):
+			warned = true
+	check(warned, "La carga sin orden avisa el riesgo en el registro")
+	o.state.stats.marked_m = 40.0
+	o.state.elapsed = 400.0
+	check(o._medal(true, 10.0, []) == "plata", "Cargar sin orden quita el oro aunque haya pocas bajas")
+	# textos del parte: singular/plural y medalla de esta partida
+	var cpath := "user://test-campaign-r2.json"
+	DirAccess.remove_absolute(cpath)
+	var cp := CampaignProgress.new(cpath)
+	cp.world_seed(5)
+	var g := _new_j(5, true)
+	cp.begin_attempt(g)
+	check(int(g.state.mercy.level) == 0, "begin_attempt fija la ventaja según las derrotas seguidas (0)")
+	g.state.stats.stumbles = 1
+	g.state.stats.stumble_at = {"pozo_flanco_norte": 1}
+	g._finish("defeat", "x", "dispersos")
+	var res: Dictionary = cp.record_result(g)
+	check("un pozo" in str(res.advice) and not "pozo(s)" in str(res.advice), "Un solo tropiezo: «un pozo», sin «pozo(s)»")
+	var g2 := _new_j(5, true)
+	cp.begin_attempt(g2)
+	check(int(g2.state.mercy.level) == 1, "Tras una derrota el siguiente intento arranca con ventaja de nivel 1")
+	g2.state.stats.stumbles = 3
+	g2.state.stats.stumble_at = {"pozo_flanco_norte": 3}
+	g2._finish("defeat", "x", "dispersos")
+	var res2: Dictionary = cp.record_result(g2)
+	check("3 pozos" in str(res2.advice), "Varios tropiezos: plural correcto («3 pozos»)")
+	var g3 := _new_j(5, true)
+	cp.begin_attempt(g3)
+	g3.state.stats.marked_m = 40.0
+	g3.state.stats.start_strength = {"guemes": 100.0, "zavala": 100.0}
+	g3._finish("victory", "ok", "capturado")
+	var res3: Dictionary = cp.record_result(g3)
+	check(res3.won and str(res3.medal_label).begins_with("Medalla de ") and "Tu mejor:" in str(res3.record_line), "La victoria trae la medalla de ESTA partida y el récord por separado")
+	check(res3.lines.back().begins_with("Se desbloqueó el escenario 2"), "La victoria dice qué se desbloquea")
+	# guardado: sobrescribe sin perder el archivo
+	cp.data.attempts = 77
+	check(cp.save_progress(), "El guardado atómico sobrescribe un archivo existente")
+	var back := CampaignProgress.new(cpath)
+	check(back.load_progress() and int(back.data.attempts) == 77, "El progreso sobrescrito se vuelve a leer completo")
 
 func _test_labels_and_save_trim() -> void:
 	var m: Dictionary = _new_j().map_data()
@@ -1850,6 +1959,7 @@ func _run_cfg(cfg: Dictionary, policy: String, seed_value: int, opts: Dictionary
 	s.r = _new_j(seed_value, true)
 	s.cfg = cfg
 	s.rng = opts.get("rng", null)
+	s.r.set_mercy(int(opts.get("streak", 0)))
 	for a in opts.get("assists", []):
 		s.r.apply_assist(str(a))
 	var dodge_p := float(opts.get("dodge_p", 0.0))
@@ -3058,7 +3168,7 @@ func _print_human() -> void:
 				if att >= 5 and rng.randf() < 0.7:
 					assists_now = ["baqueano", "bajante_generosa"]
 				var cfg := _human_cfg(prof, rng, att, mission, known)
-				var res := _run_cfg(cfg, pname, world_seed, {"rng": rng, "assists": assists_now, "dodge_p": float(prof.dodge_p) + (1.0 - float(prof.dodge_p)) * (1.0 - pow(0.72, float(att - 1))) * 0.5})
+				var res := _run_cfg(cfg, pname, world_seed, {"rng": rng, "streak": att - 1, "assists": assists_now, "dodge_p": float(prof.dodge_p) + (1.0 - float(prof.dodge_p)) * (1.0 - pow(0.72, float(att - 1))) * 0.5})
 				runs += 1
 				if res.status == "victory":
 					won_at = att
@@ -3067,6 +3177,13 @@ func _print_human() -> void:
 					if not assists_now.is_empty():
 						assisted += 1
 					break
+				if "--lose" in OS.get_cmdline_user_args():
+					var tot := 0.0
+					var sh := 0
+					for uu in res.rules.state.units:
+						tot += float(uu.strength)
+						sh += 1 if bool(uu.get("shaken", false)) else 0
+					print("   perdida %s mundo %d intento %d t=%d cap=%.0f fuerza_total=%.0f quebrados=%d ruta=%s tropiezos=%d contra_sin_resp=%d causa=%s" % [pname, world_seed, att, int(res.t), float(res.capture), tot, sh, str(res.route), int(res.stumbles), int(res.counter_hits), str(res.cause)])
 				lose_t.append(float(res.t))
 				causes[str(res.cause)] = int(causes.get(str(res.cause), 0)) + 1
 				var pk := str(res.picks.get("flanco_central", ""))

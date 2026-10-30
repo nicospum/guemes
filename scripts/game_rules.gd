@@ -23,6 +23,7 @@ const NZ := 131                        ## nodos en z: 0..520 cada CELL
 const BLEND_DEFAULT := 4.0             ## contrato 1.3.1: hazards y casco usan blend=4
 const NAV_LEVEL_QUANT := 0.05          ## contrato 1.5: el nivel se cuantiza a 0,05 m para reconstruir la malla
 const BUCKET := 32.0                   ## indice espacial de sondas
+const ON_OWN_MULT := 0.8  ## captura de quien carga sin orden de Liniers (ronda 2)
 const ROUTE_BANK_MIN_S := 10.0         ## segundos sobre un banco para contarlo en la ruta del parte
 const PROBE_POINT_SPACING := 4.0       ## cada cuantos metros el sondeo agrega un punto
 const MARK_POINT_SPACING := 2.0
@@ -339,7 +340,7 @@ func _setup_justine() -> void:
 		"pending_shot": {}, "volley_n": 0, "events_done": [], "pending_choice": {}, "choices_made": {},
 		"assists": {"baqueano": false, "bajante_generosa": false}, "last_effort": {"used": false, "until": -1.0}, "no_return_warned": 0,
 		"probes": [], "scouts": scouts, "hazards_found": [], "fords_found": [], "defeat_cause": "",
-		"stretch_s": 0.0, "no_return_s": float(m.time.no_return_s), "stats": {"start_strength": start_strength, "shots_taken": 0, "damage_taken": 0.0, "stumbles": 0, "probe_m": 0.0, "marked_m": 0.0,
+		"stretch_s": 0.0, "no_return_s": float(m.time.no_return_s), "mercy": _mercy_for(0), "stats": {"start_strength": start_strength, "shots_taken": 0, "damage_taken": 0.0, "stumbles": 0, "probe_m": 0.0, "marked_m": 0.0,
 			"ammo_used": 0, "balizas_used": 0, "fire_support_uses": 0, "muster_gain": 0.0, "scouts_lost": 0, "horses_lost": 0.0, "melee_loss": 0.0, "drowned": 0.0,
 			"counter_hits": 0, "counter_repelled": 0, "counter_loss": 0.0, "evacuations": 0, "wounded_recovered": 0.0, "halted_by_expiry": 0,
 			"exposure_s": {"central": 0.0, "sur": 0.0, "otra": 0.0}, "bank_s": {"central": 0.0, "sur": 0.0},
@@ -1216,7 +1217,7 @@ func _check_boarding_action(u: Dictionary, action: String) -> Dictionary:
 	return {"ok": true, "reason": "Disponible: recupera %.0f de fuerza y el grupo no suma captura %d s." % [float(u.wounded) * float(cap.evacuate_recover), roundi(float(cap.evacuate_s))]}
 
 ## Condiciones de una orden de grupo que no dependen de la ruta. {"ok", "reason"}.
-func _check_group_action(u: Dictionary, action: String) -> Dictionary:
+func _check_group_action(u: Dictionary, action: String, opts: Dictionary = {}) -> Dictionary:
 	if state.get("status", "") != "playing":
 		return _no("La partida ya terminó.")
 	if float(u.strength) <= float(map_data().outcome.routed_strength_threshold):
@@ -1235,7 +1236,7 @@ func _check_group_action(u: Dictionary, action: String) -> Dictionary:
 		"move":
 			pass
 		"board":
-			if not bool(state.advance_authorized):
+			if not bool(state.advance_authorized) and not bool(opts.get("on_own", false)):
 				return _no("Falta la orden de avance de Liniers: señalá primero.")
 		"rally":
 			if not _on_dry_beach(here):
@@ -1285,7 +1286,7 @@ func issue_order(group_id: String, action: String, target: Vector2 = Vector2.ZER
 		return cancel_order(group_id)
 	if action not in JUSTINE_ORDER_ACTIONS:
 		return _no("Orden táctica desconocida.")
-	var chk := _check_group_action(u, action)
+	var chk := _check_group_action(u, action, opts)
 	if not chk.ok:
 		return chk
 	if action == "repel":
@@ -1346,6 +1347,12 @@ func issue_order(group_id: String, action: String, target: Vector2 = Vector2.ZER
 	u.pace = pace
 	u.path = (plan.path as Array).duplicate(true)
 	u.order = {"action": action, "x": dest.x, "z": dest.y}
+	if action == "board" and not bool(state.advance_authorized):
+		## Carga por cuenta propia (ronda 2): se puede cargar sin la orden de Liniers, con riesgo declarado.
+		u.order.on_own = true
+		if not bool(state.get("on_own_charge", false)):
+			state.on_own_charge = true
+			_event("%s carga sin esperar la orden de Liniers: la captura va un %d %% más lenta mientras no la conceda, y no hay oro." % [u.name, roundi((1.0 - ON_OWN_MULT) * 100.0)], "warning", {"unit": u.id})
 	u.stage = "moving"
 	_record_order(group_id, action, {"x": dest.x, "z": dest.y})
 	if u.path.is_empty():
@@ -1867,7 +1874,7 @@ func _justine_step(dt: float) -> void:
 		var halted := 0
 		for hu in state.units:
 			## La orden de avance vale hasta llegar: un grupo que aun marcha hacia el buque se detiene cuando vence (los que ya desmontaron siguen).
-			if hu.stage in ["moving", "blocked", "stumbling"] and str(hu.order.get("action", "")) == "board":
+			if hu.stage in ["moving", "blocked", "stumbling"] and str(hu.order.get("action", "")) == "board" and not bool(hu.order.get("on_own", false)):
 				var hn := str(hu.name)
 				_clear_motion(hu)
 				hu.order = {}
@@ -1879,6 +1886,7 @@ func _justine_step(dt: float) -> void:
 	_no_return_warnings(elapsed)
 	var board_power := 0.0
 	var alive := 0
+	var alive_strength := 0.0
 	var fighters := 0
 	var routed_hp: float = float(m.outcome.routed_strength_threshold)
 	var shk: Dictionary = m.outcome.shaken
@@ -1894,6 +1902,7 @@ func _justine_step(dt: float) -> void:
 			u.stumble_remaining = 0.0
 			continue
 		alive += 1
+		alive_strength += float(u.strength)
 		var was_shaken: bool = bool(u.get("shaken", false))
 		if not was_shaken and float(u.strength) <= float(shk.threshold):
 			u.shaken = true
@@ -1919,7 +1928,7 @@ func _justine_step(dt: float) -> void:
 	_account_exposure(dt)
 	if board_power > 0.0:
 		var cap: Dictionary = m.ship.capture
-		state.capture = minf(100.0, float(state.capture) + board_power * float(cap.rate_per_power_per_s) * dt)
+		state.capture = minf(100.0, float(state.capture) + board_power * float(cap.rate_per_power_per_s) * _mercy("capture_mult") * dt)
 		state.crew_morale = maxf(0.0, float(state.crew_morale) - board_power * float(cap.morale_loss_per_power_per_s) * dt)
 	_step_counter()
 	_volley_step(elapsed)
@@ -1938,6 +1947,8 @@ func _justine_step(dt: float) -> void:
 				_finish("defeat", "Todos los grupos quedaron quebrados y el último esfuerzo no se usó a tiempo.", "dispersos")
 		else:
 			_finish("defeat", "Las agrupaciones se dispersaron antes de asegurar la captura.", "dispersos")
+	elif _is_doomed(alive_strength):
+		_finish("defeat", "Quedaron muy pocos efectivos en pie para completar la toma: no hay forma de capturar el buque.", "dispersos")
 	elif elapsed >= float(state.deadline):
 		_finish("defeat", "El plazo se agotó sin asegurar el buque.", "plazo")
 	elif elapsed >= float(state.get("no_return_s", m.time.no_return_s)) and not _has_advanced():
@@ -1947,6 +1958,18 @@ func _justine_step(dt: float) -> void:
 	if state.status == "playing" and elapsed >= float(state.deadline):
 		_finish("defeat", "El plazo se agotó sin asegurar el buque.", "plazo")
 	state.state_version = int(state.state_version) + 1
+
+## Derrota inevitable (ronda 2): poca fuerza total, captura lejos y sin último esfuerzo posible. Evita que una partida perdida se arrastre 10 minutos más.
+func _is_doomed(alive_strength: float) -> bool:
+	var cfg: Dictionary = map_data().outcome.get("doomed", {})
+	if cfg.is_empty() or float(state.elapsed) < 60.0:
+		return false
+	if alive_strength >= float(cfg.total_strength_below) or float(state.capture) >= float(cfg.capture_below_pct):
+		return false
+	var lcfg: Dictionary = map_data().outcome.last_effort
+	if not bool(state.last_effort.used) and float(state.volunteers_pool) >= float(lcfg.pool_cost) and float(state.capture) >= float(lcfg.min_capture_pct):
+		return false
+	return true
 
 ## Premio de captura por ruta (C9): central ×1,3, mixta ×1,1, sur ×1,0 (ver ship.capture.route_premium).
 func _route_premium(u: Dictionary) -> float:
@@ -1959,6 +1982,15 @@ func _route_premium(u: Dictionary) -> float:
 	if c:
 		return float(prem.get("central", 1.0))
 	return float(prem.get("sur", 1.0))
+
+## ¿Puede el grupo cargar sin la orden de Liniers? (la interfaz ofrece «Cargar sin orden» con el riesgo explícito). Mismo contrato que order_availability.
+func on_own_charge_check(group_id: String) -> Dictionary:
+	var u := get_unit(group_id)
+	if u.is_empty():
+		return _no("Grupo desconocido.")
+	if bool(state.advance_authorized):
+		return _no("Ya hay orden de Liniers: cargá normalmente.")
+	return _check_group_action(u, "board", {"on_own": true})
 
 func _has_advanced() -> bool:
 	if float(state.stats.boarded_at) >= 0.0:
@@ -2029,6 +2061,27 @@ func resolve_choice(option_id: String, by_timeout: bool = false) -> Dictionary:
 			_event("%s%s: %s." % ["Sin respuesta: " if by_timeout else "Elegiste ", str(o.label), msg], "choice_done", {"field_event": str(pc.id), "option": option_id})
 			return {"ok": true, "reason": msg}
 	return _no("Opción desconocida.")
+
+## Ventaja de la experiencia (ronda 2): multiplicadores por racha de derrotas. Nunca oculta: el parte y un aviso del segundo 0 la muestran.
+func _mercy_for(streak: int) -> Dictionary:
+	var lv: Array = map_data().get("campaign", {}).get("mercy", {}).get("levels", [])
+	if lv.is_empty():
+		return {"level": 0, "fire_mult": 1.0, "stumble_mult": 1.0, "capture_mult": 1.0, "counter_mult": 1.0, "counter_cap_mult": 1.0, "melee_mult": 1.0, "label": ""}
+	var d: Dictionary = (lv[clampi(streak, 0, lv.size() - 1)] as Dictionary).duplicate(true)
+	d.level = maxi(0, streak)
+	return d
+
+func _mercy(key: String) -> float:
+	return float(state.get("mercy", {}).get(key, 1.0))
+
+## Fija el nivel de ventaja según las derrotas seguidas del perfil. Solo antes de la primera orden (lo llama CampaignProgress.begin_attempt).
+func set_mercy(streak: int) -> Dictionary:
+	if state.get("scenario", "") != "justine" or float(state.get("elapsed", 0.0)) > 0.0:
+		return state.get("mercy", {})
+	state.mercy = _mercy_for(streak)
+	if streak > 0 and str(state.mercy.get("label", "")) != "":
+		_event(str(state.mercy.label), "assist", {"assist": "experiencia", "level": streak})
+	return state.mercy
 
 ## Ayudas visibles de la escalera anti-frustración (campaign.assist_after_defeats). Se piden al inicio; quedan marcadas en el parte y quitan el oro.
 func apply_assist(kind: String) -> Dictionary:
@@ -2125,6 +2178,9 @@ func _step_counter() -> void:
 		return
 	if elapsed < float(c.until):
 		return
+	if not bool(c.answered) and int(c.count) < int(state.get("mercy", {}).get("auto_repel_n", 0)):
+		c.answered = true  ## ventaja de la experiencia: el sargento de la dotación rechaza solo los primeros contraataques (sin costo de munición)
+		_event("El sargento cierra filas y rechaza solo el contraataque (ayuda de los primeros contraataques; después lo tenés que ordenar vos).", "counter", {"tag": str(cfg.tag), "auto": true})
 	var mult := float(cfg.repelled_mult) if bool(c.answered) else 1.0
 	c.active = false
 	c.count = int(c.count) + 1
@@ -2133,7 +2189,7 @@ func _step_counter() -> void:
 	var live := _boarders()
 	if live.is_empty():
 		return
-	var dmg := float(cfg.damage) * mult
+	var dmg := float(cfg.damage) * mult * _mercy("counter_mult")
 	var share := dmg / float(live.size())
 	var share_w := float(map_data().ship.capture.wounded_share)
 	for u in live:
@@ -2141,7 +2197,7 @@ func _step_counter() -> void:
 		u.strength = float(u.strength) - lost
 		u.wounded = minf(100.0, float(u.wounded) + lost * share_w)
 		state.stats.counter_loss = float(state.stats.counter_loss) + lost
-	var cap_loss := float(cfg.capture_loss_pct) * mult
+	var cap_loss := float(cfg.capture_loss_pct) * mult * _mercy("counter_cap_mult")
 	state.capture = maxf(0.0, float(state.capture) - cap_loss)
 	if not bool(c.answered) and bool(cfg.get("shake_on_unanswered", false)):
 		var weakest: Dictionary = live[0]
@@ -2242,7 +2298,8 @@ func _step_group(u: Dictionary, dt: float) -> float:
 					u.wounded = 0.0
 					_event("%s evacúa a sus heridos: recupera %.0f de fuerza." % [u.name, back], "boarding", {"unit": u.id, "pos": {"x": u.x, "z": u.z}})
 				return 0.0
-			return (float(u.strength) / 100.0) * maxf(0.4, 1.0 - float(u.fatigue) * 0.004)
+			var own_mult := ON_OWN_MULT if bool(state.get("on_own_charge", false)) and not bool(state.advance_authorized) else 1.0
+			return (float(u.strength) / 100.0) * maxf(0.4, 1.0 - float(u.fatigue) * 0.004) * own_mult
 		"rally":
 			if _on_dry_beach(here):
 				var rally: Dictionary = map_data().actions.rally
@@ -2254,7 +2311,7 @@ func _step_group(u: Dictionary, dt: float) -> float:
 func _boarding_hazards(u: Dictionary, dt: float) -> void:
 	var cap: Dictionary = map_data().ship.capture
 	if u.stage == "boarding":
-		var melee := float(cap.get("melee_loss_per_s", 0.0)) * (float(state.crew_morale) / 100.0) * dt
+		var melee := float(cap.get("melee_loss_per_s", 0.0)) * (float(state.crew_morale) / 100.0) * _mercy("melee_mult") * dt
 		u.strength = maxf(0.0, float(u.strength) - melee)
 		u.wounded = minf(100.0, float(u.wounded) + melee * float(cap.wounded_share))
 		state.stats.melee_loss = float(state.stats.melee_loss) + melee
@@ -2485,11 +2542,12 @@ func _stumble(u: Dictionary, cur: Vector2, nxt: Vector2) -> void:
 		hz_cfg = map_data().hazards[0].stumble
 	u.path = []
 	u.stage = "stumbling"
-	u.stumble_remaining = float(hz_cfg.stop_s)
-	u.fatigue = minf(100.0, float(u.fatigue) + float(hz_cfg.fatigue))
-	u.strength = maxf(0.0, float(u.strength) - float(hz_cfg.strength_loss))
+	var smult := _mercy("stumble_mult")
+	u.stumble_remaining = float(hz_cfg.stop_s) * lerpf(1.0, smult, 0.5)
+	u.fatigue = minf(100.0, float(u.fatigue) + float(hz_cfg.fatigue) * smult)
+	u.strength = maxf(0.0, float(u.strength) - float(hz_cfg.strength_loss) * smult)
 	state.stats.stumbles = int(state.stats.stumbles) + 1
-	state.stats.horses_lost = float(state.stats.horses_lost) + float(hz_cfg.strength_loss)
+	state.stats.horses_lost = float(state.stats.horses_lost) + float(hz_cfg.strength_loss) * smult
 	state.stats.stumble_at[hz_id] = int(state.stats.stumble_at.get(hz_id, 0)) + 1
 	var dir := (nxt - cur).normalized() if nxt.distance_to(cur) > 0.001 else Vector2(1, 0)
 	var lane_len := float(map_data().knowledge.probe_lane_width_m)
@@ -2780,6 +2838,9 @@ func _volley_impact() -> void:
 		var damage := lerpf(float(fire.damage_min), float(fire.damage_max), _random()) * expo * maxf(float(fire.morale_floor), float(state.crew_morale) / 100.0)
 		if strong:
 			damage *= float(tg.strong_mult)
+		damage *= _mercy("fire_mult")
+		if not (pick.stage in ["boarding", "dismounting"]):
+			damage *= float(fire.get("route_mult", {}).get("sur" if float(pick.z) >= SOUTH_ZONE_Z else "central", 1.0))  ## el centro está más expuesto que el sur (ronda 2)
 		pick.strength = maxf(0.0, float(pick.strength) - damage)
 		pick.fatigue = minf(100.0, float(pick.fatigue) + damage * 0.2)
 		state.stats.damage_taken = float(state.stats.damage_taken) + damage
@@ -2813,7 +2874,7 @@ func _medal(won: bool, loss_pct: float, assists_used: Array) -> String:
 		return ""
 	var cfg: Dictionary = map_data().outcome.medals
 	var marked_ok: bool = float(state.stats.marked_m) >= float(cfg.silver.ford_marked_min_m)
-	if loss_pct < float(cfg.gold.loss_pct_below) and float(state.elapsed) < float(cfg.gold.time_below_s) and assists_used.is_empty():
+	if loss_pct < float(cfg.gold.loss_pct_below) and float(state.elapsed) < float(cfg.gold.time_below_s) and assists_used.is_empty() and not bool(state.get("on_own_charge", false)):
 		return "oro"
 	if loss_pct < float(cfg.silver.loss_pct_below) and marked_ok:
 		return "plata"
@@ -2873,7 +2934,7 @@ func campaign_report() -> Dictionary:
 			assists_used.append(str(ak))
 	var medal := _medal(state.status == "victory", loss_total_pct, assists_used)
 	return {"status": state.status, "reason": state.reason, "elapsed": float(state.elapsed), "outcome_title": title,
-		"medal": medal, "assists_used": assists_used, "mission_id": str(mission().get("id", "")), "mission_label": str(mission().get("label", "")),
+		"medal": medal, "assists_used": assists_used, "on_own_charge": bool(state.get("on_own_charge", false)), "mercy_level": int(state.get("mercy", {}).get("level", 0)), "mercy_label": str(state.get("mercy", {}).get("label", "")), "mission_id": str(mission().get("id", "")), "mission_label": str(mission().get("label", "")),
 		"last_effort_used": bool(state.get("last_effort", {}).get("used", false)), "shots_dodged": int(st.get("shots_dodged", 0)), "shaken_events": int(st.get("shaken_events", 0)),
 		"powder_lost": int(st.get("powder_lost", 0)), "deadline_s": float(state.get("deadline", 0.0)), "capture_pct": float(state.get("capture", 0.0)),
 		"groups": groups, "route": route, "route_notes": notes, "casualties": casualties, "loss_total_pct": loss_total_pct,

@@ -59,9 +59,19 @@ func save_progress() -> bool:
 	var dir := DirAccess.open(path.get_base_dir())
 	if dir == null:
 		return false
+	if dir.rename(tmp.get_file(), path.get_file()) == OK:
+		return true
+	## En algunas plataformas rename no pisa un archivo existente: respaldo, reemplazo y limpieza (nunca queda sin progreso).
 	if FileAccess.file_exists(path):
-		dir.remove(path.get_file())
-	return dir.rename(tmp.get_file(), path.get_file()) == OK
+		var bak := path.get_file() + ".bak"
+		dir.rename(path.get_file(), bak)
+		var ok := dir.rename(tmp.get_file(), path.get_file()) == OK
+		if ok:
+			dir.remove(bak)
+		else:
+			dir.rename(bak, path.get_file())
+		return ok
+	return false
 
 func reset_all() -> void:
 	data = fresh()
@@ -136,6 +146,7 @@ static func _pick_seed(candidate: int) -> int:
 func begin_attempt(rules: RefCounted) -> void:
 	data.attempts = int(data.attempts) + 1
 	rules.set_diary_marks(diary_marks())
+	rules.set_mercy(int(data.defeats_in_row))  ## ventaja de la experiencia: visible en el aviso del segundo 0 y en el parte
 	save_progress()
 
 ## Ayudas que se OFRECEN hoy (nunca se imponen). Cada una exige una racha de derrotas (map_data().campaign.assist_after_defeats).
@@ -179,7 +190,10 @@ func record_result(rules: RefCounted) -> Dictionary:
 		if int(MEDAL_RANK[str(rep.medal)]) > int(MEDAL_RANK[str(data.best_medal)]):
 			data.best_medal = str(rep.medal)
 			out.new_best_medal = true
-		out.lines = _victory_lines(rep)
+		out.medal_label = medal_label(str(rep.medal))
+		out.best_medal = str(data.best_medal)
+		out.record_line = "Esta vez: %s · Tu mejor: %s" % [str(rep.medal).capitalize(), str(data.best_medal).capitalize()]
+		out.lines = _victory_lines(rules, rep, bool(out.unlocked_north))
 		data.world_seed = 0  ## después de ganar, «Rejugar» sortea un mundo nuevo para mejorar la medalla
 		data.diary = []
 	else:
@@ -201,19 +215,47 @@ func _facts(rep: Dictionary) -> Dictionary:
 static func _mmss(t: float) -> String:
 	return "%d:%02d" % [int(t) / 60, int(t) % 60]
 
-func _victory_lines(rep: Dictionary) -> Array:
-	var lines: Array = ["Capturaste el buque en %s con %d %% de bajas." % [_mmss(float(rep.elapsed)), roundi(float(rep.loss_total_pct))]]
+func _victory_lines(rules: RefCounted, rep: Dictionary, was_first_win: bool) -> Array:
+	var med: Dictionary = rules.map_data().outcome.medals
+	var loss := roundi(float(rep.loss_total_pct))
+	var lines: Array = ["Capturaste el buque en %s con %d %% de bajas." % [_mmss(float(rep.elapsed)), loss]]
+	var marked_ok: bool = float(rules.state.stats.marked_m) >= float(med.silver.ford_marked_min_m)
+	var assisted: bool = not (rep.assists_used as Array).is_empty()
 	match str(rep.medal):
 		"oro":
-			lines.append("Oro: sin ayudas, pocas bajas y rápido.")
+			lines.append("Oro: sin ayudas, pocas bajas y rápido. No se puede mejorar.")
 		"plata":
-			lines.append("Plata: bajas bajo control y vado marcado. Para el oro: sin ayudas, bajas < 32 % y antes de las 9:00.")
+			lines.append("Plata. Para el oro te falta: %s." % ", ".join(_missing_gold(med, rep, assisted, bool(rep.get("on_own_charge", false)))))
 		_:
-			lines.append("Bronce: lo lograste. Para la plata: marcá el vado y mantené las bajas bajo 55 %.")
-	if not (rep.assists_used as Array).is_empty():
-		lines.append("Usaste ayuda (%s): la medalla de oro queda fuera." % ", ".join(rep.assists_used))
-	lines.append("Se desbloqueó: Sostener el Norte.")
+			var miss: Array = []
+			if not marked_ok:
+				miss.append("marcar el vado con balizas")
+			if float(rep.loss_total_pct) >= float(med.silver.loss_pct_below):
+				miss.append("terminar con menos de %d %% de bajas" % roundi(float(med.silver.loss_pct_below)))
+			lines.append("Bronce. Para la plata te falta: %s." % ", ".join(miss))
+	if assisted:
+		lines.append("Usaste ayuda (%s): el oro queda fuera en esta partida." % ", ".join(rep.assists_used))
+	if int(rep.get("mercy_level", 0)) > 0:
+		lines.append("Ganaste con la ventaja de la experiencia (nivel %d)." % int(rep.mercy_level))
+	lines.append("Se desbloqueó el escenario 2: Sostener el Norte." if was_first_win else "Sostener el Norte sigue abierto.")
 	return lines
+
+func _missing_gold(med: Dictionary, rep: Dictionary, assisted: bool, rules_on_own: bool = false) -> Array:
+	var miss: Array = []
+	if float(rep.loss_total_pct) >= float(med.gold.loss_pct_below):
+		miss.append("bajas menores a %d %%" % roundi(float(med.gold.loss_pct_below)))
+	if float(rep.elapsed) >= float(med.gold.time_below_s):
+		miss.append("capturar antes de las %s" % _mmss(float(med.gold.time_below_s)))
+	if assisted:
+		miss.append("jugar sin ayudas")
+	if bool(rules_on_own):
+		miss.append("esperar la orden de Liniers")
+	if miss.is_empty():
+		miss.append("repetir con la misma mano")
+	return miss
+
+static func medal_label(medal: String) -> String:
+	return {"oro": "Medalla de oro", "plata": "Medalla de plata", "bronce": "Medalla de bronce"}.get(medal, "")
 
 ## Causa y consejo de la derrota en lenguaje de jugador (≤ 140 caracteres la causa; sin jerga). Todas las causas del JSON tienen texto.
 func defeat_text(rules: RefCounted, rep: Dictionary) -> Dictionary:
@@ -223,9 +265,9 @@ func defeat_text(rules: RefCounted, rep: Dictionary) -> Dictionary:
 	var advice := str(base.advice)
 	var extra := ""
 	if int(rep.stumbles) > 0:
-		extra = str(cfg.stumble_advice).replace("{n}", str(int(rep.stumbles)))
+		extra = str(cfg.get("stumble_advice_one", cfg.stumble_advice)) if int(rep.stumbles) == 1 else str(cfg.stumble_advice).replace("{n}", str(int(rep.stumbles)))
 	elif int(rep.counter_hits) > 0:
-		extra = str(cfg.counter_advice).replace("{n}", str(int(rep.counter_hits)))
+		extra = str(cfg.get("counter_advice_one", cfg.counter_advice)) if int(rep.counter_hits) == 1 else str(cfg.counter_advice).replace("{n}", str(int(rep.counter_hits)))
 	elif int(rules.state.ammo) <= 0 and int(rep.ammo_used) > 0:
 		extra = str(cfg.ammo_advice)
 	if extra != "":
