@@ -484,3 +484,30 @@ Todas son **aditivas**: Reglas, Vista y UI siguen funcionando si las ignoran. La
 - UI: mostrar «Güemes y los jinetes (tradición)» en lugar de «Vanguardia» (`main.gd` l. 1166 abrevia por id: usar `forces.groups[id].label`); la acción «Volver» desconocida se detecta en el QA de UI, no es de datos.
 - Las posiciones de los hitos cambiaron: `plaza_toros` (112,225) r45; `bateria_abascal` (148,176); `campamento_pueyrredon` (148,292); `puesto_liniers` (140,345); `signal_liniers` y `muster` usan esos hitos (`muster.radius_m` 45).
 
+## 7. Claves nuevas del JSON (Ronda 2, 30-oct-2026, `map_version` 5)
+
+Aditivas, como las de la sección 6: Reglas y tests solo cambiaron en `ship.fire.damage_min/max` (7,6 / 11,5) y `play_targets.victory_loss.marginal_line_max_pct`. **Los consumidores son las pistas Vista (`world_view.gd`) y UI (`main.gd`); esta ronda no las tocó.** Leer con `rules.map_data().get("clave", ...)`. Un guardado con `map_version` 4 se rechaza con diálogo (como en la Ronda 1).
+
+| Clave | Contenido | Quién la consume |
+|---|---|---|
+| `forces.groups[id].short_label` y `groups[].short_label` | Rótulo corto del HUD: «Vanguardia (trad.)», «Voluntarios», «Reserva». **UI**: usar esto en vez del mapeo por id de `_short_name` (hoy muestra «Vanguardia» sin la marca) | UI |
+| `forces.groups.guemes.tradition_mark` / `groups[].tradition_mark` (`true`), `forces.groups.guemes.tradition_versions` | Pintar el glifo de tradición ◆ junto al rótulo y en el mapa; `tradition_versions` trae las dos versiones (Obligado: portador de la orden; notas posteriores: jefe) y lo documentado | UI, Vista |
+| `forces.groups.guemes.label` / `groups[0].name` | Ahora «Vanguardia de jinetes · Güemes (tradición)» | UI |
+| `forces.opposing.ship_crew.tag` = `reconstruccion` + `tag_parts`, `tag_note` | El conjunto ya no se rotula «documentado» | UI |
+| `landmarks[].marker_style: "hipotesis"`, `marker_suffix: " (hipótesis)"`, `marker_note` | En `bateria_abascal`, `campamento_pueyrredon`, `puesto_liniers`, `alameda`: dibujar con trazo punteado y agregar el sufijo al rótulo | Vista, UI |
+| `landmarks[justina].draw_uncertainty_zone` (true), `uncertainty_style{fill_alpha, edge, color, label}`, `uncertainty_radius_m` 120 | Mancha tenue punteada de ≈ 120 m centrada en (580, 262); el pin del casco y el punto de abordaje (548, 262) siguen siendo exactos por reglas | Vista |
+| `routes{items[]}` | `id`, `label`, `tag`, `kind`, `color`, `polyline` [x, z]. Overlay del mapa y del minimapa: `ruta_central`, `ruta_sur`, `orden_liniers_obligado` (tradición). **No son reglas** | Vista, UI |
+| `distances{items[]}` | `id`, `from`, `to`, `m`, `tag`, `note` (pie de barranca-buque 387 m, circo-buque 469 m, etc.) para textos y tutorial | UI |
+| `label_anchors{items[]}` | Anclas de «Pie de la barranca», «Cresta», «Línea de agua» (sobre `barranca.toe`, `barranca.crest`, `shore_high.polyline`) con `height_m` y `hide_beyond_m`; «Escala» con `screen_corner: abajo_derecha` (esquina fija del HUD, no rótulo 3D) | Vista, UI |
+| `palette.house{wall, wall_variants[], roof_teja[], roof_paja, tapia}` | Casas en lino crudo y tejas apagadas, con variación por casa | Vista |
+| `scenery.house_style`, `scenery.blocks[]`, `scenery.quinta_clearings[]` | Manzanas (`x,z,w,d,houses,seed`) y claros de quinta: agrupar casas y dejar huecos; `scenery.items` no cambia | Vista |
+| `tide_gillespie{wind_link, left_dry, range_feet, quote_short, game_choice}`, `owners_and_trade{owners, reason_in_river}` | Cita corregida de Gillespie (pp. 35-36; p. 29, p. 94) para el parte y las fichas | UI |
+| `tide.alternative_variant.evaluated_round`, `evaluation`; `hull.draft_note`, `plausibility_tag` | Documentación de la variante «banco expuesto» y del calado | documentación |
+| `context.round2_note` | Razón para mantener 900 x 520 | documentación |
+| `historical_figures_roles{items[]}` | Rol por afirmación (Liniers, Pueyrredón, Gillespie, Güemes, capitán, marineros) con etiqueta | UI (fichas) |
+| `play_targets.victory_loss.marginal_line_max_pct` (92) | Tope de bajas para líneas que ganan menos de la mitad (tests) | tests |
+| `data/history.json`: hecho «Hitos del mapa que son hipótesis», fuentes S29-S39, `S9.pages` | Pantalla de fuentes / parte | UI |
+
+**Para otras pistas (pendiente, no hecho aquí):**
+- Vista: dibujar `routes`, la zona de incertidumbre y los hitos `hipotesis`; anclar «Pie de la barranca» según `label_anchors`; aplicar `palette.house` y `scenery.blocks`; comprobar el bajo bajo el casco desde el inicio (hallazgo ALTA de la revisión); el comentario de `world_view.gd` ~l. 1378 que dice «13 por banda... documentado» debe decir diseño.
+- UI: usar `short_label` y `tradition_mark`; mover «Escala»; explicar en el mensaje de destino rechazado qué hace falta (reconocer / probar desde la playa).

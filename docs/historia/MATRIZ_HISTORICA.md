@@ -86,6 +86,28 @@ Qué se tomó del paquete P1 (ver `FUENTES.md`, S13 a S28), qué se adaptó y qu
 
 **Revisión de etiquetas que cambia esta sección:** «La Plaza de Toros» deja de ser *Documentado* en bloque (existencia sí; posición y medidas no); «La Alameda» pasa de Reconstrucción a **Diseño**; «Río de la Plata» queda como rótulo de orientación; «La caballería de Pueyrredón» pasa de Documentado a **Reconstrucción**.
 
+## D. Ronda 2 (30 de octubre de 2026): correcciones y qué se tomó de dónde
+
+Correcciones a la matriz anterior tras reverificar Gillespie en el OCR local (`FUENTES.md`, «Cotejo propio Ronda 2»). Las filas de la sección C que digan lo contrario quedan reemplazadas por estas.
+
+| Afirmación | Fuente y localización | Etiqueta en el juego | Cambio / por qué |
+| --- | --- | --- | --- |
+| La bajada del río se liga a la brisa, y un buque de fuerza quedó «left dry» y fue abordado por caballería | Gillespie 1818, pp. 35-36 (S9) | **Documentado** (el relato); lo concreto del 12/8/1806 (viento, cota, hora) = sin datos | **Corrige** la Ronda 1 («no atribuye la causa al viento»). `time.note`, `tide_gillespie`, hecho «Una oportunidad del río». |
+| El juego muestra un banco «parcialmente inundado», no «en seco» | Paquete D4/J; elección de diseño | **Diseño** | Se declara como elección (vado jugable, riesgo de ahogo). Variante «banco expuesto» evaluada y no implementada (DISENO_JUSTINA 2.4). |
+| Armadores Princeps y Saunders, de Londres | Gillespie p. 29 (S9) | **Documentado** | Antes citado «según el paquete». `owners_and_trade`. |
+| Se había acercado a la ciudad para comerciar | Gillespie p. 94 (S9) | **Documentado** | Hecho que no se usaba; entra en `owners_and_trade` y en la ficha del buque. |
+| 26 cañones en total; 13 por banda | Gillespie pp. 29 y 94; reparto = diseño | 26 **Documentado**, 13/13 **Diseño** | Un comentario de `world_view.gd` lo marcaba como documentado (pista Vista). El paquete pide no dibujar 13 idénticos por banda. |
+| Dotación: propia + cien marineros de la escuadra | Gillespie p. 94 | Conjunto **Reconstrucción** (partes: refuerzo documentado; total y capitán, diseño) | `forces.opposing.ship_crew` baja de «documentado» a «reconstruccion» con `tag_parts`. |
+| Güemes: portador de la orden (Obligado 1920) / jefe de jinetes (notas posteriores) | Obligado vía Luis Güemes (S13); Ideario (S1) | **Tradición** (dos versiones), cadete de Infantería = documentado | Redacción unificada (`texts.briefing`, `source_tags.tradicion`, `forces.groups.guemes.tradition_versions`); rótulo corto «Vanguardia (trad.)». |
+| Liniers concede la orden de avance | Obligado 1920 (secundaria) | **Diseño** (regla basada en una fuente secundaria) | Se declara; no es un hecho documentado. |
+| Piezas de a 18 del Retiro / campamento de Pueyrredón / puesto de Liniers / camino sobre la barranca | Parte de Liniers del 11/8 solo para «dos piezas de a 18 de la Dolores»; el resto, ninguna | **Hipótesis** de mapa (`marker_style: hipotesis`) | Se dibujan punteados con sufijo «(hipótesis)». |
+| Vado del buque a 1,0 m | Paquete D4 propone 0-0,6 m | **Diseño** (desvío documentado) | DISENO_JUSTINA 2.4. |
+| Zona de incertidumbre del varado (~120 m) | Paquete B/C («zona, no pin») | **Diseño** | `landmarks.justina.draw_uncertainty_zone`: mancha tenue, no un pin exacto. |
+| Rutas central, sur y «mensajero por la Alameda» | Paquete D2 («propuestas»), Obligado | **Diseño** / **Tradición** (la del mensajero) | Bloque `routes`; overlay, no reglas. |
+| Casas: lino crudo y tejas apagadas, manzanas con claros de quinta | Vidal (S24), paleta del paquete (04) | **Reconstrucción/Diseño** | `palette.house`, `scenery.house_style/blocks/quinta_clearings`. |
+
+**Pendientes (actualizados):** escaneo de Gillespie pp. 29, 35-36, 94; viento/nivel del 12/8/1806; plano de la ribera de 1806; nómina de jinetes; originales de Obligado, Concha, Liniers; AGN IX-11-5-1 e IX-26-7-7; TNA PC 1/3823; bandera de la presa; decidir con el usuario «banco expuesto» y la posición B del buque.
+
 ## Límites y compromisos de presentación
 
 - Los desenlaces alternativos son resultados de una partida, no nuevos hechos históricos.

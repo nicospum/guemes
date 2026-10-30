@@ -123,6 +123,15 @@ El Plata es **turbio**: el jugador **no ve el fondo**. Lo único que sabe a cien
 
 El resultado jugable: la ruta central parece buena en el mapa y esconde el pozo, dos falsos vados y (según la semilla) un hoyo de flanco; la ruta sur parece cortada por un canal "invisible", exige descubrir el vado y esconde un hoyo en el banco. Reconocer el centro cuesta: el explorador entra en el arco de la banda del buque (ver 5) y solo puede empezar cuando el agua baja (t ≳ 250 s; los exploradores entran hasta 1,3 m de profundidad, igual que los caballos). Para reconocer con riesgo decidible, `probe_careful` y `scout_risk` dan el riesgo de baja antes de ordenar (ver 5).
 
+### 1.0 bis. Ronda 2: se reevalúa 900 x 750 m y se mantiene 900 x 520 m
+
+El hallazgo abierto de la revisión pedía dejar la decisión documentada con sus razones y, si cabía, adoptar el área del paquete. Se volvió a medir la idea con lo que cambió en la ronda:
+
+- **Qué ganaría 900 x 750:** 115 m más de ribera y barranca a cada lado, más tierra para ciudad alta y más lugar para la «posición B» del buque (700, 360), que el paquete describe como alternativa.
+- **Qué cuesta:** las reglas, el planificador de rutas, el minimapa (relación 900:520) y la matriz de balance dependen del tramo orilla-buque (387 m desde el pie de la barranca), de las dos bajadas (z 190 y 335) y del banco sur (z ≈ 400-430). Estirar el rectángulo no agrega decisiones: agrega tierra sin reglas. Además la matriz es frágil (variar el fuego del buque un 7 % mueve la tasa de victoria de la cohorte 2-4 puntos y las bajas medianas 6 puntos; un 15 %, 7-9 puntos, ver 13).
+- **Decisión (se mantiene la Opción C):** 900 x 520 jugables + 115 m de contexto al norte y al sur (`context`, z -115 a 635) que **ya cubre los 750 m de ancho del paquete como escenario**, con ciudad alta menos densa al norte, trama más densa al sur, ribera que continúa y siluetas. Se reabre solo si se rediseña la banda de fuego o se implementa la posición B (`context.round2_note`).
+- **Qué se agrega en la Ronda 2 al contexto:** `scenery.blocks` (manzanas con claros de quinta: el Retiro de 1806 era sobre todo quintas y casas bajas, no una trama uniforme), `scenery.house_style` y `palette.house` (lino crudo y tejas apagadas, no cubos blancos con techo rojo), y el bloque `routes` para dibujar ruta central, ruta sur y el relato del mensajero.
+
 ## 2. Tiempos
 
 | Hito | t (s) | Nivel (m) |
@@ -134,6 +143,25 @@ El resultado jugable: la ruta central parece buena en el mapa y esconde el pozo,
 | **Plazo** | 1080 (18 min) | derrota si no hay captura |
 
 Partida objetivo **12-18 min**. En las simulaciones las victorias duran entre 12,4 y 16,2 min (ver 10). La bajante es un **temporizador visible** con barra de nivel y marcas de profundidad (Diseño, anclado en Gillespie y en una bajante moderna típica de ~1,65 m). El plazo es de 18 min (antes 15) porque el abordaje ya no es instantáneo (ver 5): el riesgo real es que **el agua que sube alcance a los que están a pie en el vado** (~t 974 s).
+
+### 2.4 Agua, vado y desvíos respecto del paquete (Ronda 2)
+
+**Qué dice Gillespie (corregido).** En el pilotaje (pp. 35-36) escribe que en estaciones ordinarias el río sube o baja a veces siete u ocho pies, «bajo el control arbitrario de las brisas casuales», y que por eso un buque de fuerza quedó «left dry» (en seco) y fue abordado por caballería el día de la rendición. **Sí** liga las caídas al viento y **sí** habla de un buque en seco. La Ronda 1 había escrito lo contrario (error de lectura, ya corregido en `time.note`, `tide_gillespie` e `history.json`). Lo que sigue sin existir es la serie de viento, presión y nivel del 12 de agosto de 1806, la cota del Retiro y la forma del fondo.
+
+**Qué elige el juego.** El casco **apoyado en un bajo, con agua alrededor** («banco parcialmente inundado», variante principal del paquete) en lugar de «en seco». Es una **elección de diseño**: da un vado de ~1 m con el río en mínimo (caballo hasta el pecho, límite de vadeo 1,3 m / 1,2 m a pie) y por eso la subida de las últimas 2 minutos puede ahogar a quien siga en el vado. Con el banco seco ese riesgo desaparece del abordaje.
+
+**Desvíos respecto del paquete (D4).** El paquete propone 0-0,6 m de agua sobre el corredor ecuestre y declara el calado «sin datos suficientes».
+
+| Parámetro | Paquete | Juego | Por qué |
+|---|---|---|---|
+| Agua sobre el vado del buque con el río en mínimo | 0-0,6 m | **1,0 m** (`fords.vado_buque.top_m` -1,0) | Con 0,6 m el vado deja de costar nada: el cruce es siempre posible y el riesgo de ahogo (única amenaza de la marea en el abordaje) desaparece |
+| Vado sur | no propuesto | -0,9 m | Paso oculto de la ruta larga; mismo criterio |
+| Profundidad máxima de un caballo | no propuesto | 1,3 m | Regla de movimiento (3) |
+| Fondo bajo el casco | calado desconocido | `hull.bed_m` -1,5 | El casco toca un bajo propio; un mercante de 26 cañones real calaría varios metros, de modo que «apoyado» significa «tocó un bajo» y no que toda la zona sea somera |
+
+Es una **tensión explícita entre plausibilidad y balance**: se prefirió conservar el costo del agua. **No se midió** la alternativa de acercar el vado a 0,6 m (cada medición de la matriz cuesta ~4 minutos y la geometría del banco, los hoyos ocultos y los carriles de sondeo están calibrados con 1,0 m): se prevé que el cruce deje de costar y que «reconocer paga» pierda fuerza, pero es una previsión, no un resultado. Queda como opción a rehacer junto con «banco expuesto».
+
+**Variante «banco expuesto» (evaluada, no implementada).** Es la más cercana al «left dry». Exigiría subir el vado del buque a ≥ 0 m y rehacer el balance: el ahogo por subida deja de existir y la presión temporal pasaría solo por los 14 s del contraataque. Se deja como **opción de dificultad futura** («Histórica» frente a «Táctica»): los parámetros a cambiar son `fords.vado_buque.top_m`, `tide.states[minimo]` y `movement.deep_water`. Decisión pendiente del usuario.
 
 ## 3. Velocidades
 
@@ -280,3 +308,37 @@ Pista «Mapa e historia». Objetivo: reconstruir el mapa y los hechos con el paq
 Resultado (matriz de 18 estrategias x 8 semillas de calibración; tabla completa en `docs/DISENO_REGLAS.md`): las estrategias buenas ganan 8/8 con **55-58 % de bajas** (antes 74-86 %), la ruta sur gana 8/8 con 55 % en 900 s (15,0 min) y la central en 11-13 min; ciegas, pasiva y tardía siguen en 0; ninguna estrategia concentra más del 15 % de las victorias (8 de 55). Validación (12 semillas nuevas): `central_flank_lane`, `central_flank_pair`, `central_hasty` y `south_full` ganan 12/12, `central_center_lane` 5/12, `mixed_split` 7/12, las `noreply` 9 y 10 de 12; las ciegas, 0. **Limitaciones**: (a) los guiones son más hábiles que una persona que juega por primera vez, por eso la cohorte incluye estrategias incompletas que pierden (`central_bare`, `south_vado_only`, `south_bare`, `central_flank_stagger`) y la tasa de la cohorte es solo un proxy del 40-60 %; (b) con guiones deterministas el balance es un precipicio (daño mínimo 6,6 → casi todas las `noreply` ganan; 8,2 → hay un compromiso), y en validación las `noreply` ganan más que en calibración: **hay que jugarlo con personas**; (c) el intercambio sur-centro se redujo (55 % de bajas del sur contra 58 % de la central) y se mantuvo por pocos puntos.
 
 **Decisiones que no se tomaron** (a decidir con el usuario): adoptar 900 x 750 como zona jugable; implementar el estado «banco localmente expuesto»; mover el buque a la posición B; usar la bandera Union «del Retiro»; dibujar al capitán con nombre (Morris/Dunn no está verificado).
+
+## 13. Ronda 2 (30-oct-2026): mapa, historia y balance con el paquete Justina_Retiro_1806
+
+Pista «Mapa e historia», segunda pasada (`map_version` 5). Cambios en `data/justina_map.json`, `data/history.json`, `tests/test_rules.gd` y `docs/`; **sin tocar** `world_view.gd`, `main.gd` ni shaders (las claves nuevas están en `docs/CONTRATO_JUSTINA.md` 7 para las otras pistas).
+
+**Fuentes y etiquetas corregidas.**
+- Gillespie pp. 35-36: sí liga las bajadas del río a la brisa y habla de un buque «left dry». Se corrigieron `time.note`, `tide.states[minimo]`, `tide_gillespie` e `history.json` y el test que afirmaba lo contrario. El banco «parcialmente inundado» queda declarado como elección de diseño (2.4).
+- Armadores (Princeps y Saunders, p. 29) y motivo comercial («traffic», p. 94) pasan a ser citas directas de Gillespie (`owners_and_trade`, hecho del buque).
+- `forces.opposing.ship_crew` baja de `documentado` a `reconstruccion` con `tag_parts`; el rotulado de «Rechazar» dice 3 de munición como el costo real; Güemes se enuncia de una sola manera (portador de la orden según Obligado / jefe según notas posteriores) y la orden de Liniers se declara regla de diseño de fuente secundaria.
+- Hitos inventados (piezas del Retiro, campamento, puesto de Liniers, camino sobre la barranca): `marker_style: hipotesis`, `marker_suffix`.
+- `history.json`: hecho nuevo «Hitos del mapa que son hipótesis», fuentes S29-S39 (Arrowsmith 1806, Sellés-Martínez/Brambila, Reitano, Aramburo, Carman, decreto de 1785, Donnelly, Malosetti Costa, OSM, estandarte de Luján, Núñez 2007) con su estado de verificación, y páginas exactas de Gillespie en S9.
+
+**Mapa.** Bloques nuevos `distances`, `routes`, `label_anchors`, `scenery.blocks/house_style/quinta_clearings`, `palette.house`, `landmarks.justina.draw_uncertainty_zone/uncertainty_style` (mancha tenue de ≈ 120 m en vez de un pin), `short_label` y `tradition_mark` en grupos. La geometría jugable **no cambió** (barranca, bajadas, bancos, vados, hull); por eso la matriz se movió solo por el fuego.
+
+**Balance (único cambio de reglas).** `ship.fire.damage_min/max` 8,2 / 12,4 → **7,6 / 11,5** (-7 %). Es la respuesta a «victorias pírricas y acantilado»: la mediana de bajas de las victorias baja de 60 % a **54 %** y quien llega escalonado ya no es un 0 % seguro (1/8 y 1/12 de victorias, pero caras).
+
+Medición (APPDATA aislado, mismo arnés `tests/test_rules.gd`; 18 estrategias x 8 semillas de calibración + 12 de validación para las 12 razonables):
+
+| Fuego del buque | Cohorte calibración / validación | Bajas medianas | Máx. con defensa (confiables) | `central_flank_stagger` validación |
+|---|---|---|---|---|
+| 8,2 / 12,4 (Ronda 1) | 57 % / 55 % | 60 % | 75 % | 0/12 |
+| 7,0 / 10,5 (-15 %, descartado) | 64 % / 62 % | 49 % | 89 % | 5/12 |
+| **7,6 / 11,5 (-7 %, adoptado)** | **59 % / 59 %** | **54 %** | **64 %** (estaba 75 %) | 1/12 |
+
+La variante -15 % se descartó porque la cohorte supera el techo de 60 %: no se puede bajar el castigo sin que una partida razonable pase de «50/50» a «casi segura». Con -7 % queda en el borde alto del objetivo 40-60 %; se acepta porque la cohorte tiene el mapa conocido (una persona real queda por debajo, ver más abajo).
+
+Resultados de la matriz por estrategia (calibración, 8 semillas): `central_flank_lane` 8/8 (11,7-12,2 min, 52 % de bajas), `central_flank_pair` 8/8 (11,8-12,5 min, 50 %), `central_hasty` 8/8 (11,2-12,3 min, 51 %), `south_full` 8/8 (14,4-15,4 min, 49 %), `central_flank_noreply` 8/8 (62 %), `south_noreply` 8/8 (15,1-16,3 min, 59 %), `central_center_lane` 5/8, `mixed_split` 3/8, `central_flank_stagger` 1/8 (14,8 min, 74 %); ciegas (`rush_central`, `rush_gallop`, `blind_north_edge`, `south_wrong_crossing`), `*_bare`, `south_vado_only`, `late_all_in` y `passive`, **0/8**. Ninguna estrategia acumula más del 14 % de las victorias (8 de 57). `test_rules`: **505 comprobaciones, 0 fallos**.
+
+**Cambios en los objetivos de los tests (con justificación).** `victory_loss.marginal_line_max_pct` (nuevo, 92 %): el tope de `max_victory_loss_pct` (75 %) vale ahora para las **líneas confiables** (ganan la mitad o más de sus partidas); una línea marginal (p. ej. llegada escalonada) puede ganar más caro hasta 92 %. Razón: se quiere una **pendiente de dificultad** (cuanto peor el plan, más raro y más caro ganar) y no un acantilado (0 % o 100 %); sin esto el test obligaba a que las líneas marginales no ganaran nunca. Las líneas confiables cumplen con holgura (64 % < 75 %).
+
+**Chance de una partida humana.** La cohorte son guiones que saben dónde está el hoyo y no se equivocan al sondear; una persona nueva quedará por debajo del 59 %. La estimación honesta es 40-55 %, pero **no hubo playtest humano**: sigue sin medirse (pendiente). Se redujo el acantilado pero no se eliminó: `central_flank_stagger` (llegar de a uno) sigue siendo un error casi seguro porque el buque concentra el fuego en el que llega primero, y es intencional.
+
+**Sin implementar / pendientes.** Banco expuesto («left dry») y posición B del buque (2.4); playtest humano; ruta sur algo más cara (hoy `south_full` pierde 49 % frente a 52 % del centro, con 2,5 min más); cotejo de Gillespie con el escaneo; mostrar en la UI `short_label`, `marker_style`, `routes`, `label_anchors` (pistas Vista/UI, ver CONTRATO 7); GLB de ropa del paquete sin usar; capturas pesadas en Git (evidence/justina-ui/final_r1, 104 MB) a reducir.
+

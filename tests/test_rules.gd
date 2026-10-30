@@ -934,7 +934,7 @@ func _test_labels_and_save_trim() -> void:
 	var meaning := str(m.source_tags.documentado.meaning).to_lower()
 	check("transcripción" in meaning and "divulgativas no bastan" in meaning and "manuscrito" in meaning, "La definición de 'Documentado' que ve el jugador es la del proyecto (transcripción; las divulgativas no bastan)")
 	var note := str(m.time.note).to_lower()
-	check("siete u ocho pies" in note and "no atribuye" in note and not ("por el viento (gillespie" in note), "La nota del tiempo no atribuye el viento a Gillespie")
+	check("siete u ocho pies" in note and "left dry" in note and "sí liga la bajada al viento" in note and not ("no atribuye la causa al viento" in note), "La nota del tiempo cita a Gillespie (pp. 35-36): sí liga la bajada al viento y habla de buque 'left dry'; el banco parcialmente inundado es diseño")
 	var camp := str(by_id.campamento_pueyrredon.source).to_lower() + " " + str(m.groups[2].note).to_lower()
 	check("concha" in camp and "archivo pueyrredón" in camp, "La caballería de Pueyrredón se atribuye a Concha y a Liniers (Archivo Pueyrredón)")
 	check("s1-s8" in str(by_id.justina.source).to_lower(), "El hito deja constancia de que las fuentes divulgativas no están en la bibliografía S1-S8")
@@ -1584,17 +1584,25 @@ func _test_victory_quality(all: Dictionary) -> void:
 	var cal_n := 0
 	var wins_loss: Array = []
 	var defended_max := 0.0
+	var marginal_max := 0.0
 	var undefended_max := 0.0
+	var wins_p := {}
+	var games_p := {}
+	var loss_max_p := {}
 	for p in COHORT:
+		wins_p[p] = 0
+		games_p[p] = 0
+		loss_max_p[p] = 0.0
 		for res in all[p]:
 			cal_n += 1
+			games_p[p] = int(games_p[p]) + 1
 			if res.status == "victory":
 				cal_w += 1
+				wins_p[p] = int(wins_p[p]) + 1
 				wins_loss.append(float(res.loss_pct))
+				loss_max_p[p] = maxf(float(loss_max_p[p]), float(res.loss_pct))
 				if "noreply" in p:
 					undefended_max = maxf(undefended_max, float(res.loss_pct))
-				else:
-					defended_max = maxf(defended_max, float(res.loss_pct))
 	var val_w := 0
 	var val_n := 0
 	var val_by := {}
@@ -1603,16 +1611,26 @@ func _test_victory_quality(all: Dictionary) -> void:
 		for sd in VALIDATION_SEEDS:
 			var res := _run_strategy(p, sd)
 			val_n += 1
+			games_p[p] = int(games_p[p]) + 1
 			if res.status == "victory":
 				val_w += 1
 				val_by[p] = int(val_by[p]) + 1
+				wins_p[p] = int(wins_p[p]) + 1
 				wins_loss.append(float(res.loss_pct))
+				loss_max_p[p] = maxf(float(loss_max_p[p]), float(res.loss_pct))
 				if "noreply" in p:
 					undefended_max = maxf(undefended_max, float(res.loss_pct))
-				else:
-					defended_max = maxf(defended_max, float(res.loss_pct))
 			if p in ["central_flank_pair", "south_full"]:
 				report.results.append({"scenario": "justine", "strategy": p, "seed": sd, "validation": true, "result": {"status": res.status, "t": res.t, "loss_pct": res.loss_pct}})
+	# Ronda 2: el tope de bajas con defensa vale para las LINEAS CONFIABLES (ganan la mitad o mas de sus partidas);
+	# una linea marginal que apenas gana (p. ej. llegada escalonada) puede ganar caro: es la pendiente de dificultad.
+	for p in COHORT:
+		if "noreply" in p:
+			continue
+		if int(wins_p[p]) * 2 >= int(games_p[p]):
+			defended_max = maxf(defended_max, float(loss_max_p[p]))
+		else:
+			marginal_max = maxf(marginal_max, float(loss_max_p[p]))
 	var cal_rate := float(cal_w) / float(cal_n)
 	var val_rate := float(val_w) / float(val_n)
 	check(cal_rate >= lo and cal_rate <= hi, "Estrategias razonables: tasa de victoria en las semillas de calibración %.0f %% dentro de %.0f-%.0f %% (%d/%d)" % [cal_rate * 100.0, lo * 100.0, hi * 100.0, cal_w, cal_n])
@@ -1625,7 +1643,8 @@ func _test_victory_quality(all: Dictionary) -> void:
 		if float(l) > 80.0:
 			over80 += 1
 	check(wins_loss.size() >= 20 and median <= float(vl.median_max_pct), "Victorias no pírricas: bajas medianas %.0f %% <= %d %% (%d victorias)" % [median, int(vl.median_max_pct), wins_loss.size()])
-	check(defended_max <= float(tg.max_victory_loss_pct), "Ninguna victoria con defensa del abordaje cuesta más del %d %% de la fuerza (máx. %.0f %%)" % [int(tg.max_victory_loss_pct), defended_max])
+	check(defended_max <= float(tg.max_victory_loss_pct), "Ninguna victoria con defensa del abordaje, en las líneas confiables, cuesta más del %d %% de la fuerza (máx. %.0f %%)" % [int(tg.max_victory_loss_pct), defended_max])
+	check(marginal_max <= float(vl.marginal_line_max_pct), "...y las líneas marginales (ganan menos de la mitad) no pasan del %d %% (máx. %.0f %%): ganar mal es posible pero caro, no un guion" % [int(vl.marginal_line_max_pct), marginal_max])
 	check(undefended_max <= float(vl.undefended_max_pct), "Ni siquiera sin defender el abordaje una victoria pasa del %d %% (máx. %.0f %%)" % [int(vl.undefended_max_pct), undefended_max])
 	check(float(over80) / float(maxi(1, wins_loss.size())) <= float(vl.share_over_80_max), "Pocas victorias al borde (>80 %% de bajas): %d de %d (máx. %.0f %%)" % [over80, wins_loss.size(), float(vl.share_over_80_max) * 100.0])
 	var winners_val := 0

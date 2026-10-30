@@ -241,3 +241,11 @@ Estos tiempos son **tiempo de simulación con órdenes automatizadas**, no medic
 - `game_rules.gd::_bed_warp(x, z, toe_x)` y las claves `warp` / `warp_cfg` de `_S_geo`: desplazamiento del perfil base según `bed_warp` del JSON (si falta, cero). `terrain_height_at` usa `_interp(base, x - warp)`. La estimación del jugador (`_base_height`, perfil «suave» sin bancos) no usa el warp: el jugador estima un perfil liso y el fondo real tiene meandros.
 - Textos de eventos: «piezas del Retiro» en lugar de «batería Abascal» (el id `bateria_abascal` no cambia); la historia fija marca Reconstrucción para la caballería de Pueyrredón.
 - Sin cambios de estado guardado ni de `schema_version`; `map_version` pasa de 3 a 4 (partidas guardadas de la versión 3 siguen el mismo esquema).
+
+## Ronda 2 (30-oct-2026): reglas tocadas
+
+- **Único cambio de reglas:** `ship.fire.damage_min/max` 8,2 / 12,4 → 7,6 / 11,5 (-7 %), en `data/justina_map.json` (`map_version` 5). `game_rules.gd` no cambió: ningún código nuevo, solo datos.
+- **Tests (`tests/test_rules.gd`):** el tope `max_victory_loss_pct` (75 %) se aplica a las líneas confiables (ganan la mitad o más de sus partidas, calibración + validación); las marginales se acotan con `play_targets.victory_loss.marginal_line_max_pct` (92 %). Se corrigió además el test de la nota del tiempo, que exigía la frase errónea «no atribuye el viento a Gillespie» (Gillespie pp. 35-36 sí lo liga). Resultado: 505 comprobaciones, 0 fallos.
+- **Medición** (18 estrategias x 8 semillas + 12 de validación; detalle y comparación con -15 % en `DISENO_JUSTINA.md` 13): cohorte 59 % / 59 %, bajas medianas 54 % (antes 60 %), confiables ≤ 64 %, victorias en 11,2-16,3 min, ciegas / pasiva / tardía 0, ninguna estrategia por encima del 14 % de las victorias.
+- No se tocó el escenario Norte.
+
