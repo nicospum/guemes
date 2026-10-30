@@ -75,8 +75,25 @@ func _new_j(seed_value: int = 7, keep_variant: bool = false) -> RefCounted:
 	var r := Rules.new()
 	r.new_game("justine", seed_value)
 	if not keep_variant:
+		## Pruebas de unidad: sin variante de misión (ronda 9) ni condición de río sorteada, con los recursos base del JSON.
+		var res: Dictionary = r.map_data().resources
 		r.state.hidden.tide = "normal"
+		r.state.hidden.mission = ""
+		r.state.no_return_s = 1.0e9  ## las pruebas de unidad dejan correr el reloj sin cargar: el punto sin retorno se prueba aparte
+		r.state.ammo = int(res.ammo_start)
+		r.state.volunteers_pool = float(res.volunteers_pool)
+		r.state.crew_morale = float(r.map_data().ship.crew.morale)
+		r.state.next_volley = float(r.map_data().ship.fire.volley_interval_s)
 	return r
+
+## Ronda 9: el río se comprimió (0:30-4:10 baja, mínimo hasta 10:40, plazo 13:00). Convierte un instante del cronograma viejo (60/450/960/1080) a su equivalente de fase.
+func _tt(old: float) -> float:
+	var xs := [0.0, 60.0, 450.0, 960.0, 1080.0]
+	var ys := [0.0, 30.0, 250.0, 640.0, 760.0]
+	for i in range(1, xs.size()):
+		if old <= xs[i]:
+			return ys[i - 1] + (old - xs[i - 1]) / (xs[i] - xs[i - 1]) * (ys[i] - ys[i - 1])
+	return ys[ys.size() - 1] + (old - xs[xs.size() - 1])
 
 func _advance(r: RefCounted, t: float) -> void:
 	while float(r.state.elapsed) < t - 0.001 and r.state.status == "playing":
@@ -164,45 +181,45 @@ func _test_speed_table() -> void:
 
 func _test_tide_and_windows() -> void:
 	var r := _new_j()
-	var expected := {0: [1.65, "alta"], 60: [1.65, "bajando"], 255: [0.825, "bajando"], 450: [0.0, "baja"], 700: [0.0, "baja"], 960: [0.0, "subiendo"], 1020: [0.825, "subiendo"], 1080: [1.65, "subiendo"]}
+	var expected := {0: [1.65, "alta"], 30: [1.65, "bajando"], 140: [0.825, "bajando"], 250: [0.0, "baja"], 500: [0.0, "baja"], 640: [0.0, "subiendo"], 700: [0.825, "subiendo"], 760: [1.65, "subiendo"]}
 	for t in expected:
 		var td: Dictionary = r.tide_at(float(t))
 		check(_near(td.level_m, expected[t][0], 1e-6) and td.phase == expected[t][1], "tide_at(%d) = %.3f m, %s" % [t, expected[t][0], expected[t][1]])
 		check(_near(td.level_norm, 0.05 + 0.9 * td.level_m / 1.65, 1e-6), "level_norm derivado a t=%d" % t)
 	var marks: Dictionary = r.tide_marks()
-	check(marks.drop_start == 60.0 and marks.drop_end == 450.0 and marks.low_hold_end == 960.0 and marks.rise_end == 1080.0 and marks.deadline == 1080.0, "tide_marks")
+	check(marks.drop_start == 30.0 and marks.drop_end == 250.0 and marks.low_hold_end == 640.0 and marks.rise_end == 760.0 and marks.deadline == 780.0, "tide_marks")
 	# antes de sondear: sin certeza (la ventana es la percibida, optimista)
 	var bp: Vector2 = r.board_point()
 	var before: Dictionary = r.ford_window(bp.x, bp.y)
 	check(not before.certain and not before.known, "ford_window del buque: sin certeza antes de sondear")
 	var before_south: Dictionary = r.ford_window(305, 403)
 	check(not before_south.certain, "ford_window del vado sur: sin certeza antes de sondear")
-	check(float(before.opens_at) < 379.0 and float(before_south.opens_at) < 355.0, "La ventana percibida de un fondo desconocido es más optimista que la real")
+	check(float(before.opens_at) < 210.0 and float(before_south.opens_at) < 196.0, "La ventana percibida de un fondo desconocido es más optimista que la real")
 	# tras sondear los dos puntos, la ventana es la real
 	r.state.probes.append({"id": "t1", "kind": "lane", "pts": [{"x": 540.0, "z": 262.0}, {"x": 556.0, "z": 262.0}], "width": 6.0, "t": 0.0, "scout": "scout_1"})
 	r.state.probes.append({"id": "t2", "kind": "lane", "pts": [{"x": 300.0, "z": 403.0}, {"x": 310.0, "z": 403.0}], "width": 6.0, "t": 0.0, "scout": "scout_1"})
 	var w: Dictionary = r.ford_window(548, 262)
-	check(w.certain and _near(w.opens_at, 379.0, 5.0) and _near(w.closes_at, 982.0, 5.0), "ford_window del vado del buque ≈ 379..982 s (obtenido %.1f..%.1f)" % [w.opens_at, w.closes_at])
+	check(w.certain and _near(w.opens_at, 210.0, 5.0) and _near(w.closes_at, 662.0, 5.0), "ford_window del vado del buque ≈ 210..662 s (abre antes de 3:30) (obtenido %.1f..%.1f)" % [w.opens_at, w.closes_at])
 	var ws: Dictionary = r.ford_window(305, 403)
-	check(ws.certain and _near(ws.opens_at, 355.0, 5.0) and _near(ws.closes_at, 989.0, 5.0), "ford_window del vado sur ≈ 355..989 s (obtenido %.1f..%.1f)" % [ws.opens_at, ws.closes_at])
+	check(ws.certain and _near(ws.opens_at, 197.0, 5.0) and _near(ws.closes_at, 669.0, 5.0), "ford_window del vado sur ≈ 197..669 s (obtenido %.1f..%.1f)" % [ws.opens_at, ws.closes_at])
 	check(_near(w.depth_at_low_m, 1.0, 0.02), "Profundidad del vado del buque con el río en mínimo ≈ 1,0 m")
 	r.state.probes.append({"id": "t3", "kind": "lane", "pts": [{"x": 335.0, "z": 264.0}, {"x": 350.0, "z": 264.0}], "width": 6.0, "t": 0.0, "scout": "scout_1"})
 	var never: Dictionary = r.ford_window(345, 264)
 	check(never.has_all(["known", "certain", "opens_at", "closes_at", "depth_at_low_m"]) and never.certain and float(never.opens_at) < 0.0 and float(never.closes_at) < 0.0, "ford_window del pozo ya sondeado: nunca abre para el caballo (opens_at = closes_at = -1)")
 	# el estado sigue la marea paso a paso
 	var q := _new_j()
-	_advance(q, 255.0)
-	check(_near(q.state.water_level_m, 0.825, 1e-6) and q.state.tide_phase == "bajando" and _near(q.state.water_level, 0.5, 1e-6), "El estado sigue la bajante (t=255)")
-	_advance(q, 500.0)
+	_advance(q, 140.0)
+	check(_near(q.state.water_level_m, 0.825, 1e-6) and q.state.tide_phase == "bajando" and _near(q.state.water_level, 0.5, 1e-6), "El estado sigue la bajante (t=140)")
+	_advance(q, 400.0)
 	check(q.state.tide_phase == "baja" and q.state.bajante_announced and not q.state.rising_announced, "Aviso de bajante emitido y aún sin aviso de subida")
-	_advance(q, 1000.0)
+	_advance(q, 700.0)
 	check(q.state.tide_phase == "subiendo" and q.state.rising_announced, "Aviso de subida emitido")
 
 # ---------------------------------------------------------------------------
 # 4. Conocimiento
 
 func _test_knowledge() -> void:
-	var r := _at(500.0)  # río en mínimo
+	var r := _at(_tt(500.0))  # río en mínimo
 	check(r.knowledge_at(199, 240) == "visible" and r.knowledge_at(520, 264) == "unknown" and r.knowledge_at(330, 264) == "visible", "Tierra firme y la cresta del banco emergido, visibles; el fondo turbio, desconocido")
 	var base_plus: float = -0.35 - 0.35 * (15.0 / 90.0) + 0.5
 	var pr: float = r.perceived_height_at(345, 264)
@@ -352,7 +369,7 @@ func _test_group_actions() -> void:
 	check(not routed.issue_order("zavala", "move", Vector2(201, 300)).ok, "Un grupo disperso no recibe órdenes")
 
 func _test_plan_risk() -> void:
-	var r := _at(380.0)
+	var r := _at(_tt(370.0))
 	r.state.advance_authorized = true
 	r.state.orders.append({"time": 0.0, "round": 1, "unit": "guemes", "action": "signal_liniers", "target": {}})
 	r.state.first_order_at = 0.0
@@ -549,17 +566,17 @@ func _test_boarding_costs() -> void:
 	# el fuego del buque alcanza a los que abordan (x0,5)
 	check(_near(b.exposure_for(b.get_unit("guemes")), b.exposure_at(524.0, 262.0) * float(b.map_data().ship.capture.boarding_exposure_mult), 1e-9), "Abordando se recibe el fuego del buque con la exposición reducida (x0,3, reducida desde x0,5)")
 	# agua que sube: quien esta a pie en el vado se ahoga
-	var up := _boarding_game(1000.0)
+	var up := _boarding_game(_tt(1000.0))
 	var u0 := float(up.get_unit("guemes").strength)
 	check(up.water_depth_at(524.0, 262.0) - 1.2 > 0.0, "Con el río subiendo (t=1000) el vado supera el límite de un hombre a pie (%.2f m)" % up.water_depth_at(524.0, 262.0))
-	_advance(up, 1020.0)
+	_advance(up, _tt(1020.0))
 	var down := u0 - float(up.get_unit("guemes").strength)
 	check(down > 20.0 and float(up.state.stats.drowned) > 10.0, "Los grupos que abordan sufren el agua que sube: −%.0f de fuerza en 20 s" % down)
-	var calm := _boarding_game(500.0)
-	_advance(calm, 520.0)
+	var calm := _boarding_game(_tt(500.0))
+	_advance(calm, _tt(500.0) + 20.0)
 	check(float(calm.state.stats.drowned) == 0.0, "Con el río en mínimo nadie se ahoga")
 	# desmontando tambien esta sujeto al agua
-	var dis := _at(1000.0, 5)
+	var dis := _at(_tt(1000.0), 5)
 	dis.state.next_volley = 1500.0
 	var dg: Dictionary = dis.get_unit("zavala")
 	dg.x = 524.0
@@ -568,7 +585,7 @@ func _test_boarding_costs() -> void:
 	dg.dismount_remaining = 12.0
 	dg.order = {"action": "board", "x": 548.0, "z": 262.0}
 	var dz0 := float(dg.strength)
-	_advance(dis, 1006.0)
+	_advance(dis, _tt(1000.0) + 6.0)
 	check(float(dis.get_unit("zavala").strength) < dz0, "Desmontando en el vado con el río subiendo también se pierde fuerza")
 	# retirada desde el abordaje: se puede, vuelven a montar y a la playa
 	var wd := _boarding_game(500.0)
@@ -669,7 +686,7 @@ func _test_round5_data() -> void:
 	for v in m.time.variants:
 		if str(v.id) == "lenta":
 			lenta = v
-	check(float(lenta.drop_start_s) == 75.0 and float(lenta.drop_end_s) == 470.0 and float(lenta.low_hold_end_s) == 960.0, "La condición «lenta» corre la bajante 15-20 s (no 30-40)")
+	check(float(lenta.drop_start_s) == 40.0 and float(lenta.drop_end_s) == 285.0 and float(lenta.low_hold_end_s) == 640.0, "La condición «lenta» corre la bajante ~15 s")
 	var f := FileAccess.open("res://data/history.json", FileAccess.READ)
 	var hist: Dictionary = JSON.parse_string(f.get_as_text())
 	var htxt := JSON.stringify(hist.scenarios.justine).to_lower()
@@ -781,9 +798,12 @@ func _test_tide_variants() -> void:
 		var ok: bool = float(v.drop_start_s) >= 0.0 and float(v.drop_start_s) < float(v.drop_end_s) and float(v.drop_end_s) < float(v.low_hold_end_s) and float(v.low_hold_end_s) < float(v.rise_end_s) and float(v.rise_end_s) <= float(base.deadline_s)
 		check(ok and str(v.get("tag", "")) == "diseno" and str(v.get("label", "")) != "", "Condición %s: hitos ordenados, dentro del plazo, rotulada y de diseño" % str(v.id))
 	var seen := {}
+	var seen_m := {}
 	for sd in SEEDS:
-		seen[_new_j(int(sd), true).tide_variant_id()] = true
-	check(seen.size() >= 3, "Las semillas de calibración sortean al menos 3 condiciones del río (%s)" % str(seen.keys()))
+		var sj := _new_j(int(sd), true)
+		seen[sj.tide_variant_id()] = true
+		seen_m[str(sj.mission().get("id", ""))] = true
+	check(seen.size() >= 2 and seen_m.size() >= 3, "Ronda 9: las semillas de calibración sortean ≥ 3 variantes de misión y ≥ 2 condiciones del río (%s / %s)" % [str(seen.keys()), str(seen_m.keys())])
 	var a := _new_j(5, true)
 	check(a.tide_variant_id() == _new_j(5, true).tide_variant_id(), "La condición del río es fija para una misma semilla")
 	var other := ""
@@ -843,8 +863,9 @@ func _test_hidden_layout() -> void:
 	# el pozo central y los falsos vados no dependen de la semilla
 	check(_new_j(3).terrain_height_at(345, 264) < -1.8 and _new_j(5).terrain_height_at(345, 264) < -1.8 and _new_j(3).hazard_active("pozo_central"), "El pozo central existe en todas las partidas")
 	# la malla de rutas usa el fondo de ESTA partida: el planificador cree conocer la variante activa descubierta y no la inactiva
-	var r := _at(500.0, 5)
+	var r := _at(_tt(500.0), 5)
 	r.state.next_volley = 1500.0
+	r.state.deadline = 3000.0
 	var picked: String = str(r.state.hidden.picks.flanco_central)
 	var other: String = "pozo_flanco_norte" if picked == "pozo_flanco_sur" else "pozo_flanco_sur"
 	var lane_pick: Array = PROBE_FLANK_S if picked == "pozo_flanco_sur" else PROBE_FLANK_N
@@ -888,6 +909,7 @@ func _test_scarce_resources() -> void:
 	check(int(s.state.signals_left) == 1 and s.state.advance_authorized, "Señalar consume una de las 2 señales")
 	# pólvora de reserva: se agota
 	var q := _new_j()
+	q.state.events_done.append("mensajero")  ## el mensajero (+6 de pólvora a los 90 s) no es de este test
 	q.issue_order("zavala", "resupply")
 	_advance(q, 160.0)
 	check(int(q.state.ammo) == 28 and int(q.state.ammo_reserve) == 0, "Abastecer retira 16 de la reserva (munición %d, reserva %d)" % [int(q.state.ammo), int(q.state.ammo_reserve)])
@@ -986,9 +1008,9 @@ func _test_capture_decisions() -> void:
 	bad.counter.until = "x"
 	_rejects(h, bad, "Un contraataque con datos inválidos se rechaza")
 	# aviso del agua que sube en el vado (gestion de la marea)
-	var t := _boarding_game(930.0)
+	var t := _boarding_game(_tt(930.0))
 	t.state.counter.next_at = 90000.0
-	_advance(t, 975.0)
+	_advance(t, _tt(975.0))
 	var tide_warned := false
 	for ev in t.state.log:
 		tide_warned = tide_warned or ("el agua sube en el vado" in str(ev.text))
@@ -1884,7 +1906,7 @@ func _test_not_stranded() -> void:
 					break
 	check(accepted >= 4 and stranded == 0, "Ninguna orden aceptada deja un grupo varado en el agua (%d aceptadas, %d varadas)" % [accepted, stranded])
 	# Rescate: un grupo atrapado por la subida vuelve a un punto firme de la playa.
-	var rescue := _at(700.0)
+	var rescue := _at(_tt(700.0))
 	var g: Dictionary = rescue.get_unit("guemes")
 	g.x = 345.0
 	g.z = 264.0
@@ -2006,7 +2028,7 @@ func _test_justine_snapshot_coherence() -> void:
 	s = r.snapshot(); s.ammo = 999; _rejects(r, s, "Munición sobre el máximo")
 	s = r.snapshot(); s.ammo = -1; _rejects(r, s, "Munición negativa")
 	s = r.snapshot(); s.balizas = 99; _rejects(r, s, "Balizas sobre las iniciales")
-	s = r.snapshot(); s.volunteers_pool = 61.0; _rejects(r, s, "Voluntarios sobre el reservorio")
+	s = r.snapshot(); s.volunteers_pool = 301.0; _rejects(r, s, "Voluntarios sobre el reservorio")
 	s = r.snapshot(); s.erase("scouts"); _rejects(r, s, "Falta scouts")
 	s = r.snapshot(); s.erase("stats"); _rejects(r, s, "Falta stats")
 	s = r.snapshot(); s.units[0].x = 5000.0; _rejects(r, s, "Grupo fuera del mapa")
