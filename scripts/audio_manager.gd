@@ -22,7 +22,12 @@ const EFFECTS := {
 	"cannon": {"variants": ["res://assets/audio/cannon.wav"], "bus": "Efectos", "gain_db": -13.0, "cooldown_ms": 900, "pitch": [0.9, 1.08], "poly": 2, "retrigger": true, "prio": 1},
 	"hoof": {"variants": ["res://assets/audio/hoof.wav", "res://assets/audio/hoof2.wav", "res://assets/audio/hoof3.wav"], "bus": "Efectos", "gain_db": -10.0, "cooldown_ms": 220, "pitch": [0.92, 1.1], "poly": 1, "retrigger": false, "prio": 0},
 	"dismount": {"variants": ["res://assets/audio/dismount.wav"], "bus": "Efectos", "gain_db": -9.0, "cooldown_ms": 1500, "pitch": [0.96, 1.04], "poly": 1, "retrigger": false, "prio": 1},
-	"victory": {"variants": ["res://assets/audio/victory.wav"], "bus": "UI", "gain_db": -7.0, "cooldown_ms": 2500, "pitch": [1.0, 1.0], "poly": 1, "retrigger": false, "prio": 2}
+	"victory": {"variants": ["res://assets/audio/victory.wav"], "bus": "UI", "gain_db": -7.0, "cooldown_ms": 2500, "pitch": [1.0, 1.0], "poly": 1, "retrigger": false, "prio": 2},
+	## Avisos cortos y distintos (ronda de diversion R1): reutilizan los mismos .wav con otro tono; sin archivos nuevos.
+	"volley_warn": {"variants": ["res://assets/audio/bell.wav"], "bus": "UI", "gain_db": -6.0, "cooldown_ms": 2500, "pitch": [1.45, 1.5], "poly": 1, "retrigger": false, "prio": 2},
+	"ford": {"variants": ["res://assets/audio/bell.wav"], "bus": "UI", "gain_db": -8.0, "cooldown_ms": 1500, "pitch": [1.18, 1.2], "poly": 1, "retrigger": false, "prio": 2},
+	"stumble": {"variants": ["res://assets/audio/error.wav"], "bus": "UI", "gain_db": -3.0, "cooldown_ms": 600, "pitch": [0.68, 0.72], "poly": 1, "retrigger": true, "prio": 2},
+	"defeat": {"variants": ["res://assets/audio/error.wav"], "bus": "UI", "gain_db": -4.0, "cooldown_ms": 2500, "pitch": [0.55, 0.58], "poly": 1, "retrigger": false, "prio": 2}
 }
 ## Cada escenario superpone capas ambientales de duraciones distintas (no se repiten a la vez).
 const AMBIENTS := {

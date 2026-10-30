@@ -192,3 +192,16 @@ Este manual se contrastó con los controles y acciones de `scripts/main.gd` y `s
 - **Despliegue previo**: incluye un mapa recortado con los cinco puntos de partida, que se mueven al elegir Norte/Sur/Oeste/Este. Límites del motor: ±15 de fuerza por grupo y 14 m por punto.
 - **Tutorial**: si se salta pasos porque ya los hiciste, un aviso lo dice; la línea inferior solo manda a «seguir el tutorial» mientras la tarjeta está visible.
 - Las fichas de las agrupaciones en el mapa dibujan primero las líneas de unión y después los rótulos: ninguna línea cruza el texto de otra ficha.
+
+## Ronda de diversión R1 (ui_feel): cambios de interfaz de la Justina
+
+- **Tarjeta inicial** (en vez del briefing largo): objetivo en una línea, «perder no es grave: volvés con el mismo río y lo anotado» y botones **Empezar**, **Cómo se juega** (la ayuda completa, F1) y **Saltar tutorial**. El reloj arranca con **Espacio**.
+- **Guía de 4 pasos**, uno a la vez: medir el agua (explorador + Z), esperar el vado, pedir la carga a Liniers (K) solo cuando el vado esté a 60 s o menos, cargar y abordar (N). Se salta o se cierra.
+- **Esc** sin nada que cancelar abre el **menú de pausa** (☰ Menú): guardar, ajustes, parte, diario y, aparte, lo que corta el intento (reiniciar, volver al menú, **Abandonar: retirada general**, con segunda confirmación). La retirada general ya no está en la botonera de órdenes.
+- **`** (tecla sobre Tab) selecciona los tres grupos.
+- **Diario del Bañado** (botón «Diario» del encabezado, del menú y de la pausa): pozos y vados descubiertos o sufridos, fuego del buque y la hora a la que subió el río. En el intento siguiente se marcan tenues como «anotado» (no cuentan como confirmados).
+- **Parte de derrota**: causa en una frase, qué probar, captura / bajas / tiempo, **Reintentar · mismo río** arriba, **Río nuevo**, y «Lo aprendido». La historia queda plegada. **Victoria**: medalla (bronce / plata / oro), tres líneas de por qué y desbloqueo del Norte. El Norte está con candado hasta ganar la Justina.
+- **Tiempo real / pausa**: indicador de la cabecera y marco ámbar mientras el reloj está detenido. Un solo cartel arriba (aviso crítico, o motivo de pausa, o guía) y un solo cartel transitorio abajo.
+- **Feedback**: cuenta regresiva «¡DESCARGA n!» sobre el buque en los últimos 4 s, destello y sacudida con cada descarga, tropiezo y contraataque, pausa automática al tropezar un grupo, al dispersarse uno o cuando el vado cede, y sonidos cortos distintos (vado, descarga, tropiezo, derrota).
+- Panel derecho limpio: objetivo, captura, vados, barras; munición, avisos y estado del río quedan en «Detalles».
+- Progreso (`user://justina_progress.json`): río fijo hasta ganar, diario, intentos, medalla y candado. Las pruebas fijan `forced_seed`.

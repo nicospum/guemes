@@ -205,6 +205,197 @@ func _check_real_size() -> void:
 		notes["limitacion"] = "El monitor/SO no permitio una captura de %dx%d (se obtuvo %dx%d)." % [want_size.x, want_size.y, last_shot_size.x, last_shot_size.y]
 	check(real or allow_clip, "Captura a la resolucion pedida %s (obtenida %s)" % [str(want_size), str(last_shot_size)])
 
+func _modal_buttons() -> Array:
+	return game.modal.find_children("*", "Button", true, false) if is_instance_valid(game.modal) else []
+
+func _modal_text_all() -> String:
+	var t := ""
+	if is_instance_valid(game.modal):
+		for l in game.modal.find_children("*", "RichTextLabel", true, false):
+			t += str(l.text) + "\n"
+		for l in game.modal.find_children("*", "Label", true, false):
+			t += str(l.text) + "\n"
+		for b in game.modal.find_children("*", "Button", true, false):
+			t += str(b.text) + "\n"
+	return t
+
+func _inside_scroll(n: Node) -> bool:
+	var p := n.get_parent()
+	while p != null:
+		if p is ScrollContainer:
+			return true
+		p = p.get_parent()
+	return false
+
+func _modal_fits() -> bool:
+	return is_instance_valid(game.modal) and Rect2(Vector2.ZERO, root.get_visible_rect().size).encloses((game.modal.get_child(1) as Control).get_global_rect())
+
+func _defeat_screen_checks() -> void:
+	## Ronda de diversion R1 (ui_feel): parte que ensena, reintento rapido con el mismo rio, diario, candado del Norte, menu de pausa.
+	var view := Rect2(Vector2.ZERO, root.get_visible_rect().size)
+	var all_txt := _modal_text_all()
+	check(game.rules.state.status == "defeat", "R1: el intento de prueba termino en derrota (%s)" % str(game.rules.state.status))
+	check(all_txt.find("Reintentar") >= 0 and all_txt.find("Probá esto") >= 0 and all_txt.find("LO APRENDIDO") >= 0, "R1: el parte de derrota tiene causa, consejo, reintentar y lo aprendido")
+	check(all_txt.find("campaña del norte") < 0 and all_txt.find("Ir a Sostener el Norte") < 0, "R1: la derrota nunca ofrece ir al Norte")
+	var retry_b: Button = null
+	for b in _modal_buttons():
+		if str(b.text).begins_with("Reintentar"):
+			retry_b = b
+	check(retry_b != null and retry_b.is_visible_in_tree() and view.encloses(retry_b.get_global_rect()), "R1: «Reintentar» es visible sin scroll (%s)" % (str(retry_b.get_global_rect()) if retry_b != null else "no existe"))
+	check(retry_b != null and not _inside_scroll(retry_b), "R1: «Reintentar» no queda dentro de un area desplazable")
+	for jg in game.JARGON_BLACKLIST:
+		check(all_txt.find(jg) < 0, "R1: el parte de derrota no usa la jerga «%s»" % jg)
+	check(_modal_fits(), "R1: el parte de derrota entra en pantalla")
+	await _shot("justina-derrota")
+	check(int(game.progress.intentos) >= 1 and int(game.progress.derrotas_seguidas) >= 1, "R1: el intento perdido queda contado en el progreso")
+	check(not game.progress.diario.is_empty(), "R1: el diario anoto algo del intento (%d entradas)" % game.progress.diario.size())
+	for k in game.DEFEAT_TEXT:
+		var dt: Dictionary = game.DEFEAT_TEXT[k]
+		check(str(dt.cause).length() <= 140 and str(dt.advice).length() > 10, "R1: la causa «%s» tiene texto <= 140 caracteres y consejo" % k)
+		for jg in game.JARGON_BLACKLIST:
+			check(str(dt.cause).find(jg) < 0 and str(dt.advice).find(jg) < 0, "R1: la causa «%s» no usa la jerga «%s»" % [k, jg])
+	# El diario sobrevive a cerrar y abrir el juego
+	var n_diario: int = game.progress.diario.size()
+	game._progress_load()
+	check(game.progress.diario.size() == n_diario and int(game.progress.intentos) >= 1, "R1: el progreso (diario, intentos) sobrevive a cerrar y abrir (%d entradas)" % n_diario)
+	game._diary_dialog()
+	await _frames(6)
+	await _shot("justina-diario")
+	check(_modal_text_all().find("Todavía no anotaste") >= 0 or _modal_text_all().find("anotad") >= 0 or n_diario > 0, "R1: el diario se abre y lista lo anotado")
+	check(_modal_fits(), "R1: el diario entra en pantalla")
+	game._close_modal()
+	# Reintento con el mismo rio (semilla guardada); Rio nuevo cambia la semilla
+	game.forced_seed = -1
+	game.progress.seed = -1
+	game._start_game("justine")
+	await _frames(4)
+	var seed_a: int = int(game.rules.state.seed)
+	check(seed_a == int(game.progress.seed) and seed_a >= 0, "R1: el rio guardado en el progreso es el que se juega")
+	game._close_modal()
+	for i in range(3):
+		game._retry(false)
+		await _frames(2)
+		check(int(game.rules.state.seed) == seed_a, "R1: reintentar %d mantiene el mismo rio" % (i + 1))
+	var t0 := Time.get_ticks_msec()
+	game._retry(false)
+	await _frames(2)
+	var retry_ms := Time.get_ticks_msec() - t0
+	notes["reintento_ms"] = retry_ms
+	check(retry_ms <= 3000, "R1: del clic en Reintentar al primer cuadro jugable pasan <= 3 s (%d ms)" % retry_ms)
+	game._retry(true)
+	await _frames(2)
+	check(int(game.rules.state.seed) != seed_a and game.progress.diario.is_empty(), "R1: «Río nuevo» cambia el rio y vacia el diario")
+	# Intento nuevo con diario: las marcas «anotado» se dibujan solo si falta confirmar
+	game.progress.diario = [{"id": "pozo:pozo_central", "kind": "pozo", "text": "Pozo del banco central: te hizo tropezar 2 veces.", "pos": [345, 264], "radius": 11.0}, {"id": "vado:vado_sur", "kind": "vado", "text": "Vado de la ribera (sur): reconocido.", "pos": [305, 403], "radius": 10.0}]
+	game.progress.intentos = 2
+	game.progress.derrotas_seguidas = 2
+	game._progress_save()
+	game._close_modal()
+	game.camera_target = Vector3(300, 0, 300)
+	game.camera_distance = 160.0
+	game._apply_camera()
+	await _frames(8)
+	await _shot("justina-diario-marcas")
+	game._intro_card()
+	await _frames(4)
+	check(_modal_text_all().find("Intento 3") >= 0 and _modal_text_all().find("Pista") >= 0, "R1: tras dos derrotas, la tarjeta inicial muestra el intento y una pista del diario")
+	await _shot("justina-tarjeta-intento3")
+	game._close_modal()
+	game._reset_camera_j()
+	game._apply_camera()
+	# Una sola cosa por vez: los carteles menores no pisan a uno importante
+	game._toast("⚠ importante", 4.0, true, 2)
+	game._toast("menor", 2.0, true, 0)
+	check(game.toast_label.text.find("importante") >= 0, "R1: un cartel menor no pisa a uno importante")
+	game._toast("otro importante", 4.0, true, 2)
+	check(game.toast_label.text == "otro importante", "R1: un cartel nuevo reemplaza al anterior (uno solo a la vez)")
+	game.toast_timer = 0.0
+	# Detalle plegado: el panel derecho abre limpio
+	check(not game.details_open and not game.res_label.visible and not game.tide_label.visible and not game.risk_label.visible, "R1: el detalle (municion, avisos, rio) arranca plegado")
+	game._toggle_details()
+	await _frames(2)
+	check(game.res_label.visible and game.res_label.text.find("Munición") >= 0, "R1: «Detalles» despliega la munición y los avisos")
+	var jtxt: String = game.res_label.text + game.goal_label.text + game.info_label.text + game.left_foot.text + game.tutorial_label.text
+	for bad in ["Balizas", "Orden de avance", "Señales de Liniers", "pólvora de reserva"]:
+		check(jtxt.find(bad) < 0, "R1: el panel no usa la jerga «%s»" % bad)
+	await _shot("justina-detalles")
+	game._toggle_details()
+	# La botonera principal no trae la accion peligrosa; el menu de pausa la separa y pide confirmar
+	await _key(KEY_ESCAPE)
+	await _frames(4)
+	var pm := _modal_text_all()
+	check(is_instance_valid(game.modal) and pm.find("Abandonar") >= 0 and pm.find("ACCIONES QUE CORTAN EL INTENTO") >= 0, "R1: Esc abre el menú de pausa con las acciones que cortan el intento aparte")
+	await _shot("justina-menu-pausa")
+	check(_modal_fits(), "R1: el menú de pausa entra en pantalla")
+	var ab := _button("Abandonar")
+	check(ab != null, "R1: el menú de pausa ofrece abandonar")
+	if ab != null:
+		await _click(ab.get_global_rect().get_center())
+		await _frames(4)
+		check(is_instance_valid(game.modal) and game.rules.state.status == "playing" and _modal_text_all().find("Sí, terminar la partida") >= 0, "R1: abandonar pide una segunda confirmación y no termina solo")
+	game._close_modal()
+	# Cuenta regresiva del buque sobre el propio buque
+	game.settings.tutorial = true
+	game.tut_step = 0
+	game.rules.state.next_volley = float(game.rules.state.elapsed) + 3.2
+	game.paused = false
+	await _frames(14)
+	await _shot("justina-descarga-aviso")
+	game.paused = true
+	game._update_hud()
+	check(game.paused and game.mode_label.text.find("PAUSA") >= 0, "R1: el indicador marca la pausa")
+	await _frames(4)
+	await _shot("justina-pausa-marco")
+	# Medallas alcanzables y candado del Norte
+	var ra := {"loss_total_pct": 62.0, "elapsed": 700.0}
+	var rb := {"loss_total_pct": 45.0, "elapsed": 700.0}
+	var rc := {"loss_total_pct": 30.0, "elapsed": 600.0}
+	game.rules.state.fords_found = []
+	check(game._medal_for(ra) == "bronce", "R1: sin vado reconocido y con muchas bajas la medalla es de bronce")
+	game.rules.state.fords_found = ["vado_buque"]
+	check(game._medal_for(rb) == "plata", "R1: con vado reconocido y bajas < 55 % la medalla es de plata")
+	check(game._medal_for(rc) == "oro", "R1: con bajas < 40 % y antes de las 11:00 la medalla es de oro")
+	game.rules.state.fords_found = []
+	game.progress.justina_ganada = false
+	game._menu()
+	await _frames(6)
+	var nb := _button("SOSTENER EL NORTE")
+	check(nb != null and nb.disabled and nb.text.find("Ganá la Justina para abrirlo") >= 0, "R1: perfil nuevo: el Norte está con candado y dice cómo abrirlo")
+	await _shot("menu-norte-bloqueado")
+	game.progress.justina_ganada = true
+	game._menu()
+	await _frames(6)
+	nb = _button("SOSTENER EL NORTE")
+	check(nb != null and not nb.disabled, "R1: tras ganar, el Norte queda habilitado")
+	game.forced_seed = 1806
+	game.progress.justina_ganada = false
+	game._progress_save()
+	game._start_game("justine")
+	await _frames(10)
+	game._close_modal()
+	# Victoria simulada para ver la pantalla de medalla
+	game.settings.auto_pause = false
+	game.rules.state.fords_found = ["vado_buque"]
+	game.rules.state.status = "victory"
+	game.rules.state.reason = "Buque capturado"
+	game.rules.state.defeat_cause = ""
+	game.rules.state.capture = 100.0
+	game.rules.state.elapsed = 640.0
+	game.outcome_shown = false
+	game.attempt_logged = false
+	game._outcome_dialog()
+	await _frames(8)
+	var vt := _modal_text_all()
+	check(vt.find("MEDALLA DE") >= 0 and vt.find("Se desbloqueó: Sostener el Norte") >= 0 and vt.find("Ir a Sostener el Norte") >= 0, "R1: la victoria muestra medalla, desbloqueo y el paso al Norte")
+	check(bool(game.progress.justina_ganada), "R1: ganar fija justina_ganada en el progreso")
+	await _shot("justina-victoria")
+	check(_modal_fits(), "R1: la pantalla de victoria entra en pantalla")
+	game._close_modal()
+	game.forced_seed = 1806
+	game._start_game("justine")
+	await _frames(10)
+	game._close_modal()
+
 func _run() -> void:
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(out_dir))
 	game = (load("res://scenes/main.tscn") as PackedScene).instantiate()
@@ -237,7 +428,18 @@ func _run() -> void:
 	game.forced_seed=1806
 	game._start_game("justine")
 	await _frames(30)
-	check(is_instance_valid(game.modal), "Justina: el briefing se muestra al empezar")
+	check(is_instance_valid(game.modal), "Justina: la tarjeta inicial se muestra al empezar")
+	await _shot("justina-tarjeta-inicial")
+	var card_txt := ""
+	for l in game.modal.find_children("*", "RichTextLabel", true, false):
+		card_txt += str(l.text) + " "
+	check(card_txt.find("Objetivo") >= 0 and card_txt.find("Perder no es grave") >= 0 and card_txt.find("mismo río") >= 0, "R1: la tarjeta inicial dice el objetivo y que perder no es grave")
+	check(game.find_children("*", "Button", true, false).any(func(c): return str(c.text) == "Empezar"), "R1: la tarjeta inicial tiene «Empezar» como boton principal")
+	check(game.find_children("*", "Button", true, false).any(func(c): return str(c.text) == "Saltar tutorial") and game.find_children("*", "Button", true, false).any(func(c): return str(c.text) == "Cómo se juega"), "R1: la tarjeta ofrece saltar el tutorial y la ayuda completa")
+	check(card_txt.length() < 700, "R1: la tarjeta inicial es corta (%d caracteres)" % card_txt.length())
+	check(Rect2(Vector2.ZERO, root.get_visible_rect().size).encloses((game.modal.get_child(1) as Control).get_global_rect()), "R1: la tarjeta inicial entra en pantalla")
+	game._briefing_dialog()
+	await _frames(6)
 	await _shot("justina-briefing")
 	check(game.find_children("*", "Button", true, false).any(func(c): return str(c.text).begins_with("Jugar")), "R5: el briefing tiene «Jugar» como boton principal")
 	check(game.find_children("*", "Button", true, false).any(func(c): return str(c.text) == "Jugar (empieza en pausa)"), "R6: el boton Jugar aclara que la partida empieza en pausa")
@@ -270,9 +472,9 @@ func _run() -> void:
 	var free_min := 60.0 if root.get_visible_rect().size.y >= 800.0 else 40.0
 	check(float(notes["justina_free_con_ayuda"].free_pct) >= free_min, "Justina: la interfaz deja libre al menos %s %% de la vista (libre %s %%)" % [str(free_min), str(notes["justina_free_con_ayuda"].free_pct)])
 	# Tiempo real con pausa, evidente desde el primer cuadro
-	check(game.mode_label.text.find("PAUSA") >= 0 and game.pause_banner.visible and game.pause_banner.text.find("tiempo detenido") >= 0, "Justina: la pausa se anuncia (indicador y cartel)")
+	check(game.mode_label.text.find("PAUSA") >= 0 and game.hint_panel.visible and game.tutorial_label.text.find("Espacio") >= 0 and not game.pause_banner.visible, "Justina: la pausa se anuncia (indicador) y la guia dice como arrancar el reloj, sin cartel duplicado")
 	check(game.roster_buttons.size() == 5 and game.roster_panel.is_visible_in_tree(), "Justina: el panel lateral muestra las cinco agrupaciones")
-	check(game.hint_panel.visible and game.tutorial_label.text.begins_with("1/6"), "Justina: el tutorial arranca en el paso 1/6")
+	check(game.hint_panel.visible and game.tutorial_label.text.begins_with("1/4"), "Justina: el tutorial arranca en el paso 1/4")
 	check(game.moral_label.text.find("Moral") >= 0 and game.info_label.text.find("Captura del buque 0") >= 0, "Justina: captura y moral van rotuladas por separado")
 	check(game.roster_buttons["guemes"].text.find("Güemes") >= 0 and game.roster_buttons["guemes"].text.find("◆") >= 0, "Justina: la ficha de Güemes lleva su nombre y la marca de tradicion")
 	game.hover_info = {"kind": "route", "ok": false, "text": "x", "risk": "alto", "point": Vector3.ZERO}
@@ -461,9 +663,9 @@ func _run() -> void:
 	# Sin ningun grupo abordando, el contraataque avisa pero NO pausa y dice que hacer.
 	check(not game.paused and game.alert_panel.visible and game.alert_label.text.find("Ningún grupo aborda") >= 0, "Justina: contraataque sin grupo abordando no pausa y explica la accion util")
 	check(game.action_buttons.has("repel") and not game.action_buttons["repel"].visible, "Justina: Rechazar no se muestra si nadie aborda")
-	game.tut_step = 5
+	game.tut_step = 4
 	game.settings.tutorial = true
-	check(game._tutorial_j().is_empty() or game.rules.state.counter.active, "Justina: el paso 6/6 del tutorial no aparece sin abordaje")
+	check(game._tutorial_j().is_empty() or game.rules.state.counter.active, "Justina: el paso de abordaje del tutorial no aparece sin abordaje")
 	var boarder: Dictionary = game.rules.get_unit("guemes")
 	var stage_backup = boarder.stage
 	boarder.stage = "boarding"
@@ -475,6 +677,7 @@ func _run() -> void:
 	check(not game.hint_panel.visible, "Justina: el tutorial se oculta mientras hay un aviso critico")
 	check(str(game.reason_label.text).find("tutorial de arriba") < 0, "R7: no se manda a mirar un tutorial que no esta visible")
 	check(game.action_buttons["retreat_all"].tooltip_text.find("PELIGRO") >= 0, "R7: la retirada general lleva aviso de peligro")
+	check(not game.action_buttons["retreat_all"].visible, "R1: la retirada general no esta en la botonera principal")
 	check(game.top_stack.get_global_rect().end.x <= root.get_visible_rect().size.x and game.top_stack.get_global_rect().position.x >= 0.0, "R7: la pila central de avisos entra a lo ancho")
 	_justina_layout("Justina aviso")
 	await _shot("justina-aviso-contraataque")
@@ -516,6 +719,7 @@ func _run() -> void:
 	await _shot("justina-parte")
 	check(game.rules.state.status != "playing" and is_instance_valid(game.modal), "El parte de campaña aparece al terminar")
 	_justina_layout("Justina parte")
+	await _defeat_screen_checks()
 	game._close_modal()
 
 	# Reinicio con R y confirmacion

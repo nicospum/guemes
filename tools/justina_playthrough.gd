@@ -448,6 +448,7 @@ func _play_ui() -> Dictionary:
 	await process_frame
 	game.settings.auto_pause = false  # el guion avanza el tiempo por su cuenta y no espera la reanudacion manual
 	game.jev.force_local = true
+	game.forced_seed = ui_seed  # mundo fijo (el progreso guardado manda en el juego real, no en la prueba)
 	ui_log = []
 	clicks = 0
 	await _click_at(_find_btn("EL RÍO").get_global_rect().get_center())
@@ -455,8 +456,7 @@ func _play_ui() -> Dictionary:
 		await process_frame
 	var r = game.rules
 	if is_instance_valid(game.modal):
-		await _press("Ver el despliegue", "leer la ayuda y abrir el despliegue previo")
-		await _press("Empezar a ordenar", "cerrar el despliegue previo (sigue en pausa)")
+		await _press("Empezar", "empezar: cerrar la tarjeta inicial (sigue en pausa)")
 	mem = {}
 	if ui_seed != 1806:
 		# Otra semilla (fondo oculto distinto) con la escena ya armada; toda la partida sigue siendo por clics y teclas.
@@ -577,7 +577,7 @@ func _ui_step(r, t: float) -> void:
 	var want_signal: bool = (t >= 180.0 and int(mem.get("sig_n", 0)) == 0) or (t >= 330.0 and mem.has("probes_done") and not bool(st.advance_authorized))
 	if want_signal and not bool(st.advance_authorized) and r.get_unit("guemes").stage == "ready" and int(st.signals_left) > 0 and t >= float(mem.get("sig_wait", 0.0)):
 		await _select_groups(["guemes"])
-		if await _press("Señalar a Liniers", "dar la orden de avance"):
+		if await _press("Pedir carga a Liniers", "pedir la carga a Liniers"):
 			mem.sig_n = int(mem.get("sig_n", 0)) + 1
 			mem.sig_wait = t + 20.0
 		return
