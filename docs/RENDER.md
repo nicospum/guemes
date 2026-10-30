@@ -254,3 +254,19 @@ Tests con APPDATA aislado: `test_rules` 547/0, `test_integration` 252/0. `benchm
 - Buque: escala minima en pantalla x1,5 (hasta x4,2 lejos). Unidades: guion y anillo mayores a distancia, figuras minimas hasta x4,4 y halo relleno del color del bando bajo cada grupo.
 - Plaza de Toros/fuerte: huella visual 62 % del radio, muro tosca (`c3b690`) y teja desaturada (`77604a`).
 - Medicion: `benchmark.py` Justina baja 1,81 ms, media 2,51 ms (cuadro medio, < 3 ms). `test_integration`: 260 checks, 0 fallas. Capturas antes/despues en `evidence/justina-ui/diversion_r1/` (`antes_*` / `r2_*`). Sin verificar: Compatibility, barranca (no se toco), estandartes del paquete.
+
+## Justina diversion ronda 2: aspecto (pista visual)
+Directriz: el juego manda sobre la fidelidad; el aspecto debe leerse y dar gusto. Solo `world_view.gd`, `shaders/` y este documento. Sin cambios en reglas ni JSON.
+
+- **Agua** (`water_rio_plata.gdshader`): normales mas pronunciadas (k 2,8 -> 4,6), sombreado de facetas con el sol (lados claros/oscuros), gradiente de profundidad marcado (ocre-limo cerca de la costa -> verde botella-pardo al canal; usa solo el perfil BASE `bed_profile`, no delata el fondo oculto) y borreguitos cortos de espuma. Antes: lamina plana verde-gris.
+- **Fichas de lectura** (`shaders/justina_token.gdshader`, `_token_j`): cada grupo tiene una ficha de TAMAÑO FIJO en pantalla (40 px, 26 px exploradores) con disco del color del bando y glifo por rol (rombo caballeria, triangulo voluntarios, rombo hueco reserva, punto explorador), que aparece al alejar la camara (50-110 m) y se dibuja debajo de los carteles. El buque tiene una ficha propia (56 px, aro que late) que aparece entre 260 y 620 m. Son simbolos del juego, no estandartes historicos.
+- **Barro/barranca** (`terrain_justina_r4.gdshader`): la transicion barro-arena depende poco de la altura (se acabaron los remolinos y anillos concentricos sobre el banco); menos contraste de barro y de vetas; pared de la barranca mas oscura que la meseta.
+- **Fuerte** (`_bullring_j`): huella 62 % -> 50 % del radio, muros con 4 tonos, zocalo desgastado, contrafuertes en los vertices, aspilleras y techo de teja rojiza del paquete.
+- **Rotulos de mundo**: contorno oscuro mas grueso (legibles sobre agua clara); la cita de Gillespie se acorto a "Hasta aqui batia el buque (Gillespie, no simulado)".
+- **Medicion**: `benchmark.py --scenarios justine --repeat 3 --renderer forward_plus --max-frame-ms 3`: baja 1,84 ms, media 2,37 ms de cuadro medio (limite 3 ms: OK). `test_rules` 638 comprobaciones 0 fallas; `test_integration` ok, 0 errores de shader.
+- **Evidencia**: `evidence/justina-ui/diversion_r2/antes_*` (rama main) y `r2_*` (esta rama), 27 vistas, ventana real 1440x900, Forward+.
+
+### Pendiente para la integracion (fuera de mi pista)
+- Los carteles-ficha (`_draw_chips_j` en `main.gd`) siguen tapando las fichas cuando los grupos estan juntos: reducir los no seleccionados a una barra fina (o mostrarlos solo al seleccionar/pasar el mouse) hara que las fichas de 3D se lean solas.
+- La veta de madera del casco del buque esta estirada (mapeo UV del GLB); no se toco el modelo.
+- Compatibility no verificado; sin captura a 1280x720 en esta ronda (vis_shots usa 1440x900).

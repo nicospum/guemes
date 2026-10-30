@@ -538,7 +538,7 @@ func _world_label(text_value:String,pos:Vector3,color:Color,font_size=32,parent:
  var label=Label3D.new()
  label.text=text_value;label.position=pos
  label.font_size=font_size;label.pixel_size=LABEL_PIXEL_SIZE;label.fixed_size=true
- label.modulate=color;label.outline_size=8;label.outline_modulate=Color(0.07,0.10,0.09,0.9)
+ label.modulate=color;label.outline_size=14;label.outline_modulate=Color(0.05,0.07,0.07,0.96)
  label.billboard=BaseMaterial3D.BILLBOARD_ENABLED
  label.no_depth_test=true
  parent.add_child(label)
@@ -842,7 +842,7 @@ func _inst_r(kind:String,pos:Vector3,size_v:Vector3,yaw:float,color:Color,tilt:V
 
 func _label_j(text_value:String,pos:Vector3,color:Color,font_size:int,parent:Node3D)->Label3D:
  var label=_world_label(text_value,pos,color,font_size,parent)
- label.outline_size=10
+ label.outline_size=16
  return label
 
 # ---------------------------------------------------------------- construccion
@@ -1182,7 +1182,7 @@ func _landmarks_j():
     _inst_r("box",Vector3(mx,_h(mx,mz)+wh*0.5-0.1,mz),Vector3(ln+0.05 if along_x else 0.5,wh,0.5 if along_x else ln+0.05),0.0,Color("bdb096"))
 
 func _bullring_j(lm:Dictionary):
- var c=Vector2(float(lm.x),float(lm.z));var r=float(lm.get("radius_m",24.0))*0.62   # R-div1: huella visual 62 % (el fuerte dominaba la escena)
+ var c=Vector2(float(lm.x),float(lm.z));var r=float(lm.get("radius_m",24.0))*0.50   # R-div1: huella visual 62 % (el fuerte dominaba la escena)
  var y0=_h(c.x,c.y)
  # Plaza de Toros (Boneo 1801, Vidal 1820 lamina 05; paquete F01): exterior OCTOGONAL (r = radio de vertices), ruedo circular
  # independiente, muro encalado, techo de teja en el anillo de gradas y 4 portales (Pillado: cuatro puertas, orientacion desconocida).
@@ -1204,8 +1204,20 @@ func _bullring_j(lm:Dictionary):
     _inst_r("box",Vector3(q.x,y0+wall_h*0.5,q.y),Vector3(side*0.32,wall_h,2.2),yaw,Color("c3b690"))
    _inst_r("box",Vector3(pw.x,y0+wall_h*0.9,pw.z),Vector3(side*0.36,wall_h*0.22,2.2),yaw,Color("b8aa86"))
   else:
-   _inst_r("box",Vector3(pw.x,y0+wall_h*0.5,pw.z),Vector3(side,wall_h,2.2),yaw,Color("c3b690"))
-  _inst_r("box",Vector3(pw.x,y0+wall_h+0.3,pw.z),Vector3(side*1.02,0.6,3.0),yaw,Color("77604a"))
+   var wc=[Color("cdbf9c"),Color("c4b58f"),Color("d3c7a8"),Color("bfae88")][i%4]
+   _inst_r("box",Vector3(pw.x,y0+wall_h*0.5,pw.z),Vector3(side,wall_h,2.2),yaw,wc)
+   # Aspilleras (visual R2): troneras oscuras en la cara exterior para que el muro no sea un bloque liso.
+   var tg=Vector2(-sin(a),cos(a))
+   for k2 in [-0.28,0.0,0.28]:
+    var qa=Vector2(pw.x,pw.z)+tg*side*k2+Vector2(cos(a),sin(a))*1.15
+    _inst_r("box",Vector3(qa.x,y0+wall_h*0.62,qa.y),Vector3(0.5,0.95,0.25),yaw,Color("3d3027"))
+  # Zocalo desgastado (barro y humedad) y techo de teja rojiza del paquete.
+  var pb=Vector3(c.x+cos(a)*(apo+0.25),0,c.y+sin(a)*(apo+0.25))
+  _inst_r("box",Vector3(pb.x,y0+0.55,pb.z),Vector3(side*1.02,1.1,2.6),yaw,Color("9a8a6a"))
+  # Contrafuerte en cada vertice.
+  var av=TAU*float(i)/8.0
+  _inst_r("box",Vector3(c.x+cos(av)*r,y0+wall_h*0.52,c.y+sin(av)*r),Vector3(1.3,wall_h*1.04,2.8),-av-PI/2.0,Color("b2a37f"))
+  _inst_r("box",Vector3(pw.x,y0+wall_h+0.3,pw.z),Vector3(side*1.02,0.6,3.0),yaw,[Color("8e5a47"),Color("7e5b48"),Color("9a6650")][i%3])
   # gradas de madera (anillo interior, mas bajo)
   var pg=Vector3(c.x+cos(a)*(apo-r*0.16),0,c.y+sin(a)*(apo-r*0.16))
   _inst_r("box",Vector3(pg.x,y0+wall_h*0.32,pg.z),Vector3(side*0.86,wall_h*0.64,r*0.22),yaw,Color("9a8160"))
@@ -1734,7 +1746,7 @@ func _exposure_j():
   var cmi=MeshInstance3D.new();cmi.name="CoberturaGillespie";cmi.mesh=cm;cmi.material_override=_overlay_mat();cmi.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
   cmi.custom_aabb=AABB(Vector3(-crng,-1,-crng),Vector3(crng*2,2,crng*2))
   exposure_root.add_child(cmi)
-  var lc=_label_j("Hasta donde batía el buque según Gillespie p. 94 (no simulado, diseño)",Vector3(0,0.8,-crng),Color("d9b8a6"),18,exposure_root)
+  var lc=_label_j("Hasta aquí batía el buque (Gillespie, no simulado)",Vector3(0,0.8,-crng),Color("d9b8a6"),18,exposure_root)
   lc.outline_size=8
  var sx=float(M.ship.x);var sz=float(M.ship.z)
  exposure_root.position=Vector3(sx,level_m+0.18,sz)

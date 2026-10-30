@@ -57,8 +57,9 @@ void fragment(){
 	// Barranca: tosca y tierra con estratos horizontales, mas clara a media altura.
 	float strata = j_noise(vec2(p.y * 0.30 + p.x * 0.05, h * 2.2));
 	float cliff = smoothstep(0.05, 0.40, slope);
-	vec3 tosca = mix(vec3(0.56, 0.45, 0.30), vec3(0.68, 0.58, 0.42), strata);
-	c = mix(c, tosca, cliff * 0.80);
+	vec3 tosca = mix(vec3(0.46, 0.34, 0.21), vec3(0.66, 0.54, 0.38), strata);
+	c = mix(c, tosca, cliff * 0.88);
+	c *= 1.0 - 0.18 * smoothstep(0.30, 0.70, slope);   // escarpe: la pared de la barranca queda mas oscura que la meseta
 
 	// Playa: arena con rizado alargado, grava y juncal arriba de la linea de agua alta.
 	float beach = 1.0 - veg;
