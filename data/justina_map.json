@@ -174,7 +174,9 @@
       "evaluation": "no implementada: rompe el riesgo de ahogo del abordaje y exige rehacer el balance; documentada",
       "tag": "diseno",
       "note": "Variante alternativa del paquete (D4/J): banco localmente descubierto con canal aún inundado, MÁS cercana a 'left dry' de Gillespie. Ronda 2 la evaluó y NO la implementa: exigiría subir el vado del buque a ≥ 0 m (hoy -1,0 m), con lo que el ahogo por subida del río y el costo de vadear desaparecen del abordaje y habría que rehacer el balance (la matriz de 18 estrategias es frágil). No está en esta versión; queda como opción de dificultad futura; los parámetros que cambiarían son fords.vado_buque.top_m y movement.deep_water. Ver DISENO_JUSTINA 2.4 y pendientes."
-    }
+    },
+    "hud_label": "Nivel de juego (diseño)",
+    "hud_note": "El nivel del río en la cabecera (p. ej. 1,65 m) es un valor del juego, no una medición del 12 de agosto de 1806. Rotularlo 'Nivel de juego (diseño)', nunca junto a la fecha como si fuera dato."
   },
   "movement": {
     "tag": "diseno",
@@ -1008,8 +1010,8 @@
       "id": "bateria_abascal",
       "marker_style": "hipotesis",
       "marker_suffix": " (diseño)",
-      "marker_note": "Emplazamiento de diseño: dibujar punteado y con el sufijo. Son DOS piezas; si se dibuja otra cifra, rotularla de diseño.",
-      "name": "Piezas de a 18 del Retiro",
+      "marker_note": "Emplazamiento de diseño: dibujar punteado y con el sufijo. Son DOS piezas; si se dibuja otra cifra, rotularla de diseño. El nombre ya lleva el sufijo.",
+      "name": "Piezas de a 18 del Retiro (diseño)",
       "type": "battery",
       "x": 135.1,
       "z": 176.0,
@@ -1063,8 +1065,8 @@
       "id": "alameda",
       "marker_style": "hipotesis",
       "marker_suffix": " (diseño)",
-      "marker_note": "Ubicación inventada o inferida para dar contexto al mapa: dibujar punteado y con el sufijo; no es un accidente documentado.",
-      "name": "Camino de la barranca (Alameda)",
+      "marker_note": "Ubicación inventada o inferida para dar contexto al mapa: dibujar punteado y con el sufijo; no es un accidente documentado. El nombre ya lleva el sufijo: no volver a agregarlo. Se llama \"camino\", no \"Alameda\": la Alameda documentada es la del frente central.",
+      "name": "Camino de la barranca (diseño)",
       "type": "road",
       "tag": "diseno",
       "source": "La Alameda es del frente central de la ciudad (paquete C: 'no extender una avenida ribereña uniforme hasta todo Retiro por analogía'). Aquí se muestra solo un TRAMO CORTO e irregular de camino sobre la barranca, sin arboleda regular, porque Obligado 1920 (secundaria) cuenta un mensajero de Liniers 'por la Alameda'. Trazado y existencia en Retiro: diseño.",
@@ -1109,8 +1111,8 @@
       "id": "puesto_liniers",
       "marker_style": "hipotesis",
       "marker_suffix": " (diseño)",
-      "marker_note": "Ubicación inventada o inferida para dar contexto al mapa: dibujar punteado y con el sufijo; no es un accidente documentado.",
-      "name": "Puesto de mando de Liniers",
+      "marker_note": "Ubicación inventada o inferida para dar contexto al mapa: dibujar punteado y con el sufijo; no es un accidente documentado. El nombre ya lleva el sufijo.",
+      "name": "Puesto de mando de Liniers (diseño)",
       "type": "command",
       "x": 152.4,
       "z": 345.0,
@@ -1134,7 +1136,7 @@
       "x": 760.0,
       "z": 120.0,
       "tag": "documentado",
-      "note": "rótulo de orientación; no afirma nada del episodio"
+      "note": "rótulo de orientación; el nombre del río es documentado, no afirma nada del episodio"
     },
     {
       "text": "Banco central",
@@ -1345,8 +1347,8 @@
       "x": 198.0,
       "z": 296.0,
       "strength": 60.0,
-      "tag": "reconstruccion",
-      "note": "La caballería que tomó el buque la nombra Gillespie (sin jefe); que fuera la de Pueyrredón es un relato posterior o tradición, sin cotejo del original (el paquete B/G2 dice «30, 50 o 60 jinetes: sin datos suficientes»). Cantidad, fuerza y composición: diseño. Identificador interno 'zavala' heredado, no se muestra.",
+      "tag": "tradicion",
+      "note": "La caballería que tomó el buque la nombra Gillespie (sin jefe); que fuera la de Pueyrredón es un relato posterior o tradición, sin cotejo del original (el paquete B/G2 dice «30, 50 o 60 jinetes: sin datos suficientes»). Rotulada con la afirmación más débil (tradición): el nombre de Pueyrredón no está cotejado. Cantidad, fuerza y composición: diseño. Identificador interno 'zavala' heredado, no se muestra.",
       "kit": "jinetes_pueyrredon",
       "public_id": "reserva_pueyrredon"
     }
@@ -1575,7 +1577,7 @@
     "dry_note": "Gillespie dice que el buque quedó «en seco» (left dry). El juego, por diseño, deja agua alrededor del casco (vado de ~1 m) para que exista un paso jugable y un riesgo si el río sube. La variante con el banco expuesto, más cercana al testimonio, no está en esta versión.",
     "map_decisions": {
       "tag": "diseno",
-      "note": "Decisiones de diseño del mapa para mostrar en 'Fuentes e historia' (Ronda 4). Cada una dice qué es dato y qué no.",
+      "note": "Decisiones de diseño del mapa para 'Fuentes e historia'. Cada una dice qué es dato y qué no.",
       "items": [
         {
           "id": "area_jugable",
@@ -1610,8 +1612,26 @@
         {
           "id": "alcance_fuego",
           "title": "Alcance del fuego del buque",
-          "text": "Gillespie (p. 94) dice que el buque batía playa y calles. En el juego el alcance es de 265 m, de diseño, y no llega a la playa alta ni a las calles. El anillo tenue de 420 m muestra hasta dónde batía según el testimonio, sin simularlo.",
+          "text": "Gillespie (p. 94) dice que el buque batía playa y calles. En el juego el alcance es de 265 m (diseño) y no llega a la playa alta ni a las calles. Un segundo anillo tenue de 420 m, si la vista lo dibuja, indica hasta dónde batía según el testimonio; no se simula.",
           "tag": "diseno"
+        },
+        {
+          "id": "area_reevaluada",
+          "title": "Área de 900 x 750 m: reevaluada y conciliada",
+          "text": "Se volvió a estudiar jugar los 750 m completos. Se mantiene 900 x 520 jugables más 115 m de contexto por lado (ciudad alta, barranca y ribera visibles pero sin reglas): los grupos parten a unos 200 m de la barranca y las dos rutas ya recorren todo el ancho útil; más superficie no agrega decisiones y alarga el tiempo muerto. Razón de balance, no histórica.",
+          "tag": "diseno"
+        },
+        {
+          "id": "banco_expuesto_variante",
+          "title": "Banco expuesto: variante no incluida",
+          "text": "El testimonio (Gillespie pp. 36-38: 'left dry', playa seca por un gran trecho) apoya un banco localmente expuesto. Se evaluó y no se incluye: el casco seco quitaría el riesgo de ahogo que da sentido a la marea. Queda como variante abierta.",
+          "tag": "diseno"
+        },
+        {
+          "id": "goleta_herrick",
+          "title": "Goleta de Herrick (contexto)",
+          "text": "Gillespie (p. 93) cuenta que una goleta británica cañoneó el campamento de Liniers días antes. Es la única mención de época de fuego naval contra ese campamento y se usa como contexto, no como regla.",
+          "tag": "documentado"
         }
       ]
     },
@@ -1619,7 +1639,20 @@
     "tradition_context": "La captura por caballería figura en una memoria de la expedición británica; la participación de Güemes procede de una tradición posterior cuya corroboración documental se discute.",
     "result_contrast": "Lo que acabás de jugar es una reconstrucción. Gillespie (1818, p. 94) cuenta que el buque fue «abordado y tomado por caballería» tras la bajada del río, y no nombra al jefe ni habla de una orden de Liniers. La orden a la caballería de Pueyrredón y Güemes como protagonista son tradición (Obligado, 1920; Luis Güemes, 1979), no un hecho probado: el juego las usa como licencia narrativa declarada.",
     "result_contrast_short": "Gillespie: «tomado por caballería», sin jefe ni orden. Güemes y la orden de Liniers: tradición (Obligado, 1920).",
-    "sources_detail": "Documentado en transcripción: lo que dice Gillespie (1818) y los planos de época. Tradición: Güemes al frente y la orden de Liniers (Obligado, 1920). Reconstrucción: lugar del varado, circo, barranca, cuarteles, bandera del circo y pabellón del buque. Diseño: fondo, bancos, vados, tiempos, fuerzas, alcance del fuego y cada cifra de las reglas. Fuentes pendientes de cotejo (Concha, 15 de agosto; oficio de Liniers; parte del 11 de agosto): se muestran como «parcial» y no se usan como prueba."
+    "sources_detail": "Documentado en transcripción: lo que dice Gillespie (1818) y los planos de época. Tradición: Güemes al frente y la orden de Liniers (Obligado, 1920). Reconstrucción: lugar del varado, circo, barranca, cuarteles, bandera del circo y pabellón del buque. Diseño: fondo, bancos, vados, tiempos, fuerzas, alcance del fuego y cada cifra de las reglas. Fuentes pendientes de cotejo (Concha, 15 de agosto; oficio de Liniers; parte del 11 de agosto): se muestran como «parcial» y no se usan como prueba.",
+    "fuentes_tab": {
+      "order": [
+        "briefing_long",
+        "map_decisions",
+        "sources_detail",
+        "historical_note",
+        "result_contrast"
+      ],
+      "omit": [
+        "briefing"
+      ],
+      "note": "R6: la pestaña Fuentes muestra briefing_long UNA vez y no repite 'briefing' ni la advertencia fija; map_decisions.items[] se muestra como lista (tag por ítem)."
+    }
   },
   "camera": {
     "initial_height_m": 90.0,
@@ -1711,7 +1744,42 @@
       11.2,
       15.3
     ],
-    "victory_minutes_note": "Ronda 5: con el daño del buque +6 % la central gana en 11,2-14,3 min (típico 12-12,4; antes 11,1-12,3) y la sur en 13,9-15,3. El objetivo real es 12-16 min con un borde blando: la condición «breve» (el río vuelve a subir desde 11:00) sigue siendo el único corte duro, por diseño. Las victorias de 11,2 min son la central apurada (central_hasty) en la semilla más favorable."
+    "victory_minutes_note": "Ronda 5: con el daño del buque +6 % la central gana en 11,2-14,3 min (típico 12-12,4; antes 11,1-12,3) y la sur en 13,9-15,3. El objetivo real es 12-16 min con un borde blando: la condición «breve» (el río vuelve a subir desde 11:00) sigue siendo el único corte duro, por diseño. Las victorias de 11,2 min son la central apurada (central_hasty) en la semilla más favorable.",
+    "measured_14_seeds": {
+      "seeds": [
+        101,
+        103,
+        107,
+        109,
+        113,
+        127,
+        131,
+        137,
+        139,
+        149,
+        151,
+        157,
+        163,
+        167
+      ],
+      "strategies": 18,
+      "total_wins": 77,
+      "max_win_share_pct": 17,
+      "routes": {
+        "central": 48,
+        "sur": 22,
+        "mixta": 7
+      },
+      "central_minutes": [
+        11.2,
+        12.7
+      ],
+      "south_minutes": [
+        14.0,
+        15.2
+      ],
+      "note": "Medido sin cambios de geometría ni reglas. La sur pierde en las semillas con río «breve» (113, 131, 137) por diseño. 40-60 % para una persona: sin playtest, no certificado."
+    }
   },
   "reference_images": [
     {
@@ -3323,7 +3391,7 @@
         "package": "variante alternativa",
         "game": "no está en esta versión",
         "state": "no implementado",
-        "reason": "evaluado en la Ronda 2: rompe el riesgo de ahogo"
+        "reason": "evaluado: quita el riesgo de ahogo; ver map_decisions.banco_expuesto_variante"
       },
       {
         "id": "nave",
@@ -3391,9 +3459,9 @@
       {
         "id": "paleta",
         "package": "lámina 04",
-        "game": "palette.package + mounts/riders",
-        "state": "adoptado",
-        "reason": "aproximaciones de diseño"
+        "game": "palette.package + terrain + house adoptados; mounts/riders: datos listos, retinte pendiente de la vista",
+        "state": "adaptado",
+        "reason": "mounts y riders no se aplican hasta que la vista los lea (no declarar como hecho)"
       },
       {
         "id": "acceso_cubierta",
@@ -3415,7 +3483,36 @@
         "game": "context.excluded_anachronisms",
         "state": "adoptado",
         "reason": ""
+      },
+      {
+        "id": "area_reevaluada",
+        "package": "900 x 750 m",
+        "game": "900 x 520 jugables + 115 m de contexto por lado",
+        "state": "adaptado",
+        "reason": "reevaluado: se mantiene por balance"
       }
     ]
+  },
+  "label_policy": {
+    "tag": "diseno",
+    "note": "R6: política de rotulado en pantalla. Todo hito, rótulo extra o grupo DEBE llevar 'tag'; si falta, mostrar como 'diseno' (nunca 'documentado'). Los hitos de diseño llevan el sufijo ya incluido en landmarks[].name; los de tradición reciben ' (tradición)' del código. Documentado y reconstrucción no llevan sufijo (el glifo y el color los distinguen).",
+    "default_tag": "diseno",
+    "suffix_in_name": [
+      "diseno"
+    ],
+    "suffix_added_by_code": {
+      "tradicion": " (tradición)"
+    },
+    "suffix_none": [
+      "documentado",
+      "reconstruccion"
+    ]
+  },
+  "gillespie_context_p93": {
+    "tag": "documentado",
+    "page": "p. 93",
+    "quote_short": "a small schooner, under Lieutenant Herrick",
+    "note": "Gillespie p. 93 (OCR): antes del 12, una goleta británica al mando del teniente Herrick, 'cerca de la playa', cañoneó el campamento de Liniers y lo obligó a mudarlo. Es la única mención de época de fuego naval británico contra ese campamento; es de los días 6-9 de agosto y de otra costa que la del Retiro. Se usa solo como contexto de la presión naval sobre la playa; NO sitúa las piezas de a 18 (que vienen del parte de Liniers del 11, segunda mano) ni prueba que la goleta Dolores fuera la contraparte.",
+    "used_in_rules": false
   }
 }

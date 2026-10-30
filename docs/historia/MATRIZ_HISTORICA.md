@@ -165,6 +165,20 @@ Correcciones a la matriz anterior tras reverificar Gillespie en el OCR local (`F
 **Pendientes (Ronda 5):** playtest humano; banco expuesto; fuente primaria de 1801; Gillespie en el escaneo; Concha 15-ago, oficio y parte de Liniers del 11-ago en original; Obligado 1920; AGN IX-11-5-1 e IX-26-7-7; TNA PC 1/3823; serie de viento y nivel del 12/8/1806; Santa Catalina sobre Boneo.
 
 
+## H. Ronda 6 (30 de octubre de 2026): mapa e historia
+
+| Afirmación o elemento | Fuente (qué se tomó de dónde) | Etiqueta | Cambio en esta ronda |
+| --- | --- | --- | --- |
+| Reserva de caballería «de Pueyrredón» | Gillespie solo dice «caballería» (pp. 36, 94); el nombre es relato posterior | **Tradición** (afirmación más débil) | Antes Reconstrucción; cantidad y composición siguen en Diseño |
+| Camino sobre la barranca | Ninguna; la Alameda documentada es la del frente central (paquete C) | **Diseño** | Se llama «Camino de la barranca (diseño)», ya no «Alameda»; el sufijo va en el nombre |
+| Goleta del teniente Herrick cañoneando el campamento de Liniers | Gillespie p. 93 (OCR) | **Documentado** (testimonio retrospectivo); relación con el Retiro y las piezas de a 18: sin datos | Hecho nuevo en `history.json` y `gillespie_context_p93`; no entra en las reglas |
+| Nivel del río del HUD (1,65 m) | Ninguna: valor de juego | **Diseño** | `tide.hud_label` = «Nivel de juego (diseño)» |
+| Banco expuesto (casco «left dry») | Gillespie pp. 36-38 | Variante más cercana al testimonio; **no incluida** | Se documenta por qué (quita el riesgo de ahogo) |
+| Aspecto: casas, circo, campo, perfil urbano | Vidal (c. 1817-20), Boneo 1801, Arrowsmith 1806, Gillespie | Reconstrucción / Diseño | Tabla completa en `PROCEDENCIA_VISUAL.md` |
+| Textos con notas de producción | — | — | Se quitan «Ronda N», rutas de docs y «el paquete» de lo que ve el jugador |
+
+**Pendientes (Ronda 6):** playtest humano (la tasa de 40-60 % sigue siendo de guiones); cotejo de Gillespie pp. 93-94-121 en el escaneo; fuente primaria de 1801; Concha 15-ago y oficio de Liniers; Obligado 1920; AGN IX-11-5-1 e IX-26-7-7; TNA PC 1/3823; retinte de caballos y jinetes y lectura de `cover_zone`, `marker_suffix` y `banners.*` por la vista (otra pista).
+
 ## Límites y compromisos de presentación
 
 - Los desenlaces alternativos son resultados de una partida, no nuevos hechos históricos.

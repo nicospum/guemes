@@ -104,7 +104,7 @@ func _test_map_and_terrain() -> void:
 	check(r.board_point() == Vector2(548, 262) and r.ship_position() == Vector2(580, 262), "board_point y ship_position salen del JSON")
 	check(r.state.schema_version == Rules.JUSTINE_SAVE_VERSION and r.state.map_id == "justina" and int(r.state.map_version) == int(m.map_version), "Estado inicial con schema 3 y versión de mapa")
 	check(r.state.units.size() == 3 and r.state.scouts.size() == 2 and int(r.state.ammo) == 12 and int(r.state.balizas) == 16 and _near(float(r.state.volunteers_pool), 60.0, 0.001), "Recursos y actores iniciales del JSON")
-	check(float(r.state.units[0].x) == 199.0 and str(r.state.units[0].tag) == "tradicion" and str(r.state.units[2].tag) == "reconstruccion", "Los grupos conservan su etiqueta de fuente (Güemes = tradición; la caballería de Pueyrredón, reconstrucción)")
+	check(float(r.state.units[0].x) == 199.0 and str(r.state.units[0].tag) == "tradicion" and str(r.state.units[2].tag) == "tradicion", "Los grupos conservan su etiqueta de fuente (Güemes y la caballería de Pueyrredón = tradición, la afirmación más débil)")
 	check(r.state.log[0].kind == "objective", "El primer evento es el objetivo")
 	var refs := [[548, 262, -1.0], [580, 262, -1.5], [345, 264, -1.9], [415, 290, -0.34], [330, 264, -0.25], [450, 376, -0.83], [314, 400, -0.9], [304, 350, -2.0]]
 	for ref in refs:
@@ -1052,6 +1052,27 @@ func _test_labels_and_save_trim() -> void:
 	check(str(m.ship.tag) == "reconstruccion" and str(m.ship.tag_parts.descripcion) == "documentado" and str(m.ship.tag_parts.lugar) == "reconstruccion", "La entidad 'ship' separa la descripción documentada del lugar reconstruido")
 	check(str(by_id.alameda.tag) == "diseno" and not bool(by_id.alameda.trees) and by_id.alameda.polyline.size() <= 5, "La Alameda es un tramo corto de camino sin arboleda regular y de Diseño (paquete C: no extender una avenida ribereña a todo Retiro)")
 	check(str(by_id.plaza_toros.tag_parts.existencia) == "documentado" and str(by_id.plaza_toros.tag) == "reconstruccion" and str(by_id.plaza_toros.tag_parts.medidas) == "diseno", "La Plaza de Toros: existencia Documentada (plano de 1801); posición Reconstrucción; medidas Diseño")
+	# R6: política de rotulado (todo hito lleva tag válido; los de diseño llevan el sufijo en el nombre; sin 'Alameda' como nombre visible)
+	var all_tags_ok := true
+	var suffix_ok := true
+	for lm in m.landmarks:
+		all_tags_ok = all_tags_ok and lm.has("tag") and m.source_tags.has(str(lm.tag))
+		if str(lm.tag) == "diseno":
+			suffix_ok = suffix_ok and str(lm.name).ends_with("(diseño)")
+	for e in m.labels_extra:
+		all_tags_ok = all_tags_ok and e.has("tag") and m.source_tags.has(str(e.tag))
+	for g in m.groups:
+		all_tags_ok = all_tags_ok and g.has("tag") and m.source_tags.has(str(g.tag))
+	check(all_tags_ok and str(m.label_policy.default_tag) == "diseno", "Todo hito, rótulo extra y grupo lleva una etiqueta de fuente válida; el valor por defecto es 'diseno'")
+	check(suffix_ok and not ("Alameda" in str(by_id.alameda.name)), "Los hitos de diseño llevan '(diseño)' en el nombre y el camino de la barranca no se llama 'Alameda'")
+	var grp := {}
+	for g in m.groups:
+		grp[str(g.id)] = g
+	check(str(grp.zavala.tag) == "tradicion", "La reserva de caballería de Pueyrredón se rotula con la afirmación más débil (tradición)")
+	check("diseño" in str(m.tide.hud_label).to_lower() and str(m.gillespie_context_p93.quote_short).find("Herrick") >= 0, "El nivel del río del HUD se rotula 'nivel de juego (diseño)' y consta la goleta de Herrick (Gillespie p. 93)")
+	var hf := FileAccess.open("res://data/history.json", FileAccess.READ)
+	var htxt := hf.get_as_text() if hf != null else ""
+	check(htxt.find("Herrick") >= 0 and htxt.find("Ronda ") < 0 and htxt.find("DISENO_JUSTINA") < 0, "history.json: consta Herrick y no filtra notas de producción (rondas, rutas de docs) al jugador")
 	var meaning := str(m.source_tags.documentado.meaning).to_lower()
 	check("transcripción" in meaning and "divulgativas no bastan" in meaning and "manuscrito" in meaning, "La definición de 'Documentado' que ve el jugador es la del proyecto (transcripción; las divulgativas no bastan)")
 	var note := str(m.time.note).to_lower()
