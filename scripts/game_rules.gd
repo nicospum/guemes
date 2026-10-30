@@ -261,7 +261,18 @@ func _roll_hidden(seed_value: int) -> Dictionary:
 			x = (x * 1103515245 + 12345) % 2147483648
 		var variants: Array = grp.variants
 		picks[str(grp.id)] = str(variants[((x >> 13) ^ (x >> 21)) % variants.size()])
-	return {"picks": picks}
+	## Ronda 3: condiciones del río de la partida (viento) sorteadas DESPUÉS de los grupos de hoyos, así los fondos de cada semilla no cambian.
+	var tv: Array = map_data().get("time", {}).get("variants", [])
+	var tide_id := "normal"
+	if not tv.is_empty():
+		var slots: Array = []
+		for v in tv:
+			for _w in range(maxi(1, int(v.get("weight", 1)))):
+				slots.append(str(v.id))
+		for _k in range(5):
+			x = (x * 1103515245 + 12345) % 2147483648
+		tide_id = str(slots[((x >> 13) ^ (x >> 21)) % slots.size()])
+	return {"picks": picks, "tide": tide_id}
 
 ## Calcula los hoyos variantes inactivos a partir de lo elegido (state.hidden) y descarta la malla de alturas de la partida anterior.
 func _apply_hidden() -> void:
@@ -512,9 +523,32 @@ func is_walkable(x: float, z: float, mounted: bool = true) -> bool:
 # ---------------------------------------------------------------------------
 # Tiempo y rio
 
+## Variante de río de esta partida (viento): corre los cuatro hitos del descenso/subida. "normal" = los valores base de time.
+var _tide_override := ""  ## solo al validar un guardado ajeno: usa SU condición del río, no la de la partida en curso
+
+func tide_variant_id() -> String:
+	var id := _tide_override if _tide_override != "" else str(state.get("hidden", {}).get("tide", "normal"))
+	for v in map_data().get("time", {}).get("variants", []):
+		if str(v.id) == id:
+			return id
+	return "normal"
+
+func _time_cfg() -> Dictionary:
+	var base: Dictionary = map_data().time
+	var id := tide_variant_id()
+	if id == "normal":
+		return base
+	for v in base.get("variants", []):
+		if str(v.id) == id:
+			var out: Dictionary = base.duplicate()
+			for k in ["drop_start_s", "drop_end_s", "low_hold_end_s", "rise_end_s"]:
+				out[k] = float(v.get(k, base[k]))
+			return out
+	return base
+
 func tide_at(t: float) -> Dictionary:
 	var m := map_data()
-	var tm: Dictionary = m.time
+	var tm: Dictionary = _time_cfg()
 	var hi := float(m.tide.level_high_m)
 	var lo := float(m.tide.level_low_m)
 	var lvl := hi
@@ -534,7 +568,7 @@ func tide_at(t: float) -> Dictionary:
 	return {"level_m": lvl, "level_norm": float(norm.low) + (float(norm.high) - float(norm.low)) * (lvl - lo) / (hi - lo), "phase": phase}
 
 func tide_marks() -> Dictionary:
-	var tm: Dictionary = map_data().time
+	var tm: Dictionary = _time_cfg()
 	return {"drop_start": float(tm.drop_start_s), "drop_end": float(tm.drop_end_s), "low_hold_end": float(tm.low_hold_end_s),
 		"rise_end": float(tm.rise_end_s), "deadline": float(tm.deadline_s)}
 
@@ -543,7 +577,7 @@ func ford_window(x: float, z: float, mounted: bool = true) -> Dictionary:
 	var certain := knowledge_at(x, z) != "unknown"
 	var h := terrain_height_at(x, z) if certain else perceived_height_at(x, z)
 	var thr := h + _limit_for(mounted)
-	var tm: Dictionary = m.time
+	var tm: Dictionary = _time_cfg()
 	var hi := float(m.tide.level_high_m)
 	var lo := float(m.tide.level_low_m)
 	var opens := -1.0
@@ -3036,6 +3070,13 @@ func _validate_justine_fields(d: Dictionary) -> Dictionary:
 		picked[str(grp.id)] = pick
 	if d.hidden.picks.size() != picked.size():
 		return _no("Resultado oculto con grupos desconocidos.")
+	if d.hidden.has("tide"):
+		var tid_ok := false
+		for v in m.get("time", {}).get("variants", []):
+			if d.hidden.tide is String and str(v.id) == d.hidden.tide:
+				tid_ok = true
+		if not tid_ok and not (d.hidden.tide is String and d.hidden.tide == "normal"):
+			return _no("Resultado oculto: condición del río inválida.")
 	if not _number_in(d.ammo_reserve, 0, int(m.resources.ammo_reserve)) or not _number_in(d.signals_left, 0, int(m.resources.signals_max)):
 		return _no("Reserva de munición o señales inválidas.")
 	var cn: Variant = d.counter
@@ -3162,6 +3203,12 @@ func _validate_coherence(d: Dictionary) -> Dictionary:
 	return _validate_norte_coherence(d, playing)
 
 func _validate_justine_coherence(d: Dictionary, playing: bool) -> Dictionary:
+	_tide_override = str(d.hidden.get("tide", "normal"))
+	var out := _validate_justine_coherence_inner(d, playing)
+	_tide_override = ""
+	return out
+
+func _validate_justine_coherence_inner(d: Dictionary, playing: bool) -> Dictionary:
 	var m := map_data()
 	var tide := tide_at(float(d.elapsed))
 	if d.tide_phase != tide.phase or absf(float(d.water_level_m) - float(tide.level_m)) > 0.002:

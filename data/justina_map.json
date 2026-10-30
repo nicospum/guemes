@@ -43,6 +43,21 @@
     "low_hold_end_s": 960.0,
     "rise_end_s": 1080.0,
     "deadline_s": 1080.0,
+    "variants": [
+      {"id": "normal", "label": "Brisa ordinaria", "weight": 3, "tag": "diseno",
+       "drop_start_s": 60.0, "drop_end_s": 450.0, "low_hold_end_s": 960.0, "rise_end_s": 1080.0,
+       "note": "Los valores base de este bloque. El río baja entre 1:00 y 7:30 y vuelve a subir desde 16:00."},
+      {"id": "sostenida", "label": "Brisa del oeste sostenida", "weight": 1, "tag": "diseno",
+       "drop_start_s": 45.0, "drop_end_s": 400.0, "low_hold_end_s": 1010.0, "rise_end_s": 1080.0,
+       "note": "Bajante más rápida y mínimo largo: la ventana es holgada y cualquier ruta llega a tiempo."},
+      {"id": "lenta", "label": "Bajante lenta", "weight": 1, "tag": "diseno",
+       "drop_start_s": 90.0, "drop_end_s": 490.0, "low_hold_end_s": 960.0, "rise_end_s": 1080.0,
+       "note": "El río tarda en dejar el banco: el vado abre ~35 s más tarde y todo se corre. La ruta sur queda más justa."},
+      {"id": "breve", "label": "La brisa cede pronto", "weight": 1, "tag": "diseno",
+       "drop_start_s": 60.0, "drop_end_s": 450.0, "low_hold_end_s": 660.0, "rise_end_s": 770.0,
+       "note": "El río vuelve a subir desde 11:00. Solo una ruta rápida y un abordaje resuelto llegan; la ruta sur no."}
+    ],
+    "variants_note": "Ronda 3 (DISEÑO): la bajante no es idéntica en todas las partidas. Una condición del río, sorteada con la semilla y visible desde el inicio en la barra de tiempo del HUD (tide_marks), corre los hitos de bajada y subida. Es la 'ventana de bajante' que el jugador debe leer, y evita un guion único: las rutas rápidas y las lentas no tienen siempre la misma recompensa. Gillespie (p. 35-36) describe el nivel como dependiente de las brisas casuales; ninguna variante es una reconstrucción del 12/8/1806 (sin serie de viento ni nivel).",
     "tag": "diseno",
     "note": "Bajante 390 s (6,5 min), mínimo sostenido 510 s, subida 120 s. Plazo 18 min (partida objetivo 12-18 min). Gillespie (1818, pilotaje, pp. 35-36) escribe que en estaciones ordinarias el río sube o baja a veces siete u ocho pies (≈ 2,1-2,4 m) 'bajo el control arbitrario de las brisas casuales', y que por esa causa un buque de fuerza quedó 'left dry' (en seco) y fue abordado por caballería el día de la rendición: SÍ liga la bajada al viento y SÍ habla de buque en seco. Lo que no consta es el viento concreto del 12/8/1806 (sin serie de viento, presión ni nivel), ni la cota, la hora o la forma del fondo (las bajantes por vientos del oeste/noroeste de hoy, ~1,65 m, son mecánica moderna: Meccia 2008). Los tiempos, el nivel de 1,65 m y el banco 'parcialmente inundado' (en lugar del 'en seco' de Gillespie) son elecciones de DISEÑO para que exista un vado jugable; ver docs/DISENO_JUSTINA.md 2.4."
   },
