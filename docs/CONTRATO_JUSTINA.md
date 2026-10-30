@@ -726,3 +726,20 @@ Todo sale de `data/justina_map.json`; `main.gd` y `world_view.gd` no se tocaron 
 
 ### 15.6 Fuego por ruta
 - `ship.fire.route_mult` {central 1,12; sur 0,95}: el centro es más rápido pero lo bate el costado; el sur es más lento y más seguro. Se aplica al daño de cada descarga (no a los grupos que ya abordan). Solo cambia números; no hay claves nuevas de UI.
+
+## Pendiente de ui_feel (ronda 3, de la pista mapa_reglas): bucle perder → reintentar
+
+La lógica existe y está probada; falta pintarla. `main.gd` no la llama todavía (grep: `restore_checkpoint`, `checkpoint_tick`, `retry_options` no aparecen en `main.gd`).
+
+1. **Cada cuadro de juego**: `campaign.checkpoint_tick(rules)` (barato, una vez por intento a los 200 s).
+2. **Pantalla de derrota**: pintar `campaign.retry_options()` tal cual, en orden. Cada ítem `{id, label, sub, primary}`:
+   - `cruce` → `campaign.restore_checkpoint(rules)` (el mundo ya es el mismo; no llamar `new_game`). Botón principal.
+   - `mismo_mapa` → `campaign.world_seed()` + `rules.new_game("justine", seed)` + `campaign.begin_attempt(rules)`.
+   - `rio_nuevo` → `campaign.new_world()` y lo mismo.
+   Sin pasar por tarjetas largas: del clic al control en ≤ 3 s.
+3. **Durante la partida, «Reintentar ya»**: si `rules.retry_suggestion().suggest` es verdadero, mostrar un botón discreto con el texto `.why` (no corta nada; al apretarlo equivale a `retry_options()`).
+4. **Punto sin retorno en la barra de tiempo**: marca en `rules.state.no_return_s` (660 s). Avisos de Liniers ya salen en `time.no_return_warn_s`.
+5. **«Cargar sin orden»**: `rules.on_own_charge_check(group_id)` devuelve `{ok, reason}`; si `ok`, ofrecerlo con el riesgo explícito (desafío «atreverte»: suma puntos al ganar).
+6. **Tarjeta inicial**: usar `campaign.attempt_in_world()` / `campaign.is_retry()`; el texto «Intento N · anotaste M cosas» solo si `is_retry()`.
+7. **Parte de victoria**: `record_result()` ahora trae `score`, `best_score`, `new_best_score`, `objectives` [{id,label,done}], `new_objectives` (ids cumplidos por primera vez), `objectives_ever` / `objectives_total`. Mostrar el puntaje y los desafíos no cumplidos como razones para rejugar. Las líneas (`lines`) ya no se contradicen con el oro.
+8. **Pinza**: evento `info` con `tag: "pincer"` cuando dos grupos abordan por rutas distintas a la vez (un cartel corto basta).

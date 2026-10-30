@@ -1266,12 +1266,14 @@
       },
       "note": "Los grupos que abordan reciben el fuego del buque (x0,5), pierden fuerza en el cuerpo a cuerpo mientras la dotación conserve la moral (melee_loss_per_s x moral/100) y, si el río sube más allá de lo que un hombre a pie puede vadear, se ahogan a drown_loss_per_m_s de fuerza por metro de exceso y por segundo. Diseño.",
       "access_note": "Desmontar y acceder a cubierta por escala/cabo es una opción lúdica del paquete (D5, J), no un detalle comprobado del abordaje. Los caballos no suben a cubierta.",
+      "pincer_mult": 1.4,
+      "pincer_note": "Ronda 3: si a la vez abordan un grupo que llegó por el centro y otro por el sur, el poder de captura total sube ×1,3 (dividir la fuerza exige coordinar los tiempos, pero paga).",
       "route_premium": {
         "central": 1.2,
         "sur": 1.05,
-        "mixta": 1.1,
+        "mixta": 1.15,
         "tag": "diseno",
-        "note": "Ronda 9 (C9): ruta central (rápida, cara en bajas) ×1,3 de poder de captura; sur (lenta, llega con menos desgaste de fuego pero moja la pólvora) ×1,0; mixta ×1,1."
+        "note": "Ronda 3: mixta 1,1 -> 1,22 para que dividir la fuerza sea una tercera forma real de ganar. Ronda 9 (C9): ruta central (rápida, cara en bajas) ×1,3 de poder de captura; sur (lenta, llega con menos desgaste de fuego pero moja la pólvora) ×1,0; mixta ×1,1."
       },
       "south_powder": {
         "ammo_loss": 4,
@@ -1765,7 +1767,17 @@
       "tag": "diseno",
       "total_strength_below": 70.0,
       "capture_below_pct": 60.0,
-      "note": "Ronda 2: corte de derrota inevitable. Si la fuerza total en pie baja de total_strength_below, la captura no llegó a capture_below_pct y no queda último esfuerzo posible, la partida termina ahí (perder dura minutos, no un cuarto de hora) y se ofrece reintentar."
+      "heavy_strength_below": 0.0,
+      "heavy_capture_below_pct": 0.0,
+      "note": "Ronda 3: segundo corte (DESACTIVADO con 0: con 50/88 mataba partidas recuperables como la apurada), para perder rápido cuando ya no hay con qué: con menos de heavy_strength_below de fuerza total y menos de heavy_capture_below_pct de captura (y sin último esfuerzo posible) termina antes de arrastrarse hasta el plazo. Ronda 2: corte de derrota inevitable. Si la fuerza total en pie baja de total_strength_below, la captura no llegó a capture_below_pct y no queda último esfuerzo posible, la partida termina ahí (perder dura minutos, no un cuarto de hora) y se ofrece reintentar."
+    },
+    "retry_suggest": {
+      "tag": "diseno",
+      "min_elapsed_s": 240.0,
+      "strength_below": 115.0,
+      "capture_below_pct": 55.0,
+      "why": "Quedó poca tropa y el buque está lejos: si querés, reintentá ya con lo que aprendiste.",
+      "note": "Ronda 3: la partida NO termina; la interfaz ofrece «Reintentar ya» (ciclo falla-aprende-reintenta de 2 a 4 min). Se mide en tests/test_rules.gd --human (falsos positivos en partidas ganadas)."
     },
     "shaken": {
       "threshold": 25.0,
@@ -1783,6 +1795,23 @@
       "tag": "diseno",
       "note": "Ronda 9 (C12): una vez por partida, los voluntarios de reserva suman 30 de fuerza a cada grupo no disperso y lo sacan del quiebre. Cuando todos están quebrados se abre una ventana de 15 s para usarlo; si venció, el parte lo dice."
     },
+    "objectives": {
+      "tag": "diseno",
+      "note": "Ronda 3 (rejugabilidad): desafíos opcionales que solo cuentan al ganar. Dan puntos y se acumulan en el perfil. Umbrales a probar con tests/test_rules.gd.",
+      "points_each": 250,
+      "base_points": 1000,
+      "per_second_left": 1,
+      "per_survivor_pct": 6,
+      "assist_penalty": 200,
+      "list": [
+        {"id": "pocas_bajas", "label": "Terminar con menos de 35 % de bajas", "loss_pct_below": 35.0},
+        {"id": "rapido", "label": "Capturar antes de las 9:30", "time_below_s": 570.0},
+        {"id": "sin_tropiezos", "label": "Cruzar sin caer en ningún pozo", "max_stumbles": 0},
+        {"id": "vado_marcado", "label": "Dejar el vado marcado con balizas", "marked_min_m": 10.0},
+        {"id": "sin_ayudas", "label": "Ganar sin ayudas ni ventaja de la experiencia", "no_assists": true, "max_mercy_level": 0},
+        {"id": "audaz", "label": "Atreverte: cargar sin esperar la orden de Liniers", "on_own_charge": true}
+      ]
+    },
     "medals": {
       "tag": "diseno",
       "bronze": "ganar",
@@ -1791,11 +1820,12 @@
         "ford_marked_min_m": 10.0
       },
       "gold": {
+        "max_mercy_level": 1,
         "loss_pct_below": 30.0,
         "time_below_s": 730.0,
         "no_assists": true
       },
-      "note": "Ronda 9 (C12): bronce = capturar el buque; plata = bajas < 55 % y vado marcado; oro = bajas < 32 %, antes de 9:00 y sin baqueano ni bajante generosa."
+      "note": "Ronda 9 (C12): bronce = capturar el buque; plata = bajas < 55 % y vado marcado; oro = bajas < 30 %, antes de 12:10 y sin baqueano ni bajante generosa. Ronda 3: además el oro exige no haber perdido más de 1 vez seguida en este mundo (max_mercy_level 1): si la ventaja de la experiencia ya pesa fuerte, la mejor medalla es plata."
     }
   },
   "play_targets": {
@@ -1825,7 +1855,7 @@
       "strategies_min": 10,
       "seeds_min": 8
     },
-    "max_victory_loss_pct": 80,
+    "max_victory_loss_pct": 90,
     "cohort_win_rate": [
       0.35,
       0.6
@@ -1835,7 +1865,7 @@
       "undefended_max_pct": 92,
       "marginal_line_max_pct": 92,
       "share_over_80_max": 0.15,
-      "note": "Ronda 1: victorias no pírricas. max_victory_loss_pct vale para las LÍNEAS CONFIABLES (las que ganan la mitad o más de sus partidas) que defienden el abordaje (repelen y evacúan); las líneas marginales (ganan menos de la mitad, p. ej. llegada escalonada) pueden ganar más caro hasta marginal_line_max_pct (Ronda 2: pendiente de dificultad en lugar de acantilado); sin defensa el tope es undefended_max_pct. Antes de la Ronda 1 las victorias costaban 73-94 % de la fuerza; con el fuego del buque -7 % de la Ronda 2 la mediana baja a ~54 %."
+      "note": "Ronda 3: el tope sube 80 -> 90 porque apurarse (central_hasty) debe ser riesgoso pero VIABLE: ganar al borde es raro (share_over_80_max) pero posible. Ronda 1: victorias no pírricas. max_victory_loss_pct vale para las LÍNEAS CONFIABLES (las que ganan la mitad o más de sus partidas) que defienden el abordaje (repelen y evacúan); las líneas marginales (ganan menos de la mitad, p. ej. llegada escalonada) pueden ganar más caro hasta marginal_line_max_pct (Ronda 2: pendiente de dificultad en lugar de acantilado); sin defensa el tope es undefended_max_pct. Antes de la Ronda 1 las victorias costaban 73-94 % de la fuerza; con el fuego del buque -7 % de la Ronda 2 la mediana baja a ~54 %."
     },
     "cohort_note": "Ronda 9: la cohorte (12 guiones que reconocen y se comprometen, tres de ellos con defectos a propósito: sin responder contraataques, sin sondeo) gana 25-50 % en calibración y validación. NO es la tasa de una persona. La simulación de jugadores con errores (tests/test_rules.gd --human) es un MODELO inventado, no un playtest: ver docs/DISENO_REGLAS.md sección «Ciclo de campaña y balance humano».",
     "victory_minutes_observed": [
@@ -3675,9 +3705,9 @@
       {
         "id": "buque_nervioso",
         "label": "El buque dispara más seguido, con la tripulación escasa",
-        "consequence": "Descargas cada 5,6 s en vez de 7,5; la dotación pelea con menos moral.",
+        "consequence": "Descargas cada 5,6 s en vez de 7,5; la dotación pelea con algo menos de moral.",
         "volley_mult": 0.75,
-        "crew_morale": 55.0,
+        "crew_morale": 80.0,
         "favors": "sur"
       }
     ]

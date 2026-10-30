@@ -372,3 +372,32 @@ Matriz de estrategias (40 semillas, `--matrix --bymission`): `central_flank_pair
 - `tests/jev_contract_test.gd`: 15 comprobaciones, 0 fallas (`live_api_tested: false`: solo contrato offline; no se probó JEV en vivo).
 - `tools/justina_playthrough.gd`: 15 victorias de 24; `ui_real` con clics reales gana las 3 semillas (1806, 5, 11) en esta corrida (antes 1806 perdía y 5 alternaba). Una corrida no prueba estabilidad.
 - No se corrieron `ui_qa.gd`, `audio_runtime_test.gd` ni `benchmark.py` (no hay cambios de UI, audio ni render en esta pista).
+
+## Ronda 3 (pista mapa_reglas, directriz de diversión): reintento, desafíos, balance humano
+
+Rama `div3-mapa_reglas`. Modelo inventado (no personas): todas las tasas salen de `tests/test_rules.gd --human --n=120 --base=900` (perfiles experto, promedio y novato con errores que bajan ×0,72 por derrota) y de `--matrix` con 24 semillas. Si el modelo y una persona discrepan, manda la persona.
+
+### Qué cambió
+- **Ventaja del primer intento**: `campaign.mercy.levels[0]` fuego del buque 0,96 (se mantiene el colchón) y la variante `buque_nervioso` pasa de moral 55 a 80: con 55 la dotación pegaba tan flojo que la variante «difícil» era la más fácil (promedio 83 % vs ~29 % de las otras). Ahora las cuatro variantes dan al jugador promedio entre 29 % y 47 % al primer intento.
+- **Mixta con pincel propio**: dos grupos abordando a la vez, uno por el centro y otro por el sur, multiplican el poder de captura (`ship.capture.pincer_mult` = 1,4) y avisan «¡Pinza!». El premio `route_premium.mixta` (1,15) solo cuenta si un mismo grupo cruzó ambos bancos. Dividir sigue siendo la ruta difícil (exige coordinar tiempos), pero ya no está muerta.
+- **Victoria al borde viable**: `play_targets.max_victory_loss_pct` 80 → 90; apurarse (`central_hasty`) puede ganar, caro y raro (la cohorte exige que menos del `share_over_80_max` de victorias pasen de 80 % de bajas).
+- **Oro coherente**: `outcome.medals.gold.max_mercy_level` = 1. Con 2 o más derrotas seguidas en el río la mejor medalla es plata y el parte lo dice («el oro queda para quien gana en los dos primeros intentos de un río»). Se acabó «Oro: sin ayudas… No se puede mejorar» junto a «ganaste con la ventaja de la experiencia».
+- **Desafíos opcionales y puntaje** (`outcome.objectives`): 6 desafíos (menos de 35 % de bajas, antes de 9:30, sin pozos, vado marcado, sin ayudas ni ventaja, «atreverte»: cargar sin la orden de Liniers). `campaign_report()` devuelve `objectives` [{id,label,done}], `objectives_done` y `score` (1000 + segundos que sobran + 6 × % de tropa en pie + 250 por desafío − 200 por ayuda; 0 si no ganó). El perfil guarda `best_score` y `objectives_done` acumulados.
+- **«Reintentar ya»** (`outcome.retry_suggest`, `Rules.retry_suggestion()`): sugerencia, NO corte. Con menos de 115 de fuerza total y menos de 55 % de captura pasado 4:00, la interfaz puede ofrecer reintentar. Un corte automático más agresivo (`doomed.heavy_*`, queda en 0 = apagado) mataba partidas recuperables, por eso se dejó como botón opcional.
+- **Reintento ordenado**: `CampaignProgress.retry_options()` devuelve los botones listos (primero «Reintentar desde el cruce» si hay punto de control de este río), `attempt_in_world()` / `is_retry()` evitan el «Intento 2» falso de la tarjeta inicial.
+- `tests/test_rules.gd` limpia sus archivos de `user://` al terminar (ya no ensucia el perfil de `test_integration`).
+
+### Medición (APPDATA aislado)
+| Perfil | Gana al 1.º | Acum. 3.º | Acum. 5.º | Derrota mediana | Meta |
+|---|---|---|---|---|---|
+| experto | 100 % | 100 % | 100 % | - | gana siempre |
+| promedio | 38 % | 99 % | 100 % | 12:23 | 30-45 % al 1.º |
+| novato | 8 % | 94 % | 100 % | 9:22 | gana antes del 5.º |
+
+Por variante (promedio, 1.er intento): viento fuerte 11/30, buque nervioso 13/30, munición escasa 14/32, costado sur 8/28. «Reintentar ya»: avisa en 70 de 92 derrotas del promedio, ahorra una mediana de 121 s; 8 de 120 victorias lo habrían sugerido en algún momento (falso positivo aceptado: es una sugerencia).
+
+Matriz de 24 semillas (victorias): `central_flank_lane` 21, `central_flank_pair` 21, `south_full` 21, `south_noreply` 16, `central_hasty` 8, `mixed_split` 10, `central_flank_noreply` 7, `south_vado_only` 7, `central_flank_stagger` 2, el resto (a ciegas, pasiva, tardía) 0. Por variante: el centro rinde mejor con costado sur (5/5) y el sur con viento fuerte (7/7) y sale mal con costado sur (2/5): cada ruta es la mejor en al menos una variante, ninguna domina.
+
+### Límites honestos
+- La derrota mediana sigue en 9 a 12 min a ×1: la mayoría de las derrotas son agonías largas (quiebre → dispersión) y recortarlas por regla mata partidas recuperables. El ciclo corto se logra con el **punto de control** («Reintentar desde el cruce», ~3:20 en adelante) y con la sugerencia «Reintentar ya»: **falta cablearlos en la interfaz** (ver `docs/CONTRATO_JUSTINA.md`, sección «Pendiente de ui_feel»).
+- Sin sesión humana: los porcentajes son del modelo. JEV: sin clave en este entorno, solo `jev_contract_test` (contrato offline).
