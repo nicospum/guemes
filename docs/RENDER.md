@@ -132,3 +132,21 @@ Pista visual de la ronda 2. No cambia geometria ni reglas (`main.gd`, `game_rule
 - La escalera del GLB del buque sigue (no hay Blender ejecutable en esta maquina; `tools/create_models.py` la genera: borrar el bloque "Boarding ladder" y regenerar con `--only justine`).
 - Popa del casco (transom plano), sombras de contacto en rocas/matas, trama de manzanas y quintas (casas aun dispersas), capturas de combate/victoria y marea baja comparable no se hicieron en esta pista.
 - Compatibility no se verifico visualmente. Texto de history.json/time.note sobre Gillespie y el viento: es de otra pista (datos).
+
+## Justina ronda 3: aspecto (pista visual)
+Pista: solo aspecto (`world_view.gd`, `shaders/`, `tools/create_models.py`). Sin cambios de geometria, reglas ni JSON. Fuente principal: paquete de investigacion del usuario (paleta `04_paleta_diseno`, referencia Vidal c. 1817-20, informe D3/D5/G7/H); detalle de que se tomo de donde en `docs/historia/VISUAL_R3.md`.
+
+### Que cambio
+- **Rio** (`water_rio_plata.gdshader`): del beis lechoso a un gradiente turbio verde-botella (canal) a verde-limo (bajos) con plumas de sedimento de 200-400 m en dos escalas (verde alga a pardo limo), vetas de viento alargadas, ondas con mas contraste de normal, opacidad minima 0,86 (la arena del fondo ya no lava el color), bruma de horizonte desde 1300 m hacia el crema de Vidal y espuma de contacto reforzada alrededor del casco con oscurecimiento (sombra) justo en la flotacion.
+- **Terreno** (`terrain_justina_r4.gdshader`, colores de vertice): pasto menos saturado y mas ocre-pardo (verde 0,42/0,40/0,23; paja 0,66/0,57/0,37), matorral pardo, franja de barro humedo con borde irregular por ruido, manchas de barro con borde difuso sobre la playa (ya no ovalos duros).
+- **Props** (`justina_props.gdshader`, un solo material para todos los lotes de cajas, cilindros y esferas): revoque envejecido con manchas y vetas de lluvia, juntas de ladrillo/adobe en desconchados, hileras de teja en techos rojizos. Muros del circo, bateria, casas de azotea y matas lo usan.
+- **Matas y casas**: matas de tamaño y tono muy variados (achatadas/altas, mas ocre) con sombra de contacto; casas lejanas con ~38 % de azotea con parapeto (Vidal), alturas variables y 4 iglesias (antes 2).
+- **Buque**: la escalera rigida del costado se quita en carga (`_strip_ladder`, filtra los triangulos de madera de la caja de la escalera; `tools/create_models.py` ya NO se regenero porque Blender no esta instalado en esta PC: queda el GLB original, ver pendientes). Se mantiene bandera Red Ensign post-1801.
+- **Rotulos de los anillos**: "Alcance del fuego del buque (diseño)" y "Zona de incertidumbre del encallamiento (±120 m, diseño)" (el anillo rosa y el punteado no tenian leyenda).
+
+### Fiel a fuente vs estetica reconstruida
+- Fiel/derivado de fuente: paleta (paquete G7: Lino crudo, Arena/tierra, teja apagada, Buff), bandera del buque = Red Ensign posterior a 1801 como HIPOTESIS (H1), sin bandera argentina ni Infernales, bandera blanca del circo (H4, inferencia de 1803), horizonte bajo crema de Vidal, casas de azotea y torres de iglesia como en Vidal.
+- Reconstruccion estetica (sin registro): todas las texturas y manchas, color y turbidez del agua, plumas de sedimento, forma de las matas, reparto de azoteas, ubicacion de las iglesias.
+
+### Medicion
+Ver `evidence/justina-ui/calidad_r3/benchmark.json` y la seccion de resultados en el informe de la ronda.

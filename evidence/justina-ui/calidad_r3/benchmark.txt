@@ -1,0 +1,2 @@
+tools/benchmark.py --scenarios justine --repeat 3 --renderer forward_plus --max-frame-ms 3 (1440x900, RTX 3080 Ti)
+baja: cuadro medio 1,59 ms (max 1,72); media: 2,20 ms (max 2,22); presupuesto 3 ms: OK
