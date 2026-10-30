@@ -20,7 +20,7 @@ func _init(save_path: String = DEFAULT_PATH) -> void:
 
 static func fresh() -> Dictionary:
 	return {"version": VERSION, "world_seed": 0, "diary": [], "attempts": 0, "wins": 0, "defeats_in_row": 0, "defeats_total": 0,
-		"best_medal": "", "justina_won": false, "north_unlocked": false, "tutorial_seen": false, "last_cause": "", "worlds": 0, "checkpoint": {}}
+		"best_medal": "", "justina_won": false, "north_unlocked": false, "tutorial_seen": false, "last_cause": "", "worlds": 0, "checkpoint": {}, "best_score": 0, "objectives_done": []}
 
 # ---------------------------------------------------------------------------
 # Persistencia
@@ -101,6 +101,13 @@ static func _validate(v: Variant) -> Dictionary:
 	var cpv: Variant = src.get("checkpoint", {})
 	if cpv is Dictionary and (cpv as Dictionary).has_all(["world_seed", "t"]):
 		d.checkpoint = {"world_seed": int(cpv.world_seed), "t": float(cpv.t)}
+	var bs: Variant = src.get("best_score", 0)
+	d.best_score = int(bs) if (bs is float or bs is int) and float(bs) >= 0.0 and float(bs) < 1.0e9 else 0
+	var od: Variant = src.get("objectives_done", [])
+	if od is Array:
+		for oid in od:
+			if oid is String and not (oid in d.objectives_done) and d.objectives_done.size() < 32:
+				d.objectives_done.append(oid)
 	var diary: Variant = src.get("diary", [])
 	if not diary is Array or diary.size() > MAX_DIARY * 2:
 		return {}
@@ -194,6 +201,19 @@ func record_result(rules: RefCounted) -> Dictionary:
 		if int(MEDAL_RANK[str(rep.medal)]) > int(MEDAL_RANK[str(data.best_medal)]):
 			data.best_medal = str(rep.medal)
 			out.new_best_medal = true
+		out.score = int(rep.get("score", 0))
+		out.objectives = rep.get("objectives", [])
+		out.new_objectives = []
+		for oid in rep.get("objectives_done", []):
+			if not (oid in data.objectives_done):
+				data.objectives_done.append(str(oid))
+				out.new_objectives.append(str(oid))
+		out.new_best_score = out.score > int(data.best_score)
+		if out.new_best_score:
+			data.best_score = out.score
+		out.best_score = int(data.best_score)
+		out.objectives_total = rules.map_data().outcome.objectives.list.size()
+		out.objectives_ever = data.objectives_done.size()
 		out.medal_label = medal_label(str(rep.medal))
 		out.best_medal = str(data.best_medal)
 		out.record_line = "Esta vez: %s · Tu mejor: %s" % [str(rep.medal).capitalize(), str(data.best_medal).capitalize()]
@@ -240,8 +260,10 @@ func _victory_lines(rules: RefCounted, rep: Dictionary, was_first_win: bool) -> 
 			lines.append("Bronce. Para la plata te falta: %s." % ", ".join(miss))
 	if assisted:
 		lines.append("Usaste ayuda (%s): el oro queda fuera en esta partida." % ", ".join(rep.assists_used))
-	if int(rep.get("mercy_level", 0)) > 0:
-		lines.append("Ganaste con la ventaja de la experiencia (nivel %d)." % int(rep.mercy_level))
+	if int(rep.get("mercy_level", 0)) > int(med.gold.get("max_mercy_level", 99)):
+		lines.append("Ganaste con la ventaja de la experiencia (nivel %d): el oro queda para quien gana en los dos primeros intentos de un río." % int(rep.mercy_level))
+	elif int(rep.get("mercy_level", 0)) > 0 and str(rep.medal) != "oro":
+		lines.append("Ganaste en tu segundo intento, con una pequeña ventaja de lo aprendido.")
 	lines.append("Se desbloqueó el escenario 2: Sostener el Norte." if was_first_win else "Sostener el Norte sigue abierto.")
 	return lines
 
@@ -255,6 +277,8 @@ func _missing_gold(med: Dictionary, rep: Dictionary, assisted: bool, rules_on_ow
 		miss.append("jugar sin ayudas")
 	if bool(rules_on_own):
 		miss.append("esperar la orden de Liniers")
+	if int(rep.get("mercy_level", 0)) > int(med.gold.get("max_mercy_level", 99)):
+		miss.append("ganar en los dos primeros intentos del río")
 	if miss.is_empty():
 		miss.append("repetir con la misma mano")
 	return miss
@@ -443,6 +467,25 @@ func tutorial_pending() -> bool:
 func mark_tutorial_seen() -> void:
 	data.tutorial_seen = true
 	save_progress()
+
+## Número de intento en el río actual (1 = primer intento de este mundo). La tarjeta inicial solo habla de «Intento N» / «anotaste N cosas» si N >= 2.
+func attempt_in_world() -> int:
+	return int(data.defeats_in_row) + 1
+
+func is_retry() -> bool:
+	return int(data.defeats_in_row) > 0
+
+## Opciones de reintento tras una derrota, YA ORDENADAS para que la interfaz las pinte tal cual (la primera es el botón principal).
+## Cada una: {id, label, sub, primary}. ids: "cruce" (restore_checkpoint), "mismo_mapa" (begin_attempt con la misma semilla), "rio_nuevo" (new_world), "menu".
+## «Reintentar desde el cruce» solo aparece si hay punto de control de ESTE mundo; «Cargar sin orden» no es un reintento: es una acción dentro de la partida (ver CONTRATO).
+func retry_options() -> Array:
+	var out: Array = []
+	if has_checkpoint():
+		var t := checkpoint_time()
+		out.append({"id": "cruce", "label": "Reintentar desde el cruce", "sub": "Seguís desde %s con el reconocimiento ya hecho" % _mmss(t), "primary": true})
+	out.append({"id": "mismo_mapa", "label": "Reintentar (mismo río)", "sub": "Empezás de cero con lo que anotaste", "primary": out.is_empty()})
+	out.append({"id": "rio_nuevo", "label": "Río nuevo", "sub": "Otros pozos y otro vado", "primary": false})
+	return out
 
 func north_unlocked() -> bool:
 	return bool(data.north_unlocked)

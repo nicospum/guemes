@@ -1885,6 +1885,8 @@ func _justine_step(dt: float) -> void:
 	_field_events(elapsed)
 	_no_return_warnings(elapsed)
 	var board_power := 0.0
+	var pincer_c := false
+	var pincer_s := false
 	var alive := 0
 	var alive_strength := 0.0
 	var fighters := 0
@@ -1922,10 +1924,19 @@ func _justine_step(dt: float) -> void:
 			pw *= float(shk.board_power_mult)
 		elif pw > 0.0:
 			pw *= _route_premium(u)
+			var rk := _route_kind(u)
+			pincer_c = pincer_c or rk == "central"
+			pincer_s = pincer_s or rk == "sur"
 		board_power += pw
 	for s in state.scouts:
 		_step_scout(s, dt)
 	_account_exposure(dt)
+	## Pinza (ronda 3): dos grupos abordando a la vez, uno que llegó por el centro y otro por el sur, aprietan a la dotación por dos lados.
+	if pincer_c and pincer_s and board_power > 0.0:
+		board_power *= float(m.ship.capture.get("pincer_mult", 1.0))
+		if not bool(state.get("pincer_announced", false)):
+			state.pincer_announced = true
+			_event("¡Pinza! Atacan a la vez por el centro y por el sur: la dotación no da abasto.", "info", {"tag": "pincer"})
 	if board_power > 0.0:
 		var cap: Dictionary = m.ship.capture
 		state.capture = minf(100.0, float(state.capture) + board_power * float(cap.rate_per_power_per_s) * _mercy("capture_mult") * dt)
@@ -1964,14 +1975,39 @@ func _is_doomed(alive_strength: float) -> bool:
 	var cfg: Dictionary = map_data().outcome.get("doomed", {})
 	if cfg.is_empty() or float(state.elapsed) < 60.0:
 		return false
-	if alive_strength >= float(cfg.total_strength_below) or float(state.capture) >= float(cfg.capture_below_pct):
+	var weak: bool = alive_strength < float(cfg.total_strength_below) and float(state.capture) < float(cfg.capture_below_pct)
+	if not weak:  ## segundo corte (ronda 3): casi sin tropa y con la toma todavía lejos
+		weak = alive_strength < float(cfg.get("heavy_strength_below", 0.0)) and float(state.capture) < float(cfg.get("heavy_capture_below_pct", 0.0))
+	if not weak:
 		return false
 	var lcfg: Dictionary = map_data().outcome.last_effort
 	if not bool(state.last_effort.used) and float(state.volunteers_pool) >= float(lcfg.pool_cost) and float(state.capture) >= float(lcfg.min_capture_pct):
 		return false
 	return true
 
+## Sugerencia de «Reintentar ya» (ronda 3): la partida sigue en juego pero, con lo que queda, ganar es muy improbable. NO termina la partida: la interfaz
+## puede ofrecer un botón «Reintentar ya» (y el parte de derrota seguirá el mismo camino). Umbrales en outcome.retry_suggest. Devuelve {suggest, why}.
+func retry_suggestion() -> Dictionary:
+	var cfg: Dictionary = map_data().outcome.get("retry_suggest", {})
+	if cfg.is_empty() or state.get("status", "") != "playing" or float(state.elapsed) < float(cfg.get("min_elapsed_s", 240.0)):
+		return {"suggest": false, "why": ""}
+	var alive := 0.0
+	for u in state.units:
+		if str(u.stage) != "routed":
+			alive += maxf(0.0, float(u.strength))
+	if alive < float(cfg.strength_below) and float(state.capture) < float(cfg.capture_below_pct):
+		return {"suggest": true, "why": str(cfg.get("why", "Quedó poca tropa y el buque está lejos."))}
+	return {"suggest": false, "why": ""}
+
 ## Premio de captura por ruta (C9): central ×1,3, mixta ×1,1, sur ×1,0 (ver ship.capture.route_premium).
+func _route_kind(u: Dictionary) -> String:
+	var rs: Dictionary = u.get("route_s", {})
+	var c: bool = float(rs.get("central", 0.0)) >= ROUTE_BANK_MIN_S
+	var sd: bool = float(rs.get("sur", 0.0)) >= ROUTE_BANK_MIN_S
+	if c and sd:
+		return "mixta"
+	return "central" if c else "sur"
+
 func _route_premium(u: Dictionary) -> float:
 	var rs: Dictionary = u.get("route_s", {})
 	var prem: Dictionary = map_data().ship.capture.get("route_premium", {})
@@ -2879,11 +2915,41 @@ func _medal(won: bool, loss_pct: float, assists_used: Array) -> String:
 		return ""
 	var cfg: Dictionary = map_data().outcome.medals
 	var marked_ok: bool = float(state.stats.marked_m) >= float(cfg.silver.ford_marked_min_m)
-	if loss_pct < float(cfg.gold.loss_pct_below) and float(state.elapsed) < float(cfg.gold.time_below_s) and assists_used.is_empty() and not bool(state.get("on_own_charge", false)):
+	var mercy_ok: bool = int(state.get("mercy", {}).get("level", 0)) <= int(cfg.gold.get("max_mercy_level", 99))
+	if loss_pct < float(cfg.gold.loss_pct_below) and float(state.elapsed) < float(cfg.gold.time_below_s) and assists_used.is_empty() and not bool(state.get("on_own_charge", false)) and mercy_ok:
 		return "oro"
 	if loss_pct < float(cfg.silver.loss_pct_below) and marked_ok:
 		return "plata"
 	return "bronce"
+
+## Desafíos opcionales y puntaje (ronda 3). Solo cuentan al ganar. Devuelve {list:[{id,label,done}], done:[ids], score}.
+func _objectives(won: bool, loss_pct: float, assists_used: Array) -> Dictionary:
+	var cfg: Dictionary = map_data().outcome.get("objectives", {})
+	var list: Array = []
+	var done: Array = []
+	for o in cfg.get("list", []):
+		var ok := won
+		if ok and o.has("loss_pct_below"):
+			ok = loss_pct < float(o.loss_pct_below)
+		if ok and o.has("time_below_s"):
+			ok = float(state.elapsed) < float(o.time_below_s)
+		if ok and o.has("max_stumbles"):
+			ok = int(state.stats.stumbles) <= int(o.max_stumbles)
+		if ok and o.has("marked_min_m"):
+			ok = float(state.stats.marked_m) >= float(o.marked_min_m)
+		if ok and bool(o.get("no_assists", false)):
+			ok = assists_used.is_empty()
+		if ok and o.has("max_mercy_level"):
+			ok = int(state.get("mercy", {}).get("level", 0)) <= int(o.max_mercy_level)
+		if ok and bool(o.get("on_own_charge", false)):
+			ok = bool(state.get("on_own_charge", false))
+		list.append({"id": str(o.id), "label": str(o.label), "done": ok})
+		if ok:
+			done.append(str(o.id))
+	var score := 0
+	if won and not cfg.is_empty():
+		score = int(cfg.base_points) + roundi(maxf(0.0, float(state.deadline) - float(state.elapsed)) * float(cfg.per_second_left)) + roundi((100.0 - loss_pct) * float(cfg.per_survivor_pct)) + done.size() * int(cfg.points_each) - assists_used.size() * int(cfg.assist_penalty)
+	return {"list": list, "done": done, "score": maxi(0, score)}
 
 func campaign_report() -> Dictionary:
 	var m := map_data()
@@ -2938,8 +3004,10 @@ func campaign_report() -> Dictionary:
 		if bool(state.assists[ak]):
 			assists_used.append(str(ak))
 	var medal := _medal(state.status == "victory", loss_total_pct, assists_used)
+	var won: bool = state.status == "victory"
+	var obj := _objectives(won, loss_total_pct, assists_used)
 	return {"status": state.status, "reason": state.reason, "elapsed": float(state.elapsed), "outcome_title": title,
-		"medal": medal, "assists_used": assists_used, "on_own_charge": bool(state.get("on_own_charge", false)), "mercy_level": int(state.get("mercy", {}).get("level", 0)), "mercy_label": str(state.get("mercy", {}).get("label", "")), "mission_id": str(mission().get("id", "")), "mission_label": str(mission().get("label", "")),
+		"medal": medal, "objectives": obj.list, "objectives_done": obj.done, "score": obj.score, "assists_used": assists_used, "on_own_charge": bool(state.get("on_own_charge", false)), "mercy_level": int(state.get("mercy", {}).get("level", 0)), "mercy_label": str(state.get("mercy", {}).get("label", "")), "mission_id": str(mission().get("id", "")), "mission_label": str(mission().get("label", "")),
 		"last_effort_used": bool(state.get("last_effort", {}).get("used", false)), "shots_dodged": int(st.get("shots_dodged", 0)), "shaken_events": int(st.get("shaken_events", 0)),
 		"powder_lost": int(st.get("powder_lost", 0)), "deadline_s": float(state.get("deadline", 0.0)), "capture_pct": float(state.get("capture", 0.0)),
 		"groups": groups, "route": route, "route_notes": notes, "casualties": casualties, "loss_total_pct": loss_total_pct,

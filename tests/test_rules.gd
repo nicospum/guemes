@@ -40,6 +40,7 @@ func _initialize() -> void:
 	_test_round9_flow()
 	_test_round9_campaign()
 	_test_round2_fun()
+	_test_round3_loop()
 	_test_labels_and_save_trim()
 	if "--skip-strategies" not in OS.get_cmdline_user_args():  ## solo para iterar: la matriz tarda varios minutos
 		_test_strategies()
@@ -56,6 +57,7 @@ func _initialize() -> void:
 	_test_norte_snapshot_coherence()
 	_test_salta_occupation_date()
 	_test_history_humahuaca_marked()
+	_cleanup_user_files()
 	report.checks = checks
 	report.failures = failures
 	report.ok = failures.is_empty()
@@ -1301,6 +1303,70 @@ func _test_round9_flow() -> void:
 		jr2.state.probes.append({"id": "t1", "kind": "lane", "pts": [{"x": bp.x - 8.0, "z": bp.y}, {"x": bp.x + 8.0, "z": bp.y}], "width": 6.0, "t": 0.0, "scout": "scout_1"})
 		check(float(jr2.ford_window(bp.x, bp.y).opens_at) <= 3.5 * 60.0, "La ventana del vado abre ≤ 3:30 con la condición %s (%.0f s)" % [str(v3.id), float(jr2.ford_window(bp.x, bp.y).opens_at)])
 
+## Ronda 3: reintento, desafíos y puntaje, tope del oro, «Reintentar ya».
+func _test_round3_loop() -> void:
+	var cpath := "user://test-campaign-r3.json"
+	var cp := CampaignProgress.new(cpath)
+	cp.checkpoint_path = "user://test-cp-r3.json"
+	cp.reset_all()
+	check(cp.attempt_in_world() == 1 and not cp.is_retry(), "Perfil nuevo: es el intento 1 del río y no es un reintento (la tarjeta inicial no dice «Intento 2»)")
+	var opts: Array = cp.retry_options()
+	var ids: Array = []
+	for o in opts:
+		ids.append(str(o.id))
+	check(ids == ["mismo_mapa", "rio_nuevo"] and bool(opts[0].primary), "Sin punto de control: reintentar (mismo río) es el botón principal, después río nuevo")
+	## con punto de control del mundo actual aparece «Reintentar desde el cruce» como botón principal
+	var w := cp.world_seed(777)
+	var r := _new_j(w, true)
+	cp.begin_attempt(r)
+	_advance(r, 205.0)
+	check(cp.checkpoint_tick(r) and cp.has_checkpoint(), "El punto de control se toma solo, antes de que ceda el vado")
+	var opts2: Array = cp.retry_options()
+	check(str(opts2[0].id) == "cruce" and bool(opts2[0].primary) and str(opts2[0].label) == "Reintentar desde el cruce" and opts2.size() == 3, "Con punto de control, «Reintentar desde el cruce» es el botón principal (3 opciones)")
+	var r2 := _new_j(w, true)
+	check(bool(cp.restore_checkpoint(r2).ok) and float(r2.state.elapsed) >= 200.0, "Reintentar desde el cruce restaura el estado del reconocimiento")
+	DirAccess.remove_absolute("user://test-cp-r3.json")
+	DirAccess.remove_absolute(cpath)
+	# desafíos y puntaje: una victoria del mejor guion; los desafíos cumplidos suman
+	var win: RefCounted = _run_expert_rules(11)
+	var rep: Dictionary = win.campaign_report()
+	if str(rep.status) == "victory":
+		var done: Array = rep.objectives_done
+		check(int(rep.score) >= 1000 and rep.objectives.size() == 6, "Una victoria da puntaje (>= 1000) y lista 6 desafíos opcionales (%d puntos, %d cumplidos)" % [int(rep.score), done.size()])
+		var cpw := CampaignProgress.new("user://test-campaign-r3b.json")
+		cpw.reset_all()
+		cpw.world_seed(11)
+		var out: Dictionary = cpw.record_result(win)
+		check(bool(out.won) and int(out.best_score) == int(rep.score) and bool(out.new_best_score) and int(out.objectives_ever) == done.size(), "El parte de victoria trae puntaje, mejor puntaje y desafíos acumulados")
+		var again := CampaignProgress.new("user://test-campaign-r3b.json")
+		again.load_progress()
+		check(int(again.data.best_score) == int(rep.score), "El mejor puntaje y los desafíos persisten en el perfil")
+		DirAccess.remove_absolute("user://test-campaign-r3b.json")
+	var lost := Rules.new()
+	lost.new_game("justine", 5)
+	lost.tick(5.0)
+	check(int(lost.campaign_report().score) == 0 and lost.campaign_report().objectives_done.is_empty(), "Sin victoria no hay puntaje ni desafíos cumplidos")
+	# el oro exige no haber perdido más de una vez seguida
+	var g1: RefCounted = _run_expert_rules(11)
+	if str(g1.campaign_report().status) == "victory":
+		g1.state.mercy = g1._mercy_for(3)
+		check(str(g1.campaign_report().medal) != "oro", "Con la ventaja de la experiencia fuerte (3 derrotas seguidas) el oro queda fuera: el parte no se contradice")
+	# «Reintentar ya»: nunca en el segundo 0 ni con la tropa entera
+	var fresh := Rules.new()
+	fresh.new_game("justine", 9)
+	check(not bool(fresh.retry_suggestion().suggest), "No se sugiere reintentar al empezar")
+	for u in fresh.state.units:
+		u.strength = 10.0
+	fresh.state.elapsed = 300.0
+	check(bool(fresh.retry_suggestion().suggest) and str(fresh.retry_suggestion().why) != "", "Con casi toda la tropa perdida y el buque lejos se sugiere «Reintentar ya» (con motivo)")
+
+func _cleanup_user_files() -> void:
+	for pth in ["user://test-campaign.json", "user://test-campaign2.json", "user://test-campaign3.json", "user://test-campaign4.json", "user://test-campaign5.json", "user://test-campaign-r2.json", "user://test-campaign-cp.json", "user://test-cp-state.json", "user://test-campaign-r3.json", "user://test-campaign-r3b.json", "user://test-cp-r3.json", "user://test-rules-tide.json", "user://test-rules-hidden.json", "user://test-rules-trim.json", "user://test-rules-justine.json", "user://test-rules-size.json", "user://test-rules-norte.json"]:
+		if FileAccess.file_exists(pth):
+			DirAccess.remove_absolute(pth)
+		if FileAccess.file_exists(pth + ".tmp"):
+			DirAccess.remove_absolute(pth + ".tmp")
+
 ## Ronda 9 (C1-C3, C17): mundo fijo hasta ganar, diario, ayudas, parte de derrota, desbloqueo del Norte. Usa archivos temporales propios.
 func _test_round9_campaign() -> void:
 	var path := "user://test-campaign.json"
@@ -1996,6 +2062,7 @@ func _run_cfg(cfg: Dictionary, policy: String, seed_value: int, opts: Dictionary
 	var guard := 0
 	var stranded := 0
 	var prev_zero := {}
+	var suggest_at := -1.0
 	var trace: bool = ("--trace=" + policy) in OS.get_cmdline_user_args()
 	while s.r.state.status == "playing" and guard < 6000:
 		_policy_cfg(s)
@@ -2009,6 +2076,8 @@ func _run_cfg(cfg: Dictionary, policy: String, seed_value: int, opts: Dictionary
 		for k in range(4):
 			s.r.tick(0.25)
 			guard += 1
+			if suggest_at < 0.0 and bool(s.r.retry_suggestion().suggest):
+				suggest_at = float(s.r.state.elapsed)
 			var ps: Dictionary = s.r.state.pending_shot
 			if dodge_p > 0.0 and s.rng != null and not ps.is_empty() and float(ps.at) != dodge_seen:
 				## Reacción humana al aviso: con probabilidad dodge_p la descarga cae lejos (la andanada fuerte se esquiva mejor); cuesta un poco de fatiga al grupo apuntado.
@@ -2036,7 +2105,7 @@ func _run_cfg(cfg: Dictionary, policy: String, seed_value: int, opts: Dictionary
 		"stranded": stranded, "report": rep, "fire_uses": int(s.mem.get("fire_uses", 0)), "capture": float(s.r.state.capture), "boarded_at": float(s.r.state.stats.boarded_at),
 		"scouts_lost": int(s.r.state.stats.scouts_lost), "horses_lost": float(s.r.state.stats.horses_lost), "melee_loss": float(s.r.state.stats.melee_loss), "drowned": float(s.r.state.stats.drowned),
 		"counter_hits": int(rep.counter_hits), "counter_repelled": int(rep.counter_repelled), "evacuations": int(rep.evacuations), "halted": int(rep.halted_by_expiry), "picks": rep.hidden_picks,
-		"rules": s.r, "found": s.r.state.hazards_found.duplicate(), "cause": str(s.r.state.get("defeat_cause", "")), "medal": str(rep.medal)}
+		"suggest_at": suggest_at, "rules": s.r, "found": s.r.state.hazards_found.duplicate(), "cause": str(s.r.state.get("defeat_cause", "")), "medal": str(rep.medal)}
 
 ## Matriz estrategias x semillas (--matrix): imprime una linea por estrategia y sale. Sirve para calibrar.
 func _print_matrix() -> void:
@@ -3178,6 +3247,10 @@ func _print_human() -> void:
 		var medals := {"bronce": 0, "plata": 0, "oro": 0}
 		var win_t: Array = []
 		var lose_t: Array = []
+		var fp := 0
+		var sug_losses := 0
+		var n_loss := 0
+		var saved: Array = []
 		var attempts_needed: Array = []
 		var assisted := 0
 		var causes := {}
@@ -3203,6 +3276,8 @@ func _print_human() -> void:
 				var res := _run_cfg(cfg, pname, world_seed, {"rng": rng, "streak": att - 1, "assists": assists_now, "dodge_p": float(prof.dodge_p) + (1.0 - float(prof.dodge_p)) * (1.0 - pow(0.72, float(att - 1))) * 0.5})
 				runs += 1
 				if res.status == "victory":
+					if float(res.suggest_at) >= 0.0:
+						fp += 1
 					won_at = att
 					win_t.append(float(res.t))
 					medals[str(res.medal)] = int(medals[str(res.medal)]) + 1
@@ -3217,6 +3292,10 @@ func _print_human() -> void:
 						sh += 1 if bool(uu.get("shaken", false)) else 0
 					print("   perdida %s mundo %d intento %d t=%d cap=%.0f fuerza_total=%.0f quebrados=%d ruta=%s tropiezos=%d contra_sin_resp=%d causa=%s" % [pname, world_seed, att, int(res.t), float(res.capture), tot, sh, str(res.route), int(res.stumbles), int(res.counter_hits), str(res.cause)])
 				lose_t.append(float(res.t))
+				n_loss += 1
+				if float(res.suggest_at) >= 0.0:
+					sug_losses += 1
+					saved.append(float(res.t) - float(res.suggest_at))
 				causes[str(res.cause)] = int(causes.get(str(res.cause), 0)) + 1
 				var pk := str(res.picks.get("flanco_central", ""))
 				if pk in res.found or int(res.stumbles) > 0:
@@ -3239,5 +3318,7 @@ func _print_human() -> void:
 			(float(attempts_needed.reduce(func(a, b): return a + b, 0)) / maxf(1.0, attempts_needed.size())),
 			str(int(win_t[win_t.size() / 2])) if not win_t.is_empty() else "-", str(int(lose_t[lose_t.size() / 2])) if not lose_t.is_empty() else "-",
 			str(int(lose_t.reduce(func(a, b): return a + b, 0.0) / maxf(1.0, lose_t.size()))), str(medals), assisted, str(causes), str(by_mission)]
+		saved.sort()
+		line += " | «Reintentar ya»: falsos positivos en victorias %d de %d; avisó en %d de %d derrotas, ahorra mediana %s s" % [fp, attempts_needed.size(), sug_losses, n_loss, str(int(saved[saved.size() / 2])) if not saved.is_empty() else "-"]
 		print(line)
 	quit(0)
