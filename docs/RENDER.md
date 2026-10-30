@@ -150,3 +150,26 @@ Pista: solo aspecto (`world_view.gd`, `shaders/`, `tools/create_models.py`). Sin
 
 ### Medicion
 Ver `evidence/justina-ui/calidad_r3/benchmark.json` y la seccion de resultados en el informe de la ronda.
+
+## Justina ronda 4 (segunda pasada): bancos, rio, buque a la bajante
+Solo aspecto. Sin cambios de geometria, `game_rules.gd`, `main.gd` ni `data/justina_map.json`.
+
+### Que cambio
+- **Agua** (`shaders/water_rio_plata.gdshader`): colores tomados de la paleta del paquete (`water.shallow #8F9B84`, `mid #6F8281`, `deep #52696E`; lamina 04, "aproximaciones digitales, no valores historicos"); se baja la veta direccional y se agregan dos escalas de variacion de 400-900 m (pluma parda y agua mas limpia) para que no sea una lamina uniforme; menos emision de cielo (menos lechoso). El borde del halo/espuma usa ruido de dominio, por lo que los bancos dejan de verse como capsulas (el alfa sigue usando la profundidad real: no se filtra fondo oculto nuevo).
+- **Terreno** (`shaders/terrain_justina_r4.gdshader`): transicion barro-arena y manchas humedas con ruido estirado y torcido (meandros, no circulos).
+- **Buque a la bajante** (`world_view.gd`): con el rio bajo el casco escora (0,13 rad) y se asienta 0,30 m; sin estela ni espuma de casco; aclarado arenoso bajo el casco. Con el rio alto vuelve a flotar. La regla del vado no cambia (el calado sigue siendo de diseno).
+- **Retiro**: casas en manzanas de dos con tapia; dependencias bajas (reconstruccion de volumen) junto al circo; teja con el tono apagado del paquete (`#8E5A47`), no rojo saturado. Matorral de transicion fuera del tablero para que el detalle del pasto no se corte en el borde.
+- `tools/vis_shots.gd`: vistas 22-24 (buque al minimo, banco, circo); `_tide(660)` es la bajante sostenida.
+
+### Fiel a fuente / reconstruido
+- Paleta (paquete lam. 04; Vidal 1820): criterio visual, no medida. Casas de azotea y tapias: reconstruccion (Vidal). Dependencias del circo y escora del casco: reconstruccion/diseno. Pabellon rojo del buque: hipotesis (Red Ensign), sin bandera argentina.
+
+### Medicion
+`tools/benchmark.py` Forward+ justine (3 rep.): baja 1,56 ms, media 2,40 ms de cuadro medio (< 3 ms). `tests/test_rules.gd` (520 checks), `test_integration.gd` (245), `jev_contract_test.gd` (15): 0 fallos, APPDATA aislado. Capturas: `evidence/justina-ui/calidad_r4/` (`base_*` = antes, `final_*` = despues, 1440x900 Forward+).
+
+### Pendiente
+- El casco GLB sigue con popa plana y no se regenero (sin Blender usado); el banco sigue sumergido 0,25 m (diseno de reglas): no emerge arena en la bajante, solo aclara el agua.
+- No se agrego indicio de vado a simple vista: contradice la regla de no filtrar fondo oculto (decision de reglas).
+- Chips de grupos solapados, camara inicial y carteles del anillo: son de `main.gd` (otra pista).
+- `tools/ui_qa.gd` a 1440x900 reporta 56,5 % libre (<60 %); se corre en 1280/1920/2560 segun el protocolo, no medido aqui.
+- Costa recta y pendiente 8-12 % del paquete: geometria, de la pista de mapa.

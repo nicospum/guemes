@@ -10,9 +10,9 @@ render_mode blend_mix, depth_draw_always, cull_disabled, shadows_disabled, specu
 // Asi el color no delata el fondo oculto: los bancos aparecen solo al bajar el nivel (el suelo real emerge) o dentro de 0,3 m.
 uniform float water_level = 1.65;
 uniform float visible_depth_m = 0.3;
-uniform vec3 near_color : source_color = vec3(0.40, 0.42, 0.26);     // limo verdoso de bajo
-uniform vec3 mid_color : source_color = vec3(0.25, 0.34, 0.23);      // verde-pardo turbio
-uniform vec3 far_color : source_color = vec3(0.15, 0.24, 0.20);      // canal: verde-botella turbio, mas oscuro
+uniform vec3 near_color : source_color = vec3(0.560, 0.608, 0.518);   // paleta del paquete water.shallow #8F9B84
+uniform vec3 mid_color : source_color = vec3(0.435, 0.510, 0.506);   // paquete water.mid #6F8281
+uniform vec3 far_color : source_color = vec3(0.322, 0.412, 0.431);   // paquete water.deep #52696E
 uniform vec3 sky_horizon : source_color = vec3(0.80, 0.76, 0.64);    // bruma cremosa de Vidal
 uniform vec3 sky_zenith : source_color = vec3(0.42, 0.50, 0.56);
 uniform vec3 sun_dir = vec3(0.42, 0.62, 0.66);
@@ -54,7 +54,11 @@ void fragment(){
 	vec3 n_w = normalize(vec3(-(hx - h0) / e * k, 1.0, -(hz - h0) / e * k));
 	NORMAL = normalize((VIEW_MATRIX * vec4(n_w, 0.0)).xyz);
 
-	float depth = water_level - ground;               // real: solo halo y espuma
+	float lvl_k = smoothstep(0.15, 1.1, water_level);  // 0 con el rio en el minimo: el casco apoya y no hay estela
+	// R4: borde del bajo irregular (ruido de dominio): el halo y la espuma siguen meandros en lugar de capsulas de bordes redondos.
+	float edge_n = (j_fbm2(j_rot(p, 0.4) * vec2(0.075, 0.13) + 9.0) - 0.5) * 0.30 + (j_noise(p * 0.6) - 0.5) * 0.10;
+	float depth_r = water_level - ground;
+	float depth = depth_r + edge_n;
 	float est = max(water_level - base_bed, 0.0);     // base publica: color
 	vec3 view_w = normalize((INV_VIEW_MATRIX * vec4(VIEW, 0.0)).xyz);
 	vec3 r = reflect(-view_w, n_w);
@@ -67,14 +71,20 @@ void fragment(){
 	float patch_n = j_fbm2(p * 0.012 + vec2(t * 0.003, 0.0));
 	float plume = j_fbm2(p * 0.0042 + vec2(5.0, t * 0.0015));
 	vec3 body = mix(mix(mid_color, near_color, shallow), far_color, deepk);
-	vec3 silt = vec3(0.38, 0.33, 0.19);
-	vec3 algae = vec3(0.17, 0.30, 0.23);
+	vec3 silt = vec3(0.48, 0.45, 0.32);
+	vec3 algae = vec3(0.30, 0.42, 0.37);
 	// Plumas de sedimento grandes (200-400 m): del pardo limoso al verde turbio, con contraste marcado (ronda 3).
 	float plume2 = j_fbm2(j_rot(p, 0.6) * vec2(0.0035, 0.0085) + vec2(2.0, t * 0.002));
-	body = mix(body, mix(algae, silt, smoothstep(0.28, 0.66, plume * 0.6 + plume2 * 0.5)), 0.72 * (1.0 - shallow * 0.6));
+	body = mix(body, mix(algae, silt, smoothstep(0.28, 0.66, plume * 0.6 + plume2 * 0.5)), 0.45 * (1.0 - shallow * 0.6));
 	// Vetas de viento alargadas (lanes claros y oscuros paralelos al viento) que rompen la lamina plana.
 	float lane = j_noise(j_rot(p, -0.5) * vec2(0.012, 0.11) + vec2(0.0, t * 0.05));
-	body *= (0.88 + 0.24 * lane) * 0.82;
+	body *= (0.93 + 0.14 * lane) * 0.88;
+	// R4: variacion de gran escala (400-900 m, dos direcciones) sin direccion dominante: cuerpos de agua de distinto sedimento.
+	float big1 = j_fbm2(j_rot(p, 0.9) * 0.0016 + vec2(11.0, t * 0.0004));
+	float big2 = j_fbm2(j_rot(p, -0.4) * 0.0031 + vec2(3.0, 7.0));
+	body = mix(body, vec3(0.50, 0.50, 0.38), smoothstep(0.50, 0.75, big1) * 0.7 * (1.0 - shallow));   // pluma parda del Parana
+	body = mix(body, vec3(0.30, 0.43, 0.43), smoothstep(0.50, 0.74, big2) * 0.6 * (1.0 - shallow));  // agua mas limpia, verde-azulada
+	body *= 0.90 + 0.20 * big1;
 	body = mix(body, body * vec3(1.10, 1.06, 0.92), (patch_n - 0.5) * 0.7);
 	body *= 0.80 + 0.40 * h0;
 	// Bajo bajo el casco (diseno: el buque esta apoyado): agua mas clara y verdosa en un ovalo suave alrededor.
@@ -83,12 +93,13 @@ void fragment(){
 	vec2 loc = vec2(dot(sd, vec2(-fw.y, fw.x)), dot(sd, fw));
 	float hull_d = length(loc / (ship_half + vec2(13.0, 21.0)));       // ~1 en el borde del bajo (casco + ~13 m / 21 m)
 	float shoal = (1.0 - smoothstep(0.55, 1.0, hull_d)) * 0.8;
-	body = mix(body, vec3(0.52, 0.55, 0.40), shoal * 0.8);
+	// con el rio bajo el casco apoya en un bajo: el agua alrededor se aclara a arena (sin estela); con el rio alto, solo un leve aclarado.
+	body = mix(body, mix(vec3(0.56, 0.58, 0.46), vec3(0.66, 0.60, 0.44), 1.0 - lvl_k), shoal * mix(0.95, 0.5, lvl_k));
 	// Bruma de horizonte: a lo lejos el agua se funde al crema del cielo de Vidal (sin linea de corte).
 	float haze = smoothstep(1300.0, 3600.0, dist);
 	// Halo de contacto: el suelo real se insinua a menos de visible_depth_m de la superficie.
 	float halo = 1.0 - smoothstep(0.0, visible_depth_m, depth);
-	body = mix(body, near_color * vec3(1.10, 1.04, 0.90), halo * 0.6);
+	body = mix(body, near_color * vec3(1.02, 1.0, 0.92), halo * 0.4);
 
 	// Orilla: arena mojada translucida -> linea de agua nitida con espuma fina ruidosa -> segunda franja de lavado mas tenue.
 	float foam = 0.0;
@@ -102,10 +113,10 @@ void fragment(){
 	}
 	// Espuma y estela en el casco del buque.
 	float hull_edge = length(loc / ship_half);
-	float rim = smoothstep(0.80, 1.0, hull_edge) * (1.0 - smoothstep(1.12, 1.7, hull_edge));
+	float rim = smoothstep(0.80, 1.0, hull_edge) * (1.0 - smoothstep(1.12, 1.7, hull_edge)) * lvl_k;
 	float rim_n = 0.55 + 0.45 * j_noise(p * 1.1 + vec2(t * 0.3, 0.0));
 	foam = max(foam, rim * rim_n * 0.95);
-	body *= 1.0 - 0.35 * smoothstep(0.55, 0.95, hull_edge) * (1.0 - smoothstep(0.95, 1.1, hull_edge));
+	body *= 1.0 - 0.35 * lvl_k * smoothstep(0.55, 0.95, hull_edge) * (1.0 - smoothstep(0.95, 1.1, hull_edge));
 	// Zona de incertidumbre (120 m, Informe sec. D): anillo punteado muy tenue, no relleno.
 	float ur = length(sd);
 	float ring = (1.0 - smoothstep(0.0, 0.9, abs(ur - unc_radius))) * step(0.5, fract(atan(sd.y, sd.x) * 9.5493 + 0.5));
@@ -116,7 +127,7 @@ void fragment(){
 	float glint = pow(sd_dot, 60.0) * 0.05 + pow(sd_dot, 400.0) * 0.14 * (0.5 + h0);
 
 	ALBEDO = mix(mix(body, sky_horizon * 0.85, haze * 0.55), vec3(0.88, 0.86, 0.76), foam * 0.8);
-	EMISSION = sky * (fres * 0.38 + 0.015) * mix(vec3(0.82, 0.88, 0.84), vec3(1.0), fres) + vec3(1.0, 0.93, 0.8) * glint;
+	EMISSION = sky * (fres * 0.26 + 0.010) * mix(vec3(0.82, 0.88, 0.84), vec3(1.0), fres) + vec3(1.0, 0.93, 0.8) * glint;
 	METALLIC = 0.0;
 	ROUGHNESS = mix(0.10, 0.7, foam);
 	SPECULAR = 0.5;
@@ -124,7 +135,7 @@ void fragment(){
 	// Transparencia: arena mojada visible en el primer centimetro, luego agua translucida sobre bajos, opaca-turbia en el canal.
 	float a = mix(0.86, 0.98, smoothstep(0.0, 0.7, est));
 	a = mix(a, 0.80, halo * 0.35);
-	a = mix(0.0, a, smoothstep(0.0, 0.16, depth));
+	a = mix(0.0, a, smoothstep(0.0, 0.16, depth_r));
 	a = max(a, foam * 0.9);
 	ALPHA = ground > water_level + 0.06 ? 0.0 : a;
 }
