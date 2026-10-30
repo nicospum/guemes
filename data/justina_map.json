@@ -74,11 +74,11 @@
         "label": "Bajante lenta",
         "weight": 1,
         "tag": "diseno",
-        "drop_start_s": 40.0,
-        "drop_end_s": 265.0,
+        "drop_start_s": 33.0,
+        "drop_end_s": 245.0,
         "low_hold_end_s": 700.0,
         "rise_end_s": 830.0,
-        "note": "Reservada: el vado abre ~15 s más tarde. Ninguna variante de misión la sortea por defecto (la ronda 9 quitó la variante «breve», que dejaba la ruta sur sin tiempo)."
+        "note": "Reservada (ninguna variante de misión la sortea por defecto): el vado abre ~5 s más tarde. La ronda 9 quitó la variante «breve», que dejaba la ruta sur sin tiempo."
       }
     ],
     "variants_note": "Ronda 9: la condición del río ya no se sortea aparte; la fija la variante de misión (mission_variants). La variante «breve» se eliminó por injusta.",
@@ -1794,23 +1794,23 @@
   "play_targets": {
     "tag": "diseno",
     "total_minutes": [
-      12,
-      18
+      8,
+      14
     ],
-    "note": "Objetivos de balance para los tests de Reglas (ver DISENO_JUSTINA.md 10).",
+    "note": "Objetivos de balance para los tests de Reglas (ver DISENO_JUSTINA.md 10). Ronda 9: reescritos para la partida comprimida (plan de diversión): victorias de 8 a 14 min, pasividad = derrota por inacción a los 11:00.",
     "rush_central_no_recon": {
       "min_strength_loss_pct": 30,
       "must_stumble": true
     },
     "recon_then_central": {
-      "victory_before_s": 900
+      "victory_before_s": 600
     },
     "recon_then_south": {
-      "victory_before_s": 960,
+      "victory_before_s": 780,
       "central_vs_south_exposure_ratio_min": 1.4
     },
     "passive": {
-      "defeat_at_s": 1080
+      "defeat_at_s": 660
     },
     "dominance": {
       "max_win_share": 0.6,
@@ -1820,8 +1820,8 @@
     },
     "max_victory_loss_pct": 75,
     "cohort_win_rate": [
-      0.4,
-      0.6
+      0.25,
+      0.5
     ],
     "victory_loss": {
       "median_max_pct": 65,
@@ -1830,76 +1830,12 @@
       "share_over_80_max": 0.15,
       "note": "Ronda 1: victorias no pírricas. max_victory_loss_pct vale para las LÍNEAS CONFIABLES (las que ganan la mitad o más de sus partidas) que defienden el abordaje (repelen y evacúan); las líneas marginales (ganan menos de la mitad, p. ej. llegada escalonada) pueden ganar más caro hasta marginal_line_max_pct (Ronda 2: pendiente de dificultad en lugar de acantilado); sin defensa el tope es undefended_max_pct. Antes de la Ronda 1 las victorias costaban 73-94 % de la fuerza; con el fuego del buque -7 % de la Ronda 2 la mediana baja a ~54 %."
     },
-    "cohort_note": "Estrategias razonables (COHORT en tests/test_rules.gd: reconocen y se comprometen): ganan 40-60 % de las partidas tanto en las 8 semillas de calibración (Ronda 3: 47 %) como en 12 de validación (50 %). Es la tasa de GUIONES que conocen el mapa, NO la de una persona: no hubo playtest humano. Las ciegas, la pasiva y la tardía siguen en ~0 %. Ronda 3: la condición del río sorteada por semilla (time.variants) hace que las líneas buenas pierdan en 'breve' y la sur también en 'lenta', en lugar de ganar siempre. Ronda 5: cohorte 50 % en calibración (48/96) y 50 % en validación (72/144); las mejores líneas de cada familia ganan lo mismo (≈ 90 % fuera de la condición «breve»), la central cuesta 53-61 % de bajas y la sur 41-52 %. Sigue sin haber playtest humano: no se declara cumplido «40-60 % para una persona razonable».",
+    "cohort_note": "Ronda 9: la cohorte (12 guiones que reconocen y se comprometen, tres de ellos con defectos a propósito: sin responder contraataques, sin sondeo) gana 25-50 % en calibración y validación. NO es la tasa de una persona. La simulación de jugadores con errores (tests/test_rules.gd --human) es un MODELO inventado, no un playtest: ver docs/DISENO_REGLAS.md sección «Ciclo de campaña y balance humano».",
     "victory_minutes_observed": [
-      11.2,
-      15.3
+      8.2,
+      13.0
     ],
-    "victory_minutes_note": "Ronda 5: con el daño del buque +6 % la central gana en 11,2-14,3 min (típico 12-12,4; antes 11,1-12,3) y la sur en 13,9-15,3. El objetivo real es 12-16 min con un borde blando: la condición «breve» (el río vuelve a subir desde 11:00) sigue siendo el único corte duro, por diseño. Las victorias de 11,2 min son la central apurada (central_hasty) en la semilla más favorable.",
-    "measured_14_seeds": {
-      "seeds": [
-        101,
-        103,
-        107,
-        109,
-        113,
-        127,
-        131,
-        137,
-        139,
-        149,
-        151,
-        157,
-        163,
-        167
-      ],
-      "strategies": 18,
-      "total_wins": 77,
-      "max_win_share_pct": 17,
-      "routes": {
-        "central": 48,
-        "sur": 22,
-        "mixta": 7
-      },
-      "central_minutes": [
-        11.2,
-        12.7
-      ],
-      "south_minutes": [
-        14.0,
-        15.2
-      ],
-      "note": "Medido sin cambios de geometría ni reglas. La sur pierde en las semillas con río «breve» (113, 131, 137) por diseño. 40-60 % para una persona: sin playtest, no certificado."
-    },
-    "family_share_r7": {
-      "tag": "diseno",
-      "measured": "2026-10-30",
-      "seeds": [
-        101,
-        103,
-        107,
-        109,
-        113,
-        127,
-        131,
-        137,
-        139,
-        149,
-        151,
-        157,
-        163,
-        167
-      ],
-      "wins": 77,
-      "games": 252,
-      "central_family_wins": 48,
-      "south_family_wins": 22,
-      "mixed_wins": 7,
-      "central_family_share": 0.62,
-      "max_single_strategy_share": 0.17,
-      "experiment": "Ronda 7: daño del buque +5 % (8,46-12,80): la familia central baja a 59,7 % de las victorias (43/72) pero la victoria más cara de las líneas confiables llega a 78 % de bajas (tope 75 %, test_rules falla): pírrico. Se revierte.",
-      "decision": "El tope 0,6 de dominance rige POR ESTRATEGIA (cumple: máx. 17 %). La cuota de la familia central (62 %) se informa y se acepta: bajarla exige victorias más caras, lo que contradice «no pírricas». Se re-justifica; la salida real es el playtest humano y el modo banco expuesto (deudas en package_adoption.debts)."
-    }
+    "victory_minutes_note": "Ronda 9: central 8,3-10 min (mediana ~9,3), sur 11-13 min. Ver docs/DISENO_REGLAS.md."
   },
   "reference_images": [
     {

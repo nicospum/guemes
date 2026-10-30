@@ -694,7 +694,7 @@ func _test_round5_data() -> void:
 	for v in m.time.variants:
 		if str(v.id) == "lenta":
 			lenta = v
-	check(float(lenta.drop_start_s) == 40.0 and float(lenta.drop_end_s) == 265.0 and float(lenta.low_hold_end_s) == 700.0, "La condición «lenta» corre la bajante ~15 s")
+	check(float(lenta.drop_start_s) == 33.0 and float(lenta.drop_end_s) == 245.0 and float(lenta.low_hold_end_s) == 700.0, "La condición «lenta» corre la bajante ~15 s")
 	var f := FileAccess.open("res://data/history.json", FileAccess.READ)
 	var hist: Dictionary = JSON.parse_string(f.get_as_text())
 	var htxt := JSON.stringify(hist.scenarios.justine).to_lower()
