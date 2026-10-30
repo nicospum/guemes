@@ -1151,6 +1151,10 @@ func _landmarks_j():
   var text=_tag_glyph(tag)+" "+base_name+suf
   var lab=_label_j(text,Vector3(p.x,top,p.y),_tag_color(tag).lerp(Color.WHITE,0.35),30,labels_root)
   lab.name="Rotulo_"+id
+  if str(lm.get("type",""))=="ship":
+   # R3-visual: el rotulo del buque va al costado de la ficha, no encima del casco.
+   lab.horizontal_alignment=HORIZONTAL_ALIGNMENT_LEFT
+   lab.offset=Vector2(52.0,-6.0)
   lab.visibility_range_end=900.0
   landmark_labels_3d[id]=lab
  var ei=0
@@ -1217,7 +1221,7 @@ func _bullring_j(lm:Dictionary):
   # Contrafuerte en cada vertice.
   var av=TAU*float(i)/8.0
   _inst_r("box",Vector3(c.x+cos(av)*r,y0+wall_h*0.52,c.y+sin(av)*r),Vector3(1.3,wall_h*1.04,2.8),-av-PI/2.0,Color("b2a37f"))
-  _inst_r("box",Vector3(pw.x,y0+wall_h+0.3,pw.z),Vector3(side*1.02,0.6,3.0),yaw,[Color("8e5a47"),Color("7e5b48"),Color("9a6650")][i%3])
+  _inst_r("box",Vector3(pw.x,y0+wall_h+0.3,pw.z),Vector3(side*1.02,0.6,3.0),yaw,[Color("86614f"),Color("7b6350"),Color("8d6c57")][i%3])
   # gradas de madera (anillo interior, mas bajo)
   var pg=Vector3(c.x+cos(a)*(apo-r*0.16),0,c.y+sin(a)*(apo-r*0.16))
   _inst_r("box",Vector3(pg.x,y0+wall_h*0.32,pg.z),Vector3(side*0.86,wall_h*0.64,r*0.22),yaw,Color("9a8160"))
@@ -1928,7 +1932,7 @@ func _group_marker_j(id:String,root:Node3D)->void:
  var disc=MeshInstance3D.new();disc.mesh=dm;disc.name="Halo"
  var dmat=StandardMaterial3D.new();dmat.albedo_color=Color(Color(pal[0]).r,Color(pal[0]).g,Color(pal[0]).b,0.30);dmat.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED;dmat.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA;dmat.no_depth_test=false
  disc.material_override=dmat;disc.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;ring.add_child(disc)
- _token_j(root,int(TOKEN_SHAPES.get(id,0)),Color(str(TOKEN_COLORS.get(id,"d8cfb8"))),40.0,50.0,110.0,1.0,false,30.0)
+ _token_j(root,int(TOKEN_SHAPES.get(id,0)),Color(str(TOKEN_COLORS.get(id,"d8cfb8"))),58.0,38.0,85.0,1.0,false,0.0)
  group_markers.append({"node":m,"ring":ring,"root":root})
 
 func _update_markers_j(cam:Camera3D)->void:

@@ -1,0 +1,47 @@
+[
+  {
+    "scenario": "justine",
+    "quality": "baja",
+    "repeat": 2,
+    "mean_fps_mean": 504.0,
+    "mean_fps_min": 471.3,
+    "mean_fps_max": 536.7,
+    "frame_ms_mean_mean": 1.993,
+    "frame_ms_mean_max": 2.122,
+    "frame_ms_median_mean": 1.98,
+    "frame_ms_p95_mean": 2.939,
+    "scene_build_ms_mean": 786.5,
+    "renderer": "NVIDIA GeForce RTX 3080 Ti",
+    "viewport": "(1440.0, 900.0)"
+  },
+  {
+    "scenario": "justine",
+    "quality": "media",
+    "repeat": 2,
+    "mean_fps_mean": 297.9,
+    "mean_fps_min": 228.6,
+    "mean_fps_max": 367.3,
+    "frame_ms_mean_mean": 3.549,
+    "frame_ms_mean_max": 4.375,
+    "frame_ms_median_mean": 3.774,
+    "frame_ms_p95_mean": 5.191,
+    "scene_build_ms_mean": 727.5,
+    "renderer": "NVIDIA GeForce RTX 3080 Ti",
+    "viewport": "(1440.0, 900.0)"
+  },
+  {
+    "scenario": "justine",
+    "quality": "alta",
+    "repeat": 2,
+    "mean_fps_mean": 305.4,
+    "mean_fps_min": 235.2,
+    "mean_fps_max": 375.7,
+    "frame_ms_mean_mean": 3.457,
+    "frame_ms_mean_max": 4.252,
+    "frame_ms_median_mean": 2.626,
+    "frame_ms_p95_mean": 4.654,
+    "scene_build_ms_mean": 711,
+    "renderer": "NVIDIA GeForce RTX 3080 Ti",
+    "viewport": "(1440.0, 900.0)"
+  }
+]

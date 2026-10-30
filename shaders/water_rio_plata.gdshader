@@ -84,7 +84,7 @@ void fragment(){
 	float big1 = j_fbm2(j_rot(p, 0.9) * 0.0016 + vec2(11.0, t * 0.0004));
 	float big2 = j_fbm2(j_rot(p, -0.4) * 0.0031 + vec2(3.0, 7.0));
 	body = mix(body, vec3(0.50, 0.50, 0.38), smoothstep(0.50, 0.80, big1) * 0.30 * (1.0 - shallow));   // pluma parda del Parana
-	body = mix(body, vec3(0.30, 0.43, 0.43), smoothstep(0.50, 0.78, big2) * 0.30 * (1.0 - shallow));  // agua mas limpia, verde-azulada
+	body = mix(body, vec3(0.34, 0.40, 0.27), smoothstep(0.50, 0.78, big2) * 0.26 * (1.0 - shallow));  // R3-visual: agua mas limpia, verde oliva (no azulada)
 	body *= 0.90 + 0.20 * big1;
 	body = mix(body, body * vec3(1.10, 1.06, 0.92), (patch_n - 0.5) * 0.7);
 	// R6: crestas claras y senos oscuros (contraste de ola real) y manchas de viento (catspaws) que rompen la lamina.
@@ -137,7 +137,7 @@ void fragment(){
 	float band_s = 1.0 - smoothstep(0.25, 0.75, est);
 	float band_d = smoothstep(1.7, 2.6, est);
 	body = mix(body, vec3(0.66, 0.55, 0.34), band_s * 0.40 * (1.0 - halo));
-	body = mix(body, vec3(0.22, 0.31, 0.24), band_d * 0.55);
+	body = mix(body, vec3(0.25, 0.30, 0.17), band_d * 0.50);
 	// Frentes de ola: lineas claras que viajan hacia la costa (oeste), deformadas por ruido; dan escala y direccion al agua.
 	float wph = dot(p, vec2(0.62, 0.16)) * 0.55 + t * 0.55 + j_noise(p * 0.035) * 6.0;
 	float wf = abs(fract(wph * 0.159) - 0.5) * 2.0;                       // diente de sierra -> cresta fina
@@ -146,9 +146,11 @@ void fragment(){
 	body = mix(body, vec3(0.92, 0.88, 0.72), front * 0.22);
 	// R2-visual: gradiente de profundidad marcado (ocre-limo cerca de la costa -> verde botella-pardo al canal), usa solo el perfil BASE publico.
 	float off_k = smoothstep(0.2, 2.6, est);
-	vec3 warm = vec3(0.50, 0.33, 0.16);
-	vec3 cool = vec3(0.10, 0.19, 0.15);
-	body = mix(body, mix(warm, cool, off_k), 0.80 * (1.0 - halo));
+	vec3 warm = vec3(0.62, 0.43, 0.20);   // R3-visual: ocre limoso mas luminoso cerca de la orilla
+	vec3 cool = vec3(0.13, 0.20, 0.12);   // oliva turbio al canal (antes verde botella frio)
+	body = mix(body, mix(warm, cool, smoothstep(0.0, 1.0, off_k)), 0.82 * (1.0 - halo));
+	// R3-visual: luminosidad general (antes 0.66 apagaba todo a gris-verde oscuro)
+	body *= 1.06;
 	// Sombreado de facetas de ola con el sol: lados iluminados claros, lados en sombra oscuros (da relieve y corriente a toda la lamina).
 	float lit = clamp(dot(n_w, normalize(sun_dir)), 0.0, 1.0);
 	body *= clamp(1.0 + (lit - 0.62) * 2.4 * (0.35 + 0.65 * lod), 0.45, 1.7);
@@ -160,7 +162,16 @@ void fragment(){
 	float sd_dot = max(dot(r, normalize(sun_dir)), 0.0);
 	float glint = pow(sd_dot, 40.0) * 0.10 + pow(sd_dot, 300.0) * 0.55 * (0.5 + h0);
 
-	ALBEDO = mix(mix(body, sky_horizon * 0.80, haze * 0.40), vec3(0.88, 0.86, 0.76), foam * 0.8);
+	// R3-visual: reflejo del cielo calido (crema de Vidal arriba, azul palido al cenit) con base minima que se nota desde altura,
+	// y destellos de sol anchos (no dependen del angulo especular exacto) para que el agua "brille" a escala de mapa.
+	float sky_k = 0.10 + 0.50 * pow(1.0 - ndv, 3.0);
+	vec3 sky_c = mix(sky_horizon, sky_zenith, clamp(r.y * 1.3, 0.0, 1.0));
+	body = mix(body, sky_c * 0.8, sky_k * (0.35 + 0.35 * lod) * (1.0 - shallow * 0.5));
+	float sp_n = j_noise(j_rot(p, 0.7) * mix(0.9, 0.35, 1.0 - lod) + vec2(t * 0.5, -t * 0.3));
+	float sparkle = smoothstep(0.88, 0.99, sp_n) * smoothstep(0.35, 0.8, lit) * (0.30 + 0.70 * (1.0 - lod)) * (1.0 - shallow * 0.7);
+	float shade_big = j_fbm2(j_rot(p, 0.3) * vec2(0.010, 0.026) + vec2(t * 0.008, 0.0));   // lomos largos de ola, visibles desde 500 m
+	body *= 0.74 + 0.50 * smoothstep(0.25, 0.75, shade_big);
+	ALBEDO = mix(mix(body, sky_horizon * 0.80, haze * 0.40), vec3(0.88, 0.86, 0.76), foam * 0.8) + vec3(1.0, 0.92, 0.72) * sparkle * 0.16;
 	EMISSION = sky * (fres * 0.34 + 0.004) * vec3(1.0, 0.94, 0.80) + vec3(1.0, 0.90, 0.70) * glint;
 	METALLIC = 0.0;
 	ROUGHNESS = mix(0.22, 0.7, foam);
