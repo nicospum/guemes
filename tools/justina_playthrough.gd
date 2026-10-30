@@ -103,6 +103,7 @@ class Sim:
 	var mem: Dictionary = {}
 	var t := 0.0
 	var cfg: Dictionary = {}
+	var rng: RandomNumberGenerator = null
 
 const GROUP_IDS := ["guemes", "arias", "zavala"]
 const SEEDS := [3, 5, 7, 11, 13, 17, 19, 23]
@@ -122,11 +123,11 @@ const STAGE_SOUTH_EXIT := Vector2(318, 405)
 const SOUTH_BOARD_WP := [Vector2(450, 455), Vector2(520, 440), Vector2(565, 390)]
 
 func _central_common() -> Dictionary:
-	return {"signal_t": 180.0, "resupply": true, "muster": 1, "stage": STAGE_CENTRAL, "stage_t": 260.0, "board_t": 330.0, "wait_probes": true, "wait_max": 330.0, "signal_on_go": true, "cover": true, "fire": true, "repel": true, "evac": true}
+	return {"signal_t": 100.0, "resupply": true, "muster": 1, "stage": STAGE_CENTRAL, "stage_t": 120.0, "board_t": 170.0, "wait_probes": true, "wait_max": 120.0, "signal_on_go": true, "cover": true, "fire": true, "repel": true, "evac": true}
 
 func _south_common() -> Dictionary:
-	return {"signal_t": 290.0, "resupply": true, "muster": 1, "stage": STAGE_SOUTH, "stage_t": 220.0, "stage2": STAGE_SOUTH_EXIT, "stage2_t": 390.0, "stage2_wp": [Vector2(300, 403)], "board_t": 390.0, "wp": SOUTH_BOARD_WP, "wait_probes": true, "wait_max": 420.0, "signal_on_go": true, "fire": true, "cover": true, "repel": true, "evac": true,
-		"mark_t": 150.0, "probes": [{"who": "scout_1", "t": 100.0, "pts": PROBE_SOUTH_VADO, "careful": false}]}
+	return {"signal_t": 200.0, "resupply": true, "muster": 1, "stage": STAGE_SOUTH, "stage_t": 200.0, "stage2": STAGE_SOUTH_EXIT, "stage2_t": 270.0, "stage2_wp": [Vector2(300, 403)], "board_t": 270.0, "wp": SOUTH_BOARD_WP, "wait_probes": true, "wait_max": 170.0, "signal_on_go": true, "fire": true, "cover": true, "repel": true, "evac": true,
+		"mark_t": 170.0, "probes": [{"who": "scout_1", "t": 150.0, "pts": PROBE_SOUTH_VADO, "careful": false}]}
 
 func _with(base: Dictionary, extra: Dictionary) -> Dictionary:
 	var out := base.duplicate(true)
@@ -135,28 +136,28 @@ func _with(base: Dictionary, extra: Dictionary) -> Dictionary:
 	return out
 
 func _strategy_cfg(name: String) -> Dictionary:
-	var south_bank := {"who": "scout_1", "t": 355.0, "pts": PROBE_SOUTH_BANK, "careful": true, "after_found": "vado_sur"}
+	var south_bank := {"who": "scout_1", "t": 200.0, "pts": PROBE_SOUTH_BANK, "careful": true, "after_found": "vado_sur"}
 	match name:
 		"rush_central":
 			return {"signal_t": 0.0, "board_t": 0.0}
 		"rush_gallop":
 			return {"signal_t": 0.0, "board_t": 0.0, "pace": "gallop"}
 		"blind_north_edge":
-			return {"signal_t": 180.0, "resupply": true, "muster": 1, "stage": Vector2(255, 226), "stage_t": 200.0, "board_t": 340.0, "wp": NORTH_EDGE, "fire": true, "repel": true}
+			return {"signal_t": 100.0, "resupply": true, "muster": 1, "stage": Vector2(255, 226), "stage_t": 110.0, "board_t": 180.0, "wp": NORTH_EDGE, "fire": true, "repel": true}
 		"central_center_lane":
-			return _with(_central_common(), {"probes": [{"who": "scout_1", "t": 250.0, "pts": PROBE_CENTER, "careful": true}]})
+			return _with(_central_common(), {"probes": [{"who": "scout_1", "t": 90.0, "pts": PROBE_CENTER, "careful": true}]})
 		"central_flank_lane":
-			return _with(_central_common(), {"flank": true, "probes": [{"who": "scout_1", "t": 255.0, "pts": PROBE_FLANK_N, "careful": true}]})
+			return _with(_central_common(), {"flank": true, "probes": [{"who": "scout_1", "t": 90.0, "pts": PROBE_FLANK_N, "careful": true}]})
 		"central_flank_pair":
-			return _with(_central_common(), {"flank": true, "probes": [{"who": "scout_1", "t": 255.0, "pts": PROBE_FLANK_N, "careful": true}, {"who": "scout_2", "t": 255.0, "pts": PROBE_FLANK_S, "careful": true}]})
+			return _with(_central_common(), {"flank": true, "probes": [{"who": "scout_1", "t": 90.0, "pts": PROBE_FLANK_N, "careful": true}, {"who": "scout_2", "t": 90.0, "pts": PROBE_FLANK_S, "careful": true}]})
 		"central_hasty":
-			return _with(_central_common(), {"flank": true, "cover": false, "probes": [{"who": "scout_1", "t": 250.0, "pts": PROBE_FLANK_N, "careful": false}], "wait_max": 120.0})
+			return _with(_central_common(), {"flank": true, "cover": false, "probes": [{"who": "scout_1", "t": 90.0, "pts": PROBE_FLANK_N, "careful": false}], "wait_max": 60.0})
 		"central_bare":
-			return {"signal_on_go": true, "stage": STAGE_CENTRAL, "stage_t": 260.0, "board_t": 330.0, "flank": true, "wait_probes": true, "wait_max": 330.0, "probes": [{"who": "scout_1", "t": 250.0, "pts": PROBE_FLANK_N, "careful": true}]}
+			return {"signal_on_go": true, "stage": STAGE_CENTRAL, "stage_t": 120.0, "board_t": 170.0, "flank": true, "wait_probes": true, "wait_max": 120.0, "probes": [{"who": "scout_1", "t": 90.0, "pts": PROBE_FLANK_N, "careful": true}]}
 		"central_flank_stagger":
-			return _with(_central_common(), {"flank": true, "stagger": 45.0, "probes": [{"who": "scout_1", "t": 255.0, "pts": PROBE_FLANK_N, "careful": true}]})
+			return _with(_central_common(), {"flank": true, "stagger": 45.0, "probes": [{"who": "scout_1", "t": 90.0, "pts": PROBE_FLANK_N, "careful": true}]})
 		"central_flank_noreply":
-			return _with(_central_common(), {"flank": true, "repel": false, "evac": false, "probes": [{"who": "scout_1", "t": 255.0, "pts": PROBE_FLANK_N, "careful": true}]})
+			return _with(_central_common(), {"flank": true, "repel": false, "evac": false, "probes": [{"who": "scout_1", "t": 90.0, "pts": PROBE_FLANK_N, "careful": true}]})
 		"south_full":
 			var c := _south_common()
 			c.probes = [c.probes[0], south_bank]
@@ -164,9 +165,9 @@ func _strategy_cfg(name: String) -> Dictionary:
 		"south_vado_only":
 			return _south_common()
 		"south_bare":
-			return {"signal_t": 290.0, "signal_on_go": true, "stage": STAGE_SOUTH, "stage_t": 220.0, "stage2": STAGE_SOUTH_EXIT, "stage2_t": 390.0, "stage2_wp": [Vector2(300, 403)], "board_t": 390.0, "wp": SOUTH_BOARD_WP, "wait_probes": true, "wait_max": 420.0, "mark_t": 150.0, "probes": [{"who": "scout_1", "t": 100.0, "pts": PROBE_SOUTH_VADO, "careful": false}]}
+			return {"signal_t": 200.0, "signal_on_go": true, "stage": STAGE_SOUTH, "stage_t": 130.0, "stage2": STAGE_SOUTH_EXIT, "stage2_t": 230.0, "stage2_wp": [Vector2(300, 403)], "board_t": 270.0, "wp": SOUTH_BOARD_WP, "wait_probes": true, "wait_max": 170.0, "mark_t": 170.0, "probes": [{"who": "scout_1", "t": 150.0, "pts": PROBE_SOUTH_VADO, "careful": false}]}
 		"south_wrong_crossing":
-			return {"signal_t": 150.0, "resupply": true, "muster": 1, "stage": Vector2(255, 360), "stage_t": 220.0, "board_t": 340.0, "wp": [Vector2(300, 360), Vector2(450, 455), Vector2(520, 440), Vector2(565, 390)], "fire": true, "repel": true}
+			return {"signal_t": 90.0, "resupply": true, "muster": 1, "stage": Vector2(255, 360), "stage_t": 130.0, "board_t": 190.0, "wp": [Vector2(300, 360), Vector2(450, 455), Vector2(520, 440), Vector2(565, 390)], "fire": true, "repel": true}
 		"south_noreply":
 			var c2 := _south_common()
 			c2.probes = [c2.probes[0], south_bank]
@@ -175,18 +176,20 @@ func _strategy_cfg(name: String) -> Dictionary:
 			return c2
 		"mixed_split":
 			var c3 := _south_common()
-			c3.probes = [c3.probes[0], south_bank, {"who": "scout_2", "t": 255.0, "pts": PROBE_FLANK_N, "careful": true}]
+			c3.probes = [c3.probes[0], south_bank, {"who": "scout_2", "t": 90.0, "pts": PROBE_FLANK_N, "careful": true}]
 			c3.split = true
 			c3.cover = true
 			return c3
 		"late_all_in":
-			return {"signal_t": 360.0, "resupply": true, "muster": 1, "board_t": 1000.0, "fire": true}
+			return {"signal_t": 200.0, "resupply": true, "muster": 1, "board_t": 1000.0, "fire": true}
 		"passive":
 			return {}
 	return {}
 
 ## Carril de los flancos del banco central segun lo que se descubrio: si el hoyo norte apareció, el sur es el firme (hay exactamente uno).
-func _flank_wps(st: Dictionary) -> Array:
+func _flank_wps(st: Dictionary, c: Dictionary = {}) -> Array:
+	if c.has("flank_known"):  ## el diario ya anotó cuál flanco tiene el hoyo
+		return LANE_S_WP if str(c.flank_known) == "pozo_flanco_norte" else LANE_N_WP
 	return LANE_S_WP if "pozo_flanco_norte" in st.hazards_found else LANE_N_WP
 
 func _probes_done(s: Sim) -> bool:
@@ -231,7 +234,9 @@ func _policy_cfg(s: Sim) -> void:
 				r.issue_scout(str(sc3.id), "recall", [])
 	if c.has("mark_t") and s.t >= float(c.mark_t) and not s.mem.has("mark_south") and "vado_sur" in st.fords_found and r.get_scout("scout_2").stage == "idle":
 		s.mem.mark_south = r.issue_scout("scout_2", "mark_ford", MARK_SOUTH).ok
-	if c.get("cover", false):
+	## Un jugador que lee la variante de misión cuida la pólvora: no gasta fuego de distracción por debajo del piso que reserva para rechazar contraataques.
+	var ammo_floor: int = int(c.get("ammo_floor", 12))
+	if c.get("cover", false) and int(st.ammo) >= 8 + ammo_floor:
 		for sc2 in st.scouts:
 			if sc2.stage == "probing" and r.exposure_at(float(sc2.x), float(sc2.z)) > 0.0:
 				if r.call_fire_support().ok:
@@ -310,9 +315,9 @@ func _policy_cfg(s: Sim) -> void:
 			if c.has("wp"):
 				wps = c.wp
 			elif c.get("flank", false):
-				wps = _flank_wps(st)
+				wps = _flank_wps(st, c)
 			if c.get("split", false):
-				wps = _flank_wps(st) if id == "guemes" else SOUTH_BOARD_WP
+				wps = _flank_wps(st, c) if id == "guemes" else SOUTH_BOARD_WP
 				if id != "guemes" and not ("vado_sur" in st.fords_found):
 					continue
 			var o2: Dictionary = r.issue_order(id, "board", Vector2.ZERO, {"pace": str(c.get("pace", "trot")), "waypoints": wps})
@@ -325,16 +330,26 @@ func _policy_cfg(s: Sim) -> void:
 		for u3 in st.units:
 			if r.exposure_at(float(u3.x), float(u3.z)) > 0.0 and u3.stage in ["moving", "dismounting", "boarding"]:
 				exposed = true
-		if exposed and r.call_fire_support().ok:
+		if exposed and int(st.ammo) >= 8 + ammo_floor and r.call_fire_support().ok:
 			s.mem.fire_uses = int(s.mem.get("fire_uses", 0)) + 1
 	# cubierta: rechazar el contraataque y evacuar heridos
-	if c.get("repel", false) and bool(st.counter.active) and not bool(st.counter.answered):
+	var repel_roll := true
+	if bool(st.counter.active) and s.rng != null:
+		var rk := "rp_%d" % int(st.counter.count)
+		if not s.mem.has(rk):
+			s.mem[rk] = s.rng.randf() < float(c.get("repel_p", 1.0))  ## un humano distraído deja pasar el aviso
+		repel_roll = bool(s.mem[rk])
+	if c.get("repel", false) and repel_roll and bool(st.counter.active) and not bool(st.counter.answered):
 		var best: Dictionary = {}
 		for u4 in st.units:
 			if u4.stage == "boarding" and (best.is_empty() or float(u4.strength) > float(best.strength)):
 				best = u4
 		if not best.is_empty() and r.issue_order(str(best.id), "repel").ok:
 			s.mem.repels = int(s.mem.get("repels", 0)) + 1
+	if float(st.last_effort.until) >= 0.0 and not bool(st.last_effort.used) and not s.mem.has("le_roll"):
+		s.mem.le_roll = s.rng == null or s.rng.randf() < float(c.get("last_effort_p", 1.0))
+		if bool(s.mem.le_roll) and r.last_effort().ok:
+			s.mem.last_effort = true
 	if c.get("evac", false):
 		var boarding_n := 0
 		for u5 in st.units:
@@ -537,7 +552,8 @@ func _ui_step(r, t: float) -> void:
 	for u in st.units:
 		if r.exposure_at(float(u.x), float(u.z)) > 0.0 and u.stage in ["moving", "dismounting", "boarding"]:
 			exposed = true
-	if exposed and float((st.get("fire_support", {}) as Dictionary).get("ready_at", 0.0)) <= t and t >= float(mem.get("fire_wait", 0.0)):
+	## Ronda 9: se cuida la pólvora para rechazar contraataques (piso de 8 tras gastar 8).
+	if exposed and int(st.ammo) >= 16 and float((st.get("fire_support", {}) as Dictionary).get("ready_at", 0.0)) <= t and t >= float(mem.get("fire_wait", 0.0)):
 		mem.fire_wait = t + 12.0
 		if await _press("Distraer con fuego", "fuego de distraccion"):
 			return
@@ -568,13 +584,13 @@ func _ui_step(r, t: float) -> void:
 		if await _press("Reunir", "reunir jinetes"):
 			mem.muster0 = true
 		return
-	if t >= 150.0 and not mem.has("resupply") and mem.has("muster0") and r.get_unit("zavala").stage == "ready" and int(st.ammo) < 30 and int(st.ammo_reserve) > 0:
+	if t >= 95.0 and not mem.has("resupply") and mem.has("muster0") and r.get_unit("zavala").stage == "ready" and int(st.ammo) < 30 and int(st.ammo_reserve) > 0:
 		await _select_groups(["zavala"])
 		if await _press("Abastecer", "reponer munición"):
 			mem.resupply = true
 		return
 	# señalar a Liniers (a los 180 s y de nuevo al partir si la orden venció)
-	var want_signal: bool = (t >= 180.0 and int(mem.get("sig_n", 0)) == 0) or (t >= 330.0 and mem.has("probes_done") and not bool(st.advance_authorized))
+	var want_signal: bool = (t >= 100.0 and int(mem.get("sig_n", 0)) == 0) or (t >= 170.0 and mem.has("probes_done") and not bool(st.advance_authorized))
 	if want_signal and not bool(st.advance_authorized) and r.get_unit("guemes").stage == "ready" and int(st.signals_left) > 0 and t >= float(mem.get("sig_wait", 0.0)):
 		await _select_groups(["guemes"])
 		if await _press("Señalar a Liniers", "dar la orden de avance"):
@@ -582,11 +598,11 @@ func _ui_step(r, t: float) -> void:
 			mem.sig_wait = t + 20.0
 		return
 	# dos sondeos cautelosos por los carriles de los flancos del banco central
-	if t >= 255.0 and not mem.has("probe_n") and r.get_scout("scout_1").stage == "idle":
+	if t >= 90.0 and not mem.has("probe_n") and r.get_scout("scout_1").stage == "idle":
 		mem.probe_n = await _ui_probe(KEY_4, [Vector2(250, 240), Vector2(362, 240)])
 		ui_log.append("%d s: sondeo cauteloso del carril norte con el explorador 1" % int(t))
 		return
-	if t >= 255.0 and not mem.has("probe_s") and r.get_scout("scout_2").stage == "idle":
+	if t >= 90.0 and not mem.has("probe_s") and r.get_scout("scout_2").stage == "idle":
 		mem.probe_s = await _ui_probe(KEY_5, [Vector2(250, 288), Vector2(362, 288)])
 		ui_log.append("%d s: sondeo cauteloso del carril sur con el explorador 2" % int(t))
 		return
@@ -598,7 +614,7 @@ func _ui_step(r, t: float) -> void:
 		if not busy:
 			mem.probes_done = true
 	# puesta en posicion en el eje del banco central (cada grupo a su fila, como en la matriz de Reglas)
-	if t >= 260.0:
+	if t >= 120.0:
 		var gi := 0
 		for id in ["guemes", "arias", "zavala"]:
 			if not mem.has("stage_" + id) and r.get_unit(id).stage == "ready":
@@ -608,7 +624,7 @@ func _ui_step(r, t: float) -> void:
 				return
 			gi += 1
 	# salida: con los sondeos terminados (o vencido el plazo) y la orden de avance vigente
-	var go: bool = t >= 330.0 and (mem.has("probes_done") or t >= 660.0) and bool(st.advance_authorized)
+	var go: bool = t >= 170.0 and (mem.has("probes_done") or t >= 290.0) and bool(st.advance_authorized)
 	if go and not mem.has("route"):
 		var lane: Array = [Vector2(300, 288), Vector2(375, 288)] if "pozo_flanco_norte" in st.hazards_found else [Vector2(300, 240), Vector2(375, 240)]
 		for id in ["guemes", "arias", "zavala"]:
