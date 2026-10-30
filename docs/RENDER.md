@@ -224,3 +224,27 @@ Solo aspecto: no cambia geometria, reglas, `main.gd` ni `game_rules.gd`. Captura
 - Rotulos de grupos que se pisan, texto "Centro de la vista", leyenda del minimapa, modales, avisos y tutorial: son de `main.gd` (otra pista). Renombrar "Camino de la barranca (Alameda)" es dato del JSON/`main.gd` (el paquete pide no extender la Alameda a Retiro); aqui solo se agrego el sufijo (diseño).
 - Muros del fuerte sin sillería ni garitas; guardias de escala junto al fuerte; pasto aun por vertice (sin textura propia).
 - Compatibility y 2560x1440 reales sin capturas.
+
+## Justina ronda 7: aspecto (pista visual)
+Fuente principal: Paquete Justina_Retiro_1806 (informe G7 paleta, H banderas; lamina 04) cotejado con la acuarela de Vidal (cielo crema, campo ocre, horizonte bajo). No se toco geometria, reglas, `main.gd` ni `game_rules.gd`.
+
+### Que cambio
+- **Rio** (`shaders/water_rio_plata.gdshader`, `palette.water.turbid_*` del JSON): pardo-verdoso mas oscuro y saturado (`#8A7448 / #6C6D45 / #4D5D54`); normales de ola con 44 % de la fuerza anterior (rizado corto, sin rayas), Fresnel acotado (el reflejo ya no blanquea), menos manchas de gran escala, borreguitos de espuma 1/3, anillo de incertidumbre mas tenue, bruma solo lejana.
+- **Terreno** (`terrain_justina_r4.gdshader`): pasto menos verde y mas paja (hacia `#A38D6B`/`#7C8159` del paquete).
+- **Casas** (`_house_at`): ademas de la azotea, ranchos de paja (tono tierra, techo `#B9A57C`) y casas de tejado a dos aguas con teja apagada, con alturas y colores variados; el GLB con patio queda en ~20 %.
+- **Buque**: velas recogidas (se comprimen hacia la verga: Gillespie dice «aligerado» y varado), casco hundido 1,1 m mas al apoyar, tamano minimo en pantalla hasta x2,9 (antes x2,3).
+- **Rotulos de grupo en el mundo**: cuando estan lejos se apilan escalonados en altura segun la distancia (no se pisan); los rotulos 2D del panel/HUD son de `main.gd` y no se tocaron.
+
+### Fiel a fuente / reconstruccion estetica
+- Fiel (con la reserva del paquete): paleta de uniformes y banderas `GROUP_PAL`/Red Ensign posterior a 1801 sin bandera argentina; Plaza de Toros, barranca y casas bajas de azotea (Vidal, Boneo para la cuadra).
+- Reconstruccion/Diseno: colores del agua y del pasto, ranchos de paja y tejados (variedad estetica, no inventario), velas recogidas, hundimiento del casco, escalonado de rotulos.
+
+### Medicion
+Tests con APPDATA aislado: `test_rules` 547/0, `test_integration` 252/0. `benchmark.py` Justina (RTX 3080 Ti, 2 rep.): baja 1,53 ms, media 2,45 ms, alta 2,74 ms (maximo 2,75 ms; tope 3 ms: OK). Capturas finales en `evidence/justina-ui/calidad_r7/` (`antes_*` y `final_*`, 27 vistas cada una, ventana real 1440x900).
+
+### Pendiente
+- El casco aun deja ver una franja de arena bajo la quilla en vistas rasantes con rio minimo (hay que bajar mas el modelo o dibujar un decal de fango: requiere `ship.grounded_visual` o editar el GLB).
+- Mesana danada (hipotesis), popa con ventanas de galeria y rotulo «(hipotesis)» del pabellon: no hechos (requieren editar el modelo).
+- Rotulos 2D de agrupaciones que se pisan, rotulo del anillo de Gillespie, tamanos de pantalla de las banderas de grupo, etiqueta alta/baja del HUD: son de `main.gd` (otra pista).
+- Compatibility no verificado; ciudad lejana sigue sin calles (solo cuadras de Boneo).
+- Se pidio area 900x750 / ciudad alta como geometria: no se toco (pista de mapa).

@@ -2706,9 +2706,9 @@
       "foam": "#DCE0D4",
       "channel_hint": "#5F7A7F",
       "bank_hint": "#9AA58C",
-      "turbid_near": "#8A7C5C",
-      "turbid_mid": "#79806A",
-      "turbid_far": "#5F7378",
+      "turbid_near": "#8A7448",
+      "turbid_mid": "#6C6D45",
+      "turbid_far": "#4D5D54",
       "note_round5": "Ronda 5 (propuesta para la pista visual): el agua cercana a la costa tira al pardo-ocre del Plata (arena_tierra) y se enfría hacia la mitad y el fondo; evita la lámina pálida casi blanca vista de lejos y la niebla del horizonte pegada al agua. Claves nuevas: turbid_near / turbid_mid / turbid_far."
     },
     "house": {
