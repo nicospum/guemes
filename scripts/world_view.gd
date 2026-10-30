@@ -1531,6 +1531,9 @@ func _ship_j():
  ship.rotation=Vector3(0.012,-deg_to_rad(heading),0.045)
  ship_hull=ship;ship_y0=ship.position.y
  _strip_ladder(ship)
+ # Ficha del objetivo: el buque se ve desde cualquier altura (tamaño fijo en pantalla, aro que late). Hija del mundo, no del casco escalado.
+ var ship_tok=_token_j(self,4,Color("e6b04a"),56.0,260.0,620.0,10.0,true);ship_tok.name="Ficha_buque"
+ ship_tok.position=Vector3(sx,10.0,sz)
  # Anillo de fango y arena humeda alrededor del casco apoyado (Diseño: grounded_visual.mud_ring_radius_m).
  var mr:Array=M.get("ship",{}).get("grounded_visual",{}).get("mud_ring_radius_m",[22.0,34.0])
  var pm=PlaneMesh.new();pm.size=Vector2(float(mr[1])*2.2,float(mr[1])*2.2*1.3);pm.subdivide_width=1;pm.subdivide_depth=1
@@ -1872,6 +1875,23 @@ var label_d:Dictionary={}
 var ship_far_k=1.0
 var far_k:Dictionary={}   # R6: tamaño minimo en pantalla de las figuras de un grupo (simbolico: 1 hasta ~150 m de camara, hasta x3,4 a 600 m)
 
+## Ficha de lectura de tamaño fijo en pantalla (shaders/justina_token.gdshader). shape: 0 caballeria, 1 voluntarios, 2 reserva, 3 explorador, 4 buque.
+func _token_j(parent:Node3D,shape:int,color:Color,px:float,fade_a:float,fade_b:float,y:float,pulse:bool=false,drop:float=0.0)->MeshInstance3D:
+ var q=QuadMesh.new();q.size=Vector2(1,1)
+ var mi=MeshInstance3D.new();mi.mesh=q;mi.name="Ficha_"+str(shape)
+ var sm=ShaderMaterial.new();sm.shader=load("res://shaders/justina_token.gdshader")
+ sm.set_shader_parameter("tint",color);sm.set_shader_parameter("size_px",px);sm.set_shader_parameter("shape",shape)
+ sm.set_shader_parameter("fade_a",fade_a);sm.set_shader_parameter("fade_b",fade_b);sm.set_shader_parameter("pulse",1.0 if pulse else 0.0);sm.set_shader_parameter("drop_px",drop)
+ sm.render_priority=20
+ mi.material_override=sm;mi.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+ mi.extra_cull_margin=16384.0
+ mi.position=Vector3(0,y,0)
+ parent.add_child(mi)
+ return mi
+
+const TOKEN_COLORS={"guemes":"f0c25a","arias":"4fc7b8","zavala":"ec8fb6","scout_1":"d8d2c0","scout_2":"c9d8d2"}
+const TOKEN_SHAPES={"guemes":0,"arias":1,"zavala":2}
+
 func _group_marker_j(id:String,root:Node3D)->void:
  var pal:Array=GROUP_PAL.get(id,["7b6953","d8cfb8"])
  # R6: colores del guion desde banners.group_markers del JSON (Diseño; antes fijos en el codigo). Evita el azul-blanco-azul que se leia como bandera.
@@ -1896,6 +1916,7 @@ func _group_marker_j(id:String,root:Node3D)->void:
  var disc=MeshInstance3D.new();disc.mesh=dm;disc.name="Halo"
  var dmat=StandardMaterial3D.new();dmat.albedo_color=Color(Color(pal[0]).r,Color(pal[0]).g,Color(pal[0]).b,0.30);dmat.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED;dmat.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA;dmat.no_depth_test=false
  disc.material_override=dmat;disc.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;ring.add_child(disc)
+ _token_j(root,int(TOKEN_SHAPES.get(id,0)),Color(str(TOKEN_COLORS.get(id,"d8cfb8"))),40.0,50.0,110.0,1.0,false,30.0)
  group_markers.append({"node":m,"ring":ring,"root":root})
 
 func _update_markers_j(cam:Camera3D)->void:
@@ -1956,6 +1977,7 @@ func _create_scouts_j():
   lance.mesh=lm;lance.material_override=_mat(Color("6f5a3c"));lance.position=Vector3(0.45,2.4,-0.3);lance.rotation=Vector3(0.15,0,-0.12);fig.add_child(lance)
   var ring=_ring_j(2.6,Color("e2bc72"),root)
   selected_rings[id]=ring
+  _token_j(root,3,Color(str(TOKEN_COLORS.get(id,"d8d2c0"))),26.0,60.0,130.0,1.0,false,22.0)
   var label=_label_j("◇ "+str(sc.name),Vector3(0,5.0,0),Color("dcd8c0"),26,root)
   unit_labels[id]=label
   unit_nodes[id]={"root":root,"figures":fig,"mounted":true,"anims":[],"last":root.position,"kind":"scout","yaw":-PI/2.0,"pos2":Vector2(float(sc.x),float(sc.z)),"moving":false,"stage":""}
