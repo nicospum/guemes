@@ -248,3 +248,9 @@ Tests con APPDATA aislado: `test_rules` 547/0, `test_integration` 252/0. `benchm
 - Rotulos 2D de agrupaciones que se pisan, rotulo del anillo de Gillespie, tamanos de pantalla de las banderas de grupo, etiqueta alta/baja del HUD: son de `main.gd` (otra pista).
 - Compatibility no verificado; ciudad lejana sigue sin calles (solo cuadras de Boneo).
 - Se pidio area 900x750 / ciudad alta como geometria: no se toco (pista de mapa).
+
+## Diversion ronda 1 (visual): rio calido, buque y unidades legibles, fuerte menor
+- Agua (`water_rio_plata.gdshader`, paleta `turbid_*` del JSON): ocre-limoso calido en vez de gris-verdoso; tres bandas de profundidad (somera arenosa, media limosa, canal verde oscuro), olas con normales mas fuertes y ola larga visible desde altura, crestas finas en rafagas, reflejo de cielo calido (Fresnel x8) y camino de brillo del sol. Ambiente calido (`d9cfb6`).
+- Buque: escala minima en pantalla x1,5 (hasta x4,2 lejos). Unidades: guion y anillo mayores a distancia, figuras minimas hasta x4,4 y halo relleno del color del bando bajo cada grupo.
+- Plaza de Toros/fuerte: huella visual 62 % del radio, muro tosca (`c3b690`) y teja desaturada (`77604a`).
+- Medicion: `benchmark.py` Justina baja 1,81 ms, media 2,51 ms (cuadro medio, < 3 ms). `test_integration`: 260 checks, 0 fallas. Capturas antes/despues en `evidence/justina-ui/diversion_r1/` (`antes_*` / `r2_*`). Sin verificar: Compatibility, barranca (no se toco), estandartes del paquete.

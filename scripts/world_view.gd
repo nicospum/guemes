@@ -274,7 +274,7 @@ func _lighting():
   env.fog_depth_begin=650.0
   env.fog_depth_end=4200.0
   env.fog_depth_curve=2.2
-  env.ambient_light_energy=0.62
+  env.ambient_light_energy=0.66;env.ambient_light_color=Color("d9cfb6")
  if advanced_renderer and quality != "baja":
   # Solo Forward+/Mobile: oclusión ambiental y brillo suave. El perfil alto agrega niebla volumétrica leve.
   env.glow_enabled = true
@@ -1050,7 +1050,7 @@ func _water_j():
  var sh=M.get("ship",{});var hdg=deg_to_rad(float(sh.get("heading_deg",0.0)))
  water_mat.set_shader_parameter("ship_xz",Vector2(float(sh.get("x",580.0)),float(sh.get("z",262.0))))
  water_mat.set_shader_parameter("ship_fwd",Vector2(sin(hdg),-cos(hdg)))
- water_mat.set_shader_parameter("ship_half",Vector2(4.5,20.0))
+ water_mat.set_shader_parameter("ship_half",Vector2(6.5,28.0))
  water_mat.set_shader_parameter("unc_radius",float(sh.get("uncertainty_radius_m",120.0)))
  # Una sola superficie plana a y = nivel, del pie de la barranca al horizonte. UV.x = altura real del suelo (halo de 0,3 m y espuma);
  # UV2.x = fondo base publico por x (solo degrada el color; no revela bancos ni pozo oculto).
@@ -1182,7 +1182,7 @@ func _landmarks_j():
     _inst_r("box",Vector3(mx,_h(mx,mz)+wh*0.5-0.1,mz),Vector3(ln+0.05 if along_x else 0.5,wh,0.5 if along_x else ln+0.05),0.0,Color("bdb096"))
 
 func _bullring_j(lm:Dictionary):
- var c=Vector2(float(lm.x),float(lm.z));var r=float(lm.get("radius_m",24.0))
+ var c=Vector2(float(lm.x),float(lm.z));var r=float(lm.get("radius_m",24.0))*0.62   # R-div1: huella visual 62 % (el fuerte dominaba la escena)
  var y0=_h(c.x,c.y)
  # Plaza de Toros (Boneo 1801, Vidal 1820 lamina 05; paquete F01): exterior OCTOGONAL (r = radio de vertices), ruedo circular
  # independiente, muro encalado, techo de teja en el anillo de gradas y 4 portales (Pillado: cuatro puertas, orientacion desconocida).
@@ -1190,7 +1190,7 @@ func _bullring_j(lm:Dictionary):
  var ruedo=r*0.5
  _inst_t("cyl12",Transform3D(Basis.from_scale(Vector3(ruedo*1.0,0.3,ruedo*1.0)),Vector3(c.x,y0+0.1,c.y)),Color("a38d6b"))
  var apo=r*cos(PI/8.0);var side=2.0*r*sin(PI/8.0)
- var wall_h=clampf(r*0.2,5.0,9.0)
+ var wall_h=clampf(r*0.2,4.0,9.0)
  for i in range(8):
   var a=TAU*(float(i)+0.5)/8.0
   var yaw=-a-PI/2.0
@@ -1201,11 +1201,11 @@ func _bullring_j(lm:Dictionary):
    var tang=Vector2(-sin(a),cos(a))
    for sg in [-1.0,1.0]:
     var q=Vector2(pw.x,pw.z)+tang*sg*side*0.34
-    _inst_r("box",Vector3(q.x,y0+wall_h*0.5,q.y),Vector3(side*0.32,wall_h,2.2),yaw,Color("d8cfb8"))
-   _inst_r("box",Vector3(pw.x,y0+wall_h*0.9,pw.z),Vector3(side*0.36,wall_h*0.22,2.2),yaw,Color("d1c7ad"))
+    _inst_r("box",Vector3(q.x,y0+wall_h*0.5,q.y),Vector3(side*0.32,wall_h,2.2),yaw,Color("c3b690"))
+   _inst_r("box",Vector3(pw.x,y0+wall_h*0.9,pw.z),Vector3(side*0.36,wall_h*0.22,2.2),yaw,Color("b8aa86"))
   else:
-   _inst_r("box",Vector3(pw.x,y0+wall_h*0.5,pw.z),Vector3(side,wall_h,2.2),yaw,Color("d8cfb8"))
-  _inst_r("box",Vector3(pw.x,y0+wall_h+0.3,pw.z),Vector3(side*1.02,0.6,3.0),yaw,Color("8e5a47"))
+   _inst_r("box",Vector3(pw.x,y0+wall_h*0.5,pw.z),Vector3(side,wall_h,2.2),yaw,Color("c3b690"))
+  _inst_r("box",Vector3(pw.x,y0+wall_h+0.3,pw.z),Vector3(side*1.02,0.6,3.0),yaw,Color("77604a"))
   # gradas de madera (anillo interior, mas bajo)
   var pg=Vector3(c.x+cos(a)*(apo-r*0.16),0,c.y+sin(a)*(apo-r*0.16))
   _inst_r("box",Vector3(pg.x,y0+wall_h*0.32,pg.z),Vector3(side*0.86,wall_h*0.64,r*0.22),yaw,Color("9a8160"))
@@ -1213,7 +1213,7 @@ func _bullring_j(lm:Dictionary):
  for k in range(3):
   var ax=c.x-r*1.25-float(k)*0.0;var az=c.y+(float(k)-1.0)*r*0.62
   _inst_r("box",Vector3(ax,_h(ax,az)+2.0,az),Vector3(r*0.55,4.0,r*0.55),0.0,Color("cfc4a8"))
-  _inst_r("box",Vector3(ax,_h(ax,az)+4.25,az),Vector3(r*0.6,0.5,r*0.6),0.0,Color("8e5a47"))
+  _inst_r("box",Vector3(ax,_h(ax,az)+4.25,az),Vector3(r*0.6,0.5,r*0.6),0.0,Color("77604a"))
  # Bandera blanca con escudo español pintado: INFERENCIA (cuenta de 1803, Pillado; paquete H4). Sin escudo argentino.
  # R5: antes un cuadrado rojo sobre blanco (se leia como otra bandera). Ahora paño blanco con un escudo pintado (borde latón,
  # cuarteles rojo y crudo, corona): el escudo exacto NO tiene datos, es un esquema de lectura (Diseño). Asta fina de 8 m.
@@ -1325,7 +1325,7 @@ func _house_at(x:float,z:float,w:float,d:float,yaw:float,col_tint:Color=Color.WH
   var wc=Color("d8cfb8").lerp(Color("a38d6b"),fposmod(sin(x*3.3+z*2.7)*377.7,1.0)*(0.9 if thatch else 0.5)).darkened(0.10)
   var ww=w*(0.75 if thatch else 0.9);var dd=d*(0.7 if thatch else 0.85)
   _inst_r("box",Vector3(x,hb+wh*0.5,z),Vector3(ww,wh,dd),yaw,wc)
-  var roof=Color("b9a57c").darkened(0.12) if thatch else Color("8e5a47").lerp(Color("7e5b48"),fposmod(sin(x+z)*99.9,1.0))
+  var roof=Color("b9a57c").darkened(0.12) if thatch else Color("77604a").lerp(Color("7e5b48"),fposmod(sin(x+z)*99.9,1.0))
   var rh=ww*(0.34 if thatch else 0.22)
   _inst_r("prism",Vector3(x,hb+wh+rh*0.5-0.02,z),Vector3(ww*1.08,rh,dd*1.12),yaw+PI*0.5,roof)
   return
@@ -1891,13 +1891,18 @@ func _group_marker_j(id:String,root:Node3D)->void:
  if id=="arias":_box(Vector3(fw+0.25,top-fh*0.5,0),Vector3(0.5,fh*0.45,0.04),Color(pal[0]),m)
  var ring=_ring_j(3.0,Color(pal[0]).lerp(Color("f4efdc"),0.35),root)
  ring.name="Ancla";ring.scale=Vector3(1,1,1)
+ # R-div1: halo relleno del color del bando bajo el grupo (se lee de lejos sin depender de carteles).
+ var dm=CylinderMesh.new();dm.top_radius=3.0;dm.bottom_radius=3.0;dm.height=0.04;dm.radial_segments=32;dm.rings=1
+ var disc=MeshInstance3D.new();disc.mesh=dm;disc.name="Halo"
+ var dmat=StandardMaterial3D.new();dmat.albedo_color=Color(Color(pal[0]).r,Color(pal[0]).g,Color(pal[0]).b,0.30);dmat.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED;dmat.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA;dmat.no_depth_test=false
+ disc.material_override=dmat;disc.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;ring.add_child(disc)
  group_markers.append({"node":m,"ring":ring,"root":root})
 
 func _update_markers_j(cam:Camera3D)->void:
  # R6: el buque (objetivo del juego) crece hasta x2,3 con la distancia de camara para no quedar en 25 px (tamaño minimo en pantalla; simbolico).
  if is_instance_valid(ship):
   var ds=cam.global_position.distance_to(ship.global_position)
-  var ks=clampf(ds/300.0,1.0,2.9)
+  var ks=clampf(ds/170.0,1.5,4.2)
   if absf(ks-ship_far_k)>0.03:
    ship_far_k=ks
    ship.scale=Vector3(SHIP_SX,SHIP_SY,SHIP_SZ)*ks
@@ -1906,14 +1911,14 @@ func _update_markers_j(cam:Camera3D)->void:
  for g in group_markers:
   var r:Node3D=g.root
   var d=cam.global_position.distance_to(r.global_position)
-  var k=clampf(d*0.0045,1.0,3.4)   # R5: guion de ~3,7 m (1 u = 1 m) que crece solo hasta x3 a lo lejos (antes x7 = antenas de 40 m)
+  var k=clampf(d*0.0085,1.2,5.5)   # R5: guion de ~3,7 m (1 u = 1 m) que crece solo hasta x3 a lo lejos (antes x7 = antenas de 40 m)
   g.node.scale=Vector3.ONE*k
   g.ring.position.y=maxf(0.0,level_m-r.position.y)+0.35
-  g.ring.scale=Vector3.ONE*clampf(d*0.0055,1.0,6.0)
+  g.ring.scale=Vector3.ONE*clampf(d*0.0085,1.2,8.0)
   var gid=str(r.name).trim_prefix("Grupo_")
   label_far[gid]=d>230.0
   label_d[gid]=d
-  var fk=clampf(d/160.0,1.0,3.4)
+  var fk=clampf(d/110.0,1.0,4.4)
   if absf(fk-float(far_k.get(gid,1.0)))>0.06:
    far_k[gid]=fk
    if unit_nodes.has(gid):unit_nodes[gid].dirty=true
