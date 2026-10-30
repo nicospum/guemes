@@ -203,6 +203,17 @@ func _inst_glb(model_name:String,xf:Transform3D):
  if not glb_batches.has(model_name):glb_batches[model_name]=[]
  glb_batches[model_name].append(xf)
 
+# Variacion de color por instancia (ronda 2): paredes de lino/cal con distinta edad, techos de teja apagada; evita "cubos blancos con techo rojo identicos".
+func _glb_variation(model_name:String,pos:Vector3)->Color:
+ var h1=fposmod(sin(pos.x*12.9898+pos.z*78.233)*43758.5453,1.0)
+ var h2=fposmod(sin(pos.x*39.3468+pos.z*11.135)*24634.6345,1.0)
+ if model_name=="house_colonial" or model_name=="church_colonial":
+  var wall=Color("d8cfb8").lerp(Color("c9b996"),h1)   # lino crudo -> arena (paleta del paquete)
+  var k=0.66+0.22*h2
+  return Color(wall.r*k*1.02,wall.g*k*0.97,wall.b*k*0.90)
+ var v=0.88+0.2*h1
+ return Color(v,v*(0.97+0.06*h2),v*0.94)
+
 func _flush_glb_batches():
  for model_name in glb_batches:
   var xfs:Array=glb_batches[model_name]
@@ -210,9 +221,11 @@ func _flush_glb_batches():
    var mm=MultiMesh.new()
    mm.transform_format=MultiMesh.TRANSFORM_3D
    mm.mesh=part.mesh
+   mm.use_colors=true
    mm.instance_count=xfs.size()
    for i in range(xfs.size()):
     mm.set_instance_transform(i,xfs[i]*part.xf)
+    mm.set_instance_color(i,_glb_variation(model_name,xfs[i].origin))
    var mmi=MultiMeshInstance3D.new()
    mmi.name="LoteGLB_"+model_name
    mmi.multimesh=mm
@@ -247,7 +260,7 @@ func _lighting():
   var sky_sh=ShaderMaterial.new()
   sky_sh.shader=load("res://shaders/justina_sky.gdshader")
   sky.sky_material=sky_sh
-  env.fog_light_color=Color("cfcab8")
+  env.fog_light_color=Color("d9ceae")
   env.fog_light_energy=1.0
   env.fog_sky_affect=0.0
   env.fog_mode=Environment.FOG_MODE_DEPTH
@@ -702,6 +715,7 @@ func pick_sector(camera:Camera3D,mouse_pos:Vector2)->String:
 # La geometria sale de rules.map_data(); la altura del suelo, de rules.terrain_height_at (UNA sola implementacion).
 # Esta vista no calcula daño, nivel ni ordenes y no dibuja el fondo del agua que el jugador no conoce.
 # =====================================================================================
+var ship_hd_applied:float=-999.0
 const J_CELL = 4.0
 const SHIP_SCALE = 2.2
 # Proporciones del casco (ronda 4): el GLB mide 16,8 x 6,6 m a escala 1 (eslora/manga 2,5). Un mercante de 26 canones tiene ~40 m de eslora y ~10 m de manga (eslora/manga ~4): se estira a lo largo y se afina a lo ancho. Reconstruccion estetica; sin dimensiones documentadas.
@@ -1020,6 +1034,11 @@ func _water_j():
  water_mat.shader=load("res://shaders/water_rio_plata.gdshader")
  water_mat.set_shader_parameter("water_level",level_m)
  water_mat.set_shader_parameter("visible_depth_m",float(M.get("knowledge",{}).get("visibility_depth_m",0.3)))
+ var sh=M.get("ship",{});var hdg=deg_to_rad(float(sh.get("heading_deg",0.0)))
+ water_mat.set_shader_parameter("ship_xz",Vector2(float(sh.get("x",580.0)),float(sh.get("z",262.0))))
+ water_mat.set_shader_parameter("ship_fwd",Vector2(sin(hdg),-cos(hdg)))
+ water_mat.set_shader_parameter("ship_half",Vector2(4.5,20.0))
+ water_mat.set_shader_parameter("unc_radius",float(sh.get("uncertainty_radius_m",120.0)))
  # Una sola superficie plana a y = nivel, del pie de la barranca al horizonte. UV.x = altura real del suelo (halo de 0,3 m y espuma);
  # UV2.x = fondo base publico por x (solo degrada el color; no revela bancos ni pozo oculto).
  var toe_min=map_w
@@ -1124,10 +1143,10 @@ func _bullring_j(lm:Dictionary):
    for sg in [-1.0,1.0]:
     var q=Vector2(pw.x,pw.z)+tang*sg*side*0.34
     _inst_r("box",Vector3(q.x,y0+wall_h*0.5,q.y),Vector3(side*0.32,wall_h,2.2),yaw,Color("d8cfb8"))
-   _inst_r("box",Vector3(pw.x,y0+wall_h*0.9,pw.z),Vector3(side*0.36,wall_h*0.22,2.2),yaw,Color("d8cfb8"))
+   _inst_r("box",Vector3(pw.x,y0+wall_h*0.9,pw.z),Vector3(side*0.36,wall_h*0.22,2.2),yaw,Color("d1c7ad"))
   else:
    _inst_r("box",Vector3(pw.x,y0+wall_h*0.5,pw.z),Vector3(side,wall_h,2.2),yaw,Color("d8cfb8"))
-  _inst_r("box",Vector3(pw.x,y0+wall_h+0.3,pw.z),Vector3(side*1.02,0.6,3.0),yaw,Color("8d4b37"))
+  _inst_r("box",Vector3(pw.x,y0+wall_h+0.3,pw.z),Vector3(side*1.02,0.6,3.0),yaw,Color("9a5444"))
   # gradas de madera (anillo interior, mas bajo)
   var pg=Vector3(c.x+cos(a)*(apo-r*0.16),0,c.y+sin(a)*(apo-r*0.16))
   _inst_r("box",Vector3(pg.x,y0+wall_h*0.32,pg.z),Vector3(side*0.86,wall_h*0.64,r*0.22),yaw,Color("9a8160"))
@@ -1346,11 +1365,13 @@ func _scale_bar_j():
   var y=_h(SCALE_X,zp)
   _inst_t("cyl8",Transform3D(Basis.from_scale(Vector3(0.22,3.4,0.22)),Vector3(SCALE_X,y+1.7,zp)),Color("5a3a2a"))
   _inst_t("box",Transform3D(Basis.from_scale(Vector3(0.9,0.9,0.08)),Vector3(SCALE_X,y+3.6,zp)),Color("efe6cc"))
- var lab=_label_j("Escala · 100 m",Vector3(SCALE_X,_h(SCALE_X,SCALE_Z0+50.0)+6.0,SCALE_Z0+50.0),Color("f6ecd0"),26,scale_root)
- lab.name="Rotulo_escala";lab.visibility_range_end=700.0;lab.outline_size=18;lab.outline_modulate=Color(0.08,0.07,0.05,0.95)
+ var lab=_label_j("100 m",Vector3(SCALE_X,_h(SCALE_X,SCALE_Z0+100.0)+4.6,SCALE_Z0+100.0),Color("f6ecd0"),22,scale_root)
+ lab.name="Rotulo_escala";lab.visibility_range_end=260.0;lab.outline_size=18;lab.outline_modulate=Color(0.08,0.07,0.05,0.95)
  # Referencias de lectura: se reubican con el nivel del rio.
  ref_labels["agua"]=_label_j("Línea de agua",Vector3(210,level_m+1.0,100),Color("cfe3dc"),24,scale_root)
- ref_labels["pie"]=_label_j("Pie de la barranca",Vector3(190,_h(188,60)+4.0,60),Color("e6d3a6"),24,scale_root)
+ var tx=_poly_x(M.get("barranca",{}).get("toe",[]),60.0)+3.0
+ ref_labels["pie"]=_label_j("Pie de la barranca",Vector3(tx,_h(tx,60.0)+2.4,60.0),Color("e6d3a6"),22,scale_root)
+ _inst_t("cyl8",Transform3D(Basis.from_scale(Vector3(0.12,2.2,0.12)),Vector3(tx,_h(tx,60.0)+1.1,60.0)),Color("5a3a2a"))
  for k in ref_labels:ref_labels[k].visibility_range_end=800.0
  _update_refs_j()
 
@@ -1375,7 +1396,7 @@ func _ship_j():
  ship.scale=Vector3(SHIP_SX,SHIP_SY,SHIP_SZ)
  ship.rotation=Vector3(0.012,-deg_to_rad(heading),0.045)
  ship_hull=ship
- # Cañones: 13 por banda (26 en total, documentado). Posiciones locales de las portas de babor (oeste con proa al norte).
+ # Cañones: 13 portas por banda es DISEÑO (Gillespie da 26 cañones en total, no el reparto; el paquete pide no dibujar 13 idénticos). Posiciones locales de las portas de babor (oeste con proa al norte).
  ship_gun_pos.clear()
  for i in range(13):
   var gz=-(-5.55+float(i)*0.925)
@@ -1490,7 +1511,8 @@ func _exposure_j():
  var b_half=deg_to_rad(float(af.get("broadside_half_deg",40.0)));var q_half=deg_to_rad(float(af.get("quarter_half_deg",70.0)))
  var verts=PackedVector3Array();var cols=PackedColorArray();var idx=PackedInt32Array()
  var steps=72
- var cs={1.0:Color(0.9,0.25,0.2,0.15),0.5:Color(0.95,0.6,0.2,0.11),0.25:Color(0.95,0.85,0.35,0.07)}
+ # Relleno <= 0,12 (palette.map_overlays); aqui 0,07 maximo y degradado desde el buque: el abanico es un contorno, no una mancha.
+ var cs={1.0:Color(0.71,0.27,0.24,0.075),0.5:Color(0.74,0.45,0.25,0.05),0.25:Color(0.74,0.62,0.30,0.03)}
  for k in range(steps):
   var a0=TAU*float(k)/float(steps);var a1=TAU*float(k+1)/float(steps);var am=(a0+a1)*0.5
   var ang=absf(wrapf(am,-PI,PI));if ang>PI*0.5:ang=PI-ang
@@ -1498,13 +1520,13 @@ func _exposure_j():
   var col:Color=cs[1.0] if fac>=0.99 else (cs[0.5] if fac>=0.4 else cs[0.25])
   var base=verts.size()
   verts.append(Vector3.ZERO);verts.append(Vector3(cos(a0),0,sin(a0))*rng);verts.append(Vector3(cos(a1),0,sin(a1))*rng)
-  cols.append(Color(col.r,col.g,col.b,col.a*0.3));cols.append(col);cols.append(col)
+  cols.append(Color(col.r,col.g,col.b,col.a*0.1));cols.append(col);cols.append(col)
   idx.append_array(PackedInt32Array([base,base+2,base+1]))
   # Anillo del alcance.
   var rb=verts.size()
-  var ring_col=Color(1,0.9,0.7,0.4)
-  verts.append(Vector3(cos(a0),0,sin(a0))*(rng-1.2));verts.append(Vector3(cos(a0),0,sin(a0))*(rng+1.2))
-  verts.append(Vector3(cos(a1),0,sin(a1))*(rng-1.2));verts.append(Vector3(cos(a1),0,sin(a1))*(rng+1.2))
+  var ring_col=Color(0.82,0.36,0.30,0.55)
+  verts.append(Vector3(cos(a0),0,sin(a0))*(rng-1.0));verts.append(Vector3(cos(a0),0,sin(a0))*(rng+1.0))
+  verts.append(Vector3(cos(a1),0,sin(a1))*(rng-1.0));verts.append(Vector3(cos(a1),0,sin(a1))*(rng+1.0))
   for _i in range(4):cols.append(ring_col)
   idx.append_array(PackedInt32Array([rb,rb+2,rb+1,rb+1,rb+2,rb+3]))
  var arr=[];arr.resize(Mesh.ARRAY_MAX);arr[Mesh.ARRAY_VERTEX]=verts;arr[Mesh.ARRAY_COLOR]=cols;arr[Mesh.ARRAY_INDEX]=idx
@@ -1531,9 +1553,9 @@ func _overlay_mat()->StandardMaterial3D:
 
 # ---------------------------------------------------------------- unidades
 func _ring_j(radius:float,color:Color,parent:Node3D)->MeshInstance3D:
- var m=TorusMesh.new();m.inner_radius=radius-0.16;m.outer_radius=radius+0.16;m.rings=48;m.ring_segments=6
+ var m=TorusMesh.new();m.inner_radius=radius-0.11;m.outer_radius=radius+0.11;m.rings=64;m.ring_segments=6
  var n=MeshInstance3D.new();n.mesh=m
- var mat=StandardMaterial3D.new();mat.albedo_color=color;mat.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
+ var mat=StandardMaterial3D.new();mat.albedo_color=color;mat.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED;mat.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA
  n.material_override=mat;n.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
  parent.add_child(n)
  return n
@@ -1565,7 +1587,7 @@ func _create_group_j(unit:Dictionary):
  var mounted=bool(unit.get("mounted",true))
  var n=_group_count(unit)
  var parts=_mm_parts(root,"rider_1806" if mounted else "dismounted_1806",n)
- var ring=_ring_j(9.0,Color("e2bc72"),root)
+ var ring=_ring_j(7.5,Color("e2bc72"),root)
  selected_rings[id]=ring
  var tag=str(unit.get("tag","diseno"))
  var label=_label_j(_tag_glyph(tag)+" "+str(unit.name),Vector3(0,7.0,0),Color("e9d4aa"),30,root)
@@ -1576,13 +1598,19 @@ func _create_group_j(unit:Dictionary):
 ## Paleta del paquete (04_paleta_diseno). Guion de lectura de cada grupo: color de DISEÑO para distinguir, NO es un estandarte histórico.
 const GROUP_PAL = {"guemes":["253b53","983c3c"],"arias":["d8cfb8","7b6953"],"zavala":["a38d6b","33475b"]}
 var group_markers: Array = []
+var label_far:Dictionary={}
 
 func _group_marker_j(id:String,root:Node3D)->void:
  var pal:Array=GROUP_PAL.get(id,["7b6953","d8cfb8"])
  var m=Node3D.new();m.name="Guion_"+id;root.add_child(m)
  _cylinder(Vector3(0,3.0,0),0.07,6.0,Color("4c372b"),m)
- _box(Vector3(1.4,3.6,0),Vector3(2.8,1.7,0.06),Color(pal[0]),m)
- _box(Vector3(1.4,3.6,0.05),Vector3(2.8,0.5,0.06),Color(pal[1]),m)
+ # Silueta por tipo (no solo color): guemes = guion rectangular con franja; arias = banderin largo y bajo; zavala = cuadrado.
+ var fw=2.8;var fh=1.7
+ if id=="arias":fw=3.6;fh=0.95
+ elif id=="zavala":fw=1.9;fh=1.9
+ _box(Vector3(fw*0.5,3.9-fh*0.5+0.5,0),Vector3(fw,fh,0.06),Color(pal[0]),m)
+ _box(Vector3(fw*0.5,3.9-fh*0.5+0.5,0.05),Vector3(fw,fh*0.3,0.06),Color(pal[1]),m)
+ if id=="arias":_box(Vector3(fw+0.5,3.9-fh*0.5+0.5,0),Vector3(1.0,fh*0.45,0.06),Color(pal[0]),m)
  var ring=_ring_j(3.0,Color(pal[0]).lerp(Color("f4efdc"),0.35),root)
  ring.name="Ancla";ring.scale=Vector3(1,1,1)
  group_markers.append({"node":m,"ring":ring,"root":root})
@@ -1595,6 +1623,7 @@ func _update_markers_j(cam:Camera3D)->void:
   g.node.scale=Vector3.ONE*k
   g.ring.position.y=maxf(0.0,level_m-r.position.y)+0.35
   g.ring.scale=Vector3.ONE*clampf(d*0.004,1.0,4.0)
+  label_far[str(r.name).trim_prefix("Grupo_")]=d>230.0
 
 func _ensign_j(s:Dictionary)->void:
  # Red Ensign (H1, HIPÓTESIS/Reconstrucción: la bandera concreta del Justina no está identificada; Union posterior a 1801 en el cantón).
@@ -1602,13 +1631,16 @@ func _ensign_j(s:Dictionary)->void:
  var root=Node3D.new();root.name="Pabellon_hipotesis";add_child(root)
  root.position=Vector3(sx,level_m,sz);root.rotation.y=-heading
  var px=0.0;var pz=15.5   # popa (+z local con proa al norte)
- _cylinder(Vector3(px,12.0,pz),0.15,8.0,Color("4c372b"),root)
- _box(Vector3(px,15.2,pz-2.3),Vector3(0.05,2.6,4.6),Color("b6453e"),root)       # campo rojo
- _box(Vector3(px,15.85,pz-0.9),Vector3(0.06,1.3,1.8),Color("33475b"),root)        # cantón Union (esquema)
- _box(Vector3(px,15.85,pz-0.9),Vector3(0.08,0.22,1.8),Color("d8cfb8"),root)
- _box(Vector3(px,15.85,pz-0.9),Vector3(0.08,1.3,0.22),Color("d8cfb8"),root)
- _box(Vector3(px,15.85,pz-0.9),Vector3(0.09,0.1,1.8),Color("983c3c"),root)
- _box(Vector3(px,15.85,pz-0.9),Vector3(0.09,1.3,0.1),Color("983c3c"),root)
+ _cylinder(Vector3(px,12.0,pz),0.12,8.0,Color("4c372b"),root)
+ # Ronda 2: pabellon de 3,2 x 1,8 m (antes 4,6 x 2,6): ~1/12 de la eslora, en proporcion con un mercante de 40 m.
+ var fy=14.55
+ _box(Vector3(px,fy,pz-1.6),Vector3(0.05,1.8,3.2),Color("b6453e"),root)         # campo rojo
+ var cx=pz-0.62;var cy=fy+0.45
+ _box(Vector3(px,cy,cx),Vector3(0.06,0.9,1.24),Color("33475b"),root)             # canton Union (esquema)
+ _box(Vector3(px,cy,cx),Vector3(0.08,0.15,1.24),Color("d8cfb8"),root)
+ _box(Vector3(px,cy,cx),Vector3(0.08,0.9,0.15),Color("d8cfb8"),root)
+ _box(Vector3(px,cy,cx),Vector3(0.09,0.07,1.24),Color("983c3c"),root)
+ _box(Vector3(px,cy,cx),Vector3(0.09,0.9,0.07),Color("983c3c"),root)
 
 func _create_scouts_j():
  for sc in rules.state.get("scouts",[]):
@@ -1712,6 +1744,14 @@ func _update_label_j(id:String,u,stage:String,root:Node3D,h:float):
   var sel=id in selected_ids or id==selected
   # Lo no probado (tradición) se marca siempre en el rótulo del mundo, con el nombre completo para que no parezca un hecho.
   var full=sel or tag=="tradicion"
+  if label_far.get(id,false) and not sel:
+   # Lejos: rotulo compacto (numero, marca de fuente y fuerza) para que 5 grupos no se tapen entre si.
+   txt=_tag_glyph(tag)+" "+str(u.name).split(" ")[0]+" · "+str(int(round(float(u.strength))))+"%"
+   var st0=str(J_STAGE_TEXT.get(stage,""))
+   if st0!="":txt+=" · "+st0
+   if label.text!=txt:label.text=txt
+   label.modulate=Color("ddd7bf")
+   return
   txt=_tag_glyph(tag)+" "+(str(u.name) if full else short)+(" (tradición)" if tag=="tradicion" else "")+" · "+str(int(round(float(u.strength))))+"%"
  else:
   txt="◇ "+str(u.name)+(" · "+str(int(u.get("hp",3)))+"/3" if true else "")
@@ -1956,6 +1996,9 @@ func _update_ship_j(delta:float):
   battery_timer=0.0
  var hd=float(ss.get("heading_deg",M.ship.get("heading_deg",0.0)))
  ship.rotation.y=-deg_to_rad(hd)
+ if water_mat!=null and absf(hd-ship_hd_applied)>0.01:
+  ship_hd_applied=hd
+  water_mat.set_shader_parameter("ship_fwd",Vector2(sin(deg_to_rad(hd)),-cos(deg_to_rad(hd))))
 
 func _update_extra_labels_j():
  for e in extra_labels:
