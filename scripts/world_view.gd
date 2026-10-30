@@ -34,6 +34,7 @@ var path_instances: MultiMeshInstance3D
 var advanced_renderer = false
 ## Props GLB (casa, iglesia, algarrobo, cardón, rocas): se instancian con MultiMesh; si el GLB no carga se usa la geometría simple de antes.
 const USE_GLB_PROPS = true
+const GLB_TINT = {"tree_algarrobo":Color(0.64,0.70,0.52),"rock_cluster":Color(0.86,0.82,0.74)}
 var glb_parts_cache = {}
 var glb_batches = {}
 ## Tamaño en pantalla de las etiquetas 3D (fixed_size): constante, no depende de la distancia.
@@ -185,6 +186,11 @@ func _glb_parts(model_name:String)->Array:
       var m=mesh.surface_get_material(si)
       if m is BaseMaterial3D:
        m.vertex_color_use_as_albedo=true
+       if GLB_TINT.has(model_name):
+        # Invierno nublado (ronda 4): el follaje del GLB es muy claro; se oscurece sin tocar el archivo.
+        var m2:BaseMaterial3D=m.duplicate()
+        m2.albedo_color=GLB_TINT[model_name]
+        mesh.surface_set_material(si,m2)
      parts.append({"mesh":mesh,"xf":xf})
     root.free()
  glb_parts_cache[model_name]=parts
@@ -237,19 +243,19 @@ func _lighting():
  env.fog_light_energy = 0.3
  env.fog_density = 0.0018
  if justina:
-  # Paleta de las laminas de Vidal (1820): cielo palido, horizonte crema, pampa verde oliva.
-  sky_material.sky_top_color = Color("6f8ba0")
-  sky_material.sky_horizon_color = Color("d9d3bd")
-  sky_material.ground_horizon_color = Color("d9d3bd")
-  env.fog_light_color = Color("d3cdb6")
-  env.fog_light_energy = 0.55
-  # Niebla de distancia suave desde 1500 m (contrato 2.4): el mapa mide 900 m.
-  env.fog_mode = Environment.FOG_MODE_DEPTH
-  env.fog_density = 1.0
-  env.fog_depth_begin = 1500.0
-  env.fog_depth_end = 3800.0
-  env.fog_depth_curve = 1.4
-  env.ambient_light_energy = 0.62
+  # Cielo de invierno nublado (ronda 4): shader propio; el horizonte iguala la niebla para fundir agua y meseta lejanas.
+  var sky_sh=ShaderMaterial.new()
+  sky_sh.shader=load("res://shaders/justina_sky.gdshader")
+  sky.sky_material=sky_sh
+  env.fog_light_color=Color("cfcab8")
+  env.fog_light_energy=1.0
+  env.fog_sky_affect=0.0
+  env.fog_mode=Environment.FOG_MODE_DEPTH
+  env.fog_density=1.0
+  env.fog_depth_begin=350.0
+  env.fog_depth_end=3700.0
+  env.fog_depth_curve=1.9
+  env.ambient_light_energy=0.62
  if advanced_renderer and quality != "baja":
   # Solo Forward+/Mobile: oclusión ambiental y brillo suave. El perfil alto agrega niebla volumétrica leve.
   env.glow_enabled = true
@@ -277,6 +283,8 @@ func _lighting():
  sun.rotation_degrees = Vector3(-32, -42, 0)
  sun.light_color = Color("ffddb2")
  sun.light_energy = 0.96
+ if justina:
+  sun.light_color = Color("f4e7d0");sun.light_energy = 0.82
  sun.shadow_enabled = quality != "baja"
  sun.directional_shadow_max_distance = 380 if justina else 130
  sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS if (advanced_renderer and quality == "alta") else DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
@@ -696,8 +704,12 @@ func pick_sector(camera:Camera3D,mouse_pos:Vector2)->String:
 # =====================================================================================
 const J_CELL = 4.0
 const SHIP_SCALE = 2.2
+# Proporciones del casco (ronda 4): el GLB mide 16,8 x 6,6 m a escala 1 (eslora/manga 2,5). Un mercante de 26 canones tiene ~40 m de eslora y ~10 m de manga (eslora/manga ~4): se estira a lo largo y se afina a lo ancho. Reconstruccion estetica; sin dimensiones documentadas.
+const SHIP_SX = 1.62
+const SHIP_SY = 2.2
+const SHIP_SZ = 2.4
 const SHIP_KEEL = 1.58
-const RIDER_SCALE = 0.9
+const RIDER_SCALE = 0.82
 const FOOT_SCALE = 0.9
 const GROUP_BAND = 14.0
 const J_STAGE_TEXT = {"working":"trabaja","stumbling":"tropezó","dismounting":"desmonta","boarding":"aborda","routed":"dispersos","blocked":"bloqueado","rally":"reagrupa","lost":"perdido","waiting_tide":""}
@@ -827,6 +839,8 @@ func _build_justina():
  knowledge_root=Node3D.new();knowledge_root.name="Conocimiento";add_child(knowledge_root)
  _knowledge_nodes_j()
  _landmarks_j()
+ _scenery_j()
+ _scale_bar_j()
  _obstacles_j()
  _ship_j()
  _beacons_j()
@@ -841,22 +855,38 @@ func _sample_heightfield():
   for ix in range(hf_nx):
    hf[iz*hf_nx+ix]=float(rules.terrain_height_at(float(ix)*J_CELL,float(iz)*J_CELL))
 
+func _base_bed(x:float)->float:
+ var pts:Array=M.get("bed_profile",{}).get("points_x_elev",[])
+ if pts.is_empty():return 0.0
+ if x<=float(pts[0][0]):return float(pts[0][1])
+ for i in range(pts.size()-1):
+  var a=pts[i];var b=pts[i+1]
+  if x<=float(b[0]):
+   var t=(x-float(a[0]))/maxf(0.0001,float(b[0])-float(a[0]))
+   return lerpf(float(a[1]),float(b[1]),t)
+ return float(pts[pts.size()-1][1])
+
+## Color de zona (rgb) y cuanto es campo/pasto (a). El sombreador agrega el detalle procedural.
 func _ground_color(x:float,z:float,h:float,crest:float,toe:float,road_x:float)->Color:
  var n=terrain_noise.get_noise_2d(x*0.6,z*0.6)
- var grass=Color("6d7442").lerp(Color("858154"),clampf(0.5+n*0.8,0,1))
- var ochre=Color("b08c55")
+ var grass=Color("5f6a36").lerp(Color("7c7a46"),clampf(0.5+n*0.8,0,1))
+ var ochre=Color("a98450")
  var sand=Color("b2a27b")
  var mud=Color("6f6247")
  var c:Color
+ var veg=1.0
  if x<=crest:
   c=grass
   if absf(x-road_x)<3.4:c=c.lerp(Color("a58f62"),0.6)
  elif x<toe:
   var t=clampf((x-crest)/maxf(1.0,toe-crest),0.0,1.0)
   c=grass.lerp(ochre,smoothstep(0.0,0.25,t)).lerp(sand,smoothstep(0.75,1.0,t)*0.5)
+  veg=1.0-smoothstep(0.55,1.0,t)*0.8
  else:
   c=mud.lerp(sand,smoothstep(0.1,level_high_m+0.05,h))
   if h>level_high_m:c=sand.lerp(Color("7f7d4e"),smoothstep(level_high_m+0.05,level_high_m+1.4,h)*0.35)
+  veg=0.0
+ c.a=veg
  return c
 
 func _terrain_j():
@@ -894,9 +924,10 @@ func _terrain_j():
    idx[k]=a;idx[k+1]=b;idx[k+2]=c;idx[k+3]=b;idx[k+4]=d;idx[k+5]=c
    k+=6
  terrain_mat=ShaderMaterial.new()
- terrain_mat.shader=load("res://assets/terrain_justina.gdshader")
+ terrain_mat.shader=load("res://shaders/terrain_justina_r4.gdshader")
  terrain_mat.set_shader_parameter("color_gamma",2.6 if advanced_renderer else 1.9)
  terrain_mat.set_shader_parameter("water_level",level_m)
+ terrain_mat.set_shader_parameter("level_high",level_high_m)
  var arr=[];arr.resize(Mesh.ARRAY_MAX)
  arr[Mesh.ARRAY_VERTEX]=verts;arr[Mesh.ARRAY_NORMAL]=norms;arr[Mesh.ARRAY_COLOR]=cols;arr[Mesh.ARRAY_INDEX]=idx
  var mesh=ArrayMesh.new()
@@ -904,27 +935,74 @@ func _terrain_j():
  var mi=MeshInstance3D.new();mi.name="Terreno";mi.mesh=mesh;mi.material_override=terrain_mat
  add_child(mi)
 
+# ---- Terreno continuo hasta el horizonte (ronda 4). Fuera del mapa la costa serpentea suavemente y la meseta sube en lomadas bajas;
+# dentro del mapa devuelve exactamente la altura de Reglas. Ningun dato de juego depende de esta funcion fuera de 0..w, 0..h.
+var relief_noise = FastNoiseLite.new()
+var grid_axes_cache:Array=[]
+var grid_h_cache:PackedFloat32Array=PackedFloat32Array()
+
+func _far_h(x:float,z:float)->float:
+ var dx=maxf(-x,0.0)
+ var dz=maxf(maxf(-z,z-map_h),0.0)
+ var dist=sqrt(dx*dx+dz*dz)
+ if dist<=0.0 and x<=map_w:return _h(x,z)
+ var off=90.0*sin(z*0.0021+0.8)*smoothstep(0.0,500.0,dz)
+ var h=_h(clampf(x-off,0.0,map_w),clampf(z,0.0,map_h))
+ var land=smoothstep(1.5,5.0,h)
+ var w=smoothstep(0.0,700.0,dist)
+ h+=land*w*(relief_noise.get_noise_2d(x,z)*15.0+3.0)
+ return h
+
+func _axis_coords(extent:float,before:Array,after:Array)->Array:
+ var out:Array=[]
+ out.append_array(before)
+ var n=int(round(extent/J_CELL))
+ for i in range(n+1):out.append(float(i)*J_CELL)
+ out.append_array(after)
+ return out
+
+func _grid_axes()->Array:
+ var xs=_axis_coords(map_w,[-3000.0,-2000.0,-1200.0,-700.0,-400.0,-200.0,-100.0,-50.0,-20.0,-8.0],[map_w+8.0,map_w+20.0,map_w+50.0,map_w+100.0,map_w+200.0,map_w+500.0,map_w+1000.0,map_w+2000.0,4600.0])
+ var zs=_axis_coords(map_h,[-3200.0,-2200.0,-1400.0,-800.0,-400.0,-200.0,-100.0,-50.0,-20.0,-8.0],[map_h+8.0,map_h+20.0,map_h+50.0,map_h+100.0,map_h+200.0,map_h+400.0,map_h+800.0,map_h+1400.0,map_h+2200.0,3800.0])
+ return [xs,zs]
+
 func _horizon_j():
- # Malla de baja resolucion mas alla del borde (hasta ~3000 m): repite la altura del borde del mapa; la niebla la funde. Sin geografia propia.
- var xs=[-3000.0,-2000.0,-1200.0,-700.0,-400.0,-200.0,-80.0]
- var zs=[-3200.0,-2200.0,-1400.0,-800.0,-400.0,-150.0]
- var ix_in=xs.size();var iz_in=zs.size()
- for i in range(int(map_w/20.0)+1):xs.append(float(i)*20.0)
- for i in range(int(map_h/20.0)+1):zs.append(float(i)*20.0)
- var ix_end=xs.size()-1;var iz_end=zs.size()-1
- xs.append_array([map_w+80.0,map_w+200.0,map_w+500.0,map_w+1000.0,map_w+2000.0,4600.0])
- zs.append_array([map_h+150.0,map_h+400.0,map_h+800.0,map_h+1400.0,map_h+2200.0,3800.0])
- var verts=PackedVector3Array();var cols=PackedColorArray();var norms=PackedVector3Array()
- for zz in zs:
-  for xx in xs:
-   var h=_h(clampf(xx,0.0,map_w),clampf(zz,0.0,map_h))
-   verts.append(Vector3(xx,h,zz));norms.append(Vector3.UP)
-   cols.append(Color("6f7643") if h>2.0 else Color("6f6247"))
+ relief_noise.seed=4606;relief_noise.frequency=0.0011;relief_noise.fractal_octaves=3
+ var ax=_grid_axes();var xs:Array=ax[0];var zs:Array=ax[1]
+ var nx=xs.size();var nz=zs.size()
+ var ix_in=0;var ix_end=0;var iz_in=0;var iz_end=0
+ for i in range(nx):
+  if absf(float(xs[i]))<0.001:ix_in=i
+  if absf(float(xs[i])-map_w)<0.001:ix_end=i
+ for j in range(nz):
+  if absf(float(zs[j]))<0.001:iz_in=j
+  if absf(float(zs[j])-map_h)<0.001:iz_end=j
+ var hs=PackedFloat32Array();hs.resize(nx*nz)
+ for j in range(nz):
+  for i in range(nx):hs[j*nx+i]=_far_h(float(xs[i]),float(zs[j]))
+ var verts=PackedVector3Array();verts.resize(nx*nz)
+ var cols=PackedColorArray();cols.resize(nx*nz)
+ var norms=PackedVector3Array();norms.resize(nx*nz)
+ var barranca=M.get("barranca",{})
+ for j in range(nz):
+  var zz=float(zs[j])
+  var zc=clampf(zz,0.0,map_h)
+  var dz=maxf(maxf(-zz,zz-map_h),0.0)
+  var off=90.0*sin(zz*0.0021+0.8)*smoothstep(0.0,500.0,dz)
+  var crest=_poly_x(barranca.get("crest",[]),zc)+off;var toe=_poly_x(barranca.get("toe",[]),zc)+off
+  for i in range(nx):
+   var xx=float(xs[i])
+   var h=hs[j*nx+i]
+   verts[j*nx+i]=Vector3(xx,h,zz)
+   cols[j*nx+i]=_ground_color(xx,zz,h,crest,toe,-999.0)
+   var il=maxi(i-1,0);var ir=mini(i+1,nx-1);var ju=maxi(j-1,0);var jd=mini(j+1,nz-1)
+   var gx=(hs[j*nx+ir]-hs[j*nx+il])/maxf(0.01,float(xs[ir])-float(xs[il]))
+   var gz=(hs[jd*nx+i]-hs[ju*nx+i])/maxf(0.01,float(zs[jd])-float(zs[ju]))
+   norms[j*nx+i]=Vector3(-gx,1.0,-gz).normalized()
  var idx=PackedInt32Array()
- var nx=xs.size()
- for j in range(zs.size()-1):
+ for j in range(nz-1):
   for i in range(nx-1):
-   # Se omite la celda que cubre el mapa (la malla fina ya la cubre).
+   # Se omite la zona del mapa (la malla fina de Terreno la cubre); los bordes comparten vertices cada 4 m: sin grietas.
    if i>=ix_in and i<ix_end and j>=iz_in and j<iz_end:continue
    var a=j*nx+i;var b=a+1;var c=a+nx;var d=c+1
    idx.append_array(PackedInt32Array([a,b,c,b,d,c]))
@@ -932,55 +1010,50 @@ func _horizon_j():
  arr[Mesh.ARRAY_VERTEX]=verts;arr[Mesh.ARRAY_NORMAL]=norms;arr[Mesh.ARRAY_COLOR]=cols;arr[Mesh.ARRAY_INDEX]=idx
  var mesh=ArrayMesh.new();mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arr)
  var mi=MeshInstance3D.new();mi.name="Horizonte";mi.mesh=mesh;mi.material_override=terrain_mat;mi.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+ mi.custom_aabb=AABB(Vector3(-3000,-10,-3200),Vector3(7700,60,7000))
  add_child(mi)
-
-func _water_quad(x0:float,z0:float,x1:float,z1:float,ground_h:float,name_s:String)->MeshInstance3D:
- var verts=PackedVector3Array([Vector3(x0,0,z0),Vector3(x1,0,z0),Vector3(x0,0,z1),Vector3(x1,0,z1)])
- var uvs=PackedVector2Array([Vector2(ground_h,0),Vector2(ground_h,0),Vector2(ground_h,0),Vector2(ground_h,0)])
- var norms=PackedVector3Array([Vector3.UP,Vector3.UP,Vector3.UP,Vector3.UP])
- var arr=[];arr.resize(Mesh.ARRAY_MAX)
- arr[Mesh.ARRAY_VERTEX]=verts;arr[Mesh.ARRAY_NORMAL]=norms;arr[Mesh.ARRAY_TEX_UV]=uvs;arr[Mesh.ARRAY_INDEX]=PackedInt32Array([0,1,2,1,3,2])
- var mesh=ArrayMesh.new();mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arr)
- var mi=MeshInstance3D.new();mi.name=name_s;mi.mesh=mesh;mi.material_override=water_mat;mi.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
- mi.custom_aabb=AABB(Vector3(minf(x0,x1),-5,minf(z0,z1)),Vector3(absf(x1-x0),10,absf(z1-z0)))
- return mi
+ grid_axes_cache=ax;grid_h_cache=hs
 
 func _water_j():
  water_mat=ShaderMaterial.new()
- water_mat.shader=load("res://assets/water_justina.gdshader")
+ water_mat.shader=load("res://shaders/water_rio_plata.gdshader")
  water_mat.set_shader_parameter("water_level",level_m)
  water_mat.set_shader_parameter("visible_depth_m",float(M.get("knowledge",{}).get("visibility_depth_m",0.3)))
- # Superficie plana a y = nivel, con la altura real del suelo en UV.x (solo para el halo de 0,3 m y la espuma de contacto).
+ # Una sola superficie plana a y = nivel, del pie de la barranca al horizonte. UV.x = altura real del suelo (halo de 0,3 m y espuma);
+ # UV2.x = fondo base publico por x (solo degrada el color; no revela bancos ni pozo oculto).
  var toe_min=map_w
  for tp in M.get("barranca",{}).get("toe",[]):toe_min=minf(toe_min,float(tp[0]))
- var ix0=clampi(int(floor((toe_min-24.0)/J_CELL)),0,hf_nx-2)
- var nx=hf_nx-ix0
- var verts=PackedVector3Array();verts.resize(nx*hf_nz)
- var uvs=PackedVector2Array();uvs.resize(nx*hf_nz)
- var norms=PackedVector3Array();norms.resize(nx*hf_nz)
- for iz in range(hf_nz):
-  for ix in range(nx):
-   var i=iz*nx+ix
-   verts[i]=Vector3(float(ix+ix0)*J_CELL,0.0,float(iz)*J_CELL)
-   uvs[i]=Vector2(hf[iz*hf_nx+ix+ix0],0.0)
-   norms[i]=Vector3.UP
- var idx=PackedInt32Array();idx.resize((nx-1)*(hf_nz-1)*6)
- var k=0
- for iz in range(hf_nz-1):
-  for ix in range(nx-1):
-   var a=iz*nx+ix;var b=a+1;var c=a+nx;var d=c+1
-   idx[k]=a;idx[k+1]=b;idx[k+2]=c;idx[k+3]=b;idx[k+4]=d;idx[k+5]=c
-   k+=6
+ var xs:Array=grid_axes_cache[0];var zs:Array=grid_axes_cache[1]
+ var nxa=xs.size();var nz=zs.size()
+ var i0=0
+ for i in range(nxa):
+  if float(xs[i])<=toe_min-24.0:i0=i
+ var nx=nxa-i0
+ var verts=PackedVector3Array();verts.resize(nx*nz)
+ var uvs=PackedVector2Array();uvs.resize(nx*nz)
+ var uv2=PackedVector2Array();uv2.resize(nx*nz)
+ var norms=PackedVector3Array();norms.resize(nx*nz)
+ for j in range(nz):
+  for i in range(nx):
+   var k=j*nx+i
+   var xx=float(xs[i+i0])
+   verts[k]=Vector3(xx,0.0,float(zs[j]))
+   uvs[k]=Vector2(grid_h_cache[j*nxa+i+i0],0.0)
+   uv2[k]=Vector2(_base_bed(xx),0.0)
+   norms[k]=Vector3.UP
+ var idx=PackedInt32Array();idx.resize((nx-1)*(nz-1)*6)
+ var q=0
+ for j in range(nz-1):
+  for i in range(nx-1):
+   var a=j*nx+i;var b=a+1;var c=a+nx;var d=c+1
+   idx[q]=a;idx[q+1]=b;idx[q+2]=c;idx[q+3]=b;idx[q+4]=d;idx[q+5]=c
+   q+=6
  var arr=[];arr.resize(Mesh.ARRAY_MAX)
- arr[Mesh.ARRAY_VERTEX]=verts;arr[Mesh.ARRAY_NORMAL]=norms;arr[Mesh.ARRAY_TEX_UV]=uvs;arr[Mesh.ARRAY_INDEX]=idx
+ arr[Mesh.ARRAY_VERTEX]=verts;arr[Mesh.ARRAY_NORMAL]=norms;arr[Mesh.ARRAY_TEX_UV]=uvs;arr[Mesh.ARRAY_TEX_UV2]=uv2;arr[Mesh.ARRAY_INDEX]=idx
  var mesh=ArrayMesh.new();mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arr)
  var mi=MeshInstance3D.new();mi.name="Agua";mi.mesh=mesh;mi.material_override=water_mat;mi.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
- mi.custom_aabb=AABB(Vector3(0,-5,0),Vector3(map_w,10,map_h))
+ mi.custom_aabb=AABB(Vector3(-100,-5,-3200),Vector3(4800,10,7000))
  add_child(mi);water_nodes.append(mi);water=mi
- # Anillo de agua hasta el horizonte (fondo muy profundo: opaca y uniforme).
- for q in [[map_w,-3400.0,5000.0,4200.0,"AguaEste"],[0.0,-3400.0,map_w,0.0,"AguaNorte"],[0.0,map_h,map_w,4200.0,"AguaSur"]]:
-  var mq=_water_quad(float(q[0]),float(q[1]),float(q[2]),float(q[3]),-10.0,str(q[4]))
-  add_child(mq);water_nodes.append(mq)
  for n in water_nodes:n.position.y=level_m
  water_mat.render_priority=0
 
@@ -1076,7 +1149,7 @@ func _alameda_j(lm:Dictionary):
    var p=a+dir*t
    for side in [-1.0,1.0]:
     var q=p+nrm*side*6.5
-    var s=decoration_rng.randf_range(1.0,1.5)
+    var s=decoration_rng.randf_range(1.3,1.9)
     _tree(Vector3(q.x,_h(q.x,q.y),q.y),s)
    t+=16.0
   acc=t-seg
@@ -1086,7 +1159,7 @@ func _camp_j(lm:Dictionary):
  for i in range(9):
   var a=TAU*float(i)/9.0+0.3
   var q=c+Vector2(cos(a),sin(a))*r*(0.45+0.3*float(i%2))
-  _inst_r("prism",Vector3(q.x,_h(q.x,q.y)+1.4,q.y),Vector3(4.0,2.8,5.0),a+0.4,Color("d8cdb0"))
+  _inst_r("prism",Vector3(q.x,_h(q.x,q.y)+1.1,q.y),Vector3(3.2,2.2,4.2),a+0.4,Color("c9bc9c"))
  _inst_t("cyl12",Transform3D(Basis.from_scale(Vector3(1.2,0.25,1.2)),Vector3(c.x,_h(c.x,c.y)+0.12,c.y)),Color("3b3128"))
  if _glb_ok("horse_only"):
   for i in range(6):
@@ -1123,20 +1196,170 @@ func _obstacles_j():
     _inst_r("box",Vector3(px,y+0.8,pz)+Vector3(-2.6,0,0).rotated(Vector3.UP,yaw),Vector3(3.0,0.12,0.14),yaw,Color("5a432c"))
   var top=_h(cx,cz)+2.0
 
+# ---------------------------------------------------------------- paisaje (ronda 4)
+# Reconstruccion estetica: toscas al pie de la barranca, juncales en la orilla, matorral de la meseta, quintas y la ciudad al sur
+# (plano de Boneo 1801: cuadras de ~117 m). Ninguna de estas piezas tiene efecto en las reglas.
+var scale_root: Node3D
+var ref_labels: Dictionary = {}
+const SCALE_X = 197.0
+const SCALE_Z0 = 312.0
+
+func _house_at(x:float,z:float,w:float,d:float,yaw:float,col_tint:Color=Color.WHITE):
+ if not _glb_ok("house_colonial"):
+  _inst_r("box",Vector3(x,_far_h(x,z)+1.8,z),Vector3(w,3.6,d),yaw,Color("bcb298"));return
+ var sx=w/5.7;var sz=d/6.0
+ var b=Basis.from_euler(Vector3(0,yaw,0)).scaled_local(Vector3(sx,(sx+sz)*0.5,sz))
+ _inst_glb("house_colonial",Transform3D(b,Vector3(x,_far_h(x,z),z)))
+
+func _scenery_j():
+ var rng=RandomNumberGenerator.new();rng.seed=4606
+ var barr=M.get("barranca",{})
+ var toe:Array=barr.get("toe",[]);var crest:Array=barr.get("crest",[])
+ var shore:Array=M.get("shore_high",{}).get("polyline",[])
+ var road_poly:Array=[]
+ for lm in M.get("landmarks",[]):
+  if str(lm.get("type",""))=="road":road_poly=lm.get("polyline",[])
+ # --- toscas (afloramientos) al pie de la barranca y sueltas en la playa alta
+ if _glb_ok("rock_cluster"):
+  var z=6.0
+  while z<map_h:
+   if rng.randf()<0.6:
+    var rx=_poly_x(toe,z)+rng.randf_range(-7.0,10.0)
+    var s=rng.randf_range(0.7,1.9)
+    var b=Basis.from_euler(Vector3(0,rng.randf()*TAU,0)).scaled_local(Vector3(s,s*rng.randf_range(0.6,1.0),s))
+    _inst_glb("rock_cluster",Transform3D(b,Vector3(rx,_h(rx,z)-0.25*s,z)))
+   z+=rng.randf_range(6.0,15.0)
+  for i in range(26):
+   var z2=rng.randf_range(4.0,map_h-4.0)
+   var rx2=_poly_x(shore,z2)+rng.randf_range(-12.0,3.0)
+   var s2=rng.randf_range(0.5,1.2)
+   var b2=Basis.from_euler(Vector3(0,rng.randf()*TAU,0)).scaled_local(Vector3.ONE*s2)
+   _inst_glb("rock_cluster",Transform3D(b2,Vector3(rx2,_h(rx2,z2)-0.15,z2)))
+ # --- juncales en la linea de agua alta (parches con ruido; tallos pajizos de invierno)
+ var zj=0.0
+ while zj<map_h:
+  if terrain_noise.get_noise_2d(zj*0.03,7.0)>-0.12:
+   var sx=_poly_x(shore,zj)+rng.randf_range(-3.0,7.0)
+   for cI in range(rng.randi_range(1,3)):
+    var cx=sx+rng.randf_range(-3.0,3.0);var cz=zj+rng.randf_range(-2.5,2.5)
+    var hh=_h(cx,cz)
+    if hh<1.2 or hh>2.9:continue
+    for st in range(7):
+     var sh=rng.randf_range(1.3,2.5)
+     var ox=cx+rng.randf_range(-0.55,0.55);var oz=cz+rng.randf_range(-0.55,0.55)
+     var lean=Vector3(rng.randf_range(-0.3,0.3),0,rng.randf_range(-0.3,0.3))
+     var col=Color("8a8a4c").lerp(Color("b4a867"),rng.randf())
+     _inst_r("cyl8",Vector3(ox,_h(ox,oz)+sh*0.5-0.05,oz),Vector3(0.07,sh,0.07),0.0,col,lean)
+  zj+=rng.randf_range(3.0,6.0)
+ # --- matorral dentro del mapa (meseta y playa alta), densidad con ruido
+ var placed=0;var tries=0
+ while placed<620 and tries<6000:
+  tries+=1
+  var x=rng.randf_range(2.0,262.0);var z3=rng.randf_range(2.0,map_h-2.0)
+  var cxx=_poly_x(crest,z3);var txx=_poly_x(toe,z3)
+  var ok=x<cxx-4.0 or (x>txx+6.0 and _h(x,z3)>level_high_m+0.7)
+  if not ok:continue
+  if absf(x-_poly_x(road_poly,z3))<5.0:continue
+  if terrain_noise.get_noise_2d(x*0.045,z3*0.045+9.0)<-0.02:continue
+  var w=rng.randf_range(1.2,3.0);var hgt=w*rng.randf_range(0.45,0.8)
+  var sc=Color("3f4a28").lerp(Color("66693a"),rng.randf())
+  _inst_r("sphere",Vector3(x,_h(x,z3)+hgt*0.3,z3),Vector3(w,hgt,w*rng.randf_range(0.8,1.2)),rng.randf()*TAU,sc)
+  placed+=1
+ # --- campo lejano: matorral, algarrobos/talas, quintas al norte y la ciudad al sur
+ var far_shr=0;tries=0
+ while far_shr<700 and tries<9000:
+  tries+=1
+  var x4=rng.randf_range(-700.0,120.0);var z4=rng.randf_range(-700.0,1500.0)
+  if x4>0.0 and z4>=0.0 and z4<=map_h:continue
+  var h4=_far_h(x4,z4)
+  if h4<4.0:continue
+  if terrain_noise.get_noise_2d(x4*0.012,z4*0.012+3.0)<-0.05:continue
+  var w4=rng.randf_range(1.6,4.2)
+  _inst_r("sphere",Vector3(x4,h4+w4*0.2,z4),Vector3(w4,w4*0.6,w4),rng.randf()*TAU,Color("3f4a28").lerp(Color("696a3c"),rng.randf()))
+  far_shr+=1
+ if _glb_ok("tree_algarrobo"):
+  var ft=0;tries=0
+  while ft<90 and tries<4000:
+   tries+=1
+   var x5=rng.randf_range(-650.0,100.0);var z5=rng.randf_range(-650.0,1400.0)
+   if x5>0.0 and z5>=0.0 and z5<=map_h:continue
+   var h5=_far_h(x5,z5)
+   if h5<4.0:continue
+   var s5=rng.randf_range(1.7,3.2)
+   _inst_glb("tree_algarrobo",Transform3D(Basis.from_euler(Vector3(0,rng.randf()*TAU,0)).scaled_local(Vector3.ONE*s5),Vector3(x5,h5-0.1,z5)))
+   ft+=1
+ # quintas y ranchos al norte (camino de Las Conchas) y alrededor del Retiro
+ for i in range(14):
+  var qx=rng.randf_range(-260.0,90.0);var qz=rng.randf_range(-520.0,-30.0)
+  if _far_h(qx,qz)<4.0:continue
+  _house_at(qx,qz,rng.randf_range(6.5,10.0),rng.randf_range(6.5,9.0),rng.randf()*TAU)
+ # ciudad al sur: cuadras de ~117 m (Boneo 1801), casas bajas de azotea; dos torres de iglesia
+ var churches=0
+ var bz=660.0
+ while bz<1500.0:
+  var bx=-420.0
+  while bx<130.0:
+   var shift=90.0*sin((bz+60.0)*0.0021+0.8)*smoothstep(0.0,500.0,bz-map_h)
+   var cxe=_poly_x(crest,map_h)+shift
+   if bx+60.0<cxe-30.0 and _far_h(bx,bz)>4.5:
+    for k in range(7):
+     var side=k%4;var t=rng.randf_range(-0.45,0.45)
+     var hx=bx+(t*117.0 if side%2==0 else (-0.42 if side==1 else 0.42)*117.0)
+     var hz=bz+((-0.42 if side==0 else 0.42)*117.0 if side%2==0 else t*117.0)
+     _house_at(hx,hz,rng.randf_range(8.0,12.0),rng.randf_range(9.0,13.0),(0.0 if side%2==0 else PI*0.5)+rng.randf_range(-0.04,0.04))
+    if churches<2 and rng.randf()<0.10 and _glb_ok("church_colonial"):
+     churches+=1
+     _inst_glb("church_colonial",Transform3D(Basis.from_scale(Vector3.ONE*0.95),Vector3(bx,_far_h(bx,bz),bz)))
+   bx+=117.0
+  bz+=117.0
+
+# ---------------------------------------------------------------- escala y referencias
+func _scale_bar_j():
+ scale_root=Node3D.new();scale_root.name="Escala100m";add_child(scale_root)
+ for i in range(10):
+  var col=Color("efe6cc") if i%2==0 else Color("8c3f2e")
+  for k in range(5):
+   var zz=SCALE_Z0+float(i)*10.0+1.0+float(k)*2.0
+   _inst_t("box",Transform3D(Basis.from_scale(Vector3(1.1,0.22,2.02)),Vector3(SCALE_X,_h(SCALE_X,zz)+0.14,zz)),col)
+ for m in [0.0,50.0,100.0]:
+  var zp=SCALE_Z0+m
+  var y=_h(SCALE_X,zp)
+  _inst_t("cyl8",Transform3D(Basis.from_scale(Vector3(0.22,3.4,0.22)),Vector3(SCALE_X,y+1.7,zp)),Color("5a3a2a"))
+  _inst_t("box",Transform3D(Basis.from_scale(Vector3(0.9,0.9,0.08)),Vector3(SCALE_X,y+3.6,zp)),Color("efe6cc"))
+ var lab=_label_j("Escala · 100 m",Vector3(SCALE_X,_h(SCALE_X,SCALE_Z0+50.0)+6.0,SCALE_Z0+50.0),Color("f0e4c2"),26,scale_root)
+ lab.name="Rotulo_escala";lab.visibility_range_end=700.0
+ # Referencias de lectura: se reubican con el nivel del rio.
+ ref_labels["agua"]=_label_j("Línea de agua",Vector3(210,level_m+1.0,100),Color("cfe3dc"),24,scale_root)
+ ref_labels["pie"]=_label_j("Pie de la barranca",Vector3(190,_h(188,60)+4.0,60),Color("e6d3a6"),24,scale_root)
+ for k in ref_labels:ref_labels[k].visibility_range_end=800.0
+ _update_refs_j()
+
+func _shore_x(z:float)->float:
+ var x=150.0
+ while x<map_w:
+  if _h(x,z)<level_m:return x
+  x+=1.0
+ return map_w
+
+func _update_refs_j():
+ if not ref_labels.has("agua"):return
+ var sx=_shore_x(100.0)
+ ref_labels["agua"].position=Vector3(sx+6.0,level_m+1.4,100.0)
+
 # ---------------------------------------------------------------- buque
 func _ship_j():
  var s=M.get("ship",{})
  var sx=float(s.get("x",580.0));var sz=float(s.get("z",262.0));var heading=float(s.get("heading_deg",0.0))
  var bed=float(M.get("hull",{}).get("bed_m",-1.5))
- ship=_model("justine",Vector3(sx,bed+SHIP_KEEL*SHIP_SCALE-0.05,sz))
- ship.scale=Vector3.ONE*SHIP_SCALE
+ ship=_model("justine",Vector3(sx,bed+SHIP_KEEL*SHIP_SY-0.05,sz))
+ ship.scale=Vector3(SHIP_SX,SHIP_SY,SHIP_SZ)
  ship.rotation=Vector3(0.012,-deg_to_rad(heading),0.045)
  ship_hull=ship
  # Cañones: 13 por banda (26 en total, documentado). Posiciones locales de las portas de babor (oeste con proa al norte).
  ship_gun_pos.clear()
  for i in range(13):
   var gz=-(-5.55+float(i)*0.925)
-  ship_gun_pos.append(Vector3(-3.6*SHIP_SCALE,2.4*SHIP_SCALE,gz*SHIP_SCALE))
+  ship_gun_pos.append(Vector3(-3.3*SHIP_SX,2.4*SHIP_SY,gz*SHIP_SZ))
 
 # ---------------------------------------------------------------- efectos
 func _effects_j():
@@ -1627,6 +1850,7 @@ func _apply_level_j(lv:float):
  for n in water_nodes:n.position.y=lv
  water_mat.set_shader_parameter("water_level",lv)
  terrain_mat.set_shader_parameter("water_level",lv)
+ _update_refs_j()
  knowledge_root.position.y=lv
  if is_instance_valid(exposure_root):exposure_root.position.y=lv+0.18
 
@@ -1740,10 +1964,10 @@ func _beacons_j():
   root.position=Vector3(float(info.x),base_y,float(info.z))
   var height=70.0 if str(info.type)=="ship" else 46.0
   var pole=CylinderMesh.new();pole.top_radius=0.5;pole.bottom_radius=0.5;pole.height=1.0;pole.radial_segments=6
-  var pm=MeshInstance3D.new();pm.mesh=pole;pm.material_override=_beacon_mat(Color(col.r,col.g,col.b,0.7))
+  var pm=MeshInstance3D.new();pm.mesh=pole;pm.material_override=_beacon_mat(Color(col.r,col.g,col.b,0.45))
   pm.scale=Vector3(1.0,height,1.0);pm.position=Vector3(0,height*0.5,0);pm.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
   root.add_child(pm)
-  var tip=SphereMesh.new();tip.radius=1.0;tip.height=2.0;tip.radial_segments=8;tip.rings=4
+  var tip=SphereMesh.new();tip.radius=1.0;tip.height=2.0;tip.radial_segments=4;tip.rings=2
   var tm=MeshInstance3D.new();tm.mesh=tip;tm.material_override=_beacon_mat(Color(col.r,col.g,col.b,0.95));tm.position=Vector3(0,height,0);tm.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
   root.add_child(tm)
   landmarks_root.add_child(root)
@@ -1766,9 +1990,10 @@ func _update_beacons_j():
   var d=cam.global_position.distance_to(r.global_position)
   r.visible=d>140.0
   if not r.visible:continue
-  var k=clampf(d/150.0,1.0,8.0)
+  # Poste fino (~2 px) y rombo chico (~7 px): marca la posicion sin tapar el paisaje.
+  var k=clampf(d*0.0035,0.25,4.0)
   b.pole.scale=Vector3(k,float(b.h),k)
-  b.tip.scale=Vector3.ONE*k*1.6
+  b.tip.scale=Vector3.ONE*clampf(d*0.0055,1.0,6.0)
 
 ## Encuadra una lista de puntos (x,z) con una cámara dada: devuelve {target:Vector3, distance, height, pitch_deg, fits}. La UI decide si lo usa; sirve para que el encuadre inicial no sea solo arena.
 ## Convención: cámara al sur del objetivo mirando al norte (norte arriba, como el minimapa).

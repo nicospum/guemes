@@ -51,3 +51,32 @@ Metas: 60 FPS en alta y 30+ en baja se cumplen con amplio margen en esta GPU. No
 - No se reemplazaron las figuras con piel (12 jinetes ~12.900 triángulos cada uno): sigue siendo el costo dominante en Compatibility. LOD o modelos más livianos requieren cambiar los GLB.
 - El fallo de fuga de texturas GL al cerrar en Compatibility ya existía; no se investigó.
 - El ajuste de brillo entre renderers y los colores del agua son criterio visual, comparado sobre capturas, no medido colorimétricamente. Las etiquetas pueden seguir solapándose cuando hay unidades juntas.
+
+## Justina ronda 4: aspecto (terreno continuo, agua del Plata, proporciones)
+Retroalimentacion de la preview 3: una zona "definida" y el resto generico y plano, proporciones dudosas, rio feo (marron plano con ondas repetidas). Pista: solo aspecto; no cambia geometria ni reglas (`data/justina_map.json` sin tocar, `game_rules.gd`/`main.gd`/`tests/` sin tocar).
+
+### Que cambio
+- **Terreno continuo hasta el horizonte.** `shaders/terrain_justina_r4.gdshader` (mapa y horizonte comparten material). Una malla de horizonte con vertices cada 4 m en el borde del mapa (sin grietas), costa que serpentea suavemente fuera del mapa y lomadas bajas en la meseta (`_far_h`, identico a Reglas dentro de 0..900 x 0..520). Color: pasto de invierno oliva-paja en parches de ~250 m, tierra pelada, matorral, huellas de carreta, estratos de tosca en la barranca, playa con rizado de arena, juncal sobre la linea de agua alta y barro humedo cerca del agua (sigue el nivel de la bajante).
+- **Paisaje.** Toscas al pie de la barranca (`rock_cluster`), juncales (tallos pajizos), ~620 matorrales dentro del mapa y ~700 fuera, algarrobos/talas lejanos, quintas al norte y la ciudad al sur (cuadras de ~117 m como en Boneo 1801, dos iglesias). Alameda con arboles de 8-12 m.
+- **Rio.** `shaders/water_rio_plata.gdshader`: pardo-verdoso turbio (no azul), mas claro y arenoso cerca de la orilla, mas oscuro lejos; dos octavas de ruido (olas de ~25 m y ~7 m, direcciones distintas) mas rizado fino de ~1,6 m solo cerca, sin textura => sin mosaico; reflejo del cielo por Fresnel, brillo suave, espuma sutil en la orilla con ruido y lavado. Una sola malla del pie de la barranca al horizonte. **No filtra el fondo oculto:** el degradado de color usa el perfil base `bed_profile` por x (UV2) y el suelo real solo aparece en el halo de `visible_depth_m` (0,3 m) y la espuma de contacto, como antes. Los bancos y vados se ven al bajar el nivel porque el suelo real emerge (arena clara con rizado) y el barro humedo sigue la linea de agua.
+- **Cielo y niebla.** `shaders/justina_sky.gdshader`: capa de nubes (invierno, nublado, viento), horizonte igual a la niebla. Niebla de profundidad desde 350 m hasta 3700 m (curva 1,9): el horizonte se funde sin linea. Sol mas bajo y frio (12 de agosto).
+- **Proporciones.** Buque: casco estirado a 40 m de eslora x ~10,5 m de manga (antes 37 x 14,5; el GLB mide 16,8 x 6,6 a escala 1) con constantes `SHIP_SX/SY/SZ`; los 13 canones por banda siguen el nuevo ancho. Jinetes `RIDER_SCALE` 0,9 -> 0,82 (caballo ~2,8 m de largo, jinete con lanza ~2,5 m; infanteria a pie 1,75 m sin cambio). Carpas del campamento 4x2,8x5 -> 3,2x2,2x4,2 m. Balizas lejanas: poste fino y rombo chico (antes pelotas blancas que tapaban el paisaje). Arboles de la Alameda 4-7 m -> 8-12 m.
+- **Escala y referencias.** Barra de 100 m (tramos de 10 m alternados, mastiles en 0/50/100) sobre la playa en x=197, z=312-412, con rotulo "Escala · 100 m"; rotulos "Linea de agua" (sigue el nivel) y "Pie de la barranca". Las demas referencias (orilla, barranca, Alameda, fuerte=Bateria Abascal, buque, banco central) son los rotulos de hito ya existentes; el banco central no se rotula en 3D para no delatar el fondo.
+
+### Fiel a fuentes vs reconstruccion estetica
+- Documentado/tradicion (sin cambio): buque mercante britanico de 26 canones (Gillespie 1818), Plaza de Toros del Retiro (Boneo 1801, Vidal 1820 lamina 05), batería, barranca sobre el rio. Sin bandera argentina ni Infernales; Guemes sigue como tradicion no probada.
+- Reconstruccion estetica (no hay registro): color y textura del pasto, matorral, huellas, juncales, toscas, nubes, la ciudad al sur y las quintas del norte (la trama de Boneo da solo el tamaño de cuadra), la costa que serpentea fuera del mapa, la forma de las olas, las proporciones exactas del casco (eslora/manga ~4 es tipica de un mercante de la epoca, no un dato del buque), y los colores del agua (paleta de las laminas de Vidal; criterio visual comparado sobre capturas, no medido).
+- El fondo del agua (bancos, pozo oculto) sigue siendo diseño de Reglas y no se pinta hasta que lo reconoce el jugador o baja el rio.
+
+### Evidencia y medicion
+- Capturas en `evidence/justina-ui/ronda4/`: `antes_*` (preview 3), `r1_*` (primera iteracion: agua demasiado oscura, balizas gruesas, rotulos pisados) y `final_*` (17 vistas: inicial, cenital, ver todo, costa, barranca, orilla baja, rio y buque, buque cerca, Alameda y fuerte, grupos, bajante, y extremos de camara hacia costa, norte, sur y yaw 180). Generadas con `tools/vis_run.sh` (ventana real 1440x900, Forward+, RTX 3080 Ti); no hay capturas de Compatibility (no se probo ese renderer en esta ronda).
+- Se compararon 3 iteraciones sobre las capturas (antes, r1, final); sin costuras ni z-fighting visibles en las vistas extremas listadas, pero no hay una prueba automatica de eso.
+- `tools/benchmark.py --scenarios justine --repeat 3 --renderer forward_plus --max-frame-ms 3`: cuadro medio (max de 3 repeticiones) media 2,30 ms, alta 2,80 ms (baja 1,87 ms medido en la primera pasada de shaders, mas pesada). Antes de esta ronda: media 1,61 ms, alta 1,45 ms. Cumple 3 ms pero con menos margen: el costo viene del sombreado de agua y terreno a pantalla completa.
+- Tests: `tests/test_rules.gd` y `tests/test_integration.gd` con APPDATA aislado: 0 fallos (181 checks de integracion), 0 errores de shader.
+
+### Pendiente / limites
+- Los GLB de arboles son claros: se oscurecen con `GLB_TINT` en `world_view.gd`, no en el archivo.
+- Compatibility no verificado visualmente (los shaders usan solo funciones comunes).
+- La barra de 100 m es de mundo; la barra de escala de la interfaz (esquina del minimapa) es de `main.gd`.
+- El circulo de alcance del buque (rojo/amarillo) es de `main.gd`/Reglas y domina visualmente el rio; no se toco.
+- Las pistas de interfaz y turnos (claridad del manejo de tropas, por turnos o en tiempo continuo) son de otra pista.
