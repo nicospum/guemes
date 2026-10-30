@@ -107,3 +107,28 @@ Pista visual sola; no cambia geometría ni reglas (`data/justina_map.json`, `gam
 - Costa casi recta, ciudad alta/Santa Catalina/Fuerte y área 900x750: geometría, de la pista de mapa. El cono de fuego rojo y las etiquetas (`main.gd`) dominan el río: de la pista de interfaz.
 - Marineros/jinetes con ropa del paquete (G2/G4): los GLB `rider_1806` no se rehicieron; sin carros, botes ni ciudad a escala de fondo.
 - Compatibility no verificado visualmente.
+
+## Justina ronda 2: aspecto (rio, abanico de fuego, paleta, buque, rotulos)
+Pista visual de la ronda 2. No cambia geometria ni reglas (`main.gd`, `game_rules.gd` y el JSON sin tocar).
+
+### Que cambio
+- **Rio** (`shaders/water_rio_plata.gdshader`): tres tonos (limo claro sobre bajos, verde-pardo turbio, canal oscuro y frio; antes beige-rosado), reflejo del cielo por Fresnel mas contenido (el borde ya no se lava a crema), mas relieve de ola (rizado cruzado de 3 escalas + brillo solar), linea de agua nitida con espuma fina modulada por ruido y segunda franja de lavado tenue (adios al "peine" regular), arena mojada translucida en el primer centimetro.
+- **Buque sobre un bajo**: ovalo de agua mas clara alrededor del casco y espuma de contorno (el casco se lee apoyado, no flotando); es DISEÑO coherente con "banco parcialmente inundado", no una cota medida. Anillo punteado de 120 m = zona de incertidumbre de la posicion (`ship.uncertainty_radius_m`, diseno), sin relleno.
+- **Abanico de fuego** (`_exposure_j`): relleno <= 0,075 (limite del JSON: 0,12) con degradado desde el buque; el contorno rojo (#B6453E aprox.) lleva la lectura. Ya no es un disco que domine el agua.
+- **Paleta**: pasto/paja/tierra hacia el ocre-oliva de Vidal (`suelo_alto`, `vegetacion_baja`), cielo y niebla con bruma crema amarillenta, casas con variacion de color por instancia (lino crudo a arena, `_glb_variation`) y techos mas apagados, circo con lino y teja apagada.
+- **Buque**: pabellon de 3,2 x 1,8 m (antes 4,6 x 2,6; ~1/12 de la eslora). Comentario de las portas corregido: 13 por banda es DISEÑO (Gillespie da 26 canones en total, no el reparto).
+- **Unidades y rotulos**: aro de seleccion 7,5 m y mas fino y translucido (antes 9 m); guion con silueta por grupo (rectangular, banderin largo, cuadrado), no solo color; rotulo compacto "marca + numero + fuerza" a mas de 230 m (la marca de tradicion se ve siempre); "Escala" pasa a "100 m" al final de la barra, con alcance de 260 m; "Pie de la barranca" anclado al pie real con un poste; ya no cruza la ruta.
+
+### Fiel a fuente vs estetica reconstruida
+- Fiel/tomado de fuente: paleta del paquete (laminas 04 y Vidal) para uniformes, guiones y colores base; Red Ensign como hipotesis rotulada; sin bandera argentina ni Infernales; 26 canones totales (Gillespie 1818); circo octogonal (Boneo 1801 / Vidal).
+- Reconstruccion estetica (sin registro): color y relieve del agua, bajo claro bajo el casco, espuma, nubes, bruma, tinte de casas, silueta de guiones (colores de diseno, no estandartes historicos).
+
+### Medicion
+- `tools/benchmark.py --scenarios justine --repeat 3 --renderer forward_plus --max-frame-ms 3`: media 2,09 ms, baja 2,06 ms (maximo de repeticiones 3,0 ms por la primera pasada de shaders). Presupuesto OK.
+- test_rules 504/0, test_integration 232/0, jev_contract 15/0, ui_qa 125/0 en 1280x720 y 1920x1080.
+- Capturas: `evidence/justina-ui/calidad_r2/` (21 vistas finales JPG q82 con ventana real, mas 3 `antes_*`). `tools/vis_run.sh <tag> <filtro> <carpeta>`.
+
+### Pendiente
+- La escalera del GLB del buque sigue (no hay Blender ejecutable en esta maquina; `tools/create_models.py` la genera: borrar el bloque "Boarding ladder" y regenerar con `--only justine`).
+- Popa del casco (transom plano), sombras de contacto en rocas/matas, trama de manzanas y quintas (casas aun dispersas), capturas de combate/victoria y marea baja comparable no se hicieron en esta pista.
+- Compatibility no se verifico visualmente. Texto de history.json/time.note sobre Gillespie y el viento: es de otra pista (datos).

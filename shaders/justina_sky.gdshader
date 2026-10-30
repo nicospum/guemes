@@ -2,11 +2,11 @@ shader_type sky;
 #include "res://shaders/justina_noise.gdshaderinc"
 // Cielo de invierno nublado y ventoso (12 de agosto, Rio de la Plata), ronda 4. Reconstruccion estetica: no hay registro del cielo de ese dia.
 // El horizonte iguala el color de la niebla del entorno para que el agua y la meseta lejanas se fundan sin linea dura.
-uniform vec3 horizon_color : source_color = vec3(0.80, 0.78, 0.70);
-uniform vec3 zenith_color : source_color = vec3(0.42, 0.50, 0.57);
+uniform vec3 horizon_color : source_color = vec3(0.86, 0.81, 0.67);
+uniform vec3 zenith_color : source_color = vec3(0.50, 0.57, 0.62);
 uniform vec3 cloud_light : source_color = vec3(0.86, 0.85, 0.80);
 uniform vec3 cloud_dark : source_color = vec3(0.45, 0.49, 0.53);
-uniform vec3 below_color : source_color = vec3(0.55, 0.53, 0.46);
+uniform vec3 below_color : source_color = vec3(0.62, 0.58, 0.48);
 uniform float coverage = 0.58;
 uniform float wind_speed = 0.006;
 
