@@ -113,3 +113,7 @@ Revisión del 30/10/2026 (Ronda 2): sigue abierto además el **escaneo** de Gill
 | S44 | Gillespie 1818, p. 93: goleta del teniente Herrick "cerca de la playa" cañonea el campamento de Liniers (dentro de S9). | Cotejada con el OCR local (líneas ~3815-3835), no con el escaneo. Contexto naval previo, no del Retiro del 12. |
 
 Tabla de procedencia visual: `PROCEDENCIA_VISUAL.md`. Pendiente cotejar contra el escaneo (no el OCR) las páginas 93, 94 y 121 de Gillespie; el original de Obligado; AGN IX-11-5-1; TNA PC 1/3823; la fecha de inauguración del circo; Concha 15-ago.
+
+| S45 | Paquete Justina_Retiro_1806 (informe A-K, info/*.md, láminas, georef experimental), 30-oct-2026. | Punto de partida del usuario, no fuente primaria. Usado para área, perfil, paleta y fichas; lo que depende solo de él (cronología P1) queda «dato del paquete, sin cotejo». El georef (residuo ~17 m) no fija el encallamiento. |
+
+Estado de verificación (Ronda 7): S3, S10 y S11 (ubicación del varado) son divulgación de confianza media, enlaces sin reabrir; el lugar del buque es Reconstrucción hipotética. Gillespie pp. 93, 94, 121: solo OCR.

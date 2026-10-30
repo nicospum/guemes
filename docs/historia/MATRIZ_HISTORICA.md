@@ -189,3 +189,18 @@ Correcciones a la matriz anterior tras reverificar Gillespie en el OCR local (`F
 - Puesto del Marqués, 14 de abril de 1815, queda fuera de estos dos escenarios.
 
 Esta matriz es un contrato de contenido para la implementación. La inclusión de una adaptación en ella no acredita que la mecánica correspondiente ya esté implementada o probada; eso se documenta en el informe de versión y QA.
+
+## I. Ronda 7 (30 de octubre de 2026): etiquetado y ubicación
+
+| Afirmación o elemento | Fuente (qué se tomó de dónde) | Etiqueta | Cambio en esta ronda |
+| --- | --- | --- | --- |
+| Reserva de Pueyrredón | Gillespie dice «caballería»; el nombre es relato posterior | **Tradición** (vínculo), Diseño (cantidad) | Etiqueta única en `groups` y `forces` |
+| Ubicación del varado frente al Retiro | Divulgación S3, S10, S11; no Gillespie | **Reconstrucción**, rotulada «ubicación hipotética»; más débil que la Plaza de Toros (Boneo, UWM, Vidal) | Anillo de ±120 m desde el inicio |
+| Liniers avanza contra un sargento y 17 hombres (10-ago) | Gillespie pp. 94-95 (OCR) | Lectura nuestra, no «Retiro tomado» | `verification: lectura_gillespie` |
+| Acta del Cabildo 23-ago, estandarte 21-sep, 1807, junio de 1806 | Solo paquete P1 | **Reconstrucción** («dato del paquete, sin cotejo») | Bajan de «documentado» |
+| Goleta de Herrick | Gillespie p. 93 | Documentado (hecho); lugar no consta, probablemente no el Retiro (inferencia) | Se retira «6-9 de agosto» y «otra costa» |
+| Justina «para comerciar» | Gillespie p. 94 «traffic» vs. pp. 28-29 | Lectura nuestra, sin resolver | Rebajado |
+| Alcance de fuego del buque | Gillespie p. 94 (playa y calles) vs. 265 m de juego | Diseño; anillo de 420 m «no simulado» | Rótulos en pantalla |
+| Abordaje disputado | Gillespie: toma «al cerrar el 12» | La dotación contraatacando es Diseño | `texts.boarding_not_described` |
+
+**Pendientes (Ronda 7):** playtest humano; banco expuesto; cotejo de pp. 93, 94, 121 con el escaneo; Concha, oficio y parte de Liniers en original; Obligado 1920; fuente primaria de 1801. El georef del paquete NO se usa.

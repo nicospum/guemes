@@ -599,3 +599,22 @@ Para `world_view.gd`, `main.gd` y `shaders/` (otras pistas; esta ronda no los to
 | `ship.fire.cover_zone`, `palette.mounts/riders`, `palette.water.turbid_*`, `banners.*`, `barranca.ramps[].visual_path` | **Siguen sin lector** (R5); la vista los debe consumir o se quitan | world_view |
 | Cadena en `main.gd:2866` «Camino de la barranca (Alameda)» | Texto fijo en código: cambiar a «Camino de la barranca» | main |
 | `history.json`: fuentes S43, S44; hechos nuevos (Herrick, procedencia del aspecto) | Sin notas de ronda ni rutas de docs en textos visibles | main |
+
+## 12. Claves nuevas y cambios (Ronda 7, 30-oct-2026, `map_version` 7)
+
+Aditivo. Los números de reglas no cambian. Para main/world_view (otras pistas):
+
+| Clave | Qué dice | Quién la lee |
+|---|---|---|
+| `ui_policy.unit_glyph`, `legend_glyphs` | Glifo y color de cada unidad = `source_tags[group.tag]`; no usar `UNIT_GLYPHS` fijo (la Reserva es tradición ◆, no ●). Corregir «◇ diseño» a «▲ diseño» (main.gd ~2289, ~3527) | main |
+| `groups[zavala].tag` = `forces.groups.zavala.tag` = `tradicion`; `tag_parts` | Unificado | main/HUD |
+| `landmarks[justina].name` «Buque Justina (ubicación hipotética)», `uncertainty_style.show_in_initial_view`, `label_short`, `location_confidence` | Mostrar el anillo de ±120 m desde el estado inicial con su rótulo corto | world_view |
+| `ship.fire.cover_zone.rings[]` {id, range_m, label, simulated} | Dos anillos rotulados: «Alcance del juego (diseño)» y «Alcance según Gillespie (no simulado)» | world_view |
+| `camera.initial_framing` {focus, height_m, must_include} | Encuadre inicial con orilla, buque y anillos, sin panel encima | main |
+| `milestones.items[].verification`, `milestones.verification_legend` | Mostrar «sin cotejo» / «lectura de Gillespie» junto al hito; `documentado` solo con verificación del repo | main (Fuentes) |
+| `texts.boarding_not_described` | Frase para el resultado | main |
+| `package_adoption.debts.items[]` | Deudas con fecha (banco expuesto, playtest, bajada, cotejo) | docs |
+| `play_targets.family_share_r7` | Cuota por familia y re-justificación | docs/tests |
+| Mensajes de reglas | «La batería todavía recarga» pasa a «Las piezas del Retiro todavía recargan» | game_rules |
+
+Anotado para main (fuera de mi pista): confirmación de dos pasos para «Retirada general».
