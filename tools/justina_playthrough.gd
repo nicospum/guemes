@@ -455,7 +455,7 @@ func _play_ui() -> Dictionary:
 		await process_frame
 	var r = game.rules
 	if is_instance_valid(game.modal):
-		await _press("Entendido", "leer la ayuda y abrir el despliegue previo")
+		await _press("Ver el despliegue", "leer la ayuda y abrir el despliegue previo")
 		await _press("Empezar a ordenar", "cerrar el despliegue previo (sigue en pausa)")
 	mem = {}
 	if ui_seed != 1806:

@@ -231,6 +231,7 @@ func _ready():
  # La base de diseño es 1440x900; con "expand" la ventana más ancha o más alta gana espacio
  # (las anclas lo reparten) en lugar de barras negras.
  get_window().content_scale_aspect=Window.CONTENT_SCALE_ASPECT_EXPAND
+ get_window().size_changed.connect(_fit_ui_scale)
  _load_settings()
  _make_theme()
  if FileAccess.file_exists("res://data/history.json"):
@@ -373,7 +374,20 @@ func _rebuild_world():
 
 var forced_seed:int=-1 # -1: fondo del río distinto en cada partida; las pruebas fijan una semilla
 
+# En ventanas menores que la base 1440x900 la interfaz de Justina no se encoge por debajo de 1:1 (a 720p el texto quedaba en ~9 px).
+func _fit_ui_scale():
+ var w=get_window()
+ var f:=1.0
+ if mode=="play" and _is_j():
+  var sz=Vector2(w.size)
+  var s0=minf(sz.x/1440.0,sz.y/900.0)
+  if s0>0.0 and s0<1.0 and sz.x>=1200.0 and sz.y>=680.0:f=1.0/s0
+ if not is_equal_approx(w.content_scale_factor,f):
+  w.content_scale_factor=f
+  if is_instance_valid(map_widget) and _is_j():_layout_j()
+
 func _menu():
+ get_window().content_scale_factor=1.0
  jev.invalidate();pending_round=false;mode="menu";paused=true;outcome_shown=false
  rules.new_game("justine",1806)
  selected="guemes";_rebuild_world();_new_ui()
@@ -421,6 +435,7 @@ func _start_game(scenario_name:String):
  camera_target=Vector3(-6,0,0) if scenario_name=="justine" else Vector3(1,0,4)
  camera_distance=81 if scenario_name=="justine" else 96;camera_pitch=0.91;camera_yaw=-0.17
  camera.far=400.0
+ _fit_ui_scale()
  if scenario_name=="justine":_reset_camera_j()
  _rebuild_world();_build_hud();_update_hud()
  if scenario_name=="justine":
@@ -876,8 +891,14 @@ func _confirm_restart():
  _button(row,"Sí, reiniciar",_do_restart,40)
  _button(row,"No, seguir jugando",_close_modal,40)
 
+# Altura útil de un área desplazable dentro de un diálogo: no pasa de la deseada y deja lugar a título, botones y márgenes en pantallas bajas.
+func _scroll_h(want:float,reserve:float=230.0)->float:
+ return clampf(get_viewport().get_visible_rect().size.y-reserve,110.0,want)
+
 func _open_modal(title:String,width=800,height=600)->VBoxContainer:
  if is_instance_valid(modal):_close_modal()
+ var vs=get_viewport().get_visible_rect().size
+ width=minf(float(width),vs.x-16.0);height=minf(float(height),vs.y-16.0)
  modal_paused=paused;paused=true
  modal=Control.new();modal.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);ui.add_child(modal)
  var shade=ColorRect.new();shade.color=Color(0.015,0.03,0.035,0.82);shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);modal.add_child(shade)
@@ -1748,6 +1769,9 @@ func _mm_size()->Vector2:
  var a=m.get("large_size_px" if mm_big else "default_size_px",[260,150])
  # Más grande que el mínimo del JSON: 300x173 lógicos (360 px a 1080p); 600x347 al ampliar, con la proporción del mapa 900x520.
  var mine=Vector2(520,300) if mm_big else Vector2(300,173)
+ if get_viewport().get_visible_rect().size.y<800.0:
+  mine=Vector2(440,254) if mm_big else Vector2(260,150)
+  return mine
  return Vector2(maxf(float(a[0]),mine.x),maxf(float(a[1]),mine.y))
 
 func _build_hud_j():
@@ -1765,12 +1789,12 @@ func _build_hud_j():
  var heading=_vbox(hv,0);heading.size_flags_horizontal=Control.SIZE_EXPAND_FILL
  title_label=_label(heading,"",15,PAPER,true)
  phase_label=_label(heading,"",10,MUTED)
- mode_label=_label(hv,"",13,GREEN);mode_label.custom_minimum_size.x=210;mode_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;mode_label.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
+ mode_label=_label(hv,"",13,GREEN);mode_label.custom_minimum_size.x=176;mode_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;mode_label.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
  mode_label.tooltip_text="La Justina es TIEMPO REAL: el reloj avanza solo. Podés pausar con Espacio y dar órdenes con el tiempo detenido (pausa activa: lo recomendado). Velocidades ×1, ×2, ×4."
  mode_label.mouse_filter=Control.MOUSE_FILTER_PASS
- clock_label=_label(hv,"",19,GOLD,true);clock_label.custom_minimum_size.x=128;clock_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+ clock_label=_label(hv,"",19,GOLD,true);clock_label.custom_minimum_size.x=120;clock_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
  clock_label.tooltip_text="Tiempo que queda hasta el plazo de la misión.";clock_label.mouse_filter=Control.MOUSE_FILTER_PASS
- pause_button=_button(hv,"▶  Iniciar",_toggle_pause,26);pause_button.custom_minimum_size.x=104;_compact(pause_button)
+ pause_button=_button(hv,"▶  Iniciar",_toggle_pause,26);pause_button.custom_minimum_size.x=122;pause_button.clip_text=true;_compact(pause_button)
  pause_button.tooltip_text="Espacio. Pausa o reanuda el tiempo real. Con el tiempo detenido podés seguir dando órdenes."
  for sp in [1,2,4]:
   var spv=sp
@@ -1981,11 +2005,20 @@ func _next_step()->Dictionary:
  if boarding:return {"action":"evacuate","text":"Abordaje en curso: vigilá el contraataque (Rechazar), la munición y el río. Evacuar heridos (punto) recupera fuerza."}
  if not bool(res.advance_authorized):
   return {"action":"signal_liniers","text":"Elegí un grupo (1-3) y «Señalar a Liniers» (K): da la orden de avance (vale %d s). Sin ella no se puede «Cargar y abordar» (N)." % int(float(_jmap().get("actions",{}).get("signal_liniers",{}).get("valid_s",420)))}
+ var bp0=rules.board_point()
+ var gs0=_sel_groups()
+ var probe_first=false
+ if not gs0.is_empty():
+  var pl0=rules.plan_route(gs0[0],bp0,pace,{})
+  if not bool(pl0.get("ok",false)) and _friendly_reason("board",str(pl0.get("reason",""))).begins_with("El camino hasta el buque"):probe_first=true
+ if probe_first:return {"action":"probe","text":"Orden de avance vigente (%s), pero el camino al buque no está reconocido: elegí un explorador (4 o 5), «Reconocer fondo» (Z) y un punto del agua cerca del buque; después «Cargar y abordar» (N)." % _clock(float(res.advance_remaining_s))}
  return {"action":"board","text":"Orden de avance vigente (%s): «Cargar y abordar» (N) con los grupos elegidos, o trazá tu ruta con clic derecho / Mover (V)." % _clock(float(res.advance_remaining_s))}
 
 func _friendly_reason(a:String,why:String)->String:
  if a=="board" and why.begins_with("Falta la orden de avance"):
   return "Primero «Señalar a Liniers» (K) con un grupo: sin su orden de avance no se puede «Cargar y abordar» (N)."
+ if a=="board" and (why.find("fondo estimado")>=0 or why.find("sin reconocer")>=0 or why.find("camino hasta")>=0 or why.find("transitable")>=0):
+  return "El camino hasta el buque no está reconocido: mandá un explorador (4 o 5), «Reconocer fondo» (Z) y hacé clic en el agua cerca del buque; después «Cargar y abordar» (N)."
  if a=="signal_liniers" and why.find("ya fue concedida")>=0:
   return "Ya tenés la orden de avance de Liniers (vigente %s más): ahora «Cargar y abordar» (N)." % _clock(float(rules.resources().advance_remaining_s))
  return why
@@ -2093,6 +2126,7 @@ func _order_text(id:String)->String:
  if act.is_empty():
   if stage=="routed":return "Dispersa"
   return "Sin orden"
+ if act=="signal_liniers":return "Ir a pedir la orden a Liniers"+eta
  return _action_label(act)+eta
 
 func _card_text(id:String)->String:
@@ -2256,7 +2290,7 @@ func _deploy_dialog():
  if started:intro+="\n[color=#f4a58d]La partida ya empezó: el despliegue quedó fijo.[/color]"
  else:intro+="\nTodavía estás a tiempo: podés pasar fuerza entre los grupos (hasta ±%d respecto de la partida, sin pasar de 100; el total se conserva) y dar órdenes de marcha con el tiempo detenido." % int(rules.DEPLOY_MARGIN)
  _rich(box,intro,14).custom_minimum_size.x=1000
- var scroll=ScrollContainer.new();scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;scroll.custom_minimum_size=Vector2(1000,300);box.add_child(scroll)
+ var scroll=ScrollContainer.new();scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;scroll.custom_minimum_size=Vector2(1000,_scroll_h(300.0,590.0));box.add_child(scroll)
  var grid=GridContainer.new();grid.columns=6;grid.add_theme_constant_override("h_separation",16);grid.add_theme_constant_override("v_separation",8);scroll.add_child(grid)
  for h in ["Nº","Agrupación","Composición","Rol (diseño)","Punto de partida","Fuente"]:_label(grid,h,12,GOLD)
  for id in ALL_ACTORS:
@@ -2265,16 +2299,16 @@ func _deploy_dialog():
   var role=GROUP_ROLE[id]
   var c:Color=UNIT_COLORS[id]
   _label(grid,"%s %d" % [str(UNIT_GLYPHS[id]),_actor_number(id)],15,c)
-  var nm=_label(grid,str(a.name),14,PAPER);nm.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;nm.custom_minimum_size.x=190
+  var nm=_label(grid,str(a.name),14,PAPER);nm.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;nm.custom_minimum_size.x=170
   var comp=""
   if id in SCOUT_IDS:comp="Explorador a pie con lanza · salud %d" % int(_jmap().get("resources",{}).get("scout_hp",4))
   else:comp="%s · fuerza %d/100 · %s · fatiga %d" % [str(role.kind),int(a.strength),"a caballo" if bool(a.get("mounted",false)) else "a pie",int(a.fatigue)]
-  var cl=_label(grid,comp,13,PAPER);cl.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;cl.custom_minimum_size.x=230
-  var rl=_label(grid,str(role.role),13,MUTED);rl.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;rl.custom_minimum_size.x=230
+  var cl=_label(grid,comp,13,PAPER);cl.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;cl.custom_minimum_size.x=210
+  var rl=_label(grid,str(role.role),13,MUTED);rl.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;rl.custom_minimum_size.x=220
   var p0=_actor_pos(id)
-  var pl=_label(grid,"x %d · z %d\n%s" % [int(p0.x),int(p0.y),_place_name(p0)],13,PAPER);pl.custom_minimum_size.x=130
+  var pl=_label(grid,"x %d · z %d\n%s" % [int(p0.x),int(p0.y),_place_name(p0)],13,PAPER);pl.custom_minimum_size.x=120
   var tg=str(a.get("tag","diseno"))
-  var sl=_label(grid,"%s %s" % [_tag_glyph(tg),_tag_label(tg)],13,_tag_color(tg));sl.custom_minimum_size.x=130
+  var sl=_label(grid,"%s %s" % [_tag_glyph(tg),_tag_label(tg)],13,_tag_color(tg));sl.custom_minimum_size.x=120
  var cons=_rich(box,_deploy_consequences(),13);cons.custom_minimum_size.x=1000
  var apb=CheckButton.new();apb.text="Pausa automática en avisos críticos (recomendada: el contraataque dura 14 s)";apb.button_pressed=bool(settings.auto_pause)
  apb.toggled.connect(func(on):settings.auto_pause=on;_save_settings();_update_hud());box.add_child(apb)
@@ -2295,7 +2329,8 @@ func _deploy_dialog():
  for d in [["▲ Norte",Vector2(0,-7)],["▼ Sur",Vector2(0,7)],["◀ Oeste",Vector2(-5,0)],["▶ Este",Vector2(5,0)]]:
   var dv:Vector2=d[1]
   var mb=_button(row2,str(d[0]),func():_deploy_nudge(who_o.selected,dv),34);mb.disabled=started
- var note=_rich(box,"Límites del motor: cada grupo puede variar hasta ±%d de su fuerza de partida (sin pasar de 100) y cada punto de partida moverse hasta %d m del original, solo sobre tierra firme. Las rutas y el ritmo se ordenan después, con el tiempo detenido. El equilibrio se midió con el despliegue por defecto; moverlos es una libertad de diseño." % [int(rules.DEPLOY_MARGIN),int(rules.DEPLOY_MOVE_M)],12)
+ var small_h=get_viewport().get_visible_rect().size.y<800.0
+ var note=_rich(box,"Límites: ±%d de fuerza por grupo (tope 100), %d m de movimiento del punto, solo en tierra firme. El equilibrio se midió con el despliegue por defecto." % [int(rules.DEPLOY_MARGIN),int(rules.DEPLOY_MOVE_M)] if small_h else "Límites del motor: cada grupo puede variar hasta ±%d de su fuerza de partida (sin pasar de 100) y cada punto de partida moverse hasta %d m del original, solo sobre tierra firme. Las rutas y el ritmo se ordenan después, con el tiempo detenido. El equilibrio se midió con el despliegue por defecto; moverlos es una libertad de diseño." % [int(rules.DEPLOY_MARGIN),int(rules.DEPLOY_MOVE_M)],12)
  note.custom_minimum_size.x=1000
  var brow=_hbox(box,8)
  var start=_button(brow,"Empezar a ordenar (en pausa)",_close_modal,42);start.size_flags_horizontal=Control.SIZE_EXPAND_FILL
@@ -2650,11 +2685,17 @@ func _update_action_states():
   if not ok:
    nblocked+=1
    if blocked_note.is_empty() or (str(rec.action)==a):
-    var wshort=why.split(".")[0]
+    var wshort=why.split(". ")[0].rstrip(".")
     blocked_note=_action_label(a)+": "+(wshort if wshort.length()<=120 else wshort.substr(0,117)+"…")
  if is_instance_valid(reason_label) and hover_action.is_empty():
   reason_label.add_theme_color_override("font_color",Color("f0d27a"))
-  reason_label.text="SIGUIENTE ▸ "+str(rec.text)+(("   ·   En gris: "+blocked_note+" (tocá o pasá el mouse por cada una para ver su motivo)") if nblocked>0 else "")
+  var tut_on=bool(settings.tutorial) and tut_step<TUT_STEPS.size() and str(rules.state.status)=="playing" and not _tutorial_j().is_empty()
+  if tut_on:
+   # Un solo mensaje guía a la vez: mientras el tutorial está en pantalla, esta línea solo explica cómo leer los botones.
+   reason_label.add_theme_color_override("font_color",MUTED)
+   reason_label.text="Seguí el tutorial de arriba. Los botones resaltados se pueden usar ahora; los grises (%d) dicen su motivo al pasar el mouse." % nblocked
+  else:
+   reason_label.text="SIGUIENTE ▸ "+str(rec.text)+(("   ·   En gris: "+blocked_note) if nblocked>0 else "")
 
 func _show_action_info(a:String):
  hover_action=a
@@ -2694,6 +2735,10 @@ func _do_action(action:String):
    for id in groups:results.append(rules.issue_order(id,action,Vector2.ZERO,{"pace":pace}))
    _drop_log_if_failed(results)
    _report_orders(results,groups.size())
+   if action=="signal_liniers":
+    for r3 in results:
+     if bool(r3.get("ok",false)):
+      _toast("El grupo va a pedirle la orden de avance a Liniers (ETA en su ficha) y no puede hacer otra cosa mientras tanto. Cuando la reciba, la orden vale unos minutos para «Cargar y abordar».",7,true);break
  if is_instance_valid(world):world.refresh_paths()
  _refresh_actions();_update_hud()
 
@@ -2710,7 +2755,20 @@ func _board_action():
  if groups.is_empty():_toast("Seleccioná un grupo (1, 2, 3).",3,false);return
  var bp=rules.board_point()
  var plan=rules.plan_route(groups[0],bp,pace,{})
- if not bool(plan.get("ok",false)):_toast(_friendly_reason("board",str(plan.get("reason","Sin ruta al buque."))),4.5,false);_sound("error");return
+ if not bool(plan.get("ok",false)):
+  var fr=_friendly_reason("board",str(plan.get("reason","Sin ruta al buque.")))
+  _sound("error")
+  if fr.begins_with("El camino hasta el buque"):
+   var alive=_sel_scouts()
+   if alive.is_empty():
+    for sid in SCOUT_IDS:
+     var sa=_actor(sid)
+     if not sa.is_empty() and str(sa.stage)!="lost" and int(sa.hp)>0:alive=[sid];break
+    if not alive.is_empty():_select_ids(alive)
+   if not _sel_scouts().is_empty():
+    _enter_aim("probe")
+    _toast("Antes de abordar hay que reconocer el fondo hacia el buque. Elegí con un clic el punto del agua a sondear (cerca del buque); después N.",7,false);return
+  _toast(fr,5,false);return
  if float(plan.get("unknown_m",0))>0.0 and not (confirm_action=="board" and confirm_timer>0):
   confirm_action="board";confirm_timer=5.0
   hover_info={"kind":"route","ok":true,"plan":plan,"point":Vector3(bp.x,_ground_y(bp.x,bp.y),bp.y),"text":_plan_text(plan),"risk":str(plan.get("risk","alto"))}
@@ -2761,6 +2819,8 @@ func _confirm_aim():
   if bool(r.get("ok",false)):ok+=1
   msg=str(r.get("reason",msg))
  if ok==0 and not order_log.is_empty():order_log.pop_back()
+ if ok==0 and msg.find("transitable")>=0:
+  msg="Ese punto queda demasiado adentro del agua para el explorador: solo sondea donde puede llegar caminando o vadeando. Elegí un punto más cerca de la playa, entre la orilla y el buque. (%s)" % msg.split(": ")[-1].rstrip(".")
  if ok>0:
   _toast(msg if not msg.is_empty() else "Orden dada al explorador.",3.5);_sound("order");aim="";aim_pts=[];hover_info={}
  else:
@@ -2916,7 +2976,15 @@ func _scout_summary(action:String,scout_id:String,pts:Array)->String:
 func _update_place():
  if not is_instance_valid(place_label):return
  var p=Vector2(camera_target.x,camera_target.z)
- place_label.text="%s   ·   x %d  z %d" % [_place_name(p),int(p.x),int(p.y)]
+ var pre="Centro de la vista: "
+ if is_instance_valid(world) and is_instance_valid(camera) and mode=="play" and get_viewport().get_visible_rect().has_point(hover_mouse):
+  var over_ui=false
+  for r in _blocked_rects():
+   if r.has_point(hover_mouse):over_ui=true;break
+  if not over_ui:
+   var g=world.ground_xz_from_screen(camera,hover_mouse)
+   if g!=null:p=g as Vector2;pre="Bajo el cursor: "
+ place_label.text="%s%s   ·   x %d  z %d" % [pre,_place_name(p),int(p.x),int(p.y)]
 
 func _dist_polyline(p:Vector2,pts:Array)->float:
  var best=1e9
@@ -3439,6 +3507,11 @@ func _toast_view_click():
  if toast_pos!=null:_center_on(toast_pos as Vector2,minf(camera_distance,80.0))
 
 # ---------- Diálogos ----------
+# Las notas de producción («decisión pendiente tuya/del usuario») no son texto del jugador: se quitan de lo que se muestra.
+func _player_text(t:String)->String:
+ var rx=RegEx.new();rx.compile("[;,]?[ ]*[^.;]*decisi[oó]n pendiente[^.]*[.]")
+ return rx.sub(t,".",true)
+
 func _briefing_dialog():
  var m=_jmap()
  var box=_open_modal(str(m.get("texts",{}).get("title","Justina")),940,680)
@@ -3454,7 +3527,7 @@ func _briefing_dialog():
 Gillespie escribe que el buque quedó «en seco» (left dry) y que lo abordó la caballería. Este juego elige, por jugabilidad, un casco apoyado con agua alrededor, vados de poca profundidad y un río que baja y sube: es [color=#e8a98f]◇ diseño[/color], no testimonio. Gillespie también dice que ningún buque fondea con seguridad a menos de cuatro millas; los 390 m del juego son una distancia de diseño en tensión con eso. Que Güemes estuviera en la acción es [color=#e0bf81]tradición[/color] (por eso «Güemes (trad.)»).
 
 "
- text_f+=str(rules.state.get("briefing",m.get("texts",{}).get("briefing","")))+"\n\n[b]Cómo leer las etiquetas[/b]\n"
+ text_f+=_player_text(str(rules.state.get("briefing",m.get("texts",{}).get("briefing",""))))+"\n\n[b]Cómo leer las etiquetas[/b]\n"
  for t in ["documentado","tradicion","reconstruccion","diseno"]:
   var info=m.get("source_tags",{}).get(t,{})
   text_f+="[color=%s]%s %s[/color] — %s\n" % [str(info.get("color","#fff")),str(info.get("glyph","")),str(info.get("label","")),str(info.get("meaning",""))]
@@ -3463,13 +3536,14 @@ Gillespie escribe que el buque quedó «en seco» (left dry) y que lo abordó la
  for i in range(mini(3,tips.size())):text+="• "+str(tips[i])+"\n"
  var text_k="\n[b]Controles[/b]\n• Cámara: WASD/flechas y borde de pantalla mueven · rueda zoom · botón derecho arrastrado agarra el mapa · Q/E giran · RePág/AvPág inclinan · el minimapa (clic o arrastre) mueve la vista; el cuadro blanco es lo que ves.\n• Cámara rápida: F centra la selección · B va al buque · 0 muestra todo el mapa · M agranda el minimapa.\n• Selección: clic en una ficha o en el mapa · 1-5 · Tab cicla · caja con arrastre izquierdo · Mayús suma · Ctrl alterna.\n• Órdenes: clic derecho mueve · V Mover · N Cargar y abordar · K Señalar a Liniers · Z Reconocer (Mayús+Z cauteloso) · H Marcar vado · I Volver · O Distraer con fuego · [b]coma[/b] Rechazar contraataque · [b]punto[/b] Evacuar heridos · X cancelar · [b]Ctrl+Z deshacer[/b] la última orden · G/T/C ritmo.\n• Tiempo: Espacio pausa/reanuda · F2/F3/F4 o +/− velocidad ×1/×2/×4 · P parte · F5 guardar · F9 cargar · R reiniciar · F1 o ? esta ayuda."
  scroll.queue_free()
- var tabs=TabContainer.new();tabs.size_flags_vertical=Control.SIZE_EXPAND_FILL;tabs.custom_minimum_size=Vector2(880,500);box.add_child(tabs);box.move_child(tabs,0)
+ var tabs=TabContainer.new();tabs.size_flags_vertical=Control.SIZE_EXPAND_FILL;tabs.custom_minimum_size=Vector2(880,_scroll_h(500.0));box.add_child(tabs);box.move_child(tabs,1)
  for pair in [["Cómo jugar",text],["Teclas",text_k],["Fuentes",text_f]]:
   var sc=ScrollContainer.new();sc.name=str(pair[0]);sc.size_flags_horizontal=Control.SIZE_EXPAND_FILL;tabs.add_child(sc)
   var rt=_rich(sc,str(pair[1]),15);rt.custom_minimum_size.x=840
  var row=_hbox(box)
- var go=_button(row,"Entendido · ver el despliegue",_deploy_dialog,42);go.size_flags_horizontal=Control.SIZE_EXPAND_FILL
- _button(row,"Cerrar y jugar",_close_modal,42)
+ var fresh=float(rules.state.elapsed)<0.5 and str(rules.state.status)=="playing"
+ var go=_button(row,"Jugar" if fresh else "Volver a la partida",_close_modal,42);go.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ if fresh:_button(row,"Ver el despliegue",_deploy_dialog,42)
  _button(row,"Repetir tutorial",func():settings.tutorial=true;tut_step=0;_save_settings();_close_modal();_update_hud(),42)
  _button(row,"Fuentes e historia",_history_dialog,42)
 
@@ -3486,7 +3560,7 @@ func _report_dialog(final:bool=false):
  var r=rules.campaign_report()
  last_report=r
  var box=_open_modal(str(r.get("outcome_title","Parte de campaña")) if final else "Parte de campaña (parcial)",940,700)
- var scroll=ScrollContainer.new();scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;scroll.custom_minimum_size=Vector2(880,500);box.add_child(scroll)
+ var scroll=ScrollContainer.new();scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;scroll.custom_minimum_size=Vector2(880,_scroll_h(500.0));box.add_child(scroll)
  var content=VBoxContainer.new();content.size_flags_horizontal=Control.SIZE_EXPAND_FILL;content.add_theme_constant_override("separation",8);scroll.add_child(content)
  var head=str(r.get("reason",""))
  _rich(content,"[b]%s[/b]\nTiempo: %s%s" % [head,_clock(float(r.get("elapsed",0))),"" if final else "   ·   la partida sigue en curso"],17).custom_minimum_size.x=860
