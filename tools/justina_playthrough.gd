@@ -56,6 +56,7 @@ func _play(policy: String, seed_value: int = 1806) -> Dictionary:
 	game = scene.instantiate()
 	root.add_child(game)
 	await process_frame
+	game.settings.auto_pause = false  # el guion avanza el tiempo por su cuenta y no espera la reanudacion manual
 	game.jev.force_local = true
 	game.forced_seed=1806
 	game._start_game("justine")
@@ -398,6 +399,9 @@ func _press(part: String, why: String) -> bool:
 		return false
 	await _click_at(b.get_global_rect().get_center())
 	ui_log.append("%d s: clic en «%s» (%s)" % [int(game.rules.state.elapsed), part, why])
+	if trace:
+		print("    [ui] ", part, " -> sel=", game.sel_ids, " toast=", game.toast_label.text.replace("
+", " "))
 	return true
 
 func _minimap_click(world_pt: Vector2) -> void:
@@ -442,6 +446,7 @@ func _play_ui() -> Dictionary:
 	game = scene.instantiate()
 	root.add_child(game)
 	await process_frame
+	game.settings.auto_pause = false  # el guion avanza el tiempo por su cuenta y no espera la reanudacion manual
 	game.jev.force_local = true
 	ui_log = []
 	clicks = 0
@@ -450,7 +455,8 @@ func _play_ui() -> Dictionary:
 		await process_frame
 	var r = game.rules
 	if is_instance_valid(game.modal):
-		await _press("Entendido", "cerrar el briefing")
+		await _press("Entendido", "leer la ayuda y abrir el despliegue previo")
+		await _press("Empezar a ordenar", "cerrar el despliegue previo (sigue en pausa)")
 	mem = {}
 	if ui_seed != 1806:
 		# Otra semilla (fondo oculto distinto) con la escena ya armada; toda la partida sigue siendo por clics y teclas.
@@ -459,7 +465,7 @@ func _play_ui() -> Dictionary:
 		game._refresh_minimap()
 	# Tiempo: Iniciar y velocidad x4 con los botones de la cabecera.
 	await _press("Iniciar", "arrancar el tiempo")
-	await _press("1×", "velocidad x2")
+	await _press("×2", "velocidad x2")
 	game.paused = true
 	var guard := 0
 	while r.state.status == "playing" and guard < 1500:
@@ -519,7 +525,7 @@ func _ui_step(r, t: float) -> void:
 	## reunir, abastecer, señalar a Liniers, dos sondeos cautelosos por los carriles de los flancos, fuego de distraccion,
 	## puesta en posicion, ruta por el carril firme, abordaje, rechazar el contraataque y evacuar heridos.
 	if is_instance_valid(game.modal):
-		await _press("Cerrar", "cerrar un panel")
+		await _press("Cerrar · Esc", "cerrar un panel")
 		return
 	var st: Dictionary = r.state
 	var boarded: bool = mem.has("boarded_any")
@@ -543,7 +549,7 @@ func _ui_step(r, t: float) -> void:
 				best = u
 		if not best.is_empty():
 			await _select_groups([str(best.id)])
-			if await _press("Rechazar contraataque", "rechazar el contraataque"):
+			if await _press("Rechazar", "rechazar el contraataque"):
 				return
 	var boarding_n := 0
 	for u in st.units:

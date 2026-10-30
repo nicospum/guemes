@@ -32,7 +32,7 @@ var camera_yaw = -0.17
 var camera_pitch = 0.91
 var orbiting = false
 var panning = false
-var settings = {"quality":"media","volume":0.55,"muted":false,"tutorial":true,"fullscreen":false,"camera_speed":1.0,"invert_orbit":false,"jev_local":false,"last_save":"norte"}
+var settings = {"quality":"media","volume":0.55,"muted":false,"tutorial":true,"fullscreen":false,"camera_speed":1.0,"invert_orbit":false,"jev_local":false,"last_save":"norte","auto_pause":true}
 var pending_round = false
 var resolution_remaining = 0.0
 var outcome_shown = false
@@ -77,7 +77,8 @@ const STAGE_TEXT = {"ready":["○","A la espera"],"moving":["▶","En marcha"],"
 const GROUP_IDS = ["guemes","arias","zavala"]
 const SCOUT_IDS = ["scout_1","scout_2"]
 const ALL_ACTORS = ["guemes","arias","zavala","scout_1","scout_2"]
-const ACTION_KEYS = {"move":KEY_V,"board":KEY_N,"muster":KEY_U,"resupply":KEY_J,"signal_liniers":KEY_K,"withdraw":KEY_L,"rally":KEY_Y,"cancel":KEY_X,"probe":KEY_Z,"mark_ford":KEY_H,"recall":KEY_I,"distract_fire":KEY_O}
+const ACTION_KEYS = {"move":KEY_V,"board":KEY_N,"muster":KEY_U,"resupply":KEY_J,"signal_liniers":KEY_K,"withdraw":KEY_L,"rally":KEY_Y,"cancel":KEY_X,"probe":KEY_Z,"mark_ford":KEY_H,"recall":KEY_I,"distract_fire":KEY_O,"repel":KEY_COMMA,"evacuate":KEY_PERIOD}
+const KEY_LABELS = {"repel":",","evacuate":".","probe_careful":"Mayús+Z","undo":"Ctrl+Z"}
 # Tabla única de teclas de Justina (fuente de verdad; docs/CONTROLES.md la repite y tests/test_integration.gd la contrasta:
 # sin teclas repetidas entre filas ni con ACTION_KEYS, y cada etiqueta debe figurar en el documento).
 const J_KEY_TABLE = [
@@ -96,13 +97,14 @@ const J_KEY_TABLE = [
  {"label":"Enter","keys":[KEY_ENTER,KEY_KP_ENTER],"desc":"confirmar la orden o la ruta en curso"},
  {"label":"+ / -","keys":[KEY_EQUAL,KEY_KP_ADD,KEY_MINUS,KEY_KP_SUBTRACT],"desc":"velocidad del tiempo (x1, x2, x4)"},
  {"label":"R","keys":[KEY_R],"desc":"reiniciar la partida (pide confirmación)"},
- {"label":"F1","keys":[KEY_F1],"desc":"ayuda y briefing"},
+ {"label":"F1","keys":[KEY_F1],"desc":"ayuda, controles y briefing (también la tecla ?)"},
+ {"label":"F2 / F3 / F4","keys":[KEY_F2,KEY_F3,KEY_F4],"desc":"velocidad del tiempo real: x1, x2, x4"},
  {"label":"F5","keys":[KEY_F5],"desc":"guardar"},
  {"label":"F9","keys":[KEY_F9],"desc":"cargar"},
  {"label":"F11","keys":[KEY_F11],"desc":"pantalla completa"},
  {"label":"Esc","keys":[KEY_ESCAPE],"desc":"cancelar la orden, soltar el foco o cerrar el panel"},
 ]
-const ACTION_FALLBACK = {"recall":{"label":"Volver","tag":"diseno","effect":"El explorador vuelve a la playa seca."},"retreat_all":{"label":"Retirada general","tag":"diseno","effect":"Termina la partida como derrota ordenada."}}
+const ACTION_FALLBACK = {"undo":{"label":"Deshacer","tag":"diseno","effect":"Deshace la última orden dada: devuelve a cada grupo a lo que hacía o la cancela, y a los exploradores a la playa. No recupera recursos ya gastados (señales, munición, balizas)."},"recall":{"label":"Volver","tag":"diseno","effect":"El explorador vuelve a la playa seca."},"retreat_all":{"label":"Retirada general","tag":"diseno","effect":"Termina la partida como derrota ordenada."}}
 const RISK_COLORS = {"bajo":Color("a6e3b8"),"medio":Color("e0bf81"),"alto":Color("f4a58d"),"desconocido":Color("aab7b5")}
 const KIND_ICON = {"objective":"◎","tide":"≈","warning":"!","shot":"✸","boarding":"■","recon":"◈","ford":"≈","stumble":"!","muster":"+","ammo":"•","signal":"◆","fire_support":"✸","victory":"★","defeat":"✕","load":"↻","info":"i"}
 const KIND_COLOR = {"warning":Color("f4a58d"),"stumble":Color("f4a58d"),"defeat":Color("f4a58d"),"victory":Color("a6e3b8"),"tide":Color("8fb4d9"),"ford":Color("8fb4d9"),"recon":Color("6fb8a6"),"signal":Color("d9b576"),"muster":Color("a6e3b8"),"ammo":Color("e0bf81")}
@@ -179,12 +181,51 @@ var cam_goal_target = Vector3.ZERO
 var cam_goal_distance = 78.0
 var confirm_action = ""
 var confirm_timer = 0.0
+var dec_regex: RegEx
 var log_regex: RegEx
 var last_overlay_rects: Array = []
+const GROUP_ROLE = {
+ "guemes":{"kind":"Caballería","role":"Vanguardia: abre el paso y aborda primero."},
+ "arias":{"kind":"Voluntarios","role":"Apoyo: sostiene la orilla y refuerza el abordaje."},
+ "zavala":{"kind":"Caballería de reserva","role":"Reserva: entra cuando el paso ya está abierto."},
+ "scout_1":{"kind":"Explorador","role":"Sondea el fondo con la lanza y marca el vado."},
+ "scout_2":{"kind":"Explorador","role":"Sondea el fondo con la lanza y marca el vado."}}
+const TUT_STEPS = [
+ "1/6 · TIEMPO REAL con pausa. El reloj corre solo (×1, ×2, ×4). Lo recomendado: pausá con Espacio, dá órdenes con el tiempo detenido y reanudá. Ahora pulsá Iniciar.",
+ "2/6 · Cámara: WASD o el borde del mapa mueven, la rueda acerca, el botón derecho arrastra. El minimapa (abajo a la izquierda) también mueve la vista; «Todo · 0» muestra el mapa entero.",
+ "3/6 · El agua es turbia. Elegí un explorador (4 o 5, o su ficha a la izquierda) y «Reconocer fondo» (Z); después hacé clic en el agua para fijar el punto a sondear.",
+ "4/6 · Elegí un grupo (1-3) y «Señalar a Liniers» (K): da la orden de avance, que vale unos minutos. Sin ella no se puede Cargar y abordar.",
+ "5/6 · Con los grupos elegidos, clic derecho traza la ruta (la vista previa muestra riesgo y tiempo) o «Cargar y abordar» (N). Ctrl+Z deshace la última orden; X cancela.",
+ "6/6 · Abordaje: cuando aparezca el aviso de CONTRAATAQUE tenés 14 s para «Rechazar» (coma). El juego se pausa solo en los avisos críticos (botón «Pausa auto»)."]
+var mode_label: Label
+var speed_buttons = {}
+var top_stack: VBoxContainer
+var pause_banner: Label
+var alert_panel: PanelContainer
+var alert_label: Label
+var alert_btn: Button
+var alert_ids_seen = {}
+var alert_current = {}
+var pause_reason = ""
+var left_foot: RichTextLabel
+var mm_bar: PanelContainer
+var autopause_button: Button
+var tut_skip_btn: Button
+var tut_close_btn: Button
+var tut_cam0 = Vector3.ZERO
+var tut_dist0 = 0.0
+var order_log: Array = []
+var eta_cache = {}
+var goal_label: RichTextLabel
+var tide_label: RichTextLabel
+var risk_label: RichTextLabel
+var deploy_btn: Button
+var roster_panel: PanelContainer
 
 func _ready():
  start_msec = Time.get_ticks_msec()
  log_regex=RegEx.new();log_regex.compile("[0-9]+([.,][0-9]+)?")
+ dec_regex=RegEx.new();dec_regex.compile("([0-9])\\.([0-9])")
  # La base de diseño es 1440x900; con "expand" la ventana más ancha o más alta gana espacio
  # (las anclas lo reparten) en lugar de barras negras.
  get_window().content_scale_aspect=Window.CONTENT_SCALE_ASPECT_EXPAND
@@ -748,7 +789,9 @@ func _unhandled_input(event):
 
 func _toggle_pause():
  if rules.state.scenario=="norte":_resolve_round();return
- paused=not paused;_update_hud();_sound("order")
+ paused=not paused
+ if not paused:pause_reason=""
+ _update_hud();_sound("order")
 
 func _cycle_speed():
  if _is_j():_step_speed(1,true);return
@@ -773,6 +816,7 @@ func _handle_events(events:Array):
 func _toast(message:String,duration=4.0,good=true):
  if not is_instance_valid(toast_label):return
  toast_pos=null
+ if _is_j():message=dec_regex.sub(message,"$1,$2",true)
  toast_label.text=message;toast_label.modulate=Color.WHITE if good else Color("efb69b");toast_timer=duration;toast_label.visible=true
 
 func _sound(sound_name):
@@ -877,7 +921,7 @@ func _history_dialog():
  body.meta_clicked.connect(func(meta):OS.shell_open(str(meta)))
 
 func _settings_dialog():
- var box=_open_modal("Ajustes",740,590)
+ var box=_open_modal("Ajustes",740,640)
  _label(box,"GRÁFICOS",12,GOLD)
  var quality_row=_hbox(box);_label(quality_row,"Detalle y sombras",16).size_flags_horizontal=Control.SIZE_EXPAND_FILL
  var quality_select=OptionButton.new();quality_select.custom_minimum_size=Vector2(240,40)
@@ -895,6 +939,7 @@ func _settings_dialog():
  box.add_child(mute)
  _label(box,"CÁMARA Y AYUDAS",12,GOLD)
  var help=CheckButton.new();help.text="Ayudas contextuales";help.button_pressed=bool(settings.tutorial);help.toggled.connect(func(on):settings.tutorial=on;_save_settings());box.add_child(help)
+ var ap=CheckButton.new();ap.text="Pausa automática en avisos críticos (Justina)";ap.button_pressed=bool(settings.auto_pause);ap.toggled.connect(func(on):settings.auto_pause=on;_save_settings());box.add_child(ap)
  var invert=CheckButton.new();invert.text="Invertir inclinación de cámara";invert.button_pressed=bool(settings.invert_orbit);invert.toggled.connect(func(on):settings.invert_orbit=on;_save_settings());box.add_child(invert)
  var local=CheckButton.new();local.text="Usar siempre el mando local";local.button_pressed=bool(settings.jev_local)
  local.toggled.connect(func(on):settings.jev_local=on;jev.force_local=on;_save_settings());box.add_child(local)
@@ -1242,8 +1287,13 @@ func _blocked_rects()->Array:
  var rects=[]
  for panel in hud_panels:
   if is_instance_valid(panel) and panel.is_visible_in_tree():rects.append(panel.get_global_rect().grow(4.0))
- if is_instance_valid(hint_panel) and hint_panel.visible:rects.append(hint_panel.get_global_rect().grow(4.0))
+ if _is_j():
+  for extra in [pause_banner,alert_panel,hint_panel]:
+   if is_instance_valid(extra) and extra.is_visible_in_tree():rects.append(extra.get_global_rect().grow(4.0))
+ elif is_instance_valid(hint_panel) and hint_panel.visible:rects.append(hint_panel.get_global_rect().grow(4.0))
  return rects
+
+# ---------- Despliegue previo ----------
 
 func _overlaps_any(rect:Rect2,list:Array)->bool:
  for r in list:
@@ -1541,12 +1591,14 @@ func _reset_camera_j():
 
 # Encuadra un rectángulo del mundo (centro, distancia y inclinación) de modo que sus cuatro esquinas entren
 # en la pantalla, sin pasar el máximo de zoom. Con smooth=true el movimiento es suave.
-func _fit_rect(r:Rect2,smooth:bool,pitch_deg:float=-1.0):
+func _fit_rect(r:Rect2,smooth:bool,pitch_deg:float=-1.0,full:bool=false):
  if pitch_deg>0:camera_pitch=deg_to_rad(pitch_deg)
  var c=r.get_center()
  var tgt=Vector3(c.x,0,c.y)
  var view=get_viewport().get_visible_rect().size
  var inner=Rect2(Vector2(24,64),view-Vector2(48,64+120))
+ # Con la interfaz de Justina, el encuadre usa solo el hueco libre entre el panel de agrupaciones, el de río y el panel inferior.
+ if _is_j() and not full:inner=Rect2(Vector2(268,70),Vector2(maxf(300.0,view.x-268.0-296.0),maxf(300.0,view.y-70.0-160.0)))
  var save_t=camera_target;var save_d=camera_distance
  var d=float(cam_cfg.get("min_distance_m",25.0))
  var maxd=float(cam_cfg.get("max_distance_m",900.0))
@@ -1567,7 +1619,7 @@ func _fit_rect(r:Rect2,smooth:bool,pitch_deg:float=-1.0):
 
 func _view_all():
  var sz=rules.map_size()
- _fit_rect(Rect2(Vector2.ZERO,sz),true,62.0)
+ _fit_rect(Rect2(Vector2.ZERO,sz),true,62.0,true)
 
 func _apply_camera():
  var offset=Vector3(sin(camera_yaw)*cos(camera_pitch),sin(camera_pitch),cos(camera_yaw)*cos(camera_pitch))*camera_distance
@@ -1692,79 +1744,118 @@ func _mm_size()->Vector2:
  var m=_jmap().get("minimap",{})
  var a=m.get("large_size_px" if mm_big else "default_size_px",[260,150])
  # Más grande que el mínimo del JSON: 300x173 lógicos (360 px a 1080p); 600x347 al ampliar, con la proporción del mapa 900x520.
- var mine=Vector2(600,347) if mm_big else Vector2(300,173)
+ var mine=Vector2(520,300) if mm_big else Vector2(300,173)
  return Vector2(maxf(float(a[0]),mine.x),maxf(float(a[1]),mine.y))
 
 func _build_hud_j():
- _new_ui();unit_buttons={};action_buttons={};stat_bars={};hud_panels=[];roster_buttons={};pace_buttons={}
- left_panel=null;journal_panel=null;journal_last=null
+ _new_ui();unit_buttons={};action_buttons={};stat_bars={};hud_panels=[];roster_buttons={};pace_buttons={};speed_buttons={}
+ left_panel=null;journal_panel=null;journal_last=null;roster_panel=null
+ alert_current={};alert_ids_seen={};pause_reason="";order_log=[];eta_cache={}
+ tut_cam0=camera_target;tut_dist0=camera_distance
  cam_goal_active=false;select_flash=0.0;hover_info={};confirm_action="";confirm_timer=0.0
  aim="";aim_pts=[];wp_list=[];pending_pt=null;box_active=false;lmb_down=false;rmb_down=false;mmb_down=false;rmb_drag=false
  overlay=Control.new();overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  overlay.mouse_filter=Control.MOUSE_FILTER_IGNORE;ui.add_child(overlay);overlay.draw.connect(_draw_overlay)
- # Cabecera compacta
+ # Cabecera: título, indicador permanente de tiempo real / pausa, reloj, pausa, velocidades y menús
  var header=_panel(ui,Vector2(20,8),Vector2(1400,0),Color(0.055,0.105,0.12,0.94),Color("394c49"),3);hud_panels.append(header);_anchor(header,0,0,1,0,12,6,-12,6)
  var hv=_hbox(header,6)
  var heading=_vbox(hv,0);heading.size_flags_horizontal=Control.SIZE_EXPAND_FILL
  title_label=_label(heading,"",15,PAPER,true)
  phase_label=_label(heading,"",10,MUTED)
- clock_label=_label(hv,"",20,GOLD,true);clock_label.custom_minimum_size.x=150;clock_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+ mode_label=_label(hv,"",13,GREEN);mode_label.custom_minimum_size.x=210;mode_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;mode_label.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
+ mode_label.tooltip_text="La Justina es TIEMPO REAL: el reloj avanza solo. Podés pausar con Espacio y dar órdenes con el tiempo detenido (pausa activa: lo recomendado). Velocidades ×1, ×2, ×4."
+ mode_label.mouse_filter=Control.MOUSE_FILTER_PASS
+ clock_label=_label(hv,"",19,GOLD,true);clock_label.custom_minimum_size.x=128;clock_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
  clock_label.tooltip_text="Tiempo que queda hasta el plazo de la misión.";clock_label.mouse_filter=Control.MOUSE_FILTER_PASS
- pause_button=_button(hv,"▶  Iniciar",_toggle_pause,26);pause_button.custom_minimum_size.x=112;_compact(pause_button)
- pause_button.tooltip_text="Espacio. Pausa o reanuda el tiempo."
- speed_button=_button(hv,"1×",_cycle_speed,26);speed_button.custom_minimum_size.x=44;_compact(speed_button)
- speed_button.tooltip_text="+ y − cambian la velocidad: ×1, ×2, ×4."
- for spec in [["Ver todo · 0",_view_all],["Reiniciar · R",_confirm_restart],["Parte · P",_toggle_report],["Guardar · F5",func():_save_game()],["Fuentes",_history_dialog],["Ajustes",_settings_dialog],["Ayuda · F1",_briefing_dialog],["Menú",_return_menu]]:
-  var hb=_button(hv,str(spec[0]),spec[1],26);hb.add_theme_font_size_override("font_size",13);_compact(hb)
- # Nombre del paraje (arriba a la izquierda)
- # Sin panel de fondo (no tapa la vista): texto con contorno sobre el paisaje.
+ pause_button=_button(hv,"▶  Iniciar",_toggle_pause,26);pause_button.custom_minimum_size.x=104;_compact(pause_button)
+ pause_button.tooltip_text="Espacio. Pausa o reanuda el tiempo real. Con el tiempo detenido podés seguir dando órdenes."
+ for sp in [1,2,4]:
+  var spv=sp
+  var sb=_button(hv,"×%d" % spv,func():_set_speed(float(spv)),26);sb.custom_minimum_size.x=36;sb.toggle_mode=true;_compact(sb,4,3)
+  sb.tooltip_text="Velocidad ×%d del tiempo real (F%d; también + y −). El juego corre %d veces más rápido, con sus riesgos." % [spv,[1,2,4].find(spv)+2,spv]
+  speed_buttons[spv]=sb
+ speed_button=speed_buttons[1]
+ autopause_button=_button(hv,"",_toggle_autopause,26);_compact(autopause_button,5,3);autopause_button.add_theme_font_size_override("font_size",12)
+ autopause_button.tooltip_text="Pausa automática: el juego se detiene solo cuando aparece un aviso crítico (contraataque, vencimiento de la señal de Liniers, subida del agua) para que decidas con calma."
+ for spec in [["Parte",_toggle_report,"P. Parte de campaña (parcial)."],["Guardar",func():_save_game(),"F5. Guardar la partida."],["Ajustes",_settings_dialog,"Calidad, sonido y ayudas."],["Ayuda",_briefing_dialog,"F1 o ?. Controles, tiempo real, tutorial y fuentes."],["Reiniciar",_confirm_restart,"R. Reinicia con confirmación."],["Menú",_return_menu,"Volver a la elección de escenario."]]:
+  var hb=_button(hv,str(spec[0]),spec[1],26);hb.add_theme_font_size_override("font_size",13);_compact(hb);hb.tooltip_text=str(spec[2])
+ # Nombre del paraje (arriba a la izquierda, sin fondo)
  place_label=_label(ui,"",13,PAPER);place_label.clip_text=true;place_label.mouse_filter=Control.MOUSE_FILTER_IGNORE
  place_label.add_theme_color_override("font_outline_color",Color(0.02,0.04,0.05,0.95));place_label.add_theme_constant_override("outline_size",6)
  _anchor(place_label,0,0,0,0,16,54,340,74)
- # Columna derecha: río, tiempo, recursos, captura
+ # Pila central: pausa, avisos críticos y tutorial (se apilan sin pisarse)
+ top_stack=VBoxContainer.new();top_stack.add_theme_constant_override("separation",4);top_stack.mouse_filter=Control.MOUSE_FILTER_IGNORE;ui.add_child(top_stack)
+ _anchor(top_stack,0.5,0,0.5,0,-330,54,330,54)
+ pause_banner=_label(top_stack,"",13,Color("f6e2a8"));pause_banner.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;pause_banner.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;pause_banner.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
+ pause_banner.add_theme_stylebox_override("normal",_cm_style("banner",Color(0.2,0.15,0.04,0.96),Color("e0bf81"),2,10,5));pause_banner.mouse_filter=Control.MOUSE_FILTER_IGNORE;pause_banner.visible=false
+ alert_panel=_panel(top_stack,Vector2.ZERO,Vector2(660,0),Color(0.22,0.07,0.06,0.97),Color("f08c78"),8)
+ var ah=_hbox(alert_panel,10)
+ alert_label=_label(ah,"",14,Color("ffe3d8"));alert_label.size_flags_horizontal=Control.SIZE_EXPAND_FILL;alert_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+ alert_btn=_button(ah,"",_alert_click,36);alert_btn.custom_minimum_size.x=150;alert_btn.visible=false
+ alert_panel.visible=false
+ hint_panel=_panel(top_stack,Vector2.ZERO,Vector2(660,0),Color(0.035,0.075,0.09,0.93),Color("7c7653"),7)
+ var tv=_vbox(hint_panel,4)
+ tutorial_label=_label(tv,"",13,Color("f4e9c8"));tutorial_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+ var tb=_hbox(tv,6)
+ tut_skip_btn=_button(tb,"Saltar paso ▸",_tut_skip,24);_compact(tut_skip_btn,6,2);tut_skip_btn.add_theme_font_size_override("font_size",12)
+ tut_close_btn=_button(tb,"Cerrar tutorial",_tut_close,24);_compact(tut_close_btn,6,2);tut_close_btn.add_theme_font_size_override("font_size",12)
+ var tl=_label(tb,"F1 o ? abre la ayuda completa",11,MUTED);tl.size_flags_vertical=Control.SIZE_SHRINK_CENTER
+ hint_panel.visible=false
+ # Panel de la derecha: objetivo, captura, río, tiempos, recursos y riesgo del sondeo
  right_panel=_panel(ui,Vector2.ZERO,Vector2(272,0),Color(0.055,0.105,0.12,0.92),Color("394c49"),8);hud_panels.append(right_panel);_anchor(right_panel,1,0,1,0,-284,54,-12,54)
  var rv=_vbox(right_panel,3)
  var rh=_hbox(rv,4)
- var rt=_label(rh,"RÍO Y TIEMPO  ·  I",11,GOLD);rt.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ var rt=_label(rh,"OBJETIVO Y ESTADO  ·  I",11,GOLD);rt.size_flags_horizontal=Control.SIZE_EXPAND_FILL
  var rbtn=_button(rh,"▾",_toggle_info,20);rbtn.custom_minimum_size.x=26;_compact(rbtn,4,0);rbtn.tooltip_text="Plegar o desplegar (I)"
  right_body=_vbox(rv,3)
- state_label=_rich(right_body,"",12)
- river_ctl=Control.new();river_ctl.custom_minimum_size=Vector2(254,34);river_ctl.mouse_filter=Control.MOUSE_FILTER_IGNORE;right_body.add_child(river_ctl);river_ctl.draw.connect(_draw_river)
- time_ctl=Control.new();time_ctl.custom_minimum_size=Vector2(254,38);time_ctl.mouse_filter=Control.MOUSE_FILTER_IGNORE;right_body.add_child(time_ctl);time_ctl.draw.connect(_draw_timeline)
- res_label=_rich(right_body,"",12)
+ goal_label=_rich(right_body,"",12)
  info_label=_rich(right_body,"",12)
  capture_bar=ProgressBar.new();capture_bar.custom_minimum_size.y=7;capture_bar.show_percentage=false;right_body.add_child(capture_bar)
  moral_bar=ProgressBar.new();moral_bar.custom_minimum_size.y=7;moral_bar.show_percentage=false
  moral_bar.add_theme_stylebox_override("fill",_style(Color("c98f6f"),Color.TRANSPARENT,0,3,0));right_body.add_child(moral_bar)
+ state_label=_rich(right_body,"",12)
+ river_ctl=Control.new();river_ctl.custom_minimum_size=Vector2(254,34);river_ctl.mouse_filter=Control.MOUSE_FILTER_IGNORE;right_body.add_child(river_ctl);river_ctl.draw.connect(_draw_river)
+ time_ctl=Control.new();time_ctl.custom_minimum_size=Vector2(254,38);time_ctl.mouse_filter=Control.MOUSE_FILTER_IGNORE;right_body.add_child(time_ctl);time_ctl.draw.connect(_draw_timeline)
+ tide_label=_rich(right_body,"",12)
+ res_label=_rich(right_body,"",12)
+ risk_label=_rich(right_body,"",12)
  log_label=_rich(right_body,"",11)
- # Minimapa abajo a la izquierda
+ # Panel lateral de agrupaciones (siempre visible): una ficha por agrupación
+ roster_panel=_panel(ui,Vector2.ZERO,Vector2(240,0),Color(0.055,0.105,0.12,0.94),Color("394c49"),6);hud_panels.append(roster_panel)
+ var lv=_vbox(roster_panel,3)
+ var lt=_label(lv,"AGRUPACIONES  ·  clic o teclas 1-5",11,GOLD);lt.tooltip_text="Cinco agrupaciones: tres grupos (1-3) y dos exploradores (4-5). Clic selecciona; Mayús suma; Ctrl alterna."
+ for id in ALL_ACTORS:
+  var aid=id
+  var rb=_button(lv,"",func():_roster_click(aid),68);rb.add_theme_font_size_override("font_size",11);rb.alignment=HORIZONTAL_ALIGNMENT_LEFT;_compact(rb,8,3);rb.clip_text=true
+  rb.draw.connect(func():_draw_card(aid,rb))
+  roster_buttons[id]=rb
+ left_foot=_rich(lv,"",11)
+ deploy_btn=_button(lv,"Despliegue previo ▸",_deploy_dialog,24);_compact(deploy_btn,6,2);deploy_btn.add_theme_font_size_override("font_size",12)
+ deploy_btn.tooltip_text="Composición, rol y punto de partida de las cinco agrupaciones. Antes de empezar se puede reasignar fuerza entre los tres grupos."
+ # Minimapa y su barra de cámara
  map_widget=Control.new();map_widget.mouse_filter=Control.MOUSE_FILTER_STOP;ui.add_child(map_widget)
  map_widget.draw.connect(_draw_map_widget);map_widget.gui_input.connect(_map_gui_input);hud_panels.append(map_widget)
- # Panel inferior
- var bottom=_panel(ui,Vector2.ZERO,Vector2(780,0),Color(0.055,0.105,0.12,0.94),Color("394c49"),7);hud_panels.append(bottom)
+ mm_bar=_panel(ui,Vector2.ZERO,Vector2(300,0),Color(0.055,0.105,0.12,0.94),Color("394c49"),3);hud_panels.append(mm_bar)
+ var mb=_hbox(mm_bar,3)
+ for spec in [["Selec. F",_center_selection,"F o Inicio. Centra la cámara en lo seleccionado."],["Buque B",_center_ship,"B. Lleva la cámara al Buque Justina."],["Todo 0",_view_all,"0. Encuadra el mapa entero."],["Ampliar M",_toggle_minimap,"M. Minimapa grande o normal. En el minimapa: clic o arrastre mueve la cámara; clic derecho ordena mover."]]:
+  var bb=_button(mb,str(spec[0]),spec[1],22);bb.add_theme_font_size_override("font_size",11);_compact(bb,3,1);bb.size_flags_horizontal=Control.SIZE_EXPAND_FILL;bb.tooltip_text=str(spec[2])
+ # Panel inferior: selección, ritmo y acciones contextuales
+ var bottom=_panel(ui,Vector2.ZERO,Vector2(900,0),Color(0.055,0.105,0.12,0.94),Color("394c49"),7);hud_panels.append(bottom)
  bottom.grow_vertical=Control.GROW_DIRECTION_BEGIN;bottom_panel=bottom
- var br=_hbox(bottom,8)
- var roster=_vbox(br,2);roster.custom_minimum_size.x=172
- for id in ALL_ACTORS:
-  var rb=_button(roster,"",func():_roster_click(id),20);rb.add_theme_font_size_override("font_size",12);rb.alignment=HORIZONTAL_ALIGNMENT_LEFT;_compact(rb,6,0);rb.clip_text=true
-  roster_buttons[id]=rb
- var right_col=_vbox(br,3);right_col.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ var right_col=_vbox(bottom,3)
  var info_row=_hbox(right_col,4)
- sel_info=_rich(info_row,"",12,30);sel_info.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ sel_info=_rich(info_row,"",12,34);sel_info.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ var pl=_label(info_row,"Ritmo",11,MUTED);pl.size_flags_vertical=Control.SIZE_SHRINK_CENTER
  for spec in [["walk","C · Paso"],["trot","T · Trote"],["gallop","G · Galope"]]:
   var pid=str(spec[0])
   var pb=_button(info_row,str(spec[1]),func():_set_pace(pid),24);pb.toggle_mode=true;pb.add_theme_font_size_override("font_size",11);_compact(pb,5,2)
   pb.tooltip_text="Ritmo de marcha de los grupos seleccionados. El galope solo vale en terreno firme."
   pace_buttons[pid]=pb
  action_box=_vbox(right_col,3)
- hint_panel=_panel(ui,Vector2.ZERO,Vector2(620,0),Color(0.035,0.075,0.09,0.93),Color("7c7653"),6)
- _anchor(hint_panel,0.5,0,0.5,0,-240,54,240,54)
- tutorial_label=_label(hint_panel,"",12,Color("f4e9c8"))
- tutorial_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;tutorial_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
- toast_label=_label(ui,"",15,PAPER);_anchor(toast_label,0.5,0,0.5,0,-330,112,330,164)
+ toast_label=_label(ui,"",15,PAPER);_anchor(toast_label,0.5,1,0.5,1,-330,-250,330,-184)
  toast_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;toast_label.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;toast_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
  toast_label.add_theme_stylebox_override("normal",_style(Color(0.04,0.09,0.11,0.94),Color("7c7653"),1,5,10))
- toast_view=_button(ui,"ver",func():_toast_view_click(),26);_compact(toast_view,8,2);_anchor(toast_view,0.5,0,0.5,0,336,124,396,150);toast_view.visible=false
+ toast_view=_button(ui,"ver",func():_toast_view_click(),26);_compact(toast_view,8,2);_anchor(toast_view,0.5,1,0.5,1,336,-232,396,-206);toast_view.visible=false
  overlay_top=Control.new();overlay_top.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  overlay_top.mouse_filter=Control.MOUSE_FILTER_IGNORE;ui.add_child(overlay_top);overlay_top.draw.connect(_draw_top_overlay)
  _layout_j()
@@ -1777,7 +1868,444 @@ func _layout_j():
  map_widget.custom_minimum_size=Vector2(sz.x,sz.y)
  _anchor(map_widget,0,1,0,1,12,-(sz.y+10),12+sz.x,-10)
  map_widget.queue_redraw()
- if is_instance_valid(bottom_panel):_anchor(bottom_panel,0,1,0,1,12+sz.x+8,-10,12+sz.x+8+780,-10)
+ if is_instance_valid(mm_bar):_anchor(mm_bar,0,1,0,1,12,-(sz.y+10+32),12+sz.x,-(sz.y+14))
+ if is_instance_valid(roster_panel):_anchor(roster_panel,0,0,0,0,12,80,252,80)
+ if is_instance_valid(bottom_panel):_anchor(bottom_panel,0,1,0,1,12+sz.x+8,-10,12+sz.x+8+900,-10)
+
+func _set_speed(v:float):
+ speed=v;_update_hud()
+ _toast("Velocidad ×%d del tiempo real." % int(v),2.5)
+
+func _toggle_autopause():
+ settings.auto_pause=not bool(settings.auto_pause);_save_settings();_update_hud()
+ _toast("Pausa automática en avisos críticos: "+("ACTIVADA." if bool(settings.auto_pause) else "desactivada. Ojo: un contraataque no espera."),4.0)
+
+# ---------- Modo tiempo real, avisos y siguiente paso ----------
+
+func _mode_info()->Dictionary:
+ if str(rules.state.status)!="playing":return {"text":"PARTIDA TERMINADA","kind":"end"}
+ if paused:return {"text":"‖ EN PAUSA","kind":"pause"}
+ return {"text":"TIEMPO REAL · ▶ ×%d" % int(speed),"kind":"live"}
+
+func _update_mode_ui():
+ var mi=_mode_info()
+ mode_label.text=str(mi.text)
+ match str(mi.kind):
+  "live":
+   mode_label.add_theme_stylebox_override("normal",_cm_style("mode_live",Color(0.07,0.2,0.17),Color("6fb8a6"),1,8,3));mode_label.add_theme_color_override("font_color",Color("a6e3b8"))
+  "pause":
+   mode_label.add_theme_stylebox_override("normal",_cm_style("mode_pause",Color(0.27,0.19,0.04),Color("e0bf81"),2,8,3));mode_label.add_theme_color_override("font_color",Color("f6e2a8"))
+  _:
+   mode_label.add_theme_stylebox_override("normal",_cm_style("mode_end",Color(0.12,0.14,0.15),Color("65756c"),1,8,3));mode_label.add_theme_color_override("font_color",MUTED)
+ var st=rules.state
+ var txt=""
+ if str(st.status)=="playing" and paused:
+  if not pause_reason.is_empty():txt="‖ PAUSA AUTOMÁTICA — %s  Espacio reanuda." % pause_reason
+  elif float(st.elapsed)<0.5:txt="‖ EN PAUSA — todavía no empezó. Podés dar órdenes con el tiempo detenido; Espacio pone a correr el reloj (TIEMPO REAL)."
+  else:txt="‖ EN PAUSA — podés dar órdenes con el tiempo detenido. Espacio reanuda."
+ pause_banner.text=txt;pause_banner.visible=not txt.is_empty()
+ pause_button.text="▶  Reanudar" if paused else "‖  Pausar"
+ if float(st.elapsed)<0.5 and paused:pause_button.text="▶  Iniciar"
+ for sp in speed_buttons:speed_buttons[sp].set_pressed_no_signal(int(speed)==int(sp))
+ autopause_button.text="Pausa auto: "+("sí" if bool(settings.auto_pause) else "no")
+
+func _compute_alerts()->Array:
+ var out=[]
+ var st=rules.state
+ if str(st.status)!="playing":return out
+ var t=float(st.elapsed)
+ var cap=_jmap().get("ship",{}).get("capture",{}).get("counter",{})
+ var c=st.counter
+ if bool(c.active) and not bool(c.answered):
+  var rem=maxf(0.0,float(c.until)-t)
+  out.append({"id":"counter%d" % int(c.count),"level":"crit","short":"contraataque de la dotación: tenés %d s para rechazarlo." % int(float(cap.get("window_s",14))),"text":"⚔ CONTRAATAQUE DE LA DOTACIÓN · quedan %d s para rechazarlo. «Rechazar» con un grupo que aborda (coma) cuesta %d de munición; sin respuesta pierden fuerza y la captura retrocede." % [ceili(rem),int(cap.get("repel_ammo",3))],"btn":"Rechazar ahora (,)","fn":"repel"})
+ var res=rules.resources()
+ var marching=false
+ for id in GROUP_IDS:
+  var u=rules.get_unit(id)
+  if not u.is_empty() and str(u.stage)=="moving" and str(u.get("order",{}).get("action",""))=="board":marching=true
+ if marching and bool(res.advance_authorized) and float(res.advance_remaining_s)>0.0 and float(res.advance_remaining_s)<=45.0:
+  out.append({"id":"adv%d" % int(res.signals_left),"level":"warn","short":"la orden de avance de Liniers está por vencer.","text":"⚠ La orden de avance de Liniers vence en %d s y un grupo marcha hacia el buque. Quedan %d señales: volvé a «Señalar a Liniers» (K) o llegá antes." % [ceili(float(res.advance_remaining_s)),int(res.signals_left)]})
+ var tm=rules.tide_marks()
+ if t>=float(tm.low_hold_end)-45.0 and t<float(tm.deadline):
+  if t<float(tm.low_hold_end):
+   out.append({"id":"rise_soon","level":"warn","short":"el río va a subir pronto.","text":"≈ EL RÍO VA A SUBIR en %d s. Los grupos que estén en el agua o en el banco tienen que haber llegado ya o volver a la orilla." % ceili(float(tm.low_hold_end)-t)})
+  else:
+   out.append({"id":"rise_now","level":"warn","short":"el río está subiendo.","text":"≈ EL RÍO SUBE: los pasos se cierran. Quedan %s hasta el plazo. Un grupo en el agua puede perder caballos." % _clock(float(tm.deadline)-t)})
+ out.sort_custom(func(a,b):return (0 if str(a.level)=="crit" else 1)<(0 if str(b.level)=="crit" else 1))
+ return out
+
+func _update_alerts():
+ var list=_compute_alerts()
+ for a in list:
+  if not alert_ids_seen.has(str(a.id)):
+   alert_ids_seen[str(a.id)]=true
+   if bool(settings.auto_pause) and not paused and not is_instance_valid(modal) and mode=="play":
+    paused=true;pause_reason=str(a.short);_sound("alert")
+ if list.is_empty():
+  alert_current={};alert_panel.visible=false;return
+ var top=list[0]
+ alert_current=top
+ alert_label.text=str(top.text)
+ alert_panel.add_theme_stylebox_override("panel",_cm_style("alert"+str(top.level),Color(0.22,0.07,0.06,0.97) if str(top.level)=="crit" else Color(0.2,0.14,0.04,0.97),Color("f08c78") if str(top.level)=="crit" else Color("e0bf81"),2,9,6))
+ alert_btn.visible=top.has("btn")
+ if top.has("btn"):
+  alert_btn.text=str(top.btn)
+  var av=_avail(str(top.get("fn","")))
+  alert_btn.disabled=not bool(av.get("ok",false))
+  alert_btn.tooltip_text="" if not alert_btn.disabled else "No disponible ahora: "+str(av.get("reason",""))
+  if alert_btn.disabled:alert_label.text+="
+✕ "+str(av.get("reason",""))
+ alert_panel.visible=true
+ _update_mode_ui()
+
+func _alert_click():
+ if str(alert_current.get("fn",""))=="repel":_do_boarding_action("repel")
+
+func _next_step()->Dictionary:
+ var st=rules.state
+ if str(st.status)!="playing":return {"action":"","text":"La partida terminó: mirá el parte (P)."}
+ if bool(st.counter.active) and not bool(st.counter.answered):return {"action":"repel","text":"¡Contraataque! Pulsá «Rechazar» (coma) con un grupo que aborda."}
+ var res=rules.resources()
+ if rules.probes().is_empty():
+  return {"action":"probe","text":"Primero reconocé el fondo: elegí un explorador (4 o 5), «Reconocer fondo» (Z) y un punto del agua."+(" Estás en pausa: ordená tranquilo y después Iniciar." if paused and float(st.elapsed)<0.5 else "")}
+ var boarding=false
+ for id in GROUP_IDS:
+  if str(rules.get_unit(id).get("stage","")) in ["boarding","dismounting"]:boarding=true
+ if boarding:return {"action":"evacuate","text":"Abordaje en curso: vigilá el contraataque (Rechazar), la munición y el río. Evacuar heridos (punto) recupera fuerza."}
+ if not bool(res.advance_authorized):
+  return {"action":"signal_liniers","text":"Elegí un grupo (1-3) y «Señalar a Liniers» (K): da la orden de avance (vale %d s). Sin ella no se puede «Cargar y abordar» (N)." % int(float(_jmap().get("actions",{}).get("signal_liniers",{}).get("valid_s",420)))}
+ return {"action":"board","text":"Orden de avance vigente (%s): «Cargar y abordar» (N) con los grupos elegidos, o trazá tu ruta con clic derecho / Mover (V)." % _clock(float(res.advance_remaining_s))}
+
+func _friendly_reason(a:String,why:String)->String:
+ if a=="board" and why.begins_with("Falta la orden de avance"):
+  return "Primero «Señalar a Liniers» (K) con un grupo: sin su orden de avance no se puede «Cargar y abordar» (N)."
+ if a=="signal_liniers" and why.find("ya fue concedida")>=0:
+  return "Ya tenés la orden de avance de Liniers (vigente %s más): ahora «Cargar y abordar» (N)." % _clock(float(rules.resources().advance_remaining_s))
+ return why
+
+# ---------- Tutorial interactivo ----------
+
+func _tut_done(i:int)->bool:
+ var st=rules.state
+ match i:
+  0:return float(st.elapsed)>=1.0
+  1:return Vector2(camera_target.x,camera_target.z).distance_to(Vector2(tut_cam0.x,tut_cam0.z))>25.0 or absf(camera_distance-tut_dist0)>maxf(5.0,tut_dist0*0.12)
+  2:return not rules.probes().is_empty()
+  3:return bool(rules.resources().advance_authorized) or int(rules.resources().signals_left)<int(_jmap().get("resources",{}).get("signals_max",2))
+  4:
+   for id in GROUP_IDS:
+    if str(rules.get_unit(id).get("stage","")) in ["moving","waiting_tide","dismounting","boarding"]:return true
+   return false
+  5:return int(st.counter.count)>0 or str(st.status)!="playing"
+ return true
+
+func _tut_update():
+ if not bool(settings.tutorial):return
+ # Si el jugador ya hizo un paso posterior (sondeó, señaló, marchó), se salta lo que quedó atrás.
+ for j in range(5,maxi(tut_step,2)-1,-1):
+  if _tut_done(j) and j+1>tut_step:
+   tut_step=j+1;tut_cam0=camera_target;tut_dist0=camera_distance;break
+ var guard=0
+ while tut_step<TUT_STEPS.size() and _tut_done(tut_step) and guard<6:
+  tut_step+=1;guard+=1;tut_cam0=camera_target;tut_dist0=camera_distance
+
+func _tut_skip():
+ tut_step=mini(tut_step+1,TUT_STEPS.size());tut_cam0=camera_target;tut_dist0=camera_distance;_update_hud()
+
+func _tut_close():
+ settings.tutorial=false;_save_settings();_update_hud()
+ _toast("Tutorial cerrado. F1 o ? lo reabre; «Repetir tutorial» en la ayuda.",4)
+
+# ---------- Fichas de agrupaciones ----------
+
+func _path_len(start:Vector2,path:Array)->float:
+ var total=0.0;var prev=start
+ for n in path:
+  var q=Vector2(float(n.x),float(n.z))
+  total+=prev.distance_to(q);prev=q
+ return total
+
+func _scout_chain_eta(start:Vector2,pts:Array)->float:
+ var info=rules.action_info("probe")
+ var sw=float(info.get("speed_mps_water",1.0));var sd=float(info.get("speed_mps_dry",3.0))
+ var secs=0.0;var prev=start
+ for q in pts:
+  var seg=prev.distance_to(q)
+  var steps=maxi(1,int(seg/5.0))
+  for k in range(steps):
+   var m=prev.lerp(q,(float(k)+0.5)/float(steps))
+   var wet=rules.perceived_depth_at(m.x,m.y)>0.0
+   secs+=(seg/float(steps))/(sw if wet else sd)
+  prev=q
+ return secs
+
+func _eta_s(id:String)->float:
+ var a=_actor(id)
+ if a.is_empty():return -1.0
+ var stage=str(a.stage)
+ var sig="%s|%s|%d" % [stage,str(a.get("order",{}).get("action","")),a.get("path",[]).size()]
+ var now=Time.get_ticks_msec()
+ var c=eta_cache.get(id,null)
+ if c!=null and now-int(c.t)<700 and str(c.sig)==sig:return float(c.eta)
+ var eta=-1.0
+ var pos=Vector2(float(a.x),float(a.z))
+ if id in SCOUT_IDS:
+  var pts=[]
+  for n in a.get("path",[]):pts.append(Vector2(float(n.x),float(n.z)))
+  if stage in ["moving","probing","marking"] and not pts.is_empty():eta=_scout_chain_eta(pos,pts)
+  if float(a.get("work_remaining",0.0))>0.0:eta=maxf(eta,0.0)+float(a.work_remaining)
+ else:
+  match stage:
+   "moving":
+    var o=a.get("order",{})
+    var dest=Vector2(float(o.get("x",a.x)),float(o.get("z",a.z)))
+    var rem=_path_len(pos,a.get("path",[]))
+    var plan=rules.plan_route(id,dest,str(a.get("pace","trot")),{})
+    if bool(plan.get("ok",false)) and float(plan.length_m)>1.0:eta=rem*float(plan.eta_s)/float(plan.length_m)
+    else:eta=rem/3.0
+   "working":eta=float(a.get("work",{}).get("remaining",0.0))
+   "dismounting":eta=float(a.get("dismount_remaining",0.0))
+   "stumbling":eta=float(a.get("stumble_remaining",0.0))
+ eta_cache[id]={"t":now,"sig":sig,"eta":eta}
+ return eta
+
+func _order_text(id:String)->String:
+ var a=_actor(id)
+ if a.is_empty():return ""
+ var stage=str(a.stage)
+ var act=str(a.get("order",{}).get("action",""))
+ var e=_eta_s(id)
+ var eta=(" · ETA "+_clock(e)) if e>=0.0 else ""
+ if id in SCOUT_IDS:
+  if stage=="lost":return "Abatido"
+  if stage=="idle":return "Sin orden"
+  var nm="Volver a la playa"
+  if act=="mark_ford":nm="Marcar vado"
+  elif act=="probe":nm="Sondeo cauteloso" if bool(a.get("cautious",false)) else "Reconocer fondo"
+  return nm+eta
+ if act.is_empty():
+  if stage=="routed":return "Dispersa"
+  return "Sin orden"
+ return _action_label(act)+eta
+
+func _card_text(id:String)->String:
+ var a=_actor(id)
+ if a.is_empty():return ""
+ var mark="▸ " if sel_ids.has(id) else ""
+ var role=GROUP_ROLE[id]
+ var stage_t=str(STAGE_TEXT.get(str(a.stage),["·",str(a.stage)])[1])
+ if id in SCOUT_IDS:
+  var hp_max=int(_jmap().get("resources",{}).get("scout_hp",4))
+  return "%s◈ %d %s   ♥ %d/%d\nExplorador a pie · lanza\n%s\nOrden: %s" % [mark,_actor_number(id),_short_name(id),int(a.hp),hp_max,stage_t,_order_text(id)]
+ return "%s%s %d %s %s      %d %%\n%s · mun. %d\n%s · fatiga %d\nOrden: %s" % [mark,str(UNIT_GLYPHS[id]),_actor_number(id),_short_name(id),_tag_glyph(str(a.get("tag","diseno"))),int(a.strength),str(role.kind),int(rules.resources().ammo),stage_t,int(a.fatigue),_order_text(id)]
+
+func _card_tip(id:String)->String:
+ var a=_actor(id)
+ if a.is_empty():return ""
+ var tg=str(a.get("tag","diseno"))
+ var role=GROUP_ROLE[id]
+ var t="%s\nTipo: %s%s. Rol (diseño): %s\nFuente: %s %s" % [str(a.name),str(role.kind),(" · "+("a caballo" if bool(a.get("mounted",false)) else "a pie")) if not (id in SCOUT_IDS) else "",str(role.role),_tag_glyph(tg),_tag_label(tg)]
+ for g in _jmap().get("groups",[]):
+  var note=str(g.get("note","")).split(". ")[0]
+  if str(g.id)==id and not note.begins_with("Identificador interno"):t+="\n"+note+"."
+ return t+"\nClic: seleccionar · Mayús: sumar · Ctrl: alternar · doble clic en el mapa: centrar."
+
+func _draw_card(id:String,b:Button):
+ var a=_actor(id)
+ if a.is_empty() or not is_instance_valid(b):return
+ var c:Color=UNIT_COLORS[id]
+ b.draw_rect(Rect2(0,5,3,b.size.y-10),c)
+ var frac=0.0;var col=GREEN
+ if id in SCOUT_IDS:
+  frac=clampf(float(a.hp)/float(maxi(1,int(_jmap().get("resources",{}).get("scout_hp",4)))),0.0,1.0)
+ else:
+  frac=clampf(float(a.strength)/100.0,0.0,1.0)
+  col=GREEN if float(a.strength)>=60 else (GOLD if float(a.strength)>=35 else RED)
+ var y=b.size.y-6.0
+ b.draw_rect(Rect2(10,y,b.size.x-20,3),Color("31433e"))
+ b.draw_rect(Rect2(10,y,(b.size.x-20)*frac,3),col)
+
+# ---------- Deshacer ----------
+
+func _log_order(ids:Array):
+ var prev={}
+ for id in ids:
+  if id in SCOUT_IDS:prev[id]={"kind":"scout"}
+  else:
+   var u=rules.get_unit(id)
+   var o=u.get("order",{})
+   prev[id]={"kind":"group","action":str(o.get("action","")),"x":float(o.get("x",0.0)),"z":float(o.get("z",0.0)),"moving":str(u.get("stage",""))=="moving","pace":str(u.get("pace","trot"))}
+ order_log.append({"prev":prev})
+ if order_log.size()>12:order_log.pop_front()
+
+func _drop_log_if_failed(results:Array):
+ for r in results:
+  if bool(r.get("ok",false)):return
+ if not order_log.is_empty():order_log.pop_back()
+
+func _undo_order():
+ if mode!="play" or str(rules.state.status)!="playing":return
+ if order_log.is_empty():_toast("No hay órdenes recientes para deshacer.",3,false);_sound("error");return
+ var e=order_log.pop_back()
+ var done=0;var msg=""
+ for id in e.prev:
+  var p=e.prev[id]
+  var r={}
+  if str(p.kind)=="scout":r=rules.issue_scout(id,"recall",[])
+  elif bool(p.moving) and str(p.action) in ["move","board","withdraw"]:r=rules.issue_order(id,str(p.action),Vector2(float(p.x),float(p.z)),{"pace":str(p.pace)})
+  else:r=rules.cancel_order(id)
+  if bool(r.get("ok",false)):done+=1
+  else:msg=str(r.get("reason",""))
+ if done>0:_toast("Orden deshecha. No se recuperan señales, munición ni balizas ya gastadas.",4.0);_sound("order")
+ else:_toast("No se pudo deshacer: "+msg,4.5,false);_sound("error")
+ if is_instance_valid(world):world.refresh_paths()
+ _refresh_actions();_update_hud()
+
+func _do_boarding_action(action:String):
+ var cand=[]
+ for id in _sel_groups():
+  if str(rules.get_unit(id).get("stage",""))=="boarding":cand.append(id)
+ if cand.is_empty():
+  for id in GROUP_IDS:
+   if str(rules.get_unit(id).get("stage",""))=="boarding":cand.append(id)
+ if cand.is_empty():_toast("Solo un grupo que ya está abordando el buque puede hacerlo: todavía no hay ninguno.",4.5,false);_sound("error");return
+ var results=[]
+ for id in cand:
+  var r=rules.issue_order(id,action,Vector2.ZERO,{"pace":pace})
+  results.append(r)
+  if action=="repel" and bool(r.get("ok",false)):break
+ _report_orders(results,1 if action=="repel" else cand.size())
+ if is_instance_valid(world):world.refresh_paths()
+ _refresh_actions();_update_hud()
+
+# ---------- Acciones contextuales ----------
+
+func _blocked_click(ev:InputEvent,b:Button):
+ if ev is InputEventMouseButton and ev.pressed and ev.button_index==MOUSE_BUTTON_LEFT and is_instance_valid(b) and b.disabled:
+  _toast("No disponible: "+str(b.get_meta("why","")),5,false);_sound("error")
+
+func _key_text(a:String)->String:
+ if KEY_LABELS.has(a):return str(KEY_LABELS[a])
+ if ACTION_KEYS.has(a):return OS.get_keycode_string(ACTION_KEYS[a])
+ return ""
+
+func _declutter_world_labels():
+ # Los rótulos 3D de referencia (Línea de agua, Pie de la barranca, Escala) se ocultan si caen bajo un panel o un rótulo de la interfaz.
+ if not is_instance_valid(world) or not is_instance_valid(camera) or not ("ref_labels" in world):return
+ var blocked=_blocked_rects()
+ var avoid=blocked.duplicate()
+ for r in last_overlay_rects:avoid.append(r)
+ var labels=[]
+ for k in world.ref_labels:labels.append(world.ref_labels[k])
+ if is_instance_valid(world.scale_root):
+  for ch in world.scale_root.find_children("*","Label3D",true,false):labels.append(ch)
+ for l in labels:
+  if not is_instance_valid(l):continue
+  var p=l.global_position
+  if camera.is_position_behind(p):continue
+  var sp=camera.unproject_position(p)
+  var rect=Rect2(sp-Vector2(95,18),Vector2(190,36))
+  l.visible=not _overlaps_any(rect,avoid)
+
+func _tide_text()->String:
+ var t=float(rules.state.elapsed);var m=rules.tide_marks()
+ if str(rules.state.status)!="playing":return ""
+ if t<float(m.drop_start):return "Río: la [b]bajante empieza en %s[/b]" % _clock(float(m.drop_start)-t)
+ if t<float(m.drop_end):return "Río [b]BAJANDO[/b]: mínimo en %s · sube recién en %s" % [_clock(float(m.drop_end)-t),_clock(float(m.low_hold_end)-t)]
+ if t<float(m.low_hold_end):return "Río en su mínimo: [color=#e0bf81][b]SUBE en %s[/b][/color]" % _clock(float(m.low_hold_end)-t)
+ return "[color=#f4a58d][b]EL RÍO SUBE[/b][/color]: el plazo vence en %s" % _clock(float(m.deadline)-t)
+
+func _probe_risk_text()->String:
+ if str(hover_info.get("kind",""))=="scout" and not str(hover_info.get("risk_text","")).is_empty():
+  return "Riesgo del sondeo (vista previa): "+str(hover_info.risk_text)
+ var lines=[]
+ for s in rules.scouts():
+  if str(s.stage) in ["probing","moving","marking"] and rules.exposure_at(float(s.x),float(s.z))>0.0:
+   lines.append("%s está [color=#f4a58d][b]expuesto al fuego[/b][/color] (♥ %d)" % [str(s.name),int(s.hp)])
+ if not lines.is_empty():return "Sondeo: "+"; ".join(lines)
+ return "Riesgo del sondeo: elegí un explorador + «Reconocer fondo» (Z) y mirá el aviso antes de confirmar."
+
+func _deploy_dialog():
+ if not _is_j():return
+ var started=float(rules.state.elapsed)>0.0 or not rules.state.orders.is_empty()
+ var box=_open_modal("Despliegue previo · tus 5 agrupaciones",1060,700)
+ var intro="[b]Cómo se «diseñan» las tropas.[/b] La fuerza de cada agrupación es una escala relativa de 0 a 100, no un número de hombres. Hay tres grupos (1-3) y dos exploradores (4-5). Los roles, la composición y los puntos de partida son [color=#c9b6a0]◇ diseño[/color] salvo donde la ficha dice otra cosa: las fuentes no dan el orden de batalla de la caballería de Pueyrredón."
+ if started:intro+="\n[color=#f4a58d]La partida ya empezó: el despliegue quedó fijo.[/color]"
+ else:intro+="\nTodavía estás a tiempo: podés pasar fuerza entre los grupos (hasta ±%d respecto de la partida, sin pasar de 100; el total se conserva) y dar órdenes de marcha con el tiempo detenido." % int(rules.DEPLOY_MARGIN)
+ _rich(box,intro,14).custom_minimum_size.x=1000
+ var scroll=ScrollContainer.new();scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;scroll.custom_minimum_size=Vector2(1000,300);box.add_child(scroll)
+ var grid=GridContainer.new();grid.columns=6;grid.add_theme_constant_override("h_separation",16);grid.add_theme_constant_override("v_separation",8);scroll.add_child(grid)
+ for h in ["Nº","Agrupación","Composición","Rol (diseño)","Punto de partida","Fuente"]:_label(grid,h,12,GOLD)
+ for id in ALL_ACTORS:
+  var a=_actor(id)
+  if a.is_empty():continue
+  var role=GROUP_ROLE[id]
+  var c:Color=UNIT_COLORS[id]
+  _label(grid,"%s %d" % [str(UNIT_GLYPHS[id]),_actor_number(id)],15,c)
+  var nm=_label(grid,str(a.name),14,PAPER);nm.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;nm.custom_minimum_size.x=190
+  var comp=""
+  if id in SCOUT_IDS:comp="Explorador a pie con lanza · salud %d" % int(_jmap().get("resources",{}).get("scout_hp",4))
+  else:comp="%s · fuerza %d/100 · %s · fatiga %d" % [str(role.kind),int(a.strength),"a caballo" if bool(a.get("mounted",false)) else "a pie",int(a.fatigue)]
+  var cl=_label(grid,comp,13,PAPER);cl.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;cl.custom_minimum_size.x=230
+  var rl=_label(grid,str(role.role),13,MUTED);rl.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;rl.custom_minimum_size.x=230
+  var p0=_actor_pos(id)
+  var pl=_label(grid,"x %d · z %d\n%s" % [int(p0.x),int(p0.y),_place_name(p0)],13,PAPER);pl.custom_minimum_size.x=130
+  var tg=str(a.get("tag","diseno"))
+  var sl=_label(grid,"%s %s" % [_tag_glyph(tg),_tag_label(tg)],13,_tag_color(tg));sl.custom_minimum_size.x=130
+ var row=_hbox(box,8)
+ _label(row,"Pasar %d de fuerza de" % int(rules.DEPLOY_STEP),14,PAPER)
+ var from_o=OptionButton.new();var to_o=OptionButton.new()
+ for gid in GROUP_IDS:
+  from_o.add_item(_short_name(gid));to_o.add_item(_short_name(gid))
+ to_o.select(1)
+ row.add_child(from_o);_label(row,"a",14,PAPER);row.add_child(to_o)
+ var go=_button(row,"Pasar fuerza",func():_deploy_transfer(from_o.selected,to_o.selected),34)
+ go.disabled=started
+ var note=_rich(box,"Límite del motor: cada grupo puede variar hasta ±%d de su fuerza de partida y no pasar de 100; los exploradores y los puntos de partida no se reasignan (para cambiar la ubicación, dá una orden de marcha con el tiempo detenido). El equilibrio de la partida se midió con el despliegue por defecto." % int(rules.DEPLOY_MARGIN),12)
+ note.custom_minimum_size.x=1000
+ var brow=_hbox(box,8)
+ var start=_button(brow,"Empezar a ordenar (en pausa)",_close_modal,42);start.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ _button(brow,"Ver todo el mapa",func():_close_modal();_view_all(),42)
+
+func _deploy_transfer(from_i:int,to_i:int):
+ var r=rules.deploy_transfer(GROUP_IDS[from_i],GROUP_IDS[to_i],rules.DEPLOY_STEP)
+ var msg=str(r.get("reason",""))
+ _deploy_dialog()
+ _toast(msg,4.5,bool(r.get("ok",false)));_sound("order" if bool(r.get("ok",false)) else "error")
+ _update_hud()
+
+# ---------- Ayuda ----------
+
+func _dest_name(id:String,dest:Vector2)->String:
+ var key="%s|%d|%d" % [id,int(dest.x/4.0),int(dest.y/4.0)]
+ var c=eta_cache.get("dn_"+id,null)
+ if c!=null and str(c.key)==key:return str(c.name)
+ var nm=_place_name(dest)
+ if nm.length()>22:nm=nm.substr(0,21)+"…"
+ eta_cache["dn_"+id]={"key":key,"name":nm}
+ return nm
+
+func _route_label(font,id:String,pts:PackedVector2Array,blocked:Array,placed:Array,is_sel:bool):
+ var e=_eta_s(id)
+ if e<0.0 or pts.size()<2:return
+ var a=_actor(id)
+ var dest=Vector2.ZERO
+ if a.get("path",[]).is_empty():return
+ var last=a.path[a.path.size()-1]
+ dest=Vector2(float(last.x),float(last.z))
+ var txt="%d → %s · %s" % [_actor_number(id),_dest_name(id,dest),_clock(e)] if is_sel else "%d · %s" % [_actor_number(id),_clock(e)]
+ var fs=12 if is_sel else 11
+ var ts=font.get_string_size(txt,HORIZONTAL_ALIGNMENT_LEFT,-1,fs)
+ var end=pts[pts.size()-1]
+ var rect=Rect2(end+Vector2(10,-ts.y-8),ts+Vector2(12,6))
+ var view=get_viewport().get_visible_rect().size
+ if rect.end.x>view.x-6:rect.position.x=end.x-rect.size.x-10
+ if _overlaps_any(rect.grow(2),placed) or _overlaps_any(rect,blocked) or not Rect2(Vector2.ZERO,view).encloses(rect):return
+ placed.append(rect)
+ var c:Color=UNIT_COLORS[id]
+ overlay.draw_style_box(_cached_style("etab"+str(is_sel)+c.to_html(),Color(0.03,0.07,0.09,0.88),c,2 if is_sel else 1,4),rect)
+ overlay.draw_string(font,rect.position+Vector2(6,ts.y*0.5+rect.size.y*0.5-4),txt,HORIZONTAL_ALIGNMENT_LEFT,-1,fs,c)
 
 func minimap_rect()->Rect2:
  return Rect2(map_widget.get_global_rect().position,_mm_size())
@@ -1868,6 +2396,7 @@ func _draw_map_widget():
   if sel_ids.has(id):w.draw_arc(pos,8.0,0,TAU,20,Color.WHITE,1.6)
  # N fija y brújula que gira con la guiñada (N hacia -z, E hacia +x)
  w.draw_string(font,Vector2(6,13),"N",HORIZONTAL_ALIGNMENT_LEFT,-1,12,Color("f4efe0"))
+ w.draw_string(font,Vector2(20,13),"MINIMAPA · clic: mover vista · cuadro = tu cámara",HORIZONTAL_ALIGNMENT_LEFT,-1,9,Color(0.96,0.94,0.88,0.9))
  var cr=compass_rect();var cc=cr.position-minimap_rect().position+cr.size*0.5
  w.draw_circle(cc,25.0,Color(0.03,0.07,0.09,0.78));w.draw_arc(cc,25.0,0,TAU,28,Color("887750"),1.2)
  var nd=Vector2(sin(camera_yaw),-cos(camera_yaw));var ed=Vector2(cos(camera_yaw),sin(camera_yaw))
@@ -1961,7 +2490,9 @@ func _action_info(a:String)->Dictionary:
  if info.is_empty():info=ACTION_FALLBACK.get(a,{})
  return info
 
+const LABEL_SHORT = {"repel":"Rechazar ataque","distract_fire":"Distraer con fuego","retreat_all":"Retirada general","signal_liniers":"Señalar a Liniers"}
 func _action_label(a:String)->String:
+ if LABEL_SHORT.has(a):return str(LABEL_SHORT[a])
  return str(_action_info(a).get("label",a))
 
 func _action_tag(a:String)->String:
@@ -1983,28 +2514,45 @@ func _refresh_actions_j():
  var ids=[]
  if kind!="none":ids=rules.list_actions(kind)
  ids=ids+rules.list_actions("global")
- var grid=GridContainer.new();grid.columns=6;grid.add_theme_constant_override("h_separation",4);grid.add_theme_constant_override("v_separation",4);action_box.add_child(grid)
+ ids.append("undo")
+ var grid=GridContainer.new();grid.columns=7;grid.add_theme_constant_override("h_separation",4);grid.add_theme_constant_override("v_separation",4);action_box.add_child(grid)
  for a in ids:
   var act=str(a)
-  var b=_button(grid,"",func():_do_action(act),30)
-  b.add_theme_font_size_override("font_size",10);b.size_flags_horizontal=Control.SIZE_EXPAND_FILL;b.custom_minimum_size.x=114
+  var b=_button(grid,"",func():_do_action(act),32)
+  b.add_theme_font_size_override("font_size",10);b.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+  b.custom_minimum_size.x=122
   b.clip_text=true;_compact(b,3,2)
   b.mouse_entered.connect(func():_show_action_info(act))
   b.focus_entered.connect(func():_show_action_info(act))
   b.mouse_exited.connect(func():_show_action_info(""))
+  b.gui_input.connect(_blocked_click.bind(b))
   action_buttons[act]=b
- reason_label=_label(action_box,"",11,MUTED);reason_label.clip_text=true;reason_label.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
- reason_label.custom_minimum_size=Vector2(600,15)
+ reason_label=_label(action_box,"",11,MUTED);reason_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+ reason_label.custom_minimum_size=Vector2(860,30);reason_label.max_lines_visible=2;reason_label.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
+ # Altura fija: si el texto de ayuda creciera al pasar el mouse, los botones se moverían bajo el cursor y el clic fallaría.
  hover_action=""
  _update_action_states()
 
 func _avail(action:String)->Dictionary:
+ if action=="undo":
+  var okk=not order_log.is_empty() and str(rules.state.status)=="playing"
+  return {"ok":okk,"reason":"" if okk else "Todavía no diste ninguna orden que se pueda deshacer.","cost_text":"última orden","tag":"diseno"}
  var kind=_action_kind(action)
  var actors=[]
  if kind=="global":actors=[sel_ids[0] if not sel_ids.is_empty() else "guemes"]
  elif kind=="scout":actors=_sel_scouts()
  else:actors=_sel_groups()
+ if action in ["repel","evacuate"]:
+  var bd=[]
+  for id in GROUP_IDS:
+   if str(rules.get_unit(id).get("stage",""))=="boarding":bd.append(id)
+  if not bd.is_empty():actors=bd
  if actors.is_empty():return {"ok":false,"reason":"Seleccioná un explorador (4, 5)." if kind=="scout" else "Seleccioná un grupo (1, 2, 3).","cost_text":"","tag":_action_tag(action)}
+ if action=="recall":
+  for id in actors:
+   var s=_actor(id)
+   if not s.is_empty() and str(s.stage)!="lost" and int(s.hp)>0:return {"ok":true,"reason":"Disponible.","cost_text":"vuelve a la playa","tag":"diseno"}
+  return {"ok":false,"reason":"El explorador fue abatido y no recibe órdenes.","cost_text":"vuelve a la playa","tag":"diseno"}
  var fail={}
  for id in actors:
   var target=Vector2.ZERO
@@ -2017,23 +2565,33 @@ func _avail(action:String)->Dictionary:
 
 func _update_action_states():
  if not is_instance_valid(action_box):return
- var blocked=[]
  var playing=str(rules.state.status)=="playing"
+ var rec=_next_step()
+ var nblocked=0
  for a in action_buttons:
   var b:Button=action_buttons[a]
   if not is_instance_valid(b):continue
   var av=_avail(a)
   var ok=bool(av.get("ok",false)) and playing
   var tag=str(av.get("tag",_action_tag(a)))
-  var key=("  ·  "+OS.get_keycode_string(ACTION_KEYS[a])) if ACTION_KEYS.has(a) else ""
-  b.text=_tag_glyph(tag)+" "+_action_label(a)+"\n"+str(av.get("cost_text",""))+key
+  var kt=_key_text(a)
+  var cost_parts=str(av.get("cost_text","")).split(" · ")
+  var cost=" · ".join(cost_parts.slice(0,2))
+  b.text=_tag_glyph(tag)+" "+_action_label(a)+"\n"+(("["+kt+"] ") if kt!="" else "")+cost
   b.disabled=not ok
-  var why="" if ok else (str(av.get("reason","")) if playing else "La partida ya terminó.")
-  b.tooltip_text=_action_effect(a)+"\nFuente: "+_tag_glyph(tag)+" "+_tag_label(tag)+(("\nBloqueada: "+why) if not ok else "")
+  var why="" if ok else _friendly_reason(a,str(av.get("reason","")) if playing else "La partida ya terminó.")
+  b.tooltip_text=_action_effect(a)+"\nTecla: "+(kt if kt!="" else "—")+"  ·  Fuente: "+_tag_glyph(tag)+" "+_tag_label(tag)+(("\nNo disponible ahora: "+why) if not ok else "")
   b.set_meta("why",why)
-  if not ok:blocked.append(_action_label(a)+": "+why)
+  if ok and str(rec.action)==a:
+   b.add_theme_stylebox_override("normal",_cm_style("act_rec",Color("40391a"),Color("f0d27a"),2,3,2))
+  elif ok:
+   b.add_theme_stylebox_override("normal",_cm_style("act_ok",Color("1f3b42"),Color("6fb8a6"),1,3,2))
+  else:
+   b.add_theme_stylebox_override("normal",_cm_style("act_no",Color("172326"),Color("2c3a38"),1,3,2))
+  if not ok:nblocked+=1
  if is_instance_valid(reason_label) and hover_action.is_empty():
-  reason_label.text="Todas las acciones están disponibles." if blocked.is_empty() else "Bloqueada — "+str(blocked[0])+("  (+%d más: pasá el mouse)" % (blocked.size()-1) if blocked.size()>1 else "")
+  reason_label.add_theme_color_override("font_color",Color("f0d27a"))
+  reason_label.text="SIGUIENTE ▸ "+str(rec.text)+("   ·   Las acciones en gris no están disponibles: pasá el mouse para ver el motivo." if nblocked>0 else "")
 
 func _show_action_info(a:String):
  hover_action=a
@@ -2041,29 +2599,37 @@ func _show_action_info(a:String):
  if a.is_empty():_update_action_states();return
  var b:Button=action_buttons.get(a)
  var why=str(b.get_meta("why","")) if is_instance_valid(b) else ""
- reason_label.text=_action_effect(a)+(("\nBloqueada: "+why) if not why.is_empty() else "")
+ reason_label.add_theme_color_override("font_color",MUTED)
+ reason_label.text=_action_label(a)+": "+_action_effect(a)+(("\nNo disponible ahora — "+why) if not why.is_empty() else "")
 
 func _do_action(action:String):
  if mode!="play" or str(rules.state.status)!="playing":return
  match action:
+  "undo":_undo_order();return
   "distract_fire":
    var r=rules.call_fire_support()
    _toast(str(r.get("reason","")),4,bool(r.get("ok",false)));_sound("order" if bool(r.get("ok",false)) else "error")
   "retreat_all":_retreat_dialog()
   "move","probe","probe_careful","mark_ford":_enter_aim(action)
   "recall":
+   var sc=_sel_scouts()
+   _log_order(sc)
    var done=0;var msg=""
-   for id in _sel_scouts():
+   for id in sc:
     var r2=rules.issue_scout(id,"recall",[])
     if bool(r2.get("ok",false)):done+=1
     msg=str(r2.get("reason",""))
+   if done==0 and not order_log.is_empty():order_log.pop_back()
    _toast(msg if done==0 else "Exploradores de vuelta a la playa seca.",3.5,done>0)
   "board":_board_action()
+  "repel","evacuate":_do_boarding_action(action);return
   _:
    var groups=_sel_groups()
    if groups.is_empty():_toast("Seleccioná un grupo (1, 2, 3).",3,false);_sound("error");return
+   _log_order(groups)
    var results=[]
    for id in groups:results.append(rules.issue_order(id,action,Vector2.ZERO,{"pace":pace}))
+   _drop_log_if_failed(results)
    _report_orders(results,groups.size())
  if is_instance_valid(world):world.refresh_paths()
  _refresh_actions();_update_hud()
@@ -2081,14 +2647,18 @@ func _board_action():
  if groups.is_empty():_toast("Seleccioná un grupo (1, 2, 3).",3,false);return
  var bp=rules.board_point()
  var plan=rules.plan_route(groups[0],bp,pace,{})
- if not bool(plan.get("ok",false)):_toast(str(plan.get("reason","Sin ruta al buque.")),4.5,false);_sound("error");return
+ if not bool(plan.get("ok",false)):_toast(_friendly_reason("board",str(plan.get("reason","Sin ruta al buque."))),4.5,false);_sound("error");return
  if float(plan.get("unknown_m",0))>0.0 and not (confirm_action=="board" and confirm_timer>0):
   confirm_action="board";confirm_timer=5.0
   hover_info={"kind":"route","ok":true,"plan":plan,"point":Vector3(bp.x,_ground_y(bp.x,bp.y),bp.y),"text":_plan_text(plan),"risk":str(plan.get("risk","alto"))}
   _toast("Cargar y abordar: "+_plan_text(plan)+". Volvé a pulsar para confirmar.",5,false);return
  confirm_action="";confirm_timer=0.0
+ _log_order(groups)
  var results=[]
  for id in groups:results.append(rules.issue_order(id,"board",bp,{"pace":pace}))
+ _drop_log_if_failed(results)
+ for r in results:
+  if not bool(r.get("ok",false)):r["reason"]=_friendly_reason("board",str(r.get("reason","")))
  _report_orders(results,groups.size())
 
 func _enter_aim(action:String):
@@ -2122,10 +2692,12 @@ func _confirm_aim():
  var scouts=_sel_scouts()
  if scouts.is_empty():return
  var ok=0;var msg=""
+ _log_order(scouts)
  for id in scouts:
   var r=rules.issue_scout(id,aim,aim_pts)
   if bool(r.get("ok",false)):ok+=1
   msg=str(r.get("reason",msg))
+ if ok==0 and not order_log.is_empty():order_log.pop_back()
  if ok>0:
   _toast(msg if not msg.is_empty() else "Orden dada al explorador.",3.5);_sound("order");aim="";aim_pts=[];hover_info={}
  else:
@@ -2188,10 +2760,12 @@ func _commit_move(p:Vector2,force:bool=false):
  pending_pt=null
  var dests=_spread_targets(groups,p)
  var results=[]
+ _log_order(groups)
  for i in range(groups.size()):
   var opts={"pace":pace}
   if not wps.is_empty():opts["waypoints"]=wps.duplicate()
   results.append(rules.issue_order(groups[i],"move",dests[i],opts))
+ _drop_log_if_failed(results)
  wp_list=[]
  if aim=="move":aim=""
  _report_orders(results,groups.size())
@@ -2230,7 +2804,9 @@ func _set_preview_point(g:Vector2,force:bool):
   var scouts=_sel_scouts()
   if scouts.is_empty():hover_info={};return
   var pts=aim_pts.duplicate();pts.append(g)
-  hover_info={"kind":"scout","ok":true,"pts":pts,"point":Vector3(g.x,_ground_y(g.x,g.y),g.y),"text":_scout_summary(aim,scouts[0],pts),"risk":"bajo"}
+  var rtxt=""
+  if aim in ["probe","probe_careful"]:rtxt=str(rules.scout_risk(scouts[0],pts,aim=="probe_careful").get("text",""))
+  hover_info={"kind":"scout","ok":true,"pts":pts,"point":Vector3(g.x,_ground_y(g.x,g.y),g.y),"text":_scout_summary(aim,scouts[0],pts)+((" · "+rtxt) if rtxt!="" else ""),"risk":"bajo","risk_text":rtxt}
  elif aim=="" or aim=="move":
   var groups=_sel_groups()
   if groups.is_empty():hover_info={};return
@@ -2309,6 +2885,10 @@ func _j_input(event):
  if event is InputEventKey and event.pressed and not event.echo:
   var k=event.physical_keycode
   var shift=event.shift_pressed;var ctrl=event.ctrl_pressed
+  if event.keycode==KEY_QUESTION or (k==KEY_SLASH and shift):_briefing_dialog();return
+  if ctrl and k==KEY_Z:_undo_order();return
+  if event.keycode in [KEY_PLUS,KEY_EQUAL,KEY_KP_ADD] and not ctrl:_step_speed(1);return
+  if event.keycode in [KEY_MINUS,KEY_KP_SUBTRACT] and not ctrl:_step_speed(-1);return
   match k:
    KEY_1,KEY_2,KEY_3,KEY_4,KEY_5:_select_ids([ALL_ACTORS[k-KEY_1]],_mods_how(shift,ctrl))
    KEY_TAB:_cycle_selection()
@@ -2320,19 +2900,22 @@ func _j_input(event):
    KEY_M:_toggle_minimap()
    KEY_P:_toggle_report()
    KEY_F1:_briefing_dialog()
+   KEY_F2:_set_speed(1.0)
+   KEY_F3:_set_speed(2.0)
+   KEY_F4:_set_speed(4.0)
    KEY_G:_set_pace("gallop")
    KEY_T:_set_pace("trot")
    KEY_C:_set_pace("walk")
    KEY_ENTER,KEY_KP_ENTER:_confirm_key()
-   KEY_EQUAL,KEY_KP_ADD:_step_speed(1)
-   KEY_MINUS,KEY_KP_SUBTRACT:_step_speed(-1)
    KEY_F5:_save_game()
    KEY_F9:_load_game("justine")
    _:
     for action in ACTION_KEYS:
      if ACTION_KEYS[action]==k:
-      if action=="recall" and _sel_scouts().is_empty():_toggle_info()
-      else:_do_action(action)
+      var act=str(action)
+      if act=="probe" and shift:act="probe_careful"
+      if act=="recall" and _sel_scouts().is_empty():_toggle_info()
+      else:_do_action(act)
       break
   return
  if event is InputEventMouseButton:
@@ -2414,67 +2997,62 @@ func _update_hud_j():
  var st=rules.state
  title_label.text="JUSTINA  ·  RETIRO"
  var left=maxf(0.0,float(st.deadline)-float(st.elapsed))
- phase_label.text="12 AGO 1806   /   transcurrido %s de %s   /   río %s" % [_clock(float(st.elapsed)),_clock(float(st.deadline)),str(st.tide_phase)]
+ phase_label.text="12 AGO 1806  ·  río %s (%s m)" % [str(st.tide_phase),("%.2f" % rules.water_level_m()).replace(".",",")]
  clock_label.text="Quedan "+_clock(left)
  clock_label.add_theme_color_override("font_color",RED if left<180.0 else GOLD)
  _update_fords()
  state_label.text=_state_text(left)
- pause_button.text="▶  Reanudar" if paused else "Ⅱ  Pausar"
- if float(st.elapsed)<0.5 and paused:pause_button.text="▶  Iniciar"
- speed_button.text=str(int(speed))+"×"
  var res=rules.resources()
  var ss=rules.ship_state()
- res_label.text="Munición [b]%d/%d[/b] · Balizas [b]%d[/b] · Voluntarios [b]%d[/b]\nAvance: [b]%s[/b] · buque %d cañones (Gillespie) · descarga en %d s" % [int(res.ammo),int(res.ammo_max),int(res.balizas),int(res.volunteers_pool),"concedido" if bool(res.advance_authorized) else "pendiente",int(ss.guns_total),int(ceil(float(ss.next_volley_in)))]
- capture_bar.value=float(st.capture);moral_bar.value=float(ss.crew_morale)
+ goal_label.text="[b]OBJETIVO[/b] Rendir al Buque Justina antes del plazo."
  info_label.text="Captura [b]%d %%[/b]   ·   Moral de la dotación [b]%d %%[/b]" % [int(st.capture),int(ss.crew_morale)]
- _update_fords()
+ capture_bar.value=float(st.capture);moral_bar.value=float(ss.crew_morale)
+ tide_label.text=_tide_text()
+ var adv="[color=#f4a58d]pendiente[/color] (Señalar a Liniers · K)"
+ if bool(res.advance_authorized):adv="[color=#a6e3b8]VIGENTE %s más[/color]" % _clock(float(res.advance_remaining_s))
+ res_label.text="Munición [b]%d/%d[/b] · pólvora de reserva [b]%d[/b]
+Señales de Liniers [b]%d[/b] · Balizas [b]%d[/b] · Voluntarios [b]%d[/b]
+Orden de avance: %s
+Buque: próxima descarga en [b]%d s[/b]" % [int(res.ammo),int(res.ammo_max),int(res.ammo_reserve),int(res.signals_left),int(res.balizas),int(res.volunteers_pool),adv,int(ceil(float(ss.next_volley_in)))]
+ risk_label.text=_probe_risk_text()
  if is_instance_valid(river_ctl):river_ctl.queue_redraw()
  if is_instance_valid(time_ctl):time_ctl.queue_redraw()
  for id in ALL_ACTORS:
-  var a=_actor(id);var b:Button=roster_buttons.get(id)
-  if a.is_empty() or not is_instance_valid(b):continue
-  var stage_g=str(STAGE_TEXT.get(str(a.stage),["·",""])[0])
-  var is_sel=sel_ids.has(id)
-  if id in SCOUT_IDS:
-   b.text=("▸ " if is_sel else "   ")+"◈ %d %s  ♥%d %s" % [_actor_number(id),_short_name(id),int(a.hp),stage_g]
-  else:
-   b.text=("▸ " if is_sel else "   ")+"%s %d %s %s %d%% %s" % [str(UNIT_GLYPHS[id]),_actor_number(id),_short_name(id),_tag_glyph(str(a.get("tag","diseno"))),int(a.strength),stage_g]
-  var tg=str(a.get("tag","diseno"))
-  b.tooltip_text="%s — %s\nFuente: %s %s" % [str(a.name),str(STAGE_TEXT.get(str(a.stage),["",str(a.stage)])[1]),_tag_glyph(tg),_tag_label(tg)]
+  var b:Button=roster_buttons.get(id)
+  if not is_instance_valid(b):continue
+  b.text=_card_text(id);b.tooltip_text=_card_tip(id)
   b.add_theme_color_override("font_color",UNIT_COLORS[id]);b.add_theme_color_override("font_hover_color",UNIT_COLORS[id])
-  if is_sel:
-   b.add_theme_stylebox_override("normal",_cm_style("rosel"+id,Color("29454c"),UNIT_COLORS[id],2,6,0))
+  if sel_ids.has(id):
+   b.add_theme_stylebox_override("normal",_cm_style("rosel"+id,Color("29454c"),UNIT_COLORS[id],2,8,3))
   else:
-   b.add_theme_stylebox_override("normal",_cm_style("cmnormal66",Color("1a3037"),Color("455753"),1,6,0))
+   b.add_theme_stylebox_override("normal",_cm_style("cmnormal83",Color("1a3037"),Color("455753"),1,8,3))
+  b.queue_redraw()
+ left_foot.text="Munición común [b]%d/%d[/b] · reserva [b]%d[/b] · señales [b]%d[/b]" % [int(res.ammo),int(res.ammo_max),int(res.ammo_reserve),int(res.signals_left)]
  for pid in pace_buttons:
   pace_buttons[pid].set_pressed_no_signal(pid==pace)
  sel_info.text=_selection_text()
+ _update_mode_ui()
+ _update_alerts()
  _update_action_states()
- var lines=[]
- for entry in _grouped_log(1):
-  var icon=str(KIND_ICON.get(str(entry.get("kind","info")),"•"))
-  lines.append("[color=#d9b576]%s[/color] %s%s" % [icon,str(entry.text),(" (×%d)" % int(entry.count)) if int(entry.count)>1 else ""])
- log_label.text="\n".join(lines)
+ _declutter_world_labels()
+ var grouped=_grouped_log(1)
+ if is_instance_valid(journal_last):
+  journal_last.text="• "+(str(grouped[-1].text) if not grouped.is_empty() else "Sin novedades.")
+ log_label.text=""
+ _tut_update()
  tutorial_label.text=_tutorial_j() if bool(settings.tutorial) else ""
- if is_instance_valid(hint_panel):
-  if tutorial_label.text!=last_hint_text:
-   last_hint_text=tutorial_label.text;hint_timer=16.0
-  hint_panel.visible=not tutorial_label.text.is_empty() and hint_timer>0
+ last_hint_text=tutorial_label.text
+ if is_instance_valid(hint_panel):hint_panel.visible=not tutorial_label.text.is_empty()
 
 func _selection_text()->String:
  var groups=_sel_groups();var scouts=_sel_scouts()
  if groups.is_empty() and scouts.is_empty():
-  return "Nada seleccionado. Clic en un grupo o explorador, o arrastrá una caja. Teclas 1-5."
+  return "Nada seleccionado. Clic en una ficha de la izquierda o en el mapa, arrastrá una caja, o teclas 1-5."
  var t=""
  if groups.size()==1 and scouts.is_empty():
   var u=rules.get_unit(groups[0])
   var tag=str(u.get("tag","diseno"))
-  var note=""
-  for g in _jmap().get("groups",[]):
-   if str(g.id)==groups[0]:
-    note=str(g.get("note","")).split(". ")[0]
-    if note.length()>64:note=note.substr(0,62)+"…"
-  t="[b]%s[/b]   fuerza %d · fatiga %d · %s\nFuente: [color=%s]%s %s[/color]%s" % [str(u.name),int(u.strength),int(u.fatigue),str(STAGE_TEXT.get(str(u.stage),["",str(u.stage)])[1]),str(_tag_info(tag).get("color","#aab7b5")),_tag_glyph(tag),_tag_label(tag),((" — "+note) if not note.is_empty() else "")]
+  t="[b]%s[/b]   fuerza %d · fatiga %d · %s\nOrden: %s   ·   Fuente: [color=%s]%s %s[/color]" % [str(u.name),int(u.strength),int(u.fatigue),str(STAGE_TEXT.get(str(u.stage),["",str(u.stage)])[1]),_order_text(groups[0]),str(_tag_info(tag).get("color","#aab7b5")),_tag_glyph(tag),_tag_label(tag)]
  elif groups.size()>=1:
   var s=0.0
   for id in groups:s+=float(rules.get_unit(id).strength)
@@ -2482,21 +3060,13 @@ func _selection_text()->String:
   if not scouts.is_empty():t+=" Los %d exploradores no reciben órdenes de grupo." % scouts.size()
  else:
   var a=_actor(scouts[0])
-  t="[b]%s[/b]   ♥ %d/3 · %s\nFuente: [color=%s]%s %s[/color]" % [str(a.name),int(a.hp),str(STAGE_TEXT.get(str(a.stage),["",str(a.stage)])[1]),str(_tag_info("diseno").get("color","#aab7b5")),_tag_glyph("diseno"),_tag_label("diseno")]
+  t="[b]%s[/b]   ♥ %d · %s\nOrden: %s   ·   Fuente: [color=%s]%s %s[/color]" % [str(a.name),int(a.hp),str(STAGE_TEXT.get(str(a.stage),["",str(a.stage)])[1]),_order_text(scouts[0]),str(_tag_info("diseno").get("color","#aab7b5")),_tag_glyph("diseno"),_tag_label("diseno")]
   if scouts.size()>1:t+="  ·  la acción se aplica a los %d exploradores" % scouts.size()
  return t
 
 func _tutorial_j()->String:
- var st=rules.state
- if float(st.elapsed)<1.0:
-  return "1/4 · Mirá el mapa: WASD o el borde mueven, la rueda acerca, el botón derecho arrastra. Espacio inicia el tiempo."
- if rules.probes().is_empty():
-  return "2/4 · El agua es turbia: elegí un explorador (4 o 5) y usá «Reconocer fondo» hacia el banco."
- if not bool(rules.resources().advance_authorized):
-  return "3/4 · «Señalar a Liniers» da la orden de avance. Ruta central: corta y expuesta; sur: larga y menos expuesta."
- if float(st.capture)<=0.0:
-  return "4/4 · Cruzá con clic derecho (la vista previa muestra el riesgo) y usá «Cargar y abordar». Vigilá el río."
- return "Los jinetes desmontaron: la captura avanza. Cuidá la fuerza restante hasta rendir al buque."
+ if tut_step>=TUT_STEPS.size():return ""
+ return str(TUT_STEPS[tut_step])
 
 # Estado de la partida: cuenta regresiva, ventanas de vado y riesgo actual (texto, junto a la barra de tiempo).
 func _risk_now()->Dictionary:
@@ -2643,6 +3213,7 @@ func _draw_overlay_j(font,blocked:Array,placed:Array):
    else:
     for i in range(pts.size()-1):overlay.draw_dashed_line(pts[i],pts[i+1],Color(col.r,col.g,col.b,0.55),2.0,9.0)
    overlay.draw_circle(pts[pts.size()-1],6.0,Color(0.03,0.06,0.07,0.85));overlay.draw_circle(pts[pts.size()-1],4.0,col)
+   _route_label(font,id,pts,blocked,placed,_is_selected(id))
  if not hover_info.is_empty():
   var rc=_risk_color(str(hover_info.get("risk","bajo")))
   if str(hover_info.kind)=="route" and hover_info.has("plan"):
@@ -2786,20 +3357,27 @@ func _toast_view_click():
 # ---------- Diálogos ----------
 func _briefing_dialog():
  var m=_jmap()
- var box=_open_modal(str(m.get("texts",{}).get("title","Justina")),900,640)
- var scroll=ScrollContainer.new();scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;scroll.custom_minimum_size=Vector2(840,480);box.add_child(scroll)
+ var box=_open_modal(str(m.get("texts",{}).get("title","Justina")),940,680)
+ var scroll=ScrollContainer.new();scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;scroll.custom_minimum_size=Vector2(880,500);box.add_child(scroll)
  var content=VBoxContainer.new();content.size_flags_horizontal=Control.SIZE_EXPAND_FILL;content.add_theme_constant_override("separation",10);scroll.add_child(content)
- var text=str(rules.state.get("briefing",m.get("texts",{}).get("briefing","")))+"\n\n[b]Cómo leer las etiquetas[/b]\n"
+ var text="[b]Esto es TIEMPO REAL con pausa[/b]\nEl reloj de la Justina corre solo (×1, ×2, ×4). No es por turnos: el río baja y sube, el buque dispara y los grupos marchan mientras vos decidís. Lo recomendado es la [b]pausa activa[/b]: Espacio detiene el tiempo, y con el tiempo detenido podés seleccionar, mirar rutas y dar órdenes; después Espacio reanuda. El juego también se pausa solo ante avisos críticos (contraataque, vencimiento de la señal de Liniers, subida del agua) y lo podés desactivar con «Pausa auto».\n\n"
+ text+="[b]Qué hacer en 10 segundos[/b]\n1) Mirá a la izquierda tus 5 agrupaciones (3 grupos y 2 exploradores). 2) Elegí un explorador y «Reconocer fondo»: el agua es turbia. 3) Elegí un grupo y «Señalar a Liniers»: da la orden de avance. 4) Clic derecho para trazar la ruta (muestra riesgo y tiempo) o «Cargar y abordar». El panel inferior te dice siempre el SIGUIENTE paso.\n\n"
+ text+=str(rules.state.get("briefing",m.get("texts",{}).get("briefing","")))+"\n\n[b]Cómo leer las etiquetas[/b]\n"
  for t in ["documentado","tradicion","reconstruccion","diseno"]:
   var info=m.get("source_tags",{}).get(t,{})
   text+="[color=%s]%s %s[/color] — %s\n" % [str(info.get("color","#fff")),str(info.get("glyph","")),str(info.get("label","")),str(info.get("meaning",""))]
- text+="\n[b]Tres consejos[/b]\n"
+ text+="\n[b]Consejos[/b]\n"
  var tips=m.get("texts",{}).get("tips",[])
  for i in range(mini(3,tips.size())):text+="• "+str(tips[i])+"\n"
- text+="\n[b]Controles[/b]  WASD/flechas y borde de pantalla: mover · botón derecho o central arrastrado: agarrar el mapa · rueda: zoom · Q/E giran · RePág/AvPág inclinan · Inicio: centrar selección · B: buque · 0: ver todo el mapa · R: reiniciar (pide confirmación) · F: centrar selección · M: minimapa grande · 1-5: seleccionar · Tab: ciclar · arrastre izquierdo: caja · clic derecho: mover · G/T/C: ritmo · Espacio: pausa · +/−: velocidad · P: parte · F1: esta ayuda."
- _rich(content,text,15).custom_minimum_size.x=820
+ text+="\n[b]Controles[/b]\n• Cámara: WASD/flechas y borde de pantalla mueven · rueda zoom · botón derecho arrastrado agarra el mapa · Q/E giran · RePág/AvPág inclinan · el minimapa (clic o arrastre) mueve la vista; el cuadro blanco es lo que ves.\n• Cámara rápida: F centra la selección · B va al buque · 0 muestra todo el mapa · M agranda el minimapa.\n• Selección: clic en una ficha o en el mapa · 1-5 · Tab cicla · caja con arrastre izquierdo · Mayús suma · Ctrl alterna.\n• Órdenes: clic derecho mueve · V Mover · N Cargar y abordar · K Señalar a Liniers · Z Reconocer (Mayús+Z cauteloso) · H Marcar vado · I Volver · O Distraer con fuego · [b]coma[/b] Rechazar contraataque · [b]punto[/b] Evacuar heridos · X cancelar · [b]Ctrl+Z deshacer[/b] la última orden · G/T/C ritmo.\n• Tiempo: Espacio pausa/reanuda · F2/F3/F4 o +/− velocidad ×1/×2/×4 · P parte · F5 guardar · F9 cargar · R reiniciar · F1 o ? esta ayuda."
+ _rich(content,text,15).custom_minimum_size.x=840
  var row=_hbox(box)
- var go=_button(row,"Entendido · empezar",_close_modal,42);go.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ var go=_button(row,"Entendido · ver el despliegue",_deploy_dialog,42);go.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ _button(row,"Cerrar y jugar",_close_modal,42)
+ _button(row,"Repetir tutorial",func():settings.tutorial=true;tut_step=0;_save_settings();_close_modal();_update_hud(),42)
+ _button(row,"Fuentes e historia",_history_dialog,42)
+
+# ---------- Rutas con destino y ETA, minimapa ----------
 
 func _load_rejected_dialog(reason:String):
  var box=_open_modal("No se pudo continuar",720,320)

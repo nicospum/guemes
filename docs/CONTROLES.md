@@ -1,66 +1,74 @@
 # Cómo jugar a Güemes
 
-Elegí **I · El río ofrece una oportunidad** para la toma de la Justina o **II · Sostener el norte** para la campaña contra La Serna. Podés jugar los dos escenarios sin conexión. Las ayudas se consultan con **F1** o **Esc** durante la partida.
+Elegí **I · El río ofrece una oportunidad** (la Justina, en **tiempo real con pausa**) o **II · Sostener el norte** (la campaña contra La Serna, por rondas). Los dos se juegan sin conexión. La ayuda está en **F1** (o **?** en la Justina) durante la partida.
 
-## Cámara, selección y órdenes
+Hay dos modos de tiempo distintos, y cada pantalla lo dice:
+
+| Escenario | Cómo corre el tiempo |
+| --- | --- |
+| La Justina | **Tiempo real.** El reloj corre solo (×1, ×2, ×4) y el río, el buque y los grupos se mueven mientras decidís. La **pausa** (Espacio) detiene todo y con el tiempo detenido se pueden seguir dando órdenes: es la forma recomendada de jugar (pausa activa). |
+| Sostener el norte | **Por rondas.** Preparás una orden por agrupación y resolvés la ronda con Espacio o **Resolver**. No hay reloj continuo. |
+
+Esta página tiene dos partes. La primera, «Cámara y órdenes del norte», vale para **II · Sostener el norte**; la de la Justina empieza en «Primera partida: tomar la Justina» y termina en su tabla única de teclas.
+
+## Cámara y órdenes del norte
 
 | Control | Acción |
 | --- | --- |
 | WASD o flechas | Desplazar la cámara sobre el escenario. |
 | Q / E | Girar la cámara. |
-| Rueda del mouse | Acercar (hacia el cursor) o alejar. El acercamiento tiene un mínimo y el objetivo de la cámara no sale del mapa. |
+| Rueda del mouse | Acercar (hacia el cursor) o alejar. El objetivo de la cámara no sale del mapa. |
 | Mantener botón central y arrastrar | Girar e inclinar la vista. |
-| O o botón **Objetivo** | Recuperar con un movimiento suave una vista centrada en el objetivo/mapa. |
-| F | Enfocar la cámara, con movimiento suave, en la agrupación seleccionada (o en el promedio de las tres). Un desplazamiento manual la suelta. |
-| Clic izquierdo sobre una agrupación | Seleccionarla. También podés usar sus botones del panel. |
-| Clic izquierdo sobre una agrupación | (Misma función.) Aparece el anillo en el color de la agrupación, con un destello al elegirla. |
-| 1, 2 o 3 | Seleccionar una de las tres agrupaciones. Los nombres visibles dependen del escenario. |
-| 4 o 5 | En la Justina, seleccionar al Explorador 1 o al 2. Para varias agrupaciones: Mayús+clic suma, Ctrl+clic alterna, o arrastrá una caja. |
-| Clic derecho en el terreno | En la Justina, ordenar el movimiento de la selección hacia ese punto si es transitable. Al pasar el cursor se ve la ruta, el tiempo estimado y la exposición, o la causa si el destino no es válido. |
-| Clic izquierdo sobre un sector | En el norte, elegir el sector sobre el que querés preparar una orden. También hay un selector en la interfaz. |
-| Clic derecho sobre un sector | En el norte, elegirlo y preparar **Mover** si las reglas permiten ese desplazamiento. |
-| [ y ] | En el norte, pasar al sector anterior o siguiente (alternativa al mouse y al desplegable). |
+| O o botón **Objetivo** | Volver, con un movimiento suave, a una vista centrada en el objetivo. |
+| F | Enfocar la cámara en la agrupación seleccionada. Un desplazamiento manual la suelta. |
+| Clic izquierdo sobre una agrupación o sus botones | Seleccionarla; aparece el anillo de su color. |
+| 1, 2 o 3 | Seleccionar una de las tres agrupaciones. |
+| Clic izquierdo sobre un sector | Elegir el sector sobre el que preparar una orden (también hay un selector). |
+| Clic derecho sobre un sector | Elegirlo y preparar **Mover** si las reglas lo permiten. |
+| [ y ] | Pasar al sector anterior o siguiente. |
 | I | Plegar o desplegar los paneles de objetivo y situación. |
-| P | Abrir o cerrar el parte de situación (cerrado muestra solo la última línea; los avisos importantes aparecen como mensaje). |
-| Tab / Mayús+Tab | Entrar a la interfaz y recorrer sus botones. Enter o Espacio activan el botón enfocado; **Esc** suelta el foco. Con un control enfocado, las flechas navegan la interfaz y no mueven la cámara (WASD sigue moviéndola). |
-| X o botón **Cancelar** | Cancelar la orden de la agrupación seleccionada. En la Justina, si están todas seleccionadas, cancela las de las tres. No deshace consecuencias ya resueltas. |
-
-En el norte, al seleccionar otra agrupación, el sector elegido vuelve a ser el sector actual de esa agrupación. Elegí después el destino sobre el que querés actuar.
-
-## Tiempo y continuidad
-
-| Control | Acción |
-| --- | --- |
-| Espacio, en la Justina | Pausar o reanudar. La misión empieza pausada. Podés preparar órdenes antes de iniciar el tiempo. |
-| Espacio, en el norte | Resolver la ronda preparada. En este escenario no hace avanzar un reloj continuo. |
-| T o botón **1× / 3×** | Alternar velocidad normal y acelerada (Tab pasó a recorrer la interfaz). En la Justina acelera la simulación; en el norte acorta la transición de resolución. |
-| F5 o botón **Guardar** | Guardar el progreso del escenario actual. Si se está resolviendo una ronda, esperá a que termine. |
-| F9 | Cargar el guardado del escenario actual. En la Justina vuelve pausado para que puedas revisar la situación. |
-| **Continuar**, en el menú | Abrir el escenario del último guardado disponible. |
-| R | Pedir confirmación para reiniciar el escenario actual. Solo reinicia si se acepta; el progreso no guardado se pierde. El guardado de F5 no se borra al reiniciar. |
+| P | Abrir o cerrar el parte de situación. |
+| Tab / Mayús+Tab | Entrar a la interfaz y recorrer sus botones. Enter o Espacio activan; **Esc** suelta el foco. Con un control enfocado, las flechas navegan la interfaz y no mueven la cámara. |
+| X o botón **Cancelar** | Cancelar la orden de la agrupación seleccionada. No deshace consecuencias ya resueltas. |
+| Espacio o **Resolver** | Resolver la ronda preparada (no hay reloj continuo). |
+| T o botón **1× / 3×** | Acortar o no la animación de resolución. |
+| F5 / F9 | Guardar / cargar el escenario actual. |
+| R | Reiniciar con confirmación (el guardado de F5 no se borra). |
 | F1 o Esc durante la partida | Abrir los controles. |
 | Esc con un panel abierto | Cerrar ese panel y recuperar el estado anterior de pausa. |
 | H o **Fuentes** | Abrir el contexto histórico y las fuentes. |
-| F11 | Alternar pantalla completa. |
-| **Menú** | Volver a la selección de escenarios. Autoguarda al salir solo si la partida está en curso, tiene avances (tiempo, ronda u órdenes) y no hay una ronda pendiente. Una partida recién reiniciada o ya terminada no pisa el guardado anterior. |
+| F11 | Pantalla completa. |
+| **Menú** | Volver a la selección de escenarios. Autoguarda al salir solo si la partida está en curso y tiene avances. |
 
-La campaña del norte guarda automáticamente después de cada ronda resuelta. Hay un guardado independiente para cada escenario; F5 actualiza el correspondiente a la partida actual. Los ajustes se conservan por separado.
+La campaña del norte guarda automáticamente después de cada ronda. Hay un guardado independiente por escenario; los ajustes se conservan por separado.
 
 ## Primera partida: tomar la Justina
 
-**Tu objetivo es capturar el mercante armado conservando fuerza suficiente para sostener la aproximación y la rendición.** La ribera y el agua forman parte de las reglas: un paso que todavía está cubierto no se vuelve transitable solo porque hayas dado una orden.
+**Objetivo: abordar y rendir al Buque Justina antes del plazo (18:00), sin que el agua vuelva a subir y conservando fuerza.** El agua es turbia y el fondo cambia de una partida a otra: reconocer es la única forma de saber por dónde se puede cruzar.
 
-1. Iniciá el escenario y aprovechá la pausa inicial para mover la cámara. Con **O** podés volver a una vista útil del buque.
-2. Seleccioná una agrupación con **1**, **2** o **3**. Mirá su fuerza, fatiga y suministros. La agrupación elegida lleva un anillo del color y la forma de su botón (◆ ▲ ●) y una ficha con fuerza, fatiga y estado en texto; el botón del panel muestra "▸" y un borde grueso.
-3. La ayuda contextual guía los tres pasos (elegir aproximación, iniciar el tiempo, resolver la captura) y se oculta sola a los 18 segundos; vuelve cuando cambia el paso. Tomá tu primera decisión: **Banco directo** recorre una aproximación más corta y expuesta; **Rodeo sur** reduce la exposición a la artillería y consume más margen de tiempo. Podés asignar distintas aproximaciones a distintos grupos. Con Mayús+clic o con una caja podés seleccionar varias agrupaciones y preparar una misma orden para todas. Las teclas **4** y **5** eligen a los exploradores.
-4. Pulsá **Espacio**. Si el agua está alta, la orden de aproximación lleva a la agrupación a la ribera y espera hasta que su ruta se habilite. Observá el estado del río, la ruta y los mensajes: esperar en ese punto es parte de la orden.
-5. Pausá para revisar si las agrupaciones están demasiado castigadas o separadas. **Reagrupar** permite recuperar condiciones a cambio de tiempo y, como **Abordar**, pide un segundo clic (4 s) con una vista previa en el mensaje. Estas órdenes están en el estante **Más órdenes** (plegable; se recuerda en la sesión). Las órdenes bloqueadas se muestran atenuadas y el motivo aparece escrito bajo la bandeja. **X** cancela la orden actual; **Ver rutas** muestra u oculta sus trazados.
-6. Al completar la aproximación junto al buque, la partida prepara el desmontaje. Los caballos permanecen fuera de la cubierta. La fuerza que conservaste influye en la captura. El botón **Abordar** permite ordenar la aproximación final cuando sea válida.
-7. Usá **+** si querés acelerar una fase que ya comprendés. La simulación también acelera sus riesgos: podés bajar con **−** o pausar en cualquier momento.
+**Tiempo real con pausa.** En la cabecera hay un indicador permanente: **TIEMPO REAL · ▶ ×1** (o ×2, ×4) mientras corre y **‖ EN PAUSA** cuando está detenido, con un cartel que lo aclara («podés dar órdenes con el tiempo detenido»). La partida empieza en pausa. Lo recomendado es la **pausa activa**: pausar con Espacio, mirar, seleccionar y ordenar, y reanudar. Los botones **×1 ×2 ×4** (o F2, F3, F4, o + y −) cambian la velocidad. **Pausa auto** (en la cabecera y en Ajustes) detiene el juego solo cuando aparece un aviso crítico: el **contraataque** de la dotación (hay 14 s para rechazarlo, y el reloj de esos 14 s también se detiene), el **vencimiento de la orden de Liniers** con un grupo marchando al buque y la **subida del agua**.
 
-El panel muestra avance de captura, moral de la dotación, estado del río y margen restante. La pantalla final explica el resultado y permite reiniciar enseguida. Probar otra aproximación sirve para comparar exposición, tiempo y fuerzas conservadas.
+**Qué hay en pantalla.**
 
-La presencia de Güemes en esta toma recrea una atribución tradicional, no una intervención personal demostrada. **Fuentes** explica la diferencia entre el testimonio, la tradición y las reglas de esta misión.
+- **Izquierda, siempre visible:** las cinco agrupaciones (tres grupos y dos exploradores). Cada ficha muestra nombre, tipo, fuerza, munición, estado, orden actual y ETA. Un clic en la ficha la selecciona (Mayús suma, Ctrl alterna). **Despliegue previo** abre la composición, el rol y el punto de partida de cada una.
+- **Centro arriba:** el aviso de pausa, los avisos críticos (con su cuenta regresiva y un botón) y el **tutorial** de 6 pasos (se puede saltar paso a paso o cerrar; F1 o ? lo repite).
+- **Derecha:** objetivo, captura y moral, río y ventanas de vado, tiempo hasta la bajante y la subida, munición y pólvora de reserva, señales de Liniers restantes, orden de avance (con su cuenta regresiva) y riesgo del sondeo.
+- **Abajo:** la selección y su orden actual, el ritmo de marcha y las **acciones contextuales**. Las disponibles se ven resaltadas, con su tecla; la recomendada lleva borde dorado. Las no disponibles quedan en gris: al pasar el mouse (o hacer clic) se lee el motivo. Con nada señalado, una línea dice el **SIGUIENTE** paso.
+- **Abajo a la izquierda:** el minimapa. Clic o arrastre mueve la cámara; el cuadro blanco es lo que ves; clic derecho ordena mover. Encima, botones para centrar en la selección (F), ir al buque (B), ver todo (0) y ampliar (M).
+- **En el mapa:** cada ruta termina en un círculo con la etiqueta «N → destino · mm:ss» (la ETA). La ruta de la selección se dibuja llena; las demás, punteadas.
+
+**Cadena de órdenes para tomar el buque.**
+
+1. Elegí un explorador (4 o 5) y **Reconocer fondo** (Z); hacé clic en el agua. El aviso estima el riesgo de baja antes de confirmar (Mayús+Z lo hace cauteloso: más lento, la mitad de impactos).
+2. Elegí un grupo (1-3) y **Señalar a Liniers** (K): concede la orden de avance, que vale unos minutos y solo hay dos señales en toda la partida.
+3. Con la orden vigente: **Cargar y abordar** (N) con los grupos elegidos, o trazá tu ruta con clic derecho (Mayús suma puntos) y revisá la vista previa (riesgo, tiempo, tramo sin reconocer).
+4. Ya abordando, cuando aparezca el contraataque: **Rechazar** (coma). **Evacuar heridos** (punto) recupera fuerza a costa de no sumar captura unos segundos.
+
+**Deshacer y cancelar.** **X** cancela la orden de los grupos seleccionados. **Ctrl+Z** (o el botón **Deshacer**) revierte la última orden dada: devuelve a cada grupo a lo que hacía o la cancela, y a los exploradores a la playa. No recupera señales, munición ni balizas ya gastadas, ni deshace lo que ya ocurrió.
+
+**Despliegue.** Antes de empezar (y de dar la primera orden) se puede pasar fuerza entre los tres grupos desde **Despliegue previo**: de a 5, hasta ±15 respecto de la partida y sin pasar de 100, conservando el total. Los exploradores y los puntos de partida no se reasignan (para mover un grupo, dale una orden con el tiempo detenido). El equilibrio se midió con el despliegue por defecto.
+
+La presencia de Güemes en esta toma recrea una atribución tradicional, no una intervención personal demostrada. **Ayuda → Fuentes e historia** explica la diferencia entre el testimonio, la tradición y las reglas de esta misión.
 
 ## Primera partida: sostener el norte
 
@@ -89,7 +97,7 @@ Esperar sin actuar no es una estrategia de victoria automática: el ejército in
 
 ## Justina: tabla única de teclas
 
-Esta tabla es la de `J_KEY_TABLE` y `ACTION_KEYS` en `scripts/main.gd`; `tests/test_integration.gd` comprueba que no haya una tecla repetida y que cada fila figure aquí. La vista y el reinicio coinciden con el Norte (R reinicia con confirmación, F centra la selección); la inclinación de cámara pasó a RePág / AvPág para liberar R y F. Los botones del panel y del encabezado ejecutan lo mismo («Ver todo · 0», «Reiniciar · R», «Parte · P»).
+Esta tabla es la de `J_KEY_TABLE` y `ACTION_KEYS` en `scripts/main.gd`; `tests/test_integration.gd` comprueba que no haya una tecla repetida y que cada fila figure aquí. En la Justina **Tab cicla la selección**, **T es el trote** y **Espacio** pausa o reanuda; no hay «1× / 3×». Los botones del encabezado y del minimapa ejecutan lo mismo («Todo · 0», «Reiniciar», «Parte»).
 
 | Tecla | Acción |
 | --- | --- |
@@ -98,7 +106,7 @@ Esta tabla es la de `J_KEY_TABLE` y `ACTION_KEYS` en `scripts/main.gd`; `tests/t
 | RePág / AvPág | Inclinar la cámara. |
 | 1-5 | Seleccionar grupos (1-3) y exploradores (4-5). |
 | Tab | Ciclar la selección. |
-| Espacio | Iniciar, pausar o reanudar el tiempo. |
+| Espacio | Iniciar, pausar o reanudar el tiempo real. |
 | Inicio | Centrar la cámara en la selección (también F). |
 | B | Ir al buque. |
 | 0 | Ver todo el mapa (encuadra el escenario completo). |
@@ -106,14 +114,15 @@ Esta tabla es la de `J_KEY_TABLE` y `ACTION_KEYS` en `scripts/main.gd`; `tests/t
 | P | Parte de campaña. |
 | G / T / C | Ritmo: galope, trote, paso. |
 | Enter | Confirmar la orden o la ruta en curso. |
-| + / - | Velocidad del tiempo (x1, x2, x4). |
+| + / - | Velocidad del tiempo real (×1, ×2, ×4). |
+| F2 / F3 / F4 | Velocidad directa: ×1, ×2, ×4. |
 | R | Reiniciar la partida (pide confirmación; el guardado de F5 no se borra). |
-| F1 | Ayuda y briefing. |
+| F1 | Ayuda, controles y briefing (también la tecla **?**). |
 | F5 | Guardar. |
 | F9 | Cargar. |
 | F11 | Pantalla completa. |
-| Esc | Cancelar la orden, soltar el foco o cerrar el panel. |
-| V | Mover (apuntar el destino; Mayús agrega puntos). |
+| Esc | Cancelar la orden en curso, soltar el foco o cerrar el panel. |
+| V | Mover (apuntar el destino; Mayús agrega puntos, hasta 4). |
 | N | Cargar y abordar. |
 | U | Reunir jinetes. |
 | J | Abastecer munición. |
@@ -121,16 +130,19 @@ Esta tabla es la de `J_KEY_TABLE` y `ACTION_KEYS` en `scripts/main.gd`; `tests/t
 | L | Retirar. |
 | Y | Reagrupar. |
 | X | Cancelar la orden. |
-| Z | Reconocer fondo (explorador). |
+| Z | Reconocer fondo (explorador). Mayús+Z: sondeo cauteloso. |
 | H | Marcar vado (explorador). |
-| I | Volver (explorador) o plegar el panel de río y tiempo. |
+| I | Volver (explorador) o plegar el panel de objetivo y estado. |
 | O | Distraer con fuego. |
+| Comma | La tecla coma (,): Rechazar el contraataque (un grupo que aborda). |
+| Period | La tecla punto (.): Evacuar heridos (un grupo que aborda). |
+| Ctrl+Z | Deshacer la última orden. |
 
-Ratón: clic izquierdo selecciona (arrastrar = caja; Mayús suma, Ctrl alterna); clic derecho ordena mover (con vista previa de ruta, tiempo y riesgo); botón derecho o central arrastrado agarra el mapa; Alt + botón central orbita; rueda = zoom hacia el cursor; clic o arrastre en el minimapa centra la cámara.
+Ratón: clic izquierdo selecciona (arrastrar = caja; Mayús suma, Ctrl alterna; doble clic centra); clic derecho ordena mover (con vista previa de ruta, tiempo y riesgo); botón derecho o central arrastrado agarra el mapa; Alt + botón central orbita; rueda = zoom hacia el cursor; clic o arrastre en el minimapa centra la cámara.
 
 ## Ajustes
 
-En **Ajustes** podés elegir calidad **Baja**, **Media** o **Alta**, cambiar volumen, silenciar, activar ayudas, invertir la inclinación de cámara y alternar pantalla completa. Baja desactiva sombras; Media y Alta añaden sombras y distintos niveles de suavizado. Elegí el perfil según cómo responda tu equipo.
+En **Ajustes** podés activar o no la **pausa automática** de la Justina, elegir calidad **Baja**, **Media** o **Alta**, cambiar volumen, silenciar, activar ayudas, invertir la inclinación de cámara y alternar pantalla completa. Baja desactiva sombras; Media y Alta añaden sombras y distintos niveles de suavizado. Elegí el perfil según cómo responda tu equipo.
 
 **Usar siempre el mando local** mantiene las decisiones del adversario en la alternativa local. Jev puede seleccionar intenciones si se configura acceso externo; la partida se puede completar sin él. El estado mostrado distingue esa alternativa de una llamada real.
 

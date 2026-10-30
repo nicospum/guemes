@@ -34,6 +34,9 @@ const LOAD_MAX_BYTES := 4000000
 const SAVE_LOG_FALLBACK := 60          ## si aun asi se pasa, se recorta el registro a esto al guardar
 const JUSTINE_GROUPS :=["guemes", "arias", "zavala"]
 const JUSTINE_STAGES := ["ready", "moving", "working", "stumbling", "rally", "blocked", "dismounting", "boarding", "routed"]
+## Despliegue previo (Justina): paso y margen para reasignar fuerza inicial entre los tres grupos (UI de la ronda 1; aditivo, no toca el balance por defecto).
+const DEPLOY_STEP := 5.0
+const DEPLOY_MARGIN := 15.0
 const JUSTINE_ORDER_ACTIONS := ["move", "board", "rally", "withdraw", "muster", "resupply", "signal_liniers", "repel", "evacuate"]
 const SAVE_ORDERS_FALLBACK := 120      ## si el guardado se pasa del tope, se conservan solo las ultimas ordenes
 const SAVE_PROBE_STRIDE := 3           ## y las sondas se aligeran conservando 1 de cada N puntos (mas los extremos)
@@ -1287,6 +1290,33 @@ func _start_work(u: Dictionary, action: String) -> void:
 	u.path = []
 	u.stage = "working"
 	u.work = {"kind": WORK_KIND[action], "remaining": float(site.work_s)}
+
+## Despliegue previo: pasa 'amount' de fuerza de un grupo a otro antes de empezar y antes de la primera orden. Conserva el total; cada grupo
+## queda a +-DEPLOY_MARGIN de su fuerza de partida y nunca pasa de 100. Actualiza la fuerza inicial del parte para que las bajas se midan bien.
+func deploy_transfer(from_id: String, to_id: String, amount: float = DEPLOY_STEP) -> Dictionary:
+	if state.get("scenario", "") != "justine" or state.get("status", "") != "playing":
+		return _no("El despliegue solo existe en la Justina.")
+	if float(state.elapsed) > 0.0 or not (state.orders as Array).is_empty():
+		return _no("El despliegue solo se ajusta antes de empezar y antes de dar órdenes.")
+	var a := get_unit(from_id)
+	var b := get_unit(to_id)
+	if a.is_empty() or b.is_empty() or from_id == to_id:
+		return _no("Elegí dos grupos distintos.")
+	if not is_finite(amount) or amount <= 0.0:
+		return _no("La cantidad debe ser positiva.")
+	var base := {}
+	for g in map_data().groups:
+		base[str(g.id)] = float(g.strength)
+	var new_a := float(a.strength) - amount
+	var new_b := float(b.strength) + amount
+	if new_a < float(base.get(from_id, 0.0)) - DEPLOY_MARGIN - 0.001 or new_b > minf(100.0, float(base.get(to_id, 0.0)) + DEPLOY_MARGIN) + 0.001:
+		return _no("Límite del despliegue: cada grupo puede variar hasta ±%d de su fuerza de partida y no pasar de 100." % roundi(DEPLOY_MARGIN))
+	a.strength = new_a
+	b.strength = new_b
+	state.stats.start_strength[from_id] = new_a
+	state.stats.start_strength[to_id] = new_b
+	state.state_version = int(state.state_version) + 1
+	return {"ok": true, "reason": "Pasaste %d de fuerza de %s a %s (ahora %d y %d)." % [roundi(amount), a.name, b.name, roundi(new_a), roundi(new_b)]}
 
 func cancel_order(group_id: String) -> Dictionary:
 	var u := get_unit(group_id)
