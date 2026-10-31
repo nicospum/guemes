@@ -4,7 +4,7 @@ const Rules = preload("res://scripts/game_rules.gd")
 const World = preload("res://scripts/world_view.gd")
 const Jev = preload("res://scripts/jev_client.gd")
 const GOLD = Color("d9b576")
-const INK = Color("101e24")
+const INK = Color("14180f")
 const PAPER = Color("e9e3d4")
 const MUTED = Color("aab7b5")
 const RED = Color("d48f79")
@@ -105,9 +105,9 @@ const J_KEY_TABLE = [
  {"label":"Esc","keys":[KEY_ESCAPE],"desc":"cancelar la orden, soltar el foco o cerrar el panel"},
 ]
 const ACTION_FALLBACK = {"board_own":{"label":"Cargar sin orden","tag":"diseno","effect":"Carga contra el buque sin esperar el permiso de Liniers. Riesgo: la captura va un 20 % más lenta y no hay medalla de oro."},"undo":{"label":"Deshacer","tag":"diseno","effect":"Deshace la última orden dada: devuelve a cada grupo a lo que hacía o la cancela, y a los exploradores a la playa. No recupera recursos ya gastados (señales, munición, balizas)."},"recall":{"label":"Volver","tag":"diseno","effect":"El explorador vuelve a la playa seca."},"retreat_all":{"label":"Retirada general","tag":"diseno","effect":"Termina la partida como derrota ordenada."}}
-const RISK_COLORS = {"bajo":Color("a6e3b8"),"medio":Color("e0bf81"),"alto":Color("f4a58d"),"desconocido":Color("aab7b5")}
+const RISK_COLORS = {"bajo":Color("a6e3b8"),"medio":Color("e0bf81"),"alto":Color("ec7a62"),"desconocido":Color("aab7b5")}
 const KIND_ICON = {"shot_warning":"✸","counter_warning":"⚔","last_effort":"✸","choice":"✉","choice_done":"✉","reinforce":"+","assist":"+","mission":"◎","liniers":"◆","hint":"i","counter":"⚔","objective":"◎","tide":"≈","warning":"!","shot":"✸","boarding":"■","recon":"◈","ford":"≈","stumble":"!","muster":"+","ammo":"•","signal":"◆","fire_support":"✸","victory":"★","defeat":"✕","load":"↻","info":"i"}
-const KIND_COLOR = {"shot_warning":Color("f4a58d"),"counter_warning":Color("f4a58d"),"last_effort":Color("f4a58d"),"choice":Color("e0bf81"),"reinforce":Color("a6e3b8"),"counter":Color("f4a58d"),"warning":Color("f4a58d"),"stumble":Color("f4a58d"),"defeat":Color("f4a58d"),"victory":Color("a6e3b8"),"tide":Color("8fb4d9"),"ford":Color("8fb4d9"),"recon":Color("6fb8a6"),"signal":Color("d9b576"),"muster":Color("a6e3b8"),"ammo":Color("e0bf81")}
+const KIND_COLOR = {"shot_warning":Color("ec7a62"),"counter_warning":Color("ec7a62"),"last_effort":Color("ec7a62"),"choice":Color("e0bf81"),"reinforce":Color("a6e3b8"),"counter":Color("ec7a62"),"warning":Color("ec7a62"),"stumble":Color("ec7a62"),"defeat":Color("ec7a62"),"victory":Color("a6e3b8"),"tide":Color("8fb4d9"),"ford":Color("8fb4d9"),"recon":Color("6fb8a6"),"signal":Color("d9b576"),"muster":Color("a6e3b8"),"ammo":Color("e0bf81")}
 const PITCH_MIN = 0.436
 const PITCH_MAX = 1.396
 var world_script = World
@@ -272,12 +272,12 @@ func _make_theme():
  theme_main.set_color("font_color","Label",PAPER)
  theme_main.set_color("default_color","RichTextLabel",PAPER)
  for state_name in ["normal","hover","pressed","disabled","focus"]:
-  var c=Color("1a3037")
-  if state_name=="hover":c=Color("29454c")
-  if state_name=="pressed":c=Color("406064")
-  if state_name=="disabled":c=Color("19272b")
-  if state_name=="focus":c=Color("27434a")
-  var border=Color("455753")
+  var c=Color("232b1c")
+  if state_name=="hover":c=Color("34402a")
+  if state_name=="pressed":c=Color("4f5f3a")
+  if state_name=="disabled":c=Color("1c2218")
+  if state_name=="focus":c=Color("323d26")
+  var border=Color("5a6044")
   var border_width=1
   if state_name=="hover":border=GOLD
   if state_name=="focus":border=Color("fff0b8");border_width=3
@@ -289,9 +289,9 @@ func _make_theme():
  theme_main.set_color("font_hover_color","Button",Color.WHITE)
  theme_main.set_color("font_disabled_color","Button",Color("8a9896"))
  theme_main.set_color("font_color","OptionButton",PAPER)
- theme_main.set_stylebox("panel","PopupMenu",_style(INK,Color("65756c"),1,5,12))
+ theme_main.set_stylebox("panel","PopupMenu",_style(INK,Color("7a7d5e"),1,5,12))
  theme_main.set_color("font_color","PopupMenu",PAPER)
- theme_main.set_stylebox("background","ProgressBar",_style(Color("31433e"),Color.TRANSPARENT,0,3,0))
+ theme_main.set_stylebox("background","ProgressBar",_style(Color("333b28"),Color.TRANSPARENT,0,3,0))
  theme_main.set_stylebox("fill","ProgressBar",_style(GOLD,Color.TRANSPARENT,0,3,0))
 
 func _style(color:Color,border:Color=Color.TRANSPARENT,width=0,radius=0,padding=0):
@@ -308,7 +308,7 @@ func _new_ui():
  ui=Control.new();ui.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  ui.mouse_filter=Control.MOUSE_FILTER_IGNORE;ui.theme=theme_main;layer.add_child(ui)
 
-func _panel(parent:Control,pos:Vector2,size_v:Vector2,bg=Color(0.055,0.105,0.12,0.94),border=Color("394c49"),pad=18):
+func _panel(parent:Control,pos:Vector2,size_v:Vector2,bg=Color(0.075,0.095,0.062,0.94),border=Color("50543a"),pad=18):
  var panel=PanelContainer.new();panel.position=pos;panel.size=size_v
  panel.add_theme_stylebox_override("panel",_style(bg,border,1,7,pad))
  parent.add_child(panel);return panel
@@ -445,7 +445,7 @@ func _start_game(scenario_name:String):
  if scenario_name=="justine":
   _reset_camera_j()
   # Después del primer intento el panel de objetivo arranca plegado: ya se sabe qué hay que hacer y la vista queda más libre.
-  info_open=int(progress.intentos)<=1
+  info_open=true  # el objetivo y el estado quedan siempre a la vista; el detalle técnico va plegado en «Detalles»
  _rebuild_world();_build_hud();_update_hud()
  if scenario_name=="justine":
   _refresh_minimap();_apply_camera()
@@ -460,7 +460,7 @@ func _build_hud():
  overlay=Control.new();overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  overlay.mouse_filter=Control.MOUSE_FILTER_IGNORE;ui.add_child(overlay);overlay.draw.connect(_draw_overlay)
  # Cabecera de una sola línea: el control de tiempo vive aquí, siempre visible.
- var header=_panel(ui,Vector2(20,10),Vector2(1400,0),Color(0.055,0.105,0.12,0.94),Color("394c49"),8);hud_panels.append(header);_anchor(header,0,0,1,0,20,10,-20,10)
+ var header=_panel(ui,Vector2(20,10),Vector2(1400,0),Color(0.075,0.095,0.062,0.94),Color("50543a"),8);hud_panels.append(header);_anchor(header,0,0,1,0,20,10,-20,10)
  var hv=_hbox(header,10)
  var mark=_vbox(hv,0);mark.custom_minimum_size.x=150
  _label(mark,"JUEGOS DE LA PATRIA",10,GOLD)
@@ -479,7 +479,7 @@ func _build_hud():
  _button(hv,"? · F1",_controls_dialog,36)
  _button(hv,"Menú",_return_menu,36)
  # Columna izquierda: objetivo e información, plegable (tecla I).
- left_panel=_panel(ui,Vector2(20,70),Vector2(272,0),Color(0.055,0.105,0.12,0.92),Color("394c49"),12);hud_panels.append(left_panel)
+ left_panel=_panel(ui,Vector2(20,70),Vector2(272,0),Color(0.075,0.095,0.062,0.92),Color("50543a"),12);hud_panels.append(left_panel)
  var lv=_vbox(left_panel,6)
  var lh=_hbox(lv,4)
  var lt=_label(lh,"OBJETIVO  ·  I",12,GOLD);lt.size_flags_horizontal=Control.SIZE_EXPAND_FILL
@@ -491,7 +491,7 @@ func _build_hud():
  # Columna derecha: situación y parte, apiladas por un contenedor para no pisarse.
  var column=_vbox(ui,6);column.custom_minimum_size.x=252;_anchor(column,1,0,1,0,-272,70,-20,70)
  column.mouse_filter=Control.MOUSE_FILTER_IGNORE
- right_panel=_panel(column,Vector2.ZERO,Vector2(252,0),Color(0.055,0.105,0.12,0.92),Color("394c49"),12);hud_panels.append(right_panel)
+ right_panel=_panel(column,Vector2.ZERO,Vector2(252,0),Color(0.075,0.095,0.062,0.92),Color("50543a"),12);hud_panels.append(right_panel)
  var rv=_vbox(right_panel,6)
  var rh=_hbox(rv,4)
  var rt=_label(rh,"SITUACIÓN",12,GOLD);rt.size_flags_horizontal=Control.SIZE_EXPAND_FILL
@@ -500,7 +500,7 @@ func _build_hud():
  enemy_label=_rich(right_body,"",14)
  jev_label=_label(right_body,"",11,MUTED)
  jev_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
- journal_panel=_panel(column,Vector2.ZERO,Vector2(252,0),Color(0.055,0.105,0.12,0.92),Color("394c49"),10);hud_panels.append(journal_panel)
+ journal_panel=_panel(column,Vector2.ZERO,Vector2(252,0),Color(0.075,0.095,0.062,0.92),Color("50543a"),10);hud_panels.append(journal_panel)
  var jv=_vbox(journal_panel,5)
  var jh=_hbox(jv,4)
  var jt=_label(jh,"PARTE DE SITUACIÓN  ·  P",12,GOLD);jt.size_flags_horizontal=Control.SIZE_EXPAND_FILL
@@ -508,7 +508,7 @@ func _build_hud():
  journal_last=_label(jv,"",12,MUTED);journal_last.clip_text=true;journal_last.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;journal_last.custom_minimum_size.x=226
  log_label=RichTextLabel.new();log_label.bbcode_enabled=true;log_label.custom_minimum_size=Vector2(226,170);log_label.scroll_following=true;log_label.add_theme_font_size_override("normal_font_size",13);jv.add_child(log_label)
  # Panel inferior: agrupaciones, estado con barras y bandeja de órdenes.
- var bottom=_panel(ui,Vector2(100,890),Vector2(1240,0),Color(0.055,0.105,0.12,0.94),Color("394c49"),10);hud_panels.append(bottom)
+ var bottom=_panel(ui,Vector2(100,890),Vector2(1240,0),Color(0.075,0.095,0.062,0.94),Color("50543a"),10);hud_panels.append(bottom)
  bottom.grow_vertical=Control.GROW_DIRECTION_BEGIN;bottom_panel=bottom;_anchor(bottom,0.5,1,0.5,1,-620,-10,620,-10)
  var br=_hbox(bottom,16)
  var groups=_vbox(br,3);groups.custom_minimum_size.x=262
@@ -539,13 +539,13 @@ func _build_hud():
  action_box=_vbox(br,6);action_box.size_flags_horizontal=Control.SIZE_EXPAND_FILL
  _refresh_actions()
  # Ayuda contextual: franja con fondo propio, anclada sobre el panel inferior.
- hint_panel=_panel(ui,Vector2(310,722),Vector2(840,0),Color(0.035,0.075,0.09,0.93),Color("7c7653"),9)
+ hint_panel=_panel(ui,Vector2(310,722),Vector2(840,0),Color(0.058,0.078,0.052,0.93),Color("7c7653"),9)
  hint_panel.grow_vertical=Control.GROW_DIRECTION_BEGIN;_anchor(hint_panel,0.5,1,0.5,1,-410,-178,430,-178)
  tutorial_label=_label(hint_panel,"",14,Color("f4e9c8"))
  tutorial_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;tutorial_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
  toast_label=_label(ui,"",16,PAPER);_anchor(toast_label,0.5,0,0.5,0,-410,70,430,126)
  toast_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;toast_label.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;toast_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
- toast_label.add_theme_stylebox_override("normal",_style(Color(0.04,0.09,0.11,0.94),Color("7c7653"),1,5,13))
+ toast_label.add_theme_stylebox_override("normal",_style(Color(0.062,0.085,0.058,0.94),Color("7c7653"),1,5,13))
  overlay_top=Control.new();overlay_top.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  overlay_top.mouse_filter=Control.MOUSE_FILTER_IGNORE;ui.add_child(overlay_top);overlay_top.draw.connect(_draw_top_overlay)
  _apply_panel_state()
@@ -657,7 +657,7 @@ func _update_hud():
   button.add_theme_color_override("font_color",UNIT_COLORS[id])
   button.add_theme_color_override("font_hover_color",UNIT_COLORS[id])
   if is_selected:
-   var sel_style=_cached_style("sel"+str(id),Color("29454c"),UNIT_COLORS[id],3,5);sel_style.content_margin_left=14;sel_style.content_margin_right=14;sel_style.content_margin_top=2;sel_style.content_margin_bottom=2
+   var sel_style=_cached_style("sel"+str(id),Color("34402a"),UNIT_COLORS[id],3,5);sel_style.content_margin_left=14;sel_style.content_margin_right=14;sel_style.content_margin_top=2;sel_style.content_margin_bottom=2
    button.add_theme_stylebox_override("normal",sel_style)
   else:
    button.remove_theme_stylebox_override("normal")
@@ -711,6 +711,9 @@ func _process(delta):
   for label_3d in world.unit_labels.values():
    if is_instance_valid(label_3d):label_3d.visible=false
  select_flash=maxf(0.0,select_flash-delta)
+ fx_clock+=delta
+ if beat_t>=0.0:beat_t+=delta
+ if _is_j():_feel_tick(delta)
  shake=maxf(0.0,shake-delta*2.4)
  if flash_alpha>0.0:
   flash_alpha=maxf(0.0,flash_alpha-delta*0.9)
@@ -1442,7 +1445,7 @@ func _draw_hover(font):
  if hover_info.is_empty():return
  var mp=hover_mouse
  var ok=bool(hover_info.ok)
- var c=Color("a6e3b8") if ok else Color("f4a58d")
+ var c=Color("a6e3b8") if ok else Color("ec7a62")
  var view=get_viewport().get_visible_rect().size
  if str(hover_info.kind)=="ground":
   var u=rules.get_unit(_selected_ids()[0])
@@ -1472,7 +1475,7 @@ func _draw_top_overlay():
  if _is_j():_draw_top_j();return
  if mode!="play" or hover_info.is_empty() or not is_instance_valid(world):return
  var ok=bool(hover_info.ok)
- var c=Color("a6e3b8") if ok else Color("f4a58d")
+ var c=Color("a6e3b8") if ok else Color("ec7a62")
  _tip_box(_font(),("✓ " if ok else "✕ ")+str(hover_info.text),hover_mouse+Vector2(18,22),c,get_viewport().get_visible_rect().size)
 
 func _tip_box(font,text_value:String,pos:Vector2,accent:Color,view:Vector2):
@@ -1527,21 +1530,21 @@ func _draw_chips(font,placed:Array):
   rect.position.x=clampf(rect.position.x,4.0,view.x-chip.x-4.0);rect.position.y=clampf(rect.position.y,60.0,view.y-chip.y-4.0)
   placed.append(rect)
   if rect.end.y<anchor.y-8.0 or tries>0:overlay.draw_line(Vector2(rect.position.x+chip.x*0.5,rect.end.y),anchor,Color(c.r,c.g,c.b,0.8),1.5,true)
-  overlay.draw_style_box(_cached_style("chip"+str(is_sel)+c.to_html(),Color(0.035,0.075,0.09,0.9),c if is_sel else Color(c.r,c.g,c.b,0.6),3 if is_sel else 1,5),rect)
+  overlay.draw_style_box(_cached_style("chip"+str(is_sel)+c.to_html(),Color(0.058,0.078,0.052,0.9),c if is_sel else Color(c.r,c.g,c.b,0.6),3 if is_sel else 1,5),rect)
   var strength=float(u.strength)
   var bar_color=GREEN if strength>=60 else (GOLD if strength>=35 else RED)
   var title=str(UNIT_GLYPHS[id])+" "+str(rules.state.units.find(u)+1)+" "+_short_name(id)
   if is_sel:
    overlay.draw_string(font,rect.position+Vector2(8,17),title,HORIZONTAL_ALIGNMENT_LEFT,100,13,c)
    overlay.draw_string(font,rect.position+Vector2(chip.x-60,17),"%d %%" % int(strength),HORIZONTAL_ALIGNMENT_RIGHT,52,13,Color("f4efe0"))
-   overlay.draw_rect(Rect2(rect.position+Vector2(8,23),Vector2(chip.x-16,6)),Color("31433e"))
+   overlay.draw_rect(Rect2(rect.position+Vector2(8,23),Vector2(chip.x-16,6)),Color("333b28"))
    overlay.draw_rect(Rect2(rect.position+Vector2(8,23),Vector2((chip.x-16)*clampf(strength/100.0,0,1),6)),bar_color)
    overlay.draw_rect(Rect2(rect.position+Vector2(8,30),Vector2((chip.x-16)*clampf(float(u.fatigue)/100.0,0,1),2)),Color("c9b6a0"))
    var state_text=_stage_badge(str(u.stage))
    overlay.draw_string(font,rect.position+Vector2(8,46),state_text,HORIZONTAL_ALIGNMENT_LEFT,chip.x-14,11,Color("e9e3d4"))
   else:
    overlay.draw_string(font,rect.position+Vector2(7,16),str(UNIT_GLYPHS[id])+" "+str(rules.state.units.find(u)+1)+"  %d %%" % int(strength),HORIZONTAL_ALIGNMENT_LEFT,chip.x-10,12,c)
-   overlay.draw_rect(Rect2(rect.position+Vector2(6,19),Vector2(chip.x-12,3)),Color("31433e"))
+   overlay.draw_rect(Rect2(rect.position+Vector2(6,19),Vector2(chip.x-12,3)),Color("333b28"))
    overlay.draw_rect(Rect2(rect.position+Vector2(6,19),Vector2((chip.x-12)*clampf(strength/100.0,0,1),3)),bar_color)
 
 func _draw_map_labels(font,blocked:Array,placed:Array):
@@ -1649,7 +1652,7 @@ func _reset_camera_j():
  var sp=rules.ship_position();pts.append(sp)
  var r=Rect2(pts[0],Vector2.ZERO)
  for q in pts:r=r.expand(q)
- _fit_rect(r.grow(46.0),false)
+ _fit_rect(r.grow(22.0),false)  # encuadre más cerrado: tropas y buque más grandes (el resto se ve con 0 o el minimapa)
  cam_goal_active=false
 
 # Encuadra un rectángulo del mundo (centro, distancia y inclinación) de modo que sus cuatro esquinas entren
@@ -1823,12 +1826,13 @@ func _build_hud_j():
  left_panel=null;journal_panel=null;journal_last=null;roster_panel=null
  alert_current={};alert_ids_seen={};pause_reason="";order_log=[];eta_cache={}
  tut_cam0=camera_target;tut_dist0=camera_distance
+ beat_t=-1.0;auto_fast_on=false;auto_fast_cool=0.0;auto_fast_told=false;cap_bucket=0;clash_t=0.0;ring_labels=[]
  cam_goal_active=false;select_flash=0.0;hover_info={};confirm_action="";confirm_timer=0.0
  aim="";aim_pts=[];wp_list=[];pending_pt=null;box_active=false;lmb_down=false;rmb_down=false;mmb_down=false;rmb_drag=false
  overlay=Control.new();overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  overlay.mouse_filter=Control.MOUSE_FILTER_IGNORE;ui.add_child(overlay);overlay.draw.connect(_draw_overlay)
  # Cabecera: título, indicador permanente de tiempo real / pausa, reloj, pausa, velocidades y menús
- var header=_panel(ui,Vector2(20,8),Vector2(1400,0),Color(0.055,0.105,0.12,0.94),Color("394c49"),3);hud_panels.append(header);_anchor(header,0,0,1,0,12,6,-12,6)
+ var header=_panel(ui,Vector2(20,8),Vector2(1400,0),Color(0.075,0.095,0.062,0.94),Color("50543a"),3);hud_panels.append(header);_anchor(header,0,0,1,0,12,6,-12,6)
  var hv=_hbox(header,6)
  var heading=_vbox(hv,0);heading.size_flags_horizontal=Control.SIZE_EXPAND_FILL
  heading.custom_minimum_size.x=60;heading.clip_contents=true
@@ -1853,19 +1857,19 @@ func _build_hud_j():
   var hb=_button(hv,str(spec[0]),spec[1],26);hb.add_theme_font_size_override("font_size",13);_compact(hb);hb.tooltip_text=str(spec[2])
  # Nombre del paraje (arriba a la izquierda, sin fondo)
  place_label=_label(ui,"",13,PAPER);place_label.clip_text=true;place_label.mouse_filter=Control.MOUSE_FILTER_IGNORE
- place_label.add_theme_color_override("font_outline_color",Color(0.02,0.04,0.05,0.95));place_label.add_theme_constant_override("outline_size",6)
- _anchor(place_label,0,0,0,0,16,54,340,74)
+ place_label.add_theme_stylebox_override("normal",_style(Color(0.058,0.078,0.052,0.82),Color("50543a"),1,4,5))
+ _anchor(place_label,0,0,0,0,16,54,340,76);place_label.visible=false
  # Pila central: pausa, avisos críticos y tutorial (se apilan sin pisarse)
  top_stack=VBoxContainer.new();top_stack.add_theme_constant_override("separation",4);top_stack.mouse_filter=Control.MOUSE_FILTER_IGNORE;ui.add_child(top_stack)
  _anchor(top_stack,0.5,0,0.5,0,-330,54,330,54)
  pause_banner=_label(top_stack,"",13,Color("f6e2a8"));pause_banner.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;pause_banner.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;pause_banner.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
  pause_banner.add_theme_stylebox_override("normal",_cm_style("banner",Color(0.2,0.15,0.04,0.96),Color("e0bf81"),2,10,5));pause_banner.mouse_filter=Control.MOUSE_FILTER_IGNORE;pause_banner.visible=false
- alert_panel=_panel(top_stack,Vector2.ZERO,Vector2(660,0),Color(0.22,0.07,0.06,0.97),Color("f08c78"),8)
+ alert_panel=_panel(top_stack,Vector2.ZERO,Vector2(660,0),Color(0.22,0.07,0.06,0.97),Color("e0634a"),8)
  var ah=_hbox(alert_panel,10)
  alert_label=_label(ah,"",14,Color("ffe3d8"));alert_label.size_flags_horizontal=Control.SIZE_EXPAND_FILL;alert_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
  alert_btn=_button(ah,"",_alert_click,36);alert_btn.custom_minimum_size.x=150;alert_btn.visible=false
  alert_panel.visible=false
- hint_panel=_panel(top_stack,Vector2.ZERO,Vector2(660,0),Color(0.035,0.075,0.09,0.93),Color("7c7653"),7)
+ hint_panel=_panel(top_stack,Vector2.ZERO,Vector2(660,0),Color(0.058,0.078,0.052,0.93),Color("7c7653"),7)
  var tv=_vbox(hint_panel,4)
  tutorial_label=_label(tv,"",13,Color("f4e9c8"));tutorial_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
  var tb=_hbox(tv,6)
@@ -1874,13 +1878,13 @@ func _build_hud_j():
  var tl=_label(tb,"F1 o ? abre la ayuda completa",11,MUTED);tl.size_flags_vertical=Control.SIZE_SHRINK_CENTER
  hint_panel.visible=false
  # Panel de la derecha: objetivo, captura, río, tiempos, recursos y riesgo del sondeo
- right_panel=_panel(ui,Vector2.ZERO,Vector2(272,0),Color(0.055,0.105,0.12,0.92),Color("394c49"),8);hud_panels.append(right_panel);_anchor(right_panel,1,0,1,0,-284,54,-12,54)
+ right_panel=_panel(ui,Vector2.ZERO,Vector2(272,0),Color(0.075,0.095,0.062,0.92),Color("50543a"),8);hud_panels.append(right_panel);_anchor(right_panel,1,0,1,0,-284,54,-12,54)
  var rv=_vbox(right_panel,3)
  var rh=_hbox(rv,4)
  var rt=_label(rh,"OBJETIVO Y ESTADO  (tecla I)",11,GOLD);rt.size_flags_horizontal=Control.SIZE_EXPAND_FILL
  var rbtn=_button(rh,"▾",_toggle_info,20);rbtn.custom_minimum_size.x=26;_compact(rbtn,4,0);rbtn.tooltip_text="Plegar o desplegar (I)"
  right_body=_vbox(rv,3)
- goal_label=_rich(right_body,"",12)
+ goal_label=_rich(right_body,"",14)
  info_label=_rich(right_body,"",12)
  capture_bar=ProgressBar.new();capture_bar.custom_minimum_size.y=7;capture_bar.show_percentage=false;right_body.add_child(capture_bar)
  moral_label=_rich(right_body,"",1);moral_label.visible=false
@@ -1898,7 +1902,7 @@ func _build_hud_j():
  details_btn.tooltip_text="Muestra u oculta el detalle: munición, avisos a Liniers, estacas, estado del río y riesgo del sondeo."
  _apply_details()
  # Panel lateral de agrupaciones (siempre visible): una ficha por agrupación
- roster_panel=_panel(ui,Vector2.ZERO,Vector2(240,0),Color(0.055,0.105,0.12,0.94),Color("394c49"),6);hud_panels.append(roster_panel)
+ roster_panel=_panel(ui,Vector2.ZERO,Vector2(240,0),Color(0.075,0.095,0.062,0.94),Color("50543a"),6);hud_panels.append(roster_panel)
  var lv=_vbox(roster_panel,3)
  var lt=_label(lv,"AGRUPACIONES  ·  clic o teclas 1-5",11,GOLD);lt.tooltip_text="Cinco agrupaciones: tres grupos (1-3) y dos exploradores (4-5). Clic selecciona; Mayús suma; Ctrl alterna."
  for id in ALL_ACTORS:
@@ -1912,12 +1916,12 @@ func _build_hud_j():
  # Minimapa y su barra de cámara
  map_widget=Control.new();map_widget.mouse_filter=Control.MOUSE_FILTER_STOP;ui.add_child(map_widget)
  map_widget.draw.connect(_draw_map_widget);map_widget.gui_input.connect(_map_gui_input);hud_panels.append(map_widget)
- mm_bar=_panel(ui,Vector2.ZERO,Vector2(300,0),Color(0.055,0.105,0.12,0.94),Color("394c49"),3);hud_panels.append(mm_bar)
+ mm_bar=_panel(ui,Vector2.ZERO,Vector2(300,0),Color(0.075,0.095,0.062,0.94),Color("50543a"),3);hud_panels.append(mm_bar)
  var mb=_hbox(mm_bar,3)
  for spec in [["Selec. F",_center_selection,"F o Inicio. Centra la cámara en lo seleccionado."],["Buque B",_center_ship,"B. Lleva la cámara al Buque Justina."],["Todo 0",_view_all,"0. Encuadra el mapa entero."],["Ampliar M",_toggle_minimap,"M. Minimapa grande o normal. En el minimapa: clic o arrastre mueve la cámara; clic derecho ordena mover."]]:
   var bb=_button(mb,str(spec[0]),spec[1],22);bb.add_theme_font_size_override("font_size",11);_compact(bb,3,1);bb.size_flags_horizontal=Control.SIZE_EXPAND_FILL;bb.tooltip_text=str(spec[2])
  # Panel inferior: selección, ritmo y acciones contextuales
- var bottom=_panel(ui,Vector2.ZERO,Vector2(900,0),Color(0.055,0.105,0.12,0.94),Color("394c49"),7);hud_panels.append(bottom)
+ var bottom=_panel(ui,Vector2.ZERO,Vector2(900,0),Color(0.075,0.095,0.062,0.94),Color("50543a"),7);hud_panels.append(bottom)
  bottom.grow_vertical=Control.GROW_DIRECTION_BEGIN;bottom_panel=bottom
  var right_col=_vbox(bottom,3)
  var info_row=_hbox(right_col,4)
@@ -1929,10 +1933,13 @@ func _build_hud_j():
   pb.tooltip_text="Ritmo de marcha de los grupos seleccionados. El galope solo vale en terreno firme."
   pace_buttons[pid]=pb
  action_box=_vbox(right_col,3)
- toast_label=_label(ui,"",15,PAPER);_anchor(toast_label,0.5,1,0.5,1,-330,-250,330,-184)
+ # Avisos transitorios: arriba, en la pila central (nunca sobre los botones de acción ni sobre las tropas).
+ var toast_row=HBoxContainer.new();toast_row.add_theme_constant_override("separation",6);toast_row.mouse_filter=Control.MOUSE_FILTER_IGNORE;top_stack.add_child(toast_row);top_stack.move_child(toast_row,0)
+ toast_label=_label(toast_row,"",15,PAPER);toast_label.size_flags_horizontal=Control.SIZE_EXPAND_FILL;toast_label.custom_minimum_size.x=520
  toast_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;toast_label.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;toast_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
- toast_label.add_theme_stylebox_override("normal",_style(Color(0.04,0.09,0.11,0.94),Color("7c7653"),1,5,10))
- toast_view=_button(ui,"ver",func():_toast_view_click(),26);_compact(toast_view,8,2);_anchor(toast_view,0.5,1,0.5,1,336,-232,396,-206);toast_view.visible=false
+ toast_label.add_theme_stylebox_override("normal",_style(Color(0.07,0.09,0.06,0.95),Color("8a7f4a"),1,5,8));toast_label.mouse_filter=Control.MOUSE_FILTER_IGNORE
+ toast_view=_button(toast_row,"ver",func():_toast_view_click(),26);_compact(toast_view,8,2);toast_view.size_flags_vertical=Control.SIZE_SHRINK_CENTER;toast_view.visible=false
+ toast_label.visible=false
  overlay_top=Control.new();overlay_top.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  overlay_top.mouse_filter=Control.MOUSE_FILTER_IGNORE;ui.add_child(overlay_top);overlay_top.draw.connect(_draw_top_overlay)
  flash_rect=ColorRect.new();flash_rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);flash_rect.mouse_filter=Control.MOUSE_FILTER_IGNORE;flash_rect.color=Color(1,1,1,0);ui.add_child(flash_rect)
@@ -1951,7 +1958,7 @@ func _layout_j():
  if is_instance_valid(bottom_panel):_anchor(bottom_panel,0,1,0,1,12+sz.x+8,-10,12+sz.x+8+900,-10)
 
 func _set_speed(v:float):
- speed=v;_update_hud()
+ speed=v;auto_fast_on=false;auto_fast_cool=20.0;_update_hud()
  _toast("Velocidad ×%d del tiempo real." % int(v),2.5,true,0)
 
 func _toggle_autopause():
@@ -1974,7 +1981,7 @@ func _update_mode_ui():
   "pause":
    mode_label.add_theme_stylebox_override("normal",_cm_style("mode_pause",Color(0.27,0.19,0.04),Color("e0bf81"),2,8,3));mode_label.add_theme_color_override("font_color",Color("f6e2a8"))
   _:
-   mode_label.add_theme_stylebox_override("normal",_cm_style("mode_end",Color(0.12,0.14,0.15),Color("65756c"),1,8,3));mode_label.add_theme_color_override("font_color",MUTED)
+   mode_label.add_theme_stylebox_override("normal",_cm_style("mode_end",Color(0.12,0.14,0.15),Color("7a7d5e"),1,8,3));mode_label.add_theme_color_override("font_color",MUTED)
  var st=rules.state
  var txt=""
  if str(st.status)=="playing" and paused:
@@ -1984,7 +1991,7 @@ func _update_mode_ui():
  if float(st.elapsed)<0.5 and paused:pause_button.text="▶  Iniciar"
  for sp in speed_buttons:speed_buttons[sp].set_pressed_no_signal(int(speed)==int(sp))
  autopause_button.text=("☑ " if bool(settings.auto_pause) else "☐ ")+"Pausa auto"
- autopause_button.add_theme_stylebox_override("normal",_cm_style("ap_on",Color(0.07,0.2,0.17),Color("6fb8a6"),1,5,3) if bool(settings.auto_pause) else _cm_style("ap_off",Color(0.14,0.15,0.15),Color("65756c"),1,5,3))
+ autopause_button.add_theme_stylebox_override("normal",_cm_style("ap_on",Color(0.07,0.2,0.17),Color("6fb8a6"),1,5,3) if bool(settings.auto_pause) else _cm_style("ap_off",Color(0.14,0.15,0.15),Color("7a7d5e"),1,5,3))
 
 func _compute_alerts()->Array:
  var out=[]
@@ -2019,6 +2026,12 @@ func _compute_alerts()->Array:
    out.append({"id":"rise_soon","level":"warn","short":"el río va a subir pronto.","text":"≈ EL RÍO VA A SUBIR en %d s. Quien esté en el agua tiene que llegar ya o volver a la orilla." % ceili(float(tm.low_hold_end)-t)})
   else:
    out.append({"id":"rise_now","level":"warn","short":"el río está subiendo.","text":"≈ EL RÍO SUBE: los pasos se cierran. Quedan %s. Quien siga en el agua pierde caballos." % _clock(float(tm.deadline)-t)})
+ for gid in GROUP_IDS:
+  var gu=rules.get_unit(gid)
+  if gu.is_empty():continue
+  var gst=float(gu.get("strength",100.0))
+  if gst>0.0 and gst<30.0 and str(gu.get("stage",""))!="routed":
+   out.append({"id":"disp_"+gid,"level":"crit","nopause":false,"short":"%s se dispersa." % _short_name(gid),"text":"¡%s se dispersa (le queda %d %% de fuerza)! Reagrupala (Y) o se pierde." % [_short_name(gid),int(gst)],"btn":"Reagrupar (Y)","fn":"rally","select":gid})
  out.sort_custom(func(a,b):return (0 if str(a.level)=="crit" else 1)<(0 if str(b.level)=="crit" else 1))
  return out
 
@@ -2034,7 +2047,7 @@ func _update_alerts():
  var top=list[0]
  alert_current=top
  alert_label.text=str(top.text)
- alert_panel.add_theme_stylebox_override("panel",_cm_style("alert"+str(top.level),Color(0.22,0.07,0.06,0.97) if str(top.level)=="crit" else Color(0.2,0.14,0.04,0.97),Color("f08c78") if str(top.level)=="crit" else Color("e0bf81"),2,9,6))
+ alert_panel.add_theme_stylebox_override("panel",_cm_style("alert"+str(top.level),Color(0.22,0.07,0.06,0.97) if str(top.level)=="crit" else Color(0.2,0.14,0.04,0.97),Color("e0634a") if str(top.level)=="crit" else Color("e0bf81"),2,9,6))
  alert_btn.visible=top.has("btn")
  if top.has("btn"):
   alert_btn.text=str(top.btn)
@@ -2048,6 +2061,7 @@ func _update_alerts():
 
 func _alert_click():
  var fn=str(alert_current.get("fn",""))
+ if alert_current.has("select"):_select_ids([str(alert_current.select)])
  if fn=="repel":_do_boarding_action("repel")
  elif not fn.is_empty():
   if fn=="signal_liniers" and _sel_groups().is_empty():_select_ids(["guemes"])
@@ -2058,12 +2072,11 @@ func _next_step()->Dictionary:
  if str(st.status)!="playing":return {"action":"","text":"El intento terminó: mirá el parte."}
  if bool(st.counter.active) and not bool(st.counter.answered):return {"action":"repel","text":"¡Contraataque! Apretá «Rechazar» (coma) con un grupo que aborda."}
  var res=rules.resources()
- if rules.probes().is_empty():
+ var ph=_phase()
+ if ph=="boarding":return {"action":"evacuate","text":"Abordando: rechazá los contraataques (coma) y sacá a los heridos (punto)."}
+ if ph=="crossing":return {"action":"","text":"Cruzando: no pares en el agua; si el aro rojo cae sobre vos, movete."}
+ if rules.probes().is_empty() and _scouts_alive()>0:
   return {"action":"probe","text":"Mandá un explorador (tecla 4) a medir el agua: Z y clic en el agua."}
- var boarding=false
- for id in GROUP_IDS:
-  if str(rules.get_unit(id).get("stage","")) in ["boarding","dismounting"]:boarding=true
- if boarding:return {"action":"evacuate","text":"Estás abordando: rechazá los contraataques y evacuá a los heridos (punto)."}
  if not bool(res.advance_authorized):
   if not _ford_soon():
    var o=_ford_opens_at()
@@ -2077,6 +2090,12 @@ func _next_step()->Dictionary:
   if not bool(pl0.get("ok",false)) and _friendly_reason("board",str(pl0.get("reason",""))).begins_with("El camino hasta el buque"):probe_first=true
  if probe_first:return {"action":"probe","text":"Tenés permiso de carga (%s), pero falta medir el agua cerca del buque: explorador, Z y clic en el agua; después «Cargar y abordar» (N)." % _clock(float(res.advance_remaining_s))}
  return {"action":"board","text":"¡Cargá ya! El permiso de Liniers dura %s: «Cargar y abordar» (N) o clic derecho en el buque." % _clock(float(res.advance_remaining_s))}
+
+func _scouts_alive()->int:
+ var n=0
+ for sc in rules.scouts():
+  if str(sc.get("stage",""))!="lost" and int(sc.get("hp",1))>0:n+=1
+ return n
 
 func _friendly_reason(a:String,why:String)->String:
  if a=="board" and why.begins_with("Falta la orden de avance"):
@@ -2230,7 +2249,7 @@ func _draw_card(id:String,b:Button):
   frac=clampf(float(a.strength)/100.0,0.0,1.0)
   col=GREEN if float(a.strength)>=60 else (GOLD if float(a.strength)>=35 else RED)
  var y=b.size.y-6.0
- b.draw_rect(Rect2(10,y,b.size.x-20,3),Color("31433e"))
+ b.draw_rect(Rect2(10,y,b.size.x-20,3),Color("333b28"))
  b.draw_rect(Rect2(10,y,(b.size.x-20)*frac,3),col)
 
 # ---------- Deshacer ----------
@@ -2334,7 +2353,13 @@ func _declutter_world_labels():
   for ch in world.scale_root.find_children("*","Label3D",true,false):labels.append(ch)
  if ring_labels.is_empty():
   for ch in world.find_children("*","Label3D",true,false):
-   if str(ch.text).begins_with("Alcance del fuego"):ring_labels.append(ch)
+   var chx=str(ch.text)
+   if chx.begins_with("Alcance del fuego"):
+    ch.text="Zona de fuego";ring_labels.append(ch)  # la nota de diseño va en la ayuda, no sobre el mapa
+   elif chx.begins_with("Hasta aquí"):
+    ch.visible=false;ch.set_meta("design_hidden",true)
+ for ch2 in world.find_children("*","Label3D",true,false):
+  if bool(ch2.get_meta("design_hidden",false)) or str(ch2.text).begins_with("Hasta aquí"):ch2.visible=false
  for rl in ring_labels:
   if is_instance_valid(rl):labels.append(rl)
  for l in labels:
@@ -2626,7 +2651,7 @@ func _draw_map_widget():
  w.draw_circle(cc,25.0,Color(0.03,0.07,0.09,0.78));w.draw_arc(cc,25.0,0,TAU,28,Color("887750"),1.2)
  var nd=Vector2(sin(camera_yaw),-cos(camera_yaw));var ed=Vector2(cos(camera_yaw),sin(camera_yaw))
  w.draw_line(cc-nd*10,cc+nd*15,Color("e9e3d4"),2.0,true)
- w.draw_colored_polygon(PackedVector2Array([cc+nd*21,cc+nd*12+ed*4.5,cc+nd*12-ed*4.5]),Color("f08c78"))
+ w.draw_colored_polygon(PackedVector2Array([cc+nd*21,cc+nd*12+ed*4.5,cc+nd*12-ed*4.5]),Color("e0634a"))
  w.draw_line(cc,cc+ed*14,Color("8fb4d9"),1.4,true)
  w.draw_string(font,cc+nd*10-Vector2(4,-4),"N",HORIZONTAL_ALIGNMENT_LEFT,-1,10,Color("f4efe0"))
  w.draw_string(font,cc+ed*17-Vector2(3,-4),"E",HORIZONTAL_ALIGNMENT_LEFT,-1,10,Color("8fb4d9"))
@@ -2866,7 +2891,7 @@ PELIGRO: pide confirmación y termina la partida. No es lo mismo que «Retirar»
   elif ok:
    b.add_theme_stylebox_override("normal",_cm_style("act_ok",Color("1f3b42"),Color("6fb8a6"),1,3,2))
   else:
-   b.add_theme_stylebox_override("normal",_cm_style("act_no",Color("172326"),Color("2c3a38"),1,3,2))
+   b.add_theme_stylebox_override("normal",_cm_style("act_no",Color("1e2318"),Color("2c3a38"),1,3,2))
   if not ok:
    nblocked+=1
    if blocked_note.is_empty() or (str(rec.action)==a):
@@ -2925,6 +2950,18 @@ func _do_action(action:String):
    confirm_action="";confirm_timer=0.0
    _board_action()
   "repel","evacuate":_do_boarding_action(action);return
+  "withdraw":
+   if _anyone_boarding() and not (confirm_action=="withdraw" and confirm_timer>0):
+    confirm_action="withdraw";confirm_timer=5.0
+    _toast("Retirar a los grupos que abordan suelta la cubierta. Tocá «Retirar» de nuevo para confirmar.",5,false,2);_sound("alert");return
+   confirm_action="";confirm_timer=0.0
+   var wg=_sel_groups()
+   if wg.is_empty():_toast("Seleccioná un grupo (1, 2, 3).",3,false);_sound("error");return
+   _log_order(wg)
+   var wres=[]
+   for wid in wg:wres.append(rules.issue_order(wid,"withdraw",Vector2.ZERO,{"pace":pace}))
+   _drop_log_if_failed(wres)
+   _report_orders(wres,wg.size())
   _:
    var groups=_sel_groups()
    if groups.is_empty():_toast("Seleccioná un grupo (1, 2, 3).",3,false);_sound("error");return
@@ -3187,6 +3224,7 @@ func _update_place():
    var g=world.ground_xz_from_screen(camera,hover_mouse)
    if g!=null:p=g as Vector2;pre="Bajo el cursor: "
  place_label.text="%s%s" % [pre,_place_name(p)]
+ place_label.visible=pre.begins_with("Bajo")  # el dato del centro cambiaba solo y quedaba como ruido: se muestra al apuntar
 
 func _dist_polyline(p:Vector2,pts:Array)->float:
  var best=1e9
@@ -3232,6 +3270,7 @@ func _j_input(event):
   var shift=event.shift_pressed;var ctrl=event.ctrl_pressed
   if event.keycode==KEY_QUESTION or (k==KEY_SLASH and shift):_briefing_dialog();return
   if ctrl and k==KEY_Z:_undo_order();return
+  if ctrl and k==KEY_A:_select_ids(GROUP_IDS.duplicate(),"set");return  # selección rápida: los tres grupos
   if event.keycode in [KEY_PLUS,KEY_EQUAL,KEY_KP_ADD] and not ctrl:_step_speed(1);return
   if event.keycode in [KEY_MINUS,KEY_KP_SUBTRACT] and not ctrl:_step_speed(-1);return
   match k:
@@ -3350,7 +3389,7 @@ func _update_hud_j():
  state_label.text=_state_text(left)
  var res=rules.resources()
  var ss=rules.ship_state()
- goal_label.text="[b]OBJETIVO[/b] Tomar el buque Justina antes de que suba el río. Si perdés, volvés a probar con lo que anotaste."
+ goal_label.text=_goal_text()
  info_label.text="[b]Captura del buque %d %%[/b] (al 100 ganás)
 Moral de la dotación [b]%d %%[/b]" % [int(st.capture),int(ss.crew_morale)]
  moral_label.text="Moral de la dotación"
@@ -3365,6 +3404,9 @@ Buque: próxima descarga en [b]%d s[/b]" % [int(res.ammo),int(res.ammo_max),int(
  risk_label.text=_probe_risk_text()
  if is_instance_valid(river_ctl):river_ctl.queue_redraw()
  if is_instance_valid(time_ctl):time_ctl.queue_redraw()
+ if is_instance_valid(top_stack):
+  var ts_top=124.0 if (mode=="play" and not rules.state.get("pending_shot",{}).is_empty() and str(st.status)=="playing") else 54.0
+  top_stack.offset_top=ts_top;top_stack.offset_bottom=ts_top
  for id in ALL_ACTORS:
   var b:Button=roster_buttons.get(id)
   if not is_instance_valid(b):continue
@@ -3372,9 +3414,9 @@ Buque: próxima descarga en [b]%d s[/b]" % [int(res.ammo),int(res.ammo_max),int(
   b.custom_minimum_size.y=70.0 if sel_ids.has(id) else 40.0
   b.add_theme_color_override("font_color",UNIT_COLORS[id]);b.add_theme_color_override("font_hover_color",UNIT_COLORS[id])
   if sel_ids.has(id):
-   b.add_theme_stylebox_override("normal",_cm_style("rosel"+id,Color("29454c"),UNIT_COLORS[id],2,8,3))
+   b.add_theme_stylebox_override("normal",_cm_style("rosel"+id,Color("34402a"),UNIT_COLORS[id],2,8,3))
   else:
-   b.add_theme_stylebox_override("normal",_cm_style("cmnormal83",Color("1a3037"),Color("455753"),1,8,3))
+   b.add_theme_stylebox_override("normal",_cm_style("cmnormal83",Color("232b1c"),Color("5a6044"),1,8,3))
   b.queue_redraw()
  left_foot.text="Munición [b]%d/%d[/b] (de reserva %d)" % [int(res.ammo),int(res.ammo_max),int(res.ammo_reserve)]
  if is_instance_valid(deploy_btn):deploy_btn.visible=float(st.elapsed)<0.5 and rules.state.orders.is_empty()
@@ -3389,7 +3431,7 @@ Buque: próxima descarga en [b]%d s[/b]" % [int(res.ammo),int(res.ammo_max),int(
  # Primer paso del tutorial: se atenúa lo que no hace falta (panel de estado y minimapa) para que se vea una sola cosa que hacer.
  var tut_focus=bool(settings.tutorial) and tut_step==0 and str(st.status)=="playing" and float(st.elapsed)<1.0 and not is_instance_valid(modal) and int(progress.intentos)<=1
  for dim_c in [right_panel,map_widget,mm_bar]:
-  if is_instance_valid(dim_c):dim_c.modulate.a=0.4 if tut_focus else 1.0
+  if is_instance_valid(dim_c):dim_c.modulate.a=1.0  # el objetivo se ve a opacidad completa: es lo primero que hay que leer
  var grouped=_grouped_log(1)
  if is_instance_valid(journal_last):
   journal_last.text="• "+(str(grouped[-1].text) if not grouped.is_empty() else "Sin novedades.")
@@ -3399,6 +3441,46 @@ Buque: próxima descarga en [b]%d s[/b]" % [int(res.ammo),int(res.ammo_max),int(
  last_hint_text=tutorial_label.text
  # Un solo mensaje a la vez: el aviso crítico manda; un cartel importante tapa la guía mientras dura.
  if is_instance_valid(hint_panel):hint_panel.visible=str(st.status)=="playing" and not tutorial_label.text.is_empty() and not (is_instance_valid(alert_panel) and alert_panel.visible) and not (toast_timer>0.0 and toast_prio>=2) and rules.state.get("pending_shot",{}).is_empty()
+
+# «Sentir» el tiempo real: espera acelerada solo en tramos tranquilos, y sonidos de captura y combate.
+func _calm_wait()->bool:
+ if qa_mode or benchmark_mode or not bool(settings.get("auto_fast",true)) or mode!="play" or paused or is_instance_valid(modal):return false
+ var st=rules.state
+ if str(st.status)!="playing" or _phase()!="recon" or float(st.elapsed)<4.0:return false
+ if is_instance_valid(alert_panel) and alert_panel.visible:return false
+ if not st.get("pending_shot",{}).is_empty() or bool(st.counter.active) or not st.get("pending_choice",{}).is_empty():return false
+ if _ford_soon():return false
+ var fo=_ford_opens_at()
+ if fo>=0.0 and float(st.elapsed)>fo-40.0:return false
+ if float(rules.ship_state().next_volley_in)<5.0:return false
+ var busy=false
+ for sc in rules.scouts():
+  if str(sc.stage) in ["moving","probing","marking"]:busy=true
+ for id in GROUP_IDS:
+  if str(rules.get_unit(id).get("stage","")) in ["moving","working"]:busy=true
+ return busy
+
+func _feel_tick(delta:float):
+ if mode!="play" or str(rules.state.status)!="playing":
+  auto_fast_on=false
+  return
+ # Espera tranquila: se SUGIERE ×2 (el botón se resalta y un aviso lo dice una vez); nunca cambia la velocidad sola, porque
+ # el buque dispara cada pocos segundos y acelerar sin permiso le quitaría tiempo de reacción al jugador.
+ auto_fast_cool=maxf(0.0,auto_fast_cool-delta)
+ var want=speed==1.0 and auto_fast_cool<=0.0 and _calm_wait()
+ if want!=auto_fast_on:
+  auto_fast_on=want
+  if want and not auto_fast_told:
+   auto_fast_told=true;_toast("Mientras esperan, podés apretar ×2 (F3). Con un aviso, volvé a ×1.",5,true,1)
+ if is_instance_valid(speed_buttons.get(2)):
+  speed_buttons[2].add_theme_stylebox_override("normal",_cm_style("sugg_fast",Color("40391a"),Color("f0d27a"),2,5,3) if auto_fast_on else _cm_style("sugg_off",Color("232b1c"),Color("5a6044"),1,5,3))
+ # Captura: un golpe de campana cada 25 %; mientras se aborda, tiros sueltos
+ var cb=int(float(rules.state.capture)/25.0)
+ if cb>cap_bucket and float(rules.state.capture)<100.0:_sound("capture");_flash(Color(0.95,0.8,0.35),0.08)
+ cap_bucket=cb
+ if _phase()=="boarding" and not paused:
+  clash_t-=delta
+  if clash_t<=0.0:clash_t=0.9+_hash01(fx_clock)*0.8;_sound("clash")
 
 # La primera orden del intento arranca el reloj solo (tras «Empezar»): menos pasos antes de la acción.
 func _auto_start_check():
@@ -3440,6 +3522,8 @@ func _tutorial_j()->String:
  if tut_step>=TUT_STEPS.size():return ""
  # El último paso (abordaje) solo se muestra cuando hay un grupo abordando o un contraataque en curso.
  if tut_step==4 and not _anyone_boarding() and not (bool(rules.state.counter.active) and not bool(rules.state.counter.answered)):return ""
+ if tut_step==0 and _sel_scouts().is_empty():return "1/4 · Sondeá el agua: tocá al explorador 4 (el aro dorado). Espacio inicia el reloj."
+ if tut_step==0:return "1/4 · Sondeá el agua: apretá Z y hacé clic en el agua. Espacio inicia el reloj."
  return str(TUT_STEPS[tut_step])
 
 # Estado de la partida: cuenta regresiva, ventanas de vado y riesgo actual (texto, junto a la barra de tiempo).
@@ -3468,13 +3552,36 @@ func _ford_line(f:Dictionary,t:float)->String:
   return "• %s: [color=%s][b]ABIERTO[/b][/color]%s%s" % [nm,"#f4a58d" if rest<60.0 else "#a6e3b8",hh.call(rest),est]
  return "• %s: [color=#f4a58d]cerrado[/color]" % nm
 
+# Fase de la partida para que el objetivo y la pista sigan lo que pasa (y no se queden pidiendo sondear en pleno abordaje).
+func _phase()->String:
+ if str(rules.state.status)!="playing":return "done"
+ var marching=false
+ for id in GROUP_IDS:
+  var gu=rules.get_unit(id)
+  if gu.is_empty():continue
+  var sg=str(gu.get("stage",""))
+  if sg in ["boarding","dismounting"]:return "boarding"
+  if sg in ["moving","waiting_tide"] and str(gu.get("order",{}).get("action",""))=="board":marching=true
+ if float(rules.state.capture)>0.0:return "boarding"
+ return "crossing" if marching else "recon"
+
+func _goal_text()->String:
+ match _phase():
+  "done":return "[b]Terminó el intento.[/b] "+("¡Tomaste el buque!" if str(rules.state.status)=="victory" else "Mirá el parte: dice qué probar.")
+  "boarding":return "[b]ABORDAJE[/b] Llevá la captura a 100 %. Rechazá los contraataques y reagrupá a quien se dispersa."
+  "crossing":return "[b]CRUCE[/b] Llegá al buque sin quedarte quieto en el agua ni bajo el aro rojo."
+ return "[b]OBJETIVO[/b] Tomar el buque Justina antes de que suba el río. Si perdés, volvés a probar con lo que anotaste."
+
 func _state_text(left:float)->String:
  var st=rules.state
  var t=float(st.elapsed)
  var lines=[]
  var status=str(st.status)
+ var ph=_phase()
  if status!="playing":lines.append("[b]Partida terminada[/b]: "+("victoria" if status=="victory" else "derrota"))
- if ford_cache.is_empty():lines.append("Vado: todavía no medido. Mandá un explorador.")
+ elif ph=="boarding":lines.append("Cubierta: abordando.")
+ elif ph=="crossing":lines.append("Cruce en marcha.")
+ elif ford_cache.is_empty():lines.append("Vado: todavía no medido. Mandá un explorador.")
  else:
   for f in ford_cache:lines.append(_ford_line(f,t))
  var cmod=rules.capture_modifier()
@@ -3508,17 +3615,17 @@ func _draw_river():
  var maxv=1.8
  var level=rules.water_level_m()
  var y0=14.0;var h=9.0
- c.draw_rect(Rect2(4,y0,w,h),Color("31433e"))
+ c.draw_rect(Rect2(4,y0,w,h),Color("333b28"))
  c.draw_rect(Rect2(4,y0,w*clampf(level/maxv,0,1),h),Color("5e7f8c"))
- c.draw_rect(Rect2(4,y0,w,h),Color("65756c"),false,1.0)
+ c.draw_rect(Rect2(4,y0,w,h),Color("7a7d5e"),false,1.0)
  for tick_m in [0.0,0.5,1.0,1.5]:
   var x=4.0+w*tick_m/maxv
   c.draw_line(Vector2(x,y0+h),Vector2(x,y0+h+3),PAPER,1.0)
   c.draw_string(font,Vector2(x-7,y0+h+13),("%.1f" % tick_m).replace(".",","),HORIZONTAL_ALIGNMENT_LEFT,-1,10,MUTED)
  var xh=4.0+w*1.3/maxv;var xf=4.0+w*1.2/maxv
- c.draw_line(Vector2(xh,y0-3),Vector2(xh,y0+h),Color("f08c78"),2.0)
+ c.draw_line(Vector2(xh,y0-3),Vector2(xh,y0+h),Color("e0634a"),2.0)
  c.draw_line(Vector2(xf,y0-3),Vector2(xf,y0+h),Color("e0bf81"),1.5)
- c.draw_string(font,Vector2(xh+3,y0-3),"caballo 1,3",HORIZONTAL_ALIGNMENT_LEFT,-1,10,Color("f08c78"))
+ c.draw_string(font,Vector2(xh+3,y0-3),"caballo 1,3",HORIZONTAL_ALIGNMENT_LEFT,-1,10,Color("e0634a"))
  c.draw_string(font,Vector2(xf-48,y0-3),"a pie 1,2",HORIZONTAL_ALIGNMENT_LEFT,-1,10,Color("e0bf81"))
  c.draw_string(font,Vector2(4,10),"Río %s m" % ("%.2f" % level).replace(".",","),HORIZONTAL_ALIGNMENT_LEFT,-1,11,PAPER)
 
@@ -3533,7 +3640,7 @@ func _draw_timeline():
  var segs=[[0.0,float(marks.drop_start),Color("46606b")],[float(marks.drop_start),float(marks.drop_end),Color("3c7a8c")],[float(marks.drop_end),float(marks.low_hold_end),Color("2f5a52")],[float(marks.low_hold_end),float(marks.rise_end),Color("7a6a46")],[float(marks.rise_end),dl,Color("46606b")]]
  for s in segs:
   c.draw_rect(Rect2(4.0+w*float(s[0])/dl,by,w*(float(s[1])-float(s[0]))/dl,bh),s[2])
- c.draw_rect(Rect2(4,by,w,bh),Color("65756c"),false,1.0)
+ c.draw_rect(Rect2(4,by,w,bh),Color("7a7d5e"),false,1.0)
  # Ventanas de vados: sólidas si se conocen; punteadas con «?» si son una estimación.
  var row=0
  var legend=[]
@@ -3558,7 +3665,7 @@ func _draw_timeline():
  if nr>0.0 and nr<dl:
   var rx=4.0+w*nr/dl
   c.draw_line(Vector2(rx,by-4),Vector2(rx,by+bh+4),Color("f4705c"),2.0)
-  c.draw_string(font,Vector2(minf(rx-30,w-96),by+bh+24),"sin retorno "+_clock(nr),HORIZONTAL_ALIGNMENT_LEFT,-1,10,Color("f4a58d"))
+  c.draw_string(font,Vector2(minf(rx-30,w-96),by+bh+24),"sin retorno "+_clock(nr),HORIZONTAL_ALIGNMENT_LEFT,-1,10,Color("ec7a62"))
  var nx=4.0+w*clampf(float(rules.state.elapsed)/dl,0,1)
  c.draw_line(Vector2(nx,by-3),Vector2(nx,by+bh+3),Color.WHITE,2.0)
  for tm in [0,5,10,15]:
@@ -3643,7 +3750,8 @@ func _draw_marks_j():
     var t=select_flash/0.5
     overlay.draw_arc(pr,17.0+(1.0-t)*26.0,0,TAU,28,Color(1,1,1,t*0.9),3.0)
   else:
-   overlay.draw_arc(pr,10.0,0,TAU,20,Color(c.r,c.g,c.b,0.55),1.5)
+   var shifted=gdisp.has(id) and Vector2(gdisp[id].disp).distance_to(Vector2(gdisp[id].real))>6.0
+   if not shifted:overlay.draw_arc(pr,6.0 if id in SCOUT_IDS else 10.0,0,TAU,20,Color(c.r,c.g,c.b,0.55),1.5)
   if not (id in SCOUT_IDS) and float(a.strength)>0.0 and gdisp.has(id):
    var gp:Vector2=gdisp[id].disp
    if gp.distance_to(gdisp[id].real)>6.0:overlay.draw_line(gdisp[id].real,gp,Color(c.r,c.g,c.b,0.8),2.0,true)
@@ -3668,7 +3776,7 @@ func _group_disp()->Dictionary:
    for o in placed:
     if absf(q.x-o.x)<k*1.1 and absf(q.y-o.y)<k*1.7:hit=true
    if not hit:break
-   q+=Vector2(-k*1.15,0.0);tries+=1
+   q+=Vector2(-k*1.35,k*0.25);tries+=1
   placed.append(q)
   out[id]={"real":pr,"disp":q}
  return out
@@ -3772,7 +3880,7 @@ func _draw_chips_j(font,placed:Array,blocked:Array=[]):
   var id=it.id;var rect:Rect2=it.rect
   var u=_actor(id);var is_scout=id in SCOUT_IDS;var is_sel=_is_selected(id);var c:Color=UNIT_COLORS[id]
   var chip=rect.size
-  overlay.draw_style_box(_cached_style("chipj"+str(is_sel)+c.to_html(),Color(0.035,0.075,0.09,0.9),c if is_sel else Color(c.r,c.g,c.b,0.6),3 if is_sel else 1,5),rect)
+  overlay.draw_style_box(_cached_style("chipj"+str(is_sel)+c.to_html(),Color(0.058,0.078,0.052,0.9),c if is_sel else Color(c.r,c.g,c.b,0.6),3 if is_sel else 1,5),rect)
   if is_scout:
    if is_sel:overlay.draw_string(font,rect.position+Vector2(6,15),"◈ %d  ♥%d  %s" % [_actor_number(id),int(u.hp),str(STAGE_TEXT.get(str(u.stage),["",""])[1])],HORIZONTAL_ALIGNMENT_LEFT,chip.x-8,11,c)
    else:overlay.draw_string(font,rect.position+Vector2(6,15),"◈%d ♥%d" % [_actor_number(id),int(u.hp)],HORIZONTAL_ALIGNMENT_LEFT,chip.x-8,12,c)
@@ -3785,13 +3893,13 @@ func _draw_chips_j(font,placed:Array,blocked:Array=[]):
   if is_sel:
    overlay.draw_string(font,rect.position+Vector2(8,17),title,HORIZONTAL_ALIGNMENT_LEFT,chip.x-70,13,c)
    overlay.draw_string(font,rect.position+Vector2(chip.x-60,17),"%d %%" % int(strength),HORIZONTAL_ALIGNMENT_RIGHT,52,13,Color("f4efe0"))
-   overlay.draw_rect(Rect2(rect.position+Vector2(8,23),Vector2(chip.x-16,6)),Color("31433e"))
+   overlay.draw_rect(Rect2(rect.position+Vector2(8,23),Vector2(chip.x-16,6)),Color("333b28"))
    overlay.draw_rect(Rect2(rect.position+Vector2(8,23),Vector2((chip.x-16)*clampf(strength/100.0,0,1),6)),bar_color)
    overlay.draw_rect(Rect2(rect.position+Vector2(8,30),Vector2((chip.x-16)*clampf(float(u.fatigue)/100.0,0,1),2)),Color("c9b6a0"))
    overlay.draw_string(font,rect.position+Vector2(8,46),_stage_badge(str(u.stage)),HORIZONTAL_ALIGNMENT_LEFT,chip.x-14,11,Color("e9e3d4"))
   else:
    overlay.draw_string(font,rect.position+Vector2(5,14),str(_actor_number(id))+" %d%%" % int(strength),HORIZONTAL_ALIGNMENT_LEFT,chip.x-8,12,c)
-   overlay.draw_rect(Rect2(rect.position+Vector2(5,16),Vector2(chip.x-10,3)),Color("31433e"))
+   overlay.draw_rect(Rect2(rect.position+Vector2(5,16),Vector2(chip.x-10,3)),Color("333b28"))
    overlay.draw_rect(Rect2(rect.position+Vector2(5,16),Vector2((chip.x-10)*clampf(strength/100.0,0,1),3)),bar_color)
 
 # El rótulo del mapa dice el nombre del lugar; las etiquetas de fuente ((diseño), (ubicación hipotética)...) van en la ayuda.
@@ -3823,7 +3931,7 @@ func _draw_landmarks_j(font,blocked:Array,placed:Array):
 
 func _draw_top_j():
  if mode!="play" or not is_instance_valid(world):return
- _draw_pause_frame();_draw_volley_warning();_draw_guides()
+ _draw_pause_frame();_draw_volley_warning();_draw_boarding_fx();_draw_guides()
  if box_active:
   overlay_top.draw_rect(box_rect,Color(1,1,1,0.10))
   overlay_top.draw_rect(box_rect,Color(1,1,1,0.9),false,1.5)
@@ -3858,7 +3966,7 @@ func _handle_events_j(events:Array):
   # Los avisos de campo no dejan seguir a ×2/×4: se vuelve a ×1 para poder reaccionar (C19).
   if event.has("field_event") and speed>1.0:
    speed=1.0
-  if kind in ["shot","info","load","objective"]:continue
+  if kind in ["shot","info","load","objective","shot_warning"]:continue
   var pr=int(KIND_PRIO.get(kind,1))
   if pr>=best_prio:best_prio=pr;best=event
   # Pausa en los hitos que piden una decisión: tropiezo en un pozo y grupo disperso.
@@ -4045,6 +4153,12 @@ var last_medal=""
 var last_first_win=false
 var last_attempt_report:Dictionary={}
 var shake=0.0
+var beat_t=-1.0
+var auto_fast_on=false
+var auto_fast_cool=0.0
+var auto_fast_told=false
+var cap_bucket=0
+var clash_t=0.0
 var flash_alpha=0.0
 var flash_color=Color(1,1,1)
 var flash_rect:ColorRect
@@ -4145,7 +4259,7 @@ func _defeat_story(r:Dictionary)->Dictionary:
  if cid=="plazo" and worst_n>0 and not worst.is_empty():cause="Se acabó el tiempo a los %s. %s te hizo perder el paso %d %s." % [t,worst,worst_n,"vez" if worst_n==1 else "veces"]
  # Consejos candidatos, del más específico al más general; cada intento elige uno distinto para que no se repita el mismo texto.
  var tips=[]
- if worst_n>0 and not worst.is_empty():tips.append("Mandá un explorador a sondear cerca de %s antes de pasar, o rodealo por el otro lado." % worst.to_lower())
+ if worst_n>0 and not worst.is_empty():tips.append("Mandá un explorador a sondear cerca del %s antes de pasar, o rodealo por el otro lado." % worst.to_lower().split(" del banco")[0])
  if int(r.get("counter_hits",0))>0:tips.append("Rechazá los contraataques con la coma, con un grupo que esté abordando: cada uno que dejás pasar te baja la captura.")
  if int(r.get("shots_taken",0))>=4 and cid!="retirada":tips.append("El buque te pegó %d veces: movete cuando aparezca el aro rojo, o usá «Distraer con fuego» antes de cargar." % int(r.get("shots_taken",0)))
  if rules.probes().is_empty():tips.append("No sondeaste el agua: mandá un explorador (tecla 4), Z y clic en el agua. Así sabés por dónde pasar.")
@@ -4154,12 +4268,24 @@ func _defeat_story(r:Dictionary)->Dictionary:
  if tips.is_empty():tips.append(str(last_result.get("advice","Probá otra ruta: el sur es más lento pero más seguro.")))
  return {"cause":cause,"advice":_plain(str(tips[(maxi(int(progress.intentos),1)-1)%tips.size()]))}
 
+# El diario guarda hechos; en el parte se muestran como cosas para hacer.
+func _learn_line(text_in:String)->String:
+ var t=_plain(text_in)
+ if t.begins_with("Pozo del flanco "):return "Sondeá antes de pasar por el flanco "+t.trim_prefix("Pozo del flanco ").strip_edges()+": hay un pozo."
+ if t.begins_with("Pozo del "):
+  var nm=t.trim_prefix("Pozo del ").split(":")[0].strip_edges()
+  return "Sondeá cerca del "+nm.to_lower()+" antes de pasar: hay un pozo."
+ if t.begins_with("Zona de fuego"):return "El costado del buque pega fuerte: no te quedes quieto cerca."
+ if t.begins_with("Vado en "):return "Hay un vado en "+t.trim_prefix("Vado en ").strip_edges()+": podés marcarlo y cruzar por ahí."
+ if t.begins_with("Llegaste tarde"):return "Pedí la carga apenas el vado ceda: el río no espera."
+ return t
+
 func _aprendido_hint()->String:
  if last_result.has("hint"):return str(last_result.hint)
  return campaign.pista(rules)
 
 func _stat_chip(parent:Node,title:String,value:String,col:Color=PAPER):
- var p=_panel(parent,Vector2.ZERO,Vector2(0,0),Color(0.07,0.13,0.15,1),Color("394c49"),8)
+ var p=_panel(parent,Vector2.ZERO,Vector2(0,0),Color(0.07,0.13,0.15,1),Color("50543a"),8)
  p.size_flags_horizontal=Control.SIZE_EXPAND_FILL
  var v=_vbox(p,0)
  _label(v,title,12,MUTED);_label(v,value,22,col,true)
@@ -4174,8 +4300,9 @@ func _learned_block(parent:Node,limit:int=5):
   var t=""
   var shown=0
   for i in range(items.size()):
-   if str(items[i].text).begins_with("Hoy:") or shown>=limit:continue
-   shown+=1;t+="• "+_plain(str(items[i].text))+"\n"
+   var itx=str(items[i].text)
+   if itx.begins_with("Hoy:") or itx.begins_with("Esta vez:") or shown>=limit:continue
+   shown+=1;t+="• "+_learn_line(itx)+"\n"
   if items.size()>limit:t+="• …y %d más en el diario.\n" % (items.size()-limit)
   _rich(box,t.strip_edges(),16)
  var hint=_aprendido_hint() if int(progress.derrotas_seguidas)>=2 else ""
@@ -4235,10 +4362,19 @@ func _defeat_dialog(r:Dictionary):
  retry_btn.tooltip_text="Vuelve a empezar con el mismo fondo del río: los pozos y vados están donde los anotaste."
  _learned_block(box,3)
  # «Mapa distinto» borra el diario: queda como acción chica y aparte, sin competir con Reintentar.
- var fresh_btn=_button(box,"Mapa distinto (borra el diario)",func():_retry(true),28);fresh_btn.add_theme_font_size_override("font_size",12);fresh_btn.alignment=HORIZONTAL_ALIGNMENT_LEFT
- fresh_btn.tooltip_text="Sortea otro fondo del río y borra el diario."
- _more_row(box,[["Abrir el diario",_diary_dialog],["Parte completo",func():_report_dialog(true)],["Ver fuentes",_history_dialog],["Menú",_menu]],r)
+ _more_row(box,[["Abrir el diario",_diary_dialog],["Parte completo",func():_report_dialog(true)],["Mapa distinto…",_confirm_new_river],["Ver fuentes",_history_dialog],["Menú",_menu]],r)
  _juice("defeat");_sound("defeat")
+
+func _confirm_new_river():
+ var box=_open_modal("¿Probar otro mapa?",640,_scroll_h(260.0,40.0))
+ _rich(box,"Cambia el fondo del río (pozos y vados en otros lugares) y [b]borra lo anotado en el diario[/b]. Tus medallas se conservan.",18).custom_minimum_size.x=580
+ var row=_hbox(box,10)
+ var no=_button(row,"Seguir con este mapa",func():_close_modal();_outcome_dialog_again(),50);no.size_flags_horizontal=Control.SIZE_EXPAND_FILL;_primary_style(no)
+ _button(row,"Sí, mapa nuevo",func():_retry(true),50)
+
+func _outcome_dialog_again():
+ if str(rules.state.status)=="victory":_victory_dialog(last_attempt_report)
+ elif str(rules.state.status)!="playing":_defeat_dialog(last_attempt_report)
 
 func _victory_dialog(r:Dictionary):
  var box=_open_modal("¡Buque tomado!",900,_scroll_h(540.0,40.0))
@@ -4248,6 +4384,7 @@ func _victory_dialog(r:Dictionary):
  var sub="Esta vez."
  if not best.is_empty() and best!=med:sub="Esta vez. Tu mejor sigue siendo la de %s." % best
  elif best==med and not last_first_win:sub="Esta vez. Igualaste tu mejor medalla."
+ elif last_first_win:sub="Esta vez. ¡Primera victoria!"
  var sl=_label(box,sub,14,MUTED);sl.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
  var why=""
  var n=0
@@ -4273,16 +4410,17 @@ func _victory_dialog(r:Dictionary):
 # Cierre breve de la captura: la cámara va al buque, banner y destello antes de mostrar el resultado.
 func _victory_beat():
  if qa_mode or benchmark_mode or not beat_enabled or not is_instance_valid(modal):return
- _center_ship()
+ _center_ship();beat_t=0.0
  modal.modulate.a=0.0
  if is_instance_valid(outcome_beat):outcome_beat.queue_free()
  outcome_beat=_label(ui,"¡BUQUE JUSTINA TOMADO!",44,Color("f6dc92"),true)
  outcome_beat.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;outcome_beat.mouse_filter=Control.MOUSE_FILTER_IGNORE
  outcome_beat.add_theme_color_override("font_outline_color",Color(0.05,0.03,0.0,0.95));outcome_beat.add_theme_constant_override("outline_size",10)
- _anchor(outcome_beat,0,0.5,1,0.5,0,-60,0,20)
+ _anchor(outcome_beat,0,0,1,0,0,64,0,130)
  var tw=create_tween()
- tw.tween_interval(2.0)
+ tw.tween_interval(2.4)
  tw.tween_callback(func():
+  beat_t=-1.0
   if is_instance_valid(outcome_beat):outcome_beat.queue_free()
   if is_instance_valid(modal):create_tween().tween_property(modal,"modulate:a",1.0,0.35))
 
@@ -4298,7 +4436,7 @@ func _diary_dialog():
   for e in progress.diario:
    var ico={"pozo":"▲","vado":"≈","fuego":"✸","tiempo":"◔"}.get(str(e.kind),"•")
    var col={"pozo":"#f4a58d","vado":"#8fb4d9","fuego":"#e0bf81","tiempo":"#e0bf81"}.get(str(e.kind),"#e9e3d4")
-   _rich(cont,"[color=%s]%s[/color]  %s" % [col,ico,_plain(str(e.text))],17).custom_minimum_size.x=780
+   _rich(cont,"[color=%s]%s[/color]  %s" % [col,ico,_learn_line(str(e.text)) if str(e.kind)!="mision" else _plain(str(e.text))],17).custom_minimum_size.x=780
  var stats="Intentos %d · derrotas seguidas %d · mejor medalla: %s" % [int(progress.intentos),int(progress.derrotas_seguidas),str(progress.mejor_medalla) if not str(progress.mejor_medalla).is_empty() else "ninguna"]
  _label(box,stats,13,MUTED)
  var row=_hbox(box,8)
@@ -4317,9 +4455,12 @@ func _intro_card():
  _rich(box,"[font_size=18]Perder no es grave: volvés a jugar con [b]el mismo río[/b] y con lo que anotaste en el diario.[/font_size]",18).custom_minimum_size.x=700
  var n=int(progress.intentos)
  if n>1:
-  var line="Intento %d · anotaste %d %s" % [n,progress.diario.size(),"cosa" if progress.diario.size()==1 else "cosas"]
+  var line="Intento %d · anotaste %d %s." % [n,progress.diario.size(),"cosa" if progress.diario.size()==1 else "cosas"]
   var hint=_aprendido_hint() if int(progress.derrotas_seguidas)>=2 else ""
-  if not hint.is_empty():line+="\n[color=#f0d27a]Pista:[/color] "+_plain(hint)
+  if not hint.is_empty():
+   hint=_plain(hint).replace("\n"," ")
+   if hint.length()>150:hint=hint.substr(0,147)+"…"
+   line+=" [color=#f0d27a]Pista:[/color] "+hint
   _rich(box,"[color=#aab7b5]"+line+"[/color]",15).custom_minimum_size.x=700
  var offered=campaign.offered_assists(rules)
  if not offered.is_empty():_label(box,"AYUDAS OPCIONALES (sin ellas se puede ganar oro)",12,GOLD)
@@ -4328,8 +4469,8 @@ func _intro_card():
   var label_text="%s: %s" % [str(o.label),str(o.text)]
   var cb=Button.new();cb.toggle_mode=true;cb.text="☐  "+label_text;cb.alignment=HORIZONTAL_ALIGNMENT_LEFT;cb.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
   cb.add_theme_font_size_override("font_size",14);cb.custom_minimum_size=Vector2(700,44);cb.focus_mode=Control.FOCUS_NONE
-  cb.add_theme_stylebox_override("normal",_cm_style("assist_off",Color("172326"),Color("65756c"),1,10,5))
-  cb.add_theme_stylebox_override("hover",_cm_style("assist_off_h",Color("1f3036"),Color("aab7b5"),1,10,5))
+  cb.add_theme_stylebox_override("normal",_cm_style("assist_off",Color("1e2318"),Color("7a7d5e"),1,10,5))
+  cb.add_theme_stylebox_override("hover",_cm_style("assist_off_h",Color("2a3322"),Color("aab7b5"),1,10,5))
   cb.add_theme_stylebox_override("pressed",_cm_style("assist_on",Color("40391a"),Color("f0d27a"),3,10,5))
   cb.add_theme_stylebox_override("hover_pressed",_cm_style("assist_on",Color("40391a"),Color("f0d27a"),3,10,5))
   cb.tooltip_text="Ayuda opcional: queda anotada en el parte y con ella no hay medalla de oro."
@@ -4432,13 +4573,15 @@ func _draw_volley_warning():
  var pc=_project(Vector3(ax,_ground_y(ax,az)+3.0,az))
  var font=_font()
  var txt=("¡ANDANADA FUERTE %d!" if strong else "¡DESCARGA %d!") % ceili(left)
+ var tgt_id=str(ps.get("tid",""))
+ if tgt_id in ALL_ACTORS:txt+=" sobre "+_short_name(tgt_id).replace(" (trad.)","")
  var sz=font.get_string_size(txt,HORIZONTAL_ALIGNMENT_LEFT,-1,22)
  var view=get_viewport().get_visible_rect().size
  # El cartel va fijo arriba al centro (no tapa a las tropas); una flecha corta lo une con el círculo.
  var rc=Rect2(Vector2(view.x*0.5-(sz.x+32.0)*0.5,58.0),Vector2(sz.x+32.0,sz.y+34.0))
  overlay_top.draw_rect(rc,Color(0.3,0.05,0.04,0.95));overlay_top.draw_rect(rc,Color(base.r,base.g,base.b,1.0),false,3.0)
  overlay_top.draw_string(font,rc.position+Vector2(16,sz.y),txt,HORIZONTAL_ALIGNMENT_LEFT,-1,22,Color("ffe3d8"))
- overlay_top.draw_string(font,rc.position+Vector2(16,sz.y+22),"Sacá al grupo del círculo" if left>0.6 else "",HORIZONTAL_ALIGNMENT_LEFT,-1,13,Color("ffd9cf"))
+ overlay_top.draw_string(font,rc.position+Vector2(16,sz.y+22),"Movete fuera del círculo rojo (o «Distraer con fuego»)" if left>0.6 else "",HORIZONTAL_ALIGNMENT_LEFT,-1,13,Color("ffd9cf"))
  if pc!=null:
   var pr=Rect2(Vector2(8,60),view-Vector2(16,70))
   if pr.has_point(pc):
@@ -4492,8 +4635,24 @@ func _edge_pointer(world_pos:Vector3,text_value:String):
  var rc=Rect2(pos-dir*34.0-sz*0.5-Vector2(8,4),sz+Vector2(16,8))
  rc.position.x=clampf(rc.position.x,6.0,view.x-rc.size.x-6.0)
  rc.position.y=clampf(rc.position.y,64.0,view.y-rc.size.y-6.0)
+ rc=_push_out(rc,_blocked_rects()+last_overlay_rects,view)
  overlay_top.draw_rect(rc,Color(0.05,0.04,0.0,0.9));overlay_top.draw_rect(rc,col,false,2.0)
  overlay_top.draw_string(font,rc.position+Vector2(8,sz.y-1),text_value,HORIZONTAL_ALIGNMENT_LEFT,-1,14,Color("fff0c4"))
+
+# Mueve un rótulo hasta el hueco libre más cercano (fuera de paneles y tarjetas); si no hay hueco, queda como estaba.
+func _push_out(rc:Rect2,blocked:Array,view:Vector2)->Rect2:
+ var best=rc;var best_d=INF;var found=not _overlaps_any(rc,blocked)
+ if found:return rc
+ for b in blocked:
+  var br:Rect2=b
+  if not br.intersects(rc):continue
+  for cand in [Vector2(br.position.x-rc.size.x-2.0,rc.position.y),Vector2(br.end.x+2.0,rc.position.y),Vector2(rc.position.x,br.position.y-rc.size.y-2.0),Vector2(rc.position.x,br.end.y+2.0)]:
+   var r2=Rect2(cand,rc.size)
+   if r2.position.x<4.0 or r2.position.y<60.0 or r2.end.x>view.x-4.0 or r2.end.y>view.y-4.0:continue
+   if _overlaps_any(r2,blocked):continue
+   var d=cand.distance_to(rc.position)
+   if d<best_d:best_d=d;best=r2
+ return best
 
 func _draw_guides():
  if mode!="play" or str(rules.state.status)!="playing" or not is_instance_valid(world) or is_instance_valid(modal):return
@@ -4515,6 +4674,76 @@ func _draw_guides():
    overlay_top.draw_arc(pg,26.0+pl*7.0,0,TAU,40,Color(0.96,0.82,0.42,0.95),4.0)
    overlay_top.draw_arc(pg,40.0+pl*9.0,0,TAU,40,Color(0.96,0.82,0.42,0.4),2.0)
  elif tut_step==3 and pship!=null and not (is_instance_valid(alert_panel) and alert_panel.visible):_guide_arrow(pship+Vector2(0,-30),"Cargá contra el buque")
+
+# Abordaje visible: humo, fogonazos, tropas que suben por el costado y una bandera que sube con la captura.
+var fx_clock=0.0
+func _hash01(n:float)->float:
+ return fposmod(sin(n*12.9898)*43758.5453,1.0)
+
+func _draw_boarding_fx():
+ if not is_instance_valid(world):return
+ var ph=_phase()
+ var victory=str(rules.state.status)=="victory" and beat_t>=0.0 and beat_t<3.0
+ if ph!="boarding" and not victory:return
+ var sp=rules.ship_position()
+ var deck=_project(Vector3(sp.x,_ground_y(sp.x,sp.y)+5.0,sp.y))
+ if deck==null:return
+ var view=get_viewport().get_visible_rect().size
+ if not Rect2(Vector2(-200,-200),view+Vector2(400,400)).has_point(deck):return
+ var t=fx_clock
+ var k=_sil_k()
+ # Humo que sube de la cubierta
+ for i in range(9):
+  var ph_i=fposmod(t*0.35+float(i)/9.0,1.0)
+  var off=Vector2((_hash01(float(i)+1.0)-0.5)*k*2.6,-ph_i*k*1.8)
+  var rad=k*(0.3+ph_i*0.7)
+  overlay_top.draw_circle(deck+off,rad,Color(0.78,0.76,0.7,0.55*(1.0-ph_i)))
+ # Fogonazos: unos cuantos por segundo, en puntos que cambian
+ var slot=floor(t*6.0)
+ for j in range(3):
+  var hx=_hash01(slot*3.0+float(j))
+  var hy=_hash01(slot*5.0+float(j)*2.0)
+  var fp=deck+Vector2((hx-0.5)*k*2.8,(hy-0.2)*k*0.8)
+  var fl=1.0-fposmod(t*6.0,1.0)
+  overlay_top.draw_circle(fp,k*0.16*(0.6+fl),Color(1.0,0.86,0.45,0.85*fl))
+  overlay_top.draw_circle(fp,k*0.07,Color(1,1,0.9,0.9*fl))
+ # Tropas que suben: puntos que van de cada grupo abordando al buque
+ for id in GROUP_IDS:
+  var gu=rules.get_unit(id)
+  if gu.is_empty() or float(gu.strength)<=0.0 or not (str(gu.stage) in ["boarding","dismounting"]) or not world.unit_nodes.has(id):continue
+  var gp=_project(world.unit_nodes[id].root.global_position+Vector3(0,1.5,0))
+  if gp==null:continue
+  var col:Color=UNIT_COLORS[id]
+  overlay_top.draw_dashed_line(gp,deck+Vector2(0,k*0.2),Color(col.r,col.g,col.b,0.7),2.0,7.0)
+  for n in range(3):
+   var f=fposmod(t*0.55+float(n)/3.0,1.0)
+   overlay_top.draw_circle(gp.lerp(deck+Vector2(0,k*0.2),f),3.5,Color(col.r,col.g,col.b,0.95))
+ # Bandera que sube con la captura
+ var cap=clampf(float(rules.state.capture)/100.0,0.0,1.0)
+ if victory:cap=1.0
+ var base=deck+Vector2(k*1.2,k*0.1)
+ var top_pt=base+Vector2(0,-k*2.0)
+ overlay_top.draw_line(base,top_pt,Color(0.04,0.03,0.0,0.9),5.0)
+ overlay_top.draw_line(base,top_pt,Color("d8d2c0"),3.0)
+ var fy=lerpf(base.y-6.0,top_pt.y,cap)
+ var wave=sin(t*6.0)*3.0
+ var flag=PackedVector2Array([Vector2(base.x,fy),Vector2(base.x+k*0.9,fy+wave),Vector2(base.x+k*0.8,fy+k*0.28+wave),Vector2(base.x,fy+k*0.34)])
+ overlay_top.draw_colored_polygon(flag,Color("c8402e") if cap<1.0 else Color("f0d27a"))
+ overlay_top.draw_polyline(PackedVector2Array([flag[0],flag[1],flag[2],flag[3],flag[0]]),Color(0.04,0.03,0.0,0.9),2.0)
+ var f2=_font()
+ var lab="Captura %d %%" % int(cap*100.0)
+ var lsz=f2.get_string_size(lab,HORIZONTAL_ALIGNMENT_LEFT,-1,14)
+ var lrc=Rect2(top_pt+Vector2(-lsz.x*0.5-6.0,-lsz.y-10.0),lsz+Vector2(12,6))
+ overlay_top.draw_rect(lrc,Color(0.05,0.04,0.0,0.88));overlay_top.draw_rect(lrc,Color("f0d27a"),false,1.5)
+ overlay_top.draw_string(f2,lrc.position+Vector2(6,lsz.y-1),lab,HORIZONTAL_ALIGNMENT_LEFT,-1,14,Color("fff0c4"))
+ # Chispas de festejo
+ if victory:
+  for i in range(26):
+   var a=_hash01(float(i)*1.7)*TAU
+   var sp_k=0.5+_hash01(float(i)*3.1)
+   var dist=beat_t*k*2.4*sp_k
+   var q=deck+Vector2(cos(a)*dist,sin(a)*dist*0.7-beat_t*k*0.8)
+   overlay_top.draw_circle(q,3.0,Color(1.0,0.84,0.4,clampf(1.0-beat_t/3.0,0.0,1.0)))
 
 # Marco ámbar mientras el tiempo está detenido: se ve de un vistazo si el reloj corre.
 func _draw_pause_frame():

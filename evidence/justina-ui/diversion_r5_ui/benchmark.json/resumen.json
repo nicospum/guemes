@@ -1,0 +1,17 @@
+[
+  {
+    "scenario": "justina",
+    "quality": "media",
+    "repeat": 2,
+    "mean_fps_mean": 593.1,
+    "mean_fps_min": 542.1,
+    "mean_fps_max": 644.1,
+    "frame_ms_mean_mean": 1.699,
+    "frame_ms_mean_max": 1.845,
+    "frame_ms_median_mean": 1.567,
+    "frame_ms_p95_mean": 2.103,
+    "scene_build_ms_mean": 561,
+    "renderer": "NVIDIA GeForce RTX 3080 Ti",
+    "viewport": "(1440.0, 900.0)"
+  }
+]

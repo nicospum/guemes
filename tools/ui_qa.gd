@@ -19,6 +19,10 @@ var allow_clip := false
 var last_shot_size := Vector2i.ZERO
 
 func _initialize() -> void:
+	if DisplayServer.get_name() == "headless" or OS.get_cmdline_args().has("--headless"):
+		print("UI_QA requiere ventana real (sin --headless): el motor headless no dibuja y la prueba se colgaria. Salida 2.")
+		quit(2)
+		return
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--out="):
 			out_dir = arg.trim_prefix("--out=")
@@ -31,6 +35,9 @@ func _initialize() -> void:
 	# Instalacion nueva: los ajustes guardados por otras pruebas (p. ej. auto_pause=false) no deben contaminar la primera partida.
 	if FileAccess.file_exists("user://settings.cfg"):
 		DirAccess.remove_absolute(ProjectSettings.globalize_path("user://settings.cfg"))
+	for stale in ["campaign.json", "justina_progress.json"]:
+		if FileAccess.file_exists("user://" + stale):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path("user://" + stale))
 	call_deferred("_run")
 
 func _frames(n: int) -> void:
@@ -614,6 +621,7 @@ func _run() -> void:
 	check(game.roster_buttons.size() == 5 and game.roster_panel.is_visible_in_tree(), "Justina: el panel lateral muestra las cinco agrupaciones")
 	check(game.hint_panel.visible and game.tutorial_label.text.begins_with("1/4"), "Justina: el tutorial arranca en el paso 1/4")
 	check(game.moral_label.text.find("Moral") >= 0 and game.info_label.text.find("Captura del buque 0") >= 0, "Justina: captura y moral van rotuladas por separado")
+	await _r5_checks()
 	check(game.roster_buttons["guemes"].text.find("Güemes") >= 0 and game.roster_buttons["guemes"].text.find("◆") >= 0, "Justina: la ficha de Güemes lleva su nombre y la marca de tradicion")
 	game.hover_info = {"kind": "route", "ok": false, "text": "x", "risk": "alto", "point": Vector3.ZERO}
 	game._close_modal()
@@ -933,3 +941,65 @@ func _run() -> void:
 	f.close()
 	print("UI_QA ", JSON.stringify(out))
 	await game._finish_automation(0 if failures.is_empty() else 1)
+
+func _r5_checks() -> void:
+	# Ronda 5: claridad, un solo aviso transitorio, fases del objetivo, sensacion de juego. Capturas en diversion_r5_ui.
+	var view := root.get_visible_rect().size
+	check(game.right_panel.modulate.a >= 0.99, "R5: el panel de objetivo no se atenua en el primer paso (se lee completo)")
+	check(not game.place_label.visible, "R5: el rotulo 'Centro de la vista' no flota sin que el cursor este sobre el mapa")
+	check(game.speed == 1.0, "R5: la velocidad no cambia sola (la espera acelerada solo se sugiere)")
+	var leaks := 0
+	for l in game.world.find_children("*", "Label3D", true, false):
+		var tx := str(l.text)
+		if l.is_visible_in_tree() and (tx.begins_with("Hasta aqu") or tx.find("(dise") >= 0 or tx.find("no simulado") >= 0):
+			leaks += 1
+	check(leaks == 0, "R5: ningun rotulo de diseno ('Gillespie, no simulado', '(diseno)') sobre el mapa (%d visibles)" % leaks)
+	# El aviso transitorio va arriba, en la pila central, y nunca pisa el panel de acciones ni el minimapa
+	game._toast("Aviso de prueba de dos lineas, largo a proposito, para medir que no pisa los botones del panel inferior ni el minimapa del mapa.", 6.0, true, 2)
+	await _frames(4)
+	var tr: Rect2 = game.toast_label.get_global_rect()
+	check(game.toast_label.visible and tr.size.y > 0.0, "R5: el aviso transitorio se ve")
+	check(not tr.intersects(game.bottom_panel.get_global_rect()) and not tr.intersects(game.map_widget.get_global_rect()) and tr.end.y < view.y * 0.45, "R5: el aviso no pisa botones ni minimapa (arriba, alto %d px)" % int(tr.size.y))
+	check(not tr.intersects(game.right_panel.get_global_rect()) and not tr.intersects(game.roster_panel.get_global_rect()), "R5: el aviso no pisa los paneles laterales")
+	await _shot("justina-aviso-arriba")
+	game.toast_timer = 0.0
+	# Fase: la pista y el objetivo siguen lo que pasa (no piden sondear en pleno abordaje)
+	var gu: Dictionary = game.rules.get_unit("guemes")
+	var st0 = gu.stage
+	var cap0 = game.rules.state.capture
+	gu.stage = "boarding"
+	game.rules.state.capture = 42.0
+	check(game._phase() == "boarding", "R5: con un grupo abordando la fase es abordaje")
+	check(game._next_step().text.find("explorador") < 0 and game._next_step().text.find("Abordando") >= 0, "R5: la pista AHORA no pide sondear durante el abordaje: " + str(game._next_step().text))
+	check(game._goal_text().find("ABORDAJE") >= 0 and game._state_text(100.0).find("hay que sondear") < 0, "R5: el objetivo y el estado no hablan del vado durante el abordaje")
+	game._update_hud()
+	await _frames(20)
+	await _shot("justina-abordaje-fx")
+	# Retirar en pleno abordaje pide confirmar
+	game._select_ids(["guemes"])
+	game._do_action("withdraw")
+	check(game.confirm_action == "withdraw" and str(game.rules.get_unit("guemes").stage) == "boarding", "R5: «Retirar» en pleno abordaje pide una segunda confirmacion y no suelta la cubierta")
+	game.confirm_action = ""
+	game.confirm_timer = 0.0
+	game.toast_timer = 0.0
+	# Alerta de dispersion con enfasis
+	gu.stage = "moving"
+	gu.strength = 22.0
+	game.rules.state.capture = 0.0
+	var ids: Array = []
+	for a in game._compute_alerts():
+		ids.append(str(a.id))
+	check(ids.has("disp_guemes"), "R5: un grupo bajo 30 %% de fuerza dispara el aviso fuerte de dispersion")
+	gu.strength = 100.0
+	gu.stage = st0
+	game.rules.state.capture = cap0
+	check(game._phase() == "recon", "R5: al terminar la prueba la fase vuelve a reconocimiento")
+	# Rotulos fuera de paneles
+	var blocker := Rect2(0, 0, 200, 100)
+	var moved: Rect2 = game._push_out(Rect2(10, 10, 100, 40), [blocker], Vector2(800, 600))
+	check(not moved.intersects(blocker), "R5: un rotulo que cae sobre un panel se corre al hueco libre")
+	# Lo aprendido en verbos y sin jerga
+	var ln: String = game._learn_line("Pozo del flanco sur")
+	check(ln.begins_with("Sond") and game._learn_line("Zona de fuego del costado").find("pega fuerte") >= 0, "R5: lo aprendido se dice con verbos: " + ln)
+	game._update_hud()
+	await _frames(6)
