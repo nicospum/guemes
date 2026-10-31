@@ -1,0 +1,4 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+Vulkan 1.4.341 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce RTX 3080 Ti
+
+{"engine":"4.7.2-stable (official)","engine_static_memory_bytes":119105287,"frame_ms_median":2.523,"frame_ms_p95":3.655,"frames":180,"mean_fps":363.979754637203,"measurement_seconds":0.494533,"os":"Windows","pid":58688,"quality":"media","render_3d_scale":1.0,"renderer":"NVIDIA GeForce RTX 3080 Ti","scenario":"justine","scene_build_ms":708,"scope":"isolated automated local rendering; not the user PC","viewport":"(1440.0, 900.0)"}

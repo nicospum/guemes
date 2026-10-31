@@ -1,0 +1,32 @@
+[
+  {
+    "scenario": "justine",
+    "quality": "media",
+    "repeat": 2,
+    "mean_fps_mean": 385.5,
+    "mean_fps_min": 364.0,
+    "mean_fps_max": 407.0,
+    "frame_ms_mean_mean": 2.602,
+    "frame_ms_mean_max": 2.747,
+    "frame_ms_median_mean": 2.438,
+    "frame_ms_p95_mean": 3.096,
+    "scene_build_ms_mean": 697,
+    "renderer": "NVIDIA GeForce RTX 3080 Ti",
+    "viewport": "(1440.0, 900.0)"
+  },
+  {
+    "scenario": "norte",
+    "quality": "media",
+    "repeat": 2,
+    "mean_fps_mean": 1046.0,
+    "mean_fps_min": 1037.1,
+    "mean_fps_max": 1054.9,
+    "frame_ms_mean_mean": 0.956,
+    "frame_ms_mean_max": 0.964,
+    "frame_ms_median_mean": 0.942,
+    "frame_ms_p95_mean": 1.028,
+    "scene_build_ms_mean": 276,
+    "renderer": "NVIDIA GeForce RTX 3080 Ti",
+    "viewport": "(1440.0, 900.0)"
+  }
+]

@@ -3477,6 +3477,12 @@ func _state_text(left:float)->String:
  if ford_cache.is_empty():lines.append("Vado: todavía no medido. Mandá un explorador.")
  else:
   for f in ford_cache:lines.append(_ford_line(f,t))
+ var cmod=rules.capture_modifier()
+ if float(cmod.mult)<0.99:lines.append("[color=#f4a58d]Captura frenada[/color] (%d s)" % ceili(float(cmod.seconds_left)))
+ elif float(cmod.mult)>1.01:lines.append("[color=#a6e3b8]Captura acelerada[/color] (%d s)" % ceili(float(cmod.seconds_left)))
+ if int(st.stats.counter_hits)>0 and status=="playing":
+  var mu=int(_jmap().ship.capture.counter.get("max_unanswered",3))
+  lines.append("[color=#f4a58d]Contraataques sin contestar: %d de %d[/color]" % [int(st.stats.counter_hits),mu])
  var rk=_risk_now()
  var col={"bajo":"#a6e3b8","medio":"#e0bf81","alto":"#f4a58d"}[str(rk.level)]
  lines.append("Peligro de fuego: [b][color=%s]%s[/color][/b]" % [col,str(rk.level).to_upper()])
@@ -3877,7 +3883,8 @@ func _handle_events_j(events:Array):
 func _choice_dialog():
  var pc=rules.state.get("pending_choice",{})
  if pc.is_empty() or is_instance_valid(modal) or str(rules.state.status)!="playing":return
- var box=_open_modal("Un mensajero",760,_scroll_h(330.0,40.0))
+ var ttl=str(pc.get("title","")).strip_edges()
+ var box=_open_modal(ttl if not ttl.is_empty() else "Un mensajero",760,_scroll_h(330.0,40.0))
  var tx=choice_text
  var cut=tx.find(" (Se toma")
  if cut>0:tx=tx.substr(0,cut)
