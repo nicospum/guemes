@@ -285,3 +285,14 @@ Directriz: el juego manda sobre la fidelidad; el aspecto debe leerse y dar gusto
 - `tools/vis_shots.gd`: vistas 01b-01d sin interfaz (encuadre inicial, tropas, media distancia).
 - Medicion: benchmark Justina media 2,65 ms (max 2,81), baja 1,97 ms (< 3 ms). test_rules 679/0, test_integration 271/0. Capturas `antes_*`, `r1..r3_*`, `final_*` en `evidence/justina-ui/diversion_r4/`.
 - Pendiente (no es de esta pista): rotulo 2D del buque y fichas-cartel de `main.gd` siguen tapando el casco/tropa; casco del GLB sin oscurecer ni nuevo aparejo (sin Blender usado); Compatibility no verificado.
+
+## Justina ronda 5 (diversion): rio legible a toda marea, buque, abordaje visible
+Pista visual; no se tocaron `main.gd`, `game_rules.gd` ni el JSON.
+- **Rio.** `water_rio_plata.gdshader`: la banda somera ya no es ocre (se confundia con la arena al bajar): ahora verde-oliva limoso cerca de la orilla y verde botella en el canal, agua en conjunto ~40 % mas oscura que la arena seca, menos lavado de cielo. Con la bajante el agua sigue leyendose como agua; el barro/arena solo aparece donde el suelo emerge (lo hace el shader de terreno).
+- **Buque.** Se quito el metalico quemado del GLB (madera, lona y casco pasan a mate, rugosidad 0,88; canones y ancla siguen metalicos): `_strip_ladder`. Casco mas hundido con la bajante (+0,55 m x escala). Espuma de contacto alrededor del casco tambien en el minimo, y la huella del agua sigue la escala del buque (`ship_half` x `ship_far_k`).
+- **Abordaje.** Mientras un grupo esta en `boarding` a menos de 70 m, sus figuras suben a la cubierta (transicion ~2,5 s, arco de salto; `board_k`, `DECK_Y`); humo y fogonazos aleatorios sobre cubierta; "señal de captura" (paño ocre con franja bermellon, color de diseño, no es bandera historica) que sube por el asta con el % de captura y reemplaza al pabellon britanico al llegar al 100 %. Las fichas y aros quedan en la arena para seguir seleccionando.
+- **Fichas.** Las fichas de grupos a menos de 26 m se abren en abanico en pantalla (86 px entre si), sin tocar posiciones de reglas.
+- **Rotulos de diseño.** Se saco "Hasta aqui batia el buque (Gillespie, no simulado)"; "Alcance del fuego del buque (diseño)" pasa a "Zona de fuego"; el otro a "¿Donde varo? (±120 m)".
+- **Medicion.** benchmark justine/media/forward_plus x2: cuadro medio 2,63 ms (max 2,70), p95 3,46 ms.
+- **Evidencia.** `evidence/justina-ui/diversion_r5/` (`antes_*` vs `r8_*`), `tools/vis_r5.sh`.
+- **Pendiente (no tocado por ser de main.gd o por tiempo):** banner de victoria y toasts, pista AHORA/panel de objetivo, paleta del HUD, barranca/fuerte/casas, estandartes por grupo, Compatibility sin verificar, EXE no regenerado.

@@ -104,12 +104,12 @@ void fragment(){
 	float hull_d = length(loc / (ship_half + vec2(13.0, 21.0)));       // ~1 en el borde del bajo (casco + ~13 m / 21 m)
 	float shoal = (1.0 - smoothstep(0.55, 1.0, hull_d)) * 0.8;
 	// con el rio bajo el casco apoya en un bajo: el agua alrededor se aclara a arena (sin estela); con el rio alto, solo un leve aclarado.
-	body = mix(body, mix(vec3(0.56, 0.58, 0.46), vec3(0.66, 0.60, 0.44), 1.0 - lvl_k), shoal * mix(0.95, 0.5, lvl_k));
+	body = mix(body, mix(vec3(0.56, 0.58, 0.46), vec3(0.66, 0.60, 0.44), 1.0 - lvl_k), shoal * mix(0.60, 0.25, lvl_k));
 	// Bruma de horizonte: a lo lejos el agua se funde al crema del cielo de Vidal (sin linea de corte).
 	float haze = smoothstep(2200.0, 4600.0, dist);
 	// Halo de contacto: el suelo real se insinua a menos de visible_depth_m de la superficie.
 	float halo = 1.0 - smoothstep(0.0, visible_depth_m, depth);
-	body = mix(body, near_color * vec3(1.02, 1.0, 0.92), halo * 0.4);
+	body = mix(body, near_color * vec3(0.6, 0.65, 0.6), halo * 0.25);
 
 	// Orilla: arena mojada translucida -> linea de agua nitida con espuma fina ruidosa -> segunda franja de lavado mas tenue.
 	float foam = 0.0;
@@ -123,11 +123,11 @@ void fragment(){
 	}
 	// Espuma y estela en el casco del buque.
 	float hull_edge = length(loc / ship_half);
-	float rim = smoothstep(0.80, 1.0, hull_edge) * (1.0 - smoothstep(1.12, 1.7, hull_edge)) * lvl_k;
+	float rim = smoothstep(0.80, 1.0, hull_edge) * (1.0 - smoothstep(1.12, 1.9, hull_edge)) * (0.65 + 0.35 * lvl_k);
 	float rim_n = 0.55 + 0.45 * j_noise(p * 1.1 + vec2(t * 0.3, 0.0));
 	foam = max(foam, rim * rim_n * 0.95);
 	foam = max(foam, wc_m * (1.0 - shallow * 0.8));
-	body *= 1.0 - 0.35 * lvl_k * smoothstep(0.55, 0.95, hull_edge) * (1.0 - smoothstep(0.95, 1.1, hull_edge));
+	body *= 1.0 - 0.45 * (0.6 + 0.4 * lvl_k) * smoothstep(0.55, 0.95, hull_edge) * (1.0 - smoothstep(0.95, 1.1, hull_edge));
 	// Zona de incertidumbre (120 m, Informe sec. D): anillo punteado muy tenue, no relleno.
 	float ur = length(sd);
 	float ring = (1.0 - smoothstep(0.0, 0.9, abs(ur - unc_radius))) * step(0.5, fract(atan(sd.y, sd.x) * 9.5493 + 0.5));
@@ -136,7 +136,7 @@ void fragment(){
 	// R-div1: tres bandas de profundidad legibles (somera arenosa / media limosa / canal verde oscuro) con borde suave.
 	float band_s = 1.0 - smoothstep(0.25, 0.75, est);
 	float band_d = smoothstep(1.7, 2.6, est);
-	body = mix(body, vec3(0.66, 0.55, 0.34), band_s * 0.40 * (1.0 - halo));
+	body = mix(body, vec3(0.34, 0.42, 0.27), band_s * 0.45 * (1.0 - halo));
 	body = mix(body, vec3(0.25, 0.30, 0.17), band_d * 0.50);
 	// Frentes de ola: lineas claras que viajan hacia la costa (oeste), deformadas por ruido; dan escala y direccion al agua.
 	float wph = dot(p, vec2(0.62, 0.16)) * 0.55 + t * 0.55 + j_noise(p * 0.035) * 6.0;
@@ -146,9 +146,10 @@ void fragment(){
 	body = mix(body, vec3(0.92, 0.88, 0.72), front * 0.22);
 	// R2-visual: gradiente de profundidad marcado (ocre-limo cerca de la costa -> verde botella-pardo al canal), usa solo el perfil BASE publico.
 	float off_k = smoothstep(0.2, 2.6, est);
-	vec3 warm = vec3(0.62, 0.43, 0.20);   // R3-visual: ocre limoso mas luminoso cerca de la orilla
-	vec3 cool = vec3(0.13, 0.20, 0.12);   // oliva turbio al canal (antes verde botella frio)
-	body = mix(body, mix(warm, cool, smoothstep(0.0, 1.0, off_k)), 0.82 * (1.0 - halo));
+	vec3 warm = vec3(0.30, 0.38, 0.24);   // R5: verde-oliva limoso cerca de la orilla (antes ocre = se confundia con la arena al bajar)
+	vec3 cool = vec3(0.08, 0.16, 0.13);   // R5: canal verde botella oscuro
+	body = mix(body, mix(warm, cool, smoothstep(0.0, 1.0, off_k)), 0.90 * (1.0 - halo));
+	body *= 0.62;   // R5: agua mas oscura que la arena seca en todas las mareas (legible como agua)
 	// R3-visual: luminosidad general (antes 0.66 apagaba todo a gris-verde oscuro)
 	body *= 1.06;
 	// Sombreado de facetas de ola con el sol: lados iluminados claros, lados en sombra oscuros (da relieve y corriente a toda la lamina).
@@ -164,7 +165,7 @@ void fragment(){
 
 	// R3-visual: reflejo del cielo calido (crema de Vidal arriba, azul palido al cenit) con base minima que se nota desde altura,
 	// y destellos de sol anchos (no dependen del angulo especular exacto) para que el agua "brille" a escala de mapa.
-	float sky_k = 0.10 + 0.50 * pow(1.0 - ndv, 3.0);
+	float sky_k = 0.14 + 0.50 * pow(1.0 - ndv, 3.0);
 	vec3 sky_c = mix(sky_horizon, sky_zenith, clamp(r.y * 1.3, 0.0, 1.0));
 	body = mix(body, sky_c * 0.8, sky_k * (0.35 + 0.35 * lod) * (1.0 - shallow * 0.5));
 	float sp_n = j_noise(j_rot(p, 0.7) * mix(0.9, 0.35, 1.0 - lod) + vec2(t * 0.5, -t * 0.3));

@@ -732,6 +732,8 @@ const SHIP_KEEL = 1.58
 const RIDER_SCALE = 0.82
 const FOOT_SCALE = 0.9
 const GROUP_BAND = 14.0
+const DECK_Y = 3.9
+const DECK_REACH = 70.0
 const J_STAGE_TEXT = {"working":"trabaja","stumbling":"tropezó","dismounting":"desmonta","boarding":"aborda","routed":"dispersos","blocked":"bloqueado","rally":"reagrupa","lost":"perdido","waiting_tide":""}
 
 var M: Dictionary = {}
@@ -1050,7 +1052,7 @@ func _water_j():
  var sh=M.get("ship",{});var hdg=deg_to_rad(float(sh.get("heading_deg",0.0)))
  water_mat.set_shader_parameter("ship_xz",Vector2(float(sh.get("x",580.0)),float(sh.get("z",262.0))))
  water_mat.set_shader_parameter("ship_fwd",Vector2(sin(hdg),-cos(hdg)))
- water_mat.set_shader_parameter("ship_half",Vector2(6.5,28.0))
+ water_mat.set_shader_parameter("ship_half",Vector2(5.4,21.0)*1.5)
  water_mat.set_shader_parameter("unc_radius",float(sh.get("uncertainty_radius_m",120.0)))
  # Una sola superficie plana a y = nivel, del pie de la barranca al horizonte. UV.x = altura real del suelo (halo de 0,3 m y espuma);
  # UV2.x = fondo base publico por x (solo degrada el color; no revela bancos ni pozo oculto).
@@ -1595,6 +1597,11 @@ func _strip_ladder(root:Node3D)->void:
      v2[vi]=Vector3(q.x,ytop-(ytop-q.y)*0.34,q.z)
     a[Mesh.ARRAY_VERTEX]=v2
    out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,a)
+   # R5: sin brillo metalico quemado en madera, lona y casco (el GLB trae metallic=1 con mapa): se ve de madera mate, no de maqueta cromada.
+   if mat is StandardMaterial3D and not str(mat.resource_name).ends_with("metal") and not str(mat.resource_name).ends_with("anchor"):
+    var m2:StandardMaterial3D=mat.duplicate()
+    m2.metallic=0.0;m2.metallic_texture=null;m2.roughness=0.88;m2.roughness_texture=null;m2.metallic_specular=0.12
+    mat=m2
    out.surface_set_material(out.get_surface_count()-1,mat)
   mi.mesh=out
 
@@ -1750,17 +1757,16 @@ func _exposure_j():
   var cmi=MeshInstance3D.new();cmi.name="CoberturaGillespie";cmi.mesh=cm;cmi.material_override=_overlay_mat();cmi.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
   cmi.custom_aabb=AABB(Vector3(-crng,-1,-crng),Vector3(crng*2,2,crng*2))
   exposure_root.add_child(cmi)
-  var lc=_label_j("Hasta aquí batía el buque (Gillespie, no simulado)",Vector3(0,0.8,-crng),Color("d9b8a6"),18,exposure_root)
-  lc.outline_size=8
+  # R5: sin rotulo de diseño sobre el mapa ("Gillespie, no simulado" queda en la ayuda): era ruido ilegible para quien juega.
  var sx=float(M.ship.x);var sz=float(M.ship.z)
  exposure_root.position=Vector3(sx,level_m+0.18,sz)
  exposure_root.rotation.y=-deg_to_rad(float(M.ship.get("heading_deg",0.0)))
  exposure_root.visible=false
  # Rotulos de los anillos (ronda 3): el anillo rosa es el alcance de fuego del buque; el punteado, la zona de incertidumbre del encallamiento. Ambos de DISEÑO.
- var l1=_label_j("Alcance del fuego del buque (diseño)",Vector3(rng*0.0,0.8,-rng),Color("e6a08c"),20,exposure_root)
+ var l1=_label_j("Zona de fuego",Vector3(rng*0.0,0.8,-rng),Color("e6a08c"),20,exposure_root)
  l1.outline_size=8
  var unc=float(M.get("ship",{}).get("uncertainty_radius_m",120.0))
- var l2=_label_j("Zona de incertidumbre del encallamiento (±%d m, diseño)"%int(unc),Vector3(sx+unc*0.2,level_m+1.2,sz+unc),Color("e3d8b0"),20,labels_root)
+ var l2=_label_j("¿Dónde varó? (±%d m)"%int(unc),Vector3(sx+unc*0.2,level_m+1.2,sz+unc),Color("e3d8b0"),20,labels_root)
  l2.outline_size=8
 
 func _overlay_mat()->StandardMaterial3D:
@@ -1943,8 +1949,10 @@ func _update_markers_j(cam:Camera3D)->void:
   if absf(ks-ship_far_k)>0.03:
    ship_far_k=ks
    ship.scale=Vector3(SHIP_SX,SHIP_SY,SHIP_SZ)*ks
+   if water_mat!=null:water_mat.set_shader_parameter("ship_half",Vector2(5.4,21.0)*ks)
    var pv=get_node_or_null("Pabellon_hipotesis")
    if pv!=null:pv.scale=Vector3.ONE*ks
+ _spread_tokens_j(cam)
  for g in group_markers:
   var r:Node3D=g.root
   var d=cam.global_position.distance_to(r.global_position)
@@ -1959,6 +1967,36 @@ func _update_markers_j(cam:Camera3D)->void:
   if absf(fk-float(far_k.get(gid,1.0)))>0.06:
    far_k[gid]=fk
    if unit_nodes.has(gid):unit_nodes[gid].dirty=true
+
+# R5: fichas de grupos que quedan juntos se abren en abanico en pantalla (separacion en pixeles, no en metros), para no apilarse en un manchon.
+func _spread_tokens_j(cam:Camera3D)->void:
+ var toks:Array=[]
+ for g in group_markers:
+  var r:Node3D=g.root
+  if not r.visible:continue
+  var tk:Node3D=null
+  for c in r.get_children():
+   if str(c.name).begins_with("Ficha_"):tk=c;break
+  if tk!=null:toks.append({"root":r,"tok":tk})
+ var used:Dictionary={}
+ var vh=maxf(get_viewport().get_visible_rect().size.y,1.0)
+ var right:Vector3=cam.global_transform.basis.x;right.y=0.0
+ right=right.normalized()
+ for i in range(toks.size()):
+  var a=toks[i]
+  if used.has(i):continue
+  var cluster=[i]
+  for j in range(i+1,toks.size()):
+   if not used.has(j) and (toks[j].root as Node3D).global_position.distance_to((a.root as Node3D).global_position)<26.0:cluster.append(j)
+  for k in cluster:used[k]=true
+  var n=cluster.size()
+  for slot in range(n):
+   var e=toks[cluster[slot]]
+   var rt:Node3D=e.root
+   var d=cam.global_position.distance_to(rt.global_position)
+   var mpp=d*2.0*tan(deg_to_rad(cam.fov)*0.5)/vh
+   var off=right*((float(slot)-float(n-1)*0.5)*86.0*mpp) if n>1 else Vector3.ZERO
+   (e.tok as Node3D).position=Vector3(off.x,1.0,off.z)
 
 func _ensign_j(s:Dictionary)->void:
  # Red Ensign (H1, HIPÓTESIS/Reconstrucción: la bandera concreta del Justina no está identificada; Union posterior a 1801 en el cantón).
@@ -2036,6 +2074,11 @@ func _update_group_j(u:Dictionary,delta:float):
  entry.pos2=cur;entry.yaw=yaw
  root.position=Vector3(cur.x,_h(cur.x,cur.y),cur.y)
  root.visible=float(u.strength)>0.0
+ # R5: al abordar, las figuras suben a la cubierta (transicion de ~2,5 s); las fichas y aros quedan en la arena para seguir leyendose.
+ var bk_t=1.0 if (stage=="boarding" and is_instance_valid(ship) and cur.distance_to(Vector2(float(M.ship.x),float(M.ship.z)))<DECK_REACH) else 0.0
+ var bk0=float(entry.get("board_k",0.0))
+ if absf(bk_t-bk0)>0.001:
+  entry["board_k"]=move_toward(bk0,bk_t,delta/2.5);entry.dirty=true
  if root.visible and (changed or entry.dirty or moving or stage=="routed" or entry.moving!=moving):
   _layout_group_j(entry,u,moving,stage)
   entry.dirty=false
@@ -2067,6 +2110,14 @@ func _layout_group_j(entry:Dictionary,u:Dictionary,moving:bool,stage:String):
   var off=Vector3(across,0,along).rotated(Vector3.UP,yaw)
   var wx=rootpos.x+off.x;var wz=rootpos.z+off.z
   var gy=_h(wx,wz)-rootpos.y
+  var bk=float(entry.get("board_k",0.0))
+  if bk>0.0 and is_instance_valid(ship):
+   var gi=maxi(unit_nodes.keys().find(str(u.id)),0)
+   var loc=Vector3((float(lane)-float(lanes-1)*0.5)*0.30,DECK_Y,(float(gi%3)-1.0)*2.3+(float(row)-1.0)*0.28)
+   var tw:Vector3=ship.global_transform*loc
+   var smooth=bk*bk*(3.0-2.0*bk)
+   off=Vector3(lerpf(off.x,tw.x-rootpos.x,smooth),0.0,lerpf(off.z,tw.z-rootpos.z,smooth))
+   gy=lerpf(gy,tw.y-rootpos.y,smooth)+0.9*sin(smooth*PI)   # arco: trepan y saltan al casco
   var bob=0.0
   var pitch=0.0
   if moving:
@@ -2348,7 +2399,8 @@ func _update_ship_j(delta:float):
  var gk=1.0-clampf((level_m-g_lo)/maxf(g_hi-g_lo,0.05),0.0,1.0)   # 1 = apoyado, 0 = flotando
  var heel:Array=gv.get("heel_deg",[4.0,7.0])
  ship.rotation.z=lerpf(0.045,deg_to_rad(float(heel[1])),gk);ship.rotation.x=lerpf(0.012,0.034,gk)
- ship.position.y=ship_y0-(float(gv.get("sink_m",0.6))+1.1)*gk   # R7: +1,1 m: la quilla queda enterrada en el banco (antes se veia luz bajo el casco)
+ ship.position.y=ship_y0-(float(gv.get("sink_m",0.6))+1.1+0.55*ship_far_k)*gk   # R7: +1,1 m: la quilla queda enterrada en el banco (antes se veia luz bajo el casco)
+ _update_boarding_fx_j(delta)
  if is_instance_valid(ship_mud):
   ship_mud.visible=gk>0.02
   ship_mud.position.y=level_m+0.04
@@ -2356,6 +2408,44 @@ func _update_ship_j(delta:float):
  if water_mat!=null and absf(hd-ship_hd_applied)>0.01:
   ship_hd_applied=hd
   water_mat.set_shader_parameter("ship_fwd",Vector2(sin(deg_to_rad(hd)),-cos(deg_to_rad(hd))))
+
+# R5: el abordaje se ve: humo y fogonazos sobre cubierta mientras hay grupos a bordo y una bandera que sube con la captura.
+var boarding_fx_t = 0.0
+var capture_flag: Node3D
+var capture_flag_cloth: Node3D
+func _deck_world(lx:float,lz:float,ly:float=DECK_Y)->Vector3:
+ return ship.global_transform*Vector3(lx,ly,lz)
+
+func _make_capture_flag_j():
+ capture_flag=Node3D.new();capture_flag.name="Bandera_captura";add_child(capture_flag)
+ _cylinder(Vector3(0,5.0,0),0.14,10.0,Color("4c372b"),capture_flag)
+ capture_flag_cloth=Node3D.new();capture_flag.add_child(capture_flag_cloth)
+ # Señal de captura: paño ocre con franja bermellon (color de diseño del bando criollo; NO es una bandera historica ni la argentina).
+ _box(Vector3(0,0,-1.6),Vector3(0.06,1.6,3.2),Color("e2bc72"),capture_flag_cloth)
+ _box(Vector3(0.04,0,-1.6),Vector3(0.06,0.5,3.2),Color("b6453e"),capture_flag_cloth)
+ capture_flag.visible=false
+
+func _update_boarding_fx_j(delta:float)->void:
+ var on_deck=0
+ for u in rules.state.units:
+  if str(u.get("stage",""))=="boarding" and float(u.strength)>0.0 and unit_nodes.has(str(u.id)) and float(unit_nodes[str(u.id)].get("board_k",0.0))>0.5:on_deck+=1
+ if capture_flag==null:_make_capture_flag_j()
+ var cap=clampf(float(rules.state.get("capture",0.0))/100.0,0.0,1.0)
+ var ks=ship.scale.x/SHIP_SX
+ capture_flag.visible=cap>0.02
+ if capture_flag.visible:
+  capture_flag.global_position=_deck_world(0.0,3.6);capture_flag.rotation.y=ship.rotation.y;capture_flag.scale=Vector3.ONE*ks
+  capture_flag_cloth.position.y=1.2+cap*7.6
+  capture_flag_cloth.rotation.y=sin(elapsed_visual*2.2)*0.18
+ var ens=get_node_or_null("Pabellon_hipotesis")
+ if ens!=null:ens.visible=cap<0.995
+ if on_deck>0 and not smoke_pool.is_empty():
+  boarding_fx_t-=delta
+  if boarding_fx_t<=0.0:
+   boarding_fx_t=randf_range(0.25,0.6)/float(mini(on_deck,3))
+   var p=_deck_world(randf_range(-0.7,0.7),randf_range(-5.0,5.0)*0.45,DECK_Y+0.6)
+   _fire_smoke(p,Vector3(randf_range(-0.4,0.4),1.0,randf_range(-0.4,0.4)).normalized(),false)
+   if is_instance_valid(fire_flash) and randf()<0.5:fire_flash.global_position=p;fire_flash.light_energy=2.2
 
 func _update_extra_labels_j():
  for e in extra_labels:
