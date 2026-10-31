@@ -447,3 +447,23 @@ La UI bot `ui_real` (mejor guion, decidiendo con los botones reales del diálogo
 - `tools/ui_qa.gd` (ventana real): 239 comprobaciones, 0 fallas en 1280x720, 1920x1080 y 2560x1440.
 - `tools/justina_playthrough.gd` completo (escena real): salida 0, 15 victorias y 9 derrotas (centro: `central_flank_pair`, `central_flank_lane`, `central_hasty` 3/3 cada una; sur: `south_full` 3/3; `ui_real` con clics y botones reales 3/3; pierden `rush_central`, `mixed_split` y `late_all_in`, 3/3 cada una). `--only=ui --naive`: 0/3. Evidencia en `evidence/justina-ui/r4_mapa_reglas/`.
 - No se corrió `tools/benchmark.py` (no hay cambios de render; el costo de las reglas es `tick_ms_avg` ≈ 0,13 ms en `_test_performance`).
+
+## Ronda 5 (30-oct-2026, rama div5-mapa_reglas): balance humano, red de seguridad y decisiones con costo
+
+Cambios (todo en `data/justina_map.json`, salvo `auto_rally` y `counter_advance_s` en `scripts/game_rules.gd`): pozos 52-58 → 36-40 de fuerza; `outcome.auto_rally` (32 / +16, una vez por grupo); `doomed.total_strength_below` 90 → 70; `stall` 70 s / 60 s; contraataque cada 36 s con captura −31 %, `max_unanswered` 2; mercy nivel 0 con `fire_mult` 0,92, `stumble_mult` 0,9, `auto_repel_n` 1 (y +1 en los demás niveles); premios de ruta central 1,15 / sur 1,10; fuego del centro ×0,92; «buque nervioso» con fuego central ×1,25; tiempos (ver CONTRATO §17); cuatro decisiones de cubierta con costo al vencer; `cohort_win_rate` 0,35-0,67 (las redes de seguridad suben la cohorte de guiones).
+
+### Medición (APPDATA aislado, motor 4.7.2)
+Modelo de humanos `--human --n=40 --attempts=6 --base=9100` (modelo inventado, ±15 puntos; NO son personas):
+
+| perfil | antes | ahora (rango de 4 corridas) | meta del plan |
+|---|---|---|---|
+| experto, gana al 1.º | 100 % | 100 % | 85-95 % |
+| promedio, gana al 1.º | 50-53 % | 43-68 %, típico 53 % | 25-40 % |
+| novato, gana al 1.º | 3 % | 3-13 %, típico 8 % | 10-25 % |
+| novato, acumulado al 3.º | 78 % | 75-93 % | — |
+| derrota mediana | 595-716 s | 603-736 s | ≤ 540 s |
+| victoria mediana | 548-593 s | 530-570 s | 540-720 s |
+
+**No se cumplieron las metas de promedio, novato y duración de la derrota.** Las perillas probadas mueven el promedio y el novato juntos: lo que sube al novato sube al promedio. El motivo es que las derrotas largas son de la ruta sur (llega a ≈ 11 min), y el experto del modelo es de información perfecta. Con ±15 puntos no se pueden afirmar diferencias menores; la prueba humana de 3 partidas manda.
+
+Matriz de estrategias, 20 semillas, por variante de misión (guiones que conocen el mapa): `central_flank_pair` 20/20 (≈ 9:00, ≈ 51 % de bajas), `central_flank_lane` 20/20, `south_full` 20/20 (≈ 11:20, ≈ 38 %), `central_hasty` 20/20, `mixed_split` 18/20 (≈ 57 %), `central_flank_stagger` 12/20, `central_pair_idle` (no decide nada en cubierta) 10/20 (antes 12/12): **ignorar la cubierta ya no gana**; con «buque nervioso» 0/6. `noreply` 4/12 (antes 0/12 por la ayuda del primer contraataque; en intentos 2+ sigue perdiendo). Ciegas y pasiva 0/12. Ninguna ruta es la mejor en todo: el centro gana en tiempo y medalla «rápido»; el sur en bajas y medalla de plata; la mixta exige coordinar. Pendiente conocido: los guiones perfectos ganan 100 % en todas las variantes, así que «central_flank_pair < 80 % en alguna variante» no se logró.

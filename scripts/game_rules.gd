@@ -1910,6 +1910,13 @@ func _justine_step(dt: float) -> void:
 			u.work = {}
 			u.stumble_remaining = 0.0
 			continue
+		## Ronda 5: red de seguridad (outcome.auto_rally): una vez por grupo, al caer a `trigger`, el sargento rehace la línea (+gain). Nunca oculto: queda en el registro.
+		var ar: Dictionary = m.outcome.get("auto_rally", {})
+		if not ar.is_empty() and not bool(u.get("rallied", false)) and float(u.strength) <= float(ar.trigger):
+			u.rallied = true
+			u.strength = minf(100.0, float(u.strength) + float(ar.gain))
+			state.stats.auto_rallies = int(state.stats.get("auto_rallies", 0)) + 1
+			_event("¡%s se tambalea! El sargento rehace la línea a los gritos: +%d de fuerza (una sola vez por grupo)." % [u.name, roundi(float(ar.gain))], "rally", {"unit": u.id, "pos": {"x": u.x, "z": u.z}, "tag": "auto_rally"})
 		alive += 1
 		alive_strength += float(u.strength)
 		var was_shaken: bool = bool(u.get("shaken", false))
@@ -2269,6 +2276,34 @@ func main_clock() -> Dictionary:
 		return {"kind": "cargar", "label": "Tenés para cargar", "seconds": maxf(0.0, nr - elapsed), "urgent": nr - elapsed < 90.0}
 	return {"kind": "capturar", "label": "El río sube en", "seconds": left_deadline, "urgent": left_deadline < 90.0}
 
+## Ronda 5: fase de la partida para la pista «AHORA» y el panel de objetivo (que no queden pegados al sondeo).
+## Devuelve {phase, hint, show_ford, ford_known}. phase: reconocer | cruce | abordaje | contraataque | remate | fin.
+## La UI debe mostrar `hint` como única línea de acción y ocultar la línea del vado cuando show_ford es false.
+func phase_info() -> Dictionary:
+	if state.get("scenario", "") != "justine" or state.get("status", "") != "playing":
+		return {"phase": "fin", "hint": "", "show_ford": false, "ford_known": false}
+	var bp := board_point()
+	var ford_known := knowledge_at(bp.x, bp.y) in ["probed", "marked"]
+	var boarders := _boarders()
+	if bool(state.counter.active) and not boarders.is_empty():
+		return {"phase": "contraataque", "hint": "¡Contraataque! Rechazalo (R) antes de que se acabe el tiempo.", "show_ford": false, "ford_known": ford_known}
+	if not boarders.is_empty():
+		if float(state.capture) >= 70.0:
+			return {"phase": "remate", "hint": "Remate: aguantá en cubierta, ya casi es tuyo.", "show_ford": false, "ford_known": ford_known}
+		return {"phase": "abordaje", "hint": "Aguantá en cubierta: resolvé las situaciones que aparezcan y rechazá los contraataques.", "show_ford": false, "ford_known": ford_known}
+	if _has_advanced():
+		return {"phase": "cruce", "hint": "Cruzando: esquivá las descargas (mové el grupo apuntado) y no te salgas del vado.", "show_ford": false, "ford_known": ford_known}
+	var scouts_alive := 0
+	for sc in state.scouts:
+		if int(sc.hp) > 0 and str(sc.stage) != "lost":
+			scouts_alive += 1
+	if not ford_known and scouts_alive > 0:
+		return {"phase": "reconocer", "hint": "Mandá un explorador a medir el agua: Z y clic en el agua.", "show_ford": true, "ford_known": false}
+	var clk := main_clock()
+	if str(clk.kind) == "esperar":
+		return {"phase": "reconocer", "hint": "Juntá la tropa y abastecé mientras el vado cede.", "show_ford": true, "ford_known": ford_known}
+	return {"phase": "cruce", "hint": "El vado está listo: señalá a Liniers y cargá.", "show_ford": true, "ford_known": ford_known}
+
 ## Abre una elección (mensajero, decisiones del abordaje). Misma forma que la del mensajero: la interfaz la dibuja igual; `title` es nuevo (opcional).
 func _open_choice(id: String, title: String, text: String, options: Array, default_id: String, timeout_s: float) -> void:
 	var elapsed := float(state.elapsed)
@@ -2337,6 +2372,9 @@ func _apply_effects(fx: Dictionary) -> String:
 	if fx.has("counter_delay_s") and float(state.counter.next_at) >= 0.0:
 		state.counter.next_at = float(state.counter.next_at) + float(fx.counter_delay_s)
 		parts.append("el próximo contraataque tarda %d s más" % roundi(float(fx.counter_delay_s)))
+	if fx.has("counter_advance_s") and float(state.counter.next_at) >= 0.0 and not bool(state.counter.active):
+		state.counter.next_at = maxf(elapsed + 4.0, float(state.counter.next_at) - float(fx.counter_advance_s))
+		parts.append("el próximo contraataque llega %d s antes" % roundi(float(fx.counter_advance_s)))
 	if parts.is_empty():
 		return "sin efecto"
 	return ", ".join(parts)

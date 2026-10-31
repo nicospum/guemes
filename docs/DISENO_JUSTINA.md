@@ -539,3 +539,14 @@ Detalle de números, medición y límites en `docs/DISENO_REGLAS.md` (Ronda 4); 
 - **Sondear importa.** Un pozo sin reconocer cuesta más de la mitad de un grupo y casi un minuto detenido, bajo el fuego.
 - **Rutas.** El centro es rápido (≈ 8:50) y cuesta ≈ 49 % de bajas; el sur es limpio (≈ 38 %) pero llega a ≈ 11:30 y es la que pierde cuando un giro adelanta la subida del río.
 - **Medallas por lo que hiciste**, no por cuántos intentos llevás.
+
+## 20. Ronda 5 de diversión (pista mapa_reglas): lo que el jugador nota
+
+Directriz: manda el juego, la historia es guía. Números y límites en `docs/DISENO_REGLAS.md` (Ronda 5).
+
+- **Una red de seguridad visible.** Una vez por grupo, cuando cae a 32 de fuerza, el sargento rehace la línea (+16). Sale en el registro («¡Se tambalea!…», tag `auto_rally`). El primer contraataque de cada intento lo rechaza solo el sargento.
+- **Ignorar la cubierta cuesta.** Las decisiones de la cubierta que se dejan vencer ahora duelen: el humo sin avanzar frena la captura, el pedrero ignorado quita fuerza y adelanta el contraataque, la dotación sin contestar también lo adelanta, el cansancio sin atender frena la captura. Un guion que no decide nada en cubierta pasó de ganar 100 % a ≈ 50 %.
+- **Los pozos duelen menos y siguen enseñando.** Un hoyo oculto cuesta ≈ 36-40 de fuerza (antes 52-58) y el mismo minuto detenido bajo el fuego: un tropezón es un golpe, no el final.
+- **Partida más corta.** El río sube desde 11:00 y el plazo duro es 13:20 (antes 14:00). El punto sin retorno es 10:00. Se pierde antes cuando ya no hay con qué: «dispersos» corta con menos de 70 de fuerza total, y «estancada» a los 60 s sin avance.
+- **Rutas.** Centro: rápido (≈ 8:50), caro (≈ 50 % de bajas), premio de captura ×1,15. Sur: lento (≈ 11:20), limpio (≈ 38 %), ×1,10. Mixta ×1,15. Con «buque nervioso» el centro sale más caro todavía (fuego ×1,25).
+- **Pista de fase.** `phase_info()` devuelve la fase y una sola línea de acción (ver `docs/CONTRATO_JUSTINA.md` §17).

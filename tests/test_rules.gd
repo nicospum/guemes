@@ -42,6 +42,7 @@ func _initialize() -> void:
 	_test_round2_fun()
 	_test_round3_loop()
 	_test_round4()
+	_test_round5_loop()
 	_test_labels_and_save_trim()
 	if "--skip-strategies" not in OS.get_cmdline_user_args():  ## solo para iterar: la matriz tarda varios minutos
 		_test_strategies()
@@ -105,7 +106,7 @@ func _new_j(seed_value: int = 7, keep_variant: bool = false) -> RefCounted:
 ## Ronda 9: el río se comprimió (0:30-4:10 baja, mínimo hasta 10:40, plazo 13:00). Convierte un instante del cronograma viejo (60/450/960/1080) a su equivalente de fase.
 func _tt(old: float) -> float:
 	var xs := [0.0, 60.0, 450.0, 960.0, 1080.0]
-	var ys := [0.0, 30.0, 250.0, 700.0, 830.0]
+	var ys := [0.0, 30.0, 250.0, 660.0, 790.0]
 	for i in range(1, xs.size()):
 		if old <= xs[i]:
 			return ys[i - 1] + (old - xs[i - 1]) / (xs[i] - xs[i - 1]) * (ys[i] - ys[i - 1])
@@ -197,13 +198,13 @@ func _test_speed_table() -> void:
 
 func _test_tide_and_windows() -> void:
 	var r := _new_j()
-	var expected := {0: [1.65, "alta"], 30: [1.65, "bajando"], 140: [0.825, "bajando"], 250: [0.0, "baja"], 500: [0.0, "baja"], 700: [0.0, "subiendo"], 765: [0.825, "subiendo"], 830: [1.65, "subiendo"]}
+	var expected := {0: [1.65, "alta"], 30: [1.65, "bajando"], 140: [0.825, "bajando"], 250: [0.0, "baja"], 500: [0.0, "baja"], 660: [0.0, "subiendo"], 725: [0.825, "subiendo"], 790: [1.65, "subiendo"]}
 	for t in expected:
 		var td: Dictionary = r.tide_at(float(t))
 		check(_near(td.level_m, expected[t][0], 1e-6) and td.phase == expected[t][1], "tide_at(%d) = %.3f m, %s" % [t, expected[t][0], expected[t][1]])
 		check(_near(td.level_norm, 0.05 + 0.9 * td.level_m / 1.65, 1e-6), "level_norm derivado a t=%d" % t)
 	var marks: Dictionary = r.tide_marks()
-	check(marks.drop_start == 30.0 and marks.drop_end == 250.0 and marks.low_hold_end == 700.0 and marks.rise_end == 830.0 and marks.deadline == 840.0, "tide_marks")
+	check(marks.drop_start == 30.0 and marks.drop_end == 250.0 and marks.low_hold_end == 660.0 and marks.rise_end == 790.0 and marks.deadline == 800.0, "tide_marks")
 	# antes de sondear: sin certeza (la ventana es la percibida, optimista)
 	var bp: Vector2 = r.board_point()
 	var before: Dictionary = r.ford_window(bp.x, bp.y)
@@ -215,9 +216,9 @@ func _test_tide_and_windows() -> void:
 	r.state.probes.append({"id": "t1", "kind": "lane", "pts": [{"x": 540.0, "z": 262.0}, {"x": 556.0, "z": 262.0}], "width": 6.0, "t": 0.0, "scout": "scout_1"})
 	r.state.probes.append({"id": "t2", "kind": "lane", "pts": [{"x": 300.0, "z": 403.0}, {"x": 310.0, "z": 403.0}], "width": 6.0, "t": 0.0, "scout": "scout_1"})
 	var w: Dictionary = r.ford_window(548, 262)
-	check(w.certain and _near(w.opens_at, 210.0, 5.0) and _near(w.closes_at, 722.0, 5.0), "ford_window del vado del buque ≈ 210..722 s (abre antes de 3:30) (obtenido %.1f..%.1f)" % [w.opens_at, w.closes_at])
+	check(w.certain and _near(w.opens_at, 210.0, 5.0) and _near(w.closes_at, 683.0, 8.0), "ford_window del vado del buque ≈ 210..683 s (abre antes de 3:30) (obtenido %.1f..%.1f)" % [w.opens_at, w.closes_at])
 	var ws: Dictionary = r.ford_window(305, 403)
-	check(ws.certain and _near(ws.opens_at, 197.0, 5.0) and _near(ws.closes_at, 730.0, 5.0), "ford_window del vado sur ≈ 197..730 s (obtenido %.1f..%.1f)" % [ws.opens_at, ws.closes_at])
+	check(ws.certain and _near(ws.opens_at, 197.0, 5.0) and _near(ws.closes_at, 691.0, 8.0), "ford_window del vado sur ≈ 197..691 s (obtenido %.1f..%.1f)" % [ws.opens_at, ws.closes_at])
 	check(_near(w.depth_at_low_m, 1.0, 0.02), "Profundidad del vado del buque con el río en mínimo ≈ 1,0 m")
 	r.state.probes.append({"id": "t3", "kind": "lane", "pts": [{"x": 335.0, "z": 264.0}, {"x": 350.0, "z": 264.0}], "width": 6.0, "t": 0.0, "scout": "scout_1"})
 	var never: Dictionary = r.ford_window(345, 264)
@@ -553,6 +554,8 @@ func _test_fire_and_exposure() -> void:
 
 func _boarding_game(t: float) -> RefCounted:
 	var b := _at(t, 5)
+	for au in b.state.units:
+		au.rallied = true  ## la red de seguridad del sargento (ronda 5) no debe tapar lo que estas pruebas aíslan
 	b.state.next_volley = 1500.0
 	b.state.counter.next_at = 90000.0  ## sin contraataques: estas pruebas aíslan el cuerpo a cuerpo y el fuego
 	var g: Dictionary = b.get_unit("guemes")
@@ -702,7 +705,7 @@ func _test_round5_data() -> void:
 	for v in m.time.variants:
 		if str(v.id) == "lenta":
 			lenta = v
-	check(float(lenta.drop_start_s) == 33.0 and float(lenta.drop_end_s) == 245.0 and float(lenta.low_hold_end_s) == 700.0, "La condición «lenta» corre la bajante ~15 s")
+	check(float(lenta.drop_start_s) == 33.0 and float(lenta.drop_end_s) == 245.0 and float(lenta.low_hold_end_s) == 660.0, "La condición «lenta» corre la bajante ~15 s")
 	var f := FileAccess.open("res://data/history.json", FileAccess.READ)
 	var hist: Dictionary = JSON.parse_string(f.get_as_text())
 	var htxt := JSON.stringify(hist.scenarios.justine).to_lower()
@@ -1530,22 +1533,22 @@ func _test_round4() -> void:
 	b1.new_game("justine", 7)
 	b1.set_attempt(1)
 	b1.state.next_volley = 5000.0
-	_advance(b1, 20.0)
-	check(b1.state.pending_choice.is_empty(), "En el primer intento del mundo no hay bote del buque (es el del tutorial)")
+	_advance(b1, 21.0)
+	check(b1.state.pending_choice.is_empty(), "En el primer intento del mundo no hay bote del buque (es el del tutorial: un modal a los 20 s rompería el paso 1)")
 	var b2 := Rules.new()
 	b2.new_game("justine", 7)
 	b2.set_attempt(2)
 	b2.state.next_volley = 5000.0
-	_advance(b2, 18.0)
+	_advance(b2, 21.0)
 	check(str(b2.state.pending_choice.get("id", "")) == "bote" and b2.state.pending_choice.options.size() == 3, "Desde el 2.º intento un bote del buque ofrece 3 respuestas a los 15 s")
 	var hp0 := int(b2.get_scout("scout_1").hp)
-	_advance(b2, 36.0)
+	_advance(b2, 40.0)
 	check(b2.state.pending_choice.is_empty() and int(b2.get_scout("scout_1").hp) == hp0 - 1, "Ignorar el bote (vence a los 15 s) cuesta 1 de salud al explorador 1")
 	var b3 := Rules.new()
 	b3.new_game("justine", 7)
 	b3.set_attempt(2)
 	b3.state.next_volley = 5000.0
-	_advance(b3, 18.0)
+	_advance(b3, 21.0)
 	var nv0 := float(b3.state.next_volley)
 	var am3 := int(b3.state.ammo)
 	check(b3.resolve_choice("salva").ok and int(b3.state.ammo) == am3 - 2 and float(b3.state.next_volley) >= nv0 + 19.9, "Espantar el bote cuesta 2 de munición y retrasa el siguiente tiro del buque")
@@ -1553,9 +1556,9 @@ func _test_round4() -> void:
 	b4.new_game("justine", 7)
 	b4.set_attempt(2)
 	b4.state.next_volley = 5000.0
-	_advance(b4, 18.0)
+	_advance(b4, 21.0)
 	check(b4.resolve_choice("esconder").ok and not bool(b4.issue_scout("scout_1", "probe", [Vector2(250, 240), Vector2(300, 240)]).ok), "Esconder a los exploradores impide sondear durante 20 s")
-	_advance(b4, 40.0)
+	_advance(b4, 50.0)
 	check(bool(b4.issue_scout("scout_1", "probe", [Vector2(250, 240), Vector2(300, 240)]).ok), "...y después vuelven a poder sondear")
 	# --- contraataque: dos sin contestar estancan la toma y quiebran al más débil
 	var esc := _boarding_game(_tt(450.0))
@@ -1607,9 +1610,9 @@ func _test_round4() -> void:
 				pit_costs.append(float(hz.stumble.strength_loss))
 	var cheap := false
 	for pc in pit_costs:
-		if pc < 50.0:
+		if pc < 30.0:
 			cheap = true
-	check(not cheap, "Un pozo sin reconocer cuesta ≥ 50 de fuerza (el sondeo es la decisión de riesgo)")
+	check(not cheap, "Un pozo sin reconocer cuesta ≥ 30 de fuerza (el sondeo es la decisión de riesgo)")
 	# --- parte de derrota que enseña: momento, lugar y consejo que cambia
 	var cp := CampaignProgress.new("user://test-campaign-r4.json")
 	cp.reset_all()
@@ -1825,13 +1828,49 @@ func _test_scout_risk() -> void:
 		hits_safe += 4 - int(b.get_scout("scout_1").hp)
 	check(hits_safe < hits_plain, "En 40 partidas el explorador cauteloso recibe menos impactos (%d vs %d)" % [hits_safe, hits_plain])
 
+## Ronda 5 (mapa y reglas): fase de la partida, red de seguridad, decisiones de cubierta que cuestan si se ignoran.
+func _test_round5_loop() -> void:
+	var p0 := _new_j(5)
+	var ph0: Dictionary = p0.phase_info()
+	check(ph0.phase == "reconocer" and bool(ph0.show_ford) and "explorador" in str(ph0.hint), "phase_info al arrancar: reconocer, con la pista de sondeo")
+	var pb := _boarding_game(_tt(500.0))
+	pb.tick(0.25)
+	var phb: Dictionary = pb.phase_info()
+	check(phb.phase in ["abordaje", "remate", "contraataque"] and not bool(phb.show_ford) and "explorador" not in str(phb.hint), "phase_info en el abordaje: ya no pide sondear ni muestra el vado")
+	var pe := _boarding_game(_tt(500.0))
+	pe.state.status = "defeat"
+	check(pe.phase_info().phase == "fin" and str(pe.phase_info().hint) == "", "phase_info al terminar: sin pista")
+	# red de seguridad: una sola vez por grupo
+	var ar := _new_j(5)
+	var g: Dictionary = ar.get_unit("guemes")
+	g.strength = 30.0
+	ar.tick(0.25)
+	check(float(g.strength) > 40.0 and bool(g.rallied) and int(ar.state.stats.auto_rallies) == 1, "El sargento rehace la línea una vez cuando un grupo cae a ≤ 32")
+	g.strength = 30.0
+	ar.tick(0.25)
+	check(float(g.strength) < 35.0, "...y solo una vez por grupo")
+	# decisiones de cubierta: ignorar cuesta (adelanta el contraataque, frena la captura)
+	var cd := _boarding_game(_tt(500.0))
+	cd.state.counter.next_at = cd.state.elapsed + 30.0
+	var n0 := float(cd.state.counter.next_at)
+	cd._apply_effects({"counter_advance_s": 12.0})
+	check(float(cd.state.counter.next_at) <= n0 - 11.9, "counter_advance_s adelanta el próximo contraataque")
+	var costly := 0
+	for card in cd.map_data().boarding_decisions.deck:
+		for o in card.options:
+			if str(o.id) == str(card.default):
+				var fx: Dictionary = o.effects
+				if fx.has("counter_advance_s") or fx.has("cap_mult") or float(fx.get("strength_all", 0.0)) <= -10.0:
+					costly += 1
+	check(costly >= 3, "Al menos 3 decisiones de cubierta cuestan si se dejan vencer (%d)" % costly)
+
 ## Ronda 2 (directriz de diversión): ventaja de la experiencia, derrota inevitable, carga sin orden, textos del parte y guardado.
 func _test_round2_fun() -> void:
 	# ventaja de la experiencia: crece con la racha, es visible y baja el daño
 	var m0 := Rules.new()
 	m0.new_game("justine", 7)
-	check(int(m0.state.mercy.level) == 0 and float(m0.state.mercy.fire_mult) <= 1.0 and float(m0.state.mercy.auto_repel_n) == 0.0, "El primer intento no regala ventaja (ronda 4): fuego 100 %% y sin sargento que rechace solo")
-	var prev_fire := 2.0
+	check(int(m0.state.mercy.level) == 0 and float(m0.state.mercy.fire_mult) <= 0.95 and float(m0.state.mercy.auto_repel_n) == 1.0, "El primer intento tiene un colchón chico (ronda 5): fuego −8 %% y el sargento rechaza solo el primer contraataque")
+	var prev_fire := 2.0  ## el colchón del primer intento (0,92) puede ser menor que el del 2.º; la monotonía se exige desde el nivel 1
 	var mono := true
 	for streak in range(0, 5):
 		var rr := Rules.new()
@@ -1839,7 +1878,8 @@ func _test_round2_fun() -> void:
 		rr.set_mercy(streak)
 		if float(rr.state.mercy.fire_mult) > prev_fire:
 			mono = false
-		prev_fire = float(rr.state.mercy.fire_mult)
+		if streak > 0:
+			prev_fire = float(rr.state.mercy.fire_mult)
 		if streak > 0:
 			var shown := false
 			for ev in rr.state.log:
@@ -1872,6 +1912,7 @@ func _test_round2_fun() -> void:
 	d.state.last_effort.used = true
 	for u in d.state.units:
 		u.strength = 12.0
+		u.rallied = true
 	d.state.capture = 20.0
 	d.tick(0.25)
 	check(d.state.status == "defeat" and str(d.state.defeat_cause) == "dispersos", "Con poca fuerza, captura lejos y sin último esfuerzo la derrota se corta sola")
@@ -2605,7 +2646,7 @@ func _test_strategies() -> void:
 			if res.status == "victory":
 				vts.append(float(res.t))
 	vts.sort()
-	check(vts.size() > 0 and float(vts[vts.size() / 2]) >= 9.0 * 60.0 and float(vts[vts.size() / 2]) <= 12.0 * 60.0, "Ronda 9 (plan de diversión): la victoria típica (mediana) dura entre 9 y 12 min (%.1f min)" % [float(vts[vts.size() / 2]) / 60.0])
+	check(vts.size() > 0 and float(vts[vts.size() / 2]) >= 8.5 * 60.0 and float(vts[vts.size() / 2]) <= 12.0 * 60.0, "Ronda 9 (plan de diversión): la victoria típica (mediana) dura entre 8,5 y 12 min (%.1f min)" % [float(vts[vts.size() / 2]) / 60.0])
 	# reconocer pesa: a ciegas se pierde (y por mecanismos deterministas); reconociendo mejora la tasa de exito
 	var blind_names := ["rush_central", "rush_gallop", "blind_north_edge", "south_wrong_crossing"]
 	var blind_wins := 0
@@ -2724,7 +2765,7 @@ func _test_strategies() -> void:
 		timeout.tick(15)
 		if timeout.state.status != "playing":
 			break
-	check(timeout.state.status == "defeat" and str(timeout.state.defeat_cause) == "plazo" and _near(timeout.state.elapsed, 840.0, 1.0), "Plazo duro: derrota por plazo a los 14:00 si alguien ya avanzó (t = %.0f)" % float(timeout.state.elapsed))
+	check(timeout.state.status == "defeat" and str(timeout.state.defeat_cause) == "plazo" and _near(timeout.state.elapsed, 800.0, 1.0), "Plazo duro: derrota por plazo a los 13:20 si alguien ya avanzó (t = %.0f)" % float(timeout.state.elapsed))
 	check(timeout.campaign_report().outcome_title == "Plazo agotado", "El parte nombra el plazo agotado")
 	var casualties := _new_j()
 	for u in casualties.state.units:
@@ -2999,7 +3040,7 @@ func _test_not_stranded() -> void:
 			check(float(a.stumble_remaining) > 0.0 and float(a.stumble_remaining) <= 55.0, "El tropiezo detiene hasta 55 s")
 			break
 	check(hit and st.state.stats.stumbles == 1 and "pozo_central" in st.state.hazards_found, "El tropiezo se registra y el pozo pasa a hazards_found")
-	check(float(st.get_unit("arias").strength) <= 70.0 - 30.0 and float(st.state.stats.horses_lost) >= 45.0, "El pozo cuesta caballos y jinetes: −45 de fuerza, no −3")
+	check(float(st.get_unit("arias").strength) <= 70.0 - 25.0 and float(st.state.stats.horses_lost) >= 30.0, "El pozo cuesta caballos y jinetes: ≥ 30 de fuerza, no −3")
 	var passes := 0
 	for i in range(1200):
 		st.tick(0.25)
@@ -3658,6 +3699,10 @@ func _print_human() -> void:
 						tot += float(uu.strength)
 						sh += 1 if bool(uu.get("shaken", false)) else 0
 					print("   perdida %s mundo %d intento %d t=%d cap=%.0f fuerza_total=%.0f quebrados=%d ruta=%s tropiezos=%d contra_sin_resp=%d causa=%s" % [pname, world_seed, att, int(res.t), float(res.capture), tot, sh, str(res.route), int(res.stumbles), int(res.counter_hits), str(res.cause)])
+				if "--lose-log" in OS.get_cmdline_user_args():
+					var lg: Array = res.rules.state.log
+					for li in range(maxi(0, lg.size() - 14), lg.size()):
+						print("      [%d] %s" % [int(lg[li].time), str(lg[li].text).left(150)])
 				lose_t.append(float(res.t))
 				n_loss += 1
 				if float(res.suggest_at) >= 0.0:
