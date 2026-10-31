@@ -401,3 +401,49 @@ Matriz de 24 semillas (victorias): `central_flank_lane` 21, `central_flank_pair`
 ### Límites honestos
 - La derrota mediana sigue en 9 a 12 min a ×1: la mayoría de las derrotas son agonías largas (quiebre → dispersión) y recortarlas por regla mata partidas recuperables. El ciclo corto se logra con el **punto de control** («Reintentar desde el cruce», ~3:20 en adelante) y con la sugerencia «Reintentar ya»: **falta cablearlos en la interfaz** (ver `docs/CONTRATO_JUSTINA.md`, sección «Pendiente de ui_feel»).
 - Sin sesión humana: los porcentajes son del modelo. JEV: sin clave en este entorno, solo `jev_contract_test` (contrato offline).
+
+## Ronda 4 (pista mapa_reglas, directriz de diversión): decisiones que importan, variedad por intento, derrotas que enseñan
+
+Rama `div4-mapa_reglas`. La fidelidad histórica es guía; manda que se pueda jugar y sea entretenido. Todo lo de abajo es juego, no historia (las etiquetas honestas del JSON no cambian). Modelo de humanos = INVENTADO (perfiles con errores que bajan ×0,72 por derrota; sensibilidad con ×0,85). Nadie jugó con personas: los porcentajes son del modelo, con ±13 puntos de intervalo a 60 mundos.
+
+### Problema que se atacó
+Las tres corridas `ui_real` ganaban al primer intento con 0 derrotas: el abordaje era una cuenta regresiva que se llenaba sola (la captura subía mientras se rechazaban contraataques), el sondeo era opcional y no pasaba nada si se lo salteaba, y jugar de nuevo repetía el mismo guion.
+
+### Qué cambió
+1. **Decisiones de cubierta** (`boarding_decisions`, `_bd_step`): con gente abordando se abre una situación cada ~34 s (6 en el mazo: humo, pedrero, parlamento, pólvora sin custodia, bandera, hombres agotados) y, al 62 % de captura, la dotación se atrinchera en la **toldilla** (asalto / fuego propio / capitulación / esperar). Cada opción cuesta algo y rinde algo y dice cuánto en su propio texto; la opción que se toma si no se elige es la pasiva y casi siempre sale cara. Reusan el diálogo del mensajero. El mazo se baraja por (mundo, intento).
+2. **Variedad por intento** (`attempt_twists`, `set_attempt`): el mundo (pozos, vado, variante de misión) es el mismo hasta ganar; desde el 2.º intento hay un **giro anunciado** (cañonero de guardia, dotación reforzada, viento del sudeste que adelanta la subida 50 s, refuerzo de la Plaza), otra secuencia de azar del fuego y un **bote del buque** a los 15 s (acción con riesgo en los primeros 30 s: espantarlo, esconder a los exploradores o ignorarlo). El **vecino** de oídas puede equivocarse de lado (35 %): el sondeo y el diario no mienten.
+3. **El sondeo importa**: un pozo sin reconocer cuesta 52-58 de fuerza y 42-55 s de parada (antes 32-45 y 30-45 s) y ya no hay colchón en el 1.er intento (fuego 100 %, sin sargento que rechace solo). La ruta central sin sondeo pierde 16 de 16 en la matriz.
+4. **Contraataques que hay que acertar**: ahora llegan cada ~38 s con daño 28 y −27 % de captura sin contestar; dos seguidos sin contestar estancan la toma 8 s y quiebran al grupo más débil; **al tercero se pierde la cubierta** (causa nueva `cubierta`). Rechazar sigue costando 3 de munición.
+5. **Derrotas más cortas y con causa**: toma estancada (la captura no supera su mejor marca en 90 s, `outcome.stall`), ventana del último esfuerzo cuando queda poca tropa y la toma está lejos (antes se esperaba a que todos se quebraran), umbral de «poca tropa» 70/60 → 90/70. `defeat_moment` + plantillas dicen **dónde y cuándo** se perdió; el consejo rota entre varios concretos.
+6. **Medallas por mérito**: se quitó el tope de intentos del oro. Plata < 50 % de bajas y vado marcado; oro < 24 %, antes de 12:10 y sin ayudas. La ventaja de la experiencia achica el umbral de bajas (×0,95/0,88/0,8), no bloquea la medalla.
+7. **Un solo reloj** (`main_clock()`): esperar / cargar / capturar. Mensajero a los 45 s (ignorarlo = se va con todo) y vecino a los 120 s: nunca más de 90 s sin evento en los primeros 5 minutos.
+8. **Pírricas y rutas**: fuego del buque −15 % y centro ×0,86; el sur moja 6 de pólvora (antes 4) y su prima de captura baja a 1,0. Resultado: el centro bien jugado cuesta ~49 % de bajas (antes 64-73 %) y gana en ~8:50; el sur cuesta ~38 % pero llega a ~11:35 y es la única línea que pierde por el río cuando el giro adelanta la subida.
+
+### Medición (APPDATA aislado, 60 mundos, `--human --n=60 --base=1700`)
+| Perfil | Gana al 1.º | Acum. 3.º (×0,72 / ×0,85) | Acum. 5.º | Derrota mediana |
+|---|---|---|---|---|
+| experto | 100 % | 100 % / 100 % | 100 % | - |
+| promedio | 50 % | 98 % / 93 % | 100 % | 10:22 / 10:37 |
+| novato | 3 % | 82 % / 65 % | 98 % | 9:51 / 9:57 |
+
+Medallas del experto al 1.er intento (60 mundos): 20 oro, 17 plata, 23 bronce. Causas de derrota del promedio (×0,72): dispersos 24, cubierta 14, estancada 3.
+
+Matriz (16 semillas, intento sin giro): `central_flank_pair` 16/16 con 49 % de bajas a 8:48; `central_flank_lane` 16/16 y 48 %; `central_hasty` 16/16 y 54 %; `central_flank_stagger` 10/16 y 58 %; `mixed_split` 10/16; `central_center_lane` 7/16; `south_full` 16/16 con 38 % a 11:34; `south_vado_only` 5/16; sin sondeo, sin responder contraataques, rush, ciega y pasiva: 0/16. **Decidir en cubierta vale:** el mismo guion que deja vencer todas las situaciones (`central_pair_idle`) gana 15/16 pero con 60 % de bajas y 10:06 (contra 49 % y 8:48 decidiendo): la diferencia es de medalla y de margen, no de ganar o perder. Con giros (intentos 2 a 5): el centro gana 12/12 en los cuatro; el sur 11/12 en tres de ellos (el viento del sudeste le gana al río).
+
+La UI bot `ui_real` (mejor guion, decidiendo con los botones reales del diálogo: 5 o 6 decisiones por partida) gana 3/3 (semillas 1806, 5, 11) en 8:32, 8:15 y 8:15 con 49, 32 y 43 % de bajas; el mismo bot en modo `--naive` (sin sondear, sin fuego de cobertura, dejando vencer las decisiones) **pierde 3/3**: a los 8:23 con 57 % de captura, a los 7:08 con 28 % y a los 7:48 con 49 %. (Corrección de la herramienta: antes el bot no cedía un cuadro entre pasos y los diálogos diferidos del mensajero y de la cubierta nunca se abrían; ahora `justina_playthrough.gd` espera un cuadro por paso, como el juego real. `--naive` y `--seed=N` son opciones nuevas.)
+
+### Límites honestos
+- **Primer intento del promedio 50 %**: por encima de la meta de 25-40 % del plan. El novato (3 %) queda por debajo de la de 10-25 %. El modelo multiplica errores independientes y es muy sensible a ellos; no se ajustó el modelo para que dé (sería circular). Hay que esperar la prueba humana (3 partidas del usuario).
+- **Acumulado al 3.er intento 93-98 % (promedio)** (meta 60-80 %): el modelo aprende rápido (error ×0,72 por derrota) y hay ayuda en escalera. Con aprendizaje más lento (×0,85) el novato baja a 65 % al 3.º; el promedio sigue en 93 %.
+- **La derrota mediana sigue en ~10 min a ×1** (meta ≤ 9, mediana ≤ 7): el abordaje central empieza a los ~6:50 y casi toda derrota es de cubierta. Se acortó ~1 min con el corte de poca tropa (antes 11:18 en el promedio), pero lo que acorta de verdad el ciclo es el punto de control «Desde el cruce» (200 s) y «Reintentar ya» (avisa en 32 de 41 derrotas del promedio, ahorra una mediana de 42 s).
+- Un guion fuerte que no decide nada en cubierta sigue ganando (pierde margen, no la partida); las decisiones suman a la medalla y a la seguridad.
+- «Reintentar ya» tiene 5 falsos positivos en 60 victorias del promedio.
+- `max_victory_loss_pct` sube 90 → 92: la llegada escalonada ganó una vez con 91 %. La mediana de bajas de las victorias sigue siendo el control real.
+- JEV: no interviene en la Justina. Con la clave real del perfil (`user://jev.cfg`, nunca impresa ni copiada) se hicieron 2 consultas de Norte en vivo: `source=live`, `choice=forage`, validadas. `jev_contract_test` (offline): 15 comprobaciones, 0 fallas.
+
+### Verificación (APPDATA aislado, worktree `div4-mapa_reglas`)
+- `tests/test_rules.gd` completo: 863 comprobaciones, 0 fallas (incluye `_test_round4`: giros, vecino, decisiones y efectos, toldilla, bote, estancamiento, medallas, reloj, parte).
+- `tests/test_integration.gd`: 271 comprobaciones, 0 fallas. `tests/jev_contract_test.gd`: 15, 0 fallas. `tests/audio_runtime_test.gd`: 17 comprobaciones, 1 falla (solo el driver Dummy, aceptada).
+- `tools/ui_qa.gd` (ventana real): 239 comprobaciones, 0 fallas en 1280x720, 1920x1080 y 2560x1440.
+- `tools/justina_playthrough.gd` completo (escena real): salida 0, 15 victorias y 9 derrotas (centro: `central_flank_pair`, `central_flank_lane`, `central_hasty` 3/3 cada una; sur: `south_full` 3/3; `ui_real` con clics y botones reales 3/3; pierden `rush_central`, `mixed_split` y `late_all_in`, 3/3 cada una). `--only=ui --naive`: 0/3. Evidencia en `evidence/justina-ui/r4_mapa_reglas/`.
+- No se corrió `tools/benchmark.py` (no hay cambios de render; el costo de las reglas es `tick_ms_avg` ≈ 0,13 ms en `_test_performance`).

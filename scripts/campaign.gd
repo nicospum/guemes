@@ -12,6 +12,7 @@ const MEDAL_RANK := {"": 0, "bronce": 1, "plata": 2, "oro": 3}
 
 var path := DEFAULT_PATH
 var data: Dictionary = {}
+var _shown_advice: Dictionary = {}  ## consejos ya mostrados (el parte rota entre varios: no repite hasta agotarlos)
 var load_note := ""  ## vacío si cargó bien; si no, por qué se empezó de cero (para mostrar un aviso, nunca para bloquear)
 
 func _init(save_path: String = DEFAULT_PATH) -> void:
@@ -158,6 +159,7 @@ func begin_attempt(rules: RefCounted) -> void:
 	data.attempts = int(data.attempts) + 1
 	rules.set_diary_marks(diary_marks())
 	rules.set_mercy(int(data.defeats_in_row))  ## ventaja de la experiencia: visible en el aviso del segundo 0 y en el parte
+	rules.set_attempt(attempt_in_world())  ## ronda 4: desde el 2.º intento de un mundo hay un giro anunciado y otro azar del fuego
 	save_progress()
 
 ## Ayudas que se OFRECEN hoy (nunca se imponen). Cada una exige una racha de derrotas (map_data().campaign.assist_after_defeats).
@@ -243,42 +245,41 @@ static func _mmss(t: float) -> String:
 func _victory_lines(rules: RefCounted, rep: Dictionary, was_first_win: bool) -> Array:
 	var med: Dictionary = rules.map_data().outcome.medals
 	var loss := roundi(float(rep.loss_total_pct))
+	var k := float(rep.get("medal_loss_scale", 1.0))
 	var lines: Array = ["Capturaste el buque en %s con %d %% de bajas." % [_mmss(float(rep.elapsed)), loss]]
 	var marked_ok: bool = float(rules.state.stats.marked_m) >= float(med.silver.ford_marked_min_m)
 	var assisted: bool = not (rep.assists_used as Array).is_empty()
 	match str(rep.medal):
 		"oro":
-			lines.append("Oro: sin ayudas, pocas bajas y rápido. No se puede mejorar.")
+			lines.append("Oro: pocas bajas, rápido y sin ayudas. No se puede mejorar.")
 		"plata":
-			lines.append("Plata. Para el oro te falta: %s." % ", ".join(_missing_gold(med, rep, assisted, bool(rep.get("on_own_charge", false)))))
+			lines.append("Plata. Para el oro te falta: %s." % ", ".join(_missing_gold(med, rep, assisted, bool(rep.get("on_own_charge", false)), k)))
 		_:
 			var miss: Array = []
 			if not marked_ok:
 				miss.append("marcar el vado con balizas")
-			if float(rep.loss_total_pct) >= float(med.silver.loss_pct_below):
-				miss.append("terminar con menos de %d %% de bajas" % roundi(float(med.silver.loss_pct_below)))
+			if float(rep.loss_total_pct) >= float(med.silver.loss_pct_below) * k:
+				miss.append("terminar con menos de %d %% de bajas" % roundi(float(med.silver.loss_pct_below) * k))
 			lines.append("Bronce. Para la plata te falta: %s." % ", ".join(miss))
 	if assisted:
 		lines.append("Usaste ayuda (%s): el oro queda fuera en esta partida." % ", ".join(rep.assists_used))
-	if int(rep.get("mercy_level", 0)) > int(med.gold.get("max_mercy_level", 99)):
-		lines.append("Ganaste con la ventaja de la experiencia (nivel %d): el oro queda para quien gana en los dos primeros intentos de un río." % int(rep.mercy_level))
-	elif int(rep.get("mercy_level", 0)) > 0 and str(rep.medal) != "oro":
-		lines.append("Ganaste en tu segundo intento, con una pequeña ventaja de lo aprendido.")
+	if int(rep.get("mercy_level", 0)) > 0 and k < 1.0:
+		lines.append("Ya conocías el río: para cada medalla se pidió un poco menos de bajas (%d %% para la plata)." % roundi(float(med.silver.loss_pct_below) * k))
+	if int(rep.get("deck_choices", 0)) > 0:
+		lines.append("Decidiste %d situaciones en cubierta%s." % [int(rep.deck_choices) - int(rep.get("deck_defaults", 0)), "" if int(rep.get("deck_defaults", 0)) == 0 else " (%d se resolvieron solas)" % int(rep.deck_defaults)])
 	lines.append("Se desbloqueó el escenario 2: Sostener el Norte." if was_first_win else "Sostener el Norte sigue abierto.")
 	return lines
 
-func _missing_gold(med: Dictionary, rep: Dictionary, assisted: bool, rules_on_own: bool = false) -> Array:
+func _missing_gold(med: Dictionary, rep: Dictionary, assisted: bool, rules_on_own: bool = false, scale: float = 1.0) -> Array:
 	var miss: Array = []
-	if float(rep.loss_total_pct) >= float(med.gold.loss_pct_below):
-		miss.append("bajas menores a %d %%" % roundi(float(med.gold.loss_pct_below)))
+	if float(rep.loss_total_pct) >= float(med.gold.loss_pct_below) * scale:
+		miss.append("bajas menores a %d %%" % roundi(float(med.gold.loss_pct_below) * scale))
 	if float(rep.elapsed) >= float(med.gold.time_below_s):
 		miss.append("capturar antes de las %s" % _mmss(float(med.gold.time_below_s)))
 	if assisted:
 		miss.append("jugar sin ayudas")
 	if bool(rules_on_own):
 		miss.append("esperar la orden de Liniers")
-	if int(rep.get("mercy_level", 0)) > int(med.gold.get("max_mercy_level", 99)):
-		miss.append("ganar en los dos primeros intentos del río")
 	if miss.is_empty():
 		miss.append("repetir con la misma mano")
 	return miss
@@ -287,24 +288,57 @@ static func medal_label(medal: String) -> String:
 	return {"oro": "Medalla de oro", "plata": "Medalla de plata", "bronce": "Medalla de bronce"}.get(medal, "")
 
 ## Causa y consejo de la derrota en lenguaje de jugador (≤ 140 caracteres la causa; sin jerga). Todas las causas del JSON tienen texto.
+## Ronda 4: la causa nombra el MOMENTO y el LUGAR (rep.defeat_moment: «Perdiste en el cruce, a los 3:35: el pozo del banco central te frenó») y el consejo rota
+## entre varios concretos (nunca circular ni el mismo dos veces seguidas): campaign.defeat_moment y campaign.defeat_advice.
 func defeat_text(rules: RefCounted, rep: Dictionary) -> Dictionary:
 	var cfg: Dictionary = rules.map_data().get("campaign", {})
 	var cause_id := str(rules.state.get("defeat_cause", ""))
-	var base: Dictionary = cfg.get("defeat_causes", {}).get(cause_id, {"cause": "La toma no prosperó.", "advice": "Probá de nuevo con lo que anotaste."})
-	var advice := str(base.advice)
-	var extra := ""
-	if int(rep.stumbles) > 0:
-		extra = str(cfg.get("stumble_advice_one", cfg.stumble_advice)) if int(rep.stumbles) == 1 else str(cfg.stumble_advice).replace("{n}", str(int(rep.stumbles)))
-	elif int(rep.counter_hits) > 0:
-		extra = str(cfg.get("counter_advice_one", cfg.counter_advice)) if int(rep.counter_hits) == 1 else str(cfg.counter_advice).replace("{n}", str(int(rep.counter_hits)))
-	elif int(rules.state.ammo) <= 0 and int(rep.ammo_used) > 0:
-		extra = str(cfg.ammo_advice)
-	if extra != "":
-		advice = extra
+	var base: Dictionary = cfg.get("defeat_causes", {}).get(cause_id, {"cause": "La toma no prosperó.", "advice": "Reconocé con los dos exploradores antes de cruzar."})
+	var mom: Dictionary = rep.get("defeat_moment", {})
+	var phase := str(mom.get("phase", ""))
+	var t := _mmss(float(mom.get("t", rep.get("elapsed", 0.0))))
+	var cap := roundi(float(mom.get("capture", rep.get("capture_pct", 0.0))))
+	var hz_name := str(mom.get("stumble_name", "")).to_lower()
+	var tpl_map: Dictionary = cfg.get("defeat_moment", {})
 	var cause_text := str(base.cause)
+	var key := cause_id + "/" + phase
+	if tpl_map.has(key):
+		cause_text = str(tpl_map[key])
+		if hz_name != "" and int(mom.get("stumbles", 0)) > 0 and tpl_map.has(key + "/pozo"):
+			cause_text = str(tpl_map[key + "/pozo"])
+		cause_text = cause_text.replace("{t}", t).replace("{cap}", str(cap)).replace("{name}", hz_name).replace("{boarded}", _mmss(float(mom.get("boarded_at", 0.0))))
 	if bool(rep.get("last_effort_used", false)) == false and cause_id == "dispersos" and float(rep.capture_pct) >= 70.0:
-		cause_text = "Estuviste a un paso: la captura llegó a %d %%, pero tus grupos quedaron quebrados." % roundi(float(rep.capture_pct))
-	return {"cause": cause_text, "advice": advice, "cause_id": cause_id}
+		cause_text = "Estuviste a un paso: la captura llegó a %d %%, pero tus grupos quedaron quebrados (%s)." % [roundi(float(rep.capture_pct)), t]
+	# consejos candidatos: primero lo que realmente pasó, después el repertorio de la causa; se rota por intento
+	var cands: Array = []
+	if int(rep.stumbles) > 0:
+		cands.append(str(cfg.get("stumble_advice_one", cfg.stumble_advice)) if int(rep.stumbles) == 1 else str(cfg.stumble_advice).replace("{n}", str(int(rep.stumbles))))
+	elif int(rep.counter_hits) > 0:
+		cands.append(str(cfg.get("counter_advice_one", cfg.counter_advice)) if int(rep.counter_hits) == 1 else str(cfg.counter_advice).replace("{n}", str(int(rep.counter_hits))))
+	elif int(rules.state.ammo) <= 0 and int(rep.ammo_used) > 0:
+		cands.append(str(cfg.ammo_advice))
+	var pool: Array = cfg.get("defeat_advice", {}).get(cause_id + "/" + phase, cfg.get("defeat_advice", {}).get(cause_id, []))
+	for a in pool:
+		cands.append(str(a))
+	if int(rep.get("deck_defaults", 0)) >= 2 and phase == "abordaje":
+		cands.append(str(cfg.get("deck_advice", "En cubierta se decide: dejar pasar las situaciones te cuesta tiempo. Elegí una opción.")))
+	if cands.is_empty():
+		cands.append(str(base.advice))
+	var other := "sur" if str(rep.get("hidden_picks", {}).get("flanco_central", "")) == "pozo_flanco_norte" else "norte"
+	var advice := ""
+	for pass_i in range(2):  ## el primero que todavía no se mostró en esta sesión; si ya se mostraron todos, se empieza otra vuelta (nunca el mismo dos veces seguidas)
+		for cand in cands:
+			var txt := str(cand).replace("{other}", other).replace("{name}", hz_name)
+			if not _shown_advice.has(txt):
+				advice = txt
+				break
+		if advice != "":
+			break
+		_shown_advice.clear()
+	if advice == "":
+		advice = str(cands[0]).replace("{other}", other).replace("{name}", hz_name)
+	_shown_advice[advice] = true
+	return {"cause": cause_text, "advice": advice, "cause_id": cause_id, "phase": phase, "when": t}
 
 ## Pista concreta del diario a partir de la 2.ª derrota seguida (la escalera de ayuda empieza por información, no por ventajas).
 func pista(rules: RefCounted) -> String:
@@ -454,6 +488,7 @@ func restore_checkpoint(rules: RefCounted) -> Dictionary:
 	data.attempts = int(data.attempts) + 1
 	rules.set_diary_marks(diary_marks())
 	rules.apply_mercy_now(int(data.defeats_in_row))
+	rules.reseed_retry(attempt_in_world())  ## ronda 4: reintentar desde el cruce no repite la misma secuencia de descargas
 	_cp_taken_attempt = int(data.attempts)  ## no pisar el punto de control con el mismo tramo
 	save_progress()
 	return {"ok": true, "reason": "Desde el cruce: el reconocimiento se conserva (%d:%02d)." % [int(rules.state.elapsed) / 60, int(rules.state.elapsed) % 60]}

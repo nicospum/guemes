@@ -11,6 +11,8 @@ var mem := {}
 var only_ui := false
 var trace := false
 var ui_seed := 1806
+var only_seed := -1  ## --seed=N: una sola semilla de la política de interfaz
+var naive := false  ## --naive: el «plan obvio» sin lectura del mapa (no sondea, no cubre con fuego, deja vencer las decisiones de cubierta)
 
 func _initialize() -> void:
 	for a in OS.get_cmdline_user_args():
@@ -20,6 +22,10 @@ func _initialize() -> void:
 			only_ui = true
 		elif a == "--trace":
 			trace = true
+		elif a.begins_with("--seed="):
+			only_seed = int(a.trim_prefix("--seed="))
+		elif a == "--naive":
+			naive = true
 		elif a.begins_with("--ui-seed="):
 			ui_seed = int(a.trim_prefix("--ui-seed="))
 	call_deferred("_run")
@@ -33,7 +39,7 @@ func _run() -> void:
 	for policy in ([] if only_ui else PLAY_POLICIES):
 		for sd in PLAY_SEEDS:
 			results.append(await _play(policy, sd))
-	for sd in UI_SEEDS:
+	for sd in (UI_SEEDS if only_seed < 0 else [only_seed]):
 		ui_seed = sd
 		results.append(await _play_ui())
 	var wins := results.filter(func(r): return r.status == "victory")
@@ -78,6 +84,8 @@ func _play(policy: String, seed_value: int = 1806) -> Dictionary:
 	var guard := 0
 	while r.state.status == "playing" and guard < 6000:
 		_policy_cfg(s)
+		if not (r.state.pending_choice as Dictionary).is_empty():  ## ronda 4: las políticas clásicas también deciden (como el mejor guion de tests/test_rules.gd)
+			r.resolve_choice(_bot_choice(r, r.state.pending_choice))
 		for k in range(4):
 			r.tick(0.25)
 			guard += 1
@@ -486,6 +494,8 @@ func _play_ui() -> Dictionary:
 	while r.state.status == "playing" and guard < 1500:
 		guard += 1
 		var t := float(r.state.elapsed)
+		if trace and not (r.state.get("pending_choice", {}) as Dictionary).is_empty():
+			print("    [pc] t=%d id=%s modal=%s" % [int(t), str(r.state.pending_choice.id), str(is_instance_valid(game.modal))])
 		await _ui_step(r, t)
 		if trace and int(t) % 30 == 0 and int(t) != int(mem.get("trace_t", -1)):
 			mem.trace_t = int(t)
@@ -496,11 +506,12 @@ func _play_ui() -> Dictionary:
 				line += " %s[%s %.0f,%.0f hp%d]" % [sc.id, sc.stage, sc.x, sc.z, sc.hp]
 			print("  t=%d cap=%.1f ammo=%d sig=%d auth=%s%s" % [int(t), r.state.capture, r.state.ammo, int(r.state.signals_left), str(r.state.advance_authorized), line])
 		await _advance(1.0)
+		await process_frame  ## un cuadro por paso: los diálogos diferidos (el mensajero, las decisiones de cubierta) se abren como en el juego real
 	game._process(0.1)
 	for i in range(3):
 		await process_frame
 	var rep: Dictionary = r.campaign_report()
-	var res := {"policy": "ui_real", "seed": ui_seed, "status": str(r.state.status), "t_s": snappedf(float(r.state.elapsed), 0.01), "route": str(rep.get("route", "")),
+	var res := {"policy": "ui_naive" if naive else "ui_real", "seed": ui_seed, "status": str(r.state.status), "t_s": snappedf(float(r.state.elapsed), 0.01), "route": str(rep.get("route", "")),
 		"capture_pct": snappedf(float(r.state.capture), 0.1), "outcome_title": str(rep.get("outcome_title", "")), "report_modal_open": is_instance_valid(game.modal),
 		"outcome_shown": game.outcome_shown, "stumbles": int(r.state.stats.stumbles), "loss_pct": snappedf(float(rep.get("loss_total_pct", 0.0)), 0.1), "boarded_at": snappedf(float(r.state.stats.boarded_at), 0.1), "defeat_cause": str(r.state.defeat_cause), "ui_inputs": clicks, "ui_log": ui_log.slice(0, 40)}
 	game.queue_free()
@@ -535,15 +546,73 @@ func _ui_move(id: String, pts: Array) -> bool:
 	await _key(KEY_ENTER)
 	return true
 
+## Ronda 4: las decisiones del mensajero y de la cubierta (misma elección que el mejor guion de tests/test_rules.gd, por los botones reales del diálogo).
+func _bot_choice(r, pc: Dictionary) -> String:
+	var st: Dictionary = r.state
+	var live: Array = []
+	for u in st.units:
+		if u.stage in ["boarding", "dismounting"] and float(u.strength) > 5.0:
+			live.append(u)
+	var avg_str := 100.0
+	var avg_fat := 0.0
+	var wounded := 0.0
+	if not live.is_empty():
+		avg_str = 0.0
+		for u in live:
+			avg_str += float(u.strength)
+			avg_fat += float(u.fatigue)
+			wounded += float(u.wounded)
+		avg_str /= live.size()
+		avg_fat /= live.size()
+	var ammo := int(st.ammo)
+	var left := float(st.deadline) - float(st.elapsed)
+	match str(pc.id):
+		"mensajero":
+			return "polvora"
+		"bote":
+			return "esconder"
+		"toldilla":
+			if ammo >= 6:
+				return "artilleria"
+			return "asalto" if avg_str >= 50.0 else "esperar"
+		"humo":
+			if avg_str >= 55.0:
+				return "avanzar"
+			return "curar" if wounded >= 10.0 else "esperar"
+		"pedrero":
+			return "silenciar" if ammo >= 6 else "cargar"
+		"parlamento":
+			return "exigir" if avg_str < 50.0 else "escuchar"
+		"polvora":
+			return "tomar" if (ammo <= 6 and avg_str >= 50.0) else "dejar"
+		"bandera":
+			return "arriar" if avg_str >= 50.0 else "seguir"
+		"cansancio":
+			if avg_fat >= 35.0 and left > 150.0:
+				return "respiro"
+			return "arengar" if avg_str >= 55.0 else "seguir"
+	return str(pc.default)
+
 func _ui_step(r, t: float) -> void:
 	## Misma estrategia que central_flank_pair de tests/test_rules.gd, pero con teclas, botones y clics reales:
 	## reunir, abastecer, señalar a Liniers, dos sondeos cautelosos por los carriles de los flancos, fuego de distraccion,
 	## puesta en posicion, ruta por el carril firme, abordaje, rechazar el contraataque y evacuar heridos.
+	var pcb: Dictionary = r.state.get("pending_choice", {})
+	if not pcb.is_empty():
+		var want := str(pcb.default) if naive else _bot_choice(r, pcb)
+		for o in pcb.options:
+			if str(o.id) == want and await _press(str(o.label), "decidir «%s»: %s" % [str(pcb.get("title", "mensajero")), str(o.id)]):
+				return
 	if is_instance_valid(game.modal):
 		await _press("Cerrar · Esc", "cerrar un panel")
 		return
 	var st: Dictionary = r.state
 	var boarded: bool = mem.has("boarded_any")
+	if naive and not mem.has("naive_init"):
+		mem.naive_init = true
+		mem.probe_n = true
+		mem.probe_s = true
+		mem.probes_done = true
 	# fuego de distraccion: un explorador sondeando o un grupo avanzando bajo el alcance del buque
 	var exposed := false
 	for sc in st.scouts:
@@ -553,7 +622,7 @@ func _ui_step(r, t: float) -> void:
 		if r.exposure_at(float(u.x), float(u.z)) > 0.0 and u.stage in ["moving", "dismounting", "boarding"]:
 			exposed = true
 	## Ronda 9: se cuida la pólvora para rechazar contraataques (piso de 8 tras gastar 8).
-	if exposed and int(st.ammo) >= 16 and float((st.get("fire_support", {}) as Dictionary).get("ready_at", 0.0)) <= t and t >= float(mem.get("fire_wait", 0.0)):
+	if exposed and not naive and int(st.ammo) >= 16 and float((st.get("fire_support", {}) as Dictionary).get("ready_at", 0.0)) <= t and t >= float(mem.get("fire_wait", 0.0)):
 		mem.fire_wait = t + 12.0
 		if await _press("Distraer con fuego", "fuego de distraccion"):
 			return

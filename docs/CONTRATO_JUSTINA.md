@@ -743,3 +743,46 @@ La lógica existe y está probada; falta pintarla. `main.gd` no la llama todaví
 6. **Tarjeta inicial**: usar `campaign.attempt_in_world()` / `campaign.is_retry()`; el texto «Intento N · anotaste M cosas» solo si `is_retry()`.
 7. **Parte de victoria**: `record_result()` ahora trae `score`, `best_score`, `new_best_score`, `objectives` [{id,label,done}], `new_objectives` (ids cumplidos por primera vez), `objectives_ever` / `objectives_total`. Mostrar el puntaje y los desafíos no cumplidos como razones para rejugar. Las líneas (`lines`) ya no se contradicen con el oro.
 8. **Pinza**: evento `info` con `tag: "pincer"` cuando dos grupos abordan por rutas distintas a la vez (un cartel corto basta).
+
+## 16. Ronda 4 de diversión (30-oct-2026, pista `mapa_reglas`): interfaz nueva para `ui_feel`
+
+Todo lo de abajo ya está en `scripts/game_rules.gd` / `scripts/campaign.gd` y se ejerce en `tests/test_rules.gd` (`_test_round4`). `main.gd` no se tocó: lo que sigue es lo que la UI debe pintar. Los guardados viejos cargan igual (los campos nuevos se completan solos). `map_version` sigue en 8.
+
+### 16.1 Número de intento y giro del intento
+- `CampaignProgress.begin_attempt(rules)` ahora llama `rules.set_attempt(attempt_in_world())`. Desde el **2.º intento de un mundo** la partida trae un **giro** (4 en `attempt_twists.list`: cañonero de guardia, dotación reforzada, viento del sudeste, refuerzo de la Plaza). El mundo (pozos, vado, variante de misión) NO cambia; cambian el fuego, los contraataques, la subida del río o los recursos, y la secuencia de azar de las descargas.
+- `rules.attempt_info()` → `{attempt, twist_id, twist_label, twist_consequence}`. A los 8 s sale un evento `kind: "mission"` con `field_event: "twist"` y el texto «Este intento: …». **UI:** mostrarlo igual que el aviso de la variante de misión (una línea), y poner `twist_label` en la tarjeta del intento N≥2.
+- `rules.reseed_retry(n)` lo llama `restore_checkpoint` («Desde el cruce»): mismo giro, otra secuencia de descargas.
+- El **vecino** (evento `hint`, `field_event: "vecino"`) ahora a veces se equivoca de lado (`attempt_twists.neighbor_lie_p` = 0,35, también en el 1.er intento). Cuando el sondeo lo desmiente sale un evento `hint` con `field_event: "vecino_mintio"`. El texto sigue diciendo «dato de oídas»: **UI:** no lo muestre como confirmado ni lo dibuje en el mapa.
+
+### 16.2 Decisiones de cubierta (mismo diálogo que el mensajero)
+- Con gente abordando se abren situaciones con 2-3 opciones (`boarding_decisions.deck`, mazo barajado por mundo e intento, una cada ~34 s) y una **decisión de remate** («La toldilla») al pasar el 62 % de captura. Se abren como el mensajero: `rules.state.pending_choice = {id, title, until, options:[{id,label,effects}], default}` y un evento `kind: "choice"` con `title`, `options`, `until`.
+- **UI (pedido):** `_choice_dialog` hoy titula siempre «Un mensajero»; usar `pending_choice.title`. Cada `label` ya dice su costo y su premio («Asalto a la toldilla (+20 % de captura, −14 de fuerza)»): no hace falta más texto. El reloj ya se detiene mientras se elige. `rules.resolve_choice(option_id)` devuelve `{ok, reason}` con un resumen de los efectos («+10 % de captura, −8 de fuerza repartidos»). Si no se elige en `timeout_s` (12 s en cubierta, 20 s el mensajero) se toma `default` (la opción pasiva, que casi siempre cuesta).
+- El mensajero salió a los **45 s** (antes 90) y tiene tercera opción «Dejarlo pasar (no ganás nada)», que es la que se toma si no se responde (20 s). Desde el **2.º intento** de un mundo, a los **15 s** llega además «Un bote del buque» (`id: "bote"`, 15 s de plazo, 3 respuestas: espantarlo −2 de munición y retrasa el siguiente tiro del buque 20 s; esconder a los exploradores, que no sondean 20 s; ignorarlo, que cuesta 1 de salud al explorador 1; por defecto se ignora): es la acción con riesgo de los primeros 30 s. Con los exploradores escondidos, `issue_scout` devuelve `{ok:false, reason:"Los exploradores siguen escondidos N s más…"}`. Los ids de cubierta son: `humo`, `pedrero`, `parlamento`, `polvora`, `bandera`, `cansancio`, `toldilla`.
+- `rules.capture_modifier()` → `{mult, seconds_left}` mientras una decisión o un estancamiento frena/acelera la captura (mult 1 = nada). **UI:** un chip «Captura ×0,4 · 22 s» junto a la barra de captura evita que parezca un error.
+
+### 16.3 Un solo reloj
+- `rules.main_clock()` → `{kind, label, seconds, urgent}`: `esperar` («El vado abre en»), `cargar` («Tenés para cargar»: hasta el punto sin retorno si nadie salió), `capturar` («El río sube en»: hasta el plazo una vez en marcha), `fin`. **UI:** mostrar SOLO este contador en el panel y en la línea AHORA (con el mismo número); el vado `abre/cierra` y el plazo largo pasan a «Detalles». La marca «sin retorno» de la barra ya usa `state.no_return_s`.
+
+### 16.4 Contraataques con consecuencias
+- `ship.capture.counter`: cada ~38 s (antes 45), daño 28 y −27 % de captura sin contestar; **dos seguidos sin contestar** estancan la captura 8 s y quiebran al grupo más débil (evento `warning`, `tag: "estancada"`); **al tercero** se pierde la cubierta (derrota, causa `cubierta`). El evento de cada fallo trae `unanswered` y `max_unanswered` (3): **UI:** contador «Sin contestar 1 de 3» junto al aviso del contraataque.
+- Rechazar sigue costando 3 de munición y conserva la captura.
+
+### 16.5 Derrotas nuevas y parte que enseña
+- Causas nuevas: `cubierta` (3 contraataques sin contestar) y `estancada` (la captura no supera su mejor marca en 90 s tras 100 s de abordaje; `outcome.stall`). Tienen título («Cubierta perdida», «Toma estancada»), causa, consejo y plantillas.
+- Con poca tropa y la toma lejos se abre la ventana del **último esfuerzo** (15 s) aunque no estén todos quebrados: evento `warning` con `tag: "last_effort"`; si vence, derrota inmediata (antes la partida se arrastraba minutos).
+- `rules.campaign_report()` trae `defeat_moment` `{t, phase ("preparativos"|"cruce"|"abordaje"), cause, capture, strength_left, stumble_id, stumble_name, stumble_t, stumbles, counter_hits, deck_defaults, boarded_at, tide, shaken}`, `attempt`, `twist_id`, `twist_label`, `deck_choices`, `deck_defaults`, `medal_loss_scale`.
+- `campaign.defeat_text(rules, rep)` devuelve `{cause, advice, cause_id, phase, when}`. La **causa nombra el momento y el lugar** («Perdiste en el cruce, a los 3:35: el pozo del flanco norte y el fuego del buque quebraron a tus grupos»); el **consejo rota** entre varios concretos y no repite hasta agotarlos. **UI:** reemplazar «Captura 0 % / Bajas 0 % / Tiempo» por `cause` + `advice` en grande y, debajo, una línea chica con los datos. Nada circular: ya no existe «Probá de nuevo con lo que anotaste».
+
+### 16.6 Medallas por mérito
+- `outcome.medals.gold.max_mercy_level` se quitó: el oro **no** depende de cuántos intentos llevás. En cambio los umbrales de bajas se multiplican por `medal_loss_scale` (1 / 0,95 / 0,88 / 0,8 según la ventaja de la experiencia): ayuda automática = un poco más de limpieza para la misma medalla. Umbrales: plata < 50 % y vado marcado; oro < 24 %, antes de 12:10 y sin baqueano/bajante/carga sin orden.
+- `record_result().lines` ya no dice «el oro queda para quien gana en los dos primeros intentos»; **UI:** el cartel principal debe celebrar («¡Buque tomado!») y las líneas son detalle.
+
+### 16.7 Otros números que cambiaron (todo sale del JSON)
+- Ventaja de la experiencia: el 1.er intento ya no trae colchón (fuego 100 %, sin sargento que rechace solo); niveles 1-3 más suaves.
+- Pozos sin reconocer: 52-58 de fuerza y 42-55 s de parada (antes 32-45 y 30-45 s).
+- Fuego del buque −15 % (5,6-8,4 por andanada), centro ×0,86; vado sur moja 6 de pólvora (antes 4); prima de captura del sur 1,0.
+- `time`: sin cambios; el mensajero y el vecino se movieron a 45 y 120 s para que nunca haya más de 90 s sin evento en los primeros 5 minutos.
+
+### 16.8 No hecho en esta pista
+- Nada de `main.gd`, `world_view.gd` ni shaders (interfaz/arte son de otras pistas).
+- JEV: no interviene en la Justina. Prueba en vivo aparte (consulta de Norte con la clave del perfil real): ver `docs/DISENO_REGLAS.md`, sección Ronda 4.

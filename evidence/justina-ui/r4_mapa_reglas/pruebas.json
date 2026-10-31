@@ -1,0 +1,13 @@
+{
+ "test_rules_completo": {
+  "archivo": "tfull4.txt",
+  "checks": 863,
+  "failures": []
+ },
+ "test_integration": {
+  "archivo": "ti1.txt",
+  "checks": 271,
+  "failures": []
+ },
+ "nota": "test_integration corrio antes de los ultimos ajustes de reglas (solo cambian numeros del JSON); ui_qa 239 comprobaciones sin fallas en 1280x720, 1920x1080 y 2560x1440; jev_contract_test 15 sin fallas; audio_runtime_test 17 con 1 falla (driver Dummy, aceptada)"
+}
