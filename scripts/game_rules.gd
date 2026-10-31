@@ -348,6 +348,7 @@ func _setup_justine() -> void:
 			"stumble_at": {}, "boarded_at": -1.0, "level_at_boarding": -1.0, "first_water_entry_at": -1.0},
 		"historical_note": str(m.texts.historical_note), "briefing": str(m.texts.briefing)})
 	_event(str(m.texts.objective), "objective")
+	_ensure_r4_fields()
 
 func _sector(id: String, title: String, x: float, z: float, neighbors: Array, known: bool, crates: int = 2) -> Dictionary:
 	return {"id": id, "name": title, "x": x, "z": z, "neighbors": neighbors, "known": known,
@@ -578,7 +579,7 @@ func _time_cfg() -> Dictionary:
 					out[k] = float(v.get(k, base[k]))
 	## Ronda 9: «Bajante generosa» estira el mínimo y el plazo.
 	var stretch := float(state.get("stretch_s", 0.0))
-	if stretch > 0.0:
+	if stretch != 0.0:  ## Ronda 4: un giro del intento puede ADELANTAR la subida del río (estiramiento negativo)
 		out = out.duplicate()
 		for k2 in ["low_hold_end_s", "rise_end_s", "deadline_s"]:
 			out[k2] = float(out[k2]) + stretch
@@ -791,6 +792,9 @@ func exposure_at(x: float, z: float) -> float:
 	var fm: Dictionary = mission().get("fire_mult", {})
 	if not fm.is_empty():
 		f *= float(fm.get("sur" if z >= SOUTH_ZONE_Z else "central", 1.0))
+	var tfm: Dictionary = twist().get("fire_mult", {})
+	if not tfm.is_empty():
+		f *= float(tfm.get("sur" if z >= SOUTH_ZONE_Z else "central", 1.0))
 	return f
 
 func _fire_support_active() -> bool:
@@ -1466,6 +1470,8 @@ func _scout_check(s: Dictionary, action: String, points: Array) -> Dictionary:
 		return _no("%s fue abatido y no recibe órdenes." % s.name)
 	if action == "recall":
 		return {"ok": true, "reason": "Disponible."}
+	if float(state.get("elapsed", 0.0)) < float(state.get("scouts_hold_until", 0.0)):
+		return _no("Los exploradores siguen escondidos %d s más (del bote del buque)." % ceili(float(state.scouts_hold_until) - float(state.elapsed)))
 	if action not in ["probe", "probe_careful", "mark_ford"]:
 		return _no("Orden de explorador desconocida.")
 	var a: Dictionary = map_data().actions[action]
@@ -1855,6 +1861,7 @@ func _ensure_r9_fields() -> void:
 
 func _justine_step(dt: float) -> void:
 	_ensure_r9_fields()
+	_ensure_r4_fields()
 	state.elapsed = float(state.elapsed) + dt
 	var elapsed := float(state.elapsed)
 	var m := map_data()
@@ -1939,9 +1946,10 @@ func _justine_step(dt: float) -> void:
 			_event("¡Pinza! Atacan a la vez por el centro y por el sur: la dotación no da abasto.", "info", {"tag": "pincer"})
 	if board_power > 0.0:
 		var cap: Dictionary = m.ship.capture
-		state.capture = minf(100.0, float(state.capture) + board_power * float(cap.rate_per_power_per_s) * _mercy("capture_mult") * dt)
+		state.capture = minf(100.0, float(state.capture) + board_power * float(cap.rate_per_power_per_s) * _mercy("capture_mult") * _cap_mult_now(elapsed) * float(twist().get("capture_mult", 1.0)) * dt)
 		state.crew_morale = maxf(0.0, float(state.crew_morale) - board_power * float(cap.morale_loss_per_power_per_s) * dt)
 	_step_counter()
+	_bd_step(elapsed)
 	_volley_step(elapsed)
 	var le: Dictionary = state.last_effort
 	if float(state.capture) >= float(m.outcome.victory.capture_pct):
@@ -1960,15 +1968,47 @@ func _justine_step(dt: float) -> void:
 			_finish("defeat", "Las agrupaciones se dispersaron antes de asegurar la captura.", "dispersos")
 	elif _is_doomed(alive_strength):
 		_finish("defeat", "Quedaron muy pocos efectivos en pie para completar la toma: no hay forma de capturar el buque.", "dispersos")
+	elif _is_weak(alive_strength) and not bool(le.used):
+		## Ronda 4: con poca tropa y la toma lejos, el último esfuerzo es la última carta: se abre su ventana (como cuando todos están quebrados) y si vence, se pierde ya.
+		var lcfg2: Dictionary = m.outcome.last_effort
+		if float(le.until) < 0.0:
+			le.until = elapsed + float(lcfg2.window_s)
+			_event("¡Queda muy poca tropa! Tenés %d s para el último esfuerzo (voluntarios de reserva) o la toma se pierde." % roundi(float(lcfg2.window_s)), "warning", {"tag": "last_effort", "until": le.until})
+		elif elapsed >= float(le.until):
+			_finish("defeat", "Quedaron muy pocos efectivos en pie y el último esfuerzo no se usó a tiempo.", "dispersos")
+	elif _is_stalled(elapsed):
+		_finish("defeat", "La toma se estancó: la dotación recupera la cubierta más rápido de lo que avanzan los grupos.", "estancada")
 	elif elapsed >= float(state.deadline):
 		_finish("defeat", "El plazo se agotó sin asegurar el buque.", "plazo")
 	elif elapsed >= float(state.get("no_return_s", m.time.no_return_s)) and not _has_advanced():
 		_finish("defeat", "Pasó el punto sin retorno: nadie cargó contra el buque a tiempo.", "inaccion")
-	if fighters > 0 and not bool(le.used):
+	if fighters > 0 and not bool(le.used) and not _is_weak(alive_strength):
 		le.until = -1.0
 	if state.status == "playing" and elapsed >= float(state.deadline):
 		_finish("defeat", "El plazo se agotó sin asegurar el buque.", "plazo")
 	state.state_version = int(state.state_version) + 1
+
+## Toma estancada (ronda 4): ver outcome.stall. Lleva la mejor marca de captura y cuándo se alcanzó.
+func _is_stalled(elapsed: float) -> bool:
+	var cfg: Dictionary = map_data().outcome.get("stall", {})
+	if cfg.is_empty():
+		return false
+	var sp: Dictionary = state.stall
+	if float(state.capture) > float(sp.peak) + 0.5:
+		sp.peak = float(state.capture)
+		sp.t = elapsed
+		return false
+	var ba := float(state.stats.boarded_at)
+	if ba < 0.0 or elapsed - ba < float(cfg.min_boarded_s) or float(state.capture) >= float(cfg.max_capture_pct):
+		return false
+	return elapsed - float(sp.t) >= float(cfg.window_s)
+
+## Poca tropa en pie y la toma todavía lejos (los umbrales de outcome.doomed), sin mirar si queda último esfuerzo.
+func _is_weak(alive_strength: float) -> bool:
+	var cfg: Dictionary = map_data().outcome.get("doomed", {})
+	if cfg.is_empty() or float(state.elapsed) < 60.0:
+		return false
+	return alive_strength < float(cfg.total_strength_below) and float(state.capture) < float(cfg.capture_below_pct)
 
 ## Derrota inevitable (ronda 2): poca fuerza total, captura lejos y sin último esfuerzo posible. Evita que una partida perdida se arrastre 10 minutos más.
 func _is_doomed(alive_strength: float) -> bool:
@@ -2050,23 +2090,35 @@ func _no_return_warnings(elapsed: float) -> void:
 	var nr := float(state.get("no_return_s", map_data().time.no_return_s))
 	_event("Liniers: «Son las %s y nadie cargó. A las %s ya no hay tiempo de alcanzar el buque.»" % [_mmss(elapsed), _mmss(nr)], "liniers", {"field_event": "sin_retorno_%d" % n, "no_return_s": nr})
 
-func _flank_hint() -> String:
+func _flank_real() -> String:
 	return "norte" if str(state.get("hidden", {}).get("picks", {}).get("flanco_central", "")) == "pozo_flanco_norte" else "sur"
+
+## El aviso del vecino es de oídas: desde el 2.º intento de un mundo puede equivocarse de lado (attempt_twists.neighbor_lie_p). El sondeo y el diario nunca mienten.
+func _flank_hint() -> String:
+	var real := _flank_real()
+	if bool(state.get("neighbor_lie", false)):
+		return "sur" if real == "norte" else "norte"
+	return real
 
 ## Eventos de campo programados (C19). Si la partida se carga a mitad, los ya disparados no se repiten.
 func _field_events(elapsed: float) -> void:
 	var done: Array = state.events_done
+	if str(state.get("twist", "")) != "" and elapsed >= 8.0 and "twist" not in done:
+		done.append("twist")
+		var tw := twist()
+		_event("Este intento: %s. %s" % [str(tw.get("label", "")), str(tw.get("consequence", ""))], "mission", {"field_event": "twist", "twist": str(tw.get("id", ""))})
 	for ev in map_data().get("field_events", {}).get("list", []):
 		var id := str(ev.id)
 		if id in done or elapsed < float(ev.t):
 			continue
 		done.append(id)
+		if ev.has("min_attempt") and int(state.get("attempt", 0)) > 0 and int(state.attempt) < int(ev.min_attempt):
+			continue  ## ronda 4: el primer intento de un mundo es el del tutorial; el bote del buque llega desde el 2.º
 		var mis := mission()
 		var txt := str(ev.text).replace("{mission_label}", str(mis.get("label", "un día como cualquier otro"))).replace("{mission_consequence}", str(mis.get("consequence", ""))).replace("{hint_flank}", _flank_hint())
 		match str(ev.kind):
 			"choice":
-				state.pending_choice = {"id": id, "until": elapsed + float(ev.timeout_s), "options": (ev.options as Array).duplicate(true), "default": str(ev.default)}
-				_event(txt + " (Se toma «%s» si no elegís en %d s.)" % [str(ev.default), roundi(float(ev.timeout_s))], "choice", {"field_event": id, "options": (ev.options as Array).duplicate(true), "until": elapsed + float(ev.timeout_s)})
+				_open_choice(id, str(ev.get("title", "Un mensajero")), txt, ev.options, str(ev.default), float(ev.timeout_s))
 			"reinforce":
 				state.volunteers_pool = float(state.volunteers_pool) + float(ev.get("volunteers", 0.0))
 				_event(txt, "reinforce", {"field_event": id})
@@ -2084,6 +2136,12 @@ func resolve_choice(option_id: String, by_timeout: bool = false) -> Dictionary:
 	for o in pc.options:
 		if str(o.id) == option_id:
 			var msg := ""
+			if o.has("effects"):
+				msg = _apply_effects(o.effects)
+				if str(pc.id) not in ["mensajero", "bote"]:  ## solo cuentan las decisiones de cubierta
+					state.stats.deck_choices = int(state.stats.get("deck_choices", 0)) + 1
+					if by_timeout:
+						state.stats.deck_defaults = int(state.stats.get("deck_defaults", 0)) + 1
 			if o.has("ammo"):
 				var got := mini(int(o.ammo), int(state.ammo_max) - int(state.ammo))
 				state.ammo = int(state.ammo) + got
@@ -2091,12 +2149,241 @@ func resolve_choice(option_id: String, by_timeout: bool = false) -> Dictionary:
 			if o.has("volunteers"):
 				state.volunteers_pool = float(state.volunteers_pool) + float(o.volunteers)
 				msg = "+%d voluntarios en la reserva" % int(o.volunteers)
+			if msg == "" or msg == "sin efecto":
+				msg = "sin cambios"
 			state.choices_made[str(pc.id)] = option_id
 			state.stats.choices = int(state.stats.choices) + 1
 			state.pending_choice = {}
 			_event("%s%s: %s." % ["Sin respuesta: " if by_timeout else "Elegiste ", str(o.label), msg], "choice_done", {"field_event": str(pc.id), "option": option_id})
 			return {"ok": true, "reason": msg}
 	return _no("Opción desconocida.")
+
+# ---------------------------------------------------------------------------
+# Ronda 4 (diversión): número de intento, giro del intento, decisiones del abordaje, reloj principal, momento de la derrota
+
+## Completa los campos de la ronda 4 (guardados viejos y partidas nuevas por igual).
+func _ensure_r4_fields() -> void:
+	if state.has("bd"):
+		return
+	state.attempt = int(state.get("attempt", 0))
+	state.twist = str(state.get("twist", ""))
+	state.neighbor_lie = bool(state.get("neighbor_lie", false))
+	state.bd = {"next_at": -1.0, "n": 0, "order": [], "gate": "closed"}
+	state.stall = {"peak": float(state.get("capture", 0.0)), "t": float(state.get("elapsed", 0.0))}
+	state.cap_mult = {"mult": 1.0, "until": -1.0}
+	state.last_stumble = {}
+	state.defeat_moment = {}
+	if state.has("counter") and not (state.counter as Dictionary).has("miss_streak"):
+		state.counter.miss_streak = 0
+	if state.has("stats"):
+		for k in ["deck_choices", "deck_defaults", "gate_cost"]:
+			if not state.stats.has(k):
+				state.stats[k] = 0
+
+static func _h2(a: int, b: int, salt: int = 0) -> int:
+	var x: int = (absi(a) * 1103515245 + absi(b) * 12820163 + salt * 69069 + 12345) % 2147483648
+	for _k in range(4):
+		x = (x * 1664525 + 1013904223) % 2147483648
+	return (x >> 7) ^ (x >> 15)
+
+func twist() -> Dictionary:
+	var id := str(state.get("twist", ""))
+	if id == "":
+		return {}
+	for t in map_data().get("attempt_twists", {}).get("list", []):
+		if str(t.id) == id:
+			return t
+	return {}
+
+func _twist_index(n: int, count: int) -> int:
+	var idx := _h2(int(state.seed), n, 11) % count
+	if n > 2 and idx == _h2(int(state.seed), n - 1, 11) % count:
+		idx = (idx + 1) % count
+	return idx
+
+## Fija el número de intento DENTRO del mundo actual (1 = primer intento). Desde el 2.º, cada intento trae un giro anunciado (otra oleada, otro fuego, otro río),
+## una variación del azar de la partida y un vecino que puede equivocarse: el mundo (pozos, vado, variante de misión) es el mismo, la partida no. Solo antes de la primera orden.
+func set_attempt(n: int) -> Dictionary:
+	if state.get("scenario", "") != "justine" or float(state.get("elapsed", 0.0)) > 0.0:
+		return {}
+	_ensure_r9_fields()
+	_ensure_r4_fields()
+	state.attempt = maxi(0, n)
+	state.twist = ""
+	state.neighbor_lie = false
+	var cfg: Dictionary = map_data().get("attempt_twists", {})
+	var list: Array = cfg.get("list", [])
+	state.neighbor_lie = n >= 1 and float(_h2(int(state.seed), n, 5) % 1000) / 1000.0 < float(cfg.get("neighbor_lie_p", 0.0))
+	if n >= int(cfg.get("first_attempt", 2)) and not list.is_empty():
+		var tw: Dictionary = list[_twist_index(n, list.size())]
+		state.twist = str(tw.id)
+		state.rng_state = maxi(1, _h2(int(state.seed), n, 3) % 2147483646)
+		var stretch := float(tw.get("stretch_s", 0.0))
+		if stretch != 0.0:
+			state.stretch_s = float(state.get("stretch_s", 0.0)) + stretch
+			state.deadline = float(map_data().time.deadline_s) + float(state.stretch_s)
+		state.ammo = clampi(int(state.ammo) + int(tw.get("ammo_delta", 0)), 0, int(state.ammo_max))
+		state.volunteers_pool = maxf(0.0, float(state.volunteers_pool) + float(tw.get("volunteers_delta", 0.0)))
+		state.next_volley = float(map_data().ship.fire.volley_interval_s) * float(mission().get("volley_mult", 1.0)) * float(tw.get("volley_mult", 1.0))
+	return {"attempt": state.attempt, "twist": state.twist}
+
+## Reintento desde un punto de control: mismo mundo y mismo giro, pero otra secuencia de azar (el fuego del buque no repite las mismas descargas).
+func reseed_retry(n: int) -> void:
+	if state.get("scenario", "") != "justine":
+		return
+	_ensure_r4_fields()
+	state.attempt = maxi(0, n)
+	state.rng_state = maxi(1, _h2(int(state.seed), n, 17 + int(float(state.get("elapsed", 0.0)))) % 2147483646)
+
+func attempt_info() -> Dictionary:
+	var tw := twist()
+	return {"attempt": int(state.get("attempt", 0)), "twist_id": str(state.get("twist", "")), "twist_label": str(tw.get("label", "")), "twist_consequence": str(tw.get("consequence", ""))}
+
+func _cap_mult_now(elapsed: float) -> float:
+	var cm: Dictionary = state.get("cap_mult", {})
+	if cm.is_empty() or elapsed >= float(cm.get("until", -1.0)):
+		return 1.0
+	return float(cm.mult)
+
+## Modificador activo de la velocidad de captura (decisiones del abordaje, estancamiento): {mult, seconds_left}; mult 1 = ninguno. La interfaz puede rotular «Captura frenada/acelerada».
+func capture_modifier() -> Dictionary:
+	var cm: Dictionary = state.get("cap_mult", {})
+	var left := float(cm.get("until", -1.0)) - float(state.get("elapsed", 0.0))
+	if cm.is_empty() or left <= 0.0:
+		return {"mult": 1.0, "seconds_left": 0.0}
+	return {"mult": float(cm.mult), "seconds_left": left}
+
+## Un solo contador principal para la interfaz (lo que el jugador tiene que mirar): {kind, label, seconds, urgent}.
+## «esperar»: hasta que abre el vado; «cargar»: hasta el punto sin retorno si nadie avanzó; «capturar»: hasta el plazo del río una vez en marcha.
+func main_clock() -> Dictionary:
+	if state.get("scenario", "") != "justine" or state.get("status", "") != "playing":
+		return {"kind": "fin", "label": "", "seconds": 0.0, "urgent": false}
+	var elapsed := float(state.elapsed)
+	var left_deadline := maxf(0.0, float(state.deadline) - elapsed)
+	var nr := float(state.get("no_return_s", map_data().time.no_return_s))
+	if not _has_advanced():
+		var bp := board_point()
+		var fw := ford_window(bp.x, bp.y, true)
+		if float(fw.opens_at) >= 0.0 and elapsed < float(fw.opens_at) - 0.5:
+			return {"kind": "esperar", "label": "El vado abre en", "seconds": float(fw.opens_at) - elapsed, "urgent": false}
+		return {"kind": "cargar", "label": "Tenés para cargar", "seconds": maxf(0.0, nr - elapsed), "urgent": nr - elapsed < 90.0}
+	return {"kind": "capturar", "label": "El río sube en", "seconds": left_deadline, "urgent": left_deadline < 90.0}
+
+## Abre una elección (mensajero, decisiones del abordaje). Misma forma que la del mensajero: la interfaz la dibuja igual; `title` es nuevo (opcional).
+func _open_choice(id: String, title: String, text: String, options: Array, default_id: String, timeout_s: float) -> void:
+	var elapsed := float(state.elapsed)
+	state.pending_choice = {"id": id, "title": title, "until": elapsed + timeout_s, "options": options.duplicate(true), "default": default_id}
+	var dl := default_id
+	for o in options:
+		if str(o.id) == default_id:
+			dl = str(o.label)
+	_event(text + " (Se toma «%s» si no elegís en %d s.)" % [dl, roundi(timeout_s)], "choice", {"field_event": id, "title": title, "options": options.duplicate(true), "until": elapsed + timeout_s})
+
+func _apply_effects(fx: Dictionary) -> String:
+	var parts: Array = []
+	var elapsed := float(state.elapsed)
+	if fx.has("needs_ammo") and int(state.ammo) < int(fx.needs_ammo):
+		return "no alcanzó la munición (hacían falta %d): no pasó nada" % int(fx.needs_ammo)
+	if fx.has("ammo"):
+		var got := clampi(int(state.ammo) + int(fx.ammo), 0, int(state.ammo_max)) - int(state.ammo)
+		state.ammo = int(state.ammo) + got
+		if got < 0:
+			state.stats.ammo_used = int(state.stats.ammo_used) - got
+		parts.append("%s%d de munición" % ["+" if got >= 0 else "−", absi(got)])
+	var live := _boarders()
+	if fx.has("capture"):
+		var before := float(state.capture)
+		state.capture = clampf(before + float(fx.capture), 0.0, 100.0)
+		parts.append("%s%.0f %% de captura" % ["+" if float(fx.capture) >= 0 else "−", absf(float(state.capture) - before)])
+	if fx.has("strength_all") and not live.is_empty():
+		var each := float(fx.strength_all) / float(live.size())
+		for u in live:
+			u.strength = clampf(float(u.strength) + each, float(map_data().outcome.routed_strength_threshold) + 1.0, 100.0)
+			if each < 0.0:
+				state.stats.melee_loss = float(state.stats.melee_loss) - each
+				u.wounded = minf(100.0, float(u.wounded) - each * float(map_data().ship.capture.wounded_share))
+		parts.append("%s%.0f de fuerza repartidos" % ["+" if float(fx.strength_all) >= 0 else "−", absf(float(fx.strength_all))])
+	if fx.has("fatigue_all"):
+		for u in live:
+			u.fatigue = clampf(float(u.fatigue) + float(fx.fatigue_all), 0.0, 100.0)
+		parts.append("%s%.0f de fatiga" % ["+" if float(fx.fatigue_all) >= 0 else "−", absf(float(fx.fatigue_all))])
+	if fx.has("crew_morale"):
+		state.crew_morale = clampf(float(state.crew_morale) + float(fx.crew_morale), 0.0, 100.0)
+		parts.append("ánimo de la dotación %s%.0f" % ["+" if float(fx.crew_morale) >= 0 else "−", absf(float(fx.crew_morale))])
+	if fx.has("wounded_heal"):
+		var back := 0.0
+		for u in live:
+			var b := float(u.wounded) * float(fx.wounded_heal) * float(map_data().ship.capture.evacuate_recover)
+			u.strength = minf(100.0, float(u.strength) + b)
+			u.wounded = float(u.wounded) * (1.0 - float(fx.wounded_heal))
+			back += b
+		state.stats.wounded_recovered = float(state.stats.wounded_recovered) + back
+		parts.append("+%.0f de fuerza (heridos atendidos)" % back)
+	if fx.has("cap_mult"):
+		var cm: Array = fx.cap_mult
+		state.cap_mult = {"mult": float(cm[0]), "until": elapsed + float(cm[1])}
+		parts.append("captura ×%s durante %d s" % [str(snappedf(float(cm[0]), 0.01)).replace(".", ","), roundi(float(cm[1]))])
+	if fx.has("scouts_hold_s"):
+		state.scouts_hold_until = elapsed + float(fx.scouts_hold_s)
+		parts.append("los exploradores no salen durante %d s" % roundi(float(fx.scouts_hold_s)))
+	if fx.has("volley_delay_s"):
+		state.next_volley = maxf(float(state.next_volley), elapsed) + float(fx.volley_delay_s)
+		parts.append("el buque tarda %d s más en disparar" % roundi(float(fx.volley_delay_s)))
+	if fx.has("scout_hp"):
+		var sc1: Dictionary = get_scout("scout_1")
+		if not sc1.is_empty() and int(sc1.hp) > 0:
+			sc1.hp = maxi(1, int(sc1.hp) + int(fx.scout_hp))
+			parts.append("%s %s%d de salud" % [str(sc1.name), "+" if int(fx.scout_hp) >= 0 else "−", absi(int(fx.scout_hp))])
+	if fx.has("counter_delay_s") and float(state.counter.next_at) >= 0.0:
+		state.counter.next_at = float(state.counter.next_at) + float(fx.counter_delay_s)
+		parts.append("el próximo contraataque tarda %d s más" % roundi(float(fx.counter_delay_s)))
+	if parts.is_empty():
+		return "sin efecto"
+	return ", ".join(parts)
+
+## Decisiones del abordaje (ronda 4): con gente en cubierta se abren, una cada ~35 s, situaciones con 2-3 opciones que cuestan algo y rinden algo.
+## El orden del mazo cambia en cada intento. Y al pasar cierta captura la dotación se atrinchera en la toldilla: hay que decidir cómo rematar o la toma se enlentece.
+func _bd_step(elapsed: float) -> void:
+	var cfg: Dictionary = map_data().get("boarding_decisions", {})
+	if cfg.is_empty() or state.get("status", "") != "playing":
+		return
+	var bd: Dictionary = state.bd
+	if bool(bd.get("off", false)):
+		return  ## solo las pruebas de unidad lo apagan (aíslan el cuerpo a cuerpo, el fuego o la captura)
+	var boarders := _boarders()
+	if boarders.is_empty():
+		bd.next_at = -1.0
+		return
+	if not (state.pending_choice as Dictionary).is_empty():
+		return
+	var gate: Dictionary = cfg.get("gate", {})
+	if not gate.is_empty() and str(bd.gate) == "closed" and float(state.capture) >= float(gate.capture_pct):
+		bd.gate = "done"
+		_open_choice("toldilla", str(gate.title), str(gate.text), gate.options, str(gate.default), float(gate.timeout_s))
+		return
+	if float(bd.next_at) < 0.0:
+		bd.next_at = elapsed + float(cfg.first_after_boarding_s)
+		return
+	if elapsed < float(bd.next_at):
+		return
+	var deck: Array = cfg.get("deck", [])
+	if deck.is_empty():
+		return
+	if (bd.order as Array).is_empty():
+		var idx: Array = range(deck.size())
+		var rs := _h2(int(state.seed), int(state.get("attempt", 0)), 9)
+		for i in range(idx.size() - 1, 0, -1):  ## barajado reproducible por (mundo, intento)
+			rs = (rs * 1103515245 + 12345) % 2147483648
+			var j := (rs >> 8) % (i + 1)
+			var tmp = idx[i]
+			idx[i] = idx[j]
+			idx[j] = tmp
+		bd.order = idx
+	var order: Array = bd.order
+	var pick: Dictionary = deck[int(order[int(bd.n) % order.size()])]
+	bd.n = int(bd.n) + 1
+	bd.next_at = elapsed + float(cfg.interval_s) + (_random() * 2.0 - 1.0) * float(cfg.jitter_s)
+	_open_choice(str(pick.id), str(pick.title), str(pick.text), pick.options, str(pick.default), float(pick.get("timeout_s", cfg.timeout_s)))
 
 ## Ventaja de la experiencia (ronda 2): multiplicadores por racha de derrotas. Nunca oculta: el parte y un aviso del segundo 0 la muestran.
 func _mercy_for(streak: int) -> Dictionary:
@@ -2226,11 +2513,11 @@ func _step_counter() -> void:
 	c.active = false
 	c.count = int(c.count) + 1
 	var jitter := (_random() * 2.0 - 1.0) * float(cfg.jitter_s)
-	c.next_at = elapsed + float(cfg.interval_s) + jitter
+	c.next_at = elapsed + float(cfg.interval_s) * float(twist().get("counter_interval_mult", 1.0)) + jitter
 	var live := _boarders()
 	if live.is_empty():
 		return
-	var dmg := float(cfg.damage) * mult * _mercy("counter_mult")
+	var dmg := float(cfg.damage) * mult * _mercy("counter_mult") * float(twist().get("counter_damage_mult", 1.0))
 	var share := dmg / float(live.size())
 	var share_w := float(map_data().ship.capture.wounded_share)
 	for u in live:
@@ -2247,12 +2534,30 @@ func _step_counter() -> void:
 				weakest = lu
 		if float(weakest.strength) <= float(map_data().outcome.shaken.threshold) + 20.0 and float(weakest.strength) > float(map_data().outcome.routed_strength_threshold):
 			weakest.strength = minf(float(weakest.strength), float(map_data().outcome.shaken.threshold))
+	## Ronda 4: dos contraataques seguidos sin contestar estancan la toma (la dotación recupera la cubierta) y quiebran al grupo más débil.
+	if bool(c.answered):
+		c.miss_streak = 0
+	else:
+		c.miss_streak = int(c.get("miss_streak", 0)) + 1
+		var esc: Dictionary = cfg.get("escalation", {})
+		if not esc.is_empty() and int(c.miss_streak) >= int(esc.get("after_misses", 2)):
+			state.cap_mult = {"mult": float(esc.get("capture_mult", 0.0)), "until": elapsed + float(esc.get("stall_s", 8.0))}
+			var wk: Dictionary = live[0]
+			for lu2 in live:
+				if float(lu2.strength) < float(wk.strength):
+					wk = lu2
+			if float(wk.strength) > float(map_data().outcome.shaken.threshold):
+				wk.strength = float(map_data().outcome.shaken.threshold)
+			_event("Dos contraataques sin contestar: la dotación recupera la cubierta y la toma se estanca %d s." % roundi(float(esc.get("stall_s", 8.0))), "warning", {"tag": "estancada"})
 	if bool(c.answered):
 		state.stats.counter_repelled = int(state.stats.counter_repelled) + 1
 		_event("El contraataque se rechaza: −%.0f de fuerza repartidos y la captura cede %.1f %%." % [dmg, cap_loss], "counter", {"tag": str(cfg.tag)})
 	else:
 		state.stats.counter_hits = int(state.stats.counter_hits) + 1
-		_event("El contraataque no fue contestado: −%.0f de fuerza repartidos y la captura retrocede %.0f %%." % [dmg, cap_loss], "warning", {"tag": str(cfg.tag)})
+		var maxu := int(cfg.get("max_unanswered", 0))
+		_event("El contraataque no fue contestado: −%.0f de fuerza repartidos y la captura retrocede %.0f %%.%s" % [dmg, cap_loss, (" Van %d de %d: al último perdés la cubierta." % [int(state.stats.counter_hits), maxu]) if maxu > 0 else ""], "warning", {"tag": str(cfg.tag), "unanswered": int(state.stats.counter_hits), "max_unanswered": maxu})
+		if maxu > 0 and int(state.stats.counter_hits) >= maxu and float(state.capture) < 95.0:
+			_finish("defeat", "La dotación recuperó la cubierta: dejaste pasar %d contraataques sin contestar." % maxu, "cubierta")
 
 func _account_exposure(dt: float) -> void:
 	for u in state.units:
@@ -2513,6 +2818,9 @@ func _touch_hazards(p: Vector2, reach: float) -> void:
 			state.hazards_found.append(str(hz.id))
 			changed = true
 			_event("Se descubre %s." % str(hz.name), "recon", {"pos": {"x": c.x, "z": c.y}, "tag": str(hz.tag)})
+			if bool(state.get("neighbor_lie", false)) and str(hz.id).begins_with("pozo_flanco") and "vecino" in state.events_done and "vecino_mintio" not in state.events_done:
+				state.events_done.append("vecino_mintio")
+				_event("El vecino se equivocó de lado: el pozo está al %s. Un dato de oídas no reemplaza al sondeo." % _flank_real(), "hint", {"field_event": "vecino_mintio"})
 	for fd in m.fords:
 		var d := INF
 		if fd.has("centerline"):
@@ -2590,6 +2898,11 @@ func _stumble(u: Dictionary, cur: Vector2, nxt: Vector2) -> void:
 	state.stats.stumbles = int(state.stats.stumbles) + 1
 	state.stats.horses_lost = float(state.stats.horses_lost) + float(hz_cfg.strength_loss) * smult
 	state.stats.stumble_at[hz_id] = int(state.stats.stumble_at.get(hz_id, 0)) + 1
+	var hz_name := hz_id
+	for hz2 in map_data().hazards:
+		if str(hz2.id) == hz_id:
+			hz_name = str(hz2.name)
+	state.last_stumble = {"id": hz_id, "name": hz_name, "t": float(state.elapsed), "unit": str(u.name)}
 	var dir := (nxt - cur).normalized() if nxt.distance_to(cur) > 0.001 else Vector2(1, 0)
 	var lane_len := float(map_data().knowledge.probe_lane_width_m)
 	var tip := cur + dir * lane_len
@@ -2791,7 +3104,7 @@ func _volley_step(elapsed: float) -> void:
 
 func _volley_reschedule() -> void:
 	var fire: Dictionary = map_data().ship.fire
-	var gap := float(fire.volley_interval_s) * float(mission().get("volley_mult", 1.0))
+	var gap := float(fire.volley_interval_s) * float(mission().get("volley_mult", 1.0)) * float(twist().get("volley_mult", 1.0))
 	if _fire_support_active():
 		gap += float(map_data().actions.distract_fire.volley_interval_add_s)
 	state.next_volley = float(state.next_volley) + gap
@@ -2915,12 +3228,20 @@ func _medal(won: bool, loss_pct: float, assists_used: Array) -> String:
 		return ""
 	var cfg: Dictionary = map_data().outcome.medals
 	var marked_ok: bool = float(state.stats.marked_m) >= float(cfg.silver.ford_marked_min_m)
-	var mercy_ok: bool = int(state.get("mercy", {}).get("level", 0)) <= int(cfg.gold.get("max_mercy_level", 99))
-	if loss_pct < float(cfg.gold.loss_pct_below) and float(state.elapsed) < float(cfg.gold.time_below_s) and assists_used.is_empty() and not bool(state.get("on_own_charge", false)) and mercy_ok:
+	## Ronda 4: la medalla premia lo que hiciste, no cuántos intentos llevás. La ventaja de la experiencia baja el castigo, así que a mayor racha se exige
+	## un poco menos de bajas para la misma medalla (la tropa llega más entera y no es mérito del jugador): medal_loss_scale.
+	var k := medal_loss_scale()
+	if loss_pct < float(cfg.gold.loss_pct_below) * k and float(state.elapsed) < float(cfg.gold.time_below_s) and assists_used.is_empty() and not bool(state.get("on_own_charge", false)):
 		return "oro"
-	if loss_pct < float(cfg.silver.loss_pct_below) and marked_ok:
+	if loss_pct < float(cfg.silver.loss_pct_below) * k and marked_ok:
 		return "plata"
 	return "bronce"
+
+func medal_loss_scale() -> float:
+	var sc: Array = map_data().outcome.medals.get("loss_scale_by_mercy", [])
+	if sc.is_empty():
+		return 1.0
+	return float(sc[clampi(int(state.get("mercy", {}).get("level", 0)), 0, sc.size() - 1)])
 
 ## Desafíos opcionales y puntaje (ronda 3). Solo cuentan al ganar. Devuelve {list:[{id,label,done}], done:[ids], score}.
 func _objectives(won: bool, loss_pct: float, assists_used: Array) -> Dictionary:
@@ -2930,7 +3251,7 @@ func _objectives(won: bool, loss_pct: float, assists_used: Array) -> Dictionary:
 	for o in cfg.get("list", []):
 		var ok := won
 		if ok and o.has("loss_pct_below"):
-			ok = loss_pct < float(o.loss_pct_below)
+			ok = loss_pct < float(o.loss_pct_below) * medal_loss_scale()
 		if ok and o.has("time_below_s"):
 			ok = float(state.elapsed) < float(o.time_below_s)
 		if ok and o.has("max_stumbles"):
@@ -2975,6 +3296,10 @@ func campaign_report() -> Dictionary:
 			title = "Grupos dispersos"
 		"retirada":
 			title = "Retirada general"
+		"estancada":
+			title = "Toma estancada"
+		"cubierta":
+			title = "Cubierta perdida"
 	if state.status == "victory":
 		title = "Buque capturado"
 	var cs := float(st.bank_s.central)
@@ -3014,6 +3339,8 @@ func campaign_report() -> Dictionary:
 		"counter_hits": int(st.counter_hits), "counter_repelled": int(st.counter_repelled), "counter_loss": float(st.counter_loss),
 		"evacuations": int(st.evacuations), "wounded_recovered": float(st.wounded_recovered), "halted_by_expiry": int(st.halted_by_expiry),
 		"hidden_picks": (state.get("hidden", {}).get("picks", {}) as Dictionary).duplicate(true),
+		"attempt": int(state.get("attempt", 0)), "twist_id": str(state.get("twist", "")), "twist_label": str(twist().get("label", "")), "deck_choices": int(st.get("deck_choices", 0)), "deck_defaults": int(st.get("deck_defaults", 0)),
+		"defeat_moment": (state.get("defeat_moment", {}) as Dictionary).duplicate(true), "medal_loss_scale": medal_loss_scale(),
 		"probe_m": float(st.probe_m), "marked_m": float(st.marked_m), "stumbles": int(st.stumbles), "ammo_used": int(st.ammo_used),
 		"balizas_used": int(st.balizas_used), "fire_support_uses": int(st.fire_support_uses), "scouts_lost": int(st.scouts_lost),
 		"horses_lost": float(st.horses_lost), "melee_loss": float(st.melee_loss), "drowned": float(st.drowned),
@@ -3343,11 +3670,31 @@ func _random() -> float:
 	state.rng_state = (int(state.rng_state) * 48271) % 2147483647
 	return float(state.rng_state) / 2147483647.0
 
+## Dónde y cuándo se perdió (ronda 4): lo que el parte de derrota cuenta en una frase. phase: preparativos | cruce | abordaje.
+func _moment(cause: String) -> Dictionary:
+	var st: Dictionary = state.stats
+	var phase := "preparativos"
+	if float(st.boarded_at) >= 0.0:
+		phase = "abordaje"
+	elif _has_advanced():
+		phase = "cruce"
+	var alive_strength := 0.0
+	for u in state.units:
+		if str(u.stage) != "routed":
+			alive_strength += maxf(0.0, float(u.strength))
+	var ls: Dictionary = state.get("last_stumble", {})
+	return {"t": float(state.elapsed), "phase": phase, "cause": cause, "capture": float(state.capture), "strength_left": alive_strength,
+		"stumble_id": str(ls.get("id", "")), "stumble_name": str(ls.get("name", "")), "stumble_t": float(ls.get("t", -1.0)), "stumbles": int(st.stumbles),
+		"counter_hits": int(st.counter_hits), "deck_defaults": int(st.get("deck_defaults", 0)), "deck_choices": int(st.get("deck_choices", 0)),
+		"boarded_at": float(st.boarded_at), "tide": str(state.get("tide_phase", "")), "shaken": int(st.shaken_events)}
+
 func _finish(status: String, reason: String, cause: String = "") -> void:
 	if state.status != "playing":
 		return
 	state.status = status
 	state.reason = reason
+	if status == "defeat" and state.get("scenario", "") == "justine":
+		state.defeat_moment = _moment(cause)
 	if state.has("defeat_cause"):
 		state.defeat_cause = cause if status == "defeat" else ""
 	for u in state.units:

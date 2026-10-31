@@ -528,3 +528,14 @@ Se mantiene la conciliación (900 x 520 jugables + 115 m de contexto por lado = 
 
 ### 18.4 Pendientes
 Playtest humano; modo banco expuesto; bajada oblicua larga; cotejar Gillespie pp. 93, 94, 121 con el escaneo; Concha 15-ago, oficio y parte de Liniers del 11-ago en original; Obligado 1920; fuente primaria de 1801.
+
+## 19. Ronda 4 de diversión: lo que el jugador nota (pista mapa_reglas)
+
+Detalle de números, medición y límites en `docs/DISENO_REGLAS.md` (Ronda 4); interfaz nueva en `docs/CONTRATO_JUSTINA.md` §16.
+
+- **Cubierta con decisiones.** Mientras se aborda, el sargento pide resolver situaciones cortas (humo, un pedrero, un parlamento, pólvora sin custodia, la bandera, hombres agotados). Cada opción dice lo que cuesta y lo que rinde. Al 62 % de captura la dotación se atrinchera en la toldilla y hay que elegir cómo rematar. Quien no elige, paga: se toma la opción pasiva. Es juego, no historia (las situaciones son de diseño y no se presentan como documentadas).
+- **Contraataques que hay que acertar.** Hay aviso de 5 s y ventana de 12 s. Dos sin contestar frenan la toma y quiebran al grupo más flojo; el tercero pierde la cubierta. Rechazar cuesta 3 de munición.
+- **Jugar de nuevo no es repetir el guion.** El río es el mismo hasta ganar, pero desde el 2.º intento hay un giro anunciado (cañonero de guardia, dotación reforzada, viento del sudeste, refuerzo de la Plaza), el fuego del buque sigue otra secuencia, llega un bote a espiar a los 15 s y el vecino de oídas puede equivocarse de lado. El sondeo y el diario nunca mienten.
+- **Sondear importa.** Un pozo sin reconocer cuesta más de la mitad de un grupo y casi un minuto detenido, bajo el fuego.
+- **Rutas.** El centro es rápido (≈ 8:50) y cuesta ≈ 49 % de bajas; el sur es limpio (≈ 38 %) pero llega a ≈ 11:30 y es la que pierde cuando un giro adelanta la subida del río.
+- **Medallas por lo que hiciste**, no por cuántos intentos llevás.

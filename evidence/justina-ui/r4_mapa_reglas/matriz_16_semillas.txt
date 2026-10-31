@@ -1,0 +1,39 @@
+# tests/test_rules.gd -- --matrix --bymission --seeds=3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59 (intento sin giro; antes del corte de poca tropa 90/70)
+por variante:{ "buque_nervioso": [0, 5], "municion_escasa": [0, 5], "viento_fuerte": [0, 3], "costado_sur": [0, 3] }
+rush_central           WIN: loss   0% expo   0 | wins 0/16 t_avg    0 loss  72% expo   55 board   -1 horses 133 melee   0 fire  32 scoutsL 0 stumbles 39 cnt 0/0 ["central"] | d304 d260 d246 d260 d315 d260 d304 d260 d307 d292 d260 d298 d292 d304 d260 d315
+   por variante:{ "buque_nervioso": [0, 5], "municion_escasa": [0, 5], "viento_fuerte": [0, 3], "costado_sur": [0, 3] }
+rush_gallop            WIN: loss   0% expo   0 | wins 0/16 t_avg    0 loss  72% expo   51 board   -1 horses 133 melee   0 fire  34 scoutsL 0 stumbles 39 cnt 0/0 ["central"] | d287 d253 d239 d253 d307 d253 d292 d253 d292 d270 d253 d287 d277 d292 d253 d300
+   por variante:{ "buque_nervioso": [0, 5], "municion_escasa": [0, 5], "viento_fuerte": [0, 3], "costado_sur": [0, 3] }
+blind_north_edge       WIN: loss   0% expo   0 | wins 0/16 t_avg    0 loss  77% expo  124 board   55 horses  85 melee   0 fire 123 scoutsL 0 stumbles 28 cnt 1/1 ["central"] | d355 d443 d456 d451 d370 d458 d355 d451 d358 d355 d473 d355 d355 d355 d440 d353
+   por variante:{ "buque_nervioso": [4, 5], "municion_escasa": [1, 5], "viento_fuerte": [0, 3], "costado_sur": [2, 3] }
+central_center_lane    WIN: loss  57% expo 252 | wins 7/16 t_avg  547 loss  68% expo  283 board  386 horses  26 melee   7 fire 131 scoutsL 0 stumbles 8 cnt 47/50 ["central"] | V558 d522 d702 d462 V523 d537 V531 d502 V574 d496 d575 V576 d458 V546 d491 V516
+   por variante:{ "buque_nervioso": [5, 5], "municion_escasa": [5, 5], "viento_fuerte": [3, 3], "costado_sur": [3, 3] }
+central_flank_lane     WIN: loss  48% expo 241 | wins 16/16 t_avg  521 loss  48% expo  241 board  399 horses   0 melee  16 fire 102 scoutsL 5 stumbles 0 cnt 37/37 ["central"] | V518 V510 V514 V531 V500 V528 V506 V517 V514 V555 V526 V529 V540 V528 V521 V491
+   por variante:{ "buque_nervioso": [5, 5], "municion_escasa": [5, 5], "viento_fuerte": [3, 3], "costado_sur": [3, 3] }
+central_flank_pair     WIN: loss  49% expo 236 | wins 16/16 t_avg  528 loss  49% expo  236 board  410 horses   0 melee  16 fire 106 scoutsL 7 stumbles 0 cnt 35/35 ["central"] | V513 V532 V521 V527 V519 V543 V518 V525 V522 V544 V528 V541 V554 V542 V506 V504
+   por variante:{ "buque_nervioso": [5, 5], "municion_escasa": [5, 5], "viento_fuerte": [3, 3], "costado_sur": [3, 3] }
+central_hasty          WIN: loss  54% expo 245 | wins 16/16 t_avg  538 loss  54% expo  245 board  386 horses   0 melee  14 fire 119 scoutsL 4 stumbles 0 cnt 47/47 ["central"] | V555 V523 V552 V528 V527 V576 V529 V537 V550 V543 V506 V577 V546 V549 V514 V498
+   por variante:{ "buque_nervioso": [0, 5], "municion_escasa": [0, 5], "viento_fuerte": [0, 3], "costado_sur": [0, 3] }
+central_bare           WIN: loss   0% expo   0 | wins 0/16 t_avg    0 loss  73% expo  324 board  433 horses   0 melee   2 fire 134 scoutsL 5 stumbles 0 cnt 0/21 ["central"] | d489 d508 d525 d565 d521 d559 d530 d507 d474 d479 d559 d474 d517 d527 d495 d520
+   por variante:{ "buque_nervioso": [5, 5], "municion_escasa": [0, 5], "viento_fuerte": [2, 3], "costado_sur": [3, 3] }
+central_flank_stagger  WIN: loss  60% expo 246 | wins 10/16 t_avg  655 loss  73% expo  248 board  400 horses   0 melee  15 fire 128 scoutsL 5 stumbles 0 cnt 71/88 ["central"] | V654 d764 V676 d767 V693 d748 V654 d752 d711 d755 V578 V750 V663 V608 V680 V587
+   por variante:{ "buque_nervioso": [0, 5], "municion_escasa": [0, 5], "viento_fuerte": [0, 3], "costado_sur": [0, 3] }
+central_flank_noreply  WIN: loss   0% expo   0 | wins 0/16 t_avg    0 loss  68% expo  241 board  399 horses   0 melee  10 fire 103 scoutsL 5 stumbles 0 cnt 0/48 ["central"] | d512 d548 d543 d557 d516 d553 d512 d551 d519 d530 d553 d510 d531 d507 d527 d517
+   por variante:{ "buque_nervioso": [5, 5], "municion_escasa": [5, 5], "viento_fuerte": [3, 3], "costado_sur": [3, 3] }
+south_full             WIN: loss  38% expo 159 | wins 16/16 t_avg  694 loss  38% expo  159 board  597 horses   0 melee  19 fire  75 scoutsL 0 stumbles 0 cnt 29/29 ["sur"] | V674 V719 V685 V695 V699 V719 V698 V690 V695 V670 V725 V683 V668 V704 V673 V697
+   por variante:{ "buque_nervioso": [0, 5], "municion_escasa": [1, 5], "viento_fuerte": [3, 3], "costado_sur": [1, 3] }
+south_vado_only        WIN: loss  61% expo 109 | wins 5/16 t_avg  723 loss  82% expo  114 board  590 horses  52 melee  24 fire  81 scoutsL 0 stumbles 16 cnt 43/45 ["sur"] | d840 V729 V719 d840 d840 d769 d752 d836 d837 V720 d751 d840 V727 d750 d838 V719
+   por variante:{ "buque_nervioso": [0, 5], "municion_escasa": [0, 5], "viento_fuerte": [0, 3], "costado_sur": [0, 3] }
+south_bare             WIN: loss   0% expo   0 | wins 0/16 t_avg    0 loss  72% expo  157 board  447 horses  52 melee   2 fire  92 scoutsL 0 stumbles 16 cnt 0/14 ["sur"] | d600 d591 d562 d598 d555 d559 d560 d598 d559 d608 d562 d588 d596 d588 d595 d570
+   por variante:{ "buque_nervioso": [0, 5], "municion_escasa": [0, 5], "viento_fuerte": [0, 3], "costado_sur": [0, 3] }
+south_wrong_crossing   WIN: loss   0% expo   0 | wins 0/16 t_avg    0 loss  76% expo   59 board   -1 horses 156 melee   0 fire  50 scoutsL 0 stumbles 48 cnt 0/0 ["central"] | d366 d375 d382 d375 d375 d375 d366 d375 d367 d375 d375 d360 d375 d366 d371 d375
+   por variante:{ "buque_nervioso": [0, 5], "municion_escasa": [0, 5], "viento_fuerte": [0, 3], "costado_sur": [0, 3] }
+south_noreply          WIN: loss   0% expo   0 | wins 0/16 t_avg    0 loss  65% expo  159 board  597 horses   0 melee  15 fire  80 scoutsL 0 stumbles 0 cnt 0/48 ["sur"] | d732 d736 d717 d736 d731 d733 d732 d732 d710 d716 d718 d710 d710 d740 d716 d726
+   por variante:{ "buque_nervioso": [5, 5], "municion_escasa": [1, 5], "viento_fuerte": [2, 3], "costado_sur": [2, 3] }
+mixed_split            WIN: loss  49% expo 217 | wins 10/16 t_avg  653 loss  61% expo  221 board  485 horses   0 melee  22 fire 101 scoutsL 2 stumbles 0 cnt 54/61 ["mixta"] | V633 d763 d774 d752 V643 V656 V663 d569 d758 V638 d745 V646 V643 V704 V642 V661
+   por variante:{ "buque_nervioso": [0, 5], "municion_escasa": [0, 5], "viento_fuerte": [0, 3], "costado_sur": [0, 3] }
+late_all_in            WIN: loss   0% expo   0 | wins 0/16 t_avg    0 loss   0% expo    0 board   -1 horses   0 melee   0 fire   0 scoutsL 0 stumbles 0 cnt 0/0 ["ninguna"] | d660 d660 d660 d660 d660 d660 d660 d660 d660 d660 d660 d660 d660 d660 d660 d660
+   por variante:{ "buque_nervioso": [0, 5], "municion_escasa": [0, 5], "viento_fuerte": [0, 3], "costado_sur": [0, 3] }
+passive                WIN: loss   0% expo   0 | wins 0/16 t_avg    0 loss   0% expo    0 board   -1 horses   0 melee   0 fire   0 scoutsL 0 stumbles 0 cnt 0/0 ["ninguna"] | d660 d660 d660 d660 d660 d660 d660 d660 d660 d660 d660 d660 d660 d660 d660 d660
+   por variante:{ "buque_nervioso": [5, 5], "municion_escasa": [4, 5], "viento_fuerte": [3, 3], "costado_sur": [3, 3] }
+central_pair_idle      WIN: loss  60% expo 247 | wins 15/16 t_avg  606 loss  63% expo  249 board  410 horses   0 melee  28 fire 120 scoutsL 10 stumbles 0 cnt 61/62 ["central"] | V591 V587 V614 V630 V579 V645 V599 V632 d735 V623 V576 V606 V629 V591 V602 V584

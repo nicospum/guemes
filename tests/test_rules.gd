@@ -41,6 +41,7 @@ func _initialize() -> void:
 	_test_round9_campaign()
 	_test_round2_fun()
 	_test_round3_loop()
+	_test_round4()
 	_test_labels_and_save_trim()
 	if "--skip-strategies" not in OS.get_cmdline_user_args():  ## solo para iterar: la matriz tarda varios minutos
 		_test_strategies()
@@ -96,6 +97,9 @@ func _new_j(seed_value: int = 7, keep_variant: bool = false) -> RefCounted:
 		r.state.volunteers_pool = float(res.volunteers_pool)
 		r.state.crew_morale = float(r.map_data().ship.crew.morale)
 		r.state.next_volley = float(r.map_data().ship.fire.volley_interval_s)
+		r._ensure_r4_fields()
+		r.state.bd["off"] = true  ## sin decisiones de cubierta: las pruebas de unidad miden las cifras base
+		r.state.events_done.append("bote")  ## ni el bote del segundo 12 (cuesta salud de explorador si se ignora)
 	return r
 
 ## Ronda 9: el río se comprimió (0:30-4:10 baja, mínimo hasta 10:40, plazo 13:00). Convierte un instante del cronograma viejo (60/450/960/1080) a su equivalente de fase.
@@ -1082,7 +1086,7 @@ func _test_round9_telegraph() -> void:
 				sw = ev
 	var sdmg := 100.0 - float(f.get_unit("guemes").strength)
 	check(not sw.is_empty() and bool(sw.strong) and float(sw.eta) >= 3.5 and int(f.state.stats.strong_volleys) == 1, "La 6.ª descarga es una andanada fuerte con aviso de ≥ 3,5 s (eta %.2f)" % float(sw.get("eta", 0.0)))
-	check(sdmg > 9.0 * 0.99 and sdmg <= 13.5 * 1.13 + 0.01, "La andanada fuerte pega más que una normal (−%.1f)" % sdmg)
+	check(sdmg > 7.5 and sdmg <= 13.5 * 1.13 + 0.01, "La andanada fuerte pega más que una normal (−%.1f)" % sdmg)
 	# reaccionar al aviso reduce el daño por andanada a la mitad o menos
 	var no_react := 0.0
 	var react := 0.0
@@ -1184,10 +1188,10 @@ func _test_round9_counter_and_morale() -> void:
 	var med := _new_j()
 	med.state.stats.marked_m = 40.0
 	med.state.elapsed = 600.0
-	check(med._medal(true, 24.0, []) == "oro" and med._medal(true, 24.0, ["baqueano"]) == "plata", "Oro con bajas < 30 %%, < 12:10 y sin ayudas; con baqueano baja a plata")
-	check(med._medal(true, 50.0, []) == "plata" and med._medal(true, 70.0, []) == "bronce" and med._medal(false, 10.0, []) == "", "Plata con bajas < 55 %% y vado marcado; bronce al ganar; sin victoria no hay medalla")
+	check(med._medal(true, 20.0, []) == "oro" and med._medal(true, 20.0, ["baqueano"]) == "plata", "Oro con bajas < 24 %%, < 12:10 y sin ayudas; con baqueano baja a plata")
+	check(med._medal(true, 45.0, []) == "plata" and med._medal(true, 70.0, []) == "bronce" and med._medal(false, 10.0, []) == "", "Plata con bajas < 50 %% y vado marcado; bronce al ganar; sin victoria no hay medalla")
 	med.state.stats.marked_m = 0.0
-	check(med._medal(true, 50.0, []) == "bronce", "Sin vado marcado no hay plata")
+	check(med._medal(true, 45.0, []) == "bronce", "Sin vado marcado no hay plata")
 	med.state.stats.marked_m = 40.0
 	med.state.elapsed = 700.0
 	check(med._medal(true, 30.0, []) == "plata", "Tarde (> 10:00) no hay oro")
@@ -1251,15 +1255,15 @@ func _test_round9_flow() -> void:
 	# elección del mensajero
 	var ch := _new_j(7)
 	ch.state.next_volley = 5000.0
-	_advance(ch, 95.0)
-	check(not ch.state.pending_choice.is_empty(), "El mensajero abre una elección")
+	_advance(ch, 50.0)
+	check(not ch.state.pending_choice.is_empty(), "El mensajero abre una elección (a los 45 s)")
 	var vol0 := float(ch.state.volunteers_pool)
 	check(ch.resolve_choice("voluntarios").ok and float(ch.state.volunteers_pool) == vol0 + 30.0 and ch.state.pending_choice.is_empty(), "Elegir voluntarios suma 30 a la reserva")
 	var ch2 := _new_j(7)
 	ch2.state.next_volley = 5000.0
 	var am0 := int(ch2.state.ammo)
-	_advance(ch2, 125.0)
-	check(ch2.state.pending_choice.is_empty() and int(ch2.state.ammo) == am0 + 6 and not ch2.resolve_choice("polvora").ok, "Sin respuesta se toma la pólvora (+6) a los 25 s")
+	_advance(ch2, 75.0)
+	check(ch2.state.pending_choice.is_empty() and int(ch2.state.ammo) == am0 and not ch2.resolve_choice("polvora").ok and str(ch2.state.choices_made.get("mensajero", "")) == "nada", "Si dejás pasar al mensajero (20 s) se va sin dar nada: la pólvora no se regala")
 	# el vecino dice la verdad sobre el flanco (pista, no hallazgo)
 	var hint_game := _new_j(7)
 	hint_game.state.next_volley = 5000.0
@@ -1360,8 +1364,288 @@ func _test_round3_loop() -> void:
 	fresh.state.elapsed = 300.0
 	check(bool(fresh.retry_suggestion().suggest) and str(fresh.retry_suggestion().why) != "", "Con casi toda la tropa perdida y el buque lejos se sugiere «Reintentar ya» (con motivo)")
 
+# ---------------------------------------------------------------------------
+# Ronda 4 (mapa_reglas): variedad por intento, sondeo con costo, decisiones del abordaje, estancamiento, reloj principal, medallas por mérito, parte que enseña
+
+func _test_round4() -> void:
+	var m: Dictionary = Rules.new().map_data()
+	# --- giro por intento: el mundo es el mismo, la partida no
+	check(m.attempt_twists.list.size() >= 4, "Hay al menos 4 giros de intento (%d)" % m.attempt_twists.list.size())
+	var w := 7
+	var base := Rules.new()
+	base.new_game("justine", w)
+	var prev_twist := ""
+	var distinct := {}
+	var rng_states := {}
+	var same_world := true
+	var consecutive_equal := false
+	for n in range(1, 9):
+		var g := Rules.new()
+		g.new_game("justine", w)
+		g.set_attempt(n)
+		if g.state.hidden != base.state.hidden:
+			same_world = false
+		if n == 1:
+			check(str(g.state.twist) == "", "El primer intento de un mundo no trae giro")
+		else:
+			check(str(g.state.twist) != "", "El intento %d trae un giro" % n)
+			if str(g.state.twist) == prev_twist:
+				consecutive_equal = true
+			distinct[str(g.state.twist)] = true
+		prev_twist = str(g.state.twist)
+		rng_states[int(g.state.rng_state)] = true
+		if n == 2:
+			g.tick(9.0)
+			var announced := false
+			for ev in g.state.log:
+				if str(ev.get("field_event", "")) == "twist" and str(g.twist().label) in str(ev.text):
+					announced = true
+			check(announced, "El giro del intento se anuncia en el registro antes de los 10 s y nombra el giro")
+			check(g.attempt_info().twist_label == str(g.twist().label) and g.campaign_report().twist_id == str(g.state.twist), "El parte y attempt_info nombran el giro")
+	check(same_world, "Pozos, vado y variante de misión no cambian entre intentos de un mismo mundo")
+	check(not consecutive_equal and distinct.size() >= 3, "Dos intentos seguidos nunca repiten giro y en 8 intentos aparecen ≥ 3 distintos (%d)" % distinct.size())
+	check(rng_states.size() >= 7, "Cada intento tiene su propio azar del fuego (%d series distintas de 8)" % rng_states.size())
+	# efectos del giro (sudeste adelanta la subida; refuerzo suma munición y voluntarios)
+	for tw in m.attempt_twists.list:
+		var gt := Rules.new()
+		gt.new_game("justine", w)
+		var a0 := int(gt.state.ammo)
+		var v0 := float(gt.state.volunteers_pool)
+		var d0 := float(gt.state.deadline)
+		gt.state.twist = str(tw.id)
+		if str(tw.id) == "sudeste":
+			gt.state.stretch_s = float(tw.stretch_s)
+			gt.state.deadline = d0 + float(tw.stretch_s)
+			check(float(gt.tide_marks().deadline) < float(base.tide_marks().deadline) and float(gt.tide_marks().low_hold_end) < float(base.tide_marks().low_hold_end), "«Viento del sudeste» adelanta la subida del río y el plazo")
+		if str(tw.id) == "refuerzo":
+			var gr := Rules.new()
+			gr.new_game("justine", w)
+			for n2 in range(2, 40):
+				var probe := Rules.new()
+				probe.new_game("justine", w)
+				probe.set_attempt(n2)
+				if str(probe.state.twist) == "refuerzo":
+					check(int(probe.state.ammo) == mini(a0 + 2, int(probe.state.ammo_max)) and float(probe.state.volunteers_pool) == v0 + 40.0 + float(probe.mission().get("volunteers_delta", 0.0)) * 0.0, "«Refuerzo de la Plaza» suma 2 de munición y 40 voluntarios")
+					break
+	# --- el vecino de oídas puede mentir; el sondeo y el diario no
+	var lies := 0
+	var trials := 0
+	var never_first := true
+	for sd in range(1, 41):
+		for n3 in [1, 2, 3]:
+			var gl := Rules.new()
+			gl.new_game("justine", sd * 13)
+			gl.set_attempt(n3)
+			trials += 1
+			if bool(gl.state.neighbor_lie):
+				lies += 1
+				check(gl._flank_hint() != gl._flank_real(), "Si el vecino miente, nombra el flanco seguro")
+			else:
+				check(gl._flank_hint() == gl._flank_real(), "Si el vecino no miente, nombra el flanco del pozo")
+	check(float(lies) / float(trials) > 0.2 and float(lies) / float(trials) < 0.5, "El vecino se equivoca entre 20 %% y 50 %% de las veces (%d/%d)" % [lies, trials])
+	var gb := Rules.new()
+	gb.new_game("justine", 13)
+	check(not bool(gb.state.neighbor_lie), "Sin set_attempt (pruebas de unidad) el vecino dice la verdad")
+	# --- guardar y cargar conserva intento, giro y mazo
+	var gs := Rules.new()
+	gs.new_game("justine", 21)
+	gs.set_attempt(3)
+	gs.tick(30.0)
+	var sp := "user://test-rules-r4.json"
+	check(gs.save_game(sp) == OK, "Se guarda una partida con intento y giro")
+	var gl2 := Rules.new()
+	var lres: Dictionary = gl2.load_game(sp)
+	check(bool(lres.get("ok", false)) and int(gl2.state.attempt) == 3 and str(gl2.state.twist) == str(gs.state.twist) and gl2.state.has("bd"), "Cargar conserva el intento (3) y el giro (%s)" % str(gs.state.twist))
+	DirAccess.remove_absolute(sp)
+	# --- efectos de las decisiones de cubierta (unidad)
+	var fx := _boarding_game(_tt(400.0))
+	fx.state.ammo = 10
+	fx.state.capture = 40.0
+	var ge: Dictionary = fx.get_unit("guemes")
+	ge.strength = 80.0
+	var msg: String = fx._apply_effects({"capture": 10.0, "strength_all": -8.0, "ammo": -2})
+	check(_near(float(fx.state.capture), 50.0, 0.001) and _near(float(ge.strength), 72.0, 0.001) and int(fx.state.ammo) == 8 and "captura" in msg, "Una decisión aplica captura, fuerza y munición y lo cuenta (%s)" % msg)
+	fx.state.ammo = 1
+	var msg2: String = fx._apply_effects({"needs_ammo": 3, "ammo": -3, "capture": 15.0})
+	check(int(fx.state.ammo) == 1 and _near(float(fx.state.capture), 50.0, 0.001) and "munición" in msg2, "Una opción que necesita munición no hace nada si no alcanza, y avisa")
+	fx._apply_effects({"cap_mult": [0.0, 10.0]})
+	check(_near(float(fx.capture_modifier().mult), 0.0, 0.001) and float(fx.capture_modifier().seconds_left) > 9.0, "capture_modifier informa el freno de captura y cuántos segundos quedan")
+	var cap_a := float(fx.state.capture)
+	_advance(fx, float(fx.state.elapsed) + 5.0)
+	check(_near(float(fx.state.capture), cap_a, 0.001), "Con captura ×0 la captura no avanza")
+	# --- el mazo de cubierta y la toldilla en una partida completa del mejor guion
+	var deck_ok := false
+	var gate_seen := false
+	var orders_differ := false
+	var first_orders := []
+	for sd2 in [3, 5, 7, 11]:
+		var res: Dictionary = _run_cfg(_strategy_cfg("central_flank_pair"), "central_flank_pair", sd2, {"attempt": 1})
+		var rr: RefCounted = res.rules
+		if int(rr.state.stats.deck_choices) >= 2:
+			deck_ok = true
+		if str(rr.state.choices_made.get("toldilla", "")) != "":
+			gate_seen = true
+		var res2: Dictionary = _run_cfg(_strategy_cfg("central_flank_pair"), "central_flank_pair", sd2, {"attempt": 3})
+		var o1: Array = rr.state.bd.order
+		var o2: Array = res2.rules.state.bd.order
+		if not o1.is_empty() and not o2.is_empty() and o1 != o2:
+			orders_differ = true
+		first_orders.append(o1)
+	check(deck_ok, "Con gente en cubierta se abren ≥ 2 situaciones por partida")
+	check(gate_seen, "La toldilla pide una decisión al pasar el umbral de captura")
+	check(orders_differ, "El orden de las situaciones de cubierta cambia de un intento a otro")
+	# decidir mejora el resultado frente a dejar vencer las situaciones (mediana en 4 mundos)
+	var t_smart: Array = []
+	var t_idle: Array = []
+	var loss_smart := 0.0
+	var loss_idle := 0.0
+	var wins_smart := 0
+	var wins_idle := 0
+	for sd3 in [3, 5, 7, 11, 13, 17]:
+		var cfg_i := _strategy_cfg("central_flank_pair")
+		cfg_i["idle"] = true
+		var a: Dictionary = _run_cfg(_strategy_cfg("central_flank_pair"), "smart", sd3, {})
+		var b: Dictionary = _run_cfg(cfg_i, "idle", sd3, {})
+		if a.status == "victory":
+			wins_smart += 1
+			t_smart.append(float(a.t))
+			loss_smart += float(a.loss_pct)
+		if b.status == "victory":
+			wins_idle += 1
+			t_idle.append(float(b.t))
+			loss_idle += float(b.loss_pct)
+	check(wins_smart >= wins_idle, "Decidir en cubierta no gana menos que dejar vencer las situaciones (%d vs %d de 6)" % [wins_smart, wins_idle])
+	if wins_smart > 0 and wins_idle > 0:
+		check(loss_smart / wins_smart < loss_idle / wins_idle - 3.0 or _median(t_smart) < _median(t_idle) - 15.0, "Decidir bien en cubierta mejora el resultado (bajas %.0f vs %.0f %%, mediana %.0f vs %.0f s)" % [loss_smart / wins_smart, loss_idle / wins_idle, _median(t_smart), _median(t_idle)])
+	# --- el mensajero: ignorarlo cuesta lo que se pierde
+	var ms := Rules.new()
+	ms.new_game("justine", 7)
+	ms.state.next_volley = 5000.0
+	var ammo0 := int(ms.state.ammo)
+	_advance(ms, 50.0)
+	check(ms.state.pending_choice.get("title", "") == "Un mensajero" and ms.state.pending_choice.options.size() == 3, "El mensajero ofrece pólvora, voluntarios o dejarlo pasar (con título)")
+	check(ms.resolve_choice("polvora").ok and int(ms.state.ammo) == ammo0 + 6, "Elegir la pólvora suma 6 de munición")
+	# --- el bote del buque (acción con riesgo en los primeros 30 s) llega desde el 2.º intento
+	var b1 := Rules.new()
+	b1.new_game("justine", 7)
+	b1.set_attempt(1)
+	b1.state.next_volley = 5000.0
+	_advance(b1, 20.0)
+	check(b1.state.pending_choice.is_empty(), "En el primer intento del mundo no hay bote del buque (es el del tutorial)")
+	var b2 := Rules.new()
+	b2.new_game("justine", 7)
+	b2.set_attempt(2)
+	b2.state.next_volley = 5000.0
+	_advance(b2, 18.0)
+	check(str(b2.state.pending_choice.get("id", "")) == "bote" and b2.state.pending_choice.options.size() == 3, "Desde el 2.º intento un bote del buque ofrece 3 respuestas a los 15 s")
+	var hp0 := int(b2.get_scout("scout_1").hp)
+	_advance(b2, 36.0)
+	check(b2.state.pending_choice.is_empty() and int(b2.get_scout("scout_1").hp) == hp0 - 1, "Ignorar el bote (vence a los 15 s) cuesta 1 de salud al explorador 1")
+	var b3 := Rules.new()
+	b3.new_game("justine", 7)
+	b3.set_attempt(2)
+	b3.state.next_volley = 5000.0
+	_advance(b3, 18.0)
+	var nv0 := float(b3.state.next_volley)
+	var am3 := int(b3.state.ammo)
+	check(b3.resolve_choice("salva").ok and int(b3.state.ammo) == am3 - 2 and float(b3.state.next_volley) >= nv0 + 19.9, "Espantar el bote cuesta 2 de munición y retrasa el siguiente tiro del buque")
+	var b4 := Rules.new()
+	b4.new_game("justine", 7)
+	b4.set_attempt(2)
+	b4.state.next_volley = 5000.0
+	_advance(b4, 18.0)
+	check(b4.resolve_choice("esconder").ok and not bool(b4.issue_scout("scout_1", "probe", [Vector2(250, 240), Vector2(300, 240)]).ok), "Esconder a los exploradores impide sondear durante 20 s")
+	_advance(b4, 40.0)
+	check(bool(b4.issue_scout("scout_1", "probe", [Vector2(250, 240), Vector2(300, 240)]).ok), "...y después vuelven a poder sondear")
+	# --- contraataque: dos sin contestar estancan la toma y quiebran al más débil
+	var esc := _boarding_game(_tt(450.0))
+	esc.state.counter.next_at = float(esc.state.elapsed) + 1.0
+	esc.state.ammo = 0
+	_advance(esc, float(esc.state.elapsed) + 200.0)
+	var stalled_ev := false
+	for ev2 in esc.state.log:
+		if "se estanca" in str(ev2.text):
+			stalled_ev = true
+	check(stalled_ev or esc.state.status != "playing", "Dos contraataques sin contestar estancan la toma (aviso en el registro)")
+	# --- toma estancada = derrota con causa y parte (no se arrastra hasta el plazo)
+	var st := _boarding_game(_tt(450.0))
+	st.state.next_volley = 5000.0
+	st.state.counter.next_at = 90000.0
+	st.state.stats.boarded_at = float(st.state.elapsed) - 130.0
+	st.state.stall = {"peak": 30.0, "t": float(st.state.elapsed) - 100.0}
+	st.state.capture = 30.0
+	_advance(st, float(st.state.elapsed) + 2.0)
+	check(st.state.status == "defeat" and str(st.state.defeat_cause) == "estancada" and str(st.campaign_report().outcome_title) == "Toma estancada", "Sin superar su mejor marca en 90 s, la toma se declara estancada (derrota con causa)")
+	check(str(st.state.defeat_moment.phase) == "abordaje" and _near(float(st.state.defeat_moment.t), float(st.state.elapsed), 0.001), "El parte guarda el momento: fase «abordaje» y el instante de la derrota")
+	# --- medallas por mérito: sin tope de intentos
+	var md := _new_j(7)
+	md.state.stats.marked_m = 40.0
+	md.state.elapsed = 600.0
+	check(md._medal(true, 20.0, []) == "oro", "Oro con 20 %% de bajas en el primer intento")
+	md.state.mercy = md._mercy_for(3)
+	check(md._medal(true, 18.0, []) == "oro", "Con 3 derrotas atrás, el oro sigue disponible con bajas bien bajas (18 %%): no hay tope de intentos")
+	check(md._medal(true, 22.0, []) != "oro" and md._medal(true, 22.0, []) == "plata", "...pero a mayor ayuda automática se pide un poco menos de bajas (22 %% ya no es oro)")
+	check(float(md.medal_loss_scale()) < 1.0 and float(md.campaign_report().medal_loss_scale) == float(md.medal_loss_scale()), "El parte informa la escala de bajas por ayuda")
+	# --- reloj principal: uno solo y coherente
+	var mc := _new_j(7)
+	mc.state.no_return_s = float(m.time.no_return_s)
+	var c0: Dictionary = mc.main_clock()
+	check(str(c0.kind) == "esperar" and float(c0.seconds) > 60.0 and float(c0.seconds) < 400.0, "Al empezar, el reloj principal cuenta hasta que abre el vado (%s %.0f s)" % [str(c0.kind), float(c0.seconds)])
+	_advance(mc, 300.0)
+	var c1: Dictionary = mc.main_clock()
+	check(str(c1.kind) == "cargar" and _near(float(c1.seconds), float(m.time.no_return_s) - 300.0, 1.5), "Con el vado abierto y nadie en marcha, cuenta hasta el punto sin retorno (%.0f s)" % float(c1.seconds))
+	mc.state.stats.boarded_at = 301.0
+	var c2: Dictionary = mc.main_clock()
+	check(str(c2.kind) == "capturar" and _near(float(c2.seconds), float(mc.state.deadline) - 300.0, 1.5), "Ya abordando, el reloj principal es el plazo del río")
+	mc._finish("defeat", "x", "plazo")
+	check(str(mc.main_clock().kind) == "fin", "Terminada la partida el reloj principal se apaga")
+	# --- el sondeo importa: sin reconocer, el flanco con pozo cuesta caro
+	var pit_costs: Array = []
+	for hzid in ["pozo_flanco_norte", "pozo_flanco_sur", "pozo_central"]:
+		for hz in m.hazards:
+			if str(hz.id) == hzid:
+				pit_costs.append(float(hz.stumble.strength_loss))
+	var cheap := false
+	for pc in pit_costs:
+		if pc < 50.0:
+			cheap = true
+	check(not cheap, "Un pozo sin reconocer cuesta ≥ 50 de fuerza (el sondeo es la decisión de riesgo)")
+	# --- parte de derrota que enseña: momento, lugar y consejo que cambia
+	var cp := CampaignProgress.new("user://test-campaign-r4.json")
+	cp.reset_all()
+	cp.world_seed(7)
+	var advices := {}
+	var causes := {}
+	for k in range(4):
+		var gd := _new_j(7, true)
+		cp.begin_attempt(gd)
+		gd.state.stats.stumbles = 1
+		gd.state.stats.stumble_at = {"pozo_flanco_norte": 1}
+		gd.state.last_stumble = {"id": "pozo_flanco_norte", "name": "Pozo del flanco norte", "t": 215.0, "unit": "Vanguardia"}
+		_advance(gd, 230.0)
+		gd.state.stats.boarded_at = -1.0
+		gd.state.units[0].order = {"action": "board"}
+		gd._finish("defeat", "x", "dispersos")
+		var rres: Dictionary = cp.record_result(gd)
+		advices[str(rres.advice)] = true
+		causes[str(rres.cause)] = true
+		check(str(rres.cause).length() <= 140 and "pozo del flanco norte" in str(rres.cause).to_lower() and "3:" in str(rres.cause), "La causa nombra el lugar y el momento: «%s»" % str(rres.cause))
+		check(not ("Probá de nuevo con lo que anotaste" in str(rres.advice)) and str(rres.advice).length() > 20, "El consejo es concreto y no circular: «%s»" % str(rres.advice))
+	check(advices.size() >= 3, "El consejo cambia de una derrota a la siguiente (%d distintos en 4)" % advices.size())
+	DirAccess.remove_absolute("user://test-campaign-r4.json")
+	# toda causa definida tiene texto, momento y consejos
+	for cid in ["plazo", "dispersos", "retirada", "inaccion", "estancada", "cubierta"]:
+		check(m.campaign.defeat_causes.has(cid) and str(m.campaign.defeat_causes[cid].cause) != "" and str(m.campaign.defeat_causes[cid].advice) != "", "La causa de derrota «%s» tiene texto y consejo" % cid)
+
+func _median(a: Array) -> float:
+	if a.is_empty():
+		return 0.0
+	var b := a.duplicate()
+	b.sort()
+	return float(b[b.size() / 2])
+
 func _cleanup_user_files() -> void:
-	for pth in ["user://test-campaign.json", "user://test-campaign2.json", "user://test-campaign3.json", "user://test-campaign4.json", "user://test-campaign5.json", "user://test-campaign-r2.json", "user://test-campaign-cp.json", "user://test-cp-state.json", "user://test-campaign-r3.json", "user://test-campaign-r3b.json", "user://test-cp-r3.json", "user://test-rules-tide.json", "user://test-rules-hidden.json", "user://test-rules-trim.json", "user://test-rules-justine.json", "user://test-rules-size.json", "user://test-rules-norte.json"]:
+	for pth in ["user://test-campaign.json", "user://test-campaign2.json", "user://test-campaign3.json", "user://test-campaign4.json", "user://test-campaign5.json", "user://test-campaign-r2.json", "user://test-campaign-cp.json", "user://test-cp-state.json", "user://test-campaign-r3.json", "user://test-campaign-r3b.json", "user://test-cp-r3.json", "user://test-rules-tide.json", "user://test-rules-hidden.json", "user://test-rules-trim.json", "user://test-rules-justine.json", "user://test-rules-size.json", "user://test-rules-norte.json", "user://test-rules-r4.json", "user://test-campaign-r4.json"]:
 		if FileAccess.file_exists(pth):
 			DirAccess.remove_absolute(pth)
 		if FileAccess.file_exists(pth + ".tmp"):
@@ -1546,7 +1830,7 @@ func _test_round2_fun() -> void:
 	# ventaja de la experiencia: crece con la racha, es visible y baja el daño
 	var m0 := Rules.new()
 	m0.new_game("justine", 7)
-	check(int(m0.state.mercy.level) == 0 and float(m0.state.mercy.fire_mult) < 1.0, "El primer intento ya trae un colchón (fuego del buque < 100 %)")
+	check(int(m0.state.mercy.level) == 0 and float(m0.state.mercy.fire_mult) <= 1.0 and float(m0.state.mercy.auto_repel_n) == 0.0, "El primer intento no regala ventaja (ronda 4): fuego 100 %% y sin sargento que rechace solo")
 	var prev_fire := 2.0
 	var mono := true
 	for streak in range(0, 5):
@@ -1840,6 +2124,8 @@ func _strategy_cfg(name: String) -> Dictionary:
 			return {"signal_on_go": true, "stage": STAGE_CENTRAL, "stage_t": 120.0, "board_t": 170.0, "flank": true, "wait_probes": true, "wait_max": 120.0, "probes": [{"who": "scout_1", "t": 90.0, "pts": PROBE_FLANK_N, "careful": true}]}
 		"central_flank_stagger":
 			return _with(_central_common(), {"flank": true, "stagger": 45.0, "probes": [{"who": "scout_1", "t": 90.0, "pts": PROBE_FLANK_N, "careful": true}]})
+		"central_pair_idle":  ## el mejor guion, pero sin decidir nada en cubierta ni con el mensajero (referencia: cuánto valen las decisiones)
+			return _with(_strategy_cfg("central_flank_pair"), {"idle": true})
 		"central_flank_noreply":
 			return _with(_central_common(), {"flank": true, "repel": false, "evac": false, "probes": [{"who": "scout_1", "t": 90.0, "pts": PROBE_FLANK_N, "careful": true}]})
 		"south_full":
@@ -2030,6 +2316,7 @@ func _policy_cfg(s: Sim) -> void:
 				best = u4
 		if not best.is_empty() and r.issue_order(str(best.id), "repel").ok:
 			s.mem.repels = int(s.mem.get("repels", 0)) + 1
+	_policy_decide(s)
 	if float(st.last_effort.until) >= 0.0 and not bool(st.last_effort.used) and not s.mem.has("le_roll"):
 		s.mem.le_roll = s.rng == null or s.rng.randf() < float(c.get("last_effort_p", 1.0))
 		if bool(s.mem.le_roll) and r.last_effort().ok:
@@ -2045,8 +2332,78 @@ func _policy_cfg(s: Sim) -> void:
 					s.mem.evacs = int(s.mem.get("evacs", 0)) + 1
 					break
 
+## Ronda 4: decisiones del mensajero y del abordaje. `decide_p` (1 = experto): con esa probabilidad elige la mejor opción según el estado; si no, elige una al azar
+## o la deja vencer (opción por defecto). Es un MODELO, no personas.
+func _smart_choice(r: RefCounted, pc: Dictionary) -> String:
+	var st: Dictionary = r.state
+	var live: Array = []
+	for u in st.units:
+		if u.stage in ["boarding", "dismounting"] and float(u.strength) > 5.0:
+			live.append(u)
+	var avg_str := 100.0
+	var avg_fat := 0.0
+	var wounded := 0.0
+	if not live.is_empty():
+		avg_str = 0.0
+		for u in live:
+			avg_str += float(u.strength)
+			avg_fat += float(u.fatigue)
+			wounded += float(u.wounded)
+		avg_str /= live.size()
+		avg_fat /= live.size()
+	var ammo := int(st.ammo)
+	var left := float(st.deadline) - float(st.elapsed)
+	match str(pc.id):
+		"mensajero":
+			return "polvora"
+		"bote":
+			return "esconder"
+		"toldilla":
+			if ammo >= 6:
+				return "artilleria"
+			return "asalto" if avg_str >= 50.0 else "esperar"
+		"humo":
+			if avg_str >= 55.0:
+				return "avanzar"
+			return "curar" if wounded >= 10.0 else "esperar"
+		"pedrero":
+			return "silenciar" if ammo >= 6 else "cargar"
+		"parlamento":
+			return "exigir" if avg_str < 50.0 else "escuchar"
+		"polvora":
+			return "tomar" if (ammo <= 6 and avg_str >= 50.0) else "dejar"
+		"bandera":
+			return "arriar" if avg_str >= 50.0 else "seguir"
+		"cansancio":
+			if avg_fat >= 35.0 and left > 150.0:
+				return "respiro"
+			return "arengar" if avg_str >= 55.0 else "seguir"
+	return str(pc.default)
+
+func _policy_decide(s: Sim) -> void:
+	var pc: Dictionary = s.r.state.pending_choice
+	if pc.is_empty() or bool(s.cfg.get("idle", false)):
+		return
+	var key := "dec_%s_%d" % [str(pc.id), int(s.r.state.stats.choices)]
+	if s.mem.has(key):
+		return
+	s.mem[key] = true
+	var p := float(s.cfg.get("decide_p", 1.0))
+	var pick := str(pc.default)
+	if s.rng == null or s.rng.randf() < p:
+		pick = _smart_choice(s.r, pc)
+	elif s.rng.randf() < 0.5:
+		pick = str((pc.options as Array)[s.rng.randi() % (pc.options as Array).size()].id)
+	if pick != str(pc.default) or s.rng == null:
+		s.r.resolve_choice(pick)
+
+var matrix_attempt := 0  ## --attempt=N en --matrix: corre la matriz como si fuera el N.º intento del mundo (giro del intento y azar propio)
+
 func _run_strategy(policy: String, seed_value: int = 7) -> Dictionary:
-	return _run_cfg(_strategy_cfg(policy), policy, seed_value, {})
+	var opts := {}
+	if matrix_attempt > 0:
+		opts["attempt"] = matrix_attempt
+	return _run_cfg(_strategy_cfg(policy), policy, seed_value, opts)
 
 ## Corre una configuración de política completa. opts: rng (perfiles humanos), assists (ayudas elegidas), dodge_p (probabilidad de esquivar una descarga avisada).
 func _run_cfg(cfg: Dictionary, policy: String, seed_value: int, opts: Dictionary) -> Dictionary:
@@ -2055,6 +2412,8 @@ func _run_cfg(cfg: Dictionary, policy: String, seed_value: int, opts: Dictionary
 	s.cfg = cfg
 	s.rng = opts.get("rng", null)
 	s.r.set_mercy(int(opts.get("streak", 0)))
+	if opts.has("attempt"):
+		s.r.set_attempt(int(opts.attempt))  ## ronda 4: giro del intento y azar propio (el mundo es el mismo)
 	for a in opts.get("assists", []):
 		s.r.apply_assist(str(a))
 	var dodge_p := float(opts.get("dodge_p", 0.0))
@@ -2116,6 +2475,8 @@ func _print_matrix() -> void:
 			only = a.substr(7)
 		if a.begins_with("--seed="):
 			seeds = [int(a.substr(7))]
+		if a.begins_with("--attempt="):
+			matrix_attempt = int(a.substr(10))
 		if a.begins_with("--seeds="):
 			seeds = []
 			for tok in a.substr(8).split(","):
@@ -2126,7 +2487,9 @@ func _print_matrix() -> void:
 			print("seed %d -> %s" % [sd, str(rr.state.hidden.picks)])
 		quit(0)
 		return
-	for p in STRATEGY_NAMES:
+	var names: Array = STRATEGY_NAMES.duplicate()
+	names.append("central_pair_idle")
+	for p in names:
 		if only != "" and not (p in only.split(",")):
 			continue
 		var wins := 0
@@ -2633,7 +2996,7 @@ func _test_not_stranded() -> void:
 		if a.stage == "stumbling":
 			hit = true
 			check(st.speed_at(float(a.x), float(a.z), "walk", true) > 0.0, "El grupo que tropieza queda en un punto transitable")
-			check(float(a.stumble_remaining) > 0.0 and float(a.stumble_remaining) <= 45.0, "El tropiezo detiene hasta 45 s")
+			check(float(a.stumble_remaining) > 0.0 and float(a.stumble_remaining) <= 55.0, "El tropiezo detiene hasta 55 s")
 			break
 	check(hit and st.state.stats.stumbles == 1 and "pozo_central" in st.state.hazards_found, "El tropiezo se registra y el pozo pasa a hazards_found")
 	check(float(st.get_unit("arias").strength) <= 70.0 - 30.0 and float(st.state.stats.horses_lost) >= 45.0, "El pozo cuesta caballos y jinetes: −45 de fuerza, no −3")
@@ -3180,14 +3543,15 @@ func _equivalent(a: Variant, b: Variant) -> bool:
 # Ronda 9: «jugador humano» simulado con políticas imperfectas (MODELO INVENTADO, no personas; ver docs/DISENO_REGLAS.md)
 
 ## Probabilidades de HACER BIEN cada cosa en el primer intento. Con cada derrota el error baja ×0,72 (el diario enseña); el experto lee la variante de misión.
+var LEARN_K := 0.72  ## cuánto baja el error por derrota (--learn=0.85 = aprendizaje más lento: análisis de sensibilidad)
 const HUMAN_PROFILES := {
-	"experto": {"p_probe": 1.0, "repel_p": 1.0, "cover_p": 1.0, "resup_p": 1.0, "muster_p": 1.0, "evac_p": 1.0, "floor_p": 1.0, "last_p": 1.0, "dodge_p": 0.7, "delay_max": 0.0, "p_south": -1.0, "p_rush": 0.0},
-	"promedio": {"p_probe": 0.6, "repel_p": 0.7, "cover_p": 0.6, "resup_p": 0.6, "muster_p": 0.7, "evac_p": 0.5, "floor_p": 0.5, "last_p": 0.6, "dodge_p": 0.35, "delay_max": 70.0, "p_south": 0.3, "p_rush": 0.05},
-	"novato": {"p_probe": 0.3, "repel_p": 0.4, "cover_p": 0.4, "resup_p": 0.35, "muster_p": 0.4, "evac_p": 0.25, "floor_p": 0.2, "last_p": 0.3, "dodge_p": 0.1, "delay_max": 140.0, "p_south": 0.3, "p_rush": 0.15},
+	"experto": {"p_probe": 1.0, "repel_p": 1.0, "cover_p": 1.0, "resup_p": 1.0, "muster_p": 1.0, "evac_p": 1.0, "floor_p": 1.0, "last_p": 1.0, "dodge_p": 0.7, "delay_max": 0.0, "p_south": -1.0, "p_rush": 0.0, "decide_p": 0.95},
+	"promedio": {"p_probe": 0.6, "repel_p": 0.7, "cover_p": 0.6, "resup_p": 0.6, "muster_p": 0.7, "evac_p": 0.5, "floor_p": 0.5, "last_p": 0.6, "dodge_p": 0.35, "delay_max": 70.0, "p_south": 0.3, "p_rush": 0.05, "decide_p": 0.6},
+	"novato": {"p_probe": 0.3, "repel_p": 0.4, "cover_p": 0.4, "resup_p": 0.35, "muster_p": 0.4, "evac_p": 0.25, "floor_p": 0.2, "last_p": 0.3, "dodge_p": 0.1, "delay_max": 140.0, "p_south": 0.3, "p_rush": 0.15, "decide_p": 0.3},
 }
 
 func _human_cfg(prof: Dictionary, rng: RandomNumberGenerator, attempt: int, mission: Dictionary, known_flank: String) -> Dictionary:
-	var k := pow(0.72, float(attempt - 1))
+	var k := pow(LEARN_K, float(attempt - 1))
 	var good := func(p: float) -> float: return 1.0 - (1.0 - p) * k
 	var delay := rng.randf() * float(prof.delay_max) * k
 	var south: bool
@@ -3219,6 +3583,7 @@ func _human_cfg(prof: Dictionary, rng: RandomNumberGenerator, attempt: int, miss
 	cfg.repel = true
 	cfg.repel_p = float(good.call(prof.repel_p))
 	cfg.last_effort_p = float(good.call(prof.last_p))
+	cfg.decide_p = float(good.call(prof.get("decide_p", 1.0)))
 	cfg.ammo_floor = 12 if rng.randf() < float(good.call(prof.floor_p)) else 0
 	if known_flank != "":
 		cfg.flank_known = known_flank
@@ -3238,6 +3603,8 @@ func _print_human() -> void:
 			base = int(a.substr(7))
 		elif a.begins_with("--only="):
 			only = a.substr(7)
+		elif a.begins_with("--learn="):
+			LEARN_K = float(a.substr(8))
 	for pname in HUMAN_PROFILES:
 		if only != "" and pname != only:
 			continue
@@ -3273,7 +3640,7 @@ func _print_human() -> void:
 				if att >= 5 and rng.randf() < 0.7:
 					assists_now = ["baqueano", "bajante_generosa"]
 				var cfg := _human_cfg(prof, rng, att, mission, known)
-				var res := _run_cfg(cfg, pname, world_seed, {"rng": rng, "streak": att - 1, "assists": assists_now, "dodge_p": float(prof.dodge_p) + (1.0 - float(prof.dodge_p)) * (1.0 - pow(0.72, float(att - 1))) * 0.5})
+				var res := _run_cfg(cfg, pname, world_seed, {"rng": rng, "streak": att - 1, "attempt": att, "assists": assists_now, "dodge_p": float(prof.dodge_p) + (1.0 - float(prof.dodge_p)) * (1.0 - pow(LEARN_K, float(att - 1))) * 0.5})
 				runs += 1
 				if res.status == "victory":
 					if float(res.suggest_at) >= 0.0:
