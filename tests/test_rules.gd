@@ -1534,7 +1534,7 @@ func _test_round4() -> void:
 	b1.set_attempt(1)
 	b1.state.next_volley = 5000.0
 	_advance(b1, 21.0)
-	check(str(b1.state.pending_choice.get("id", "")) == "bote", "Ronda 5: desde el primer intento hay una decisión a los ~20 s (bote del buque), para no esperar sin hacer nada")
+	check(b1.state.pending_choice.is_empty(), "En el primer intento del mundo no hay bote del buque (es el del tutorial: un modal a los 20 s rompería el paso 1)")
 	var b2 := Rules.new()
 	b2.new_game("justine", 7)
 	b2.set_attempt(2)

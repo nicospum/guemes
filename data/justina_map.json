@@ -3737,6 +3737,7 @@
       },
       {
         "id": "bote",
+        "min_attempt": 2,
         "t": 20.0,
         "kind": "choice",
         "title": "Un bote del buque",

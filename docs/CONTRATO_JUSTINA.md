@@ -786,3 +786,14 @@ Todo lo de abajo ya está en `scripts/game_rules.gd` / `scripts/campaign.gd` y s
 ### 16.8 No hecho en esta pista
 - Nada de `main.gd`, `world_view.gd` ni shaders (interfaz/arte son de otras pistas).
 - JEV: no interviene en la Justina. Prueba en vivo aparte (consulta de Norte con la clave del perfil real): ver `docs/DISENO_REGLAS.md`, sección Ronda 4.
+
+## 17. Ronda 5 (30-oct-2026, pista `mapa_reglas`): interfaz nueva para `ui_feel`
+
+Sin cambios de `map_version`. Claves y llamadas nuevas:
+
+- `Rules.phase_info() -> {phase, hint, show_ford, ford_known}`. `phase`: `reconocer | cruce | abordaje | contraataque | remate | fin`. **La pista «AHORA» y el panel de objetivo deben usar `hint`** en vez de la pista fija de sondeo, y ocultar la línea «Vado junto al buque…» cuando `show_ford` es `false` (abordaje, contraataque, remate, fin). Al terminar `hint` es `""`: mostrar solo el resultado.
+- Evento de registro nuevo: `kind: "rally"`, `tag: "auto_rally"`, con `unit` y `pos`. La UI puede resaltarlo («¡Se tambalea! Reagrupá (Y)») sobre la ficha. Cuenta en `state.stats.auto_rallies`. Config en `outcome.auto_rally {trigger, gain}`.
+- Efecto nuevo en las opciones de cubierta: `counter_advance_s` (adelanta el próximo contraataque). Las etiquetas de las opciones ya dicen el costo; la UI solo las muestra.
+- Tiempos: `time.deadline_s` 800 (13:20), `low_hold_end_s` 660, `rise_end_s` 790, `no_return_s` 600, `no_return_warn_s` [360, 480, 570]. Cualquier texto de UI con «14:00», «11:40» o «11:00» está viejo.
+- Mercy nivel 0 (primer intento): `fire_mult` 0,92, `stumble_mult` 0,9 y `auto_repel_n` 1 (el sargento rechaza solo el primer contraataque). Mostrarlo en la tarjeta inicial como «el sargento te cubre el primer contraataque».
+- Pendiente para la UI (no es de reglas): un bote del buque a los 20 s ya existe desde el 2.º intento (`field_events.bote`); en el 1.º no se sortea porque un modal a los 20 s interrumpe el paso 1 del tutorial (`test_integration` lo detecta). Si `ui_feel` quiere una decisión temprana en el 1.º intento, que sea no modal. También pendiente: texto de «Lo aprendido» con verbos («Medí el agua antes de cruzar»), no «Zona de fuego del costado»; toasts por encima del panel inferior; banner de victoria en la franja superior; rótulos de diseño («Gillespie, no simulado») solo en la ayuda; fichas en abanico al seleccionar varios grupos.
