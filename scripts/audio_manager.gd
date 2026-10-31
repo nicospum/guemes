@@ -29,7 +29,10 @@ const EFFECTS := {
 	"stumble": {"variants": ["res://assets/audio/error.wav"], "bus": "UI", "gain_db": -3.0, "cooldown_ms": 600, "pitch": [0.68, 0.72], "poly": 1, "retrigger": true, "prio": 2},
 	"defeat": {"variants": ["res://assets/audio/error.wav"], "bus": "UI", "gain_db": -4.0, "cooldown_ms": 2500, "pitch": [0.55, 0.58], "poly": 1, "retrigger": false, "prio": 2},
 	"select": {"variants": ["res://assets/audio/order.wav"], "bus": "UI", "gain_db": -13.0, "cooldown_ms": 120, "pitch": [1.3, 1.4], "poly": 1, "retrigger": true, "prio": 0},
-	"messenger": {"variants": ["res://assets/audio/bell.wav"], "bus": "UI", "gain_db": -7.0, "cooldown_ms": 1500, "pitch": [0.8, 0.82], "poly": 1, "retrigger": false, "prio": 2}
+	"messenger": {"variants": ["res://assets/audio/bell.wav"], "bus": "UI", "gain_db": -7.0, "cooldown_ms": 1500, "pitch": [0.8, 0.82], "poly": 1, "retrigger": false, "prio": 2},
+	## Ronda 5 (sensacion de juego): golpe de campana cada 25 % de captura y tiros sueltos durante el abordaje.
+	"capture": {"variants": ["res://assets/audio/bell.wav"], "bus": "UI", "gain_db": -6.0, "cooldown_ms": 900, "pitch": [1.55, 1.6], "poly": 1, "retrigger": false, "prio": 2},
+	"clash": {"variants": ["res://assets/audio/cannon.wav"], "bus": "Efectos", "gain_db": -17.0, "cooldown_ms": 700, "pitch": [1.5, 1.8], "poly": 1, "retrigger": true, "prio": 0}
 }
 ## Cada escenario superpone capas ambientales de duraciones distintas (no se repiten a la vez).
 const AMBIENTS := {
@@ -231,7 +234,7 @@ func play(sound: String) -> void:
 	player.pitch_scale = _rng.randf_range(float(range_pitch[0]), float(range_pitch[1]))
 	_last_play_ms[sound] = now
 	player.play()
-	ends.append(now + 80 + int(stream.get_length() * 1000.0 / maxf(0.01, player.pitch_scale)))
+	ends.append(now + 260 + int(stream.get_length() * 1000.0 / maxf(0.01, player.pitch_scale)))
 	while ends.size() > int(def["poly"]):
 		ends.remove_at(0)
 

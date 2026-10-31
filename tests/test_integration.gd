@@ -13,6 +13,10 @@ var failures: Array = []
 var report: Dictionary = {"suite": "main_scene_player_flow", "kind": "headless_scene_integration", "engine": Engine.get_version_info().string}
 
 func _initialize() -> void:
+	# Hermetico: el perfil no puede arrastrar intentos, diario ni ajustes de otra corrida (la tarjeta inicial crece con los intentos).
+	for stale in ["campaign.json", "justina_progress.json", "settings.cfg"]:
+		if FileAccess.file_exists("user://" + stale):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path("user://" + stale))
 	call_deferred("_run")
 
 func _contract_present() -> Dictionary:
@@ -75,6 +79,30 @@ func _justina() -> void:
 	var ctxt := _modal_text()
 	check(ctxt.find("Objetivo") >= 0 and ctxt.find("Perder no es grave") >= 0 and ctxt.find("Empezar") >= 0, "R1: la tarjeta inicial dice el objetivo, que perder no es grave y ofrece Empezar")
 	check(ctxt.length() < 900, "R1: la tarjeta inicial es corta (%d caracteres)" % ctxt.length())
+	# Ronda 5: la tarjeta sigue corta aunque el perfil tenga muchos intentos y una pista larga; fases, pista y avisos
+	var gu: Dictionary = game.rules.get_unit("guemes")
+	var st0 = gu.stage
+	game.rules.state.capture = 40.0
+	gu.stage = "boarding"
+	check(game._phase() == "boarding" and game._next_step().text.find("explorador") < 0, "R5: la pista sigue la fase (abordaje, no sondeo)")
+	check(game._goal_text().find("ABORDAJE") >= 0 and game._state_text(100.0).find("hay que sondear") < 0, "R5: el objetivo y el estado dejan de hablar del vado en el abordaje")
+	game._select_ids(["guemes"])
+	game._do_action("withdraw")
+	check(game.confirm_action == "withdraw" and str(game.rules.get_unit("guemes").stage) == "boarding", "R5: «Retirar» en el abordaje pide confirmar")
+	game.confirm_action = ""
+	game.confirm_timer = 0.0
+	gu.stage = "moving"
+	gu.strength = 20.0
+	game.rules.state.capture = 0.0
+	var alert_ids: Array = []
+	for al in game._compute_alerts():
+		alert_ids.append(str(al.id))
+	check(alert_ids.has("disp_guemes"), "R5: bajo 30 %% de fuerza hay aviso fuerte de dispersion")
+	gu.strength = 100.0
+	gu.stage = st0
+	check(game._learn_line("Pozo del flanco norte").begins_with("Sond") and game._learn_line("Esta vez: x").length() > 0, "R5: lo aprendido usa verbos")
+	check(game.right_panel.modulate.a >= 0.99, "R5: el panel de objetivo no se atenua")
+	check(game.top_stack.is_ancestor_of(game.toast_label), "R5: el aviso transitorio vive en la pila superior, no sobre los botones")
 	game._briefing_dialog()
 	var btxt := _modal_text()
 	check(btxt.find("Tradición") >= 0 and btxt.find("Documentado") >= 0 and btxt.find("Reconstrucción") >= 0 and btxt.find("Diseño") >= 0, "Briefing shows the four source tags")
@@ -865,8 +893,13 @@ func _finish() -> void:
 	report.checks = checks
 	report.failures = failures
 	report.ok = failures.is_empty()
-	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("res://evidence/justina-ui"))
-	var file := FileAccess.open("res://evidence/justina-ui/integration-test-results.json", FileAccess.WRITE)
+	# El informe va a user:// (no ensucia un archivo versionado). Para publicarlo como evidencia: --evidence=<carpeta res://...>
+	var out_path := "user://integration-test-results.json"
+	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--evidence="):
+			out_path = arg.trim_prefix("--evidence=").path_join("integration-test-results.json")
+			DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(arg.trim_prefix("--evidence=")))
+	var file := FileAccess.open(out_path, FileAccess.WRITE)
 	if file:
 		file.store_string(JSON.stringify(report, "\t"))
 		file.close()

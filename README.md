@@ -63,6 +63,7 @@ Resoluciones con QA de interfaz real (ventana): 1280x720, 1440x900, 1920x1080 y 
 | Girar | Q / E; arrastrar con botón central |
 | Seleccionar grupo | Clic o teclas 1, 2, 3 |
 | Seleccionar las tres agrupaciones, Justina | Mayús+clic suma, Ctrl+clic alterna, o arrastrar una caja |
+| Seleccionar los tres grupos, Justina | Ctrl+A o tecla ` |
 | Seleccionar explorador, Justina | 4 y 5 (Explorador 1 y 2), o su ficha a la izquierda |
 | Mover | Clic derecho |
 | Pausa o reanudar (Justina, tiempo real) / resolver ronda (norte) | Espacio |

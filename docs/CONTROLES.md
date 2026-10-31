@@ -233,3 +233,15 @@ Este manual se contrastó con los controles y acciones de `scripts/main.gd` y `s
 - Si el buque sale del cuadro, una flecha en el borde dice hacia dónde está.
 - La pausa automática por tropiezo o dispersión desliza la cámara hasta el hecho.
 - Un solo reloj en el panel (arriba, «Quedan»); las horas de cada vado están en «Detalles». El parte de derrota dice cuándo y por qué, y el consejo cambia según lo que te pasó.
+
+## Ronda 5 (ui_feel): sensación de juego y claridad
+
+- Los avisos transitorios van arriba (pila central, bajo la cabecera) y de a uno: ya no tapan los botones de acción ni las fichas. Una descarga del buque se anuncia con el cartel «¡DESCARGA n! sobre <grupo>» y el círculo rojo; no se repite como aviso aparte.
+- El objetivo y la pista «AHORA» siguen la fase: reconocimiento, cruce, abordaje, fin. En pleno abordaje ya no piden sondear y el estado no habla del vado.
+- Primer paso del tutorial en dos mini-pasos (tocar al explorador; después Z y clic en el agua). El panel de objetivo se ve completo desde el primer cuadro y queda siempre abierto; el detalle técnico sigue plegado en «Detalles».
+- Un grupo que baja de 30 % de fuerza dispara un aviso fuerte arriba con el botón «Reagrupar (Y)» (selecciona al grupo y lo manda a reagruparse).
+- «Retirar» en pleno abordaje pide tocar dos veces (el aviso lo explica).
+- Abordaje y captura visibles: humo y fogonazos sobre el buque, líneas con puntos que van de cada grupo abordando a la cubierta y una bandera que sube con el porcentaje de captura; campanada cada 25 % y tiros sueltos mientras se aborda. Al ganar, el cartel va arriba (no tapa a las tropas) con chispas.
+- Espera tranquila: cuando solo se espera (exploradores en marcha, sin descarga cerca) el botón ×2 se resalta y un aviso lo sugiere una vez. La velocidad nunca cambia sola.
+- Rótulos de diseño fuera del mapa («Gillespie, no simulado» se oculta; «Alcance del fuego del buque (diseño)» pasa a «Zona de fuego»; las notas de fuente están en la ayuda). «Bajo el cursor: …» solo aparece al apuntar al mapa. La flecha «Buque ▸» se corre para no pisar paneles ni fichas.
+- Derrota: lo aprendido se dice con verbos («Sondeá antes de pasar por el flanco sur…»). «Mapa distinto» está en «Más opciones» y pide confirmar. Encuadre inicial más cerrado y paneles en verde olivo; el bermellón es el color de alerta.
