@@ -171,6 +171,28 @@ void fragment(){
 	float sparkle = smoothstep(0.88, 0.99, sp_n) * smoothstep(0.35, 0.8, lit) * (0.30 + 0.70 * (1.0 - lod)) * (1.0 - shallow * 0.7);
 	float shade_big = j_fbm2(j_rot(p, 0.3) * vec2(0.010, 0.026) + vec2(t * 0.008, 0.0));   // lomos largos de ola, visibles desde 500 m
 	body *= 0.74 + 0.50 * smoothstep(0.25, 0.75, shade_big);
+	// D4: oleaje en capas visible a escala de juego (200-500 m): trenes de olas de ~14 y ~31 m que viajan hacia la costa, deformados por ruido
+	// (no dependen del lod: son estilizados). Crestas claras con cara iluminada y senos oscuros; mas marcados lejos de la orilla.
+	float open_k = (1.0 - band_s) * (1.0 - halo);
+	float nw = j_noise(p * 0.03 + vec2(t * 0.02, 0.0)) * 5.0;
+	float tr1 = sin(dot(p, vec2(0.40, 0.12)) + t * 0.95 + nw);                   // ~15 m
+	float tr2 = sin(dot(p, vec2(0.17, -0.07)) + t * 0.62 + nw * 1.7 + 1.3);       // ~35 m
+	float tr3 = sin(dot(p, vec2(0.62, 0.30)) + t * 1.4 + nw * 0.6);               // ~9 m
+	float tr = tr1 * 0.5 + tr2 * 0.38 + tr3 * 0.12;
+	float ridge_mask = 0.55 + 0.45 * smoothstep(0.3, 0.7, j_fbm2(p * 0.011 + 4.0));
+	body *= 1.0 + 0.50 * tr * ridge_mask * open_k;
+	body = mix(body, vec3(0.80, 0.70, 0.46), smoothstep(0.80, 0.98, tr) * 0.22 * ridge_mask * open_k);   // cresta tostada
+	// Reflejo del cielo calido que crece con la lejania (angulo rasante): agua que se funde al horizonte de Vidal en vez de verde plano.
+	float graze = smoothstep(150.0, 1800.0, dist);
+	body = mix(body, mix(vec3(0.50, 0.44, 0.28), sky_horizon * 0.70, graze), graze * 0.16 * (1.0 - halo));
+	// Camino de brillo del sol: banda ancha y moteada hacia el azimut solar.
+	vec2 sxz = normalize(sun_dir.xz);
+	float along = dot(normalize(p - CAMERA_POSITION_WORLD.xz), sxz);
+	float path_k = smoothstep(0.84, 1.0, along) * smoothstep(60.0, 500.0, dist);
+	body += vec3(1.0, 0.88, 0.62) * path_k * (0.05 + 0.22 * smoothstep(0.35, 0.95, tr * 0.5 + 0.5 + (j_noise(p * 0.9 + t) - 0.5) * 0.6)) * (1.0 - shallow * 0.5);
+	// Costa lejana y oleaje de rompiente: espuma fina y regular en la franja somera (se lee como agua viva, no como lamina).
+	foam = max(foam, smoothstep(0.88, 1.0, tr1) * band_s * 0.30);
+	body *= mix(1.0, 0.62, smoothstep(1.2, 3.4, est) * open_k);   // canal mas hondo y oscuro: profundidad legible
 	ALBEDO = mix(mix(body, sky_horizon * 0.80, haze * 0.40), vec3(0.88, 0.86, 0.76), foam * 0.8) + vec3(1.0, 0.92, 0.72) * sparkle * 0.16;
 	EMISSION = sky * (fres * 0.34 + 0.004) * vec3(1.0, 0.94, 0.80) + vec3(1.0, 0.90, 0.70) * glint;
 	METALLIC = 0.0;

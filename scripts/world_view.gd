@@ -1932,14 +1932,14 @@ func _group_marker_j(id:String,root:Node3D)->void:
  var disc=MeshInstance3D.new();disc.mesh=dm;disc.name="Halo"
  var dmat=StandardMaterial3D.new();dmat.albedo_color=Color(Color(pal[0]).r,Color(pal[0]).g,Color(pal[0]).b,0.30);dmat.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED;dmat.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA;dmat.no_depth_test=false
  disc.material_override=dmat;disc.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;ring.add_child(disc)
- _token_j(root,int(TOKEN_SHAPES.get(id,0)),Color(str(TOKEN_COLORS.get(id,"d8cfb8"))),58.0,38.0,85.0,1.0,false,0.0)
+ _token_j(root,int(TOKEN_SHAPES.get(id,0)),Color(str(TOKEN_COLORS.get(id,"d8cfb8"))),74.0,30.0,70.0,1.0,false,20.0)   # D4: ficha mas grande con silueta, un poco por debajo del centro para que el cartel no la tape
  group_markers.append({"node":m,"ring":ring,"root":root})
 
 func _update_markers_j(cam:Camera3D)->void:
  # R6: el buque (objetivo del juego) crece hasta x2,3 con la distancia de camara para no quedar en 25 px (tamaño minimo en pantalla; simbolico).
  if is_instance_valid(ship):
   var ds=cam.global_position.distance_to(ship.global_position)
-  var ks=clampf(ds/170.0,1.5,4.2)
+  var ks=clampf(ds/105.0,1.5,5.6)   # D4: buque mas grande a escala de juego (antes ds/170, tope 4,2)
   if absf(ks-ship_far_k)>0.03:
    ship_far_k=ks
    ship.scale=Vector3(SHIP_SX,SHIP_SY,SHIP_SZ)*ks

@@ -277,3 +277,11 @@ Directriz: el juego manda sobre la fidelidad; el aspecto debe leerse y dar gusto
 - `scripts/world_view.gd`: ficha de grupo de 58 px (antes 40), aparece antes (38-85 m) y centrada en la unidad (sin desplazar bajo los carteles); tejas del fuerte mas apagadas; rotulo 3D del buque al costado (el rotulo 2D que tapa el casco es de main.gd, fuera de esta pista).
 - Capturas antes/despues: `evidence/justina-ui/diversion_r3/` (`antes_*`, `r3b_*`, `r3c_*`). Benchmark media Justina 2,45 ms (base de main 2,64 ms en la misma sesion); `benchmark/` con las corridas. tests/test_rules y test_integration (perfil aislado): sin fallas.
 - Pendiente de esta pista: estandartes y aparejo del buque (sin Blender en esta ronda), cielo/horizonte, fichas con silueta de jinete/infante.
+
+## Justina diversion ronda 4: aspecto (rio con oleaje, siluetas, buque mayor)
+- `water_rio_plata.gdshader`: trenes de olas estilizados de ~9, 15 y 35 m que viajan a la costa (no dependen del lod, se ven a 300-500 m), crestas tostadas, canal mas oscuro segun el perfil base `bed_profile` (no delata el fondo oculto), reflejo calido por lejania y camino de brillo solar.
+- `justina_token.gdshader`: fichas con silueta (jinete con lanza, infante con fusil, reserva = dos infantes). Se corrigio la inversion vertical de TODOS los glifos (el UV.y estaba al reves). Ficha 74 px (antes 58), desplazada 20 px hacia abajo para que el cartel 2D no la tape.
+- `world_view.gd`: buque crece con la distancia hasta x5,6 (antes x4,2; ds/105 en vez de ds/170).
+- `tools/vis_shots.gd`: vistas 01b-01d sin interfaz (encuadre inicial, tropas, media distancia).
+- Medicion: benchmark Justina media 2,65 ms (max 2,81), baja 1,97 ms (< 3 ms). test_rules 679/0, test_integration 271/0. Capturas `antes_*`, `r1..r3_*`, `final_*` en `evidence/justina-ui/diversion_r4/`.
+- Pendiente (no es de esta pista): rotulo 2D del buque y fichas-cartel de `main.gd` siguen tapando el casco/tropa; casco del GLB sin oscurecer ni nuevo aparejo (sin Blender usado); Compatibility no verificado.

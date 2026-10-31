@@ -49,6 +49,15 @@ func _run() -> void:
 	await _frames(20)
 	game.paused = true
 	await _shot("01_inicial")
+	var hidden: Array = []
+	for c in game.get_children():
+		if c is CanvasLayer and c.visible: c.visible = false; hidden.append(c)
+	await _shot("01b_inicial_sin_ui")
+	var uu = game.rules.state.units[0]
+	_cam(float(uu.x) + 30, float(uu.z), 90, 38, -90); await _shot("01c_tropas_sin_ui")
+	_cam(float(uu.x) + 100, float(uu.z), 260, 42, -90); await _shot("01d_media_sin_ui")
+	for c in hidden: c.visible = true
+	game._view_all()
 	_cam(330, 260, 520, 40, 0); await _shot("02_cenital_alto")
 	game._view_all(); await _frames(90); await _shot("03_ver_todo")
 	_cam(200, 260, 140, 35, -90); await _shot("04_costa_hacia_rio")
