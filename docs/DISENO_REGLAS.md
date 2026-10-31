@@ -445,5 +445,5 @@ La UI bot `ui_real` (mejor guion, decidiendo con los botones reales del diálogo
 - `tests/test_rules.gd` completo: 863 comprobaciones, 0 fallas (incluye `_test_round4`: giros, vecino, decisiones y efectos, toldilla, bote, estancamiento, medallas, reloj, parte).
 - `tests/test_integration.gd`: 271 comprobaciones, 0 fallas. `tests/jev_contract_test.gd`: 15, 0 fallas. `tests/audio_runtime_test.gd`: 17 comprobaciones, 1 falla (solo el driver Dummy, aceptada).
 - `tools/ui_qa.gd` (ventana real): 239 comprobaciones, 0 fallas en 1280x720, 1920x1080 y 2560x1440.
-- `tools/justina_playthrough.gd --only=ui`: 3/3 victorias con clics reales (incluidos los botones de las decisiones); `--naive`: 0/3.
+- `tools/justina_playthrough.gd` completo (escena real): salida 0, 15 victorias y 9 derrotas (centro: `central_flank_pair`, `central_flank_lane`, `central_hasty` 3/3 cada una; sur: `south_full` 3/3; `ui_real` con clics y botones reales 3/3; pierden `rush_central`, `mixed_split` y `late_all_in`, 3/3 cada una). `--only=ui --naive`: 0/3. Evidencia en `evidence/justina-ui/r4_mapa_reglas/`.
 - No se corrió `tools/benchmark.py` (no hay cambios de render; el costo de las reglas es `tick_ms_avg` ≈ 0,13 ms en `_test_performance`).
