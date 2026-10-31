@@ -303,7 +303,28 @@ func _justina() -> void:
 	# Capa 'labels' apagada y estado de partida
 	check(game.world.layer_state.get("labels", true) == false, "The view labels layer is off (the UI draws its own)")
 	game._update_hud()
-	check(game.clock_label.text.begins_with("Quedan") and game.state_label.text.find("Riesgo") >= 0, "Countdown and risk are shown")
+	check(game.clock_label.text.begins_with("Quedan") and game.state_label.text.find("Peligro") >= 0, "Countdown and risk are shown")
+	# Ronda 4 (ui_feel): un solo reloj en el panel, sin jerga, rotulos limpios, siluetas separadas y parte de derrota concreto
+	check(game.state_label.text.find("Quedan") < 0 and game.state_label.text.find("cierra en") < 0, "R4: el panel de estado no repite el reloj principal")
+	var jargon_txt: String = (game.state_label.text + game.goal_label.text + game.info_label.text).to_lower()
+	var jargon_ok := true
+	for bad in ["sin confirmar", "dudoso", "zoc", "halted_by_expiry", "(diseño)", "(ubicación hipotética)"]:
+		if jargon_txt.find(bad) >= 0:
+			jargon_ok = false
+	check(jargon_ok, "R4: el panel no usa jerga ni etiquetas de trabajo")
+	check(game._clean_label("Buque Justina (ubicación hipotética)") == "Buque Justina" and game._clean_label("Camino de la barranca (diseño)") == "Camino de la barranca", "R4: los rotulos del mapa no llevan etiquetas de fuente")
+	var gdisp: Dictionary = game._group_disp()
+	var seps_ok := gdisp.size() >= 2
+	var ids_d: Array = gdisp.keys()
+	for i in range(ids_d.size()):
+		for j in range(i + 1, ids_d.size()):
+			var da: Vector2 = gdisp[ids_d[i]].disp
+			var db: Vector2 = gdisp[ids_d[j]].disp
+			if absf(da.x - db.x) < game._sil_k() * 0.9 and absf(da.y - db.y) < game._sil_k() * 1.2:
+				seps_ok = false
+	check(seps_ok and game._sil_k() >= 30.0, "R4: las siluetas de grupo miden >= 30 px y no se pisan entre si")
+	var story: Dictionary = game._defeat_story({"elapsed": 215.0, "stumbles": 0, "counter_hits": 0, "shots_taken": 0})
+	check(str(story.get("cause", "")).find("03:35") >= 0 and str(story.get("advice", "")).find("Probá de nuevo con lo que anotaste") < 0, "R4: la derrota dice cuando paso y da un consejo concreto")
 	# Vista previa de ruta y confirmacion por tramo sin reconocer
 	game._select_ids(["guemes"])
 	game._center_on(Vector2(280, 264))

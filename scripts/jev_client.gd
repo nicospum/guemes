@@ -84,6 +84,9 @@ func request_intent(observation: Dictionary, legal_choices: Dictionary, fallback
 	if Time.get_ticks_msec() - _last_network_ms < minimum_interval_ms:
 		call_deferred("_fallback", ticket, "frequency_budget")
 		return
+	if not is_inside_tree():
+		call_deferred("_fallback", ticket, "not_in_tree")
+		return
 	_http = HTTPRequest.new()
 	_http.timeout = clampf(request_budget_sec, 0.1, 5.0)
 	_http.body_size_limit = 65536

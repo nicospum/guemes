@@ -226,3 +226,10 @@ Este manual se contrastó con los controles y acciones de `scripts/main.gd` y `s
 - El tutorial marca al explorador con un aro dorado (ya no tapa la ficha de Güemes) y se oculta mientras hay una alerta de peligro.
 - Los rótulos de pozos y vados que no entran enteros en pantalla se ocultan en vez de verse cortados.
 - Cambios en `game_rules.gd`: ninguno.
+
+## Ronda 4 (ui_feel): lectura y rapidez
+- Doble clic en una ficha de agrupación: la cámara va a esa tropa (como Inicio/F).
+- Cada grupo se dibuja con silueta (jinete o infante) de al menos 30 px y banderín; si dos quedan encimados se abren en abanico hacia la tierra.
+- Si el buque sale del cuadro, una flecha en el borde dice hacia dónde está.
+- La pausa automática por tropiezo o dispersión desliza la cámara hasta el hecho.
+- Un solo reloj en el panel (arriba, «Quedan»); las horas de cada vado están en «Detalles». El parte de derrota dice cuándo y por qué, y el consejo cambia según lo que te pasó.
