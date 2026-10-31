@@ -43,9 +43,9 @@
     "step_s": 0.25,
     "drop_start_s": 30.0,
     "drop_end_s": 250.0,
-    "low_hold_end_s": 640.0,
-    "rise_end_s": 770.0,
-    "deadline_s": 780.0,
+    "low_hold_end_s": 660.0,
+    "rise_end_s": 790.0,
+    "deadline_s": 800.0,
     "variants": [
       {
         "id": "normal",
@@ -54,8 +54,8 @@
         "tag": "diseno",
         "drop_start_s": 30.0,
         "drop_end_s": 250.0,
-        "low_hold_end_s": 640.0,
-        "rise_end_s": 770.0,
+        "low_hold_end_s": 660.0,
+        "rise_end_s": 790.0,
         "note": "Valores base. El río baja entre 0:30 y 4:10, queda en mínimo hasta 10:40 y vuelve a subir hasta el plazo (13:00)."
       },
       {
@@ -65,8 +65,8 @@
         "tag": "diseno",
         "drop_start_s": 25.0,
         "drop_end_s": 230.0,
-        "low_hold_end_s": 700.0,
-        "rise_end_s": 780.0,
+        "low_hold_end_s": 720.0,
+        "rise_end_s": 800.0,
         "note": "Bajante rápida y mínimo largo: ventana holgada. Es la compensación de la variante de misión «viento fuerte»."
       },
       {
@@ -76,8 +76,8 @@
         "tag": "diseno",
         "drop_start_s": 33.0,
         "drop_end_s": 245.0,
-        "low_hold_end_s": 640.0,
-        "rise_end_s": 770.0,
+        "low_hold_end_s": 660.0,
+        "rise_end_s": 790.0,
         "note": "Reservada (ninguna variante de misión la sortea por defecto): el vado abre ~5 s más tarde. La ronda 9 quitó la variante «breve», que dejaba la ruta sur sin tiempo."
       }
     ],
@@ -1168,7 +1168,7 @@
     "fire": {
       "range_m": 265.0,
       "volley_interval_s": 7.5,
-      "route_mult": {"central": 0.86, "sur": 0.95, "note": "Ronda 2: el centro es rápido pero lo bate el costado (×1,12); el sur es lento pero el fuego llega más flojo (×0,95). DISEÑO de juego."},
+      "route_mult": {"central": 0.92, "sur": 0.95, "note": "Ronda 2: el centro es rápido pero lo bate el costado (×1,12); el sur es lento pero el fuego llega más flojo (×0,95). DISEÑO de juego."},
         "damage_min": 5.6,
       "damage_max": 8.4,
       "arc_factors": {
@@ -1250,7 +1250,7 @@
       "tide_warn_fraction": 0.85,
       "counter": {
         "first_after_boarding_s": 28.0,
-        "interval_s": 34.0,
+        "interval_s": 36.0,
         "jitter_s": 10.0,
         "window_s": 12.0,
         "damage": 28.0,
@@ -1272,7 +1272,7 @@
       "pincer_note": "Ronda 3: si a la vez abordan un grupo que llegó por el centro y otro por el sur, el poder de captura total sube ×1,3 (dividir la fuerza exige coordinar los tiempos, pero paga).",
       "route_premium": {
         "central": 1.15,
-        "sur": 1.2,
+        "sur": 1.1,
         "mixta": 1.15,
         "tag": "diseno",
         "note": "Ronda 3: mixta 1,1 -> 1,22 para que dividir la fuerza sea una tercera forma real de ganar. Ronda 9 (C9): ruta central (rápida, cara en bajas) ×1,3 de poder de captura; sur (lenta, llega con menos desgaste de fuego pero moja la pólvora) ×1,0; mixta ×1,1."
@@ -1870,7 +1870,7 @@
     "max_victory_loss_note": "Ronda 4: 90 -> 92. Con contraataques cada ~38 s la llegada escalonada (central_flank_stagger, una línea que gana más de la mitad pero a medias) llegó a ganar con 91 % de bajas en 1 de ~160 partidas. La mediana (<= median_max_pct) y la cuota sobre 80 % (share_over_80_max) siguen siendo el control real contra las victorias pírricas.",
     "cohort_win_rate": [
       0.35,
-      0.6
+      0.67
     ],
     "victory_loss": {
       "median_max_pct": 65,
@@ -3717,9 +3717,10 @@
       {
         "id": "buque_nervioso",
         "label": "El buque dispara más seguido, con la tripulación escasa",
-        "consequence": "Descargas cada 5,6 s en vez de 7,5; la dotación pelea con algo menos de moral.",
+        "consequence": "Descargas cada 5,6 s en vez de 7,5; la dotación pelea con algo menos de moral. El centro, más a tiro de las descargas, sale caro (fuego ×1,25 allí); el sur, a resguardo.",
         "volley_mult": 0.75,
         "crew_morale": 80.0,
+        "fire_mult": {"central": 1.25, "sur": 0.9},
         "favors": "sur"
       }
     ]
@@ -3808,7 +3809,7 @@
         "id": "rio_minimo",
         "t": 270.0,
         "kind": "tide",
-        "text": "El río llegó a su mínimo. El vado está abierto: cada minuto cuenta antes de que vuelva a subir (plazo 13:00)."
+        "text": "El río llegó a su mínimo. El vado está abierto: cada minuto cuenta antes de que vuelva a subir (plazo 13:20)."
       },
       {
         "id": "voluntarios",

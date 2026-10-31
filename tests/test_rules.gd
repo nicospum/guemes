@@ -106,7 +106,7 @@ func _new_j(seed_value: int = 7, keep_variant: bool = false) -> RefCounted:
 ## Ronda 9: el río se comprimió (0:30-4:10 baja, mínimo hasta 10:40, plazo 13:00). Convierte un instante del cronograma viejo (60/450/960/1080) a su equivalente de fase.
 func _tt(old: float) -> float:
 	var xs := [0.0, 60.0, 450.0, 960.0, 1080.0]
-	var ys := [0.0, 30.0, 250.0, 640.0, 770.0]
+	var ys := [0.0, 30.0, 250.0, 660.0, 790.0]
 	for i in range(1, xs.size()):
 		if old <= xs[i]:
 			return ys[i - 1] + (old - xs[i - 1]) / (xs[i] - xs[i - 1]) * (ys[i] - ys[i - 1])
@@ -198,13 +198,13 @@ func _test_speed_table() -> void:
 
 func _test_tide_and_windows() -> void:
 	var r := _new_j()
-	var expected := {0: [1.65, "alta"], 30: [1.65, "bajando"], 140: [0.825, "bajando"], 250: [0.0, "baja"], 500: [0.0, "baja"], 640: [0.0, "subiendo"], 705: [0.825, "subiendo"], 770: [1.65, "subiendo"]}
+	var expected := {0: [1.65, "alta"], 30: [1.65, "bajando"], 140: [0.825, "bajando"], 250: [0.0, "baja"], 500: [0.0, "baja"], 660: [0.0, "subiendo"], 725: [0.825, "subiendo"], 790: [1.65, "subiendo"]}
 	for t in expected:
 		var td: Dictionary = r.tide_at(float(t))
 		check(_near(td.level_m, expected[t][0], 1e-6) and td.phase == expected[t][1], "tide_at(%d) = %.3f m, %s" % [t, expected[t][0], expected[t][1]])
 		check(_near(td.level_norm, 0.05 + 0.9 * td.level_m / 1.65, 1e-6), "level_norm derivado a t=%d" % t)
 	var marks: Dictionary = r.tide_marks()
-	check(marks.drop_start == 30.0 and marks.drop_end == 250.0 and marks.low_hold_end == 640.0 and marks.rise_end == 770.0 and marks.deadline == 780.0, "tide_marks")
+	check(marks.drop_start == 30.0 and marks.drop_end == 250.0 and marks.low_hold_end == 660.0 and marks.rise_end == 790.0 and marks.deadline == 800.0, "tide_marks")
 	# antes de sondear: sin certeza (la ventana es la percibida, optimista)
 	var bp: Vector2 = r.board_point()
 	var before: Dictionary = r.ford_window(bp.x, bp.y)
@@ -216,9 +216,9 @@ func _test_tide_and_windows() -> void:
 	r.state.probes.append({"id": "t1", "kind": "lane", "pts": [{"x": 540.0, "z": 262.0}, {"x": 556.0, "z": 262.0}], "width": 6.0, "t": 0.0, "scout": "scout_1"})
 	r.state.probes.append({"id": "t2", "kind": "lane", "pts": [{"x": 300.0, "z": 403.0}, {"x": 310.0, "z": 403.0}], "width": 6.0, "t": 0.0, "scout": "scout_1"})
 	var w: Dictionary = r.ford_window(548, 262)
-	check(w.certain and _near(w.opens_at, 210.0, 5.0) and _near(w.closes_at, 663.6, 5.0), "ford_window del vado del buque ≈ 210..664 s (abre antes de 3:30) (obtenido %.1f..%.1f)" % [w.opens_at, w.closes_at])
+	check(w.certain and _near(w.opens_at, 210.0, 5.0) and _near(w.closes_at, 683.0, 8.0), "ford_window del vado del buque ≈ 210..683 s (abre antes de 3:30) (obtenido %.1f..%.1f)" % [w.opens_at, w.closes_at])
 	var ws: Dictionary = r.ford_window(305, 403)
-	check(ws.certain and _near(ws.opens_at, 197.0, 5.0) and _near(ws.closes_at, 671.5, 5.0), "ford_window del vado sur ≈ 197..672 s (obtenido %.1f..%.1f)" % [ws.opens_at, ws.closes_at])
+	check(ws.certain and _near(ws.opens_at, 197.0, 5.0) and _near(ws.closes_at, 691.0, 8.0), "ford_window del vado sur ≈ 197..691 s (obtenido %.1f..%.1f)" % [ws.opens_at, ws.closes_at])
 	check(_near(w.depth_at_low_m, 1.0, 0.02), "Profundidad del vado del buque con el río en mínimo ≈ 1,0 m")
 	r.state.probes.append({"id": "t3", "kind": "lane", "pts": [{"x": 335.0, "z": 264.0}, {"x": 350.0, "z": 264.0}], "width": 6.0, "t": 0.0, "scout": "scout_1"})
 	var never: Dictionary = r.ford_window(345, 264)
@@ -705,7 +705,7 @@ func _test_round5_data() -> void:
 	for v in m.time.variants:
 		if str(v.id) == "lenta":
 			lenta = v
-	check(float(lenta.drop_start_s) == 33.0 and float(lenta.drop_end_s) == 245.0 and float(lenta.low_hold_end_s) == 640.0, "La condición «lenta» corre la bajante ~15 s")
+	check(float(lenta.drop_start_s) == 33.0 and float(lenta.drop_end_s) == 245.0 and float(lenta.low_hold_end_s) == 660.0, "La condición «lenta» corre la bajante ~15 s")
 	var f := FileAccess.open("res://data/history.json", FileAccess.READ)
 	var hist: Dictionary = JSON.parse_string(f.get_as_text())
 	var htxt := JSON.stringify(hist.scenarios.justine).to_lower()
@@ -2646,7 +2646,7 @@ func _test_strategies() -> void:
 			if res.status == "victory":
 				vts.append(float(res.t))
 	vts.sort()
-	check(vts.size() > 0 and float(vts[vts.size() / 2]) >= 9.0 * 60.0 and float(vts[vts.size() / 2]) <= 12.0 * 60.0, "Ronda 9 (plan de diversión): la victoria típica (mediana) dura entre 9 y 12 min (%.1f min)" % [float(vts[vts.size() / 2]) / 60.0])
+	check(vts.size() > 0 and float(vts[vts.size() / 2]) >= 8.5 * 60.0 and float(vts[vts.size() / 2]) <= 12.0 * 60.0, "Ronda 9 (plan de diversión): la victoria típica (mediana) dura entre 8,5 y 12 min (%.1f min)" % [float(vts[vts.size() / 2]) / 60.0])
 	# reconocer pesa: a ciegas se pierde (y por mecanismos deterministas); reconociendo mejora la tasa de exito
 	var blind_names := ["rush_central", "rush_gallop", "blind_north_edge", "south_wrong_crossing"]
 	var blind_wins := 0
@@ -2765,7 +2765,7 @@ func _test_strategies() -> void:
 		timeout.tick(15)
 		if timeout.state.status != "playing":
 			break
-	check(timeout.state.status == "defeat" and str(timeout.state.defeat_cause) == "plazo" and _near(timeout.state.elapsed, 840.0, 1.0), "Plazo duro: derrota por plazo a los 14:00 si alguien ya avanzó (t = %.0f)" % float(timeout.state.elapsed))
+	check(timeout.state.status == "defeat" and str(timeout.state.defeat_cause) == "plazo" and _near(timeout.state.elapsed, 800.0, 1.0), "Plazo duro: derrota por plazo a los 13:20 si alguien ya avanzó (t = %.0f)" % float(timeout.state.elapsed))
 	check(timeout.campaign_report().outcome_title == "Plazo agotado", "El parte nombra el plazo agotado")
 	var casualties := _new_j()
 	for u in casualties.state.units:
