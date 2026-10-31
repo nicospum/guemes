@@ -637,8 +637,8 @@ func _run() -> void:
 		if l.is_visible_in_tree() and (game.world.labels_root.is_ancestor_of(l) or game.world.unit_labels.values().has(l)):
 			dup += 1
 	check(dup == 0, "Sin rotulos 3D duplicados de hitos ni unidades (%d visibles)" % dup)
-	check(game.state_label.text.find("Quedan") >= 0 and game.clock_label.text.begins_with("Quedan"), "El estado y la cuenta regresiva se muestran")
-	check(game.state_label.text.find("Riesgo") >= 0 and game.state_label.text.find("Vado") >= 0, "El estado indica vados y riesgo")
+	check(game.state_label.text.find("Quedan") < 0 and game.clock_label.text.begins_with("Quedan"), "Un solo reloj principal: la cuenta regresiva esta arriba y el panel de estado no la repite")
+	check(game.state_label.text.find("Peligro") >= 0 and game.state_label.text.find("Vado") >= 0 and game.state_label.text.find("sin confirmar") < 0, "El estado indica vados y peligro, sin jerga ('sin confirmar')")
 	var pitch0: float = game.camera_pitch
 	game.qa_keys[KEY_PAGEUP] = true
 	await _frames(10)
