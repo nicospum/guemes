@@ -43,9 +43,9 @@
     "step_s": 0.25,
     "drop_start_s": 30.0,
     "drop_end_s": 250.0,
-    "low_hold_end_s": 700.0,
-    "rise_end_s": 830.0,
-    "deadline_s": 840.0,
+    "low_hold_end_s": 640.0,
+    "rise_end_s": 770.0,
+    "deadline_s": 780.0,
     "variants": [
       {
         "id": "normal",
@@ -54,9 +54,9 @@
         "tag": "diseno",
         "drop_start_s": 30.0,
         "drop_end_s": 250.0,
-        "low_hold_end_s": 700.0,
-        "rise_end_s": 830.0,
-        "note": "Valores base. El río baja entre 0:30 y 4:10, queda en mínimo hasta 11:40 y vuelve a subir hasta el plazo (14:00)."
+        "low_hold_end_s": 640.0,
+        "rise_end_s": 770.0,
+        "note": "Valores base. El río baja entre 0:30 y 4:10, queda en mínimo hasta 10:40 y vuelve a subir hasta el plazo (13:00)."
       },
       {
         "id": "sostenida",
@@ -65,8 +65,8 @@
         "tag": "diseno",
         "drop_start_s": 25.0,
         "drop_end_s": 230.0,
-        "low_hold_end_s": 760.0,
-        "rise_end_s": 840.0,
+        "low_hold_end_s": 700.0,
+        "rise_end_s": 780.0,
         "note": "Bajante rápida y mínimo largo: ventana holgada. Es la compensación de la variante de misión «viento fuerte»."
       },
       {
@@ -76,19 +76,19 @@
         "tag": "diseno",
         "drop_start_s": 33.0,
         "drop_end_s": 245.0,
-        "low_hold_end_s": 700.0,
-        "rise_end_s": 830.0,
+        "low_hold_end_s": 640.0,
+        "rise_end_s": 770.0,
         "note": "Reservada (ninguna variante de misión la sortea por defecto): el vado abre ~5 s más tarde. La ronda 9 quitó la variante «breve», que dejaba la ruta sur sin tiempo."
       }
     ],
     "variants_note": "Ronda 9: la condición del río ya no se sortea aparte; la fija la variante de misión (mission_variants). La variante «breve» se eliminó por injusta.",
     "tag": "diseno",
     "note": "Ronda 9 (DISEÑO, directriz de diversión): partida comprimida. Bajante 0:30-4:10, mínimo hasta 11:40, subida hasta el plazo duro de 14:00 (ronda 9: 13:00 dejaba sin tiempo a la ruta sur). El vado central abre ~3:30. Gillespie (1818, pp. 35-36) liga la bajada a las brisas, pero los tiempos son elección de juego: la diversión manda sobre el cronograma histórico. // Nota original (rondas 1-8): Bajante 390 s (6,5 min), mínimo sostenido 510 s, subida 120 s. Plazo 18 min (partida objetivo 12-18 min). Gillespie (1818, pilotaje, pp. 35-36) escribe que en estaciones ordinarias el río sube o baja a veces siete u ocho pies (≈ 2,1-2,4 m) 'bajo el control arbitrario de las brisas casuales', y que por esa causa un buque de fuerza quedó 'left dry' (en seco) y fue abordado por caballería el día de la rendición: SÍ liga la bajada al viento y SÍ habla de buque en seco. Lo que no consta es el viento concreto del 12/8/1806 (sin serie de viento, presión ni nivel), ni la cota, la hora o la forma del fondo (las bajantes por vientos del oeste/noroeste de hoy, ~1,65 m, son mecánica moderna: Meccia 2008). Los tiempos, el nivel de 1,65 m y el banco 'parcialmente inundado' (en lugar del 'en seco' de Gillespie) son elecciones de DISEÑO para que exista un vado jugable; ver docs/DISENO_JUSTINA.md 2.4.",
-    "no_return_s": 660.0,
+    "no_return_s": 600.0,
     "no_return_warn_s": [
-      420.0,
-      540.0,
-      630.0
+      360.0,
+      480.0,
+      570.0
     ]
   },
   "tide": {
@@ -725,7 +725,7 @@
       "stumble": {
         "stop_s": 55.0,
         "fatigue": 35.0,
-        "strength_loss": 52.0
+        "strength_loss": 36.0
       },
       "note": "Separa la playa del banco sur. Intransitable salvo por el vado_sur."
     }
@@ -782,7 +782,7 @@
       "stumble": {
         "stop_s": 55.0,
         "fatigue": 38.0,
-        "strength_loss": 58.0
+        "strength_loss": 40.0
       },
       "note": "Hoyo oculto en la ruta directa. Sin reconocimiento, un grupo que cae en él pierde caballos y jinetes (28 de fuerza), queda 35 s detenido y agotado."
     },
@@ -801,7 +801,7 @@
       "stumble": {
         "stop_s": 42.0,
         "fatigue": 30.0,
-        "strength_loss": 45.0
+        "strength_loss": 32.0
       },
       "note": "Parece un paso somero junto al borde norte del banco central y es un hoyo. Quien lo rodea por el norte sin sondear lo paga."
     },
@@ -820,7 +820,7 @@
       "stumble": {
         "stop_s": 42.0,
         "fatigue": 30.0,
-        "strength_loss": 45.0
+        "strength_loss": 32.0
       },
       "note": "Segundo hoyo, junto al borde sur del banco central. Entre los dos falsos vados y el pozo, ningún trazado a ciegas por el banco central es seguro."
     },
@@ -840,7 +840,7 @@
       "stumble": {
         "stop_s": 55.0,
         "fatigue": 35.0,
-        "strength_loss": 52.0
+        "strength_loss": 36.0
       },
       "note": "Variante oculta: existe solo en las partidas donde el sorteo de la semilla la elige. Cierra el rodeo por el norte del pozo central."
     },
@@ -860,7 +860,7 @@
       "stumble": {
         "stop_s": 55.0,
         "fatigue": 35.0,
-        "strength_loss": 52.0
+        "strength_loss": 36.0
       },
       "note": "Variante oculta: existe solo en las partidas donde el sorteo de la semilla la elige. Cierra el rodeo por el sur del pozo central."
     },
@@ -880,7 +880,7 @@
       "stumble": {
         "stop_s": 55.0,
         "fatigue": 35.0,
-        "strength_loss": 52.0
+        "strength_loss": 36.0
       },
       "note": "Variante oculta sobre el eje del banco sur, justo después del vado."
     },
@@ -900,7 +900,7 @@
       "stumble": {
         "stop_s": 55.0,
         "fatigue": 35.0,
-        "strength_loss": 52.0
+        "strength_loss": 36.0
       },
       "note": "Variante oculta sobre el eje del banco sur, antes del codo."
     }
@@ -1250,11 +1250,11 @@
       "tide_warn_fraction": 0.85,
       "counter": {
         "first_after_boarding_s": 28.0,
-        "interval_s": 38.0,
+        "interval_s": 34.0,
         "jitter_s": 10.0,
         "window_s": 12.0,
         "damage": 28.0,
-        "capture_loss_pct": 27.0,
+        "capture_loss_pct": 31.0,
         "repelled_mult": 0.2,
         "repel_ammo": 3,
         "min_crew_morale": 15.0,
@@ -1264,15 +1264,15 @@
         "repel_fatigue": 6.0,
         "shake_on_unanswered": false,
         "escalation": {"after_misses": 2, "stall_s": 8.0, "capture_mult": 0.0},
-        "max_unanswered": 3
+        "max_unanswered": 2
       },
       "note": "Los grupos que abordan reciben el fuego del buque (x0,5), pierden fuerza en el cuerpo a cuerpo mientras la dotación conserve la moral (melee_loss_per_s x moral/100) y, si el río sube más allá de lo que un hombre a pie puede vadear, se ahogan a drown_loss_per_m_s de fuerza por metro de exceso y por segundo. Diseño.",
       "access_note": "Desmontar y acceder a cubierta por escala/cabo es una opción lúdica del paquete (D5, J), no un detalle comprobado del abordaje. Los caballos no suben a cubierta.",
       "pincer_mult": 1.4,
       "pincer_note": "Ronda 3: si a la vez abordan un grupo que llegó por el centro y otro por el sur, el poder de captura total sube ×1,3 (dividir la fuerza exige coordinar los tiempos, pero paga).",
       "route_premium": {
-        "central": 1.2,
-        "sur": 1.0,
+        "central": 1.15,
+        "sur": 1.2,
         "mixta": 1.15,
         "tag": "diseno",
         "note": "Ronda 3: mixta 1,1 -> 1,22 para que dividir la fuerza sea una tercera forma real de ganar. Ronda 9 (C9): ruta central (rápida, cara en bajas) ×1,3 de poder de captura; sur (lenta, llega con menos desgaste de fuego pero moja la pólvora) ×1,0; mixta ×1,1."
@@ -1767,7 +1767,7 @@
     "routed_strength_threshold": 5.0,
     "doomed": {
       "tag": "diseno",
-      "total_strength_below": 90.0,
+      "total_strength_below": 70.0,
       "capture_below_pct": 70.0,
       "heavy_strength_below": 0.0,
       "heavy_capture_below_pct": 0.0,
@@ -1776,8 +1776,8 @@
     "stall": {
       "tag": "diseno",
       "note": "Ronda 4: derrota por toma estancada. Si ya se abordó hace rato, la captura no supera su mejor marca en `window_s` segundos y todavía falta (< max_capture_pct), la partida termina con parte: la dotación recupera la cubierta más rápido de lo que se avanza. Evita arrastrar 3-4 minutos una toma perdida.",
-      "min_boarded_s": 100.0,
-      "window_s": 90.0,
+      "min_boarded_s": 70.0,
+      "window_s": 60.0,
       "max_capture_pct": 92.0
     },
     "retry_suggest": {
@@ -1788,6 +1788,7 @@
       "why": "Quedó poca tropa y el buque está lejos: si querés, reintentá ya con lo que aprendiste.",
       "note": "Ronda 3: la partida NO termina; la interfaz ofrece «Reintentar ya» (ciclo falla-aprende-reintenta de 2 a 4 min). Se mide en tests/test_rules.gd --human (falsos positivos en partidas ganadas)."
     },
+    "auto_rally": {"tag": "diseno", "trigger": 32.0, "gain": 16.0, "note": "Ronda 5 (red de seguridad del novato): una vez por grupo, al caer a 32 de fuerza el sargento rehace la línea (+16). Queda en el registro con tag auto_rally; la UI puede resaltarlo."},
     "shaken": {
       "threshold": 25.0,
       "recover_at": 38.0,
@@ -3735,8 +3736,7 @@
       },
       {
         "id": "bote",
-        "t": 15.0,
-        "min_attempt": 2,
+        "t": 20.0,
         "kind": "choice",
         "title": "Un bote del buque",
         "text": "Un bote del buque se acerca a la playa a espiar tus posiciones.",
@@ -3808,7 +3808,7 @@
         "id": "rio_minimo",
         "t": 270.0,
         "kind": "tide",
-        "text": "El río llegó a su mínimo. El vado está abierto: cada minuto cuenta antes de que vuelva a subir (plazo 14:00)."
+        "text": "El río llegó a su mínimo. El vado está abierto: cada minuto cuenta antes de que vuelva a subir (plazo 13:00)."
       },
       {
         "id": "voluntarios",
@@ -3821,7 +3821,7 @@
         "id": "liniers_3",
         "t": 420.0,
         "kind": "liniers",
-        "text": "Liniers: «Quedan siete minutos de plazo. Quien no cargó, que cargue.»"
+        "text": "Liniers: «Quedan seis minutos de plazo. Quien no cargó, que cargue.»"
       }
     ]
   },
@@ -3860,16 +3860,16 @@
     "deck": [
       {"id": "humo", "title": "Humo en cubierta", "text": "El humo de la última descarga cubre la proa.", "default": "esperar", "options": [
         {"id": "avanzar", "label": "Avanzar a ciegas (captura ×1,6 durante 15 s, −8 de fuerza)", "effects": {"cap_mult": [1.6, 15.0], "strength_all": -8.0}},
-        {"id": "esperar", "label": "Esperar que se despeje", "effects": {}},
+        {"id": "esperar", "label": "Esperar que se despeje (captura ×0,5 durante 15 s)", "effects": {"cap_mult": [0.5, 15.0]}},
         {"id": "curar", "label": "Aprovechar para atender heridos", "effects": {"wounded_heal": 0.6}}]},
       {"id": "pedrero", "title": "Pedrero de cubierta", "text": "Un pedrero de la dotación apunta a la tropa que aborda.", "default": "ignorar", "options": [
         {"id": "silenciar", "label": "Silenciarlo a tiros (−2 de munición)", "effects": {"needs_ammo": 2, "ammo": -2}},
-        {"id": "ignorar", "label": "Ignorarlo (−16 de fuerza repartidos)", "effects": {"strength_all": -16.0}},
+        {"id": "ignorar", "label": "Ignorarlo (−22 de fuerza repartidos y el próximo contraataque llega 12 s antes)", "effects": {"strength_all": -22.0, "counter_advance_s": 12.0}},
         {"id": "cargar", "label": "Cargar sobre él (−6 de fuerza, +6 % de captura)", "effects": {"strength_all": -6.0, "capture": 6.0}}]},
       {"id": "parlamento", "title": "La dotación parlamenta", "text": "Un oficial de la dotación agita un pañuelo y pide hablar.", "default": "ignorar", "options": [
         {"id": "escuchar", "label": "Escuchar (+10 % de captura, la dotación recobra ánimo +15)", "effects": {"capture": 10.0, "crew_morale": 15.0}},
         {"id": "exigir", "label": "Exigir rendición (la dotación pierde ánimo −20)", "effects": {"crew_morale": -20.0}},
-        {"id": "ignorar", "label": "No contestar (la dotación recobra ánimo +8)", "effects": {"crew_morale": 8.0}}]},
+        {"id": "ignorar", "label": "No contestar (la dotación recobra ánimo +8 y su próximo contraataque llega 10 s antes)", "effects": {"crew_morale": 8.0, "counter_advance_s": 10.0}}]},
       {"id": "polvora", "title": "Pólvora sin custodia", "text": "Hay barriles de pólvora sin custodia en el castillo de proa.", "default": "dejar", "options": [
         {"id": "tomar", "label": "Tomarlos (+5 de munición, −8 de fuerza)", "effects": {"ammo": 5, "strength_all": -8.0}},
         {"id": "dejar", "label": "Dejarlos", "effects": {}}]},
@@ -3879,7 +3879,7 @@
       {"id": "cansancio", "title": "Hombres agotados", "text": "La tropa está al límite después de tanta escalera y tanto humo.", "default": "seguir", "options": [
         {"id": "respiro", "label": "Un respiro de 10 s (sin captura 10 s, −25 de fatiga, +3 de fuerza)", "effects": {"cap_mult": [0.0, 10.0], "fatigue_all": -25.0, "strength_all": 3.0}},
         {"id": "arengar", "label": "Arengar (captura ×1,25 durante 20 s, +10 de fatiga)", "effects": {"cap_mult": [1.25, 20.0], "fatigue_all": 10.0}},
-        {"id": "seguir", "label": "Seguir como está", "effects": {}}]}
+        {"id": "seguir", "label": "Seguir como está (+12 de fatiga, captura ×0,5 durante 15 s)", "effects": {"fatigue_all": 12.0, "cap_mult": [0.5, 15.0]}}]}
     ]
   },
   "campaign": {
@@ -3924,7 +3924,7 @@
         "advice": "Rechazá cada contraataque (cuesta 3 de munición) y decidí en cubierta: cada situación bien resuelta suma captura."
       },
       "inaccion": {
-        "cause": "Pasó el punto sin retorno (11:00) sin que nadie cargara contra el buque.",
+        "cause": "Pasó el punto sin retorno (10:00) sin que nadie cargara contra el buque.",
         "advice": "Sondeá y señalá a Liniers temprano: a los 7:00 ya tenés que estar en marcha."
       }
     },
@@ -3965,10 +3965,10 @@
       "tag": "diseno",
       "note": "Ronda 2 (directriz de diversión): ventaja de la experiencia. El nivel es la racha de derrotas del perfil (0 = primer intento). Se muestra siempre en el parte y en un aviso del segundo 0; nunca es oculta. Los multiplicadores bajan el castigo (fuego del buque, tropiezo en un pozo, contraataque) y suben el ritmo de captura. El nivel 0 es el colchón de cualquier primer intento.",
       "levels": [
-        {"fire_mult": 1.0, "stumble_mult": 1.0, "capture_mult": 1.0, "counter_mult": 0.85, "counter_cap_mult": 0.6, "melee_mult": 0.9, "auto_repel_n": 0, "label": ""},
-        {"fire_mult": 0.95, "stumble_mult": 0.9, "capture_mult": 1.02, "counter_mult": 0.8, "counter_cap_mult": 0.55, "melee_mult": 0.88, "auto_repel_n": 0, "label": "Aprendiste del último intento: la tropa llega un poco más entera y el buque falla algo más."},
-        {"fire_mult": 0.88, "stumble_mult": 0.8, "capture_mult": 1.05, "counter_mult": 0.7, "counter_cap_mult": 0.5, "melee_mult": 0.82, "auto_repel_n": 1, "label": "Segunda derrota seguida: la experiencia pesa (fuego del buque −12 %, tropiezos más suaves, el sargento rechaza el primer contraataque)."},
-        {"fire_mult": 0.8, "stumble_mult": 0.7, "capture_mult": 1.1, "counter_mult": 0.6, "counter_cap_mult": 0.45, "melee_mult": 0.75, "auto_repel_n": 2, "label": "La tropa ya conoce el terreno: el buque le acierta menos y la captura avanza más rápido."}
+        {"fire_mult": 0.92, "stumble_mult": 0.9, "capture_mult": 1.02, "counter_mult": 0.85, "counter_cap_mult": 0.6, "melee_mult": 0.9, "auto_repel_n": 1, "label": ""},
+        {"fire_mult": 0.95, "stumble_mult": 0.9, "capture_mult": 1.02, "counter_mult": 0.8, "counter_cap_mult": 0.55, "melee_mult": 0.88, "auto_repel_n": 1, "label": "Aprendiste del último intento: la tropa llega un poco más entera y el buque falla algo más."},
+        {"fire_mult": 0.88, "stumble_mult": 0.8, "capture_mult": 1.05, "counter_mult": 0.7, "counter_cap_mult": 0.5, "melee_mult": 0.82, "auto_repel_n": 2, "label": "Segunda derrota seguida: la experiencia pesa (fuego del buque −12 %, tropiezos más suaves, el sargento rechaza el primer contraataque)."},
+        {"fire_mult": 0.8, "stumble_mult": 0.7, "capture_mult": 1.1, "counter_mult": 0.6, "counter_cap_mult": 0.45, "melee_mult": 0.75, "auto_repel_n": 3, "label": "La tropa ya conoce el terreno: el buque le acierta menos y la captura avanza más rápido."}
       ]
     },
     "ammo_advice": "Te quedaste sin munición: abastecé en la batería antes de cruzar.",
