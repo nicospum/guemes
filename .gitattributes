@@ -1,2 +1,8 @@
 # Preserve original evidence bytes and hashes on Windows checkouts.
 evidence/** -text
+
+# Nivel «Humahuaca» (contrato 4.4): los archivos nuevos van en LF; no se renormaliza nada de lo existente.
+scripts/humahuaca/** text eol=lf
+data/humahuaca_*.json text eol=lf
+shaders/humahuaca_* text eol=lf
+tests/test_hx_*.gd text eol=lf
