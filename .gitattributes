@@ -6,3 +6,9 @@ scripts/humahuaca/** text eol=lf
 data/humahuaca_*.json text eol=lf
 shaders/humahuaca_* text eol=lf
 tests/test_hx_*.gd text eol=lf
+
+# Compuerta y pruebas del nivel (compuertas y documentos): también en LF, aunque no caigan en los patrones de arriba.
+# Un qa_gate.sh con CRLF no corre en Git Bash.
+tools/qa_gate.sh text eol=lf
+tests/hx_*.gd text eol=lf
+docs/humahuaca/forma/*.json text eol=lf
