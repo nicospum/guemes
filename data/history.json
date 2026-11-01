@@ -211,6 +211,16 @@
         "Cotejar contra el escaneo (no el OCR) las pp. 93, 94 y 121 de Gillespie y confirmar la lámina de Vidal citada como procedencia del aspecto."
       ]
     },
+    "humahuaca": {
+      "title": "Humahuaca: el depósito de la retaguardia",
+      "date": "1 de marzo de 1817 (otras fuentes dicen el 2)",
+      "place": "Humahuaca, en la Quebrada de Humahuaca",
+      "context": "Hacia el 1 de marzo de 1817, una fuerza al mando de Manuel Eduardo Arias atacó los depósitos que el ejército realista de La Serna tenía en Humahuaca, en su retaguardia: una batería, un cuartel y la posta con la pólvora. Güemes conducía el frente regional desde Salta y no estuvo en el asalto.",
+      "notice": "Reconstrucción jugable, no crónica. Las posiciones, los tiempos y las reglas son decisiones de diseño sobre pocos datos: en el juego cada dato lleva una etiqueta (documentado, inferencia razonada, versión discutida, diseño o sin datos suficientes).",
+      "art_note": "El relieve parte de datos de elevación actuales, no del suelo de 1817. No hay plano del pueblo ni descripción de la ropa de ambos bandos: los edificios, la planta y el vestuario son reconstrucciones sin datos.",
+      "facts": [],
+      "reference_outcome": "Según los partes de ambos bandos, la munición se quemó o se echó al río y los cañones no se llevaron; los realistas dijeron después haber recuperado seis piezas. La victoria o la derrota de tu partida dependen de tus decisiones, no de este desenlace."
+    },
     "norte": {
       "title": "Sostener el norte",
       "date": "Diciembre de 1816 — mayo de 1817",

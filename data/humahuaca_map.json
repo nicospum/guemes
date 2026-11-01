@@ -1,0 +1,31 @@
+{
+	"contract": 1,
+	"map_id": "humahuaca",
+	"map_version": 1,
+	"size_m": {
+		"x": 900.0,
+		"z": 650.0
+	},
+	"axes": {
+		"x": "este",
+		"z": "sur",
+		"norte": "-z",
+		"origen": "esquina NO",
+		"unidad": "m"
+	},
+	"anchor": {
+		"id": "templo",
+		"x": 450.0,
+		"z": 325.0,
+		"lat": -23.2041,
+		"lon": -65.3492,
+		"uncertainty_m": 15,
+		"tag": "razonado"
+	},
+	"lamina": {
+		"offset_x": 450.0,
+		"offset_z": 325.0,
+		"nota": "x = E + 450; z = 325 - N"
+	},
+	"datum_asl_m": 2940.0
+}

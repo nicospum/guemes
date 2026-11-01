@@ -1,0 +1,30 @@
+{
+	"contract": 1,
+	"map_version": 1,
+	"palette": [
+		{"id": "suelo_seco", "name": "Suelo seco", "group": "paisaje", "hex": "#B99A72"},
+		{"id": "sedimento_humedo", "name": "Sedimento húmedo", "group": "paisaje", "hex": "#776248"},
+		{"id": "piedra_gris", "name": "Piedra gris", "group": "paisaje", "hex": "#8E8B81"},
+		{"id": "churqui", "name": "Churqui / arbusto", "group": "paisaje", "hex": "#6D7653"},
+		{"id": "vegetacion_irrigada", "name": "Vegetación irrigada", "group": "paisaje", "hex": "#69794B"},
+		{"id": "agua_turbia", "name": "Agua turbia", "group": "paisaje", "hex": "#8C9B91"},
+		{"id": "adobe", "name": "Adobe / revoque", "group": "construcciones", "hex": "#C4AA82"},
+		{"id": "cal_envejecida", "name": "Cal envejecida", "group": "construcciones", "hex": "#E4DDCA"},
+		{"id": "madera_oscura", "name": "Madera oscura", "group": "construcciones", "hex": "#59432E"},
+		{"id": "cuero", "name": "Cuero", "group": "construcciones", "hex": "#745034"},
+		{"id": "paja", "name": "Paja / cubierta", "group": "construcciones", "hex": "#B3A077"},
+		{"id": "hierro", "name": "Hierro", "group": "construcciones", "hex": "#4B4B47"},
+		{"id": "lana_natural", "name": "Lana natural", "group": "personajes", "hex": "#CEC2A7"},
+		{"id": "lana_parda", "name": "Lana parda", "group": "personajes", "hex": "#705741"},
+		{"id": "azul_elegido", "name": "Azul elegido", "group": "personajes", "hex": "#2E455A"},
+		{"id": "rojo_reservado", "name": "Rojo reservado", "group": "personajes", "hex": "#9A443B"},
+		{"id": "verde_elegido", "name": "Verde elegido", "group": "personajes", "hex": "#4F5E4C"},
+		{"id": "lino_crudo", "name": "Lino crudo", "group": "personajes", "hex": "#E1D7BD"},
+		{"id": "celeste_produccion", "name": "Celeste de producción", "group": "simbolos", "hex": "#7FAAC4"},
+		{"id": "blanco_textil", "name": "Blanco textil", "group": "simbolos", "hex": "#EFE8D7"},
+		{"id": "borgona_hipotetica", "name": "Borgoña hipotética", "group": "simbolos", "hex": "#983F36"},
+		{"id": "oro_laton", "name": "Oro / latón", "group": "simbolos", "hex": "#B99A50"},
+		{"id": "negro_textil", "name": "Negro textil", "group": "simbolos", "hex": "#383831"},
+		{"id": "grana_analogia", "name": "Grana como analogía", "group": "simbolos", "hex": "#843D40"}
+	]
+}
