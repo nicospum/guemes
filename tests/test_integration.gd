@@ -14,7 +14,7 @@ var report: Dictionary = {"suite": "main_scene_player_flow", "kind": "headless_s
 
 func _initialize() -> void:
 	# Hermetico: el perfil no puede arrastrar intentos, diario ni ajustes de otra corrida (la tarjeta inicial crece con los intentos).
-	for stale in ["campaign.json", "justina_progress.json", "settings.cfg"]:
+	for stale in ["campaign.json", "justina_progress.json", "humahuaca_progress.json", "humahuaca_checkpoint.json", "settings.cfg"]:
 		if FileAccess.file_exists("user://" + stale):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path("user://" + stale))
 	call_deferred("_run")

@@ -35,7 +35,7 @@ func _initialize() -> void:
 	# Instalacion nueva: los ajustes guardados por otras pruebas (p. ej. auto_pause=false) no deben contaminar la primera partida.
 	if FileAccess.file_exists("user://settings.cfg"):
 		DirAccess.remove_absolute(ProjectSettings.globalize_path("user://settings.cfg"))
-	for stale in ["campaign.json", "justina_progress.json"]:
+	for stale in ["campaign.json", "justina_progress.json", "humahuaca_progress.json", "humahuaca_checkpoint.json"]:
 		if FileAccess.file_exists("user://" + stale):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path("user://" + stale))
 	call_deferred("_run")

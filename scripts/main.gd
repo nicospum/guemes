@@ -13,6 +13,7 @@ const ACTION_NAMES = {"move":"Mover", "scout":"Reconocer", "protect":"Proteger v
 const ACTION_HINTS = {"move":"Traslada la agrupación a un sector vecino. Fatiga +7; suministros −4.","scout":"Revela el sector y sus vecinos. El reconocimiento reduce las pérdidas del hostigamiento durante tres rondas.","protect":"Resguarda víveres y animales del sector propio. Reservas +18, apoyo +9; limita el abastecimiento enemigo.","raid":"Corta abastecimiento y comunicaciones. Requiere conocimiento del sector y fuerzas en condiciones.","rest":"En un sector propio: suministros +27, fatiga −34, fuerza +9. Consume 8 reservas.","withdraw":"Vuelve a un sector vecino propio y reduce 16 de fatiga.","assault":"Arias coordina Humahuaca desde marzo: afecta artillería, cuartel, depósito de pólvora y comunicaciones."}
 
 var rules: Variant = Rules.new()
+var hx: Node  # controlador del nivel «humahuaca» (null fuera de él)
 var world: Node3D
 var camera: Camera3D
 var jev: Node
@@ -387,6 +388,7 @@ func _fit_ui_scale():
   if is_instance_valid(map_widget) and _is_j():_layout_j()
 
 func _menu():
+ _stop_humahuaca()
  get_window().content_scale_factor=1.0
  jev.invalidate();pending_round=false;mode="menu";paused=true;outcome_shown=false;shake=0.0;flash_alpha=0.0
  rules.new_game("justine",1806)
@@ -402,14 +404,16 @@ func _menu():
  _label(box,"GÜEMES",78,PAPER,true)
  _label(box,"EL TERRENO. EL MOMENTO. LA GENTE.",16,GOLD)
  _spacer(box,12)
- _rich(box,"Dos momentos de una historia. Elegí dónde actuar, cuidá a tus hombres y convertí el territorio en una ventaja.",19)
+ _rich(box,"Tres momentos de una historia. Elegí dónde actuar, cuidá a tus hombres y convertí el territorio en una ventaja.",19)
  _spacer(box,18)
  var a=_button(box,"I   ·   EL RÍO OFRECE UNA OPORTUNIDAD\nTomar la Justina  ·  Buenos Aires, 1806",func():_start_game("justine"),82)
  a.alignment=HORIZONTAL_ALIGNMENT_LEFT
  a.tooltip_text="Tres grupos y dos exploradores. Tiempo real con pausa. El fondo del río es turbio: hay que reconocerlo."
  if int(progress.intentos)>0 and not bool(progress.justina_ganada):a.text="I   ·   EL RÍO OFRECE UNA OPORTUNIDAD\nTomar la Justina  ·  intento %d, mismo río" % (int(progress.intentos)+1)
  var unlocked=bool(progress.justina_ganada)
- var b=_button(box,"II  ·   SOSTENER EL NORTE\n"+("La campaña contra La Serna  ·  1816–1817" if unlocked else "Ganá la Justina para abrirlo"),func():_start_game("norte"),82)
+ var hxb=_button(box,"II  ·   HUMAHUACA: EL DEPÓSITO DE LA RETAGUARDIA\n"+("El golpe de Arias  ·  1817" if unlocked else "Recomendado tras la Justina  ·  El golpe de Arias, 1817"),func():_start_game("humahuaca"),82)
+ hxb.alignment=HORIZONTAL_ALIGNMENT_LEFT;hxb.tooltip_text="Tres partidas, reconocedores y arreo. Tiempo real con pausa. Hay que tomar el depósito antes del alba."  # siempre habilitado (D1c): la Justina no está certificada y un candado dejaría sin probar el nivel
+ var b=_button(box,"III  ·   SOSTENER EL NORTE\n"+("La campaña entera, 1816–1817, vista desde Salta" if unlocked else "Ganá la Justina para abrirlo"),func():_start_game("norte"),82)
  b.alignment=HORIZONTAL_ALIGNMENT_LEFT;b.disabled=not unlocked
  b.tooltip_text="Campaña por rondas. Reconocimiento, víveres, hostigamiento y la operación de Arias en Humahuaca." if unlocked else "Se abre cuando tomes el buque Justina (aunque sea con medalla de bronce)."
  var options=_hbox(box)
@@ -430,6 +434,7 @@ func _button_at(parent,text_value,pos,size_v,fn):
  var b=_button(parent,text_value,fn);b.position=pos;b.size=size_v;return b
 
 func _start_game(scenario_name:String):
+ if scenario_name=="humahuaca":_start_humahuaca();return  # GameRules.new_game() convertiría cualquier nombre desconocido en "justine"
  var build_start=Time.get_ticks_msec()
  jev.invalidate();pending_round=false;resolution_remaining=0;outcome_shown=false
  attempt_logged=false;shake=0.0;flash_alpha=0.0;toast_prio=0;volley_warned=-1.0;toast_timer=0.0;details_open=false;auto_start_pending=false
@@ -452,6 +457,34 @@ func _start_game(scenario_name:String):
   if not qa_mode and not benchmark_mode:_intro_card()
  else:_toast("Elegí tu primera orden. Podés explorar la cámara antes de avanzar.",7)
  scene_build_ms=Time.get_ticks_msec()-build_start
+
+# Nivel «humahuaca»: lo maneja un controlador hijo con sus propias reglas y vista; nunca pasa por `rules`, `_is_j()` ni mode=="play".
+func _start_humahuaca(opts:={}):
+ _stop_humahuaca()  # si ya había un controlador vivo, no queda huérfano
+ var build_start=Time.get_ticks_msec()
+ jev.invalidate();pending_round=false;outcome_shown=false
+ if is_instance_valid(world):remove_child(world);world.queue_free()
+ world=null;mode="hx";paused=true;_new_ui()
+ hx=_hx_make();add_child(hx)
+ hx.exited.connect(_on_hx_exited)
+ hx.start(self,opts)
+ scene_build_ms=Time.get_ticks_msec()-build_start  # el benchmark informa la construcción del nivel (tope de 1 500 ms)
+
+func _hx_make():  # carga con respaldo: si el controlador real falta o no parsea, se usa la cáscara y el nivel igual arranca y vuelve al menú
+ var path="res://scripts/humahuaca/ui/humahuaca_ui.gd"
+ var script=load(path) if ResourceLoader.exists(path) else null
+ if script==null or not script.can_instantiate():script=load("res://scripts/humahuaca/stubs/stub_ui.gd")
+ return script.new()
+
+func _stop_humahuaca():
+ if not is_instance_valid(hx):return
+ hx.stop();hx.queue_free();hx=null
+ if is_instance_valid(camera):camera.current=true
+
+func _on_hx_exited(to:String):
+ _stop_humahuaca()  # el controlador se libera antes de empezar otra cosa (el menú ya lo hace, pero el Norte no)
+ if to=="norte":_start_game("norte")
+ else:_menu()
 
 func _build_hud():
  if _is_j():_build_hud_j();return
@@ -626,7 +659,7 @@ func _update_hud():
  if mode!="play" or not is_instance_valid(title_label):return
  if _is_j():_update_hud_j();return
  var state=rules.state
- title_label.text="II  ·  SOSTENER EL NORTE"
+ title_label.text="III  ·  SOSTENER EL NORTE"
  if true:
   phase_label.text="%s     /     RONDA %d DE 14" % [str(state.date).to_upper(),int(state.round)]
   objective_label.text="[b]Volvé insostenible la invasión.[/b]\nCortá abastecimientos y comunicaciones. Sostené a la población."
@@ -886,6 +919,7 @@ func _save_game(notify_user=true):
  elif notify_user:_toast("No se pudo guardar la partida ("+str(error)+").",4,false)
 
 func _load_game(scenario_name:String):
+ if scenario_name=="humahuaca":_start_humahuaca({"load":true});return  # el controlador lee su propio guardado; rules.load_game solo conoce justine y norte
  jev.invalidate();pending_round=false
  var result=rules.load_game(_save_path(scenario_name))
  if not result.ok:
@@ -903,6 +937,7 @@ func _load_game(scenario_name:String):
  if rules.state.scenario=="justine":_refresh_minimap()
 
 func _return_menu():
+ if mode=="hx":_stop_humahuaca()
  # El autoguardado al salir no pisa un guardado manual con una partida sin avances ni con una ya terminada.
  if not pending_round and _has_progress():_save_game(false)
  _menu()
@@ -964,7 +999,7 @@ func _history_dialog():
  var scroll=ScrollContainer.new();scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;scroll.custom_minimum_size.y=620;box.add_child(scroll)
  var content=VBoxContainer.new();content.size_flags_horizontal=Control.SIZE_EXPAND_FILL;scroll.add_child(content)
  var text_value="[b]Cómo leer esta recreación[/b]\n"+str(history_data.get("general_notice","Fuentes documentales, tradición y adaptación jugable se distinguen por separado."))+"\n\n"
- for id in ["justine","norte"]:
+ for id in ["justine","humahuaca","norte"]:
   var sc=history_data.get("scenarios",{}).get(id,{})
   text_value+="[color=#d9b576][b]"+str(sc.get("title",id)).to_upper()+"[/b][/color]\n"
   text_value+=str(sc.get("context",""))+"\n\n"+str(sc.get("notice",""))+"\n"+str(sc.get("art_note",""))+"\n\n"
@@ -1072,6 +1107,7 @@ func _finish_automation(exit_code:int=0):
  # Captures resume inside frame_post_draw. Drain renderer/audio ownership before
  # asking SceneTree to quit; this teardown is only used by QA and benchmarks.
  paused=true;pending_round=false
+ _stop_humahuaca()
  set_process(false);set_process_unhandled_input(false)
  if is_instance_valid(jev):jev.invalidate()
  if is_instance_valid(audio_manager):
@@ -1094,6 +1130,12 @@ func _qa_run(scenario_name:String):
   var w=get_window();w.mode=Window.MODE_WINDOWED;w.borderless=true;w.size=qa_size;w.position=Vector2i.ZERO
   for i in range(12):await get_tree().process_frame
  await _qa_capture("menu")
+ if scenario_name=="humahuaca":  # el controlador recorre sus vistas y escribe sus capturas y su qa_report.json en qa_path
+  _start_humahuaca({"qa":true,"skip_intro":true})
+  for i in range(30):await get_tree().process_frame
+  if is_instance_valid(hx):await hx.qa_run()
+  await _finish_automation(0 if is_instance_valid(hx) else 2)
+  return
  _start_game(scenario_name if scenario_name in ["justine","norte"] else "justine")
  var first_frame_start=Time.get_ticks_msec()
  await RenderingServer.frame_post_draw
@@ -1155,6 +1197,7 @@ func _benchmark_run(scenario_name:String):
   rules.issue_scout("scout_1","probe",[Vector2(200,264),Vector2(330,264)])
   for i in range(170):rules.tick(1.0)
   paused=false
+ elif scenario_name=="humahuaca" and is_instance_valid(hx):hx.benchmark_prepare()  # el controlador deja el nivel en pleno ataque
  for i in range(30):await get_tree().process_frame
  var samples=[]
  var measure_start=Time.get_ticks_usec()
