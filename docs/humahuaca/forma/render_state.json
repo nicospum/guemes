@@ -1,0 +1,38 @@
+{
+	"_forma": {
+		"nota": "Ejemplo de forma de HumahuacaRules.render_state() (CONTRATO 3.2.3 y 3.6): lo que dibuja la vista; solo lo que el jugador conoce o ve. Cuenta la forma (claves y tipos), no los valores. Un arreglo se compara por su primer elemento. Las claves que empiezan con «_» son metadatos de este archivo y no forman parte de la salida.",
+		"opcionales": ["tower", "lights[].objective"]
+	},
+	"version": 42,
+	"t": 95.25,
+	"phase": "aproximacion",
+	"env": {"phase": "noche", "time_of_day": 0.04, "rain": 0.8, "visibility_m": 35.0, "mud": 0.55, "firearm_reliability": 0.6},
+	"units": [
+		{"id": "rodriguez", "x": 92.5, "z": 455.0, "yaw_deg": 35.0, "kind": "partida", "mounted": true, "stage": "moving", "strength_pct": 100.0, "men_visible": 9, "noise_state": "se_oye", "detected": false, "carry_ratio": 0.0}
+	],
+	"objectives": [
+		{"id": "bateria", "x": 318.0, "z": 350.0, "state": "guardado", "toma": 0.0, "alert": 0.1, "garrison_pct": -1.0, "under_fire": false}
+	],
+	"enemies": [
+		{"id": "centinela_1", "kind": "centinela", "x": 322.0, "z": 340.0, "alert": 0.0, "firing": false}
+	],
+	"loot": [
+		{"id": "canones_bateria", "kind": "canones", "state": "en_sitio", "x": 318.0, "z": 350.0, "qty": 3}
+	],
+	"fire_lines": [
+		{"from": {"x": 450.0, "z": 300.0}, "to": {"x": 430.0, "z": 330.0}, "kind": "torre"}
+	],
+	"visibility_pools": [
+		{"x": 318.0, "z": 350.0, "r": 35.0}
+	],
+	"marks": [
+		{"key": "tapia_norte_1", "kind": "tapia", "text": "Tapia anotada", "x": 400.0, "z": 300.0, "confirmed": false}
+	],
+	"horses": [
+		{"x": 70.0, "z": 470.0, "state": "asegurado"}
+	],
+	"lights": [
+		{"id": "luz_bateria", "kind": "brasero", "x": 318.0, "z": 350.0, "r_m": 25.0, "objective": "bateria"}
+	],
+	"tower": {"x": 450.0, "z": 310.0, "next_volley_in_s": 4.5, "period_s": 7.5, "dead_angle_m": 12.0, "firing": true}
+}

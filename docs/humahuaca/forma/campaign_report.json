@@ -1,0 +1,42 @@
+{
+	"_forma": {
+		"nota": "Ejemplo de forma de HumahuacaRules.campaign_report() (CONTRATO 3.2.3 y 3.6): válido siempre; el definitivo cuando status != playing. Este ejemplo es una derrota por el alba. Cuenta la forma (claves y tipos), no los valores. Un arreglo se compara por su primer elemento. Las claves que empiezan con «_» son metadatos de este archivo y no forman parte de la salida.",
+		"opcionales": []
+	},
+	"status": "defeat",
+	"reason": "amanecio",
+	"elapsed": 392.5,
+	"outcome_title": "Amaneció y nadie había atacado",
+	"cause_id": "amanecio",
+	"cause": "A las 6:30 salió el sol y ninguna partida había dado el golpe: la guarnición de la posta los vio venir.",
+	"advice": "Dá la señal antes del alba, aunque falte una partida: esperar a todos cuesta más que atacar con dos.",
+	"medal": "",
+	"medal_label": "Sin medalla",
+	"golpe": {"entregado": 0.0, "destruido": 0.0, "oculto": 0.0, "perdido": 0.0, "total": 100.0},
+	"pieces": [
+		{"id": "pieza_1", "tratamiento": "abandonar", "estado": "abandonado"}
+	],
+	"loot_traits": {"corral": "completo", "plata": false, "polvora": "seca"},
+	"objectives": [
+		{"id": "bateria", "nombre": "Batería", "estado": "guardado", "taken_at": -1.0}
+	],
+	"groups": [
+		{"id": "rodriguez", "nombre": "Partida de Rodríguez", "tag": "razonado", "start_strength": 100.0, "end_strength": 100.0, "loss_pct": 0.0}
+	],
+	"loss_pct": 0.0,
+	"detections": 2,
+	"support_events": 0,
+	"horses": {"salvados": 6, "perdidos": 0},
+	"powder_wet": false,
+	"variant": {"guardia": "descuidada", "torre_en": "templo", "refugio": "norte", "lluvia": "copiosa", "refuerzo": "normal", "layout": "A"},
+	"route_notes": ["La ladera oeste se hizo pesada con el barro: llegaron con 40 s de atraso."],
+	"pacing": {"decision_gap_max_s": 38.0, "decision_gap_attack_max_s": 0.0, "first_decision_s": 21.0, "events_per_min": 3.4, "visible_actions_t0": 4},
+	"history": [
+		{"text": "El 1 de marzo de 1817, Arias atacó los depósitos de Humahuaca.", "tag": "razonado"}
+	],
+	"epilogue": [
+		{"fecha": "3 de marzo", "texto": "Arias firma el parte en San Andrés y pide «un botiquín para mis infelices heridos».", "tag": "documentado"}
+	],
+	"assists_used": ["ver_ruta"],
+	"mercy_label": "Sin ayudas"
+}

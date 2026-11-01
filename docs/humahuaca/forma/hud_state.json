@@ -1,0 +1,53 @@
+{
+	"_forma": {
+		"nota": "Ejemplo de forma de HumahuacaRules.hud_state() (CONTRATO 3.2.3 y 3.6). Cuenta la forma (claves y tipos), no los valores. Un arreglo se compara por su primer elemento. Las claves que empiezan con «_» son metadatos de este archivo y no forman parte de la salida. Quitar una clave exige addendum; agregar una, también.",
+		"opcionales": ["siguiente.target", "torre", "decision"]
+	},
+	"objetivo": "Tomá la batería, el cuartel y la posta antes del alba y sacá la carga por el vado.",
+	"siguiente": {
+		"texto": "Mandá a los reconocedores a mirar la batería.",
+		"actor": "reconocedores",
+		"action": "recon",
+		"target": {"x": 305.0, "z": 345.0},
+		"urgencia": 1
+	},
+	"fase": {"id": "aproximacion", "nombre": "Noche · Aproximación", "reloj": "Falta el alba: 2:10"},
+	"alba": {"progreso": 0.35, "restante_s": 130.0},
+	"frentes": [
+		{"id": "bateria", "nombre": "Batería", "estado": "guardado", "estado_txt": "Guardada", "toma_pct": 0.0, "guardia": {"min": 6, "max": 10, "conocida": false}, "alerta": 0.1, "sorpresa_s": 0.0, "apoyo": ["arias"], "tag": "diseno"},
+		{"id": "cuartel", "nombre": "Cuartel", "estado": "guardado", "estado_txt": "Guardado", "toma_pct": 0.0, "guardia": {"min": 8, "max": 12, "conocida": false}, "alerta": 0.0, "sorpresa_s": 0.0, "apoyo": [], "tag": "diseno"},
+		{"id": "posta", "nombre": "Posta y pólvora", "estado": "guardado", "estado_txt": "Guardada", "toma_pct": 0.0, "guardia": {"min": 4, "max": 7, "conocida": false}, "alerta": 0.0, "sorpresa_s": 0.0, "apoyo": [], "tag": "razonado"}
+	],
+	"grupos": [
+		{"id": "rodriguez", "nombre": "Partida de Rodríguez", "glifo": "R", "fuerza_pct": 100.0, "fatiga_pct": 12.0, "etapa_txt": "Marchando a la altura", "ruido": "se_oye", "tag": "razonado", "custodia": 0, "vivo": true},
+		{"id": "portal", "nombre": "Partida de Portal", "glifo": "P", "fuerza_pct": 100.0, "fatiga_pct": 8.0, "etapa_txt": "Esperando la señal", "ruido": "silencio", "tag": "razonado", "custodia": 0, "vivo": true},
+		{"id": "arias", "nombre": "División de Arias", "glifo": "A", "fuerza_pct": 100.0, "fatiga_pct": 5.0, "etapa_txt": "En reserva", "ruido": "silencio", "tag": "razonado", "custodia": 0, "vivo": true},
+		{"id": "reconocedores", "nombre": "Reconocedores", "glifo": "O", "fuerza_pct": 100.0, "fatiga_pct": 3.0, "etapa_txt": "Mirando la batería", "ruido": "silencio", "tag": "razonado", "custodia": 0, "vivo": true},
+		{"id": "arreo", "nombre": "Arreo", "glifo": "M", "fuerza_pct": 100.0, "fatiga_pct": 0.0, "etapa_txt": "Esperando órdenes", "ruido": "los_oyen", "tag": "diseno", "custodia": 0, "vivo": true}
+	],
+	"alertas": [
+		{"id": "portal_en_puesto", "nivel": "aviso", "corto": "Portal ya está en su puesto.", "largo": "La partida de Portal llegó al cuartel y espera la señal. Falta la partida de Rodríguez.", "boton": "Dar la señal", "accion": {}, "pausa": false, "vence_s": 0.0}
+	],
+	"chips": [
+		{"id": "carga", "txt": "Carga 0 de 2 200 kg", "valor": 0.0},
+		{"id": "golpe", "txt": "Golpe 0 de 100", "valor": 0.0},
+		{"id": "refuerzo", "txt": "Refuerzo: no se sabe", "valor": 0.0},
+		{"id": "caballos", "txt": "Caballos asegurados", "valor": 1.0}
+	],
+	"senal": {"puede": false, "faltan": ["rodriguez"], "oscuridad_pct": 100.0, "desvelo_pct": 0.0},
+	"torre": {"activa": false, "municion_pct": 100.0, "proxima_en_s": 0.0, "periodo_s": 7.5, "angulo_muerto_m": 12.0},
+	"golpe": {"entregado": 0.0, "destruido": 0.0, "oculto": 0.0, "pendiente": 100.0, "total": 100.0},
+	"refuerzo": {"estado": "desconocido", "restante_s": 0.0, "banda": [420.0, 600.0]},
+	"decision": {
+		"id": "informante",
+		"titulo": "Un informante quiere hablar",
+		"texto": "Un vecino dice que la guardia de la posta se duerme. No se sabe si es cierto.",
+		"opciones": [
+			{"id": "creer", "label": "Creerle y cambiar el plan", "costo_txt": "Pierde la ruta ya marcada"},
+			{"id": "ignorar", "label": "Seguir con el plan", "costo_txt": "Sin costo"}
+		],
+		"vence_s": 25.0
+	},
+	"ayudas": ["ver_ruta"],
+	"mundo": {"linea": "Lluvia copiosa · guardia descuidada · refuerzo normal"}
+}

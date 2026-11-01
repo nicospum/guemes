@@ -1,0 +1,18 @@
+{
+	"_forma": {
+		"nota": "Ejemplo de forma de HumahuacaUI.qa_state() (CONTRATO 3.5 y 3.6): lo que el controlador (la cáscara de T0 y el real) devuelve a las pruebas, sin que ninguna toque atributos privados. `camera` repite los parámetros de qa_set_camera(target, dist, pitch_deg, yaw_deg), con target como [x, z]. Cuenta la forma (claves y tipos), no los valores. Un arreglo se compara por su primer elemento. Las claves que empiezan con «_» son metadatos de este archivo y no forman parte de la salida; la cáscara agrega `shell: true` y puede agregar más claves.",
+		"opcionales": []
+	},
+	"phase": "briefing",
+	"elapsed": 0.0,
+	"paused": true,
+	"speed": 1.0,
+	"selected": ["rodriguez"],
+	"camera": {"target": [450.0, 325.0], "dist": 600.0, "pitch_deg": 55.0, "yaw_deg": 0.0},
+	"visible_controls": 4,
+	"text_chars": 188,
+	"alerts": [
+		{"id": "portal_en_puesto", "nivel": "aviso"}
+	],
+	"front_states": {"bateria": "guardado", "cuartel": "guardado", "posta": "guardado"}
+}

@@ -1,0 +1,22 @@
+{
+	"_forma": {
+		"nota": "Ejemplo de forma de HumahuacaRules.plan_route() (CONTRATO 3.2 y 3.6): sin efectos; planifica con lo que el jugador sabe y ejecuta con el terreno real. Cuenta la forma (claves y tipos), no los valores. Un arreglo se compara por su primer elemento. Las claves que empiezan con «_» son metadatos de este archivo y no forman parte de la salida.",
+		"opcionales": []
+	},
+	"ok": true,
+	"reason": "",
+	"path": [
+		{"x": 92.5, "z": 455.0},
+		{"x": 200.0, "z": 410.0},
+		{"x": 305.0, "z": 360.0}
+	],
+	"length_m": 412.0,
+	"time_s": 190.0,
+	"noise": 0.1,
+	"seen_risk": 0.35,
+	"mud_m": 120.0,
+	"unknown_m": 60.0,
+	"risk": "medio",
+	"arrives_before_dawn": true,
+	"warnings": ["Un tramo de 60 m no está reconocido."]
+}
