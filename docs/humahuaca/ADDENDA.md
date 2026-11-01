@@ -66,6 +66,8 @@ Registradas el 1 de noviembre de 2026, tal como las dio el usuario:
 | `_benchmark_run("humahuaca")` (H7) | `hx.benchmark_prepare()` justo antes de los 30 cuadros de calentamiento | El resto del benchmark ya sirve tal cual (`_start_game` desvía por H3) |
 | Menú (H2d) | El botón de Humahuaca lleva un `tooltip_text` | Los otros dos botones lo tienen; el texto evita «EL RÍO OFRECE», «SOSTENER EL NORTE» y «Ganá la Justina para abrirlo», que buscan las pruebas |
 
+**Medición de T0 del menú de tres botones** (cierra la duda del 4.1: «a 1920 × 1080, 2560 × 1440 y Compatibility no se midió»). Con ventana real, el último elemento del menú termina en y = 856 de 900 píxeles lógicos (el alto de la base de diseño) en 1024 × 640, 1280 × 720, 1920 × 1080 y 2560 × 1440 con Forward+, y en 1280 × 720 con Compatibility. Los tres botones miden 82 px de alto por 510 de ancho (y = 425 a 695). `ui_qa` da 254/0 en las tres resoluciones con el menú nuevo y `--qa=humahuaca` corre igual con Compatibility.
+
 **Notas de integración para `ui_feel`** (el controlador real reemplaza la cáscara en R1.0 y tiene que respetar lo que `main.gd` ya hace; ninguna es un cambio de contrato):
 
 1. Con `mode == "hx"`, `main._process` sigue llamando a `_apply_camera()` y mueve `main.camera` con las variables de cámara del menú. El controlador fija la transformación de `main.camera` en **su propio** `_process` (corre después de `main`, porque es su hijo; con `process_priority` mayor queda asegurado) o usa su propia `Camera3D`.
