@@ -1,6 +1,6 @@
 # QA del nivel 2 «Humahuaca»: qué es «presentable» y cómo se verifica
 
-Documento del **Jefe de Control de Calidad**. Versión **1.0** · 1 de noviembre de 2026 · base `main` en `5a84c50` (diseño y contrato) sobre la línea base `5ebbd28` (Justina y Norte). Está **congelado desde el commit que lo introduce**: los números de este texto son los postes del bucle y no se mueven entre rondas (sección 4, regla 5).
+Documento del **Jefe de Control de Calidad**. Versión **1.1** (enmienda 1, ver el anexo F) · 1 de noviembre de 2026 · base `main` en `5a84c50` (diseño y contrato) sobre la línea base `5ebbd28` (Justina y Norte). Está **congelado desde el commit que lo introduce**: los números de este texto son los postes del bucle y no se mueven entre rondas (sección 4, regla 5).
 
 > **Para qué sirve.** En el nivel 1 el control de calidad dijo «no» cinco de cinco rondas porque cada ronda pedía algo nuevo (94 hallazgos sin priorizar) y porque lo que decidía el «sí» —personas jugando— no estaba al alcance del circuito. Acá el criterio se fija **antes** de empezar: 39 ítems con comando, umbral, severidad y evidencia; un presupuesto de hallazgos; tres certificadores que no pueden agregar ítems; y una lista de límites aceptados de antemano. Si todo lo exigible pasa, el QA dice «presentable» y el bucle termina.
 >
@@ -87,7 +87,7 @@ Documento del **Jefe de Control de Calidad**. Versión **1.0** · 1 de noviembre
 | E02 | E | El EXE corre el nivel de forma nativa en Windows, desde una carpeta vacía y con perfil limpio | P10-b: `PatriaGuemes.exe ... --qa=humahuaca`, `--scenario=humahuaca` con `--verbose`, `benchmark.py --binary` | el recorrido sale con 0 y escribe ≥ **5** PNG del tamaño pedido y `qa_report.json`; `--scenario=humahuaca` llega al briefing y sale con 0; cuadro medio del EXE ≤ **3,0 ms** y construcción ≤ 1500 ms; 0 errores y 0 fugas en sus logs | BLOQUEA | `E02/*.log`, `E02/qa_report.json`, `E02/bench_exe.json` |
 | E03 | E | Documentos, créditos y versión al día | P11-a: `grep` y comparaciones | README y `project.godot` hablan de **tres** escenarios; `docs/CONTROLES.md` lista todas las teclas de `humahuaca_ui.json.key_table`; `docs/CREDITOS.md` contiene «OpenStreetMap» y «ODbL» y, según `meta.source`, el aviso de Copernicus («produced using Copernicus WorldDEM-30») o la cita de SRTM de NASA/USGS; `docs/ASSETS.md` lista los assets nuevos; `CLAUDE.md` incluye el nivel II | ALTA | `E03/docs.txt` |
 | E04 | E | Evidencia completa, chica y trazable | P11-b | `evidence/humahuaca/` < **60 MB**; cada JPEG ≤ 300 KB; las 12 capturas obligatorias con `INDEX.json` (SHA-256 de los originales); cada criterio con su carpeta; todo commit desde `5a84c50` lleva el trailer `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>` | MEDIA | `E04/evidencia.txt` |
-| E05 | E | Seguridad e higiene de Git | P11-c | 0 archivos `.env*` o `jev.cfg` en el diff; 0 coincidencias de claves en el diff y en `evidence/humahuaca/`; `git remote -v` vacío; `git tag --list` = solo `v0.1.0`; sin `forced-update` en el reflog; ningún archivo versionado > 100 MB | BLOQUEA | `E05/seguridad.txt` |
+| E05 | E | Seguridad e higiene de Git | P11-c | 0 archivos `.env*` o `jev.cfg` en el diff; 0 coincidencias de claves en el diff y en `evidence/humahuaca/`; no hubo push: `origin/main` sigue en `72077c8655f8489109950a24b0b09db14af7563c` (su punta al congelar) y su reflog no tiene entradas nuevas ni `forced-update`; `git tag --list` = solo `v0.1.0`; ningún archivo versionado > 100 MB | BLOQUEA | `E05/seguridad.txt` |
 
 **Dueño de cada dimensión** (a quién se le pasa el hallazgo): **T** y **E** → integrador; **C** → `ui_feel`; **J** → `reglas_historia` (con `ui_feel` en J02); **V** → `visual`; **R** → `relieve_mapa`; **H** → `reglas_historia` (etiquetas y textos) y `visual` (nombres de nodos y modelos).
 
@@ -480,8 +480,8 @@ EOF
 { git diff --name-only $BASE HEAD | grep -E '(^|/)(\.env|jev\.cfg)'
   git diff -U0 $BASE HEAD | grep -E '^\+' | grep -nE "sk-[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|(api[_-]?key|secret|token|password)[\"']?[[:space:]]*[:=][[:space:]]*[\"'][^\"']{12,}"
   grep -rnE "sk-[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|(api[_-]?key|secret|token|password)[\"']?[[:space:]]*[:=][[:space:]]*[\"'][^\"']{12,}" "$REPO/evidence/humahuaca" --include='*.txt' --include='*.json' --include='*.log' --include='*.md'
-  git -C "$REPO" remote -v; git -C "$REPO" tag --list; git -C "$REPO" reflog | grep -i 'forced-update'
-  git ls-files -z | xargs -0 -r ls -l 2>/dev/null | awk '$5 > 104857600 {print "GRANDE", $9}'; } | tee "$EV/E05/seguridad.txt"      # solo debe aparecer «v0.1.0» en la lista de tags
+  git -C "$REPO" rev-parse origin/main; git -C "$REPO" reflog show origin/main | head -n 1; git -C "$REPO" reflog show origin/main | grep -ci 'forced'; git -C "$REPO" tag --list
+  git ls-files -z | xargs -0 -r ls -l 2>/dev/null | awk '$5 > 104857600 {print "GRANDE", $9}'; } | tee "$EV/E05/seguridad.txt"      # debe aparecer, en este orden: 72077c8655f8489109950a24b0b09db14af7563c, una línea de reflog que empieza con 72077c8, 0 y «v0.1.0»; nada más
 ```
 
 ### P12 · Veredicto
@@ -545,7 +545,7 @@ Estas limitaciones **no son hallazgos** y no se reabren. Cada una dice qué sí 
 **Formato (`veredicto.json`, más `VEREDICTO.md` con lo mismo en tabla):**
 
 ```json
-{"rubrica": "QA_NIVEL2 1.0", "rubrica_sha256": "<sha256 de docs/QA_NIVEL2.md>", "commit": "<hash completo certificado>", "ronda": "r4", "certificador": "A", "fecha": "2026-11-..",
+{"rubrica": "QA_NIVEL2 1.1", "rubrica_sha256": "<sha256 de docs/QA_NIVEL2.md>", "commit": "<hash completo certificado>", "ronda": "r4", "certificador": "A", "fecha": "2026-11-..",
  "entorno": {"os": "Windows 11", "gpu": "RTX 3080 Ti", "godot": "4.7.2", "python": "3.11"},
  "criterios": {"T01": {"v": "P", "medicion": "git diff exit 0; main.gd +21/-4", "evidencia": ["qa/A/T01/protegidos.txt"], "nota": ""},
                "V01": {"v": "F", "medicion": "M05 item (a): la torre no se identifica", "evidencia": ["qa/A/V01/capturas/M05_torre.jpg"], "nota": "..."}},
@@ -1692,7 +1692,9 @@ La corre el usuario o quien designe, **fuera del circuito**; no es condición de
 
 ## Anexo F · Historial de enmiendas y estado de las herramientas
 
-**Enmiendas:** ninguna. (Formato: `N · fecha · qué cambia · motivo y evidencia · quién la pidió`; el commit se titula «QA enmienda N: …».)
+**Enmiendas** (formato: `N · fecha · qué cambia · motivo y evidencia · quién la pidió`; cada commit se titula «QA enmienda N: …»):
+
+- **1 · 1-nov-2026 · E05 (y P11)**: «`git remote -v` vacío» se reemplaza por «`origin/main` sigue en `72077c8655f8489109950a24b0b09db14af7563c` y su reflog no tiene entradas nuevas ni `forced-update`». **Motivo:** error demostrable de la rúbrica 1.0: el repo **sí** tiene el remoto `origin` (`https://github.com/nicospum/guemes.git`) y `origin/main` ya estaba en `72077c8`; la frase «no hay remoto» del informe `03_arquitectura_actual.md` era incorrecta y el criterio habría fallado desde el primer día. No cambia ningún umbral de juego ni de calidad: solo la forma de comprobar «sin push». **Quién:** el Jefe de QA, al verificar los comandos contra el repo real.
 
 **Estado al congelar (1-nov-2026, `main` en `5a84c50`).**
 
