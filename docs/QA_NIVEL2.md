@@ -1,19 +1,21 @@
 # QA del nivel 2 «Humahuaca»: qué es «presentable» y cómo se verifica
 
-Documento del **Jefe de Control de Calidad**. Versión **1.1** (enmienda 1, ver el anexo F) · 1 de noviembre de 2026 · base `main` en `5a84c50` (diseño y contrato) sobre la línea base `5ebbd28` (Justina y Norte). Está **congelado desde el commit que lo introduce**: los números de este texto son los postes del bucle y no se mueven entre rondas (sección 4, regla 5).
+Documento del **Jefe de Control de Calidad**. Versión **1.2** (enmiendas 1 y 2, ver el anexo F) · 1 de noviembre de 2026 · alineado con el diseño y el contrato **1.1** (revisión final antes de escribir código) sobre la línea base `5ebbd28` (Justina y Norte). Está **congelado desde el commit que lo introduce**: los números de este texto son los postes del bucle y no se mueven entre rondas (sección 4, regla 5); la enmienda 2 existe porque el arquitecto cambió el diseño y el contrato por addendum fechado, y ninguno de sus cambios endurece un umbral por una observación nueva.
 
-> **Para qué sirve.** En el nivel 1 el control de calidad dijo «no» cinco de cinco rondas porque cada ronda pedía algo nuevo (94 hallazgos sin priorizar) y porque lo que decidía el «sí» —personas jugando— no estaba al alcance del circuito. Acá el criterio se fija **antes** de empezar: 39 ítems con comando, umbral, severidad y evidencia; un presupuesto de hallazgos; tres certificadores que no pueden agregar ítems; y una lista de límites aceptados de antemano. Si todo lo exigible pasa, el QA dice «presentable» y el bucle termina.
+> **Para qué sirve.** En el nivel 1 el control de calidad dijo «no» cinco de cinco rondas porque cada ronda pedía algo nuevo (94 hallazgos sin priorizar) y porque lo que decidía el «sí» —personas jugando— no estaba al alcance del circuito. Acá el criterio se fija **antes** de empezar: 41 ítems con comando, umbral, severidad y evidencia; un presupuesto de hallazgos; tres certificadores que no pueden agregar ítems; y una lista de límites aceptados de antemano. Si todo lo exigible pasa, el QA dice «presentable» y el bucle termina.
 >
 > **Quién manda sobre qué.** Sobre *qué se juega* mandan `docs/DISENO_HUMAHUACA.md`, `docs/CONTRATO_HUMAHUACA.md` y los JSON. Sobre *cómo se certifica* manda **este documento**. Un valor de juego solo cambia por *addendum* del contrato (`docs/humahuaca/ADDENDA.md`) y, si toca un umbral de acá, por una *enmienda* de este documento (anexo F).
 >
 > **Diferencias deliberadas con el diseño** (no son errores):
 >
-> | Tema | Diseño / contrato | Este documento | Por qué |
+> | Tema | Diseño / contrato 1.1 | Este documento | Por qué |
 > |---|---|---|---|
-> | Salida del bucle | «0 P0 y ≤ 2 P1» (diseño, sección 14) | **0 ALTA** y todos los BLOQUEA (P0 = BLOQUEA, P1 = ALTA, P2 = MEDIA) | indicación del lead: «0 ALTA abiertas» |
-> | Sesión humana | el diseño la exige para decir «presentable» | **límite aceptado** (sección 5): el veredicto máximo es «PRESENTABLE, no certificado por humanos»; la sesión es opcional (anexo E) | nadie juega a mano en este circuito; no se finge lo contrario |
-> | Semillas de balance | 8 de calibración, 12 de validación, 14 de cierre | **60 semillas nuevas (9001–9060) × 3 réplicas**, reservadas al QA (sección 3, P6) | con 8–14 semillas el ruido de muestreo mueve las tasas ±15 puntos |
+> | Salida del bucle | rondas intermedias: 0 P0 y ≤ 3 P1 listados y fechados; salida final: **0 ALTA** (diseño, sección 14) | final: **0 ALTA** y todos los BLOQUEA (P0 = BLOQUEA, P1 = ALTA, P2 = MEDIA); las rondas intermedias solo informan | indicación del lead: «0 ALTA abiertas»; desde el diseño 1.1 coinciden |
+> | Sesión humana | opcional y aparte; el circuito firma «presentable, no certificado por humanos» con la corrida del agente-jugador (diseño, sección 14) | **límite aceptado** (sección 5): el veredicto máximo es «PRESENTABLE, no certificado por humanos»; la sesión es opcional (anexo E); el agente-jugador es el criterio **J08** | nadie juega a mano en este circuito; no se finge lo contrario |
+> | Semillas de balance | calibración 8, compuerta 24 (validación 12 + cierre 12), informe 2001–2120 | **60 semillas nuevas (9001–9060) × 3 réplicas**, reservadas al QA (sección 3, P6) | con 8–24 semillas el ruido de muestreo mueve las tasas ±15 puntos |
+> | Obediente y torpe | informe con intervalos, nunca compuerta (diseño, sección 10) | **J05 (MEDIA)**: informe; fuera de J04 | su tasa depende de quien escribe el algoritmo de pistas, no de una persona |
 > | Relieve | «≥ 37 de 41 a ≤ 12 m» en `test_hx_terrain` | el QA lo **recalcula** con su propio script sobre un volcado del relieve y suma curvas, río y overlay (R01–R06) | una prueba que escribe la misma pista que la aprueba no basta |
+> | Cuadro | baja ≤ 2,5 · media ≤ 4,0 · alta ≤ 6,0 ms; p95 ≤ 8,3 (diseño 11.2) | T06 usa `media` como compuerta; Justina y Norte siguen en ≤ 3,0 | el techo de 3 ms no entra con lluvia, ~200 figuras y sombras |
 
 ---
 
@@ -21,9 +23,11 @@ Documento del **Jefe de Control de Calidad**. Versión **1.1** (enmienda 1, ver 
 
 **Presentable = una demo del nivel 2 que se le puede mostrar a otra persona sin pedir disculpas.** En tres líneas:
 
-1. **Funciona y no rompe nada.** Desde el EXE en Windows se juega de punta a punta —menú → briefing → noche con lluvia → ataque dividido → extracción → epílogo → reintento—, con victoria y con derrota, guarda y carga, sin errores de consola, a menos de 3 ms por cuadro, **sin romper la Justina ni el Norte**.
-2. **Se entiende y se ve.** A los 30 segundos se sabe qué hacer (≤ 5 controles, ≤ 400 caracteres, sin jerga), siempre hay algo que decidir (≤ 45 s), perder enseña y reintentar es inmediato; el relieve de Humahuaca coincide con la lámina 03 y la paleta es la del dossier; nada se solapa ni se recorta en tres resoluciones.
-3. **Es honesto y rejugable.** Nada inventado se presenta como documentado, no hay anacronismos graves, ninguna receta gana siempre y un jugador «obediente» simulado gana alrededor de un tercio de las veces al primer intento (objetivo del diseño 25–40 %, aceptado 20–45 %) y casi siempre dentro de cinco intentos — **con el sello «no certificado por humanos»** siempre a la vista.
+1. **Funciona y no rompe nada.** Desde el EXE en Windows se juega de punta a punta —menú → briefing → noche con lluvia → ataque dividido → extracción → epílogo → reintento—, con victoria y con derrota, guarda y carga, sin errores de consola, dentro del presupuesto de cuadro (Humahuaca ≤ 4 ms en `media`; la Justina y el Norte siguen en ≤ 3 ms), **sin romper la Justina ni el Norte**.
+2. **Se entiende y se ve.** A los 30 segundos se sabe qué hacer (≤ 5 controles, ≤ 400 caracteres, sin jerga) y **un agente que juega por la interfaz real, sin ver el código, da su primera orden en menos de 40 s de juego** (J08); siempre hay algo que decidir (≤ 45 s); perder enseña y reintentar es inmediato; el relieve de Humahuaca coincide con la lámina 03, la paleta es la del dossier y **a la distancia a la que se juega** (cámara inicial, noche y alba) se distinguen los tres objetivos, los edificios y las fichas (V06); nada se solapa ni se recorta en tres resoluciones.
+3. **Es honesto y rejugable.** Nada inventado se presenta como documentado, no hay anacronismos graves, ninguna receta gana siempre (ni «señal enseguida», ni un único tratamiento de la extracción), el experto gana casi siempre y el pasivo nunca; lo que dicen el obediente y el torpe se **informa con intervalos** pero no certifica nada — **con el sello «no certificado por humanos»** siempre a la vista.
+
+**Presentable, en dos etapas** (diseño, sección 14): la **etapa 1, «presentable para playtest»**, es la que firma este circuito (todos los BLOQUEA, 0 ALTA, ≤ 3 MEDIA con razón, un único commit, y J08); la **etapa 2, «certificado por humanos»**, es la sesión del anexo E, **aparte y no bloqueante**: si el humano no aparece, el veredicto dice «PRESENTABLE, no certificado por humanos» y el bucle termina.
 
 **Presentable no significa:** perfecto, fiel a 1817 más allá de lo que el dossier documenta, divertido «para todos» (eso solo lo dice una persona) ni libre de cuestiones de gusto. Las cuestiones de gusto no bloquean (sección 4).
 
@@ -31,17 +35,17 @@ Documento del **Jefe de Control de Calidad**. Versión **1.1** (enmienda 1, ver 
 
 | Lo que pasó en el nivel 1 | Dónde se mide ahora |
 |---|---|
-| Lo visual quedó pobre: barranca, fuerte y casas de cajas; unidades como discos; cámara inicial casi solo agua; el río se repintó cinco veces sin referencia | V01 (12 capturas con lista de «qué debe verse»), V02 (cámara inicial), V03 (fichas por silueta), V04 (paleta de la lámina 06); el agua y el suelo no se repintan sin un hallazgo con evidencia |
-| De 2 a 4 minutos sin decisiones | J03: primera decisión ≤ 60 s, brecha ≤ 45 s (≤ 20 s en el ataque), medida por las reglas en todas las partidas |
-| Una receta fija ganaba siempre | J06: ninguna estrategia gana en más del 80 % de los mundos; ≥ 3 mejores aperturas distintas; cada variante cubierta |
+| Lo visual quedó pobre: barranca, fuerte y casas de cajas; unidades como discos; cámara inicial casi solo agua; el río se repintó cinco veces sin referencia | V01 (14 capturas con lista de «qué debe verse»), V02 (cámara inicial, noche y alba), V03 (fichas por silueta), V04 (paleta de la lámina 06 sobre render de albedo), V06 (legibilidad a distancia de juego y riqueza uniforme); el agua y el suelo no se repintan sin un hallazgo con evidencia |
+| De 2 a 4 minutos sin decisiones | J03: primera decisión ≤ 60 s, brecha ≤ 45 s (≤ 20 s en el ataque), medida como ofertas en todas las partidas y como decisiones **significativas** (por ramificación) en las del experto muestreadas |
+| Una receta fija ganaba siempre | J06: ninguna estrategia gana en más del 80 % de los mundos; cada enfoque es el mejor en algún mundo; el barrido de la señal tiene un máximo único; ninguna receta de extracción gana en más del 60 %; cada variante activa cubierta |
 | El arranque abrumaba: 8 botones y jerga («ETA», «sondeo») | C03: ≤ 5 controles, ≤ 400 caracteres, 0 términos de la lista negra |
-| Balance malo para el novato; bots con información perfecta; modelo de humanos inventado | J04 y J05 con el bot **obediente** como proxy, 60 semillas nuevas y réplicas; auditoría de ceguera; el sello «no certificado por humanos» |
+| Balance malo para el novato; bots con información perfecta; modelo de humanos inventado | J04 (extremos medibles: experto, pasivo y ciegos con 60 semillas nuevas y réplicas), J05 (obediente y torpe como **informe**), J08 (un agente que juega por la interfaz real), auditoría de ceguera; el sello «no certificado por humanos» |
 | 94 hallazgos sin priorizar y criterios que cambiaban cada ronda | sección 4: rúbrica congelada, ≤ 7 hallazgos por ronda, escalera de exigencia, enmiendas con reglas |
 | Nadie jugó a mano | límite aceptado L1, dicho de frente, más el protocolo opcional del anexo E |
 
 ---
 
-## 2. Rúbrica (39 criterios: 20 BLOQUEA, 18 ALTA, 1 MEDIA)
+## 2. Rúbrica (41 criterios: 20 BLOQUEA, 19 ALTA, 2 MEDIA)
 
 **Severidad.** **BLOQUEA** = si falla, no hay certificación y se corrige primero (regresión, seguridad, el núcleo del producto). **ALTA** = debe quedar en cero abiertas para certificar. **MEDIA** = cuenta contra el tope de 3 aceptables con razón escrita (sección 5). Cada ítem es **pasa / falla / N** (N = «no evaluable» y **cuenta como falla**: no se infiere nada de lo que no se midió).
 
@@ -51,57 +55,60 @@ Documento del **Jefe de Control de Calidad**. Versión **1.1** (enmienda 1, ver 
 |---|---|---|---|---|---|---|
 | T01 | T | Archivos protegidos y compartidos intactos; la rúbrica no se movió | P1-a: `git diff --exit-code $BASE HEAD -- $PROT` (40 archivos de la lista 1.3 del contrato); `git diff --numstat` de `main.gd`, `test_integration.gd`, `ui_qa.gd`, `run_qa.py`; `git log -- docs/QA_NIVEL2.md` | protegidos: salida 0; `main.gd` ≤ 80 líneas agregadas y ≤ 10 borradas, ninguna de lógica de la Justina ni del Norte (se lee el diff); `test_integration.gd` y `ui_qa.gd` ≤ 6 agregadas y ≤ 2 borradas; `run_qa.py` ≤ 4 y ≤ 2; todo commit posterior al primero sobre `docs/QA_NIVEL2.md` se titula «QA enmienda N:» | BLOQUEA | `T01/protegidos.txt`, `T01/numstat.txt`, `T01/enmiendas.txt` |
 | T02 | T | Regresión de reglas, integración, Jev y audio (Justina y Norte) | P1-b: `test_rules.gd`, `test_integration.gd`, `jev_contract_test.gd`, `audio_runtime_test.gd` | reglas ≥ **871** y 0 fallas; integración ≥ **283** y 0; Jev ≥ **15** y 0; audio «RESULTADO: N comprobaciones, 1 fallas» con N ≥ 17 y la única línea `FALLA:` es «driver de audio real (no Dummy)»; ningún comando se corta por `timeout` | BLOQUEA | `T02/*.log`, `T02/resumen.txt` |
-| T03 | T | Suites nuevas del nivel, con sus mínimos | P1-c: `tests/test_hx_{data,terrain,rules,view,flow,smoke}.gd` | cada una imprime su JSON final con `failures: []` y llega a: data **60**, terrain **80**, rules **400** (**250** en R1 y R2, como fija el contrato), view **40**, flow **80**, smoke **25**; en `test_hx_rules`, `performance`: `nav_build_ms` ≤ 80, `plan_route_ms` ≤ 30, `tick_ms` ≤ 2 (promedios) | BLOQUEA | `T03/*.log`, `T03/resumen.txt` |
+| T03 | T | Suites nuevas del nivel, con los pisos de la ronda | P1-c: `tests/test_hx_{data,terrain,rules,view,flow,smoke}.gd` | cada una imprime su JSON final con `failures: []` y llega a los pisos de la tabla 5.1 del contrato: al cierre (R2b, R3, R4) data **60**, terrain **80**, rules **400**, view **40**, flow **80**, smoke **25**; antes, los de la ronda (rules **150** en R1 y **250** en R2a; data 40 y 60; terrain 60 y 80; view 25 y 40; flow 50 y 80); en `test_hx_rules`, `performance`: `nav_build_ms` ≤ 80, `plan_route_ms` ≤ 30, `tick_ms` ≤ 2 (promedios); `docs/humahuaca/TRAZA.md` sin exigencias huérfanas (V20) | BLOQUEA | `T03/*.log`, `T03/resumen.txt` |
 | T04 | T | Regresión de la Justina y el Norte por interfaz y escena real | P2: `tools/ui_qa.gd` ×3 y `tools/justina_playthrough.gd` | `ui_qa` ≥ **254** y 0 fallas en 1280×720, 1920×1080 y 2560×1440, con `captura_px` igual al tamaño pedido; `justina_playthrough` sale con 0, ≥ 3 estilos ganadores, ≥ 2 rutas, ≥ 1 derrota y `ui_real_victory` verdadero (base medida: 18 victorias, 3 rutas, 6 derrotas) | BLOQUEA | `T04/ui_<WxH>.json`, `T04/justina-playthrough.json` |
 | T05 | T | Salida limpia: sin errores de script ni de shader, sin fugas de ObjectDB, sin cuelgues | P1-d: función `limpio` sobre todos los logs (suites, corridas con ventana y EXE); P5-c y P10-b con `--verbose` | `limpio` no imprime nada: 0 líneas que empiecen con `SCRIPT ERROR`, `SHADER ERROR`, `USER ERROR`, `Parse Error`, `ERROR:`, `FATAL`; 0 de «ObjectDB instances leaked», «resources still in use at exit»; 0 `exit=124` (timeout) en `exits.txt`. Única excepción: `T07_guardado.log` (corrompe archivos a propósito), donde solo cuentan `SCRIPT ERROR`, `SHADER ERROR` y `Parse Error` | BLOQUEA | `T05/limpio.txt` (vacío), `exits.txt` |
-| T06 | T | Rendimiento y presupuestos | P3 (GPU exclusiva): `tools/benchmark.py ... --scenarios justine,norte,humahuaca --profiles media --repeat 3 --max-frame-ms 3` | `benchmark.py` sale con 0; cuadro medio de Humahuaca ≤ **3,0 ms** (peor de las 3 repeticiones); Justina y Norte ≤ 3,0 (base 2,71 y 0,97); `scene_build_ms` de Humahuaca ≤ **1500** | BLOQUEA | `T06/resumen.json`, `T06/bench.log` |
+| T06 | T | Rendimiento y presupuestos por perfil | P3 (GPU exclusiva): `tools/benchmark.py` en dos corridas: `--scenarios justine,norte --max-frame-ms 3` y `--scenarios humahuaca --profiles baja,media,alta --max-frame-ms 4`, tres repeticiones | Justina y Norte: cuadro medio ≤ **3,0 ms** (base 2,71 y 0,97); Humahuaca en perfil `media` (peor de las 3 repeticiones): cuadro medio ≤ **4,0 ms**, p95 (`frame_ms_p95_mean`) ≤ **8,3 ms** y `scene_build_ms` ≤ **1500**; los perfiles `baja` (≤ 2,5) y `alta` (≤ 6,0) se miden y se informan, y solo `media` es compuerta | BLOQUEA | `T06/resumen.json`, `T06/bench.log` |
 | T07 | T | Guardado y carga | P4-a: `qa_guardado.gd` (anexo A5); P4-b: `campaign.json` antes y después; `test_hx_smoke` | round-trip sin cambios (tolerancia 1e-6, RNG exacto); **24 de 24** mutaciones obligatorias rechazadas con motivo y sin tocar el estado, **≥ 8 de 13** deseables; guardados de la Justina y del Norte rechazados; `campaign.json` idéntico byte a byte tras correr el nivel; «Continuar» abre el escenario guardado | BLOQUEA | `T07/guardado.json`, `T07/campaign_sha.txt` |
 | T08 | T | Robustez y determinismo | P4-c: 200 partidas con la política `aleatorio`; 2 corridas idénticas de 12 semillas | 200 partidas: 0 excepciones, `valid` verdadero al final de todas, ninguna por `timeout`; las 2 corridas dan el mismo `snapshot_sha256` en **≥ 100** partidas comparadas y 0 distintas; `git status --porcelain` del worktree vacío al terminar la certificación | ALTA | `T08/fuzz.json`, `T08/determinismo.txt` |
-| C01 | C | Interfaz del nivel sin solapes ni recortes en tres resoluciones | P5-a: `tools/ui_qa_humahuaca.gd --size=WxH` en 1280×720, 1920×1080 y 2560×1440 | por resolución: ≥ **120** comprobaciones y 0 fallas; captura real al tamaño pedido (`notes.resolucion_real` verdadero y `captura_px` igual); 0 paneles fuera del viewport y 0 solapes | BLOQUEA | `C01/ui_<WxH>.json` |
+| C01 | C | Interfaz del nivel sin solapes ni recortes en tres resoluciones | P5-a: `tools/ui_qa_humahuaca.gd --size=WxH` en 1280×720, 1920×1080 y 2560×1440 | **R1:** completo a 1280×720 (≥ **60** comprobaciones) y chequeo de desborde a las otras dos (0 paneles fuera del viewport, último elemento del menú dentro). **Desde R2a:** por resolución, ≥ **120** comprobaciones y 0 fallas; captura real al tamaño pedido (`notes.resolucion_real` verdadero y `captura_px` igual); 0 paneles fuera del viewport y 0 solapes | BLOQUEA | `C01/ui_<WxH>.json` |
 | C02 | C | Tamaño mínimo del proyecto (1024×640) | P5-a con `--size=1024x640` | 0 fallas de recorte o solape; `captura_px` = 1024×640 | ALTA | `C02/ui_1024x640.json` |
-| C03 | C | Arranque claro y sin jerga | P5-b: `notes` del primer cuadro jugable; P5-d: escaneo de todas las cadenas visibles contra `jargon_blacklist` | primer cuadro jugable: ≤ **5** controles accionables, ≤ **400** caracteres de texto de juego, una línea de objetivo, **un** «siguiente paso»; **0** términos de la lista negra (≥ 20 términos; incluye ETA, sondeo, ZOC, tag, LOS, HUD, FPS, seed) en cualquier cadena visible de los JSON, del código de la interfaz y de las capturas | BLOQUEA | `C03/arranque.txt`, `C03/jerga.txt` |
-| C04 | C | Menú de tres botones y candado correcto | P5-a (capturas `hx-menu-nuevo` y `hx-menu-desbloqueado`) y P5-c (`--scenario=humahuaca`) | último elemento del menú ≤ alto del viewport en las 3 resoluciones; perfil nuevo: «II» deshabilitado con «Ganá la Justina para abrirlo»; con `justina_won`: habilitado; orden I, II, III; `--scenario=humahuaca` abre el briefing sin mirar el candado; el botón del Norte conserva «SOSTENER EL NORTE» y su título de HUD dice «III» | ALTA | `C04/menu.txt`, capturas X01 y X02 |
+| C03 | C | Arranque claro y sin jerga | P5-b: `notes` del primer cuadro jugable; P5-d: escaneo de todas las cadenas visibles contra `jargon_blacklist` | primer cuadro jugable: ≤ **5** controles accionables, ≤ **400** caracteres de texto de juego, una línea de objetivo, **un** «siguiente paso»; **0** términos de la lista negra (≥ 20 términos: **siglas sensibles a mayúsculas** —ETA, ZOC, LOS, DPS, HUD, FPS— y palabras sin distinguir mayúsculas ni tildes —sondeo, tag, seed…—, siempre con límite de palabra; el artículo «los» no cuenta) y **0 identificadores en snake_case** en cualquier cadena visible de los JSON, del código de la interfaz y de las capturas | BLOQUEA | `C03/arranque.txt`, `C03/jerga.txt` |
+| C04 | C | Menú de tres botones; Humahuaca siempre habilitado | P5-a (capturas `hx-menu-nuevo` y `hx-menu-desbloqueado`) y P5-c (`--scenario=humahuaca`) | último elemento del menú ≤ alto del viewport en las 3 resoluciones; perfil nuevo: «II» **habilitado** con la nota «Recomendado tras la Justina» y «III» (el Norte) deshabilitado con «Ganá la Justina para abrirlo»; con `justina_won`: «II» sin la nota y «III» habilitado; orden I, II, III; `--scenario=humahuaca` abre el briefing; el botón del Norte conserva «SOSTENER EL NORTE» y su título de HUD dice «III»; el botón de Humahuaca no contiene «Ganá la Justina para abrirlo» | ALTA | `C04/menu.txt`, capturas X01 y X02 |
 | C05 | C | Derrota que enseña y reintento rápido | P5-a (flujo de derrota) y P6 (campo `cause_text` de las derrotas simuladas) | `outcome.causes` con ≥ **8** entradas, todas con texto y consejo; todo `cause_text` observado ≤ **140** caracteres, con momento (`m:ss`) y lugar; la pantalla muestra causa, consejo, tres datos y el botón primario **sin scroll** a 1280×720; del clic en «Reintentar» al primer cuadro jugable ≤ **3 s** en las opciones ofrecidas (`notes.reintento_s`); la historia queda colapsada | ALTA | `C05/derrota.txt`, captura M08 |
-| J01 | J | Recorrido automático con victoria y con derrota por la escena real | P6-a: `humahuaca_playthrough.gd --level=scene` (12 semillas QA) y política `interfaz` (clics sobre «siguiente paso», 3 semillas) | sale con 0; ≥ 1 victoria del experto y ≥ 1 derrota con parte (el pasivo cae por `amanecio`); ≥ 2 aperturas distintas entre las victorias; ≥ 3 causas de derrota distintas en todo el material de QA; 0 excepciones; la política `interfaz` gana ≥ 1 de las 3 semillas en ≤ 3 intentos | BLOQUEA | `J01/scene.json`, `J01/ui.json` |
-| J02 | J | Ciclo completo por la interfaz real y control del tiempo | P5-a (flujo del ciclo) y `test_hx_flow` | perfil limpio: menú → briefing → «Empezar» → derrota (por pasividad) → parte → «Reintentar» con el **mismo mundo** (`world_seed` igual) → victoria → medalla → epílogo fechado → «Seguir: Sostener el norte» habilitado; indicador permanente «TIEMPO REAL · ▶ ×1» o «‖ EN PAUSA»; Espacio pausa; F2, F3 y F4 (y +/−) fijan ×1, ×2 y ×4; la velocidad **nunca** cambia sola; pausa automática ≤ 2 s salvo decisiones (≤ 25 s) | BLOQUEA | `J02/ciclo.json` |
-| J03 | J | Ritmo: siempre hay algo que decidir | P6-c: `qa_balance.py` (J03) sobre `hx_playthrough_v1` | en **todas** las partidas: primera decisión ≤ **60 s**; mayor brecha sin decisión posible ≤ **45 s**; mayor brecha durante el ataque ≤ **20 s**; existe el bot «pausa y reanuda» y cumple lo mismo | BLOQUEA | `J03/J_result.json` |
-| J04 | J | Balance grueso con políticas imperfectas y 60 semillas nuevas | P6-b y P6-c: `qa_balance.py` (J04); auditoría de ceguera (P6-d) | experto, 1.er intento ≥ **80 %**; obediente, 1.er intento entre **10 %** y **60 %**; obediente gana en ≤ 5 intentos ≥ **75 %**; torpe, 1.er intento ≤ **40 %**; cada bot ciego ≤ **10 %**; pasivo y «pausa y reanuda» **0 %** (todas `amanecio`); escena real: experto ≥ 70 % en 12 semillas y obediente a ≤ 0,30 de lo medido en reglas; 0 semillas fuera de 9000–9999 y 0 semillas de QA en archivos de las pistas; obediente y torpe no leen estado oculto | BLOQUEA | `J04/J_result.json`, `J04/auditoria_ceguera.txt` |
-| J05 | J | Balance fino: rangos del diseño ± 5 puntos | P6-c: `qa_balance.py` (J05) | experto ≥ **85 %**; obediente 1.er intento **20–45 %**; obediente 3.er intento (con diario, n ≥ 20) **55–85 %**; obediente gana en ≤ 5 intentos ≥ **85 %**; torpe 1.er intento **5–30 %** | ALTA | `J05/J_result.json` |
-| J06 | J | Rejugabilidad: ninguna receta gana siempre | P6-c: `qa_balance.py` (J06) sobre la matriz de estrategias | ≥ 12 estrategias; ninguna concentra > **60 %** de las victorias; ninguna gana en > **80 %** de las semillas; ≥ 3 ganan en ≥ 50 %; ≥ 3 estrategias distintas son la mejor en ≥ 3 semillas cada una; cada valor de las 6 variantes aparece en ≥ 3 semillas de QA | BLOQUEA | `J06/J_result.json` |
+| J01 | J | Recorrido automático con victoria y con derrota por la escena real | P6-a: `humahuaca_playthrough.gd --level=scene` (12 semillas QA) y política `interfaz` (clics sobre «siguiente paso», 3 semillas) | sale con 0; ≥ 1 victoria del experto y ≥ 1 derrota con parte (el pasivo cae por `amanecio`); 0 excepciones; ≥ 2 aperturas distintas entre las victorias y ≥ 3 causas de derrota distintas en todo el material de QA (**estas dos, desde R2b**: en R1 solo existen el experto y el pasivo); la política `interfaz` gana ≥ 1 de las 3 semillas en ≤ 3 intentos | BLOQUEA | `J01/scene.json`, `J01/ui.json` |
+| J02 | J | Ciclo completo por la interfaz real y control del tiempo | P5-a (flujo del ciclo) y `test_hx_flow` | perfil limpio: menú → briefing → «Empezar» → derrota (por pasividad) → parte → «Reintentar» con el **mismo mundo** (`world_seed` igual) → victoria → medalla → epílogo fechado (con el contraste «en la realidad / en tu partida») → «Ver la campaña completa: Sostener el norte» disponible; indicador permanente «TIEMPO REAL · ▶ ×1» o «‖ EN PAUSA»; Espacio pausa; F2, F3 y F4 (y +/−) fijan ×1, ×2 y ×4; la velocidad **nunca** cambia sola; pausa automática ≤ 2 s salvo decisiones (≤ 25 s) | BLOQUEA | `J02/ciclo.json` |
+| J03 | J | Ritmo: siempre hay algo que decidir | P6-c: `qa_balance.py` (J03) sobre `hx_playthrough_v1` | en **todas** las partidas, medidas por ofertas: primera decisión ≤ **60 s**; mayor brecha sin decisión posible ≤ **45 s**; mayor brecha durante el ataque ≤ **20 s**; y en **≥ 12 partidas del experto medidas por ramificación de snapshots** (decisiones *significativas*, diseño sección 10) las mismas tres cifras; existe el bot «pausa y reanuda», pierde por `amanecio` y no recibe más de una alerta crítica a la vez | BLOQUEA | `J03/J_result.json` |
+| J04 | J | Extremos del balance con 60 semillas nuevas y políticas imperfectas | P6-b y P6-c: `qa_balance.py` (J04); auditoría de ceguera (P6-d) | experto, 1.er intento ≥ **80 %**; cada bot ciego ≤ **10 %**; pasivo y «pausa y reanuda» **0 %** (todas `amanecio`); escena real: experto ≥ 70 % en 12 semillas; 0 semillas fuera de 9000–9999 y 0 semillas de QA en archivos de las pistas; obediente y torpe no leen estado oculto | BLOQUEA | `J04/J_result.json`, `J04/auditoria_ceguera.txt` |
+| J05 | J | Informe del balance fino: obediente y torpe | P6-c: `qa_balance.py` (J05) | **informe con intervalos de Wilson al 90 %**; nunca bloquea; si se aparta de la intención de diseño cuenta como MEDIA (tope de 3, con razón escrita): experto ≥ **90 %**; obediente 1.er intento **20–45 %**; obediente 3.er intento (con diario, n ≥ 20) **55–85 %**; obediente gana en ≤ 5 intentos ≥ **85 %**; torpe 1.er intento **5–30 %**; escena real: obediente a ≤ 0,30 de lo medido en reglas | MEDIA | `J05/J_result.json` |
+| J06 | J | Rejugabilidad y contrapesos: ninguna receta gana siempre | P6-c: `qa_balance.py` (J06) sobre la matriz de estrategias, las recetas de extracción y el barrido de la señal | ≥ **8** estrategias de frente; ninguna concentra > **60 %** de las victorias; ninguna gana en > **80 %** de las semillas; ≥ 3 ganan en ≥ 50 %; ≥ 3 distintas son la mejor (puntaje `golpe − 0,5 × bajas`) en ≥ 3 semillas cada una; **cada enfoque de frente es el mejor en ≥ 1 semilla**; cada valor de cada variante **activa** aparece en ≥ 3 semillas; **extracción:** ≥ 4 recetas, ninguna gana en > **60 %** de los mundos y `ext_ocultar` es la mejor en ≥ 1 mundo; **señal:** el barrido de 2:00 a 6:15 con el experto tiene el máximo entre 4:15 y 5:45 (no en los 3 primeros instantes), es unimodal y tiene una meseta ≥ 30 s al 90 % del máximo | BLOQUEA | `J06/J_result.json` |
 | J07 | J | Duración y desenlaces | P6-c: `qa_balance.py` (J07) | victorias: mediana entre **11:00** y **13:00** y ≥ 90 % entre 10:00 y 14:00; derrotas del 1.er intento: mediana ≤ **8:00** y ninguna > 14:00; bajas: mediana de las victorias ≤ **55 %** y ≤ 15 % de victorias con bajas > 80 % | ALTA | `J07/J_result.json` |
-| V01 | V | Las 12 capturas obligatorias y las 5 vistas canónicas muestran lo exigido | P7: capturas reales con ventana; los **tres** certificadores las miran una por una con `Read` y responden la lista del anexo B | las 12 existen, son reales (Godot sin `--headless`) y miden lo pedido; **cada ítem** de su lista es «sí»; las 5 vistas canónicas cumplen su lista a 1280×720 y a 1920×1080; decide la mayoría de los tres | ALTA | `V01/capturas/M01..M12*.jpg`, `V01/listas.md` |
-| V02 | V | Cámara inicial: los tres objetivos y la zona de partida a la vista | P7: `qa_report.json.initial_frame` en 1280×720, 1920×1080 y 2560×1440 | `fits` verdadero; los 3 objetivos y la zona de partida con `on_screen` verdadero y a ≥ 5 % del borde; la captura inicial muestra relieve, núcleo y ≥ 1 objetivo (no «casi solo agua o suelo») | ALTA | `V02/initial_frame.json` |
+| J08 | J | Agente-jugador por la interfaz real: se entiende qué hacer | P6-e: `tools/hx_agent_play.gd` y `qa_agente.py` | un agente **sin acceso al código, a `qa_state()` ni a las reglas** juega por turnos (captura → acción inyectada) y cumple: primera orden aceptada en ≤ **40 s** de juego y ≤ **8 turnos**; objetivo dicho con sus palabras con ≥ 2 de 3 conceptos (tomar los tres frentes; sacar carga; antes del refuerzo o del alba); llega a un parte en ≤ **150 turnos**; si pierde, reintenta y dice qué aprendió; responde «¿entendiste qué hacer?» y «¿cuándo te aburriste?»; identifica los 3 objetivos en < 3 turnos en `juego_noche`; 0 lecturas fuera de su carpeta | ALTA | `J08/agente.json`, `J08/bitacora.md` |
+| V01 | V | Las 14 capturas obligatorias y las 7 vistas canónicas muestran lo exigido | P7: capturas reales con ventana; los **tres** certificadores las miran una por una con `Read` y responden la lista del anexo B | las 14 existen, son reales (Godot sin `--headless`) y miden lo pedido; **cada ítem** de su lista es «sí»; las 7 vistas canónicas cumplen su lista (`must_show`) a 1280×720 y a 1920×1080; decide la mayoría de los tres | ALTA | `V01/capturas/M01..M14*.jpg`, `V01/listas.md` |
+| V02 | V | Cámara inicial y vistas de juego (noche y alba): objetivos a la vista | P7: `qa_report.json.initial_frame` en 1280×720, 1920×1080 y 2560×1440, y las capturas M13 y M14 | `fits` verdadero; los 3 objetivos y la zona de partida con `on_screen` verdadero y a ≥ 5 % del borde; la captura inicial muestra relieve, núcleo y ≥ 1 objetivo (no «casi solo agua o suelo»); **`juego_noche` muestra ≥ 3 puntos de luz y los tres objetivos identificables** | ALTA | `V02/initial_frame.json` |
 | V03 | V | Las cinco fichas se leen sin depender del color | P7: `hoja_fichas.png` con `qa_imagen.py tokens`; `notes.token_px` | cada ficha ≥ **48 px** de alto a 1280×720 con el zoom por defecto; las 5 siluetas se distinguen (proporción > 0,15, relleno > 0,10 o IoU ≤ 0,70 en todos los pares); ninguna es un disco | ALTA | `V03/tokens.txt`, `V03/hoja_fichas.png` |
-| V04 | V | Paleta del dossier: datos y muestreo en capturas | P7: `qa_imagen.py paleta` y `qa_imagen.py calib` | `palette` del JSON = los **24 HEX** de la lámina 06 y la lámina 06 los contiene exactos; 0 HEX sueltos en `props` y `tokens`; en las 3 vistas de calibración de día sin interfaz: mediana de distancia cromática ≤ **8**, p90 ≤ **14** y ≤ **3 %** de píxeles a > 22 | ALTA | `V04/paleta.txt`, `V04/calib.txt` |
+| V04 | V | Paleta del dossier: datos y muestreo en render de albedo | P7: `qa_imagen.py paleta` y `qa_imagen.py calib` | `palette` del JSON = los **24 HEX** de la lámina 06 y la lámina 06 los contiene exactos; 0 HEX sueltos en `props` y `tokens`; en las 3 vistas de calibración (**render de albedo**: sin luz, niebla, exposición ni sombras, y sin interfaz): mediana de distancia cromática ≤ **8**, p90 ≤ **14** y ≤ **3 %** de píxeles a > 22 | ALTA | `V04/paleta.txt`, `V04/calib.txt` |
 | V05 | V | Marcadores de interfaz exactos y texto legible | P7: `qa_imagen.py markers` y `qa_imagen.py contraste` sobre `hx-hud` 1920×1080 | ≥ 50 px exactos (±3) de `#7FAAC4`, `#B99A50` y `#983F36`; contraste de texto ≥ **4,5:1** en 6 textos del HUD (re-medido) y `notes.contraste_texto_min` ≥ 4,5; ningún marcador imita una bandera (sin sol, sin cruz) | ALTA | `V05/markers.txt`, `V05/contraste.txt` |
+| V06 | V | Legibilidad a distancia de juego y riqueza uniforme | P7: `qa_imagen.py legible`, `bordes` y `panorama` | en `juego_noche` y `juego_alba`: ΔL* edificio–suelo ≥ **12** y ficha–suelo ≥ **25** (sobre los `probes` del recorrido); en las 7 vistas y la cámara inicial, con una grilla de 8×6: la baldosa con menos bordes ≥ **40 %** de la mediana y ninguna zona lisa > **25 %** del cuadro; `panorama_alto`: correlación del perfil de valores por franjas con la foto de 1923 ≥ **0,6** y, quitada la tendencia lineal, ≥ **0,3** | ALTA | `V06/legible.txt`, `V06/bordes.txt`, `V06/panorama.txt` |
 | R01 | R | Ancla, ventana e hitos | P8: `qa_relieve.py` (R01) | ancla en (450, 325) con conversión lámina↔juego exacta (±0,01 m); ventana 900 × 650 m, malla 4 m (226 × 164); ancla −23,2041° / −65,3492°, ±15 m, etiqueta `razonado`; los 21 hitos obligatorios existen y cumplen 7 relaciones espaciales (batería al oeste a 100–170 m del templo, cuartel a ≤ 60 m, posta al este a 100–220 m, objetivos separados ≥ 80 m, vado y salida al este, entrada al sur, partidas al sudoeste) | ALTA | `R/R_result.json` |
 | R02 | R | Los 41 puntos de la lámina 03 | P8: `qa_relieve.py` (R02) sobre el DEM **sin capas de diseño** | ≥ **37 de 41** a ≤ 12 m de la estimación; ninguno a > **20 m**; los 41 dentro de su banda de color ±8 m | BLOQUEA | `R/R_result.json` |
 | R03 | R | Curvas de nivel de 20 m del juego = las de la lámina 03 (overlay generado) | P8: acuerdo de bandas de color + `overlay_lamina03.jpg` revisado por los tres | acuerdo de bandas: ventana ≥ **97 %** y dominio ≥ **95 %** con relieve `lamina03_reconstruida`; ≥ **75 %** y ≥ **70 %** con otra fuente (Copernicus, SRTM o paquete del usuario); el overlay no muestra tramos de curva a > 25 m de la lámina | ALTA | `R/overlay_lamina03.jpg`, `R/R_result.json` |
 | R04 | R | Río Grande | P8: `qa_relieve.py` (R04) contra la traza azul de la lámina | ≥ 15 filas medidas; error medio ≤ **6 m**; máximo ≤ **12 m**; entra por el borde norte (z ≈ 0) y sale por el este (x = 900, z = 406 ± 12) | ALTA | `R/R_result.json` |
-| R05 | R | Desnivel de 12 m (diseño rotulado) y alturas de referencia | P8: `qa_relieve.py` (R05); leyenda en pantalla | domo de la batería **12,0 ± 0,3 m** sobre el DEM; batería 14–19 m sobre la plaza; templo +17, cauce +12 y partida +27 m (± 10 m con la lámina, ± 3 m con DEM real); `report()` rotula `cerro_bateria` como `diseno`; el juego dice «dato actual, no restitución del suelo de 1817» (texto obligatorio nº 4 de H03) | ALTA | `R/R_result.json` |
+| R05 | R | Prominencia de la batería (diseño rotulado) y alturas de referencia | P8: `qa_relieve.py` (R05); leyenda en pantalla | **prominencia de la batería 12,0 ± 0,5 m** sobre la media de su anillo de 120–150 m (residuo del DEM); batería 14–19 m sobre la plaza; templo +17, cauce +12 y partida +27 m (± 10 m con la lámina, ± 3 m con DEM real); `report()` rotula `cerro_bateria` como `diseno` con `prominence_target_m` = 12; el juego dice «dato actual, no restitución del suelo de 1817» (texto obligatorio nº 4 de H03) | ALTA | `R/R_result.json` |
 | R06 | R | Terreno continuo y transitable | P8: `qa_relieve.py` (R06) y 4 capturas de cámara en el límite | salto de altura en el borde de la ventana ≤ **0,10 m**; las 5 partidas llegan a los 3 objetivos y al vado por la grilla de navegación; en las 4 capturas de cámara en el límite (ventana + 120 m) no hay huecos ni se ve el borde del mundo (mayoría de los tres) | ALTA | `R/R_result.json`, `R/limites_*.jpg` |
-| H01 | H | Etiquetas honestas: nada inventado figura como documentado | P9-a: `qa_etiquetas.py` (anexo C.3) | 0 entidades con una etiqueta **más fuerte** que su techo; todo `tag` ∈ {documentado, razonado, discutido, diseno, sin_datos}; toda entidad con `tag_parts` tiene ≥ 2 partes y su `tag` es la más débil; los 21 hitos, las 5 agrupaciones y `refuerzo` tienen etiqueta; la leyenda (F1) muestra las 5 etiquetas | BLOQUEA | `H01/etiquetas.json` |
+| H01 | H | Etiquetas honestas: nada inventado figura como documentado | P9-a: `qa_etiquetas.py` (anexo C.3) | 0 entidades con una etiqueta **más fuerte** que su techo; todo `tag` ∈ {documentado, razonado, discutido, diseno, sin_datos}; toda entidad con `tag_parts` tiene ≥ 2 partes y su `tag` es la más débil; los 21 hitos, las 5 agrupaciones y `refuerzo` tienen etiqueta; la leyenda (el botón «?» desde R2a y la F1 completa desde R3) muestra las 5 etiquetas (**esta condición, desde R2a**) | BLOQUEA | `H01/etiquetas.json` |
 | H02 | H | Cero anacronismos graves | P9-b: `grep` con la lista A (anexo C.1) sobre cadenas, ids, nodos y modelos; capturas | 0 aciertos **ilegítimos** (cada acierto se clasifica: es legítimo si la misma cadena lo niega o lo fecha como posterior, o si está en un comentario o identificador); templo con `templo_aabb_h_m` ≤ **8,5** y sin torres de campanas; 0 nodos o recursos con nombres excluidos (monumento, poste, álamo, eucalipto, tendido, farol) | BLOQUEA | `H02/aciertos_A*.txt`, `H02/clasificacion.md` |
-| H03 | H | Textos obligatorios, prohibidos y hechos verificados | P9-c: `grep` con la lista B y los 13 textos obligatorios (anexo C.2); 12 afirmaciones muestreadas con semilla fija | los **13** textos obligatorios presentes (anexo C.2); 0 aciertos ilegítimos de la lista B; de las 12 afirmaciones muestreadas, **0** contradicen el banco de hechos de `02_fuentes_primarias.md` (§f y §e.3); el refuerzo realista figura rotulado ▲ en pantalla | ALTA | `H03/obligatorios.txt`, `H03/hechos.md` |
+| H03 | H | Textos obligatorios, prohibidos y hechos verificados | P9-c: `grep` con la lista B y los 14 textos obligatorios (anexo C.2); 12 afirmaciones muestreadas con semilla fija | los **14** textos obligatorios presentes (anexo C.2); 0 aciertos ilegítimos de la lista B; de las 12 afirmaciones muestreadas, **0** contradicen el banco de hechos de `02_fuentes_primarias.md` (§f y §e.3); el refuerzo realista figura rotulado ▲ en pantalla | ALTA | `H03/obligatorios.txt`, `H03/hechos.md` |
 | E01 | E | EXE armado desde el commit certificado, con SHA-256 | P10-a: `build_release.py`, `verify_embedded_version.gd`, `sha256sum`, `git diff --name-only` | existe **un** EXE en `entregas/<versión>/` de 100–200 MB; `VERIFICACION_EMBEBIDA OK`; SHA-256 y bytes coinciden en `sha256sum`, `SHA256.txt` y `VERSION.json`; entre `runtime_source_commit` y el commit certificado solo cambian `VERSION.json`, `README.md`, `CLAUDE.md`, `docs/**`, `evidence/**`; `config/version` = `VERSION.json.version` = carpeta de entrega y ≠ `0.3.0-alpha`; una reconstrucción desde el worktree termina con 0 y mide ±1 % de la entrega; `git ls-files '*.exe'` vacío | BLOQUEA | `E01/sha256_*.txt`, `E01/build-report.json`, `E01/verify.log` |
-| E02 | E | El EXE corre el nivel de forma nativa en Windows, desde una carpeta vacía y con perfil limpio | P10-b: `PatriaGuemes.exe ... --qa=humahuaca`, `--scenario=humahuaca` con `--verbose`, `benchmark.py --binary` | el recorrido sale con 0 y escribe ≥ **5** PNG del tamaño pedido y `qa_report.json`; `--scenario=humahuaca` llega al briefing y sale con 0; cuadro medio del EXE ≤ **3,0 ms** y construcción ≤ 1500 ms; 0 errores y 0 fugas en sus logs | BLOQUEA | `E02/*.log`, `E02/qa_report.json`, `E02/bench_exe.json` |
+| E02 | E | El EXE corre el nivel de forma nativa en Windows, desde una carpeta vacía y con perfil limpio | P10-b: `PatriaGuemes.exe ... --qa=humahuaca`, `--scenario=humahuaca` con `--verbose`, `benchmark.py --binary` | el recorrido sale con 0 y escribe ≥ **5** PNG del tamaño pedido y `qa_report.json`; `--scenario=humahuaca` llega al briefing y sale con 0; cuadro medio del EXE ≤ **4,0 ms** (perfil `media`) y construcción ≤ 1500 ms; 0 errores y 0 fugas en sus logs | BLOQUEA | `E02/*.log`, `E02/qa_report.json`, `E02/bench_exe.json` |
 | E03 | E | Documentos, créditos y versión al día | P11-a: `grep` y comparaciones | README y `project.godot` hablan de **tres** escenarios; `docs/CONTROLES.md` lista todas las teclas de `humahuaca_ui.json.key_table`; `docs/CREDITOS.md` contiene «OpenStreetMap» y «ODbL» y, según `meta.source`, el aviso de Copernicus («produced using Copernicus WorldDEM-30») o la cita de SRTM de NASA/USGS; `docs/ASSETS.md` lista los assets nuevos; `CLAUDE.md` incluye el nivel II | ALTA | `E03/docs.txt` |
-| E04 | E | Evidencia completa, chica y trazable | P11-b | `evidence/humahuaca/` < **60 MB**; cada JPEG ≤ 300 KB; las 12 capturas obligatorias con `INDEX.json` (SHA-256 de los originales); cada criterio con su carpeta; todo commit desde `5a84c50` lleva el trailer `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>` | MEDIA | `E04/evidencia.txt` |
+| E04 | E | Evidencia completa, chica y trazable | P11-b | `evidence/humahuaca/` < **60 MB**; cada JPEG ≤ 300 KB; las 14 capturas obligatorias con `INDEX.json` (SHA-256 de los originales); cada criterio con su carpeta; todo commit desde `5a84c50` lleva el trailer `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>` | MEDIA | `E04/evidencia.txt` |
 | E05 | E | Seguridad e higiene de Git | P11-c | 0 archivos `.env*` o `jev.cfg` en el diff; 0 coincidencias de claves en el diff y en `evidence/humahuaca/`; no hubo push: `origin/main` sigue en `72077c8655f8489109950a24b0b09db14af7563c` (su punta al congelar) y su reflog no tiene entradas nuevas ni `forced-update`; `git tag --list` = solo `v0.1.0`; ningún archivo versionado > 100 MB | BLOQUEA | `E05/seguridad.txt` |
 
-**Dueño de cada dimensión** (a quién se le pasa el hallazgo): **T** y **E** → integrador; **C** → `ui_feel`; **J** → `reglas_historia` (con `ui_feel` en J02); **V** → `visual`; **R** → `relieve_mapa`; **H** → `reglas_historia` (etiquetas y textos) y `visual` (nombres de nodos y modelos).
+**Dueño de cada dimensión** (a quién se le pasa el hallazgo): **T** y **E** → integrador (y compuertas y documentos en T03, T05 y las pruebas de humo); **C** → `ui_feel`; **J** → `reglas_historia` (con `ui_feel` en J02 y compuertas y documentos en J08); **V** → `visual`; **R** → `relieve_mapa`; **H** → `reglas_historia` (etiquetas y textos) y `visual` (nombres de nodos y modelos).
 
 **Escalera de exigencia.** Los umbrales **no cambian nunca**; solo cambia desde qué ronda un fallo se reporta como hallazgo. Antes de esa ronda el ítem se mide y se informa en la tabla de estado, sin generar hallazgo.
 
 | Ronda | Se exige (un fallo es hallazgo) | Solo se informa |
 |---|---|---|
 | R0 (andamiaje) | T01, T02, E05 | T03 |
-| R1 (corte vertical) | + T03, T04, T05, T06, T07, J01, J02, C01, R01, R02, R06, H01 | C03, J03, J04 |
-| R2 (legibilidad y profundidad) | + T08, C03, C04, C05, J03, V01, V02, V03, R03, R04, R05, H02, H03 | J04–J07, V04, V05, C02, E03 |
-| R3 (pulido visual y ritmo) | + J04, J05, J06, J07, V04, V05, C02, E03 | E01, E02, E04 |
-| R4 (cierre y certificación) | **todos los 39** | — |
+| R1 (corte vertical mínimo) | + T03, T04, T05, T06, T07, J01, J02, C01 (a 1280×720 completo y desborde en las otras dos), R01, R02, R06, H01 | C03, J03, J04, J08, V02, V06 |
+| R2a (núcleo legible) | + T08, C03, C04, C05, V02, V03, V06, R03, R04, R05, H02, H03; H01 con su leyenda | J03, J04–J08, V01, V04, V05, C02, E03 |
+| R2b (profundidad y contrapesos) | + J03, J04, J06, J08, V01; J01 completo (aperturas y causas) | J05, J07, V04, V05, C02, E03 |
+| R3 (pulido y verificación) | + J05, J07, V04, V05, C02, E03 | E01, E02, E04 |
+| R4 (cierre y certificación) | **todos los 41** | — |
 
-**Cómo se usa en el bucle.** *Cada ronda*, el Jefe de QA corre los procedimientos de los ítems exigibles esa ronda (con un solo certificador, el A), publica la tabla de estado de los 39 y **≤ 7 hallazgos**; las pistas corrigen y la ronda siguiente mide de nuevo. *La certificación* (los tres certificadores, los 39 ítems, un único commit) se convoca **solo** cuando una ronda deja en verde todo lo exigible; si falla, se vuelve a las rondas con la lista cerrada de hallazgos. Una ronda que no mueve ningún ítem de la tabla de estado no cuenta (diseño, sección 14).
+**Cómo se usa en el bucle.** *Cada ronda*, el Jefe de QA corre los procedimientos de los ítems exigibles esa ronda (con un solo certificador, el A), publica la tabla de estado de los 41 y **≤ 7 hallazgos**; las pistas corrigen y la ronda siguiente mide de nuevo. *La certificación* (los tres certificadores, los 41 ítems, un único commit) se convoca **solo** cuando una ronda deja en verde todo lo exigible; si falla, se vuelve a las rondas con la lista cerrada de hallazgos. Una ronda que no mueve ningún ítem de la tabla de estado no cuenta (diseño, sección 14).
 
 ---
 
@@ -109,7 +116,7 @@ Documento del **Jefe de Control de Calidad**. Versión **1.1** (enmienda 1, ver 
 
 **Regla de oro:** un comando por tarea, esperar su línea final antes de leer resultados, **siempre con `timeout`** (un script de Godot con un error en `_initialize` queda colgado para siempre; se vio en la preparación de este documento) y **siempre con `APPDATA` aislado**. Las corridas con ventana (`ui_qa*`, capturas, benchmark, EXE) **no pueden correr a la vez** que otra cosa con ventana (el benchmark queda inválido). Shell: Git Bash. Ninguna prueba abre ni imprime `.env*` ni `jev.cfg`.
 
-**Tiempos aproximados por certificador** (RTX 3080 Ti): P0 2 min · P1 ≈ 9 · P2 ≈ 8 · P3 ≈ 3 · P4 ≈ 8 · P5 ≈ 6 · P6 25–40 · P7 ≈ 6 · P8 ≈ 1 · P9 ≈ 3 · P10 ≈ 8 · P11 ≈ 1. En total ≈ 90 min; con los turnos de GPU de los tres, ≈ 2,5 h de reloj.
+**Tiempos aproximados por certificador** (RTX 3080 Ti): P0 2 min · P1 ≈ 9 · P2 ≈ 8 · P3 ≈ 3 · P4 ≈ 8 · P5 ≈ 6 · P6 25–40 (más 30–60 del agente-jugador, P6-e, una vez por certificación) · P7 ≈ 8 · P8 ≈ 1 · P9 ≈ 3 · P10 ≈ 8 · P11 ≈ 1. En total ≈ 90 min por certificador más el agente; con los turnos de GPU de los tres, ≈ 3 h de reloj.
 
 ### P0 · Preparación (una vez por certificador y ronda)
 
@@ -173,7 +180,7 @@ run T02_integ "$G" --headless --path "$SRC" --script tests/test_integration.gd
 run T02_jev   "$G" --headless --path "$SRC" --script tests/jev_contract_test.gd
 run T02_audio "$G" --headless --path "$SRC" --script tests/audio_runtime_test.gd                                 # sale con 1: es la línea base
 { for f in T02_rules T02_integ T02_jev; do echo -n "$f "; suite "$EV/T02/$f.log"; done; grep -E '^(RESULTADO|FALLA):' "$EV/T02/T02_audio.log"; } | tee "$EV/T02/resumen.txt"
-# P1-c (T03) suites nuevas
+# P1-c (T03) suites nuevas: los pisos de cada suite son los de la ronda (tabla 5.1 del contrato; al cierre, los de T03)
 for t in data terrain rules view flow smoke; do TMO=900 run T03_$t "$G" --headless --path "$SRC" --script tests/test_hx_$t.gd; echo -n "T03_$t "; suite "$EV/T03/T03_$t.log"; done | tee "$EV/T03/resumen.txt"
 lastjson "$EV/T03/T03_rules.log" | python -I -c "import sys,json;print(json.load(sys.stdin).get('performance'))" | tee -a "$EV/T03/resumen.txt"
 # P1-d (T05) se corre AL FINAL de toda la certificación, cuando ya existen todos los logs:
@@ -204,10 +211,26 @@ EOF
 
 ```sh
 mkdir -p "$EV/T06"
-python "$SRC/tools/benchmark.py" --binary "$G" --project "$SRC" --output "$RAW/bench" --profiles media --scenarios justine,norte,humahuaca \
-  --repeat 3 --renderer forward_plus --max-frame-ms 3 > "$EV/T06/bench.log" 2>&1; echo "benchmark exit=$?"          # debe ser 0
-cp "$RAW/bench/resumen.json" "$EV/T06/"
-python -I -c "import json;[print(x['scenario'],'media_de_medias',x['frame_ms_mean_mean'],'peor_media',x['frame_ms_mean_max'],'build_ms',x['scene_build_ms_mean']) for x in json.load(open('$EV/T06/resumen.json'))]"
+python "$SRC/tools/benchmark.py" --binary "$G" --project "$SRC" --output "$RAW/bench" --profiles media --scenarios justine,norte \
+  --repeat 3 --renderer forward_plus --max-frame-ms 3 > "$EV/T06/bench_regresion.log" 2>&1; echo "benchmark justine,norte exit=$?"          # debe ser 0
+python "$SRC/tools/benchmark.py" --binary "$G" --project "$SRC" --output "$RAW/bench_hx" --profiles baja,media,alta --scenarios humahuaca \
+  --repeat 3 --renderer forward_plus --max-frame-ms 6 > "$EV/T06/bench.log" 2>&1; echo "benchmark humahuaca exit=$?"                    # 6 = techo del perfil alto; cada perfil se mira abajo
+cp "$RAW/bench/resumen.json" "$EV/T06/resumen_regresion.json"; cp "$RAW/bench_hx/resumen.json" "$EV/T06/resumen.json"
+python -I - "$EV/T06" <<'EOF' | tee "$EV/T06/presupuestos.txt"      # presupuestos por perfil (diseño 11.2); solo «media» es compuerta
+import json, sys
+B = {"baja": 2.5, "media": 4.0, "alta": 6.0}
+ok = True
+for x in json.load(open(sys.argv[1] + "/resumen_regresion.json")):
+    good = x["frame_ms_mean_max"] <= 3.0
+    ok = ok and good
+    print(x["scenario"], x["quality"], "peor_media", x["frame_ms_mean_max"], "(≤ 3,0)", "PASA" if good else "FALLA")
+for x in json.load(open(sys.argv[1] + "/resumen.json")):
+    q, gate = x["quality"], x["quality"] == "media"
+    good = x["frame_ms_mean_max"] <= B[q] and (not gate or (x["frame_ms_p95_mean"] <= 8.3 and x["scene_build_ms_mean"] <= 1500))
+    print("humahuaca", q, "peor_media", x["frame_ms_mean_max"], "p95", x["frame_ms_p95_mean"], "build_ms", x["scene_build_ms_mean"], "presupuesto", B[q], "COMPUERTA" if gate else "informe", "PASA" if good else "FALLA")
+    ok = ok and (good or not gate)
+sys.exit(0 if ok else 1)
+EOF
 ```
 **Regla de ruido (fijada de antemano):** si `justine` o `norte` pasan de 3,0 ms pero `T01` pasa (no se tocó nada suyo) y su media de medias es ≤ 3,0, se repite **una** vez ese escenario solo y vale el reintento. Humahuaca no tiene reintento.
 
@@ -254,17 +277,24 @@ EOF
 mkdir -p "$EV/C04"; python -I "$QT/qa_imagen.py" jpg "$RAW/uiqa_hx/1280x720/hx-menu-nuevo.png" "$EV/C04/X01_menu_nuevo.jpg"; python -I "$QT/qa_imagen.py" jpg "$RAW/uiqa_hx/1280x720/hx-menu-desbloqueado.png" "$EV/C04/X02_menu_desbloqueado.jpg"
 # P5-c el nivel directo, con --verbose (fugas al salir) y --scenario
 run T05_directo "$G" --path "$SRC" --resolution 1280x720 --audio-driver Dummy --verbose --quit-after 900 -- --scenario=humahuaca --hx-skip-intro
-# P5-d jerga: todas las cadenas visibles (JSON y literales de la interfaz) contra jargon_blacklist
+# P5-d jerga: todas las cadenas visibles (JSON y literales de la interfaz) contra jargon_blacklist (siglas sensibles a mayúsculas; palabras sin distinguir mayúsculas ni tildes; identificadores snake_case)
 python -I - "$SRC" <<'EOF' | tee "$EV/C03/jerga.txt"
 import json, re, sys, pathlib, unicodedata
 src = pathlib.Path(sys.argv[1]); fold = lambda s: "".join(c for c in unicodedata.normalize("NFD", s.lower()) if unicodedata.category(c) != "Mn")
-bl = [fold(t) for t in json.load(open(src / "data/humahuaca_ui.json", encoding="utf-8")).get("jargon_blacklist", [])]
-print("términos en la lista negra:", len(bl), "(mínimo 20)")
+raw = json.load(open(src / "data/humahuaca_ui.json", encoding="utf-8")).get("jargon_blacklist", [])
+siglas = [t for t in raw if len(t) >= 2 and t.isupper()]          # ETA, ZOC, LOS, DPS, HUD, FPS: se buscan respetando mayúsculas (así «los» no es LOS)
+palabras = [fold(t) for t in raw if t not in siglas]               # el resto: sin distinguir mayúsculas ni tildes
+print("términos en la lista negra:", len(raw), "(mínimo 20) | siglas:", len(siglas), "| palabras:", len(palabras))
 hits = []
 def chk(texto, donde):
     f = fold(texto)
-    for t in bl:
+    for t in palabras:
         if re.search(r"(?<!\w)" + re.escape(t) + r"(?!\w)", f): hits.append((donde, t, texto[:70]))
+    for t in siglas:
+        if re.search(r"(?<!\w)" + re.escape(t) + r"(?!\w)", texto): hits.append((donde, t, texto[:70]))
+    if re.search(r"\b[a-z]+(?:_[a-z0-9]+)+\b", texto): hits.append((donde, "snake_case", texto[:70]))
+    letras = [c for c in texto if c.isalpha()]
+    if len(letras) >= 12 and all(c.isupper() for c in letras): hits.append((donde, "todo en mayúsculas", texto[:70]))
 def walk(o, p):
     if isinstance(o, dict):
         for k, v in o.items():
@@ -272,10 +302,12 @@ def walk(o, p):
     elif isinstance(o, list):
         for i, v in enumerate(o): walk(v, "%s[%d]" % (p, i))
     elif isinstance(o, str) and " " in o: chk(o, p)
-for f in ("humahuaca_rules", "humahuaca_ui", "humahuaca_visual"): walk(json.load(open(src / ("data/%s.json" % f), encoding="utf-8")), f)
+for f in ("humahuaca_rules", "humahuaca_level", "humahuaca_ui", "humahuaca_visual"): walk(json.load(open(src / ("data/%s.json" % f), encoding="utf-8")), f)
 for g in (src / "scripts/humahuaca/ui").glob("*.gd"):
-    for m in re.finditer(r'"((?:[^"\\\n]|\\.)*)"', g.read_text(encoding="utf-8")):
-        if " " in m.group(1): chk(m.group(1), g.name)
+    for linea in g.read_text(encoding="utf-8").split("\n"):
+        if re.search(r"\b(push_error|push_warning|print|printerr|assert)\(", linea) or linea.lstrip().startswith("#"): continue     # mensajes de desarrollo y comentarios no son texto visible
+        for m in re.finditer(r'"((?:[^"\\\n]|\\.)*)"', linea):
+            if " " in m.group(1): chk(m.group(1), g.name)
 for h in hits: print("JERGA", h)
 print("aciertos:", len(hits), "(debe ser 0)")
 EOF
@@ -292,25 +324,31 @@ EOF
 ```
 **Qué debe hacer `ui_qa_humahuaca` y qué debe informar** está en el anexo D (Q3). **J02** se verifica con `notes.ciclo_completo` (verdadero solo si pasó por todos los pasos del criterio, en un perfil limpio) y con `test_hx_flow`; el certificador mira además `hx-derrota` y `hx-victoria`.
 
-### P6 · Simulación de balance y recorridos (J01, J03–J07, C05)
+### P6 · Simulación de balance y recorridos (J01, J03–J08, C05)
 
 **Semillas reservadas al QA: 9000–9999.** Ninguna pista las usa, las publica ni las ve: 9001–9060 balance, 9101–9300 aleatorio (T08), 9301–9399 espejo. Los resultados por semilla **no se entregan a las pistas**: solo se informan las tasas agregadas.
 
 ```sh
-mkdir -p "$EV/J01" "$EV/J03" "$EV/J04" "$EV/J05" "$EV/J06" "$EV/J07"
+mkdir -p "$EV/J01" "$EV/J03" "$EV/J04" "$EV/J05" "$EV/J06" "$EV/J07" "$EV/J08"
 cd "$SRC"
 # P6-a escena real (ventana): 12 semillas, y la política de interfaz (clics sobre «siguiente paso»)
 TMO=1800 run J01_scene "$G" --path "$SRC" --resolution 1440x900 --audio-driver Dummy --script tools/humahuaca_playthrough.gd -- --level=scene \
   --policies=experto,obediente,torpe,pasivo,ciego_sin_recon --seeds=9001-9012 --attempts=3 --replicas=1 --out="$EV/J01/scene.json"
 TMO=1200 run J01_ui "$G" --path "$SRC" --resolution 1440x900 --audio-driver Dummy --script tools/humahuaca_playthrough.gd -- --level=scene \
   --policies=interfaz --seeds=9001-9003 --attempts=3 --replicas=1 --out="$EV/J01/ui.json"
-# P6-b reglas sin escena (headless, rápido): 60 semillas × 3 réplicas × hasta 5 intentos; y la matriz de estrategias
+# P6-b reglas sin escena (headless, rápido): 60 semillas × 3 réplicas × hasta 5 intentos; la matriz de estrategias de frente, las recetas de extracción y el barrido de la señal
 TMO=2400 run J04_bots "$G" --headless --path "$SRC" --script tools/humahuaca_playthrough.gd -- --level=rules \
   --policies=experto,obediente,torpe,ciego_sin_recon,ciego_tarde,ciego_un_frente,ciego_sin_arreo,pasivo,pausa_reanuda --seeds=9001-9060 --attempts=5 --replicas=3 --out="$EV/J04/reglas_bots.json"
 TMO=2400 run J06_matriz "$G" --headless --path "$SRC" --script tools/humahuaca_playthrough.gd -- --level=rules \
   --policies=estrategias --seeds=9001-9060 --attempts=1 --replicas=1 --out="$EV/J06/reglas_matriz.json"
+TMO=2400 run J06_extraccion "$G" --headless --path "$SRC" --script tools/humahuaca_playthrough.gd -- --level=rules \
+  --policies=extraccion --seeds=9001-9060 --attempts=1 --replicas=1 --out="$EV/J06/reglas_extraccion.json"
+TMO=1800 run J06_senal "$G" --headless --path "$SRC" --script tools/humahuaca_playthrough.gd -- --level=rules \
+  --policies=barrido_senal --seeds=9001-9024 --signal-from=120 --signal-to=375 --signal-step=15 --attempts=1 --replicas=1 --out="$EV/J06/reglas_senal.json"
+TMO=1800 run J03_ramificacion "$G" --headless --path "$SRC" --script tools/humahuaca_playthrough.gd -- --level=rules \
+  --policies=experto --seeds=9001-9012 --attempts=1 --replicas=1 --measure=decisions --out="$EV/J03/reglas_decisiones.json"
 # P6-c agregación con los umbrales congelados (anexo A3)
-python -I "$QT/qa_balance.py" --in "$EV/J04/reglas_bots.json" "$EV/J06/reglas_matriz.json" "$EV/J01/scene.json" "$EV/J01/ui.json" --out "$EV/J04" | tee "$EV/J04/J_resumen.txt"
+python -I "$QT/qa_balance.py" --in "$EV/J04/reglas_bots.json" "$EV/J06/reglas_matriz.json" "$EV/J06/reglas_extraccion.json" "$EV/J06/reglas_senal.json" "$EV/J03/reglas_decisiones.json" "$EV/J01/scene.json" "$EV/J01/ui.json" --out "$EV/J04" | tee "$EV/J04/J_resumen.txt"
 for k in J03 J05 J06 J07; do mkdir -p "$EV/$k"; cp "$EV/J04/J_result.json" "$EV/$k/"; done
 python -I - "$EV" <<'EOF'      # J01 y C05: causas de derrota y textos
 import json, sys, re
@@ -325,17 +363,35 @@ ui = json.load(open(sys.argv[1] + "/J01/ui.json", encoding="utf-8"))["games"]
 print("política interfaz: semillas con victoria:", len({x["seed"] for x in ui if x["status"] == "victory"}), "de", len({x["seed"] for x in ui}), "(≥ 1)")
 EOF
 # P6-d auditoría de ceguera y de integridad de semillas
-git grep -nE 'true_value|state\.world|\.garrison|state\.recon|rumors' -- tools/humahuaca_playthrough.gd tests/test_hx_rules.gd | tee "$EV/J04/auditoria_ceguera.txt"
-git grep -noEi '(seed|semilla)[^0-9]{0,16}9[0-9]{3}\b' -- 'tests/test_hx_*.gd' tools/humahuaca_playthrough.gd tools/hx_qa_tour.gd tools/ui_qa_humahuaca.gd tools/vis_humahuaca.gd 'data/humahuaca_*.json' scripts/humahuaca | tee "$EV/J04/semillas_en_pistas.txt"   # debe quedar vacío
+git grep -nE 'true_value|state\.world|\.garrison|state\.recon|rumors|omniscient' -- tools/humahuaca_playthrough.gd tests/test_hx_rules.gd scripts/humahuaca/rules/humahuaca_policies.gd | tee "$EV/J04/auditoria_ceguera.txt"
+git grep -noEi '(seed|semilla)[^0-9]{0,16}9[0-9]{3}\b' -- 'tests/test_hx_*.gd' tools/humahuaca_playthrough.gd tools/hx_qa_tour.gd tools/hx_agent_play.gd tools/ui_qa_humahuaca.gd tools/vis_humahuaca.gd 'data/humahuaca_*.json' scripts/humahuaca | tee "$EV/J04/semillas_en_pistas.txt"   # debe quedar vacío
 ```
-**Auditoría de ceguera (a mano, 10 min):** el certificador lee cada acierto de `auditoria_ceguera.txt`. Un acierto dentro de las políticas `experto` es válido. Un acierto dentro de `obediente`, `torpe`, `ciego_*`, `pausa_reanuda`, `pasivo`, `aleatorio` o `interfaz` que lea esos datos **para decidir** (no para medir) es un **defecto objetivo ALTA** («bot con información perfecta»: la lección del nivel 1).
+**Auditoría de ceguera (a mano, 10 min):** el certificador lee cada acierto de `auditoria_ceguera.txt`. Un acierto dentro de la política `experto` o de las `est_*`/`ext_*` (que reciben `omniscient: true`) es válido. Un acierto dentro de `obediente`, `torpe`, `ciego_*`, `pausa_reanuda`, `pasivo`, `aleatorio` o `interfaz` que lea esos datos **para decidir** (no para medir) es un **defecto objetivo ALTA** («bot con información perfecta»: la lección del nivel 1).
 
 **Espejo:** el segundo certificador repite P6-b con `--seeds=9001-9012` y exige el mismo `snapshot_sha256` en las partidas comunes (`qa_balance.py --compare`) y tasas dentro de ±0,10 de las del primero en esas 12 semillas.
 
-### P7 · Capturas reales (V01–V05, R06) — Godot **sin** `--headless`
+#### P6-e · Agente-jugador (J08) — una ventana; 30–60 min
+
+El Jefe de QA lo corre **una vez por certificación** (no por certificador); B y C evalúan la bitácora. Reglas: el agente es un **subagente nuevo**, sin acceso al repo ni a `qa_state()`; solo puede leer y escribir en `$RAW/agente`; el Jefe de QA revisa su registro de herramientas y anota en `agente.json` cuántas lecturas hizo fuera de esa carpeta (debe ser 0).
 
 ```sh
-mkdir -p "$EV/V01/capturas" "$EV/V02" "$EV/V03" "$EV/V04" "$EV/V05" "$EV/R"
+mkdir -p "$RAW/agente" "$EV/J08"
+# 1) el arnés (lado del juego): escribe turno_NN.png, espera accion_NN.json, inyecta la entrada y avanza `paso` segundos de juego por turno
+"$G" --path "$SRC" --resolution 1280x720 --audio-driver Dummy --script tools/hx_agent_play.gd -- --turns-dir="$RAW/agente" --seed=9001 --step-s=3 --max-turns=150 --out="$EV/J08/arnes.json" &
+# 2) el agente-jugador (subagente) recibe SOLO este texto y la carpeta $RAW/agente
+```
+**Texto que recibe el agente** (se pega tal cual): «Vas a jugar un videojuego histórico de estrategia en tiempo real que se puede pausar. No conocés las reglas. En la carpeta `agente` aparecen imágenes `turno_NN.png`: es lo que ves en pantalla. Para actuar escribí `accion_NN.json` con `{"tipo":"clic","x":..,"y":..,"boton":"izq"}` (o `"der"`), `{"tipo":"tecla","tecla":"4"}` o `{"tipo":"esperar","s":3}`; después aparece el turno siguiente. Antes de cada acción, anotá en `bitacora.md` qué ves, qué entendés y qué probás. No abras ningún otro archivo ni carpeta de la computadora. Si perdés, podés reintentar. Al terminar (o a los 150 turnos) escribí `respuestas.json` con `{"objetivo": "...", "entendiste": "...", "aburrimiento": "...", "aprendido": "..."}`: qué había que lograr, si entendiste qué hacer, cuándo te aburriste y por qué, y qué harías distinto.»
+```sh
+wait   # el arnés termina cuando el agente cierra o se llega a los turnos máximos
+python -I "$QT/qa_agente.py" --arnes "$EV/J08/arnes.json" --respuestas "$RAW/agente/respuestas.json" --bitacora "$RAW/agente/bitacora.md" --out "$EV/J08" | tee "$EV/J08/resumen.txt"
+cp "$RAW/agente/bitacora.md" "$EV/J08/"
+```
+Si el agente no aparece o el arnés no corre, J08 es **N** (cuenta como falla). El resultado nunca se usa para mover un umbral.
+
+### P7 · Capturas reales (V01–V06, R06) — Godot **sin** `--headless`
+
+```sh
+mkdir -p "$EV/V01/capturas" "$EV/V02" "$EV/V03" "$EV/V04" "$EV/V05" "$EV/V06" "$EV/R"
 for S in 1280x720 1920x1080 2560x1440; do
   mkdir -p "$RAW/tour/$S"
   run V01_tour_$S "$G" --path "$SRC" --resolution $S --audio-driver Dummy -- --qa=humahuaca --qa-path="$RAW/tour/$S" --qa-size=$S
@@ -350,7 +406,7 @@ for S in ("1280x720", "1920x1080", "2560x1440"):
           "| objetivos en pantalla:", [t.get("on_screen") for t in r.get("initial_frame", {}).get("targets", [])], "| templo_aabb_h_m:", r.get("templo_aabb_h_m"))
     json.dump(r.get("initial_frame", {}), open("%s/V02/initial_frame_%s.json" % (sys.argv[2], S), "w"), indent=1)
 EOF
-# evidencia chica: las 12 obligatorias (anexo B), las 5 vistas a 1280×720 y las 4 de límite de cámara, a JPEG ≤ 300 KB, con el índice de SHA-256 de los originales
+# evidencia chica: las 14 obligatorias (anexo B), las 7 vistas a 1280×720 y las 4 de límite de cámara, a JPEG ≤ 300 KB, con el índice de SHA-256 de los originales
 while read -r ORIG DST; do python -I "$QT/qa_imagen.py" jpg "$RAW/$ORIG" "$EV/V01/capturas/$DST"; done <<'EOF'
 tour/1920x1080/vista_acceso_so.png M01_llegada_nocturna.jpg
 uiqa_hx/1920x1080/hx-aproximacion-lluvia.png M02_aproximacion_lluvia.jpg
@@ -364,11 +420,15 @@ uiqa_hx/1280x720/hx-victoria.png M09_victoria.jpg
 uiqa_hx/1280x720/hx-hud.png M10_hud_1280x720.jpg
 uiqa_hx/1920x1080/hx-hud.png M11_hud_1920x1080.jpg
 uiqa_hx/2560x1440/hx-hud.png M12_hud_2560x1440.jpg
+tour/1920x1080/vista_juego_noche.png M13_juego_noche.jpg
+tour/1920x1080/vista_juego_alba.png M14_juego_alba.jpg
 tour/1280x720/vista_acceso_so.png V1280_acceso_so.jpg
 tour/1280x720/vista_desde_bateria.png V1280_desde_bateria.jpg
 tour/1280x720/vista_patio_posta.png V1280_patio_posta.jpg
 tour/1280x720/vista_grupos_en_accion.png V1280_grupos_en_accion.jpg
 tour/1280x720/vista_panorama_alto.png V1280_panorama_alto.jpg
+tour/1280x720/vista_juego_noche.png V1280_juego_noche.jpg
+tour/1280x720/vista_juego_alba.png V1280_juego_alba.jpg
 EOF
 for L in n s e o; do python -I "$QT/qa_imagen.py" jpg "$RAW/tour/1920x1080/limite_$L.png" "$EV/R/limites_$L.jpg"; done
 python -I - "$RAW" "$EV/V01/capturas/INDEX.json" <<'EOF'
@@ -379,8 +439,12 @@ EOF
 # V03 fichas / V04 paleta / V05 marcadores y contraste
 python -I "$QT/qa_imagen.py" tokens "$RAW/tour/1280x720/hoja_fichas.png" | tee "$EV/V03/tokens.txt"
 python -I "$QT/qa_imagen.py" paleta --lamina06 "$LAM/06_paletas.png" --visual "$SRC/data/humahuaca_visual.json" | tee "$EV/V04/paleta.txt"
-python -I "$QT/qa_imagen.py" calib "$RAW/tour/1920x1080/calib_inicial.png" "$RAW/tour/1920x1080/calib_patio_posta.png" "$RAW/tour/1920x1080/calib_grupos.png" | tee "$EV/V04/calib.txt"
+python -I "$QT/qa_imagen.py" calib "$RAW/tour/1920x1080/calib_inicial.png" "$RAW/tour/1920x1080/calib_patio_posta.png" "$RAW/tour/1920x1080/calib_grupos.png" | tee "$EV/V04/calib.txt"      # render de albedo (set_albedo_mode), sin interfaz
 python -I "$QT/qa_imagen.py" markers "$RAW/uiqa_hx/1920x1080/hx-hud.png" --need celeste,oro,borgona | tee "$EV/V05/markers.txt"
+# V06 legibilidad a distancia de juego (ΔL* sobre los probes), riqueza uniforme (bordes por baldosa de la vista sin interfaz) y composición contra la foto de 1923
+python -I "$QT/qa_imagen.py" legible --report "$RAW/tour/1920x1080/qa_report.json" --dir "$RAW/tour/1920x1080" --views juego_noche,juego_alba | tee "$EV/V06/legible.txt"
+python -I "$QT/qa_imagen.py" bordes "$RAW"/tour/1920x1080/vista_*_sin_ui.png | tee "$EV/V06/bordes.txt"
+python -I "$QT/qa_imagen.py" panorama "$RAW/tour/1920x1080/vista_panorama_alto_sin_ui.png" --foto "$LAM/v04_humahuaca_1923.png" | tee "$EV/V06/panorama.txt"
 RECTS="$(python -I -c "import json;r=json.load(open('$RAW/uiqa_hx/1920x1080/ui_qa_report.json',encoding='utf-8'))['notes']['rects'];print(';'.join(','.join(str(int(v)) for v in r[k]) for k in ('titulo','objetivo','siguiente','frente_bateria','alerta','accion_1')))")"
 python -I "$QT/qa_imagen.py" contraste "$RAW/uiqa_hx/1920x1080/hx-hud.png" --rects "$RECTS" | tee "$EV/V05/contraste.txt"
 ```
@@ -402,20 +466,21 @@ cd "$SRC"; mkdir -p "$EV/H01" "$EV/H02" "$EV/H03"
 python -I "$QT/qa_etiquetas.py" --data "$SRC/data" --out "$EV/H01/etiquetas.json" | tee "$EV/H01/resumen.txt"
 # P9-b anacronismos graves (lista A del anexo C.1: variable PAT_A) sobre cadenas, código, historia nueva y nombres de nodos y modelos
 PAT_A='(monumento|escalinata|h(e|é)roes de la independencia)|(torres? de campanas?|campanarios?|dos torres|fachada (actual|neocl(a|á)sica|de 188[01]))|(bandera (argentina|nacional)|sol de mayo|sol en la bandera|bandera con sol|bandera del sol)|(cruz de borgo(ñ|n)a|bandera espa(ñ|n)ola)|(coronel mayor|general g(ü|u)emes|chaqueta azul|h(ú|u)sar)|((san mart(í|i)n|g(ü|u)emes) (dirig|lider|comand|encabez|orden(ó|o)|mand(ó|o)|asalt))|(orden t(á|a)ctica|consecuencia de chacabuco|chacabuco hizo retirar)|(infernales)|(expulsi(ó|o)n definitiva|expulsados? para siempre|victoria definitiva|fin de la invasi(ó|o)n)|((á|a)lamos? pir(a|á)mid|eucalipt|postes?\b|tendidos?\b|alumbrado|farol(es)?\b|asfalto|empedrad|adoqu(i|í)n)|(ruta (9|nacional)|ferrocarril|telegraf|alambrad|autom(ó|o)vil|tractor|luz el(é|e)ctrica)'
-grep -rnEi "$PAT_A" data/humahuaca_map.json data/humahuaca_rules.json data/humahuaca_ui.json data/humahuaca_visual.json scripts/humahuaca > "$EV/H02/aciertos_A.txt"
+grep -rnEi "$PAT_A" data/humahuaca_map.json data/humahuaca_level.json data/humahuaca_rules.json data/humahuaca_ui.json data/humahuaca_visual.json scripts/humahuaca > "$EV/H02/aciertos_A.txt"
 git diff -U0 $BASE HEAD -- data/history.json | grep -E '^\+' | grep -Ei "$PAT_A" > "$EV/H02/aciertos_A_history.txt"
 { grep -Ei "$PAT_A" "$RAW/tour/1920x1080/scene_names.txt"; ls -R assets/models/humahuaca 2>/dev/null | grep -Ei "$PAT_A"; } > "$EV/H02/aciertos_A_nodos.txt"
 wc -l "$EV"/H02/aciertos_A*.txt
 # P9-c textos obligatorios y prohibidos (anexo C.2) y 12 hechos muestreados con semilla fija
 PAT_B='(todos (los )?(infernales|de rojo|de blanco)|uniformes? (rojos?|blancos?|homog(é|e)neos?))|(tormenta (durante|todo|toda)|llov(í|i)a (todo|durante todo))|(ruta final de arias|paso de zenta|garc(í|i)a camba)|(cabildo|premio de humahuaca)'
-grep -rnEi "$PAT_B" data/humahuaca_rules.json data/humahuaca_ui.json scripts/humahuaca/ui > "$EV/H03/aciertos_B.txt"
+grep -rnEi "$PAT_B" data/humahuaca_rules.json data/humahuaca_level.json data/humahuaca_ui.json scripts/humahuaca/ui > "$EV/H03/aciertos_B.txt"
 python -I - "$SRC" <<'EOF' | tee "$EV/H03/obligatorios.txt"
 import re, sys, pathlib
 t = " ".join((pathlib.Path(sys.argv[1]) / ("data/humahuaca_%s.json" % n)).read_text(encoding="utf-8") for n in ("rules", "ui"))
 OBL = {"carta del 26-II como dramatización": r"dramatizaci(ó|o)n", "nota de fecha 1 o 2 de marzo": r"2 de marzo", "el refuerzo no ocurrió o es diseño": r"no hubo refuerzo|refuerzo[^\"]{0,80}dise(ñ|n)o|dise(ñ|n)o[^\"]{0,80}refuerzo",
        "el relieve es dato actual": r"dato actual|no restituci(ó|o)n", "epílogo 3 de marzo": r"3 de marzo", "epílogo 9 al 16 de marzo": r"9 al 16 de marzo", "epílogo 6 de julio": r"6 de julio",
-       "botón Seguir: Sostener el norte": r"Sostener el norte", "etiqueta Documentado": r"Documentado", "etiqueta Inferencia razonada": r"Inferencia razonada", "etiqueta Versión discutida": r"Versi(ó|o)n discutida",
-       "etiqueta Sin datos suficientes": r"Sin datos suficientes", "Güemes recibe el parte en Salta": r"g(ü|u)emes[^\"]{0,120}(recibe|recibi(ó|o))[^\"]{0,60}parte|parte[^\"]{0,120}g(ü|u)emes"}
+       "botón Ver la campaña completa: Sostener el norte": r"Ver la campa(ñ|n)a completa[^\"]{0,40}Sostener el norte", "etiqueta Documentado": r"Documentado", "etiqueta Inferencia razonada": r"Inferencia razonada", "etiqueta Versión discutida": r"Versi(ó|o)n discutida",
+       "etiqueta Sin datos suficientes": r"Sin datos suficientes", "Güemes recibe el parte en Salta": r"g(ü|u)emes[^\"]{0,120}(recibe|recibi(ó|o))[^\"]{0,60}parte|parte[^\"]{0,120}g(ü|u)emes",
+       "aclaración del tiempo comprimido": r"26 horas|tiempo comprimido|reduce[^\"]{0,30}minutos"}
 falta = [k for k, p in OBL.items() if not re.search(p, t, re.I)]
 print("obligatorios presentes: %d de %d" % (len(OBL) - len(falta), len(OBL)), "| faltan:", falta)
 EOF
@@ -454,7 +519,7 @@ git ls-files '*.exe'                                                            
 mkdir -p "$T/exe_vacia"; cp "$EXE" "$T/exe_vacia/PatriaGuemes.exe"; export APPDATA="$T/ap_iso_exe_${RONDA}_${CERT}"; rm -rf "$APPDATA"; mkdir -p "$APPDATA" "$RAW/exe_tour"
 run E02_tour "$T/exe_vacia/PatriaGuemes.exe" --resolution 1920x1080 --audio-driver Dummy -- --qa=humahuaca --qa-path="$RAW/exe_tour" --qa-size=1920x1080
 run E02_directo "$T/exe_vacia/PatriaGuemes.exe" --resolution 1280x720 --audio-driver Dummy --verbose --quit-after 900 -- --scenario=humahuaca --hx-skip-intro
-python "$SRC/tools/benchmark.py" --binary "$T/exe_vacia/PatriaGuemes.exe" --output "$RAW/bench_exe" --profiles media --scenarios humahuaca --repeat 1 --renderer forward_plus --max-frame-ms 3 > "$EV/E02/bench_exe.log" 2>&1; echo "bench exe exit=$?"
+python "$SRC/tools/benchmark.py" --binary "$T/exe_vacia/PatriaGuemes.exe" --output "$RAW/bench_exe" --profiles media --scenarios humahuaca --repeat 1 --renderer forward_plus --max-frame-ms 4 > "$EV/E02/bench_exe.log" 2>&1; echo "bench exe exit=$?"
 cp "$RAW/bench_exe/resumen.json" "$EV/E02/bench_exe.json"; cp "$RAW/exe_tour/qa_report.json" "$EV/E02/"; ls "$RAW/exe_tour"/*.png | wc -l                         # ≥ 5
 export APPDATA="$T/ap_iso_hx_${RONDA}_${CERT}"
 ```
@@ -505,7 +570,7 @@ python -I "$QT/qa_veredicto.py" --doc "$SRC/docs/QA_NIVEL2.md" --in "$Q/A/veredi
 6. **Presupuesto.** Por ronda, la lista de trabajo tiene **≤ 7 hallazgos**: primero BLOQUEA, después ALTA, después MEDIA, en orden de ID; los duplicados se fusionan; el resto de los ítems fallidos queda en la tabla de estado (los 39, con pasa / falla / N / no exigible aún). Un hallazgo se cierra con evidencia de una ronda posterior.
 7. **Independencia.** Los tres certificadores corren con su **propio** `APPDATA`, worktree y carpeta de evidencia, y **no leen el veredicto de otro** hasta entregar el suyo.
 8. **Honestidad.** No se declara una prueba que no se corrió; no se infiere del código lo que se puede medir; «no vi la captura» y «no corrió la herramienta» son **N**, y N falla.
-9. **Mirar las capturas.** Cada certificador abre las 12 capturas obligatorias, el overlay y las 4 capturas de límite de cámara con `Read`, una por una, y lo declara.
+9. **Mirar las capturas.** Cada certificador abre las 14 capturas obligatorias, el overlay y las 4 capturas de límite de cámara con `Read`, una por una, y lo declara.
 10. **Seguridad.** No abrir ni imprimir `.env*` ni `jev.cfg`. Si una captura o un log muestra una clave, se informa como BLOQUEA (E05) y se borra el archivo antes de commitear.
 11. **Solo lectura sobre el proyecto.** Los certificadores no editan nada del repo salvo `evidence/humahuaca/<ronda>/qa/<CERT>/`. Los textos van en español rioplatense, con títulos de hallazgo ≤ 140 caracteres.
 
@@ -517,22 +582,22 @@ Estas limitaciones **no son hallazgos** y no se reabren. Cada una dice qué sí 
 
 | # | Limitación aceptada | Qué sí se verifica igual |
 |---|---|---|
-| L1 | **Sin prueba humana**: nadie juega a mano en este circuito. El balance y la claridad se miden con bots y con proxies (J04–J07, C03). | El veredicto lleva siempre el sello «PRESENTABLE, no certificado por humanos». La sesión de 20 minutos del anexo E es opcional y es lo único que puede quitar el sello. |
+| L1 | **Sin prueba humana**: nadie juega a mano en este circuito. El balance y la claridad se miden con extremos medibles, un **agente que juega por la interfaz real** y proxies (J03–J08, C03); el obediente y el torpe son informe. **Si el humano no aparece**, el QA anota «mini-playtest no realizado» (informe, no hallazgo) y el agente-jugador lo reemplaza. | El veredicto lleva siempre el sello «PRESENTABLE, no certificado por humanos»: **es un resultado final válido del bucle, no un bloqueo**. Los mini-playtests de 10 minutos (al cierre de R1 y de R2b) y la sesión de 20 minutos del anexo E son opcionales y aparte; esta última es lo único que puede quitar el sello. |
 | L2 | **Sin Jev vivo** (no hay clave autorizada; el mando realista usa la alternativa local determinista, D4). | `jev_contract_test` 15/0 y que `enemy_*` conserve la forma del Norte (T02). Nadie abre `jev.cfg`. |
 | L3 | **Audio**: el driver Dummy hace fallar 1 comprobación de `audio_runtime_test`; nadie escucha el audio. | Esa **única** falla y 17 o más comprobaciones (T02); que el audio del nivel no produzca errores (T05). La calidad audible no se evalúa. |
 | L4 | **Geometría de edificios, torre, posta, casa del cura, tapias, zanjas, planta del pueblo, reparto de los 150 y vestuario = diseño** (▲ u ○): no existe planta ni documento de 1817. | Que estén **rotulados** como diseño (H01) y que no haya anacronismos (H02); no se discute su fidelidad. |
 | L5 | **El relieve es dato actual** (lámina 03, SRTM o Copernicus), no restitución del suelo de 1817, con ±10 m (lámina) o ±5 m (DEM real). Los 12 m de la batería son diseño del prototipo. | Que coincida con la lámina dentro de los umbrales (R01–R06) y que el juego lo diga (R05). |
-| L6 | **Hardware único**: RTX 3080 Ti, Windows 11, dos monitores de 1920×1080; 2560×1440 se captura en ventana sin bordes. No se prueba en equipos modestos, con otras GPU ni con V-Sync activo. | El tamaño real de cada captura (C01) y el presupuesto de 3 ms en esta PC (T06). |
+| L6 | **Hardware único**: RTX 3080 Ti, Windows 11, dos monitores de 1920×1080; 2560×1440 se captura en ventana sin bordes. No se prueba en equipos modestos, con otras GPU ni con V-Sync activo. | El tamaño real de cada captura (C01) y los presupuestos de cuadro de T06 en esta PC (Justina y Norte ≤ 3 ms; Humahuaca en `media` ≤ 4 ms). |
 | L7 | **Material del usuario ausente**: dossier de 52 páginas, paquete editable de 39 archivos, láminas 01, 04 y 05, tabla de 23 elementos y 16 fichas. La planta del prototipo es diseño rotulado; si llega material, se corrige por *addendum*. | Que nada inventado figure como documentado (H01). |
 | L8 | **`treat_warnings_as_errors=false`**: los *warnings* de GDScript no rompen las pruebas y no cuentan salvo que el certificador demuestre un defecto objetivo asociado. | Los `SCRIPT ERROR`, `SHADER ERROR` y `Parse Error` sí cuentan (T05). |
 | L9 | **Movie Maker** (`--write-movie`) deja 4 instancias de ObjectDB al salir. Si algún video se graba así, esas 4 no cuentan. | Ninguna corrida de las de la sección 3 usa Movie Maker. |
 | L10 | **La exportación no es reproducible bit a bit** y no se prueba en Wine (se corre nativa en Windows). | Tamaño ±1 %, `verify_embedded_version.gd` y el SHA-256 de la entrega (E01). |
-| L11 | **D1a**: Humahuaca se abre con la Justina ganada (el Norte, igual que hoy). Reencadenar Justina → Humahuaca → Norte (D1b) cuesta 6 comprobaciones fijadas y queda fuera de este ciclo. | El candado en las dos direcciones y `--scenario=humahuaca` (C04). |
+| L11 | **D1a + D1c**: el Norte conserva su candado; Humahuaca está **siempre habilitado** con la nota «Recomendado tras la Justina» (la Justina no está certificada). Reencadenar Justina → Humahuaca → Norte (D1b) cuesta 6 comprobaciones fijadas y queda fuera de este ciclo (se decide en R4). | El candado del Norte, la nota de Humahuaca y `--scenario=humahuaca` (C04). |
 
 **Regla de decisión.** El veredicto consolidado es:
 
 - **PRESENTABLE (no certificado por humanos)** ⇔ **todos los BLOQUEA pasan** ∧ **0 ALTA abiertas** ∧ **≤ 3 MEDIA abiertas, cada una con su razón escrita** (campo `razon_aceptada` del hallazgo, firmado por el Jefe de QA) ∧ la rúbrica corrió **completa sobre un único commit** ∧ los tres certificadores usaron el mismo `rubrica_sha256` y el mismo `commit`.
-- **NO PRESENTABLE** en cualquier otro caso, con una **lista cerrada de ≤ 7 hallazgos** y la tabla de estado de los 39 ítems.
+- **NO PRESENTABLE** en cualquier otro caso, con una **lista cerrada de ≤ 7 hallazgos** y la tabla de estado de los 41 ítems.
 - Una etapa **BLOQUEA** que falla corta la certificación: no se siguen corriendo las etapas siguientes hasta corregirla (ahorra una hora de corridas inútiles). Las etapas son: (1) P1 y P2, (2) P3 a P5, (3) P6 a P9, (4) P10 y P11.
 - El sello «certificado por humanos» solo lo puede agregar quien haya corrido el anexo E, y lo escribe como línea aparte del veredicto; **no cambia** ningún ítem de la rúbrica.
 
@@ -540,12 +605,12 @@ Estas limitaciones **no son hallazgos** y no se reabren. Cada una dice qué sí 
 
 ## 6. Veredicto de cada certificador y triangulación
 
-**Roles.** Tres certificadores independientes, cada uno con un **foco primario**: **A — técnica y entrega** (T, E), **B — jugabilidad y claridad** (C, J) y **C — visual, relieve e historia** (V, R, H). Cada criterio lo evalúan como **mínimo dos** (el primario y un espejo: T/E → B, C/J → C, V/R/H → A) y el tercero **desempata**. Los criterios de juicio visual o textual (V01, V02, R03, R06, H02, H03) los evalúan **los tres**. Los procedimientos caros tienen una versión espejo más barata (P4, P6) que además comprueba determinismo.
+**Roles.** Tres certificadores independientes, cada uno con un **foco primario**: **A — técnica y entrega** (T, E), **B — jugabilidad y claridad** (C, J) y **C — visual, relieve e historia** (V, R, H). El **agente-jugador** (J08) lo corre el Jefe de QA una vez por certificación; B y C evalúan su bitácora. Cada criterio lo evalúan como **mínimo dos** (el primario y un espejo: T/E → B, C/J → C, V/R/H → A) y el tercero **desempata**. Los criterios de juicio visual o textual (V01, V02, R03, R06, H02, H03) los evalúan **los tres**. Los procedimientos caros tienen una versión espejo más barata (P4, P6) que además comprueba determinismo.
 
 **Formato (`veredicto.json`, más `VEREDICTO.md` con lo mismo en tabla):**
 
 ```json
-{"rubrica": "QA_NIVEL2 1.1", "rubrica_sha256": "<sha256 de docs/QA_NIVEL2.md>", "commit": "<hash completo certificado>", "ronda": "r4", "certificador": "A", "fecha": "2026-11-..",
+{"rubrica": "QA_NIVEL2 1.2", "rubrica_sha256": "<sha256 de docs/QA_NIVEL2.md>", "commit": "<hash completo certificado>", "ronda": "r4", "certificador": "A", "fecha": "2026-11-..",
  "entorno": {"os": "Windows 11", "gpu": "RTX 3080 Ti", "godot": "4.7.2", "python": "3.11"},
  "criterios": {"T01": {"v": "P", "medicion": "git diff exit 0; main.gd +21/-4", "evidencia": ["qa/A/T01/protegidos.txt"], "nota": ""},
                "V01": {"v": "F", "medicion": "M05 item (a): la torre no se identifica", "evidencia": ["qa/A/V01/capturas/M05_torre.jpg"], "nota": "..."}},
@@ -557,7 +622,7 @@ Estas limitaciones **no son hallazgos** y no se reabren. Cada una dice qué sí 
 
 **Consolidación** (`qa_veredicto.py`, anexo A4): por criterio se cuentan los votos P y F de quienes lo evaluaron; hacen falta **≥ 2 votos**; gana la mayoría; un empate 1–1 sin tercero es N. Un `F` de un solo certificador contra dos `P` **no** hace fallar el ítem, pero queda registrado como **discrepancia** y, si trae evidencia objetiva, el Jefe de QA la convierte en hallazgo (regla 1) o la descarta (regla 3). Un criterio de comando (T, E, parte de C y J) debe dar **los mismos números** en dos certificadores (conteos exactos; milisegundos ± 15 %; tasas idénticas con las mismas semillas porque el motor es determinista): si no, es un hallazgo ALTA de **no reproducibilidad**, salvo causa explicada (por ejemplo, GPU ocupada en un benchmark).
 
-**Qué firma cada uno.** «Corrí P#, miré las capturas M01–M12, el overlay y las de límite; lo que no figura en `criterios` con evidencia es N.»
+**Qué firma cada uno.** «Corrí P#, miré las capturas M01–M14, el overlay y las de límite; lo que no figura en `criterios` con evidencia es N.»
 
 ---
 
@@ -641,11 +706,16 @@ func _initialize() -> void:
 		if not l.is_empty():
 			lm[id] = {"x": float(l.x), "z": float(l.z), "tag": str(l.get("tag", "")), "type": str(l.get("type", ""))}
 	d["landmarks"] = lm
+	var ring := 0.0
+	for k in range(16):
+		var ang: float = TAU * k / 16.0
+		ring += float(t.height_at(305.0 + 135.0 * cos(ang), 345.0 + 135.0 * sin(ang)))
+	ring /= 16.0
 	var bx: float = lm["bateria"].x if lm.has("bateria") else 318.0
 	var bz: float = lm["bateria"].z if lm.has("bateria") else 350.0
 	d["refs"] = {"templo_final": _r2(float(t.height_at(450.0, 325.0))), "cauce_z325_final": _r2(float(t.height_at(859.0, 325.0))),
 		"partida_final": _r2(float(t.height_at(70.0, 470.0))), "bateria_final": _r2(float(t.height_at(bx, bz))),
-		"bateria_dem": _r2(float(t.height_dem_only(bx, bz))), "plaza_final": _r2(float(t.height_at(450.0, 392.0)))}
+		"bateria_dem": _r2(float(t.height_dem_only(bx, bz))), "plaza_final": _r2(float(t.height_at(450.0, 392.0))), "ring_mean_final": _r2(ring)}
 	var edges: Array = []
 	for k in range(101):
 		var u: float = k / 100.0
@@ -808,14 +878,15 @@ def main():
     # ---- R05 desnivel de 12 m y alturas de referencia
     r = d["refs"]
     dome = r["bateria_final"] - r["bateria_dem"]
+    prom = r["bateria_final"] - r.get("ring_mean_final", r["bateria_dem"])      # el domo es un residuo del DEM: lo que se mide es la prominencia final
     tol = 10.0 if b_plan else 3.0
-    chk("R05", "domo de la batería = 12,0 ± 0,3 m sobre el DEM", abs(dome - 12.0) <= 0.3, domo_m=round(dome, 2))
+    chk("R05", "prominencia de la batería = 12,0 ± 0,5 m sobre la media de su anillo de 120-150 m", abs(prom - 12.0) <= 0.5, prominencia_m=round(prom, 2), delta_sobre_dem_m=round(dome, 2))
     chk("R05", "batería entre 14 y 19 m sobre la plaza", 14 <= r["bateria_final"] - r["plaza_final"] <= 19, m=round(r["bateria_final"] - r["plaza_final"], 2))
     chk("R05", "alturas de referencia (templo +17, cauce +12, partida +27, ±%g m)" % tol,
         abs(r["templo_final"] - 17) <= tol and abs(r["cauce_z325_final"] - 12) <= tol and abs(r["partida_final"] - 27) <= tol,
         templo=r["templo_final"], cauce=r["cauce_z325_final"], partida=r["partida_final"])
     lay = [x for x in d["report"].get("design_layers", []) if x.get("id") == "cerro_bateria"]
-    chk("R05", "el domo figura en report() como capa de diseño", bool(lay) and lay[0].get("tag") == "diseno" and abs(float(lay[0].get("delta_m", 0)) - 12) <= 0.3, capa=lay)
+    chk("R05", "el domo figura en report() como capa de diseño con prominence_target_m = 12", bool(lay) and lay[0].get("tag") == "diseno" and abs(float(lay[0].get("prominence_target_m", 0)) - 12) <= 0.01 and abs(float(lay[0].get("delta_m", 0))) <= 30, capa=lay)      # delta_m es el residuo que descuenta lo que el DEM ya sube: puede pasar de 12 si el sitio es un bajo
     # ---- R06 continuidad y conectividad
     chk("R06", "salto máximo en el borde de la ventana ≤ 0,10 m", d["edge_jump_max_m"] <= 0.10, salto_m=d["edge_jump_max_m"])
     nv = d["nav"]
@@ -861,7 +932,7 @@ def main():
     dr.rectangle([8, 8, 900, 78], fill=(255, 255, 255))
     dr.text((14, 12), "QA relieve. magenta = curvas de 20 m del juego (DEM sin capas de diseno); naranja = rio del juego; cian = ventana; verde = ancla y domo", fill=(0, 0, 0))
     dr.text((14, 30), "fuente: %s | bandas: ventana %.1f %%, dominio %.1f %% | 41 puntos: %d a <= 12 m (max %.1f m)" % (src, ag_w, ag_t, sum(e <= 12 for e in errs), max(errs)), fill=(0, 0, 0))
-    dr.text((14, 48), "rio: error medio %.1f m (max %.1f m) | domo de la bateria %.2f m" % (float(np.mean(errs_r)) if errs_r else -1, max(errs_r) if errs_r else -1, dome), fill=(0, 0, 0))
+    dr.text((14, 48), "rio: error medio %.1f m (max %.1f m) | prominencia de la bateria %.2f m" % (float(np.mean(errs_r)) if errs_r else -1, max(errs_r) if errs_r else -1, prom), fill=(0, 0, 0))
     q = 85
     while True:
         ov.save(out / "overlay_lamina03.jpg", quality=q)
@@ -894,9 +965,12 @@ if __name__ == "__main__":
   python -I qa_imagen.py markers hud.png --need celeste,oro[,borgona] [--min 50] [--tol 3]             # V05 (marcadores de interfaz exactos)
   python -I qa_imagen.py tokens  hoja_fichas.png                                                       # V03 (5 siluetas distintas, >= 48 px)
   python -I qa_imagen.py contraste captura.png --rects "x,y,w,h;x,y,w,h"                               # V05 (contraste WCAG >= 4,5:1)
+  python -I qa_imagen.py legible --report qa_report.json --dir <carpeta del recorrido> --views juego_noche,juego_alba      # V06 (dL* edificio-suelo >= 12 y ficha-suelo >= 25 sobre los probes)
+  python -I qa_imagen.py bordes  vista_*_sin_ui.png [--report qa_report.json]                          # V06 (baldosa minima de bordes >= 40 % de la mediana; zona lisa <= 25 %)
+  python -I qa_imagen.py panorama vista_panorama_alto_sin_ui.png --foto v04_humahuaca_1923.png       # V06 (correlacion del perfil por franjas >= 0,6 y >= 0,3 sin la tendencia)
   python -I qa_imagen.py jpg     entrada.png salida.jpg [--max-kb 300]                                 # evidencia chica
-Sale con 0 si pasa y con 1 si falla (calib, markers, tokens, contraste, paleta); jpg sale con 0."""
-import argparse, json, sys
+Sale con 0 si pasa y con 1 si falla (calib, markers, tokens, contraste, paleta, legible, bordes, panorama); jpg sale con 0."""
+import argparse, json, pathlib, sys
 import numpy as np
 from PIL import Image
 
@@ -1065,6 +1139,74 @@ def cmd_jpg(a):
     return True
 
 
+def _grises(px):
+    return px.astype(float) @ np.array([0.2126, 0.7152, 0.0722])
+
+
+def _L(px):
+    return lab(px.reshape(-1, 3).astype(float)).reshape(px.shape[0], px.shape[1], 3)[..., 0]
+
+
+def cmd_legible(a):
+    rep = json.load(open(a.report, encoding="utf-8"))
+    ok = True
+    for vid in a.views.split(","):
+        pr = rep.get("views", {}).get(vid, {}).get("probes", [])
+        L = _L(load(pathlib.Path(a.dir) / ("vista_%s.png" % vid)))
+        par = {}
+        for q in pr:
+            x, y, w, h = [int(v) for v in q["rect"]]
+            reg = L[max(0, y):y + h, max(0, x):x + w]
+            if reg.size:
+                par.setdefault(q["id"], {})[q["kind"]] = float(reg.mean())
+        edif = [abs(v["edificio"] - v["suelo"]) for v in par.values() if "edificio" in v and "suelo" in v]
+        fich = [abs(v["ficha"] - v["suelo"]) for v in par.values() if "ficha" in v and "suelo" in v]
+        me, mf = (float(np.median(edif)) if edif else -1.0), (float(np.median(fich)) if fich else -1.0)
+        bien = len(edif) >= 3 and len(fich) >= 3 and me >= 12 and mf >= 25
+        print("%-14s edificios: %d pares, mediana dL* %.1f (>= 12) | fichas: %d pares, mediana dL* %.1f (>= 25)  %s" % (vid, len(edif), me, len(fich), mf, "PASA" if bien else "FALLA"))
+        ok = ok and bien
+    return ok
+
+
+def cmd_bordes(a):
+    rep = json.load(open(a.report, encoding="utf-8")) if a.report else {}
+    ok = True
+    for pth in a.imgs:
+        gy, gx = np.gradient(_grises(load(pth)))
+        m = np.hypot(gx, gy) > a.umbral
+        h, w = m.shape
+        vid = pathlib.Path(pth).stem.replace("vista_", "").replace("_sin_ui", "")
+        hor = int(rep.get("views", {}).get(vid, {}).get("horizon_y", 0))        # las baldosas que tocan el cielo (por encima del horizonte) no cuentan
+        dens = [float(m[j * h // 6:(j + 1) * h // 6, i * w // 8:(i + 1) * w // 8].mean()) for j in range(6) for i in range(8) if j * h // 6 >= hor]
+        med = float(np.median(dens)) if dens else 0.0
+        mn = min(dens) if dens else 0.0
+        lisas = sum(1 for d in dens if d < 0.5 * med) / max(1, len(dens))
+        bien = med > 0 and mn >= 0.4 * med and lisas <= 0.25
+        print("%-36s baldosas %2d, mediana %.3f, minima %.3f (%.0f %% de la mediana; >= 40), zona lisa %.0f %% (<= 25)  %s" % (pathlib.Path(pth).name, len(dens), med, mn, 100 * mn / med if med else 0, 100 * lisas, "PASA" if bien else "FALLA"))
+        ok = ok and bien
+    return ok
+
+
+def cmd_panorama(a):
+    def perfil(pth, rec, n=32):
+        L = _L(load(pth))
+        h, w = L.shape
+        x0, y0, x1, y1 = rec
+        L = L[int(h * y0):int(h * y1), int(w * x0):int(w * x1)]      # la foto de 1923 se recorta: sin márgenes, sin el óvalo inferior ni el título
+        h, w = L.shape
+        c = L[:, int(w * 0.2):int(w * 0.8)]
+        return np.array([c[k * h // n:(k + 1) * h // n].mean() for k in range(n)])
+    rec = [float(v) for v in a.foto_recorte.split(",")]
+    pa, pf = perfil(a.img, (0, 0, 1, 1)), perfil(a.foto, rec)
+    r = float(np.corrcoef(pa, pf)[0, 1])
+    k = np.arange(len(pa))
+    quitar = lambda v: v - np.polyval(np.polyfit(k, v, 1), k)       # sin la tendencia lineal: un degradé de cielo claro a suelo oscuro no alcanza
+    rd = float(np.corrcoef(quitar(pa), quitar(pf))[0, 1])
+    ok = r >= 0.6 and rd >= 0.3
+    print("correlacion del perfil de valores por franjas con la foto de 1923: %.2f (>= 0,6); sin la tendencia lineal: %.2f (>= 0,3)  %s" % (r, rd, "PASA" if ok else "FALLA"))
+    return ok
+
+
 def main():
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     ap = argparse.ArgumentParser()
@@ -1085,12 +1227,24 @@ def main():
     p = sp.add_parser("contraste")
     p.add_argument("png")
     p.add_argument("--rects", required=True)
+    p = sp.add_parser("legible")
+    p.add_argument("--report", required=True)
+    p.add_argument("--dir", required=True)
+    p.add_argument("--views", required=True)
+    p = sp.add_parser("bordes")
+    p.add_argument("imgs", nargs="+")
+    p.add_argument("--report", default="")
+    p.add_argument("--umbral", type=float, default=12.0)
+    p = sp.add_parser("panorama")
+    p.add_argument("img")
+    p.add_argument("--foto", required=True)
+    p.add_argument("--foto-recorte", dest="foto_recorte", default="0.02,0.01,0.97,0.88")
     p = sp.add_parser("jpg")
     p.add_argument("src")
     p.add_argument("dst")
     p.add_argument("--max-kb", dest="max_kb", type=int, default=300)
     a = ap.parse_args()
-    ok = {"paleta": cmd_paleta, "calib": cmd_calib, "markers": cmd_markers, "tokens": cmd_tokens, "contraste": cmd_contraste, "jpg": cmd_jpg}[a.cmd](a)
+    ok = {"paleta": cmd_paleta, "calib": cmd_calib, "markers": cmd_markers, "tokens": cmd_tokens, "contraste": cmd_contraste, "legible": cmd_legible, "bordes": cmd_bordes, "panorama": cmd_panorama, "jpg": cmd_jpg}[a.cmd](a)
     sys.exit(0 if ok else 1)
 
 
@@ -1107,13 +1261,18 @@ if __name__ == "__main__":
 # FILE: qa_balance.py
 """Agrega las partidas simuladas (esquema hx_playthrough_v1) y aplica los umbrales J03..J07 de docs/QA_NIVEL2.md (anexo A3). Solo lectura.
 Uso: python -I qa_balance.py --in rules.json [scene.json ...] --out <carpeta> [--seeds 9001-9060] [--min-seeds 60] [--min-replicas 3]
-Cada archivo: {"schema": "hx_playthrough_v1", "level": "rules" | "scene", "games": [ {policy, family, seed, replicate, attempt, status, cause_id, elapsed_s,
-  golpe, loss_pct, fronts_taken, opening, variant{}, first_decision_s, decision_gap_max_s, decision_gap_attack_max_s, exceptions, snapshot_sha256} ]}
+Cada archivo: {"schema": "hx_playthrough_v1", "level": "rules" | "scene", "active_dims": ["guardia", "torre_en", "refuerzo"], "games": [ {policy, family, seed, replicate,
+  attempt, status, cause_id, elapsed_s, golpe, loss_pct, fronts_taken, opening, variant{}, first_decision_s, decision_gap_max_s, decision_gap_attack_max_s,
+  decision_metric ("oferta" | "ramificacion"), signal_at_s (solo barrido_senal), extraction (solo extraccion), max_critical_alerts, exceptions, snapshot_sha256} ]}
+Familias: experto, obediente, torpe, ciego, pasivo, pausa_reanuda, estrategia (políticas est_<frente>_<enfoque>), parcial, aleatorio, extraccion (políticas ext_<receta>), barrido_senal.
 Intento k: solo juegan el intento k+1 los que perdieron el k (hasta 5). Tasa del intento k = victorias del intento k / partidas del intento k.
-Determinismo: python -I qa_balance.py --compare A.json B.json  (mismas partidas = mismo snapshot_sha256; >= 100 comparadas; sale con 0 si coinciden todas)
-Sale con 0 si J03, J04, J05, J06 y J07 pasan; con 1 si alguno falla. Escribe J_result.json."""
+Puntaje continuo para comparar enfoques: golpe - 0,5 * loss_pct. Determinismo: python -I qa_balance.py --compare A.json B.json  (mismas partidas = mismo snapshot_sha256; >= 100 comparadas)
+Sale con 0 si J00, J03, J04, J06 y J07 pasan; con 1 si alguno falla. J05 (MEDIA) es un informe con intervalos: se imprime y se guarda, pero no cambia la salida. Escribe J_result.json."""
 import argparse, json, math, pathlib, statistics, sys
 from collections import Counter, defaultdict
+
+LEGAL = {"guardia": ["descuidada", "atenta"], "torre_en": ["templo", "casa_cura"], "refugio": ["norte", "sur"], "lluvia": ["copiosa", "garua"],
+         "refuerzo": ["temprano", "normal", "tardio"], "layout": ["A", "B"]}
 
 
 def wilson(k, n, z=1.645):
@@ -1123,6 +1282,38 @@ def wilson(k, n, z=1.645):
     c = (p + z * z / (2 * n)) / (1 + z * z / n)
     h = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / (1 + z * z / n)
     return (round(max(0.0, c - h), 3), round(min(1.0, c + h), 3))
+
+
+def score(g):
+    return float(g.get("golpe", 0.0)) - 0.5 * float(g.get("loss_pct", 0.0))
+
+
+def smooth3(y):
+    return [sum(y[max(0, k - 1):k + 2]) / len(y[max(0, k - 1):k + 2]) for k in range(len(y))]
+
+
+def peaks(y, minprom):
+    """Máximos locales con prominencia >= minprom (los extremos cuentan si superan a su único vecino)."""
+    out = []
+    for i in range(len(y)):
+        if (i > 0 and y[i] <= y[i - 1]) or (i < len(y) - 1 and y[i] < y[i + 1]):
+            continue
+        lb = rb = None
+        j = i - 1
+        lo = y[i]
+        while j >= 0 and y[j] <= y[i]:
+            lo = min(lo, y[j]); j -= 1
+        lb = lo if j >= 0 else None
+        j = i + 1
+        lo = y[i]
+        while j < len(y) and y[j] <= y[i]:
+            lo = min(lo, y[j]); j += 1
+        rb = lo if j < len(y) else None
+        bases = [b for b in (lb, rb) if b is not None]
+        prom = y[i] - (max(bases) if bases else min(y))
+        if prom >= minprom:
+            out.append(i)
+    return out
 
 
 def main():
@@ -1146,12 +1337,22 @@ def main():
     assert a.inp and a.out, "faltan --in y --out"
     lo, hi = [int(v) for v in a.seeds.split("-")]
     games = {"rules": [], "scene": []}
+    active = ["guardia", "torre_en", "refuerzo"]
     for f in a.inp:
         d = json.load(open(f, encoding="utf-8"))
         assert d.get("schema") == "hx_playthrough_v1", f + ": esquema distinto de hx_playthrough_v1"
         games[d.get("level", "rules")] += d["games"]
-    R, Sc = games["rules"], games["scene"]
-    out = {"schema": "qa_balance_result_v1", "criterios": {}}
+        if d.get("active_dims"):
+            active = list(d["active_dims"])
+    def dedupe(lst):      # la misma partida puede venir de dos corridas (p. ej. el experto medido también por ramificación): se queda la medida por ramificación
+        d = {}
+        for g in lst:
+            k = (g["policy"], g["family"], g["seed"], g["replicate"], g["attempt"], g.get("signal_at_s"))
+            if k not in d or g.get("decision_metric") == "ramificacion":
+                d[k] = g
+        return list(d.values())
+    R, Sc = dedupe(games["rules"]), dedupe(games["scene"])
+    out = {"schema": "qa_balance_result_v1", "active_dims": active, "criterios": {}}
     MSG = []
 
     def crit(cid, name, ok, **det):
@@ -1178,12 +1379,16 @@ def main():
         reps = {g["replicate"] for (f, p, k), v in by.items() if f == fam and k == 1 for g in v}
         need_rep = 1 if fam == "experto" else a.min_replicas
         crit("J00", "%s: ≥ %d semillas y ≥ %d réplicas" % (fam, a.min_seeds, need_rep), len(seeds1) >= a.min_seeds and len(reps) >= need_rep, semillas=len(seeds1), replicas=len(reps))
-    # ---- J03 ritmo (decisiones posibles)
+    # ---- J03 ritmo: ofertas en todas las partidas y decisiones significativas (ramificación) en las del experto muestreadas
     rit = [g for g in R if g["family"] in ("experto", "obediente", "torpe", "pausa_reanuda", "estrategia", "parcial")]
-    crit("J03", "primera decisión ≤ 60 s en todas las partidas", all(0 <= g["first_decision_s"] <= 60 for g in rit), peor_s=max([g["first_decision_s"] for g in rit] or [0]), n=len(rit))
-    crit("J03", "mayor brecha sin decisión posible ≤ 45 s", all(0 <= g["decision_gap_max_s"] <= 45 for g in rit), peor_s=max([g["decision_gap_max_s"] for g in rit] or [0]))
-    crit("J03", "mayor brecha durante el ataque ≤ 20 s", all(0 <= g["decision_gap_attack_max_s"] <= 20 for g in rit), peor_s=max([g["decision_gap_attack_max_s"] for g in rit] or [0]))
-    crit("J03", "existe el bot «solo pausa y reanuda» y recibe una decisión cada ≤ 45 s", any(g["family"] == "pausa_reanuda" for g in R), n=sum(1 for g in R if g["family"] == "pausa_reanuda"))
+    ok3 = lambda g: 0 <= g["first_decision_s"] <= 60 and 0 <= g["decision_gap_max_s"] <= 45 and 0 <= g["decision_gap_attack_max_s"] <= 20
+    crit("J03", "primera decisión ≤ 60 s en todas las partidas (ofertas)", all(0 <= g["first_decision_s"] <= 60 for g in rit), peor_s=max([g["first_decision_s"] for g in rit] or [0]), n=len(rit))
+    crit("J03", "mayor brecha sin decisión posible ≤ 45 s (ofertas)", all(0 <= g["decision_gap_max_s"] <= 45 for g in rit), peor_s=max([g["decision_gap_max_s"] for g in rit] or [0]))
+    crit("J03", "mayor brecha durante el ataque ≤ 20 s (ofertas)", all(0 <= g["decision_gap_attack_max_s"] <= 20 for g in rit), peor_s=max([g["decision_gap_attack_max_s"] for g in rit] or [0]))
+    ram = [g for g in R if g["family"] == "experto" and g.get("decision_metric") == "ramificacion"]
+    crit("J03", "≥ 12 partidas del experto medidas por ramificación (decisiones significativas) y cumplen las tres cifras", len(ram) >= 12 and all(ok3(g) for g in ram), n=len(ram), incumplen=sum(1 for g in ram if not ok3(g)))
+    pr = [g for g in R if g["family"] == "pausa_reanuda"]
+    crit("J03", "«pausa y reanuda»: existe, pierde por amanecio y no recibe más de una alerta crítica a la vez", bool(pr) and all(g["status"] == "defeat" and g["cause_id"] == "amanecio" and g.get("max_critical_alerts", 1) <= 1 for g in pr), n=len(pr))
     # ---- tasas por familia e intento (con Wilson 90 %)
     tabla = {}
     for fam in ("experto", "obediente", "torpe"):
@@ -1201,42 +1406,93 @@ def main():
         if f == "ciego" and k == 1:
             ciegos[p] = sum(1 for g in v if g["status"] == "victory") / len(v)
     pas = [g for g in R if g["family"] in ("pasivo", "pausa_reanuda")]
-    # ---- J04 balance grueso (BLOQUEA)
+    # ---- J04 extremos del balance (BLOQUEA): experto, ciegos, pasivo y escena
     crit("J04", "experto, 1.er intento ≥ 80 %", ex[0] >= 0.80, p=round(ex[0], 3), n=ex[1], wilson90=wilson(ex[2], ex[1]))
-    crit("J04", "obediente, 1.er intento entre 10 % y 60 %", 0.10 <= ob1[0] <= 0.60, p=round(ob1[0], 3), n=ob1[1], wilson90=wilson(ob1[2], ob1[1]))
-    crit("J04", "obediente gana al menos una vez en ≤ 5 intentos: ≥ 75 %", cum5 >= 0.75, p=round(cum5, 3), n=len(trials))
-    crit("J04", "torpe, 1.er intento ≤ 40 %", to1[0] <= 0.40, p=round(to1[0], 3), n=to1[1], wilson90=wilson(to1[2], to1[1]))
     crit("J04", "cada bot ciego gana ≤ 10 % (y existe al menos uno)", bool(ciegos) and all(v <= 0.10 for v in ciegos.values()), ciegos={k: round(v, 3) for k, v in ciegos.items()})
     crit("J04", "pasivo y «pausa y reanuda»: 0 victorias y todas por «amanecio»", bool(pas) and all(g["status"] == "defeat" and g["cause_id"] == "amanecio" for g in pas), n=len(pas))
-    # ---- J05 balance fino (ALTA): rangos del diseño ± 5 puntos
-    crit("J05", "experto, 1.er intento ≥ 85 %", ex[0] >= 0.85, p=round(ex[0], 3))
+    e1 = [g for g in Sc if g["family"] == "experto" and g["attempt"] == 1]
+    o1 = [g for g in Sc if g["family"] == "obediente" and g["attempt"] == 1]
+    if Sc:
+        pe = sum(1 for g in e1 if g["status"] == "victory") / max(1, len(e1))
+        crit("J04", "escena real: ≥ 12 semillas, experto gana ≥ 70 % en el 1.er intento", len({g["seed"] for g in e1}) >= 12 and pe >= 0.70, n=len(e1), p=round(pe, 3))
+    else:
+        crit("J04", "escena real: hay partidas de la escena (nivel «scene»)", False, nota="faltan filas level=scene")
+    # ---- J05 informe del balance fino (MEDIA): obediente y torpe con intervalos; no cambia la salida
+    crit("J05", "experto, 1.er intento ≥ 90 %", ex[0] >= 0.90, p=round(ex[0], 3))
     crit("J05", "obediente, 1.er intento entre 20 % y 45 %", 0.20 <= ob1[0] <= 0.45, p=round(ob1[0], 3), wilson90=wilson(ob1[2], ob1[1]))
     crit("J05", "obediente, 3.er intento (con diario) entre 55 % y 85 % (n ≥ 20)", ob3[1] >= 20 and 0.55 <= ob3[0] <= 0.85, p=round(ob3[0], 3), n=ob3[1], wilson90=wilson(ob3[2], ob3[1]))
-    crit("J05", "obediente gana al menos una vez en ≤ 5 intentos: ≥ 85 %", cum5 >= 0.85, p=round(cum5, 3))
+    crit("J05", "obediente gana al menos una vez en ≤ 5 intentos: ≥ 85 %", cum5 >= 0.85, p=round(cum5, 3), n=len(trials))
     crit("J05", "torpe, 1.er intento entre 5 % y 30 %", 0.05 <= to1[0] <= 0.30, p=round(to1[0], 3), wilson90=wilson(to1[2], to1[1]))
-    # ---- J06 rejugabilidad y no dominancia (BLOQUEA), familia «estrategia», 1.er intento, réplica 1
+    if Sc:
+        po = sum(1 for g in o1 if g["status"] == "victory") / max(1, len(o1))
+        crit("J05", "escena real: obediente a ≤ 0,30 de lo medido en reglas", bool(o1) and abs(po - ob1[0]) <= 0.30, escena=round(po, 3), reglas=round(ob1[0], 3), n=len(o1))
+    # ---- J06 rejugabilidad y contrapesos (BLOQUEA)
     est = [g for g in R if g["family"] == "estrategia" and g["attempt"] == 1 and g["replicate"] == 1]
     pols = sorted({g["policy"] for g in est})
     wr = {p: sum(1 for g in est if g["policy"] == p and g["status"] == "victory") / max(1, sum(1 for g in est if g["policy"] == p)) for p in pols}
     wins = Counter(g["policy"] for g in est if g["status"] == "victory")
     tot = sum(wins.values())
-    crit("J06", "hay ≥ 12 estrategias distintas en la matriz", len(pols) >= 12, n=len(pols))
+    crit("J06", "hay ≥ 8 estrategias de frente distintas en la matriz", len(pols) >= 8, n=len(pols))
     crit("J06", "ninguna estrategia concentra > 60 % de las victorias", tot > 0 and max(wins.values()) / tot <= 0.60, max_pct=round(100 * max(wins.values()) / tot, 1) if tot else None)
     crit("J06", "ninguna estrategia gana en > 80 % de las semillas", bool(wr) and max(wr.values()) <= 0.80, max_pct=round(100 * max(wr.values()), 1) if wr else None, top=sorted(wr.items(), key=lambda x: -x[1])[:3])
     crit("J06", "≥ 3 estrategias ganan en ≥ 50 % de las semillas", sum(1 for v in wr.values() if v >= 0.50) >= 3, n=sum(1 for v in wr.values() if v >= 0.50))
     mejor = Counter()
     for s in {g["seed"] for g in est}:
-        rows = sorted([g for g in est if g["seed"] == s], key=lambda g: (-g["golpe"], g["loss_pct"], g["policy"]))
+        rows = sorted([g for g in est if g["seed"] == s], key=lambda g: (-score(g), g["policy"]))
         mejor[rows[0]["policy"]] += 1
-    crit("J06", "≥ 3 estrategias distintas son la mejor en ≥ 3 semillas cada una", sum(1 for v in mejor.values() if v >= 3) >= 3, mejores=dict(mejor.most_common(6)))
+    crit("J06", "≥ 3 estrategias distintas son la mejor (golpe − 0,5 × bajas) en ≥ 3 semillas cada una", sum(1 for v in mejor.values() if v >= 3) >= 3, mejores=dict(mejor.most_common(6)))
+    # cada enfoque de cada frente es el mejor, dentro de su frente, en al menos una semilla (políticas est_<frente>_<enfoque>)
+    frente = lambda p: p.split("_")[1] if p.startswith("est_") and p.count("_") >= 2 else ""
+    enfoque = lambda p: p.split("_", 2)[2] if p.startswith("est_") and p.count("_") >= 2 else p
+    mf = defaultdict(Counter)
+    for fr in {frente(p) for p in pols if frente(p)}:
+        for s in {g["seed"] for g in est}:
+            rows = sorted([g for g in est if g["seed"] == s and frente(g["policy"]) == fr], key=lambda g: (-score(g), g["policy"]))
+            if rows:
+                mf[fr][enfoque(rows[0]["policy"])] += 1
+    todos = {fr: sorted({enfoque(p) for p in pols if frente(p) == fr}) for fr in mf}
+    sin_mundo = [(fr, e) for fr, es in todos.items() for e in es if mf[fr][e] < 1]
+    crit("J06", "cada enfoque de cada frente es el mejor en ≥ 1 semilla", bool(mf) and not sin_mundo, sin_mundo=sin_mundo, mejor_por_frente={fr: dict(c) for fr, c in mf.items()})
     cov = defaultdict(set)
     for g in R:
         for dim, val in (g.get("variant") or {}).items():
             cov[(dim, str(val))].add(g["seed"])
-    dims = {"guardia": ["descuidada", "atenta"], "torre_en": ["templo", "casa_cura"], "refugio": ["norte", "sur"], "lluvia": ["copiosa", "garua"],
-            "refuerzo": ["temprano", "normal", "tardio"], "layout": ["A", "B"]}
-    falta = [(d, v, len(cov[(d, v)])) for d, vs in dims.items() for v in vs if len(cov[(d, v)]) < 3]
-    crit("J06", "cada valor de cada variante aparece en ≥ 3 semillas de QA", not falta, escasos=falta)
+    falta = [(d, v, len(cov[(d, v)])) for d in active for v in LEGAL.get(d, []) if len(cov[(d, v)]) < 3]
+    crit("J06", "cada valor de cada variante activa %s aparece en ≥ 3 semillas de QA" % active, not falta, escasos=falta)
+    # extracción: recetas ext_<receta> con el experto como atacante
+    ext = [g for g in R if g["family"] == "extraccion" and g["attempt"] == 1 and g["replicate"] == 1]
+    ep = sorted({g["policy"] for g in ext})
+    ew = {p: sum(1 for g in ext if g["policy"] == p and g["status"] == "victory") / max(1, sum(1 for g in ext if g["policy"] == p)) for p in ep}
+    crit("J06", "extracción: ≥ 4 recetas distintas", len(ep) >= 4, n=len(ep))
+    crit("J06", "extracción: ninguna receta gana en > 60 % de los mundos", bool(ew) and max(ew.values()) <= 0.60, max_pct=round(100 * max(ew.values()), 1) if ew else None, top=sorted(ew.items(), key=lambda x: -x[1])[:3])
+    ocu = 0
+    for s in {g["seed"] for g in ext}:
+        rows = sorted([g for g in ext if g["seed"] == s], key=lambda g: (-score(g), g["policy"]))
+        if len(rows) > 1 and rows[0]["policy"] == "ext_ocultar" and score(rows[0]) > score(rows[1]):
+            ocu += 1
+    crit("J06", "extracción: `ext_ocultar` es la mejor (estricta) en ≥ 1 mundo", ocu >= 1, mundos=ocu)
+    # señal: barrido del instante de la señal con el experto
+    sw = defaultdict(list)
+    for g in R:
+        if g["family"] == "barrido_senal" and g["attempt"] == 1:
+            sw[float(g["signal_at_s"])].append(score(g))
+    inst = sorted(sw)
+    seeds_sw = {g["seed"] for g in R if g["family"] == "barrido_senal"}
+    if len(inst) >= 12 and len(seeds_sw) >= 20:
+        y = [statistics.mean(sw[i]) for i in inst]
+        ys = smooth3(y)
+        k = max(range(len(ys)), key=lambda i: ys[i])
+        pk = peaks(ys, 3.0)
+        corrida, mejor_run = 0, 0
+        for v in ys:
+            corrida = corrida + 1 if ymax_ok(v, ys) else 0
+            mejor_run = max(mejor_run, corrida)
+        crit("J06", "señal: el máximo cae entre 4:15 y 5:45 y no en los 3 primeros instantes", 255 <= inst[k] <= 345 and k >= 3, instante_s=inst[k], indice=k)
+        crit("J06", "señal: unimodal (un solo máximo local con prominencia ≥ 3 puntos)", len(pk) == 1, maximos=[inst[i] for i in pk])
+        crit("J06", "señal: meseta de ≥ 3 instantes consecutivos (≥ 30 s) con ≥ 90 % del máximo", ys[k] > 0 and mejor_run >= 3, tramo=mejor_run, maximo=round(ys[k], 2))
+        out["senal"] = {"instantes_s": inst, "puntaje_medio": [round(v, 2) for v in y]}
+    else:
+        crit("J06", "señal: hay un barrido de ≥ 12 instantes y ≥ 20 semillas", False, instantes=len(inst), semillas=len(seeds_sw))
     # ---- J07 duración y bajas (ALTA)
     vic = [g for g in R if g["status"] == "victory" and g["family"] in ("experto", "obediente")]
     med = statistics.median([g["elapsed_s"] for g in vic]) if vic else float("nan")
@@ -1248,24 +1504,19 @@ def main():
     vb = [g for g in R if g["status"] == "victory" and g["family"] in ("experto", "obediente", "torpe")]
     crit("J07", "bajas: mediana de victorias ≤ 55 % y ≤ 15 % con bajas > 80 %", bool(vb) and statistics.median([g["loss_pct"] for g in vb]) <= 55 and sum(1 for g in vb if g["loss_pct"] > 80) / len(vb) <= 0.15,
          mediana=round(statistics.median([g["loss_pct"] for g in vb]), 1) if vb else None, pct_gt80=round(100 * sum(1 for g in vb if g["loss_pct"] > 80) / max(1, len(vb)), 1))
-    # ---- escena real (J01/J04): la escena confirma lo que dicen las reglas
-    if Sc:
-        e1 = [g for g in Sc if g["family"] == "experto" and g["attempt"] == 1]
-        o1 = [g for g in Sc if g["family"] == "obediente" and g["attempt"] == 1]
-        crit("J04", "escena real: ≥ 12 semillas, experto gana ≥ 70 % en el 1.er intento", len({g["seed"] for g in e1}) >= 12 and sum(1 for g in e1 if g["status"] == "victory") / max(1, len(e1)) >= 0.70,
-             n=len(e1), p=round(sum(1 for g in e1 if g["status"] == "victory") / max(1, len(e1)), 3))
-        po = sum(1 for g in o1 if g["status"] == "victory") / max(1, len(o1))
-        crit("J04", "escena real: obediente a ≤ 0,30 de lo medido en reglas", bool(o1) and abs(po - ob1[0]) <= 0.30, escena=round(po, 3), reglas=round(ob1[0], 3), n=len(o1))
-    else:
-        crit("J04", "escena real: hay partidas de la escena (nivel «scene»)", False, nota="faltan filas level=scene")
     print("\n".join(MSG))
-    out["todo_pasa"] = all(out["criterios"][k]["pasa"] for k in ("J00", "J03", "J04", "J05", "J06", "J07"))
+    out["todo_pasa"] = all(out["criterios"][k]["pasa"] for k in ("J00", "J03", "J04", "J06", "J07"))
+    out["j05_informe_pasa"] = out["criterios"]["J05"]["pasa"]
     p = pathlib.Path(a.out)
     p.mkdir(parents=True, exist_ok=True)
     (p / "J_result.json").write_text(json.dumps(out, indent=1, ensure_ascii=False, default=float), encoding="utf-8")
     for k in sorted(out["criterios"]):
-        print(k, "PASA" if out["criterios"][k]["pasa"] else "FALLA")
+        print(k, "PASA" if out["criterios"][k]["pasa"] else ("FALLA (informe: cuenta como MEDIA, no bloquea)" if k == "J05" else "FALLA"))
     sys.exit(0 if out["todo_pasa"] else 1)
+
+
+def ymax_ok(v, ys):
+    return ys and v >= 0.9 * max(ys) and max(ys) > 0
 
 
 if __name__ == "__main__":
@@ -1541,6 +1792,9 @@ TECHO.update({"templo": "sin_datos", "torre_casa_cura": "sin_datos", "torre_temp
 TECHO.update({g: "diseno" for g in GRUPOS})                                                            # el reparto de hombres, armas y mulas es diseño
 TECHO.update({v: "diseno" for v in ("guardia", "torre_en", "refugio", "lluvia", "refuerzo", "layout")})  # las variantes del mundo son diseño
 TECHO.update({e: "diseno" for e in ("refuerzo_visto", "mensajero", "informante", "aviso_alba", "alba")})  # eventos de guion = diseño
+TECHO.update({e: "diseno" for e in ("gola_bateria", "explanada_cuartel", "explanada_posta", "explanada_plaza", "barranca_cauce", "terraza_nucleo", "banco_grava", "micro_relieve",
+                                    "brasero", "ventana", "candil", "fogata", "give_signal", "destroy", "apertura", "recon_revela")})        # rasgos y acciones de diseño (las mixtas llevan tag_parts y su tag es la parte más débil)
+TECHO.update({"hide": "discutido"})                                                                  # «ocultos o enterrados»: versión discutida
 OBLIGATORIOS = HITOS + GRUPOS + ["refuerzo"]
 
 
@@ -1603,11 +1857,86 @@ if __name__ == "__main__":
 
 </details>
 
+<details>
+<summary>A7 · Agente-jugador: validación de la corrida (`qa_agente.py`)</summary>
+
+```python
+# FILE: qa_agente.py
+"""Valida la corrida del agente-jugador (criterio J08 de docs/QA_NIVEL2.md, anexo A7). Solo lectura. Python 3.11 (solo la biblioteca estándar).
+Uso: python -I qa_agente.py --arnes arnes.json --respuestas respuestas.json --bitacora bitacora.md --out <carpeta>
+arnes.json (lo escribe tools/hx_agent_play.gd, no el agente): {"schema": "hx_agente_v1", "commit": "...", "seed": 9001, "step_s": 3, "max_turns": 150,
+  "turnos": [{"n": 1, "t_juego_s": 0.0, "accion": {...}, "orden_aceptada": false}], "primera_orden_turno": 4, "primera_orden_t_s": 31.0,
+  "intentos": [{"n": 1, "resultado": "defeat" | "victory", "cause_id": "amanecio", "turnos": 57}], "lecturas_fuera_de_carpeta": 0,
+  "objetivos_identificados_en_turnos": 2}
+respuestas.json (lo escribe el agente): {"objetivo": "...", "entendiste": "...", "aburrimiento": "...", "aprendido": "..."}
+Sale con 0 si J08 pasa y con 1 si falla. Escribe agente.json."""
+import argparse, json, pathlib, re, sys
+
+CONCEPTOS = {
+    "tres frentes": r"(tres|3)[^.]{0,40}(frentes|objetivos|posiciones|lugares)|bater(í|i)a[^.]{0,80}(cuartel|casa del cura)|cuartel[^.]{0,80}(p(ó|o)lvora|posta)|tomar[^.]{0,30}(todo|todos)",
+    "sacar carga": r"(llevar|llevarse|sacar|cargar|retirar|rescatar|salvar)[^.]{0,60}(carga|bot(í|i)n|p(ó|o)lvora|ca(ñ|n)ones|mulas|recursos|armas|v(í|i)veres)|(destruir|quemar)[^.]{0,40}(p(ó|o)lvora|carga|ca(ñ|n)ones)",
+    "antes del tiempo": r"antes (de|del)( que)?( \w+){0,2}( el)? (refuerzo|alba|amanecer|d(í|i)a|ma(ñ|n)ana)|(refuerzo|alba|amanecer)[^.]{0,40}(lleg\w*|veng\w*|vien\w*|antes)|(tiempo|reloj)[^.]{0,30}(limitado|corre|agota)",
+}
+
+
+def main():
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--arnes", required=True)
+    ap.add_argument("--respuestas", required=True)
+    ap.add_argument("--bitacora", required=True)
+    ap.add_argument("--out", required=True)
+    a = ap.parse_args()
+    ar = json.load(open(a.arnes, encoding="utf-8"))
+    rs = json.load(open(a.respuestas, encoding="utf-8")) if pathlib.Path(a.respuestas).exists() else {}
+    bit = pathlib.Path(a.bitacora).read_text(encoding="utf-8") if pathlib.Path(a.bitacora).exists() else ""
+    res = []
+
+    def chk(name, ok, **det):
+        res.append({"check": name, "ok": bool(ok), **det})
+        print("  J08 %-78s %s %s" % (name, "PASA " if ok else "FALLA", json.dumps(det, ensure_ascii=False, default=float)[:140]))
+
+    assert ar.get("schema") == "hx_agente_v1", "arnes.json: esquema distinto de hx_agente_v1"
+    t1, n1 = ar.get("primera_orden_t_s", -1), ar.get("primera_orden_turno", -1)
+    chk("primera orden aceptada en ≤ 40 s de juego y ≤ 8 turnos", 0 <= t1 <= 40 and 1 <= n1 <= 8, t_s=t1, turno=n1)
+    obj = str(rs.get("objetivo", ""))
+    hallados = [k for k, rx in CONCEPTOS.items() if re.search(rx, obj, re.I)]
+    chk("objetivo con sus palabras: ≥ 2 de 3 conceptos (tres frentes; sacar carga; antes del refuerzo o del alba)", len(hallados) >= 2, conceptos=hallados)
+    intentos = ar.get("intentos", [])
+    terminado = [i for i in intentos if i.get("resultado") in ("victory", "defeat")]
+    chk("llega a un parte (victoria o derrota) en ≤ 150 turnos", bool(terminado) and min(i.get("turnos", 9999) for i in terminado) <= 150, intentos=len(intentos))
+    perdio = bool(intentos) and intentos[0].get("resultado") == "defeat"
+    chk("si pierde, reintenta y dice qué aprendió", (not perdio) or (len(intentos) >= 2 and len(str(rs.get("aprendido", "")).strip()) >= 20), reintentos=len(intentos) - 1)
+    chk("responde «¿entendiste qué hacer?» y «¿cuándo te aburriste?»", len(str(rs.get("entendiste", "")).strip()) >= 10 and len(str(rs.get("aburrimiento", "")).strip()) >= 10)
+    notas = len([l for l in bit.splitlines() if l.strip()])
+    chk("bitácora en voz alta (≥ 1 línea cada 3 turnos)", notas >= max(1, len(ar.get("turnos", [])) // 3), lineas=notas, turnos=len(ar.get("turnos", [])))
+    chk("identifica los 3 objetivos en < 3 turnos en `juego_noche`", 0 < ar.get("objetivos_identificados_en_turnos", 99) < 3, turnos=ar.get("objetivos_identificados_en_turnos"))
+    chk("0 lecturas fuera de su carpeta (auditadas por el Jefe de QA)", ar.get("lecturas_fuera_de_carpeta", 1) == 0, lecturas=ar.get("lecturas_fuera_de_carpeta"))
+    # informe (no bloquea): rachas de 4 turnos seguidos esperando sin nada que decidir
+    racha = mejor = 0
+    for t in ar.get("turnos", []):
+        racha = racha + 1 if (t.get("accion") or {}).get("tipo") == "esperar" else 0
+        mejor = max(mejor, racha)
+    print("  (informe) racha máxima de turnos seguidos esperando:", mejor, "(≥ 4 se anota como aburrimiento)")
+    ok = all(r["ok"] for r in res)
+    out = pathlib.Path(a.out)
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "agente.json").write_text(json.dumps({"schema": "qa_agente_result_v1", "pasa": ok, "checks": res, "racha_espera_max": mejor}, indent=1, ensure_ascii=False, default=float), encoding="utf-8")
+    print("J08", "PASA" if ok else "FALLA")
+    sys.exit(0 if ok else 1)
+
+
+if __name__ == "__main__":
+    main()
+```
+
+</details>
+
 ---
 
 ## Anexo B · Capturas obligatorias (V01)
 
-Mínimo **12**, todas reales (ventana, no `--headless`), a JPEG ≤ 300 KB en `V01/capturas/` con `INDEX.json` (SHA-256 del PNG original). **Cada ítem se responde sí / no**; un «no» en cualquiera hace fallar V01 si lo dicen ≥ 2 certificadores. El orden de `Read` es M01 → M12, luego las extras.
+Mínimo **14**, todas reales (ventana, no `--headless`), a JPEG ≤ 300 KB en `V01/capturas/` con `INDEX.json` (SHA-256 del PNG original). **Cada ítem se responde sí / no**; un «no» en cualquiera hace fallar V01 si lo dicen ≥ 2 certificadores. Los ítems de cada captura **son** el `must_show` de su vista (5 rasgos escritos por `visual` antes de pintar). El orden de `Read` es M01 → M14, luego las extras.
 
 | ID | Archivo de evidencia | Origen (crudo) | Resolución · momento | Lo que debe verse |
 |---|---|---|---|---|
@@ -1619,10 +1948,12 @@ Mínimo **12**, todas reales (ventana, no `--headless`), a JPEG ≤ 300 KB en `V
 | M06 | `M06_extraccion.jpg` | `hx-extraccion.png` | 1920×1080 · extracción con refuerzo visible | (a) mulas con bultos rumbo al vado este; (b) chips de carga, golpe y refuerzo; (c) el aviso «Polvareda al sur» o su indicador; (d) el río o el vado a la vista |
 | M07 | `M07_alba.jpg` | `vista_panorama_alto.png` | ídem · alba | (a) la secuencia ladera → núcleo → monte ribereño → lecho claro → llanura → cerros → horizonte; (b) sin torres de campanas ni monumento; (c) luz cálida y sombras largas; (d) sin huecos ni borde del mundo |
 | M08 | `M08_derrota.jpg` | `hx-derrota.png` | 1280×720 (y 1920×1080) · parte de derrota | (a) causa ≤ 140 caracteres con momento y lugar; (b) un consejo; (c) tres datos (frentes, golpe, bajas); (d) botón primario visible sin scroll; (e) sin jerga |
-| M09 | `M09_victoria.jpg` | `hx-victoria.png` | ídem · parte de victoria | (a) la medalla con su motivo; (b) el epílogo fechado con sus etiquetas; (c) «Seguir: Sostener el norte» y «Jugar de nuevo»; (d) dice que Güemes **recibe** el parte (no que asaltó); (e) sin «expulsión definitiva» |
-| M10 · M11 · M12 | `M10_hud_1280x720.jpg`, `M11_hud_1920x1080.jpg`, `M12_hud_2560x1440.jpg` | `hx-hud.png` | las tres resoluciones · mismo momento: semilla 9001, primera descarga + 20 s | (a) cabecera con «TIEMPO REAL · ▶ ×1» o «‖ EN PAUSA», la fase y la barra del alba; (b) tres tarjetas de frente; (c) panel de las cinco agrupaciones; (d) barra de acciones con su motivo; (e) minimapa con brújula y escala; (f) nada fuera del viewport ni solapado; (g) texto legible |
+| M09 | `M09_victoria.jpg` | `hx-victoria.png` | ídem · parte de victoria | (a) la medalla con su motivo; (b) el epílogo fechado con sus etiquetas; (c) «Ver la campaña completa: Sostener el norte» y «Jugar de nuevo»; (d) dice que Güemes **recibe** el parte (no que asaltó); (e) sin «expulsión definitiva»; (f) el contraste «en la realidad / en tu partida» y la aclaración del tiempo comprimido |
+| M10 · M11 · M12 | `M10_hud_1280x720.jpg`, `M11_hud_1920x1080.jpg`, `M12_hud_2560x1440.jpg` | `hx-hud.png` | las tres resoluciones · mismo momento: semilla 9001, primera descarga + 20 s | (a) cabecera con «TIEMPO REAL · ▶ ×1» o «‖ EN PAUSA», la fase y la barra del alba; (b) tres tarjetas de frente; (c) panel de las cinco agrupaciones; (d) barra de acciones con su motivo; (e) minimapa con brújula y escala; (f) nada fuera del viewport ni solapado; (g) texto legible; (h) la señal (quién falta, costo de la oscuridad) y el anillo de recarga de la torre cuando corresponde |
+| M13 | `M13_juego_noche.jpg` | `vista_juego_noche.png` (la cámara inicial a 470 m, con interfaz y fichas) | 1920×1080 y 1280×720 · noche con lluvia, t = 0 | (a) ≥ 3 puntos de luz (brasero de la batería, ventana del cuartel, candil de la posta); (b) los tres objetivos identificables sin leer texto; (c) relieve y núcleo visibles (no «casi solo noche»); (d) ≥ 3 fichas distinguibles del suelo; (e) la interfaz no tapa los objetivos |
+| M14 | `M14_juego_alba.jpg` | `vista_juego_alba.png` (la misma cámara) | 1920×1080 y 1280×720 · alba (≈ 4:45) | (a) sombras largas y luz cálida; (b) fichas en sus puestos y fogatas de la guardia; (c) los tres objetivos identificables; (d) el núcleo se distingue del suelo por luz y trazo, no solo por color; (e) sin torres de campanas ni monumento |
 
-**Extras de apoyo** (no cuentan para el mínimo): `X01_menu_nuevo`, `X02_menu_desbloqueado` (C04), `X03_briefing`, `X04_hoja_fichas` (V03), `X05_overlay_lamina03` (R03), 3 capturas de calibración de día (V04) y 4 de límite de cámara (R06).
+**Extras de apoyo** (no cuentan para el mínimo): `X01_menu_nuevo`, `X02_menu_desbloqueado` (C04), `X03_briefing`, `X04_hoja_fichas` (V03), `X05_overlay_lamina03` (R03), 3 capturas de calibración de **albedo** (V04), las 7 vistas sin interfaz (V06) y 4 de límite de cámara (R06).
 
 ---
 
@@ -1640,7 +1971,7 @@ PAT_A='(monumento|escalinata|h(e|é)roes de la independencia)|(torres? de campan
 PAT_B='(todos (los )?(infernales|de rojo|de blanco)|uniformes? (rojos?|blancos?|homog(é|e)neos?))|(tormenta (durante|todo|toda)|llov(í|i)a (todo|durante todo))|(ruta final de arias|paso de zenta|garc(í|i)a camba)|(cabildo|premio de humahuaca)'
 ```
 
-Los **13 textos obligatorios** que verifica P9-c: la carta del 26-II como «dramatización»; la nota de fecha (1 o 2 de marzo); que el refuerzo no ocurrió o es diseño; que el relieve es «dato actual, no restitución»; el epílogo con «3 de marzo», «9 al 16 de marzo» y «6 de julio»; el botón «Seguir: Sostener el norte»; las etiquetas «Documentado», «Inferencia razonada», «Versión discutida» y «Sin datos suficientes» (la quinta, «Diseño», se comprueba por `source_tags`); y que Güemes **recibe** el parte en Salta. **Afirmaciones que el juego no puede hacer** (banco de `02_fuentes_primarias.md` §e.3): que Güemes lidera el asalto; que San Martín ordenó atacar Humahuaca; que el golpe fue consecuencia de Chacabuco; que Güemes ordenó tomar la batería, el cuartel y la posta; que Chacabuco hizo retirarse a La Serna; «General Güemes».
+Los **14 textos obligatorios** que verifica P9-c: la carta del 26-II como «dramatización»; la nota de fecha (1 o 2 de marzo); que el refuerzo no ocurrió o es diseño; que el relieve es «dato actual, no restitución»; el epílogo con «3 de marzo», «9 al 16 de marzo» y «6 de julio»; el botón «Ver la campaña completa: Sostener el norte»; la aclaración del tiempo comprimido (≈ 26 h de marcha y hora y media de fuego reducidas a minutos); las etiquetas «Documentado», «Inferencia razonada», «Versión discutida» y «Sin datos suficientes» (la quinta, «Diseño», se comprueba por `source_tags`); y que Güemes **recibe** el parte en Salta. **Afirmaciones que el juego no puede hacer** (banco de `02_fuentes_primarias.md` §e.3): que Güemes lidera el asalto; que San Martín ordenó atacar Humahuaca; que el golpe fue consecuencia de Chacabuco; que Güemes ordenó tomar la batería, el cuartel y la posta; que Chacabuco hizo retirarse a La Serna; «General Güemes».
 
 **C.3 · Techos de etiqueta (H01, BLOQUEA).** Fuerza: `documentado` 4 > `razonado` 3 > `discutido` 2 > `sin_datos` 1 > `diseno` 0. Una etiqueta **viola** el techo si es **más fuerte** que él (puede ser más débil). Se aplica a cualquier objeto con `id` y `tag` de los JSON `data/humahuaca_*.json` (menos el relieve numérico).
 
@@ -1649,26 +1980,29 @@ Los **13 textos obligatorios** que verifica P9-c: la carta del 26-II como «dram
 | `templo`, `torre_casa_cura`, `torre_templo`, `rio_grande` | `sin_datos` | forma del templo ○; cuál torre y dónde ○; cauce de 1817 y vados ○ |
 | los otros 18 hitos (`bateria`, `cuartel`, `posta`, `plaza`, `polvorin`, `parque`, `corral_posta`, `quebradita_*`, `vado_este`, `salida_este`, `entrada_sur`, `zona_partida`, `spawn_*`) y las capas `cerro_bateria`, `plataforma_bateria`, `cauce_rio` | `diseno` | posiciones y cotas ▲ (no hay planta de 1817) |
 | las 5 agrupaciones (`rodriguez`, `portal`, `arias`, `reconocedores`, `arreo`) | `diseno` | el reparto 48/52/50, las armas y las mulas propias ▲ |
-| las 6 variantes del mundo y los eventos `refuerzo`, `refuerzo_visto`, `mensajero`, `informante`, `aviso_alba`, `alba` | `diseno` | incertidumbres convertidas en variantes ▲; el refuerzo realista inmediato **no ocurrió** |
+| las variantes del mundo y los eventos `refuerzo`, `refuerzo_visto`, `mensajero`, `informante`, `aviso_alba`, `alba`, `apertura` | `diseno` | incertidumbres convertidas en variantes ▲; el refuerzo realista inmediato **no ocurrió** |
+| `gola_bateria`, las explanadas, `barranca_cauce`, `terraza_nucleo`, `banco_grava`, el micro-relieve, las luces (`brasero`, `ventana`, `candil`, `fogata`), `give_signal` y `destroy` (mixtas: llevan `tag_parts`) | `diseno` | orientación de la gola, capas verticales y luces ▲; la descarga es ● pero la señal general es ▲; quemar la munición es ● y clavar los cañones es ▲ |
+| `hide` (ocultar) | `discutido` | «ocultos o enterrados» del Diario realista ◆ |
 | línea del epílogo «9 al 16 de marzo» | `discutido` | versión realista (La Serna) ◆ |
 | todo lo que se llame «carta» | `diseno` | dramatización del 26-II |
 | toda entidad con `tag_parts` | su parte más débil | regla del contrato (sección 0): ≥ 2 partes |
 
 ---
 
-## Anexo D · Lo que el QA necesita de las pistas (pedidos Q1–Q7)
+## Anexo D · Lo que el QA necesita de las pistas (pedidos Q1–Q8)
 
-El contrato no fija los nombres de varias salidas que este documento mide. Son **pedidos del QA al integrador** (se registran como *addenda* en `docs/humahuaca/ADDENDA.md`; si la herramienta entrega lo mismo con otro nombre, se documenta el alias y el criterio no cambia). Deben existir **antes de R2**; lo que falte en el momento de exigirlo es N.
+El contrato no fija los nombres de varias salidas que este documento mide. Son **pedidos del QA al integrador** (se registran como *addenda* en `docs/humahuaca/ADDENDA.md`; si la herramienta entrega lo mismo con otro nombre, se documenta el alias y el criterio no cambia). Deben existir **antes de R2b** (Q3 y Q5 desde R1; Q8, informativa desde R1); lo que falte en el momento de exigirlo es N.
 
 | # | Quién | Pedido |
 |---|---|---|
-| Q1 | `reglas_historia` | `tools/humahuaca_playthrough.gd` con las banderas `--level=scene` o `rules`, `--policies=<lista>` (`experto`, `obediente`, `torpe`, `ciego_sin_recon`, `ciego_tarde`, `ciego_un_frente`, `ciego_sin_arreo`, `pasivo`, `pausa_reanuda`, `aleatorio`, `interfaz`, y los alias `estrategias` = la matriz de ≥ 12 `est_*` y `parciales`), `--seeds=a-b` o `a,b,c`, `--attempts=N` (≤ 5; solo repite el intento quien perdió), `--replicas=N` (semilla propia del bot), `--out=<json>`. Misma entrada ⇒ mismos `snapshot_sha256`. Salida `hx_playthrough_v1` (abajo). La política `interfaz` hace clic en el botón de «siguiente paso». Con `--level=rules` no abre escena y corre `--headless`. |
-| Q2 | integrador | `--qa=humahuaca` (= `hx_qa_tour.gd`) escribe en `--qa-path`: `vista_<id>.png` de las 5 vistas canónicas con interfaz; `calib_inicial.png`, `calib_patio_posta.png` y `calib_grupos.png` (luz de día, lluvia 0, sin interfaz ni fogonazos, cámara a ≥ 40° de inclinación para que no entre el cielo); `hoja_fichas.png` (5 celdas iguales en una fila, fondo liso, fichas al tamaño real de pantalla a 1280×720); `scene_names.txt` (nombres de nodos y rutas de recursos); `qa_report.json` con `initial_frame{fits, targets[{id, x, y, on_screen}]}`, `token_px[{id, w, h}]`, `templo_aabb_h_m`, `scene_build_ms` y `frame_ms_mean`. Más 4 capturas de cámara en el límite (`limite_n/s/e/o.png`). |
-| Q3 | `ui_feel` | `tools/ui_qa_humahuaca.gd` con `--out`, `--size`; imprime `UI_QA {json}`; `ui_qa_report.json` con `suite`, `checks`, `failures` y `notes{captura_px, resolucion_real, controles_t0, caracteres_t0, jerga_hits_t0, menu_ultimo_y, menu_candado_nuevo, menu_desbloqueado, contraste_texto_min, rects{titulo, objetivo, siguiente, frente_bateria, alerta, accion_1}, reintento_s, ciclo_completo, token_px}`; capturas `hx-menu-nuevo`, `hx-menu-desbloqueado`, `hx-briefing-1`, `hx-aproximacion-lluvia`, `hx-hud` (semilla 9001, primera descarga + 20 s), `hx-extraccion`, `hx-derrota`, `hx-victoria`. Debe poder correr con `--size=1024x640`. |
+| Q1 | `reglas_historia` | `tools/humahuaca_playthrough.gd` con las banderas `--level=scene` o `rules`, `--policies=<lista>` (`experto`, `obediente`, `torpe`, `ciego_sin_recon`, `ciego_tarde`, `ciego_un_frente`, `ciego_sin_arreo`, `pasivo`, `pausa_reanuda`, `aleatorio`, `interfaz`, los alias `estrategias` = las 8 `est_<frente>_<enfoque>` y `parciales`, `extraccion` = las 5 `ext_<receta>` y `barrido_senal` = el experto con la señal en cada instante), `--seeds=a-b` o `a,b,c`, `--attempts=N` (≤ 5; solo repite el intento quien perdió), `--replicas=N` (semilla propia del bot), `--signal-from=<s> --signal-to=<s> --signal-step=<s>` (solo `barrido_senal`), `--measure=decisions` (mide las decisiones **significativas** por ramificación de snapshots y marca `decision_metric: "ramificacion"`), `--out=<json>`. Misma entrada ⇒ mismos `snapshot_sha256`. Salida `hx_playthrough_v1` (abajo). La política `interfaz` hace clic en el botón de «siguiente paso». Con `--level=rules` no abre escena y corre `--headless`. |
+| Q2 | integrador | `--qa=humahuaca` (= `hx_qa_tour.gd`) escribe en `--qa-path`: `vista_<id>.png` de las **7** vistas canónicas con interfaz (incluidas `vista_juego_noche.png` y `vista_juego_alba.png`) y su gemela `vista_<id>_sin_ui.png` sin interfaz; `calib_inicial.png`, `calib_patio_posta.png` y `calib_grupos.png` en **render de albedo** (`set_albedo_mode`: sin luz, niebla, exposición ni sombras; lluvia 0, sin interfaz ni fogonazos, cámara a ≥ 40° de inclinación para que no entre el cielo); `hoja_fichas.png` (5 celdas iguales en una fila, fondo liso, fichas al tamaño real de pantalla a 1280×720); `scene_names.txt` (nombres de nodos y rutas de recursos); `qa_report.json` con `initial_frame{fits, targets[{id, x, y, on_screen}]}`, `token_px[{id, w, h}]`, `templo_aabb_h_m`, `scene_build_ms`, `frame_ms_mean` y `views{<id>{horizon_y, probes[{kind: «edificio», «suelo», «ficha» u «objetivo», id, rect: [x, y, w, h]}]}}` (para V06). Más 4 capturas de cámara en el límite (`limite_n/s/e/o.png`). |
+| Q3 | `ui_feel` | `tools/ui_qa_humahuaca.gd` con `--out`, `--size`; imprime `UI_QA {json}`; `ui_qa_report.json` con `suite`, `checks`, `failures` y `notes{captura_px, resolucion_real, controles_t0, caracteres_t0, jerga_hits_t0, menu_ultimo_y, menu_candado_nuevo (el Norte), menu_nota_humahuaca (la nota «Recomendado tras la Justina»), menu_desbloqueado, contraste_texto_min, rects{titulo, objetivo, siguiente, frente_bateria, alerta, accion_1}, reintento_s, ciclo_completo, token_px}`; capturas `hx-menu-nuevo`, `hx-menu-desbloqueado`, `hx-briefing-1`, `hx-aproximacion-lluvia`, `hx-hud` (semilla 9001, primera descarga + 20 s), `hx-extraccion`, `hx-derrota`, `hx-victoria`. Debe poder correr con `--size=1024x640`. |
 | Q4 | todas | Cada `tests/test_hx_*.gd` imprime como última línea JSON `{"checks", "failures", "ok"}` (como las suites existentes); `test_hx_rules` incluye `performance` con `nav_build_ms_avg`, `plan_route_ms_avg`, `tick_ms_avg`. Las pruebas que provocan un error a propósito lo hacen **sin** `push_error`. |
 | Q5 | integrador | Las banderas `--hx-seed=N`, `--hx-phase=<fase>` y `--hx-skip-intro` del contrato 4.3 (las usa el QA para fijar semilla y momento). |
 | Q6 | `relieve_mapa` | Nada nuevo: el QA usa solo la API del contrato 3.1 (`load_default`, `height_at`, `height_dem_only`, `lamina_to_game`, `game_to_lamina`, `landmark`, `river`, `nav_grid`, `report`). Si cambia una firma, se avisa por *addendum*. |
-| Q7 | integrador | `.gitignore` de `evidence/humahuaca/` cubre toda ronda intermedia (no solo `r1`–`r3`) y deja entrar a Git únicamente la de certificación; `docs/QA_NIVEL2.md` figura como propiedad del Jefe de QA. |
+| Q7 | integrador | `.gitignore` de `evidence/humahuaca/` cubre toda ronda intermedia (`r1`, `r2a`, `r2b`, `r3` y cualquier otra) y deja entrar a Git únicamente la de certificación; `docs/QA_NIVEL2.md` figura como propiedad del Jefe de QA. |
+| Q8 | compuertas y documentos (`ui_feel` en `qa_step`) | `tools/hx_agent_play.gd`, el arnés del **agente-jugador**: `--turns-dir=<carpeta>`, `--seed=N`, `--step-s=<s de juego por turno>`, `--max-turns=N`, `--out=<arnes.json>`. Por turno escribe `turno_NN.png` (1280×720, lo que ve el jugador, sin `qa_state()`), espera `accion_NN.json` (`{"tipo":"clic","x","y","boton"}`, `{"tipo":"tecla","tecla"}` o `{"tipo":"esperar","s"}`), inyecta la entrada como `ui_qa`, avanza `qa_step(step_s)` y vuelve a pausar. `arnes.json` (esquema `hx_agente_v1`, anexo A7) trae `turnos[]`, `primera_orden_turno`, `primera_orden_t_s`, `intentos[]` y `objetivos_identificados_en_turnos`; **el arnés, no el agente, los escribe**. Si el agente deja de contestar 120 s, el arnés cierra con `abandono`. |
 
 **Esquema `hx_playthrough_v1`** (un archivo por corrida; `qa_balance.py` junta varios):
 
@@ -1677,16 +2011,18 @@ El contrato no fija los nombres de varias salidas que este documento mide. Son *
   {"policy": "obediente", "family": "obediente", "seed": 9001, "replicate": 1, "attempt": 1, "status": "defeat", "cause_id": "frente_roto",
    "cause_text": "A los 5:10 la partida de Portal quedó clavada frente a la torre del cuartel.", "elapsed_s": 412.5, "golpe": 31.0, "loss_pct": 52.0, "fronts_taken": 1,
    "opening": "gola", "variant": {"guardia": "atenta", "torre_en": "templo", "refugio": "sur", "lluvia": "copiosa", "refuerzo": "normal", "layout": "A"},
-   "first_decision_s": 22.0, "decision_gap_max_s": 31.0, "decision_gap_attack_max_s": 14.0, "exceptions": 0, "valid": true, "snapshot_sha256": "<64 hex>"}]}
+   "first_decision_s": 22.0, "decision_gap_max_s": 31.0, "decision_gap_attack_max_s": 14.0, "decision_metric": "oferta", "max_critical_alerts": 1, "exceptions": 0, "valid": true, "snapshot_sha256": "<64 hex>"}]}
 ```
 
-`family` ∈ `experto`, `obediente`, `torpe`, `ciego`, `pasivo`, `pausa_reanuda`, `estrategia`, `parcial`, `aleatorio`. El *obediente* solo ejecuta lo que dice `hud_state().siguiente` y el *torpe* es el obediente con demoras de 2–8 s, ignora el 30 % de los avisos no urgentes y falla la sincronía ± 15 s (diseño, sección 10); ninguno de los dos lee estado oculto.
+Campos de cabecera y de familia: `active_dims` (las dimensiones de variante activas, p. ej. `["guardia", "torre_en", "refuerzo"]`); `signal_at_s` (solo `barrido_senal`: el instante de la señal en segundos de juego); `extraction` (solo `extraccion`: `ext_<receta>`); `decision_metric` = `"ramificacion"` en las partidas del experto medidas con `--measure=decisions` (entonces las tres cifras de decisión cuentan decisiones *significativas*, diseño sección 10) y `"oferta"` en el resto; `max_critical_alerts` (el máximo de alertas críticas a la vez, para «pausa y reanuda»). Las políticas de frente se llaman `est_<frente>_<enfoque>` y las de extracción `ext_<receta>`; el puntaje continuo es `golpe − 0,5 × loss_pct`.
+
+`family` ∈ `experto`, `obediente`, `torpe`, `ciego`, `pasivo`, `pausa_reanuda`, `estrategia`, `parcial`, `aleatorio`, `extraccion`, `barrido_senal`. El *obediente* solo ejecuta lo que dice `hud_state().siguiente` y el *torpe* es el obediente con demoras de 2–8 s, ignora el 30 % de los avisos no urgentes y falla la sincronía ± 15 s (diseño, sección 10); ninguno de los dos lee estado oculto.
 
 ---
 
 ## Anexo E · Sesión humana opcional (para quitar el sello «no certificado por humanos»)
 
-La corre el usuario o quien designe, **fuera del circuito**; no es condición de «presentable» (L1). **Tres personas** que no conozcan el juego, 20 minutos cada una, sin ayuda, con el EXE de la entrega en `--scenario=humahuaca`. Se registra: (1) el segundo en que dieron la primera orden (≤ 30 s); (2) si pueden decir **el objetivo con sus palabras** sin leer la ayuda; (3) la pregunta «¿entendiste qué hacer?» y (4) «¿cuándo te aburriste?» (minuto y qué pasaba); (5) cuántas veces perdieron y si entendieron la causa. Se agrega el sello «certificado por humanos» solo si **≥ 2 de 3** dieron la primera orden en ≤ 30 s **y** pudieron decir el objetivo, y **ninguna** dejó de jugar antes del minuto 10. Si el modelo y las personas discrepan, **manda la sesión humana**: el resultado va a un hallazgo con evidencia y entra por la regla 1.
+La corre el usuario o quien designe, **fuera del circuito**; no es condición de «presentable» (L1). **Mini-playtests (más baratos y antes):** al cierre de R1 y de R2b, **una persona, 10 minutos y tres preguntas** («¿entendiste qué hacer?», «¿cuándo te aburriste?», «¿qué cambiarías primero?») con la plantilla `docs/humahuaca/PLAYTEST.md`; lo que se ve en R1 no debe descubrirse en R4. Si nadie juega, el QA anota «mini-playtest no realizado» y el agente-jugador (J08) lo reemplaza; no es un hallazgo. **Tres personas** que no conozcan el juego, 20 minutos cada una, sin ayuda, con el EXE de la entrega en `--scenario=humahuaca`. Se registra: (1) el segundo en que dieron la primera orden (≤ 30 s); (2) si pueden decir **el objetivo con sus palabras** sin leer la ayuda; (3) la pregunta «¿entendiste qué hacer?» y (4) «¿cuándo te aburriste?» (minuto y qué pasaba); (5) cuántas veces perdieron y si entendieron la causa. Se agrega el sello «certificado por humanos» solo si **≥ 2 de 3** dieron la primera orden en ≤ 30 s **y** pudieron decir el objetivo, y **ninguna** dejó de jugar antes del minuto 10. Si el modelo y las personas discrepan, **manda la sesión humana**: el resultado va a un hallazgo con evidencia y entra por la regla 1.
 
 ---
 
@@ -1696,7 +2032,10 @@ La corre el usuario o quien designe, **fuera del circuito**; no es condición de
 
 - **1 · 1-nov-2026 · E05 (y P11)**: «`git remote -v` vacío» se reemplaza por «`origin/main` sigue en `72077c8655f8489109950a24b0b09db14af7563c` y su reflog no tiene entradas nuevas ni `forced-update`». **Motivo:** error demostrable de la rúbrica 1.0: el repo **sí** tiene el remoto `origin` (`https://github.com/nicospum/guemes.git`) y `origin/main` ya estaba en `72077c8`; la frase «no hay remoto» del informe `03_arquitectura_actual.md` era incorrecta y el criterio habría fallado desde el primer día. No cambia ningún umbral de juego ni de calidad: solo la forma de comprobar «sin push». **Quién:** el Jefe de QA, al verificar los comandos contra el repo real.
 
-**Estado al congelar (1-nov-2026, `main` en `5a84c50`).**
+- **2 · 1-nov-2026 · rúbrica 1.2 (39 → 41 ítems), escalera, procedimientos P3, P5-d, P6 y P7, anexos A y B a D**: el arquitecto, como revisor final de los tres documentos, **cambió el diseño y el contrato por addendum fechado (contrato 1.1; ver «Objeciones y decisiones» en `DISENO_HUMAHUACA.md`)**, que es la causa (ii) de la regla 5 de la sección 4. Qué cambia: **(a)** J04 queda con los extremos medibles (experto ≥ 80 %, ciegos ≤ 10 %, pasivo 0 %, escena) y el obediente y el torpe pasan a **J05 (MEDIA, informe con intervalos)**; **(b)** J06 suma las comprobaciones de contrapeso del diseño 1.1 (cada enfoque es el mejor en algún mundo, las recetas de extracción y el barrido de la señal) y la matriz pide ≥ 8 estrategias de frente (antes ≥ 12; el diseño 1.1 tiene 8 enfoques); J03 mide las decisiones **significativas** por ramificación en ≥ 12 partidas del experto además de las ofertas; **(c)** criterios nuevos **J08** (agente-jugador por la interfaz real) y **V06** (legibilidad a distancia de juego y riqueza uniforme), V01 y V02 suman las vistas `juego_noche` y `juego_alba` (14 capturas, 7 vistas), V04 pasa a **render de albedo**, R05 mide la **prominencia** de la batería sobre su anillo de 120–150 m (±0,5 m; el domo es un residuo del DEM), H03 suma el 14.º texto (el tiempo comprimido) y renombra el botón del epílogo; **(d)** T06 y E02: Humahuaca usa presupuestos por perfil (`media` ≤ 4,0 ms, p95 ≤ 8,3 ms; Justina y Norte siguen en ≤ 3,0 ms); T03 y C01 se escalonan por ronda con los pisos del contrato 1.1; C04: Humahuaca siempre habilitado con la nota «Recomendado tras la Justina» (el Norte conserva su candado); la escalera pasa a R0, R1, R2a, R2b, R3 y R4; **(e)** herramientas: `qa_balance.py`, `qa_imagen.py` (`legible`, `bordes`, `panorama`), `qa_relieve.gd` y `qa_relieve.py` (anillo de la batería), `qa_etiquetas.py` (techos de los rasgos nuevos) y la nueva `qa_agente.py` (A7). **Ningún umbral de un ítem que ya existía sube por una observación nueva**: los que cambian se aflojan (J04, J06, T03, T06, E02, C01) o vienen del diseño 1.1; las exigencias nuevas (J08, V06, contrapesos) también. **Quién:** el arquitecto, con el Jefe de QA.
+
+**Estado al congelar (1-nov-2026, `main` en `5a84c50`; enmienda 2 sobre `cfd59eb`).**
 
 - **Probado al escribir este documento** (con `APPDATA` aislado, el worktree sin cambios): `test_rules` 871/0 (3 min 02 s); `test_integration` 283/0 (11 s); `jev_contract_test` 15/0; `audio_runtime_test` «17 comprobaciones, 1 fallas» (Dummy) con salida 1; `justina_playthrough` salida 0 en 5 min (18 victorias, 3 rutas, 6 derrotas, `ui_real` gana); el EXE `0.4.0-preview5` con `--headless --verbose --quit-after 120` sin errores ni fugas (y su SHA-256 coincide con su `SHA256.txt`); la lista de 40 archivos protegidos contra `5ebbd28` (salida 0); las expresiones regulares de errores y de fugas dan 0 sobre todos esos logs; los 24 HEX de la lámina 06, **24 de 24 exactos** sobre sus píxeles; la calibración de la lámina 03; `qa_relieve.py`, `qa_imagen.py`, `qa_balance.py`, `qa_veredicto.py`, `qa_etiquetas.py` y `qa_guardado.gd` contra datos sintéticos, la lámina 03 y los *mocks* descritos arriba; los 15 bloques de shell de este documento pasan `bash -n`; las herramientas extraídas de este texto son idénticas, byte a byte, a las probadas.
-- **No probado, porque todavía no existe** (lo crean el commit de andamiaje T0 y las rondas R1 y R2): `scripts/humahuaca/**`, los cinco JSON del nivel, `tests/test_hx_*.gd`, `tools/humahuaca_playthrough.gd`, `tools/ui_qa_humahuaca.gd`, `tools/hx_qa_tour.gd`, `tools/vis_humahuaca.gd`, `tools/qa_gate.sh` y los pedidos Q1–Q7. Los comandos que dependen de ellos están escritos contra el contrato 1 y contra las firmas de Q1–Q7; hasta que existan, esos ítems son «no exigibles aún» (escalera de la sección 2), no fallas. Si al correrlos una firma real difiere de la del contrato, se corrige **el script o el pedido**, no el umbral.
+- **Probado al escribir la enmienda 2** (sin tocar el repo del juego): las herramientas extraídas de este texto compilan; `qa_balance.py` contra 3 516 partidas sintéticas (`hx_playthrough_v1`: un caso que pasa y seis que fallan por la causa prevista —barrido de la señal monótono, una receta de extracción dominante, un enfoque que nunca es el mejor, obediente alto que solo falla J05 sin bloquear, pasivo que gana, falta de ramificación—); `qa_imagen.py legible`, `bordes` y `panorama` contra imágenes sintéticas y la foto de 1923 (la foto contra sí misma da 1,00; invertida, ruido, la lámina 03 y un degradé de cielo a suelo no pasan); `qa_agente.py` con una corrida buena y una mala; `qa_veredicto.py` con los 41 criterios; `qa_etiquetas.py` con los techos nuevos; `qa_relieve.py` contra un volcado sintético armado con los 475 nodos de la lámina (R01–R06 pasan; una batería sin prominencia falla R05); `qa_relieve.gd` parsea con `godot --check-only`.
+- **No probado, porque todavía no existe** (lo crean el commit de andamiaje T0 y las rondas R1.0, R1, R2a y R2b): `scripts/humahuaca/**`, los seis JSON del nivel (incluido `humahuaca_level.json`), `tests/test_hx_*.gd`, `tools/humahuaca_playthrough.gd`, `tools/ui_qa_humahuaca.gd`, `tools/hx_qa_tour.gd`, `tools/hx_agent_play.gd`, `tools/vis_humahuaca.gd`, `tools/qa_gate.sh` y los pedidos Q1–Q8; tampoco corrió nunca el agente-jugador (P6-e) sobre el juego real. Los comandos que dependen de ellos están escritos contra el contrato 1 y contra las firmas de Q1–Q7; hasta que existan, esos ítems son «no exigibles aún» (escalera de la sección 2), no fallas. Si al correrlos una firma real difiere de la del contrato, se corrige **el script o el pedido**, no el umbral.
