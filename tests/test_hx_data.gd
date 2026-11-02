@@ -392,9 +392,15 @@ func _mut_v4(base: Dictionary) -> void:
 	weakest_ok.map.anchor["tag_parts"] = {"posicion": "diseno", "forma": "razonado"}
 	suite.check(v4_tags(weakest_ok).is_empty(), "sanidad: tag_parts con tag = la parte más débil es válido")
 
+## La mutación de «access que cita hitos sin mapa» no puede depender de que el mapa real esté vacío: apenas relieve_mapa entrega los hitos,
+## «zona_partida» resuelve y el error plantado dejaba de existir (corrección del integrador en R1.0, ADDENDA A-06). Se vacía el registro de la copia.
+func _plant_access_without_map_landmarks(f: Dictionary) -> void:
+	f.map["landmarks"] = []
+	f.level["access"] = {"zona_partida": "zona_partida"}
+
 func _mut_v5(base: Dictionary) -> void:
 	_flaw(base, "ids repetidos en un arreglo", func(f): f.map["landmarks"] = [{"id": "a", "tag": "razonado", "source": "x"}, {"id": "a", "tag": "razonado", "source": "x"}], func(f): return v5_ids_and_refs(f, "r0"))
-	_flaw(base, "access que cita hitos sin mapa", func(f): f.level["access"] = {"zona_partida": "zona_partida"}, func(f): return v5_ids_and_refs(f, "r0"))
+	_flaw(base, "access que cita hitos sin mapa", _plant_access_without_map_landmarks, func(f): return v5_ids_and_refs(f, "r0"))
 	_flaw(base, "hito obligatorio ausente", func(f): f.map["landmarks"] = [{"id": "templo", "tag": "razonado", "source": "x"}], func(f): return v5_ids_and_refs(f, "r1.0"))
 	_flaw(base, "zona con un objetivo inexistente", func(f): f.level["zones"] = [{"id": "z1", "objective": "fortin"}], func(f): return v5_ids_and_refs(f, "r0"))
 	var refs_ok := base.duplicate(true)

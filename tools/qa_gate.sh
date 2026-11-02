@@ -321,7 +321,7 @@ owner_allows() {  # owner_allows <pista> <ruta relativa>  → 0 si la pista es d
       esac ;;
     reglas)
       case "$f" in
-        scripts/humahuaca/rules/*|scripts/humahuaca/stubs/stub_rules.gd|scripts/humahuaca/stubs/stub_progress.gd|data/humahuaca_rules.json|data/humahuaca_level.json|data/history.json|tests/test_hx_rules.gd|tools/humahuaca_playthrough.gd|docs/humahuaca/REGLAS.md|docs/humahuaca/HISTORIA.md|docs/humahuaca/PROCEDENCIA.md|docs/historia/MATRIZ_HISTORICA.md|docs/historia/FUENTES.md) return 0 ;;
+        scripts/humahuaca/rules/*|scripts/humahuaca/stubs/stub_rules*.gd|scripts/humahuaca/stubs/stub_progress.gd|data/humahuaca_rules.json|data/humahuaca_level.json|data/history.json|tests/test_hx_rules.gd|tools/humahuaca_playthrough.gd|docs/humahuaca/REGLAS.md|docs/humahuaca/HISTORIA.md|docs/humahuaca/PROCEDENCIA.md|docs/historia/MATRIZ_HISTORICA.md|docs/historia/FUENTES.md) return 0 ;;
       esac ;;
     visual)
       case "$f" in
