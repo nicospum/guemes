@@ -6,8 +6,11 @@ se construyen en el dominio de la frecuencia con fase aleatoria y moduladores de
 ciclos enteros, de modo que son periodicos: la ultima muestra enlaza con la
 primera sin clic (se verifica con tools/analyze_audio.py).
 
-Uso:  python tools/generate_audio.py
+Uso:  python tools/generate_audio.py               (los sonidos de la Justina y del Norte, en assets/audio/)
+      python tools/generate_audio.py --humahuaca   (solo el nivel II: delega en tools/generate_audio_humahuaca.py, que escribe en
+                                                    assets/audio/humahuaca/ y no toca los archivos de arriba)
 """
+import sys
 from pathlib import Path
 import wave
 import numpy as np
@@ -414,4 +417,9 @@ def build():
 
 
 if __name__ == "__main__":
-    build()
+    if "--humahuaca" in sys.argv[1:]:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        import generate_audio_humahuaca
+        generate_audio_humahuaca.build()
+    else:
+        build()
