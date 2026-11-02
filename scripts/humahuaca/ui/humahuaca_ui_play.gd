@@ -728,6 +728,17 @@ func _calm_tick(delta: float) -> void:
 			_suggest_x2 = false
 
 
+## Si pasan `onboarding.first_order_hint_s` segundos (12) sin que el jugador dé ninguna orden, un aviso le dice cómo arranca el reloj (con la primera orden o con Espacio): el nivel
+## empieza en pausa y quien no sabe qué apretar se queda mirando. Una sola vez por intento; no cuenta mientras hay una ventana abierta ni durante la presentación.
+func _first_order_hint_tick(delta: float) -> void:
+	if _idle_first_done or mode != "play" or order_count > 0 or not _auto_start or not _playing() or (dialogs != null and dialogs.is_open()):
+		return
+	_idle_first_s += delta
+	if _idle_first_s >= float(ui_data.get("onboarding", {}).get("first_order_hint_s", 12.0)):
+		_idle_first_done = true
+		_toast(tx("phase_hint.waiting", ""), "aviso")
+
+
 func _idle_groups() -> Array:
 	var out: Array = []
 	if rules == null:

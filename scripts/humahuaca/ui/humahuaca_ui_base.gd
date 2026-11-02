@@ -110,6 +110,8 @@ var _toast_cur: Dictionary = {}
 var _toast_queue: Array = []
 var _shake := 0.0
 var _calm_s := 0.0
+var _idle_first_s := 0.0  # segundos reales con el nivel en pausa y sin ninguna orden dada (onboarding.first_order_hint_s)
+var _idle_first_done := false
 var _suggest_x2 := false
 var _saved_by_player := false
 var _alert_seen: Dictionary = {}
@@ -638,6 +640,8 @@ func _new_attempt(extra: Dictionary = {}, count_attempt: bool = false, rebuild_v
 	_toast_cur = {}
 	_toast_queue = []
 	_calm_s = 0.0
+	_idle_first_s = 0.0
+	_idle_first_done = false
 	_suggest_x2 = false
 	selected = []
 	if orders != null:

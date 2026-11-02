@@ -1036,6 +1036,20 @@ func _test_retry_counts() -> void:
 # Primera decisión en menos de 60 s de juego (TR-117)
 
 func _test_first_decision() -> void:
+	# quien no sabe qué apretar: a los 12 s sin ninguna orden un aviso dice cómo arranca el reloj (onboarding.first_order_hint_s); con una orden dada no aparece
+	if not suite.check(await _start_level(), "primera decisión: el nivel arranca para probar el aviso de la espera"):
+		return
+	hx._process(5.0)
+	suite.check(str(hx.qa_state().toast) == "", "primera decisión: a los 5 s sin orden todavía no avisa nada («%s»)" % str(hx.qa_state().toast))
+	hx._process(8.0)
+	suite.check(str(hx.qa_state().toast).find("El reloj arranca con tu primera orden") >= 0, "primera decisión: a los 12 s sin orden el aviso dice cómo arranca el reloj («%s»)" % str(hx.qa_state().toast))
+	await _leave_level()
+	if not suite.check(await _start_level(), "primera decisión: el nivel arranca para probar que con una orden no avisa"):
+		return
+	hx.hud.next_btn.pressed.emit()
+	hx._process(20.0)
+	suite.check(str(hx.qa_state().toast).find("El reloj arranca") < 0, "primera decisión: con la primera orden dada el aviso de la espera no sale («%s»)" % str(hx.qa_state().toast))
+	await _leave_level()
 	if not suite.check(await _start_level(), "primera decisión: el nivel arranca"):
 		return
 	hx.hud.next_btn.pressed.emit()

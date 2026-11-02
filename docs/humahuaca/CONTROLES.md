@@ -5,7 +5,7 @@ Dueña: `ui_feel`. La tabla sale de `data/humahuaca_ui.json` (`key_table`); `tes
 ## Lo básico en 30 segundos
 
 1. Mirá el **siguiente paso** (abajo): es una sola cosa por vez y tiene su botón (con la tecla entre corchetes). Si no sabés qué hacer, apretalo.
-2. El reloj arranca con tu **primera orden** (o con Espacio). Podés pausar en cualquier momento para pensar y dar órdenes.
+2. El reloj arranca con tu **primera orden** (o con Espacio): si a los 12 segundos no diste ninguna, un aviso te lo recuerda. Podés pausar en cualquier momento para pensar y dar órdenes.
 3. Elegí una agrupación con las teclas **1 a 5** o con un clic en su ficha; con el **clic derecho** le das la orden más lógica al punto o al frente que señalás.
 
 ## Tiempo
