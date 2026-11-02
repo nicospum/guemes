@@ -15,6 +15,12 @@ const FLAT_H := 17.0
 const SKIRT_M := 3.0
 const RING_ROWS := [0.0, 30.0, 85.0, 180.0, 340.0, 620.0, 1050.0, 1750.0, 2900.0, 4500.0, 6800.0]
 const WORLD_RADIUS_M := 8000.0
+## La cinta del río: paso de las muestras cerca de la ventana y lejos de ella, metros en que se apaga en cada punta recortada y metros de la ventana en que pasa del agua plana
+## de un cauce tallado a la cinta apoyada sobre el suelo.
+const RIVER_STEP_WIN_M := 5.0
+const RIVER_STEP_CTX_M := 16.0
+const RIVER_FADE_M := 450.0
+const RIVER_WIN_BLEND_M := 80.0
 ## Canal de cada clase de superficie en las dos texturas de pesos: [textura (0 = splat_a, 1 = splat_b), canal r, g, b, a]. `muro` y `patio` se leen como suelo y como tierra apisonada.
 const SURFACE_CHANNEL := {"suelo_seco": [0, 0], "sedimento_humedo": [0, 1], "piedra": [0, 2], "churqui": [0, 3], "irrigado": [1, 0], "agua": [1, 1],
 	"camino": [1, 2], "patio": [1, 2], "zanja": [1, 3], "muro": [0, 0]}
@@ -35,11 +41,17 @@ var water_mat: ShaderMaterial
 var win := Rect2(0.0, 0.0, 900.0, 652.0)  ## la ventana de 4 m: de la primera a la última fila de la grilla
 var ctx := Rect2(-1350.0, -1025.0, 3600.0, 2700.0)  ## el contexto de 30 m
 var build_stats: Dictionary = {}  ## triángulos y milisegundos de cada etapa del terreno (los informa el recorrido de QA)
+var river_stats: Dictionary = {}  ## muestras y largo de la cinta del río
 
 var _mats: Dictionary = {}
 var _flat: Dictionary = {}
 var _meshes: Dictionary = {}
 var _std_mats: Array = []  ## materiales estándar con sombreado: el modo albedo los pasa a «sin sombreado»
+var _patches: Array = []  ## las mallas de suelo dibujadas ({x0, x1, z0, z1, xs, zs, hs}): `rendered_h` lee de ahí la altura que se ve
+var _win_src := PackedFloat32Array()  ## la grilla de la ventana (los nodos exactos que dibuja su malla y que usan las costuras)
+var _win_nx := 0
+var _win_nz := 0
+var _win_cell := 4.0
 var _noise_big: FastNoiseLite
 var _noise_gully: FastNoiseLite
 var _noise_eco: FastNoiseLite
@@ -403,7 +415,86 @@ func _field(kind: String) -> Dictionary:
 	return {"nx": 121, "nz": 91, "cell": 30.0, "origin_x": -1350.0, "origin_z": -1025.0, "h": flat_c}
 
 
+## Índices de `values` cada `stride` posiciones, siempre con la primera y la última (el último tramo no queda a menos de media zancada).
+func _subset(values: PackedFloat32Array, stride: int) -> PackedFloat32Array:
+	var out := PackedFloat32Array()
+	var n := values.size()
+	if n == 0:
+		return out
+	var step := maxi(stride, 1)
+	var idx: Array = []
+	var k := 0
+	while k < n - 1:
+		idx.append(k)
+		k += step
+	if idx.size() > 1 and (n - 1) - int(idx[idx.size() - 1]) < step / 2:
+		idx.pop_back()
+	idx.append(n - 1)
+	for i in idx:
+		out.append(values[int(i)])
+	return out
+
+
+## Interpolación lineal sobre una polilínea ordenada `cx` → `ch` (queda en los extremos fuera de ella).
+func _lerp_poly(cx: PackedFloat32Array, ch: PackedFloat32Array, x: float) -> float:
+	var n := cx.size()
+	if n == 1 or x <= cx[0]:
+		return ch[0]
+	if x >= cx[n - 1]:
+		return ch[n - 1]
+	var i := clampi(cx.bsearch(x) - 1, 0, n - 2)
+	return lerpf(ch[i], ch[i + 1], (x - cx[i]) / maxf(cx[i + 1] - cx[i], 0.0001))
+
+
+## El valor de la grilla de la ventana en el nodo más cercano a (x, z): el mismo que dibuja la malla de la ventana (en `baja` la malla usa un nodo de cada dos).
+func _win_node(x: float, z: float) -> float:
+	var gi := clampi(int(round((x - win.position.x) / _win_cell)), 0, _win_nx - 1)
+	var gj := clampi(int(round((z - win.position.y) / _win_cell)), 0, _win_nz - 1)
+	return _win_src[gj * _win_nx + gi]
+
+
+## La altura de un vértice de las costuras de la ventana: sobre la ventana (y su borde), el nodo exacto de la grilla; afuera, `height_at`.
+func _seam_h(x: float, z: float) -> float:
+	if x >= win.position.x - 0.01 and x <= win.end.x + 0.01 and z >= win.position.y - 0.01 and z <= win.end.y + 0.01:
+		return _win_node(x, z)
+	return h(x, z)
+
+
+## Un trozo de suelo (un nodo de malla) que además se anota con su grilla: `rendered_h` lee de ahí la altura DIBUJADA.
+func _add_patch(root: Node3D, name_: String, xs: PackedFloat32Array, zs: PackedFloat32Array, hs: PackedFloat32Array, skirt_m: float) -> int:
+	_terrain_node(root, name_, _tensor_mesh(xs, zs, hs, skirt_m))
+	_patches.append({"x0": xs[0], "x1": xs[xs.size() - 1], "z0": zs[0], "z1": zs[zs.size() - 1], "xs": xs, "zs": zs, "hs": hs})
+	return (xs.size() - 1) * (zs.size() - 1) * 2
+
+
+## La altura de la malla de suelo que se DIBUJA en (x, z): la interpolación por triángulos de la grilla donde cae el punto (la misma diagonal que arma `_tensor_mesh`).
+## Difiere de `height_at` hasta unos decímetros (la malla es lineal entre nodos), y lo que va sobre el suelo (ríos, caminos, zanjas) tiene que ir sobre ESTA superficie
+## para no quedar enterrado. Fuera de las mallas (solo el horizonte), `height_at`.
+func rendered_h(x: float, z: float) -> float:
+	for p in _patches:
+		if x >= float(p.x0) and x <= float(p.x1) and z >= float(p.z0) and z <= float(p.z1):
+			var xs: PackedFloat32Array = p.xs
+			var zs: PackedFloat32Array = p.zs
+			var hs: PackedFloat32Array = p.hs
+			var nxp := xs.size()
+			var i := clampi(xs.bsearch(x) - 1, 0, nxp - 2)
+			var j := clampi(zs.bsearch(z) - 1, 0, zs.size() - 2)
+			var tx := clampf((x - xs[i]) / maxf(xs[i + 1] - xs[i], 0.0001), 0.0, 1.0)
+			var tz := clampf((z - zs[j]) / maxf(zs[j + 1] - zs[j], 0.0001), 0.0, 1.0)
+			var ha := hs[j * nxp + i]
+			var hb := hs[j * nxp + i + 1]
+			var hc := hs[(j + 1) * nxp + i]
+			var hd := hs[(j + 1) * nxp + i + 1]
+			if tx + tz <= 1.0:  # triángulo (a, b, c): la diagonal va de b (arriba a la derecha) a c (abajo a la izquierda)
+				return ha + (hb - ha) * tx + (hc - ha) * tz
+			return hd + (hc - hd) * (1.0 - tx) + (hb - hd) * (1.0 - tz)
+	return h(x, z)
+
+
 ## Construye ventana, contexto y horizonte bajo `root` y las dos texturas de pesos. La calidad `baja` usa la mitad de resolución en la ventana.
+## Ventana y contexto se pegan SIN escalón: entre la ventana (nodos de 4 m) y el contexto (nodos de ≈ 30 m) hay una costura de una fila de celdas con los mismos nodos que el
+## borde de la ventana (altura exacta de la grilla) que se apoya sobre el borde del contexto por interpolación; antes el contexto tenía un vértice cada 30 m sobre el borde y la
+## malla dibujada saltaba hasta 0,67 m en la costura este (H-R1-11).
 func build_terrain(root: Node3D) -> void:
 	var t0 := Time.get_ticks_usec()
 	var hf := _field("heightfield")
@@ -427,32 +518,80 @@ func build_terrain(root: Node3D) -> void:
 	var hs := PackedFloat32Array()
 	hs.resize(xs.size() * zs.size())
 	var src: PackedFloat32Array = hf.h
+	_win_src = src
+	_win_nx = nx
+	_win_nz = nz
+	_win_cell = cell
+	_patches = []
 	for j in range(zs.size()):
 		var gj := mini(int(round((zs[j] - win.position.y) / cell)), nz - 1)
 		for i in range(xs.size()):
 			var gi := mini(int(round((xs[i] - win.position.x) / cell)), nx - 1)
 			hs[j * xs.size() + i] = src[gj * nx + gi]
-	_terrain_node(root, "terreno_ventana", _tensor_mesh(xs, zs, hs, SKIRT_M))
+	var triangles := _add_patch(root, "terreno_ventana", xs, zs, hs, SKIRT_M)
 	var t_window := Time.get_ticks_usec()
-	var triangles := (xs.size() - 1) * (zs.size() - 1) * 2
-	# contexto: cuatro bandas de ~30 m pegadas a los bordes de la ventana (los vértices del borde de afuera son los de la fila 0 del horizonte)
+	# contexto: cuatro trozos gruesos (nodos de ≈ 30 m que salen de `height_at`) y, entre ellos y la ventana, cuatro costuras de una fila de celdas con los nodos de la ventana
 	var ctx_step := float(cf.cell) * float(maxi(int(qcfg.get("context_step", 1)), 1))
 	var xl_w := _lin(ctx.position.x, win.position.x, roundi((win.position.x - ctx.position.x) / ctx_step))
 	var xl_e := _lin(win.end.x, ctx.end.x, roundi((ctx.end.x - win.end.x) / ctx_step))
-	var xl_c := _lin(win.position.x, win.end.x, roundi(win.size.x / ctx_step))
 	var zl_n := _lin(ctx.position.y, win.position.y, roundi((win.position.y - ctx.position.y) / ctx_step))
 	var zl_s := _lin(win.end.y, ctx.end.y, roundi((ctx.end.y - win.end.y) / ctx_step))
-	var zl_c := _lin(win.position.y, win.end.y, roundi(win.size.y / ctx_step))
-	var zl_all := _concat(_concat(zl_n, zl_c), zl_s)
-	for band in [["terreno_contexto_oeste", xl_w, zl_all], ["terreno_contexto_este", xl_e, zl_all], ["terreno_contexto_norte", xl_c, zl_n], ["terreno_contexto_sur", xl_c, zl_s]]:
-		var bxs: PackedFloat32Array = band[1]
-		var bzs: PackedFloat32Array = band[2]
-		_terrain_node(root, str(band[0]), _tensor_mesh(bxs, bzs, _sampled(bxs, bzs), 0.0))
-		triangles += (bxs.size() - 1) * (bzs.size() - 1) * 2
+	var cxs := _subset(xs, roundi(ctx_step / maxf(xs[1] - xs[0], 0.5)))  # columnas gruesas sobre el ancho de la ventana: son nodos de la ventana, para que la costura calce
+	var czs := _subset(zs, roundi(ctx_step / maxf(zs[1] - zs[0], 0.5)))
+	var z_coarse := _concat(_concat(zl_n, czs), zl_s)  # las filas gruesas de los costados (y del perímetro del contexto)
+	var z_fine := _concat(_concat(zl_n, zs), zl_s)  # las mismas, con las filas de la ventana a su paso
+	var n_out := PackedFloat32Array(zl_n.slice(0, zl_n.size() - 1))  # filas del norte sin la que toca la ventana
+	var s_out := PackedFloat32Array(zl_s.slice(1))
+	var w_out := PackedFloat32Array(xl_w.slice(0, xl_w.size() - 1))
+	var e_out := PackedFloat32Array(xl_e.slice(1))
+	var ncx := cxs.size()
+	var ncz := z_coarse.size()
+	# norte y sur: trozo grueso (columnas de la ventana a ≈ 30 m) más su costura
+	var hs_n := _sampled(cxs, n_out)
+	triangles += _add_patch(root, "terreno_contexto_norte", cxs, n_out, hs_n, 0.0)
+	var edge_n := hs_n.slice((n_out.size() - 1) * ncx)
+	var seam_ns := PackedFloat32Array()
+	seam_ns.resize(xs.size() * 2)
+	for i in range(xs.size()):
+		seam_ns[i] = _lerp_poly(cxs, edge_n, xs[i])
+		seam_ns[xs.size() + i] = _win_node(xs[i], win.position.y)
+	triangles += _add_patch(root, "terreno_costura_norte", xs, PackedFloat32Array([n_out[n_out.size() - 1], win.position.y]), seam_ns, 1.0)
+	var hs_s := _sampled(cxs, s_out)
+	triangles += _add_patch(root, "terreno_contexto_sur", cxs, s_out, hs_s, 0.0)
+	var edge_s := hs_s.slice(0, ncx)
+	var seam_sn := PackedFloat32Array()
+	seam_sn.resize(xs.size() * 2)
+	for i in range(xs.size()):
+		seam_sn[i] = _win_node(xs[i], win.end.y)
+		seam_sn[xs.size() + i] = _lerp_poly(cxs, edge_s, xs[i])
+	triangles += _add_patch(root, "terreno_costura_sur", xs, PackedFloat32Array([win.end.y, s_out[0]]), seam_sn, 1.0)
+	# oeste y este: trozo grueso sobre todo el alto del contexto más su costura (que lleva las filas de la ventana a su paso)
+	var hs_w := _sampled(w_out, z_coarse)
+	triangles += _add_patch(root, "terreno_contexto_oeste", w_out, z_coarse, hs_w, 0.0)
+	var edge_w := PackedFloat32Array()
+	for j in range(ncz):
+		edge_w.append(hs_w[j * w_out.size() + w_out.size() - 1])
+	var seam_w := PackedFloat32Array()
+	seam_w.resize(z_fine.size() * 2)
+	for j in range(z_fine.size()):
+		seam_w[j * 2] = _lerp_poly(z_coarse, edge_w, z_fine[j])
+		seam_w[j * 2 + 1] = _seam_h(win.position.x, z_fine[j])
+	triangles += _add_patch(root, "terreno_costura_oeste", PackedFloat32Array([w_out[w_out.size() - 1], win.position.x]), z_fine, seam_w, 1.0)
+	var hs_e := _sampled(e_out, z_coarse)
+	triangles += _add_patch(root, "terreno_contexto_este", e_out, z_coarse, hs_e, 0.0)
+	var edge_e := PackedFloat32Array()
+	for j in range(ncz):
+		edge_e.append(hs_e[j * e_out.size()])
+	var seam_e := PackedFloat32Array()
+	seam_e.resize(z_fine.size() * 2)
+	for j in range(z_fine.size()):
+		seam_e[j * 2] = _seam_h(win.end.x, z_fine[j])
+		seam_e[j * 2 + 1] = _lerp_poly(z_coarse, edge_e, z_fine[j])
+	triangles += _add_patch(root, "terreno_costura_este", PackedFloat32Array([win.end.x, e_out[0]]), z_fine, seam_e, 1.0)
 	var t_context := Time.get_ticks_usec()
 	# horizonte: un anillo que arranca en el perímetro del contexto y sigue hasta ±8 km con crestas y estratos
-	var top_x := _concat(_concat(xl_w, xl_c), xl_e)
-	var left_z := zl_all
+	var top_x := _concat(_concat(xl_w, cxs), xl_e)
+	var left_z := z_coarse
 	var ring_pts := PackedVector2Array()
 	var ring_dir := PackedVector2Array()
 	for i in range(top_x.size() - 1):  # borde norte, de oeste a este
@@ -635,7 +774,8 @@ func pts(list: Variant) -> PackedVector2Array:
 	return out
 
 
-## La traza del río con dos prolongaciones solo de aspecto: al norte sigue derecho hasta el borde del contexto y al sur-este vuelve hacia el sur como en la lámina 03.
+## La traza del río con dos prolongaciones solo de aspecto: al norte sigue con un poco de curva hasta PASAR el borde del contexto (antes terminaba 117 m antes, adentro del
+## contexto, y la cinta se cortaba en seco en mitad del paisaje, H-R1-11) y al sur-este vuelve hacia el sur como en la lámina 03.
 func river_polyline() -> PackedVector2Array:
 	var river: Variant = terrain.call("river") if terrain != null and terrain.has_method("river") else null
 	var line := pts((river as Dictionary).get("pts", [])) if river is Dictionary else PackedVector2Array()
@@ -644,10 +784,14 @@ func river_polyline() -> PackedVector2Array:
 	var out := PackedVector2Array()
 	var head: Vector2 = line[0]
 	var dir_n := (line[0] - line[1]).normalized()
-	var reach := 1500.0
-	for k in range(6, 0, -1):  # hacia el norte, con un poco de curva para no ser una raya
-		var t := float(k) / 6.0
-		out.append(head + dir_n.rotated(0.18 * t) * reach * t)
+	var north: Array = []
+	for k in range(1, 40):  # hacia el norte, de a 250 m y con un poco de curva para no ser una raya, hasta 100 m más allá del borde del contexto
+		var far_pt := head + dir_n.rotated(0.03 * float(k)) * 250.0 * float(k)
+		north.append(far_pt)
+		if not ctx.grow(100.0).has_point(far_pt):
+			break
+	for k in range(north.size() - 1, -1, -1):
+		out.append(north[k])
 	out.append_array(line)
 	var tail: Vector2 = line[line.size() - 1]
 	var dir_s := (line[line.size() - 1] - line[line.size() - 2]).normalized()
@@ -660,9 +804,31 @@ func river_polyline() -> PackedVector2Array:
 	return out
 
 
+## La polilínea `line` con puntos de más para que ningún tramo pase de `max_seg_m` (una cinta con pocos puntos largos cortaba por debajo del suelo entre un punto y otro).
+## Una línea cerrada sale sin repetir el punto de cierre.
+func densify(line: PackedVector2Array, max_seg_m: float, closed: bool = false) -> PackedVector2Array:
+	var count := line.size()
+	if count < 2 or max_seg_m <= 0.0:
+		return line
+	var out := PackedVector2Array()
+	for k in range(count if closed else count - 1):
+		var a := line[k]
+		var b := line[(k + 1) % count]
+		var pieces := maxi(int(ceil(a.distance_to(b) / max_seg_m)), 1)
+		for s in range(pieces):
+			out.append(a.lerp(b, float(s) / float(pieces)))
+	if not closed:
+		out.append(line[count - 1])
+	return out
+
+
 ## Cinta que sigue el relieve a lo largo de `line` (ancho `width` m, `raise` m sobre el suelo). Con `water`, la altura es plana de orilla a orilla (el nivel del agua) y
-## lleva UV = (metros a lo largo, −1..1 a lo ancho) para el shader del agua.
-func strip(parent: Node, line: PackedVector2Array, width: float, raise: float, material: Material, closed: bool = false, water: bool = false, name_: String = "") -> MeshInstance3D:
+## lleva UV = (metros a lo largo, −1..1 a lo ancho) para el shader del agua. Con `max_seg_m` > 0 la línea se parte en tramos de ese largo como máximo y con `on_rendered` las
+## alturas salen de la malla DIBUJADA (`rendered_h`) y no de `height_at`: así la cinta no queda enterrada entre un punto y otro (caminos y zanjas, H-R1-11).
+func strip(parent: Node, line: PackedVector2Array, width: float, raise: float, material: Material, closed: bool = false, water: bool = false, name_: String = "",
+		max_seg_m: float = 0.0, on_rendered: bool = false) -> MeshInstance3D:
+	if max_seg_m > 0.0:
+		line = densify(line, max_seg_m, closed)
 	var count := line.size()
 	var verts := PackedVector3Array()
 	var normals := PackedVector3Array()
@@ -676,10 +842,11 @@ func strip(parent: Node, line: PackedVector2Array, width: float, raise: float, m
 		var side := Vector2(-tangent.y, tangent.x) * width * 0.5
 		if k > 0:
 			along += line[k].distance_to(line[k - 1])
-		var level := h(line[k].x, line[k].y) + raise
+		var level := (rendered_h(line[k].x, line[k].y) if on_rendered else h(line[k].x, line[k].y)) + raise
 		for sign_ in [1.0, -1.0]:
 			var q: Vector2 = line[k] + side * sign_
-			verts.append(Vector3(q.x, level if water else h(q.x, q.y) + raise, q.y))
+			var ground := rendered_h(q.x, q.y) if on_rendered else h(q.x, q.y)
+			verts.append(Vector3(q.x, level if water else ground + raise, q.y))
 			normals.append(Vector3.UP)
 			uvs.append(Vector2(along, sign_))
 	for k in range(count if closed else count - 1):
@@ -702,7 +869,125 @@ func strip(parent: Node, line: PackedVector2Array, width: float, raise: float, m
 	return mi
 
 
-## El río: lecho claro de grava y, encima, el agua turbia con su shader. Devuelve la traza usada (para la textura del contexto).
+## Distancia en metros de (x, z) al rectángulo de la ventana (0 dentro).
+func _dist_to_window(p: Vector2) -> float:
+	return Vector2(maxf(maxf(win.position.x - p.x, p.x - win.end.x), 0.0), maxf(maxf(win.position.y - p.y, p.y - win.end.y), 0.0)).length()
+
+
+## Las muestras de la cinta del río: la traza recortada al contexto (la parte que cae afuera no tiene malla de suelo debajo: el anillo del horizonte sube y la cinta quedaba
+## enterrada y cortada en seco, H-R1-11), a pasos de 4 m cerca de la ventana y de ≈ 16 m lejos, y con la opacidad que baja a 0 en los últimos metros de cada punta recortada
+## (el río se pierde en la bruma en vez de terminar en un corte). Devuelve {pts, alpha, along}.
+func river_samples(line: PackedVector2Array) -> Dictionary:
+	var out := {"pts": PackedVector2Array(), "alpha": PackedFloat32Array(), "along": PackedFloat32Array()}
+	if line.size() < 2:
+		return out
+	var inner := ctx.grow(-3.0)
+	var fine := densify(line, RIVER_STEP_WIN_M, false)
+	var first := -1
+	var last := -1
+	for i in range(fine.size()):
+		if inner.has_point(fine[i]):
+			if first < 0:
+				first = i
+			last = i
+	if first < 0 or last <= first:
+		return out
+	var pts := PackedVector2Array()
+	var carry := 0.0
+	for i in range(first, last + 1):
+		var near_window := _dist_to_window(fine[i]) <= 40.0
+		carry += RIVER_STEP_WIN_M if i > first else 0.0
+		if i == first or i == last or near_window or carry >= RIVER_STEP_CTX_M:
+			pts.append(fine[i])
+			carry = 0.0
+	var along := PackedFloat32Array()
+	var total := 0.0
+	for k in range(pts.size()):
+		if k > 0:
+			total += pts[k].distance_to(pts[k - 1])
+		along.append(total)
+	var alpha := PackedFloat32Array()
+	for k in range(pts.size()):
+		var a := 1.0
+		if first > 0:  # la punta de arriba se recortó: se apaga
+			a = minf(a, smoothstep(0.0, RIVER_FADE_M, along[k]))
+		if last < fine.size() - 1:  # la de abajo también
+			a = minf(a, smoothstep(0.0, RIVER_FADE_M, total - along[k]))
+		alpha.append(a)
+	out.pts = pts
+	out.alpha = alpha
+	out.along = along
+	return out
+
+
+## Una cinta del río sobre la malla DIBUJADA: cada vértice queda por encima del suelo que se ve. Tiene `lateral` vértices a lo ancho (no solo los dos bordes: una cinta de
+## 30 m con dos vértices cortaba el suelo por el medio donde el cauce tiene un montículo). Con `flat`, dentro de la ventana el agua es plana de orilla a orilla (el cauce está
+## tallado y la orilla corta el agua donde el suelo sube: nunca hace falta subir un borde más de unos centímetros) y, lejos de la ventana (el contexto no tiene cauce), la cinta se
+## apoya sobre el suelo en cada vértice; el paso entre las dos es gradual. `clear_win` y `clear_ctx` son los metros que la cinta flota sobre el suelo en cada zona.
+func _river_ribbon(parent: Node3D, samples: Dictionary, width: float, clear_win: float, clear_ctx: float, material: Material, flat: bool, name_: String, lateral: int = 5) -> MeshInstance3D:
+	var pts: PackedVector2Array = samples.pts
+	var alpha: PackedFloat32Array = samples.alpha
+	var along: PackedFloat32Array = samples.along
+	var count := pts.size()
+	var verts := PackedVector3Array()
+	var normals := PackedVector3Array()
+	var uvs := PackedVector2Array()
+	var colors := PackedColorArray()
+	var indices := PackedInt32Array()
+	for k in range(count):
+		var tangent := (pts[mini(k + 1, count - 1)] - pts[maxi(k - 1, 0)]).normalized()
+		var side := Vector2(-tangent.y, tangent.x) * width * 0.5
+		var win_k := 1.0 - smoothstep(0.0, RIVER_WIN_BLEND_M, _dist_to_window(pts[k]))  # 1 dentro de la ventana, 0 lejos de ella
+		var clear := lerpf(clear_ctx, clear_win, win_k)
+		var level := rendered_h(pts[k].x, pts[k].y) + clear
+		for c in range(lateral):
+			var u := lerpf(1.0, -1.0, float(c) / float(lateral - 1))  # de +1 a −1: el sentido de los índices deja la cara de arriba como la frontal (con el otro, la luz ve el reverso)
+			var q: Vector2 = pts[k] + side * u
+			var ground := rendered_h(q.x, q.y)
+			var y := ground + clear
+			if flat:
+				y = lerpf(y, maxf(level, ground + 0.5 * clear_win), win_k)
+			verts.append(Vector3(q.x, y, q.y))
+			normals.append(Vector3.UP)
+			uvs.append(Vector2(along[k], u))
+			colors.append(Color(1.0, 1.0, 1.0, alpha[k]))
+	for k in range(count - 1):
+		for c in range(lateral - 1):
+			var a := k * lateral + c
+			var d := a + lateral
+			indices.append_array(PackedInt32Array([a, a + 1, d, a + 1, d + 1, d]))
+	var arrays: Array = []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = verts
+	arrays[Mesh.ARRAY_NORMAL] = normals
+	arrays[Mesh.ARRAY_TEX_UV] = uvs
+	arrays[Mesh.ARRAY_COLOR] = colors
+	arrays[Mesh.ARRAY_INDEX] = indices
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	var mi := inst(parent, mesh, Vector3.ZERO, material, Vector3.ZERO, false)
+	mi.name = name_
+	return mi
+
+
+## Material del lecho del río: de color de la paleta y con la opacidad que traen los vértices (la cinta se apaga en sus puntas).
+func river_bed_mat(color_id: String, gain: float) -> StandardMaterial3D:
+	if not _mats.has("lecho_rio"):
+		var m := StandardMaterial3D.new()
+		m.albedo_color = pc(color_id, gain)
+		m.vertex_color_use_as_albedo = true
+		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		m.roughness = 0.95
+		m.cull_mode = BaseMaterial3D.CULL_DISABLED
+		m.render_priority = 0
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED if albedo else BaseMaterial3D.SHADING_MODE_PER_PIXEL
+		_mats["lecho_rio"] = m
+		_std_mats.append(m)
+	return _mats["lecho_rio"]
+
+
+## El río: lecho claro de grava y, encima, el agua turbia con su shader, las dos sobre la malla dibujada y terminadas donde termina el contexto. Devuelve la traza COMPLETA
+## (con sus prolongaciones de aspecto: la usan la textura del contexto y los sauces).
 func build_river(parent: Node3D) -> PackedVector2Array:
 	var line := river_polyline()
 	if line.size() < 2:
@@ -712,9 +997,13 @@ func build_river(parent: Node3D) -> PackedVector2Array:
 	var bed_w := (float(width.get("min", 25.0)) + float(width.get("max", 40.0))) * 0.5
 	var spec: Dictionary = (data.get("props", {}) as Dictionary).get("rio", {})
 	var raise := float(spec.get("raise_m", 0.2))
-	var bed_mat := mat(str(spec.get("bed_color", "piedra_gris")), 0.95, 1.18)
-	strip(parent, line, bed_w * 1.15, raise - 0.1, bed_mat, false, false, "rio_lecho")
-	strip(parent, line, bed_w * 0.62, raise + 0.05, water_mat, false, true, "rio_agua")
+	var samples := river_samples(line)
+	if (samples.pts as PackedVector2Array).size() >= 2:
+		var bed := river_bed_mat(str(spec.get("bed_color", "piedra_gris")), 1.18)
+		_river_ribbon(parent, samples, bed_w * 1.15, raise, raise + 0.1, bed, false, "rio_lecho", 9)  # 9 vértices a lo ancho: ≈ 4 m entre uno y otro, como la grilla de la ventana
+		water_mat.render_priority = 1
+		_river_ribbon(parent, samples, bed_w * 0.62, raise + 0.15, raise + 0.25, water_mat, true, "rio_agua", 5)
+		river_stats = {"muestras": (samples.pts as PackedVector2Array).size(), "largo_m": snappedf(float((samples.along as PackedFloat32Array)[(samples.along as PackedFloat32Array).size() - 1]), 1.0)}
 	return line
 
 

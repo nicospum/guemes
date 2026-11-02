@@ -15,7 +15,8 @@ extends SceneTree
 ## que ve el jugador, no una vista canónica. De cada captura del cuadro de juego se informan la saturación del suelo, la parte de píxeles de «naranja
 ## saturado» (la medida del hallazgo I-R1.0-3) y los cruces entre anillos de visibilidad. Cada escena puede llevar un tiempo (`extraccion@321`: el reloj
 ## del stub de reglas se pisa a 321 s, el alba con la extracción en marcha). `--flow` hace lo mismo pero por la escena real (main.tscn + el controlador de
-## ui_feel, con su interfaz y su cámara): es lo que ve el jugador y lo que captura el integrador.
+## ui_feel, con su interfaz y su cámara): es lo que ve el jugador y lo que captura el integrador. Al final de cada `--flow` mide además, con ventana y tiempo reales, que las
+## figuras siguen a sus agrupaciones mientras marchan a ×1 y a ×4 (hallazgo H-R1-9: desfase ≤ 1 m en todos los cuadros; `marcha` en metrics_visual.json).
 
 const V = preload("res://scripts/humahuaca/humahuaca_vocab.gd")
 const Gfx = preload("res://scripts/humahuaca/view/humahuaca_gfx.gd")
@@ -355,6 +356,7 @@ func _run_flow() -> void:
 		if view == null:
 			fail_count += 1
 			report.ok = false
+	await _flow_march()
 	game.queue_free()
 	await _frames(2)
 	report["nodes"] = 0
@@ -365,6 +367,69 @@ func _run_flow() -> void:
 	file.close()
 	print("VIS_HUMAHUACA " + JSON.stringify({"flow": flow, "fallas": fail_count, "out": out_dir}))
 	quit(0 if fail_count == 0 else 1)
+
+
+func _key(code: int) -> void:
+	for pressed in [true, false]:
+		var e := InputEventKey.new()
+		e.keycode = code
+		e.physical_keycode = code
+		e.pressed = pressed
+		root.push_input(e)
+		await process_frame
+
+
+## Hallazgo H-R1-9 por la escena real (main.tscn con el controlador, ventana y tiempo reales): con las cinco agrupaciones en marcha (el botón del «siguiente paso», cinco veces)
+## a ×1 y a ×4, la figura de cada una queda a ≤ 1 m de su posición en las reglas en TODOS los cuadros, y se mueve en cada cuadro en que se mueve la agrupación (antes quedaba
+## quieta hasta el próximo evento y saltaba hasta 123 m). Mide `view.unit_nodes[id].position` contra `rules.get_unit(id)`; solo lee el juego.
+func _flow_march() -> void:
+	game._start_humahuaca({"skip_intro": true, "seed": 9001})
+	await _frames(8)
+	var hx: Node = game.hx
+	var rules_ref: Variant = hx.get("rules")
+	var view_ref: Variant = hx.get("view")
+	if rules_ref == null or view_ref == null or not hx.has_method("qa_press_next"):
+		_check(false, "marcha: el controlador arma las reglas y la vista y ofrece qa_press_next")
+		return
+	var pressed := 0
+	for _i in range(8):
+		if hx.call("qa_press_next"):
+			pressed += 1
+			await _frames(2)
+	var result := {"ordenes": pressed}
+	for spec in [[KEY_F2, "x1"], [KEY_F4, "x4"]]:
+		await _key(int(spec[0]))
+		if bool((hx.call("qa_state") as Dictionary).get("paused", false)):
+			await _key(KEY_SPACE)
+		var t0 := Time.get_ticks_msec()
+		var worst := 0.0
+		var frames := 0
+		var fig_frames := 0
+		var logic_frames := 0
+		var last_fig := {}
+		var last_logic := {}
+		while float(Time.get_ticks_msec() - t0) < 2500.0:
+			await process_frame
+			frames += 1
+			var fig_moved := false
+			var logic_moved := false
+			for id in V.GROUPS:
+				var u: Dictionary = rules_ref.call("get_unit", id)
+				var node: Node3D = (view_ref.get("unit_nodes") as Dictionary)[id]
+				worst = maxf(worst, Vector2(node.position.x - float(u.x), node.position.z - float(u.z)).length())
+				var f2 := Vector2(node.position.x, node.position.z)
+				var l2 := Vector2(float(u.x), float(u.z))
+				if last_fig.has(id) and (last_fig[id] as Vector2).distance_to(f2) > 0.001:
+					fig_moved = true
+				if last_logic.has(id) and (last_logic[id] as Vector2).distance_to(l2) > 0.001:
+					logic_moved = true
+				last_fig[id] = f2
+				last_logic[id] = l2
+			fig_frames += 1 if fig_moved else 0
+			logic_frames += 1 if logic_moved else 0
+		result[spec[1]] = {"cuadros": frames, "cuadros_con_figura_movida": fig_frames, "cuadros_con_posicion_logica_movida": logic_frames, "desfase_max_m": snappedf(worst, 0.001)}
+		_check(pressed >= 3 and logic_frames >= 3 and fig_frames >= logic_frames and worst <= 1.0, "marcha %s: la figura de cada agrupación queda a ≤ 1 m de su posición en las reglas en todos los cuadros (desfase máximo %.3f m; se movieron en %d cuadros las agrupaciones y en %d las figuras; antes 30,8 a 123,4 m)" % [spec[1], worst, logic_frames, fig_frames])
+	report["marcha"] = result
 
 
 ## Saturación y brillo medios (HSV de los píxeles de pantalla) y el porcentaje de «naranja saturado» (S ≥ 0,55, V ≥ 0,30 y matiz entre 15° y 50°): lo que el

@@ -63,6 +63,9 @@ func _run() -> void:
 	if Fx.load_script(Fx.REAL_PATHS.view) != null:
 		view_path = Fx.REAL_PATHS.view
 		await _test_real_view()
+		await _test_terrain_rendered()
+		await _test_units_follow_rules()
+		await _test_probes_and_scales()
 	_ck(suite.elapsed_ms() < 30000, "test_hx_view corre en poco tiempo (objetivo < 30 s): %d ms" % suite.elapsed_ms())
 	suite.require_floor(int(FLOOR_BY_ROUND.get(suite.round_id, 25)))
 	suite.finish(self)
@@ -803,6 +806,7 @@ func _test_real_view() -> void:
 	var shared := materials.size() == 1 and materials.keys()[0] is ShaderMaterial
 	_ck(shared and ((materials.keys()[0] as ShaderMaterial).shader.resource_path.ends_with("humahuaca_terrain.gdshader")), "TR-091 ventana, contexto y horizonte comparten UN solo material (el shader del suelo): %s" % str(names))
 	_ck(names.has("terreno_ventana") and names.has("terreno_horizonte") and names.has("terreno_contexto_oeste") and names.has("terreno_contexto_este") and names.has("terreno_contexto_norte") and names.has("terreno_contexto_sur"), "TR-091 el terreno tiene ventana, cuatro bandas de contexto y horizonte")
+	_ck(names.has("terreno_costura_oeste") and names.has("terreno_costura_este") and names.has("terreno_costura_norte") and names.has("terreno_costura_sur"), "TR-091 la ventana y el contexto se unen con cuatro costuras que comparten los vértices del borde de la ventana (H-R1-11)")
 	_ck(union.position.x <= -7000.0 and union.end.x >= 8000.0 and union.position.z <= -7000.0 and union.end.z >= 7000.0, "TR-091 la malla llega hasta ≈ 8 km en los cuatro lados (de %s a %s)" % [str(union.position), str(union.end)])
 	var stats: Dictionary = (view.content_report as Dictionary).get("terreno", {})
 	_ck(int(stats.get("triangulos", 0)) > 60000 and int(stats.get("triangulos", 0)) < 400000, "TR-091 el terreno tiene un presupuesto de triángulos razonable (%d)" % int(stats.get("triangulos", 0)))
@@ -958,30 +962,241 @@ func _test_upright_scale_grid() -> void:
 		_ck(count >= 20 and worst >= 57.5 and best <= 62.0, "V03 con el rumbo %.0f° una ficha de 58 px pedidos mide de %.1f a %.1f px en %d posiciones del cuadro (entre 57,5 y 62)" % [yaw, worst, best, count])
 
 
-## Las uniones entre la ventana y las bandas del contexto: cada vértice del borde de una banda cae sobre el borde de la ventana con la misma altura (±0,2 m: el terreno es el mismo).
+## Las uniones entre la ventana y el contexto: las cuatro costuras (una fila de celdas pegada a cada borde de la ventana) comparten con ella los mismos vértices del borde y con
+## la misma altura. El contexto tiene un vértice cada ≈ 30 m, así que antes la malla dibujada saltaba hasta 0,67 m en la costura este (H-R1-11).
 func _terrain_has_no_cracks(ground: Node3D) -> bool:
 	var window := (ground.get_node("terreno_ventana") as MeshInstance3D).mesh as ArrayMesh
 	var wv: PackedVector3Array = window.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]
+	var on_edge := func(v: Vector3) -> bool:
+		return (absf(v.x) < 0.01 or absf(v.x - 900.0) < 0.01) and v.z > -0.01 and v.z < 652.01 or (absf(v.z) < 0.01 or absf(v.z - 652.0) < 0.01) and v.x > -0.01 and v.x < 900.01
 	var edge_heights := {}
 	for v in wv:
-		if absf(v.x) < 0.01 or absf(v.x - 900.0) < 0.01:
+		if on_edge.call(v):
 			var key := Vector2(snappedf(v.x, 1.0), snappedf(v.z, 1.0))
 			edge_heights[key] = maxf(float(edge_heights.get(key, -1.0e9)), v.y)  # el vértice de la falda queda 3 m más abajo: vale el de la superficie
 	var worst := 0.0
 	var checked := 0
-	for band in ["terreno_contexto_oeste", "terreno_contexto_este"]:
-		var mesh := (ground.get_node(band) as MeshInstance3D).mesh as ArrayMesh
-		for v in (mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX] as PackedVector3Array):
-			if (absf(v.x) < 0.01 or absf(v.x - 900.0) < 0.01) and v.z >= 0.0 and v.z <= 640.0:
-				var near_h := 1.0e9
-				for key in edge_heights:
-					if absf(key.y - v.z) <= 2.0:
-						near_h = minf(near_h, absf(float(edge_heights[key]) - v.y))
-				if near_h < 1.0e8:
-					worst = maxf(worst, near_h)
-					checked += 1
+	for seam in ["terreno_costura_oeste", "terreno_costura_este", "terreno_costura_norte", "terreno_costura_sur"]:
+		var node := ground.get_node_or_null(seam) as MeshInstance3D
+		if node == null:
+			return false
+		var surface := {}
+		for v in (node.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX] as PackedVector3Array):
+			if on_edge.call(v):
+				var key := Vector2(snappedf(v.x, 1.0), snappedf(v.z, 1.0))
+				surface[key] = maxf(float(surface.get(key, -1.0e9)), v.y)  # la falda de la costura cuelga 1 m
+		for key in surface:
+			if edge_heights.has(key):
+				worst = maxf(worst, absf(float(edge_heights[key]) - float(surface[key])))
+				checked += 1
 	suite.extra["grieta_maxima_m"] = snappedf(worst, 0.001)
-	return checked > 20 and worst <= 0.2
+	return checked > 600 and worst <= 0.01
+
+
+## El suelo que se DIBUJA, medido con rayos contra las mallas de `Terreno` (como lo mide el QA, no contra `height_at`): la altura más alta que pega en alguna malla.
+func _rendered_top(meshes: Array, x: float, z: float) -> float:
+	var top := -1.0e9
+	for tm in meshes:
+		var hit: Dictionary = (tm as TriangleMesh).intersect_ray(Vector3(x, 4000.0, z), Vector3.DOWN)
+		if not hit.is_empty():
+			top = maxf(top, float((hit["position"] as Vector3).y))
+	return top
+
+
+## H-R1-11 sobre lo que se dibuja de verdad (con el terreno y las reglas reales): (1) la malla no salta en las cuatro costuras de la ventana ni en el perímetro del contexto (≤ 0,10 m,
+## que es el tope de R06; antes 0,674 m en x = 900 y 0,32 m en z = 0); (2) ningún vértice de la cinta del río (agua y lecho) queda bajo el suelo dibujado (antes 9 de 78, hasta
+## −4,77 m); (3) la cinta llega hasta el borde del contexto en las dos puntas y no más allá (antes se cortaba en seco dentro del terreno); (4) lo mismo para los caminos y las zanjas.
+func _test_terrain_rendered() -> void:
+	var rules_script := Fx.load_script(Fx.REAL_PATHS.rules)
+	var view_script := Fx.load_script(Fx.REAL_PATHS.view)
+	if rules_script == null or view_script == null or Fx.load_script(Fx.REAL_PATHS.terrain) == null:
+		suite.pend("H-R1-11", "faltan las clases reales de reglas, terreno o vista", "r1")
+		return
+	var game_rules: RefCounted = rules_script.new()
+	game_rules.call("new_game", 9001, 1, {"skip_intro": true})
+	cam = _make_camera(root)
+	view = view_script.new()
+	root.add_child(view)
+	view.build(game_rules, "media")
+	view.update_state(0.016)
+	var ground := view.get_node("Terreno") as Node3D
+	var meshes: Array = []
+	for c in ground.get_children():
+		meshes.append((c as MeshInstance3D).mesh.generate_triangle_mesh())
+	var eps := 0.02
+	var edges := {
+		"ventana_oeste": [Vector2(0, 0), Vector2(0, 652), Vector2(-eps, 0), Vector2(eps, 0)],
+		"ventana_este": [Vector2(900, 0), Vector2(900, 652), Vector2(-eps, 0), Vector2(eps, 0)],
+		"ventana_norte": [Vector2(0, 0), Vector2(900, 0), Vector2(0, -eps), Vector2(0, eps)],
+		"ventana_sur": [Vector2(0, 652), Vector2(900, 652), Vector2(0, -eps), Vector2(0, eps)],
+		"contexto_oeste": [Vector2(-1350, -1025), Vector2(-1350, 1675), Vector2(-eps, 0), Vector2(eps, 0)],
+		"contexto_este": [Vector2(2250, -1025), Vector2(2250, 1675), Vector2(-eps, 0), Vector2(eps, 0)],
+		"contexto_norte": [Vector2(-1350, -1025), Vector2(2250, -1025), Vector2(0, -eps), Vector2(0, eps)],
+		"contexto_sur": [Vector2(-1350, 1675), Vector2(2250, 1675), Vector2(0, -eps), Vector2(0, eps)]}
+	var jumps := {}
+	var worst_jump := 0.0
+	for k in edges:
+		var e: Array = edges[k]
+		var worst := 0.0
+		for i in range(151):
+			var p: Vector2 = (e[0] as Vector2).lerp(e[1] as Vector2, float(i) / 150.0)
+			var a := _rendered_top(meshes, p.x + (e[2] as Vector2).x, p.y + (e[2] as Vector2).y)
+			var b := _rendered_top(meshes, p.x + (e[3] as Vector2).x, p.y + (e[3] as Vector2).y)
+			if a > -1.0e8 and b > -1.0e8:
+				worst = maxf(worst, absf(a - b))
+		jumps[k] = snappedf(worst, 0.001)
+		worst_jump = maxf(worst_jump, worst)
+	suite.extra["costuras_salto_max_m"] = jumps
+	_ck(worst_jump <= 0.10, "H-R1-11 la malla dibujada no salta más de 0,10 m en las cuatro costuras de la ventana ni en el perímetro del contexto (peor %.3f m: %s)" % [worst_jump, str(jumps)])
+	# la cinta del río: cada vértice sobre el suelo dibujado
+	var ctx_rect := Rect2(-1350.0, -1025.0, 3600.0, 2700.0)
+	var river_report := {}
+	for node_name in ["rio_agua", "rio_lecho"]:
+		var ribbon := view.get_node_or_null("Rasgos/" + node_name) as MeshInstance3D
+		if not _ck(ribbon != null, "H-R1-11 la cinta %s existe" % node_name):
+			continue
+		var verts: PackedVector3Array = ribbon.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]
+		var buried := 0
+		var lowest := 1.0e9
+		var highest := -1.0e9
+		for v in verts:
+			var top := _rendered_top(meshes, v.x, v.z)
+			if top < -1.0e8:
+				continue
+			buried += 1 if v.y <= top else 0
+			lowest = minf(lowest, v.y - top)
+			highest = maxf(highest, v.y - top)
+		# y también adentro de cada triángulo (el centro y los puntos medios de sus lados): el suelo puede asomar entre dos vértices aunque los dos estén por encima de él
+		var idx: PackedInt32Array = ribbon.mesh.surface_get_arrays(0)[Mesh.ARRAY_INDEX]
+		var inner_n := 0
+		var inner_buried := 0
+		var inner_low := 1.0e9
+		for t in range(0, idx.size(), 3):
+			var a: Vector3 = verts[idx[t]]
+			var b: Vector3 = verts[idx[t + 1]]
+			var c: Vector3 = verts[idx[t + 2]]
+			for p in [(a + b + c) / 3.0, (a + b) * 0.5, (b + c) * 0.5]:
+				var top_in := _rendered_top(meshes, p.x, p.z)
+				if top_in > -1.0e8:
+					inner_n += 1
+					inner_buried += 1 if p.y <= top_in else 0
+					inner_low = minf(inner_low, p.y - top_in)
+		river_report[node_name] = {"vertices": verts.size(), "tapados": buried, "peor_dy_m": snappedf(lowest, 0.01), "mayor_dy_m": snappedf(highest, 0.01),
+			"puntos_interiores": inner_n, "interiores_tapados": inner_buried, "peor_interior_dy_m": snappedf(inner_low, 0.02)}
+		_ck(verts.size() >= 100 and buried == 0 and highest <= 2.5, "H-R1-11 ningún vértice de %s queda bajo el suelo dibujado y ninguno flota a más de 2,5 m (%d vértices, %d tapados, de %.2f a %.2f m sobre el suelo)" % [node_name, verts.size(), buried, lowest, highest])
+		_ck(inner_n >= 1000 and inner_buried == 0, "H-R1-11 el suelo tampoco asoma dentro de los triángulos de %s (%d puntos interiores medidos, %d tapados, el más bajo a %.3f m sobre el suelo)" % [node_name, inner_n, inner_buried, inner_low])
+		var uvs: PackedVector2Array = ribbon.mesh.surface_get_arrays(0)[Mesh.ARRAY_TEX_UV]
+		var row := 1  # vértices por fila a lo ancho (los que comparten el UV.x del primero)
+		while row < uvs.size() and is_equal_approx(uvs[row].x, uvs[0].x):
+			row += 1
+		var first := Vector2(verts[row / 2].x, verts[row / 2].z)  # el centro de la primera fila y de la última
+		var last := Vector2(verts[verts.size() - row + row / 2].x, verts[verts.size() - row + row / 2].z)
+		var edge_gap := func(p: Vector2) -> float:
+			return minf(minf(p.x - ctx_rect.position.x, ctx_rect.end.x - p.x), minf(p.y - ctx_rect.position.y, ctx_rect.end.y - p.y))
+		var gaps := [float(edge_gap.call(first)), float(edge_gap.call(last))]
+		river_report[node_name]["distancia_de_las_puntas_al_borde_m"] = [snappedf(gaps[0], 0.1), snappedf(gaps[1], 0.1)]
+		_ck(gaps[0] >= 0.0 and gaps[0] <= 8.0 and gaps[1] >= 0.0 and gaps[1] <= 8.0, "H-R1-11 la cinta %s llega hasta el borde del contexto en las dos puntas y no pasa de él (a %.1f y %.1f m del borde)" % [node_name, gaps[0], gaps[1]])
+	suite.extra["rio_cinta_vs_suelo"] = river_report
+	# la punta recortada se apaga (no termina en un corte): la opacidad de los vértices de la punta es 0 y la de la parte de la ventana, 1
+	var water := view.get_node_or_null("Rasgos/rio_agua") as MeshInstance3D
+	if water != null:
+		var colors: PackedColorArray = water.mesh.surface_get_arrays(0)[Mesh.ARRAY_COLOR]
+		var verts_w: PackedVector3Array = water.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]
+		var end_alpha := minf(colors[0].a, colors[colors.size() - 1].a)
+		var inside_alpha := 0.0
+		for i in range(verts_w.size()):
+			if verts_w[i].x >= 600.0 and verts_w[i].x <= 880.0 and verts_w[i].z >= 20.0 and verts_w[i].z <= 380.0:
+				inside_alpha = maxf(inside_alpha, 1.0 - colors[i].a)
+		_ck(end_alpha <= 0.02 and inside_alpha <= 0.001, "H-R1-11 el río se apaga en las puntas recortadas (opacidad %.2f) y es opaco dentro de la ventana (falta %.3f)" % [end_alpha, inside_alpha])
+	# caminos y zanjas (las cintas del suelo): ningún vértice bajo el suelo dibujado
+	var strips_n := 0
+	var strips_buried := 0
+	var strips_low := 1.0e9
+	for c in (view.get_node("Rasgos") as Node3D).get_children():
+		if str(c.name).begins_with("camino_") or str(c.name).begins_with("zanja"):
+			for v in ((c as MeshInstance3D).mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX] as PackedVector3Array):
+				var top := _rendered_top(meshes, v.x, v.z)
+				if top > -1.0e8:
+					strips_n += 1
+					strips_buried += 1 if v.y <= top else 0
+					strips_low = minf(strips_low, v.y - top)
+	suite.extra["cintas_del_suelo"] = {"vertices": strips_n, "tapados": strips_buried, "peor_dy_m": snappedf(strips_low, 0.01)}
+	_ck(strips_n >= 200 and strips_buried == 0, "H-R1-11 los caminos y las zanjas no quedan bajo el suelo dibujado (%d vértices, %d tapados, el más bajo a %.2f m sobre el suelo)" % [strips_n, strips_buried, strips_low])
+	view.free()
+	view = null
+	cam.free()
+	cam = null
+	await process_frame
+
+
+## H-R1-9: cada figura de una agrupación sigue a su posición lógica CUADRO A CUADRO mientras marcha, a ×1, ×2 y ×4 (antes quedaba quieta hasta el próximo evento y saltaba hasta
+## 123 m: la vista solo leía la pose cuando subía la `version` del estado y las reglas mueven a las agrupaciones sin subirla). Con las reglas y la vista reales, avanzando las
+## reglas como lo hace el controlador (`tick(dt × velocidad)` y `update_state` en cada cuadro). Los círculos de visibilidad también siguen a las agrupaciones (a ≤ 4 m).
+func _test_units_follow_rules() -> void:
+	var rules_script := Fx.load_script(Fx.REAL_PATHS.rules)
+	var view_script := Fx.load_script(Fx.REAL_PATHS.view)
+	if rules_script == null or view_script == null:
+		suite.pend("H-R1-9", "faltan las clases reales de reglas o de vista", "r1")
+		return
+	var out := {}
+	for speed in [1.0, 2.0, 4.0]:
+		var game_rules: RefCounted = rules_script.new()
+		game_rules.call("new_game", 9001, 1, {"skip_intro": true})
+		cam = _make_camera(root)
+		view = view_script.new()
+		root.add_child(view)
+		view.build(game_rules, "media")
+		view.update_state(0.0)
+		var orders := 0
+		for id in ["rodriguez", "portal", "arias"]:
+			orders += 1 if bool((game_rules.call("issue_order", id, "position") as Dictionary).get("ok", false)) else 0
+		for pair in [["reconocedores", Vector2(330.0, 520.0)], ["arreo", Vector2(300.0, 560.0)]]:
+			orders += 1 if bool((game_rules.call("issue_order", pair[0], "move", pair[1]) as Dictionary).get("ok", false)) else 0
+		var worst_m := 0.0
+		var worst_ring := 0.0
+		var moved_frames := 0  # cuadros en que se movió alguna figura
+		var logic_frames := 0  # cuadros en que se movió alguna agrupación en las reglas
+		var before := {}
+		var before_logic := {}
+		for id in V.GROUPS:
+			before[id] = Vector2((view.unit_nodes[id] as Node3D).position.x, (view.unit_nodes[id] as Node3D).position.z)
+			var u0: Dictionary = game_rules.call("get_unit", id)
+			before_logic[id] = Vector2(float(u0.x), float(u0.z))
+		for _frame in range(360):  # 6 s reales a 60 cuadros por segundo
+			game_rules.call("tick", speed / 60.0)
+			view.update_state(1.0 / 60.0)
+			var any_moved := false
+			var any_logic := false
+			for id in V.GROUPS:
+				var u: Dictionary = game_rules.call("get_unit", id)
+				var node := view.unit_nodes[id] as Node3D
+				worst_m = maxf(worst_m, Vector2(node.position.x - float(u.x), node.position.z - float(u.z)).length())
+				var now := Vector2(node.position.x, node.position.z)
+				if now.distance_to(before[id]) > 0.001:
+					any_moved = true
+				before[id] = now
+				var now_logic := Vector2(float(u.x), float(u.z))
+				if now_logic.distance_to(before_logic[id]) > 0.001:
+					any_logic = true
+				before_logic[id] = now_logic
+			moved_frames += 1 if any_moved else 0
+			logic_frames += 1 if any_logic else 0
+			var pools: Array = (game_rules.call("render_state") as Dictionary).get("visibility_pools", [])
+			var drawn: Array = (view.fxm.ring_state as Dictionary).pools
+			if pools.size() == drawn.size():
+				for i in range(pools.size()):
+					worst_ring = maxf(worst_ring, Vector2(float(pools[i].x) - float(drawn[i].x), float(pools[i].z) - float(drawn[i].z)).length())
+		out["x%d" % int(speed)] = {"ordenes": orders, "desfase_max_m": snappedf(worst_m, 0.001), "cuadros_con_figura_movida": moved_frames, "cuadros_con_posicion_logica_movida": logic_frames,
+			"circulo_de_visibilidad_desfase_max_m": snappedf(worst_ring, 0.01)}
+		_ck(orders >= 4 and logic_frames >= 20 and moved_frames >= logic_frames, "H-R1-9 a ×%d las agrupaciones marchan y la figura se mueve en cada cuadro en que se mueve su agrupación (%d órdenes dadas; agrupaciones movidas en %d de 360 cuadros, figuras movidas en %d; antes 0)" % [int(speed), orders, logic_frames, moved_frames])
+		_ck(worst_m <= 1.0, "H-R1-9 a ×%d cada figura queda a ≤ 1 m de su agrupación en todos los cuadros (el peor desfase fue de %.3f m; antes 30,8, 92,5 y 123,4 m)" % [int(speed), worst_m])
+		_ck(worst_ring <= 4.0, "H-R1-9 a ×%d los círculos de visibilidad siguen a las agrupaciones a ≤ 4 m (el peor desfase fue de %.2f m)" % [int(speed), worst_ring])
+		view.free()
+		view = null
+		cam.free()
+		cam = null
+		await process_frame
+	suite.extra["figuras_siguen_a_las_reglas"] = out
 
 
 ## El cuadro inicial (rumbo 325° desde A-11) deja las cinco partidas a ≥ 5 % del borde en las cuatro resoluciones, abriéndose solo un paso del 4 % si hace falta.
@@ -1071,3 +1286,64 @@ func _test_yaw_data() -> void:
 	_ck(is_equal_approx(yaw, 325.0) and same, "A-11 initial_frame, juego_noche y juego_alba traen el rumbo 325° (la mirada al noroeste); hoy initial_frame.yaw_deg = %.0f°" % yaw)
 	var ids: Array = ((visual.get("initial_frame", {}) as Dictionary).get("must_include", []) as Array)
 	_ck(ids.has("spawn_arreo") and ids.has("spawn_arias") and ids.has("spawn_portal") and ids.has("spawn_rodriguez") and ids.has("spawn_reconocedores"), "A-11 el cuadro inicial exige las cinco partidas además de los tres objetivos y la zona")
+
+
+## B-026 y B-034: el rectángulo de cada ficha en `probes` mide el alto que se DIBUJA (en píxeles lógicos: por la escala de la ventana da el alto de la captura, ≥ 48 px) y cada
+## sonda dice si cae entera dentro del cuadro (una ficha más allá del borde sale marcada, no como un rectángulo de miles de píxeles). B-047: la escala contra la cámara se mide
+## una vez por cada cámara distinta y no dos por cuadro (el controlador llama a `update_state` y el `_process` de la vista llega con la misma cámara).
+func _test_probes_and_scales() -> void:
+	var script := Fx.load_script(view_path)
+	if script == null:
+		return
+	cam = _make_camera(root)
+	view = script.new()
+	root.add_child(view)
+	view.build(rules, "media")
+	var f: Dictionary = view.initial_frame(cam)
+	_frame_camera(cam, f)
+	view.update_state(0.016)
+	var frame := root.get_visible_rect()
+	var scale_y := float(root.get_screen_transform().get_scale().y)
+	if scale_y < 0.2:  # sin ventana de verdad la escala de la pantalla no significa nada (la vista hace lo mismo)
+		scale_y = 1.0
+	var fichas := 0
+	var worst_diff := 0.0
+	var lowest_px := 1.0e9
+	var consistent := true
+	for p in (view.probes(cam) as Array):
+		var rect := Rect2(float(p.rect[0]), float(p.rect[1]), float(p.rect[2]), float(p.rect[3]))
+		consistent = consistent and p.has("on_screen") and bool(p.on_screen) == Rect2(Vector2.ZERO, frame.size).encloses(rect)
+		if str(p.kind) == "ficha":
+			fichas += 1
+			var node := view.unit_nodes[str(p.id)] as Node3D
+			var base := cam.unproject_position(node.global_position)
+			var top := cam.unproject_position(view.call("_unit_top", str(p.id)))
+			worst_diff = maxf(worst_diff, absf(rect.size.y - absf(base.y - top.y)))
+			lowest_px = minf(lowest_px, rect.size.y * scale_y)
+	_ck(fichas == 5 and consistent, "B-034 cada sonda trae «on_screen» y coincide con que su rectángulo caiga entero dentro del cuadro (%d fichas)" % fichas)
+	_ck(worst_diff <= 1.0 and lowest_px >= 47.5, "B-026 el rectángulo de la ficha mide el alto dibujado (a ≤ 1 px) y por la escala de la ventana da ≥ 48 px (la más baja: %.1f px)" % lowest_px)
+	var looking_away := {"target": Vector3(350.0, 20.0, 470.0), "distance": 300.0, "pitch_deg": 35.0, "yaw_deg": 145.0}  # mira al sudeste: las partidas quedan detrás de la cámara
+	_frame_camera(cam, looking_away)
+	view.update_state(0.016)
+	var behind_ok := true
+	for p in (view.probes(cam) as Array):
+		var rect := Rect2(float(p.rect[0]), float(p.rect[1]), float(p.rect[2]), float(p.rect[3]))
+		behind_ok = behind_ok and bool(p.on_screen) == Rect2(Vector2.ZERO, frame.size).encloses(rect) and absf(rect.size.y) < 4000.0
+	_ck(behind_ok, "B-034 con la cámara mirando para otro lado, lo que queda afuera sale marcado «on_screen: false» y ninguna sonda trae un rectángulo disparatado")
+	# B-047: una medición por cámara distinta
+	_frame_camera(cam, f)
+	view.update_state(0.016)
+	var n0: int = view.scale_updates
+	view.update_state(0.016)
+	view._process(0.016)
+	view.update_state(0.016)
+	_ck(view.scale_updates == n0, "B-047 con la cámara quieta y nada movido la escala no se vuelve a medir (%d mediciones)" % (view.scale_updates - n0))
+	cam.position += Vector3(2.0, 0.0, 0.0)
+	view.update_state(0.016)
+	view._process(0.016)
+	_ck(view.scale_updates == n0 + 1, "B-047 con la cámara movida la escala se mide una vez, aunque lleguen update_state y el _process de la vista (%d mediciones)" % (view.scale_updates - n0))
+	view.free()
+	view = null
+	cam.free()
+	cam = null
+	await process_frame
