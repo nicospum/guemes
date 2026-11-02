@@ -17,6 +17,7 @@ extends SceneTree
 ##                           juega el resto con y sin ella (postergada 20 s) y cuenta si el resultado cambia ≥ 10 puntos o de victoria a derrota
 ##   --out=<json>            dónde escribir el informe (por defecto user://hx-playthrough.json)
 ##   --shots=<carpeta>       (solo scene) capturas reales JPEG de la primera partida: una por fase y la del cierre
+##   --signal-at=<s>         fuerza el instante (en segundos de partida) en que quien juega con el plan del experto da la señal; sirve para reproducir una derrota por señal temprana
 ##   --quiet                 sin la tabla de resultados
 ## El nivel «scene» necesita que main.gd tenga el gancho H4 (`_start_humahuaca(opts)`) y que el controlador exponga `rules`, `qa_step` y `paused`; la política `interfaz` hace clic
 ## en el botón del «siguiente paso» si lo encuentra (nombre que contiene «siguiente»/«next» o el texto del paso) y, si no, se anota como omitida.
@@ -48,6 +49,7 @@ var quiet := false
 var signal_from := 120.0
 var signal_to := 375.0
 var signal_step := 15.0
+var signal_force := -1.0  # --signal-at: fuerza el instante de la señal de quien juega con el plan del experto (por defecto, el de cada política)
 var games: Array = []
 var skipped: Array = []
 var game: Node = null
@@ -81,6 +83,8 @@ func _initialize() -> void:
 			signal_to = float(arg.trim_prefix("--signal-to="))
 		elif arg.begins_with("--signal-step="):
 			signal_step = maxf(1.0, float(arg.trim_prefix("--signal-step=")))
+		elif arg.begins_with("--signal-at="):
+			signal_force = float(arg.trim_prefix("--signal-at="))
 		elif arg == "--quiet":
 			quiet = true
 	if policies.is_empty():
@@ -216,7 +220,10 @@ func _play_rules(policy: String, sd: int, rep: int, att: int, progress: RefCount
 	var rules := _new_rules(sd, att)
 	if progress != null:
 		progress.call("begin_attempt", rules)
-	var rec: Dictionary = Pol.play(rules, policy, {"replicate": rep})
+	var opts := {"replicate": rep}
+	if signal_force >= 0.0:
+		opts["signal_s"] = signal_force
+	var rec: Dictionary = Pol.play(rules, policy, opts)
 	if measure == "decisions" and policy == "experto":
 		rec = _measure_decisions(rec, sd, rep, att)
 	if progress != null:
@@ -346,6 +353,8 @@ func _play_scene(policy: String, sd: int, rep: int, att: int, progress: RefCount
 	if progress != null:
 		progress.call("begin_attempt", rules)
 	var mem := {}
+	if signal_force >= 0.0:
+		mem["signal_override"] = signal_force
 	var rng := RandomNumberGenerator.new()
 	rng.seed = sd * 1009 + rep * 7919 + att
 	var last_phase := ""
