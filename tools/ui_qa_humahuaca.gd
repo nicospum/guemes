@@ -107,6 +107,7 @@ func _move(pos: Vector2) -> void:
 
 func _click(pos: Vector2, button: int = MOUSE_BUTTON_LEFT, shift: bool = false) -> void:
 	await _move(pos)
+	# apretar y soltar en el mismo cuadro: si el puntero real del SO manda un movimiento entre los dos (B-044) el botón cree que el mouse salió y pierde el clic
 	for pressed in [true, false]:
 		var e := InputEventMouseButton.new()
 		e.position = _to_window(pos)
@@ -116,7 +117,7 @@ func _click(pos: Vector2, button: int = MOUSE_BUTTON_LEFT, shift: bool = false) 
 		e.shift_pressed = shift
 		e.button_mask = (1 << (button - 1)) if pressed else 0
 		root.push_input(e)
-		await process_frame
+	await process_frame
 
 
 func _click_control(c: Control) -> void:
@@ -726,6 +727,12 @@ func _cycle_full() -> void:
 	await _frames(6)
 	await _shot("hx-apuntar")
 	_check_overflow("Apuntando")  # la barra de órdenes con los ritmos de marcha y la línea de motivo: la columna de abajo no pisa nada
+	if not (bool(hx.qa_state().aiming) and hx.orders.preview_text("recon").find("riesgo") >= 0):
+		# el puntero real del SO puede mandar un movimiento propio entre el nuestro y la medición (B-044) y rehacer la vista previa sobre OTRO punto (a 2560 × 1440 la ventana es más grande
+		# que el monitor y el puntero cae afuera del mapa: «Ese punto queda fuera del mapa.»): se vuelve a apuntar con la entrada inyectada, se anota y, si sigue mal, falla como siempre
+		notes["vista_previa_rehecha"] = int(notes.get("vista_previa_rehecha", 0)) + 1
+		await _move(bat)
+		await _frames(10)
 	check(bool(hx.qa_state().aiming) and hx.orders.preview_text("recon").find("riesgo") >= 0, "Órdenes: al apuntar «Reconocer» se ve la vista previa con su riesgo («%s»)" % hx.orders.preview_text("recon"))
 	var pill: Array = []
 	for lab in hx.overlay.drawn_labels:
@@ -819,6 +826,10 @@ func _cycle_defeat_and_victory() -> void:
 	var t0 := Time.get_ticks_msec()
 	await _click_control(retry_button)
 	await _frames(2)
+	if str(hx.qa_state().mode) != "play":  # una entrada inyectada perdida (B-044): se repite una vez y se anota; el tiempo medido incluye la repetición
+		notes["clics_repetidos"] = int(notes.get("clics_repetidos", 0)) + 1
+		await _click_control(retry_button)
+		await _frames(2)
 	var retry_s := float(Time.get_ticks_msec() - t0) / 1000.0
 	notes["reintento_s"] = snappedf(retry_s, 0.01)
 	check(retry_s <= 3.0 and str(hx.qa_state().mode) == "play", "Derrota: del clic en «Reintentar» al primer cuadro jugable pasan ≤ 3 s (%.2f s)" % retry_s)
@@ -845,6 +856,10 @@ func _cycle_defeat_and_victory() -> void:
 	# --- pausa y ayuda ---
 	await _click_control(again)
 	await _frames(4)
+	if str(hx.qa_state().dialog) == "parte":  # ídem: el clic de «Jugar de nuevo» se perdió
+		notes["clics_repetidos"] = int(notes.get("clics_repetidos", 0)) + 1
+		await _click_control(again)
+		await _frames(4)
 	hx.orders.issue("reconocedores", "recon", hx.landmark_pos("bateria"), {})
 	await _key(KEY_ESCAPE)
 	await _frames(4)

@@ -228,7 +228,7 @@ func _run() -> void:
 	for arg in OS.get_cmdline_user_args():
 		if str(arg).begins_with("--only="):
 			only = str(arg).trim_prefix("--only=")
-	var plan: Array = [["primer_cuadro", _test_first_frame], ["camara", _test_camera], ["teclas", _test_reserved_keys], ["acciones", _test_actions_and_preview],
+	var plan: Array = [["primer_cuadro", _test_first_frame], ["camara", _test_camera], ["teclas", _test_reserved_keys], ["vista_previa", _test_preview_catches_up], ["acciones", _test_actions_and_preview],
 		["aviso", _test_alert_placement], ["ventanas", _test_dialogs], ["hud_guiado", _test_hud_guided_selection], ["recortes", _test_cut_probe_sanity],
 		["objetivo", _test_objective_by_phase], ["avisos_orden", _test_order_feedback], ["carga", _test_load_chip], ["avisos_pie", _test_alert_dedupe_and_tips],
 		["reintento", _test_retry_counts], ["primera_decision", _test_first_decision],
@@ -455,6 +455,24 @@ func _test_reserved_keys() -> void:
 		await _key(KEY_ESCAPE)
 		await _frames(3)
 		suite.check(game.mode == "menu" and game.hx == null, "teclas: sin órdenes dadas, Esc vuelve al menú y libera el controlador")
+	await _leave_level()
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# La vista previa alcanza al cursor: si el último movimiento llegó dentro de los 80 ms del anterior, se rehace apenas pasa la espera (con el puntero real del SO moviéndose, la
+# vista previa de ui_qa se quedaba con un punto de afuera del mapa: «Ese punto queda fuera del mapa.» sobre un punto válido)
+
+func _test_preview_catches_up() -> void:
+	if not suite.check(await _start_level(), "vista previa: el nivel arranca"):
+		return
+	await _key(KEY_4)
+	await _key(KEY_R)
+	hx.orders.aim_move(_world_to_screen(-80.0, 300.0))
+	suite.check(str(hx.orders.plan.get("reason", "")).find("fuera del mapa") >= 0, "vista previa: un punto de afuera del mapa dice que queda afuera (%s)" % str(hx.orders.plan.get("reason", "")))
+	hx.orders.aim_move(_world_to_screen(318.0, 350.0))
+	suite.check(str(hx.orders.plan.get("reason", "")).find("fuera del mapa") >= 0, "vista previa: un movimiento dentro de los 80 ms no rehace el plan en el momento")
+	hx.orders.tick(0.2)
+	suite.check(bool(hx.orders.plan.get("ok", false)) and hx.orders.preview_text("recon").find("riesgo") >= 0, "vista previa: pasada la espera el plan es el del punto donde quedó el cursor («%s»)" % hx.orders.preview_text("recon"))
 	await _leave_level()
 
 

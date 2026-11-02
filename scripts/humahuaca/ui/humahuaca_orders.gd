@@ -28,6 +28,8 @@ var motive := ""
 var last_error := ""
 var last_result: Dictionary = {}
 var _preview_wait := 0.0
+var _preview_pending := false  # el último movimiento del cursor llegó dentro de los 80 ms de la vista previa anterior: se rehace apenas pasa la espera
+var _preview_pos := Vector2.ZERO
 ## Las órdenes que la interfaz dio con éxito, en orden: {actor, action}. Para las pruebas (qa_state().issued).
 var issued: Array = []
 
@@ -278,6 +280,7 @@ func begin_aim(action: String) -> void:
 
 
 func cancel_aim() -> void:
+	_preview_pending = false
 	if aim.is_empty() and waypoints.is_empty():
 		return
 	aim = {}
@@ -291,6 +294,10 @@ func cancel_aim() -> void:
 
 func tick(delta: float) -> void:
 	_preview_wait = maxf(0.0, _preview_wait - delta)
+	if _preview_pending and _preview_wait <= 0.0:
+		_preview_pending = false
+		if not aim.is_empty():
+			aim_move(_preview_pos)
 
 
 ## El cursor se movió con una orden en la mano: arma la vista previa (sin efectos) a lo sumo cada 80 ms.
@@ -312,7 +319,10 @@ func aim_move(pos: Vector2) -> void:
 	target_now = g
 	has_target = true
 	if _preview_wait > 0.0 and not plan.is_empty():
+		_preview_pending = true  # sin esto el cursor se quedaba quieto con la vista previa del movimiento anterior (a veces de un punto de afuera del mapa)
+		_preview_pos = pos
 		return
+	_preview_pending = false
 	_preview_wait = PREVIEW_PERIOD
 	var actor := str((aim.actors as Array)[0])
 	if action == "recon":
