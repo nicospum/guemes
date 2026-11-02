@@ -321,10 +321,8 @@ func _token_sheet() -> Dictionary:
 	var info := {"celdas": 0, "alto_px": {}}
 	hx.qa_set_ui_visible(false)
 	hx.view.call("set_time_override", 0.9, 0.0)
-	hx.reset_camera()
-	await _frames(8)
+	var pose: Dictionary = hx.initial_pose()  # el zoom por defecto; cada ficha se centra en el cuadro para que ni el borde ni otra ficha la recorten
 	var camera: Camera3D = game.camera
-	var probes: Array = hx.view.call("probes", camera)
 	var fichas := hx.view.get_node_or_null("Fichas") as Node3D
 	var anillos := hx.view.get_node_or_null("Anillos") as Node3D
 	var aros: Array = []  # los anillos propios de cada ficha no son parte de su silueta: se apagan para la hoja
@@ -335,24 +333,23 @@ func _token_sheet() -> Dictionary:
 				(mi as MeshInstance3D).visible = false
 	if anillos != null:
 		anillos.visible = false
-	await _frames(4)
-	var with_img := await _grab()
-	if fichas != null:
-		fichas.visible = false
-	await _frames(4)
-	var bare_img := await _grab()
-	if fichas != null:
-		fichas.visible = true
-	if anillos != null:
-		anillos.visible = true
-	for mi in aros:
-		(mi as MeshInstance3D).visible = true
-	var k := float(with_img.get_width()) / root.get_visible_rect().size.x  # píxeles de imagen por píxel lógico
-	var real_scale := 720.0 / float(with_img.get_height())  # a cuántos píxeles de 1280 × 720 equivale un píxel de esta captura
 	var sheet := Image.create(SHEET_CELL * V.GROUPS.size(), SHEET_CELL, false, Image.FORMAT_RGBA8)
 	sheet.fill(SHEET_BG)
 	for i in range(V.GROUPS.size()):
 		var gid := str(V.GROUPS[i])
+		var u: Dictionary = hx.rules.get_unit(gid)
+		await _pose(Vector2(float(u.x), float(u.z)), float(pose.dist), float(pose.pitch_deg), float(pose.yaw_deg))
+		await _frames(3)
+		var probes: Array = hx.view.call("probes", camera)
+		var with_img := await _grab()
+		if fichas != null:
+			fichas.visible = false
+		await _frames(4)
+		var bare_img := await _grab()
+		if fichas != null:
+			fichas.visible = true
+		var k := float(with_img.get_width()) / root.get_visible_rect().size.x  # píxeles de imagen por píxel lógico
+		var real_scale := 720.0 / float(with_img.get_height())  # a cuántos píxeles de 1280 × 720 equivale un píxel de esta captura
 		var rect := Rect2()
 		for p in probes:
 			if str((p as Dictionary).get("kind", "")) == "ficha" and str((p as Dictionary).get("id", "")) == gid:
@@ -360,7 +357,7 @@ func _token_sheet() -> Dictionary:
 				rect = Rect2(float(rr[0]), float(rr[1]), float(rr[2]), float(rr[3]))
 		if rect.size == Vector2.ZERO:
 			continue
-		var grown := rect.grow(maxf(8.0, rect.size.y * 0.25))
+		var grown := rect.grow(maxf(24.0, rect.size.y * 0.75))  # holgado: la ficha de los reconocedores (agachados) es más ancha que su rectángulo
 		var area := Rect2i(Vector2i(grown.position * k), Vector2i(grown.size * k)).intersection(Rect2i(Vector2i.ZERO, with_img.get_size()))
 		var token := _cut_token(with_img, bare_img, area)
 		if token == null:
@@ -371,12 +368,17 @@ func _token_sheet() -> Dictionary:
 		sheet.blend_rect(token, Rect2i(Vector2i.ZERO, token.get_size()), dst)
 		info.celdas += 1
 		(info.alto_px as Dictionary)[gid] = token.get_height()
+	if anillos != null:
+		anillos.visible = true
+	for mi in aros:
+		(mi as MeshInstance3D).visible = true
 	sheet.convert(Image.FORMAT_RGB8)
 	sheet.save_png(out_abs.path_join("hoja_fichas.png"))
 	files.append("hoja_fichas.png")
 	check(int(info.celdas) == V.GROUPS.size(), "Hoja de fichas: las 5 celdas tienen su ficha (%d)" % int(info.celdas))
 	hx.view.call("set_time_override", -1.0, -1.0)
 	hx.qa_set_ui_visible(true)
+	hx.reset_camera()
 	await _frames(4)
 	return info
 
