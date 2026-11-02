@@ -5,7 +5,7 @@ extends SceneTree
 ## render_state_cached (l. 132 y l. 162). Medido sin ventana: 1,3-1,7 ms el cuadro de la cámara, 0,3 ms la escala y 0,25 ms los dos render_state: un redibujo del
 ## minimapa cuesta 2,4 ms de CPU y es el mayor costo regular del nivel (≈ 24 ms por segundo de juego, un tercio de todo lo que gasta el nivel por segundo); cuando
 ## coincide con un refresco del HUD el cuadro pasa de 5,5 a 18 ms de CPU.
-## Esperado: con la cámara quieta, un segundo redibujo no vuelve a muestrear el relieve (0 height_at) y un redibujo pide a lo sumo un render_state. Hoy: ≈ 400 y 2.
+## Esperado: con la cámara quieta, un segundo redibujo no vuelve a muestrear el relieve (0 height_at) y un redibujo pide a lo sumo un render_state. Hoy: 1 100 y 2.
 ## godot --headless --path . --script tests/revision_nube/g_minimapa_rayos_por_redibujo.gd   (perfil user:// aislado). Sale con 1 si el defecto sigue.
 
 const Fx = preload("res://tests/hx_fixtures.gd")
@@ -115,5 +115,8 @@ func _run() -> void:
 	await _frames(2)
 	game.queue_free()
 	await process_frame
+	for leftover in ["user://qa_humahuaca_progress.json", "user://qa_humahuaca_checkpoint.json"]:  # el nivel en modo QA los escribe: la prueba no deja nada en user://
+		if FileAccess.file_exists(leftover):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(leftover))
 	print("resultado: %d fallas" % failures)
 	quit(1 if failures > 0 else 0)

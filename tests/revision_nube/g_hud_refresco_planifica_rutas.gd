@@ -92,5 +92,8 @@ func _run() -> void:
 	await _frames(2)
 	game.queue_free()
 	await process_frame
+	for leftover in ["user://qa_humahuaca_progress.json", "user://qa_humahuaca_checkpoint.json"]:  # el nivel en modo QA los escribe: la prueba no deja nada en user://
+		if FileAccess.file_exists(leftover):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(leftover))
 	print("resultado: %d fallas" % failures)
 	quit(1 if failures > 0 else 0)
