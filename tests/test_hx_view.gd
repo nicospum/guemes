@@ -5,6 +5,8 @@ extends SceneTree
 ## En R1.0 prueba el STUB (stubs/stub_view.gd) y los datos de data/humahuaca_visual.json; desde R1 prueba también la vista real
 ## (view/humahuaca_view.gd) con las mismas comprobaciones. Si las otras pistas ya entregaron sus stubs, arma la vista sobre ellos
 ## (tests/hx_fixtures.gd); si no, sobre las copias mínimas de tools/vis_humahuaca.gd. Piso de comprobaciones: 25 (CONTRATO 5.1).
+## Desde el hallazgo I-R1.0-3 (pase 2 de R1.0) prueba también: el alba no lava el cuadro de naranja saturado, los anillos de visibilidad no se cruzan ni
+## se dibujan con luz plena, y lo que depende de la cámara se mide con la cámara que el controlador deja DESPUÉS de llamar a update_state.
 const Fx = preload("res://tests/hx_fixtures.gd")
 const Vis = preload("res://tools/vis_humahuaca.gd")
 const VV = preload("res://scripts/humahuaca/view/vocab_view.gd")
@@ -39,6 +41,9 @@ func _run() -> void:
 	_test_palette_only()
 	_test_canonical_views()
 	_test_lights()
+	_test_dawn_wash()
+	_test_visibility_rings()
+	await _test_camera_order()
 	_test_archetypes_grayscale()
 	_test_albedo_and_probes()
 	_test_dynamic_api()
@@ -351,6 +356,226 @@ func _test_lights() -> void:
 	suite.check(not holder.visible and not view.layer_visible("lights"), "TR-097 la capa «lights» apaga las luces")
 	view.set_layer_visible("lights", true)
 	suite.check(holder.visible, "TR-097 y las vuelve a encender")
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Hallazgo I-R1.0-3 · el alba no lava el cuadro de naranja saturado
+
+## Saturación (HSV, 0 a 1) de un suelo de color `albedo` bajo la luz que arma la vista: albedo × (sol × energía × N·L + ambiente × energía), con el brillo
+## normalizado (la exposición lo compensa) y la curva de tonos ACES. Es un indicador numérico y barato; la medida real, sobre píxeles de una captura con
+## ventana, la hace tools/vis_humahuaca.gd (`naranja_saturado_pct` y `sat_media` en metrics_visual.json).
+func _ground_saturation(sun: DirectionalLight3D, env: Environment, albedo: Color, ndl: float) -> float:
+	var sun_lin := sun.light_color.srgb_to_linear()
+	var amb_lin := env.ambient_light_color.srgb_to_linear()
+	var alb := albedo.srgb_to_linear()
+	var lit := Color(alb.r * (sun_lin.r * sun.light_energy * ndl + amb_lin.r * env.ambient_light_energy),
+		alb.g * (sun_lin.g * sun.light_energy * ndl + amb_lin.g * env.ambient_light_energy),
+		alb.b * (sun_lin.b * sun.light_energy * ndl + amb_lin.b * env.ambient_light_energy))
+	var scale := 0.5 / maxf(maxf(lit.r, maxf(lit.g, lit.b)), 0.0001)
+	var channels: Array = []
+	for c in [lit.r * scale, lit.g * scale, lit.b * scale]:
+		channels.append(clampf((c * (2.51 * c + 0.03)) / (c * (2.43 * c + 0.59) + 0.14), 0.0, 1.0))
+	return Color(channels[0], channels[1], channels[2]).linear_to_srgb().s
+
+
+func _palette_color(id: String) -> Color:
+	for entry in visual.get("palette", []):
+		if str(entry.get("id", "")) == id:
+			return Color(str(entry.get("hex", "#808080")))
+	return Color(0.5, 0.5, 0.5)
+
+
+func _test_dawn_wash() -> void:
+	if view == null:
+		return
+	var sun := view.get_node("Sol") as DirectionalLight3D
+	var env := (view.get_node("Ambiente") as WorldEnvironment).environment
+	var ground := _palette_color("suelo_seco")
+	var dawn_spec: Dictionary = (visual.get("lights", {}) as Dictionary).get("alba", {})
+	view.set_time_override(0.5, 0.0)
+	var elevation := deg_to_rad(float((dawn_spec.get("sun", {}) as Dictionary).get("elevation_deg", 8.0)))
+	var flat := _ground_saturation(sun, env, ground, sin(elevation))
+	var facing_east := _ground_saturation(sun, env, ground, 0.35)  # una ladera al este: la que más sol toma al alba
+	var sun_lin := sun.light_color.srgb_to_linear()
+	var warm_ratio := sun_lin.r / maxf(sun_lin.b, 0.0001)
+	view.set_time_override(1.0, 0.0)
+	var noon := _ground_saturation(sun, env, ground, 0.6)
+	view.set_time_override(-1.0, 0.0)
+	suite.extra["alba_saturacion_suelo"] = {"plano": snappedf(flat, 0.001), "ladera_este": snappedf(facing_east, 0.001), "dia": snappedf(noon, 0.001), "relacion_rojo_azul_del_sol": snappedf(warm_ratio, 0.01)}
+	# El stub de R1.0 daba 0,54 y 0,66 (naranja saturado: sol de oro puro); con el sol de lino cálido y el ambiente frío da 0,29 y 0,40 (el suelo mismo tiene 0,38)
+	suite.check(flat <= 0.40 and facing_east <= 0.46, "I-R1.0-3 el suelo bajo la luz del alba no se satura de naranja (saturación %.2f en llano y %.2f en una ladera al este; topes 0,40 y 0,46)" % [flat, facing_east])
+	suite.check(warm_ratio >= 1.3 and warm_ratio <= 3.5, "I-R1.0-3 el alba sigue siendo cálida sin ser un oro puro (relación rojo/azul del sol %.2f, entre 1,3 y 3,5)" % warm_ratio)
+	suite.check(facing_east >= noon - 0.1, "I-R1.0-3 el alba no queda más apagada que el día pleno (%.2f contra %.2f)" % [facing_east, noon])
+	var ids := []
+	for entry in visual.palette:
+		ids.append(str(entry.id))
+	var tinted := 0
+	var tint_ok := true
+	for key in ["noche_lluvia", "alba", "dia"]:
+		var l: Dictionary = (visual.lights as Dictionary).get(key, {})
+		for part in ["sun", "ambient", "fog"]:
+			var spec: Dictionary = l.get(part, {})
+			if spec.has("tint"):
+				tinted += 1
+				tint_ok = tint_ok and ids.has(str(spec.tint)) and float(spec.get("tint_mix", 0.0)) >= 0.0 and float(spec.get("tint_mix", 0.0)) <= 1.0
+	suite.check(tinted >= 1 and tint_ok, "I-R1.0-3 el alba mezcla colores de la paleta (%d mezclas) en vez de un HEX suelto, con ids de paleta y una proporción de 0 a 1" % tinted)
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Hallazgo I-R1.0-3 · anillos de visibilidad: contorno de la unión, sin cruces, que se apagan con luz plena
+
+func _arc_length(arcs: Array) -> float:
+	var total := 0.0
+	for arc in arcs:
+		var pts: PackedVector2Array = arc.pts
+		for k in range(pts.size() - 1 + (1 if bool(arc.closed) else 0)):
+			total += pts[k].distance_to(pts[(k + 1) % pts.size()])
+	return total
+
+
+## Perímetro de la unión de los círculos, por muestreo fino del borde de cada uno (la referencia contra la que se compara el trazo de la vista).
+func _union_perimeter(pools: Array) -> float:
+	var total := 0.0
+	for i in range(pools.size()):
+		var samples := 720
+		var kept := 0
+		var ci := Vector2(float(pools[i].x), float(pools[i].z))
+		for k in range(samples):
+			var a := TAU * (float(k) + 0.5) / float(samples)
+			var point := ci + Vector2(cos(a), sin(a)) * float(pools[i].r)
+			var covered := false
+			for j in range(pools.size()):
+				if j == i:
+					continue
+				var cj := Vector2(float(pools[j].x), float(pools[j].z))
+				var d := point.distance_to(cj)
+				var same := cj.is_equal_approx(ci) and is_equal_approx(float(pools[j].r), float(pools[i].r))
+				if d < float(pools[j].r) - 1.0e-6 and not (same and j > i):
+					covered = true
+					break
+			kept += 0 if covered else 1
+		total += TAU * float(pools[i].r) * float(kept) / float(samples)
+	return total
+
+
+func _test_visibility_rings() -> void:
+	if view == null:
+		return
+	# 1) geometría del contorno de la unión (círculos sintéticos)
+	var separate: Array = view.call("_pool_arcs", [{"x": 0.0, "z": 0.0, "r": 30.0}, {"x": 200.0, "z": 0.0, "r": 30.0}])
+	var closed_count := 0
+	for arc in separate:
+		closed_count += 1 if bool(arc.closed) else 0
+	suite.check(separate.size() == 2 and closed_count == 2, "I-R1.0-3 dos círculos separados dan dos anillos enteros (%d trazos, %d cerrados)" % [separate.size(), closed_count])
+	var pair_pools := [{"x": 0.0, "z": 0.0, "r": 40.0}, {"x": 50.0, "z": 0.0, "r": 40.0}]
+	var pair: Array = view.call("_pool_arcs", pair_pools)
+	var pair_len := _arc_length(pair)
+	var expected := 2.0 * (TAU - 2.0 * acos(50.0 / 80.0)) * 40.0  # perímetro de la unión de dos círculos de radio 40 a 50 m: de cada uno queda 2π − 2·acos(d / 2r) de arco, ≈ 359 m
+	suite.check(pair.size() == 2 and absf(pair_len - expected) < expected * 0.01, "I-R1.0-3 dos círculos que se cruzan dan solo los dos arcos de afuera (%.1f m de trazo; la unión mide %.1f m)" % [pair_len, expected])
+	var nested: Array = view.call("_pool_arcs", [{"x": 0.0, "z": 0.0, "r": 50.0}, {"x": 5.0, "z": 0.0, "r": 20.0}])
+	suite.check(nested.size() == 1 and bool(nested[0].closed), "I-R1.0-3 un círculo entero dentro de otro no se dibuja")
+	var same: Array = view.call("_pool_arcs", [{"x": 10.0, "z": 10.0, "r": 35.0}, {"x": 10.0, "z": 10.0, "r": 35.0}, {"x": 10.0, "z": 10.0, "r": 35.0}])
+	suite.check(same.size() == 1 and bool(same[0].closed), "I-R1.0-3 tres círculos iguales se dibujan una sola vez")
+	suite.check((view.call("_pool_arcs", []) as Array).is_empty() and (view.call("_pool_arcs", [{"x": 0.0, "z": 0.0, "r": 0.0}]) as Array).is_empty(), "I-R1.0-3 sin círculos (o de radio cero) no hay trazos")
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 1817
+	var worst_inside := 0.0
+	var worst_gap := 0.0
+	for trial in range(40):
+		var pools: Array = []
+		for _i in range(rng.randi_range(2, 6)):
+			pools.append({"x": rng.randf_range(0.0, 300.0), "z": rng.randf_range(0.0, 300.0), "r": rng.randf_range(15.0, 140.0)})
+		var arcs: Array = view.call("_pool_arcs", pools)
+		for arc in arcs:
+			for p in (arc.pts as PackedVector2Array):
+				for q in pools:
+					worst_inside = maxf(worst_inside, float(q.r) - p.distance_to(Vector2(float(q.x), float(q.z))))
+		var reference := _union_perimeter(pools)
+		worst_gap = maxf(worst_gap, absf(_arc_length(arcs) - reference) / maxf(reference, 1.0))
+	suite.check(worst_inside < 0.05, "I-R1.0-3 ningún punto de un trazo cae dentro de otro círculo (40 casos al azar; el peor entra %.3f m)" % maxf(worst_inside, 0.0))
+	suite.check(worst_gap < 0.02, "I-R1.0-3 el trazo dibujado es el perímetro de la unión (diferencia máxima %.2f %% contra el muestreo fino, 40 casos al azar)" % (worst_gap * 100.0))
+	# 2) la opacidad baja con la visibilidad y se apaga con luz plena
+	var cfg: Dictionary = ((visual.get("fog", {}) as Dictionary).get("anillos", {}) as Dictionary).get("visibilidad", {})
+	var a_night := float(view.call("pool_alpha", 35.0))
+	var a_dawn := float(view.call("pool_alpha", 128.0))
+	var a_day := float(view.call("pool_alpha", 600.0))
+	suite.check(is_equal_approx(a_night, float(cfg.get("alpha", 0.55))) and a_dawn < a_night and a_dawn > 0.0 and a_day == 0.0, "I-R1.0-3 el anillo de visibilidad es tenue de noche (%.2f), más tenue al alba (%.2f) y no se dibuja con luz plena (%.2f)" % [a_night, a_dawn, a_day])
+	suite.check(float(cfg.get("alpha", 1.0)) <= 0.6 and float(cfg.get("width_px", 9.0)) <= 3.0, "I-R1.0-3 el anillo de visibilidad es tenue y fino por datos (opacidad %.2f, %.1f px)" % [float(cfg.get("alpha", 1.0)), float(cfg.get("width_px", 9.0))])
+	# 3) lo que la vista ARMA a partir de un render_state propio (no depende del ambiente que dé el stub de las reglas): con poca visibilidad hay trazos, con luz plena no,
+	#    y los anillos de los objetivos siempre; los vértices de los trazos no entran en otro círculo más que el medio ancho de la cinta
+	var starts := [Vector2(92.5, 455.0), Vector2(140.0, 500.0), Vector2(190.0, 545.0), Vector2(230.0, 480.0), Vector2(70.0, 520.0)]  # las cinco partidas: con 35 m se cruzan tres pares
+	var objectives := [{"id": "bateria", "x": 318.0, "z": 350.0, "state": "guardado"}, {"id": "cuartel", "x": 418.0, "z": 335.0, "state": "alertado"}, {"id": "posta", "x": 590.0, "z": 300.0, "state": "guardado"}]
+	var probe := (load(Fx.STUB_PATHS.view) as GDScript).new() as Node3D
+	root.add_child(probe)
+	probe.build(rules, "media")
+	var rings := probe.get_node("Anillos")
+	for case in [[35.0, true], [128.0, true], [600.0, false]]:
+		var pools_now: Array = []
+		for at in starts:
+			pools_now.append({"x": at.x, "z": at.y, "r": case[0]})
+		probe.call("_sync_objectives", {"objectives": objectives, "visibility_pools": pools_now, "tower": {}})
+		var pool_nodes := rings.find_children("visibilidad_*", "MeshInstance3D", false, false).size()
+		var objective_nodes := rings.find_children("objetivo_*", "MeshInstance3D", false, false).size()
+		suite.check(objective_nodes == 3 and ((pool_nodes >= 1) == bool(case[1])), "I-R1.0-3 con %.0f m de visibilidad hay %d trazo(s) de visibilidad y %d anillo(s) de objetivo (con luz plena no se dibuja ninguno de visibilidad)" % [case[0], pool_nodes, objective_nodes])
+		if bool(case[1]):
+			var crossing := 0
+			for i in range(pools_now.size()):
+				for j in range(i + 1, pools_now.size()):
+					var d := Vector2(float(pools_now[i].x), float(pools_now[i].z)).distance_to(Vector2(float(pools_now[j].x), float(pools_now[j].z)))
+					crossing += 1 if d < float(pools_now[i].r) + float(pools_now[j].r) and d > absf(float(pools_now[i].r) - float(pools_now[j].r)) else 0
+			var worst := 0.0
+			for node in rings.find_children("visibilidad_*", "MeshInstance3D", false, false):
+				var arrays := ((node as MeshInstance3D).mesh as ArrayMesh).surface_get_arrays(0)
+				for vertex in (arrays[Mesh.ARRAY_VERTEX] as PackedVector3Array):
+					for q in pools_now:
+						worst = maxf(worst, float(q.r) - Vector2(vertex.x, vertex.z).distance_to(Vector2(float(q.x), float(q.z))))
+			suite.check(pool_nodes == (probe.call("_pool_arcs", pools_now) as Array).size() and worst <= 1.5, "I-R1.0-3 con %.0f m la vista arma los trazos del contorno de la unión (%d trazos, %d pares de círculos se cruzan, el vértice que más entra en otro círculo entra %.2f m)" % [case[0], pool_nodes, crossing, worst])
+			suite.extra["anillos_%dm_pares_que_se_cruzan" % int(case[0])] = crossing
+	probe.free()
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Hallazgo I-R1.0-3 · lo que depende de la cámara se mide con la cámara que el controlador deja DESPUÉS de llamar a update_state
+
+class OrderProbe extends Node:
+	var target_view: Node3D
+	var camera: Camera3D
+	var menu_xf: Transform3D
+	var game_xf: Transform3D
+
+	## El orden real de un cuadro: main deja la cámara donde la quería el menú, el controlador llama a update_state con ESA cámara y recién al final la reubica.
+	func _process(delta: float) -> void:
+		camera.transform = menu_xf
+		target_view.update_state(delta)
+		camera.transform = game_xf
+
+
+func _test_camera_order() -> void:
+	if view == null:
+		return
+	var f: Dictionary = view.initial_frame(cam)
+	_frame_camera(cam, f)
+	var shell := OrderProbe.new()
+	shell.target_view = view
+	shell.camera = cam
+	shell.game_xf = cam.transform
+	shell.menu_xf = Transform3D(Basis.IDENTITY, Vector3(-5.0, 4.0, 0.0))  # la cámara del menú: a ras del suelo, lejos de las fichas
+	root.remove_child(view)
+	shell.add_child(view)  # como en el juego: la vista es hija del controlador, así que su _process corre después del de él
+	root.add_child(shell)
+	await process_frame
+	await process_frame
+	await process_frame
+	var scale_after_frames: Vector3 = (view.unit_nodes["rodriguez"] as Node3D).scale
+	cam.transform = shell.game_xf
+	view.call("_update_scales")  # la escala que corresponde a la cámara del juego
+	var wanted: Vector3 = (view.unit_nodes["rodriguez"] as Node3D).scale
+	shell.remove_child(view)
+	root.add_child(view)
+	shell.queue_free()
+	await process_frame
+	suite.check(scale_after_frames.is_equal_approx(wanted) and wanted.y > 4.7, "I-R1.0-3 tras un cuadro con el orden real (update_state con la cámara del menú y la del juego después) la ficha ya tiene la escala de la cámara del juego (%.2f contra %.2f)" % [scale_after_frames.y, wanted.y])
+	_frame_camera(cam, f)
 
 
 # ---------------------------------------------------------------------------------------------------------------------

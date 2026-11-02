@@ -30,6 +30,11 @@ const SURFACE_COLOR := {"suelo_seco": "suelo_seco", "sedimento_humedo": "sedimen
 const STATE_RING := {"guardado": "blanco_textil", "alertado": "oro_laton", "en_alarma": "rojo_reservado", "asaltado": "borgona_hipotetica", "tomado": "celeste_produccion"}
 const LOOT_COLOR := {"polvora": "madera_oscura", "canones": "hierro", "fusiles": "madera_oscura", "viveres": "lana_natural", "plata": "oro_laton"}
 const LIGHT_HEIGHT := {"brasero": 1.6, "ventana": 3.0, "candil": 2.0, "fogata": 1.1}
+## Anillos del suelo (`humahuaca_visual.json: fog.anillos` los pisa): ancho en píxeles de pantalla (no en metros: así no engordan al acercar la cámara),
+## el de visibilidad se desvanece entre `fade_from_m` y `fade_to_m` de visibilidad (con luz plena ver lejos no informa nada) y se dibuja como contorno
+## de la unión de los círculos, sin los cruces entre anillos (hallazgo I-R1.0-3).
+const RING_DEFAULTS := {"visibilidad": {"alpha": 0.55, "fade_from_m": 70.0, "fade_to_m": 180.0, "width_px": 2.0, "color": "celeste_produccion"},
+	"objetivo": {"alpha": 0.9, "width_px": 4.0}}
 
 var selected_ids: Array = []
 var unit_nodes: Dictionary = {}
@@ -67,6 +72,9 @@ var _tokens: Dictionary = {}
 var _scaled: Array = []
 var _fx: Array = []
 var _minimap_cache: Dictionary = {}
+var _ring_state: Dictionary = {"objs": [], "pools": []}  ## lo último que dijo render_state() sobre los anillos (para rearmarlos al acercar o alejar la cámara)
+var _ring_bucket := -999
+var _ring_hash := 0
 var _version := -2
 var _time := 0.0
 var _omni_count := 0
@@ -127,6 +135,9 @@ func _clear_scene() -> void:
 	_scaled = []
 	_fx = []
 	_minimap_cache.clear()
+	_ring_state = {"objs": [], "pools": []}
+	_ring_bucket = -999
+	_ring_hash = 0
 	unit_nodes = {}
 	unit_labels = {}
 	_omni_count = 0
@@ -736,8 +747,24 @@ func update_state(delta: float) -> void:
 	if _env_dirty:
 		_apply_environment()
 	_update_scales()
+	_check_rings()
 	_update_fx(delta)
 	_update_selection()
+
+## Lo que depende de la cámara se recalcula también acá: el controlador llama a `update_state` ANTES de ubicar la cámara de ese cuadro (main la deja donde
+## la quería el menú y el controlador la reubica al final de su `_process`), así que las fichas, las luces y los anillos se medían con la cámara del cuadro
+## anterior o con la del menú y salían de 12 a 30 px en vez de ≥ 48 px (se midió con la escena real). Este `_process` corre después del de su padre,
+## con la cámara ya puesta.
+func _process(_delta: float) -> void:
+	if _rules == null or _roots.is_empty():
+		return
+	_update_scales()
+	_check_rings()
+
+## Rearma los anillos del suelo si, al acercar o alejar la cámara, el ancho que piden en metros cambió lo bastante.
+func _check_rings() -> void:
+	if _ring_bucket != _ring_bucket_now():
+		_rebuild_rings()
 
 func _sync_environment(state: Dictionary) -> void:
 	var env: Dictionary = state.get("env", {}) if state.get("env", null) is Dictionary else {}
@@ -793,10 +820,7 @@ func _sync_units(state: Dictionary) -> void:
 
 ## Anillos de estado de los objetivos y de visibilidad; y cuál de las dos torres del diseño es la del mundo (la que `tower` ubica).
 func _sync_objectives(state: Dictionary) -> void:
-	var root: Node3D = _roots.Anillos
-	for child in root.get_children():
-		root.remove_child(child)
-		child.free()
+	var objs: Array = []
 	for o in state.get("objectives", []):
 		if not (o is Dictionary):
 			continue
@@ -805,15 +829,16 @@ func _sync_objectives(state: Dictionary) -> void:
 		if _lm_by_id.has(id):
 			var fp := _footprint(_lm_by_id[id])
 			radius = maxf(float(fp.w), float(fp.d)) * 0.5 + 4.0
-		var ring := _strip(root, _circle(Vector2(float(o.get("x", 0.0)), float(o.get("z", 0.0))), radius), 2.4, 0.3, _flat_mat(str(STATE_RING.get(str(o.get("state", "guardado")), "piedra_gris")), 0.9), true)
-		ring.name = "objetivo_" + id
-	var pool_index := 0
+		objs.append({"id": id, "c": Vector2(float(o.get("x", 0.0)), float(o.get("z", 0.0))), "r": radius, "color": str(STATE_RING.get(str(o.get("state", "guardado")), "piedra_gris"))})
+	var pools: Array = []
 	for p in state.get("visibility_pools", []):
-		if not (p is Dictionary):
-			continue
-		var pool := _strip(root, _circle(Vector2(float(p.get("x", 0.0)), float(p.get("z", 0.0))), maxf(float(p.get("r", 20.0)), 3.0)), 1.4, 0.3, _flat_mat("celeste_produccion", 0.5), true)
-		pool.name = "visibilidad_%d" % pool_index
-		pool_index += 1
+		if p is Dictionary:
+			pools.append({"x": float(p.get("x", 0.0)), "z": float(p.get("z", 0.0)), "r": maxf(float(p.get("r", 20.0)), 3.0)})
+	var wanted := {"objs": objs, "pools": pools}
+	if wanted.hash() != _ring_hash or _ring_bucket != _ring_bucket_now():  # la versión sube en casi cada paso: se rearma solo si cambió algo de los anillos
+		_ring_state = wanted
+		_ring_hash = wanted.hash()
+		_rebuild_rings()
 	var tower: Variant = state.get("tower", {})
 	var at := Vector2(-9999.0, -9999.0)
 	if tower is Dictionary and not (tower as Dictionary).is_empty():
@@ -831,6 +856,122 @@ func _sync_objectives(state: Dictionary) -> void:
 				chosen = str(lid)
 	if chosen != "":
 		(_lm_nodes[chosen] as Node3D).visible = true
+
+## Configuración de un tipo de anillo: los valores de RING_DEFAULTS pisados por `fog.anillos.<tipo>` del JSON.
+func _ring_cfg(kind: String) -> Dictionary:
+	var cfg: Dictionary = (RING_DEFAULTS[kind] as Dictionary).duplicate()
+	var rings: Variant = (_data.get("fog", {}) as Dictionary).get("anillos", {})
+	if rings is Dictionary and (rings as Dictionary).get(kind, null) is Dictionary:
+		cfg.merge((rings as Dictionary)[kind], true)
+	return cfg
+
+## Opacidad de los anillos de visibilidad según cuánto se ve: plena de noche y casi nula con luz plena (la visibilidad que importa es la corta).
+func pool_alpha(visibility_m: float) -> float:
+	var cfg := _ring_cfg("visibilidad")
+	var t := clampf((visibility_m - float(cfg.fade_from_m)) / maxf(float(cfg.fade_to_m) - float(cfg.fade_from_m), 1.0), 0.0, 1.0)
+	return float(cfg.alpha) * (1.0 - t * t * (3.0 - 2.0 * t))
+
+## Ancho en metros de un trazo del suelo que debe medir `px` píxeles reales donde mira la cámara (sin cámara: lo que mide a la distancia del cuadro inicial).
+func _ring_width_m(px: float) -> float:
+	var cam: Camera3D = get_viewport().get_camera_3d() if is_inside_tree() else null
+	if cam == null or not cam.is_inside_tree():
+		return px * 0.55
+	var forward := -cam.global_transform.basis.z
+	var reach := maxf((cam.global_position.y - FLAT_H) / maxf(-forward.y, 0.08), 5.0)
+	return clampf(px / _screen_scale() * _meters_per_px_at(cam, cam.global_position + forward * reach), 0.3, 8.0)
+
+## Cubo (en pasos de ×1,3) del ancho que hoy piden los trazos: los anillos se rearman solo cuando cambia, no en cada cuadro.
+func _ring_bucket_now() -> int:
+	return int(round(log(maxf(_ring_width_m(1.0), 0.05)) / log(1.3)))
+
+func _rebuild_rings() -> void:
+	var root: Node3D = _roots.get("Anillos")
+	if root == null:
+		return
+	for child in root.get_children():
+		root.remove_child(child)
+		child.free()
+	var objective_cfg := _ring_cfg("objetivo")
+	var objective_w := _ring_width_m(float(objective_cfg.width_px))
+	for o in _ring_state.objs:
+		var ring := _strip(root, _circle(o.c, float(o.r)), objective_w, 0.5, _flat_mat(str(o.color), float(objective_cfg.alpha)), true)
+		ring.name = "objetivo_" + str(o.id)
+	var pools: Array = _ring_state.pools
+	var seen_m := 0.0
+	for p in pools:
+		seen_m = maxf(seen_m, float(p.r))
+	var pool_cfg := _ring_cfg("visibilidad")
+	var alpha := pool_alpha(seen_m)
+	if alpha >= 0.03:
+		var pool_w := _ring_width_m(float(pool_cfg.width_px))
+		var material := _flat_mat(str(pool_cfg.color), alpha)
+		var index := 0
+		for arc in _pool_arcs(pools):
+			var pool := _strip(root, arc.pts, pool_w, 0.5, material, bool(arc.closed))
+			pool.name = "visibilidad_%d" % index
+			index += 1
+	_ring_bucket = _ring_bucket_now()
+
+## Contorno de la UNIÓN de los círculos de visibilidad `[{x, z, r}]`: de cada círculo se conservan solo los arcos que no caen dentro de otro. Dibujados
+## enteros, los anillos de cinco fichas se cruzaban en diez puntos y ensuciaban el mapa (hallazgo I-R1.0-3). Devuelve `[{pts: PackedVector2Array, closed: bool}]`;
+## los extremos de cada arco son los puntos exactos de cruce entre dos círculos.
+func _pool_arcs(pools: Array) -> Array:
+	var circles: Array = []
+	for p in pools:
+		if p is Dictionary and float(p.get("r", 0.0)) > 1.0:
+			circles.append({"c": Vector2(float(p.get("x", 0.0)), float(p.get("z", 0.0))), "r": float(p.r)})
+	var out: Array = []
+	for i in range(circles.size()):
+		var ci: Vector2 = circles[i].c
+		var ri: float = circles[i].r
+		var covered: Array = []  # intervalos [a0, a1] de ángulo (dentro de 0..2π) que tapan los otros círculos
+		var inside := false
+		for j in range(circles.size()):
+			if j == i:
+				continue
+			var cj: Vector2 = circles[j].c
+			var rj: float = circles[j].r
+			var d := ci.distance_to(cj)
+			if d >= ri + rj - 0.01:  # separados o tangentes por fuera: no se tapan
+				continue
+			if d + ri <= rj + 0.01 and (ri < rj - 0.01 or j < i):  # i entera dentro de j (si son iguales, gana el de menor índice)
+				inside = true
+				break
+			if d + rj <= ri + 0.01:  # j entera dentro de i: no tapa nada del borde de i
+				continue
+			var theta := atan2(cj.y - ci.y, cj.x - ci.x)
+			var half := acos(clampf((ri * ri + d * d - rj * rj) / (2.0 * ri * d), -1.0, 1.0))
+			var a0 := fposmod(theta - half, TAU)
+			var a1 := a0 + 2.0 * half
+			if a1 > TAU:
+				covered.append([a0, TAU])
+				covered.append([0.0, a1 - TAU])
+			else:
+				covered.append([a0, a1])
+		if inside:
+			continue
+		covered.sort_custom(func(a, b): return a[0] < b[0])
+		var free: Array = []
+		var cursor := 0.0
+		for span in covered:
+			if span[0] > cursor + 1.0e-4:
+				free.append([cursor, span[0]])
+			cursor = maxf(cursor, span[1])
+		if cursor < TAU - 1.0e-4:
+			free.append([cursor, TAU])
+		if free.size() > 1 and free[0][0] <= 1.0e-4 and free[free.size() - 1][1] >= TAU - 1.0e-4:  # un arco que cruza el ángulo 0 viene partido en dos
+			var tail: Array = free.pop_back()
+			free[0] = [tail[0] - TAU, free[0][1]]
+		for arc in free:
+			var length: float = arc[1] - arc[0]
+			var steps := maxi(int(ceil(length / deg_to_rad(5.0))), 2)
+			var closed := length >= TAU - 1.0e-3
+			var pts := PackedVector2Array()
+			for k in range(steps if closed else steps + 1):
+				var a: float = arc[0] + length * float(k) / float(steps)
+				pts.append(ci + Vector2(cos(a), sin(a)) * ri)
+			out.append({"pts": pts, "closed": closed})
+	return out
 
 ## Defensores (`enemies`) y botín (`loot`): figuras chicas que crecen hasta un mínimo de píxeles para leerse desde lejos.
 func _sync_things(root_name: String, category: String, list: Array) -> void:
@@ -997,6 +1138,15 @@ func _update_selection() -> void:
 # ---------------------------------------------------------------------------------------------------------------------
 # Luz, niebla y lluvia
 
+## Un color de luz: el id de paleta de `color` (con `gain`) y, si trae `tint`, mezclado hacia ese otro id de paleta en `tint_mix` (0 a 1). Así un sol del alba
+## puede ser un blanco apenas cálido sin escribir un HEX suelto: el oro puro (sin mezcla) lavaba todo el cuadro de naranja saturado (hallazgo I-R1.0-3).
+func _tinted(spec: Dictionary, default_id: String) -> Color:
+	var base := _pc(str(spec.get("color", default_id)), float(spec.get("gain", 1.0)))
+	var tint_id := str(spec.get("tint", ""))
+	if tint_id == "":
+		return base
+	return base.lerp(_pc(tint_id, float(spec.get("tint_gain", 1.0))), clampf(float(spec.get("tint_mix", 0.0)), 0.0, 1.0))
+
 func _light_params(key: String) -> Dictionary:
 	var l: Dictionary = (_data.get("lights", {}) as Dictionary).get(key, {})
 	var sun: Dictionary = l.get("sun", {})
@@ -1006,13 +1156,13 @@ func _light_params(key: String) -> Dictionary:
 	return {
 		"t": float(l.get("time_of_day", VV.TIME_OF_DAY.get(key, 0.0))),
 		"sun_el": float(sun.get("elevation_deg", 30.0)), "sun_az": float(sun.get("azimuth_deg", 90.0)),
-		"sun_col": _pc(str(sun.get("color", "blanco_textil")), float(sun.get("gain", 1.0))), "sun_energy": float(sun.get("energy", 1.0)),
+		"sun_col": _tinted(sun, "blanco_textil"), "sun_energy": float(sun.get("energy", 1.0)),
 		"sun_shadow": 1.0 if bool(sun.get("shadows", false)) else 0.0,
-		"amb_col": _pc(str(amb.get("color", "cal_envejecida")), float(amb.get("gain", 1.0))), "amb_energy": float(amb.get("energy", 0.8)),
+		"amb_col": _tinted(amb, "cal_envejecida"), "amb_energy": float(amb.get("energy", 0.8)),
 		"sky_top": _pc(str(sky.get("top", "azul_elegido")), float(sky.get("top_gain", 1.0))),
 		"sky_hor": _pc(str(sky.get("horizon", "cal_envejecida")), float(sky.get("horizon_gain", 1.0))),
 		"sky_gnd": _pc(str(sky.get("ground", "suelo_seco")), float(sky.get("ground_gain", 1.0))),
-		"fog_col": _pc(str(fog.get("color", "cal_envejecida")), float(fog.get("gain", 1.0))), "fog_density": float(fog.get("density", 0.001)),
+		"fog_col": _tinted(fog, "cal_envejecida"), "fog_density": float(fog.get("density", 0.001)),
 		"exposure": float(l.get("exposure", 1.0))}
 
 func _blend_params(a: Dictionary, b: Dictionary, k: float) -> Dictionary:

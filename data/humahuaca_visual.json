@@ -40,13 +40,13 @@
 		},
 		"alba": {
 			"time_of_day": 0.5,
-			"sun": {"elevation_deg": 8.0, "azimuth_deg": 82.0, "color": "oro_laton", "gain": 1.2, "energy": 1.6, "shadows": true},
-			"ambient": {"color": "agua_turbia", "gain": 1.0, "energy": 0.42},
-			"sky": {"top": "azul_elegido", "top_gain": 1.2, "horizon": "paja", "horizon_gain": 1.05, "ground": "sedimento_humedo", "ground_gain": 0.7},
-			"fog": {"color": "paja", "gain": 0.9, "density": 0.00006},
+			"sun": {"elevation_deg": 8.0, "azimuth_deg": 82.0, "color": "lino_crudo", "gain": 1.0, "tint": "oro_laton", "tint_mix": 0.4, "energy": 1.7, "shadows": true},
+			"ambient": {"color": "celeste_produccion", "gain": 0.95, "tint": "agua_turbia", "tint_mix": 0.3, "energy": 0.55},
+			"sky": {"top": "azul_elegido", "top_gain": 1.2, "horizon": "paja", "horizon_gain": 1.15, "ground": "sedimento_humedo", "ground_gain": 0.7},
+			"fog": {"color": "cal_envejecida", "gain": 0.95, "tint": "celeste_produccion", "tint_mix": 0.25, "density": 0.00006},
 			"exposure": 1.0,
 			"tag": "diseno",
-			"source": "sol a 6° o 7°, cálido, sombras largas, niebla de valle (diseño 11.2); valores de partida a calibrar"
+			"source": "sol a 6° o 7°, cálido sin saturar (lino y 40 % de oro, I-R1.0-3), sombras largas, niebla de valle (diseño 11.2)"
 		},
 		"dia": {
 			"time_of_day": 1.0,
@@ -76,6 +76,10 @@
 		"density_min": 0.00002,
 		"density_max": 0.002,
 		"tag": "diseno",
+		"anillos": {
+			"visibilidad": {"color": "celeste_produccion", "alpha": 0.55, "fade_from_m": 70, "fade_to_m": 180, "width_px": 2.0},
+			"objetivo": {"alpha": 0.9, "width_px": 4.0}
+		},
 		"source": "una sola niebla por escena; la visibilidad de juego la dibujan los anillos, no la niebla"
 	},
 	"materials": {
