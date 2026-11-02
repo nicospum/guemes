@@ -500,9 +500,19 @@ func _mut_v17() -> void:
 		h4.sources.append({"id": "S40", "title": "x"})
 		suite.check(not v17_history(h4).is_empty(), "sanidad: V17 ve una fuente nueva que no empieza en S46 (S40 ya existe)")
 		var h5 := hist_base.duplicate(true)
-		h5.sources.append({"id": "S46", "title": "nueva"})
-		suite.check(v17_history(h5).is_empty(), "sanidad: agregar la fuente S46 es legal")
-		h5.sources.append({"id": "S46", "title": "repetida"})
+		# El id libre siguiente, no «S46» a ciegas: apenas reglas_historia agrega sus fuentes (S46 en adelante), plantar S46 de nuevo es un id repetido
+		# y la mutación fallaba por un defecto suyo y no de V17 (ADDENDA A-12; el mismo patrón que la sanidad de V5 en A-06).
+		var next_n := 46
+		var sid_rx := RegEx.new()
+		sid_rx.compile("^S(\\d+)[a-z]?$")
+		for existing in h5.sources:
+			var sid_m := sid_rx.search(str(existing.get("id", "")) if existing is Dictionary else "")
+			if sid_m != null:
+				next_n = maxi(next_n, int(sid_m.get_string(1)) + 1)
+		var new_sid := "S%d" % next_n
+		h5.sources.append({"id": new_sid, "title": "nueva"})
+		suite.check(v17_history(h5).is_empty(), "sanidad: agregar una fuente con el id libre siguiente (%s, desde S46) es legal" % new_sid)
+		h5.sources.append({"id": new_sid, "title": "repetida"})
 		suite.check(not v17_history(h5).is_empty(), "sanidad: V17 ve un id de fuente repetido")
 		var h6 := hist_base.duplicate(true)
 		for fact in h6.scenarios.norte.facts:
