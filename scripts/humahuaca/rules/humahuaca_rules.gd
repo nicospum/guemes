@@ -296,9 +296,12 @@ func _all_taken() -> bool:
 # es el tiempo seguido sin ninguna. Se mide una vez por segundo de juego. La medida de decisiones significativas la hace tools/humahuaca_playthrough.gd.
 
 func _note_offers(t: float) -> void:
+	_record_offer(t, _info().offer_now())
+
+## Una orden dada es una oferta que existía: cuenta como decisión posible aunque el «siguiente paso» ya no la muestre cuando se mide (el jugador se le adelantó).
+func _record_offer(t: float, offered: bool) -> void:
 	var pace_stats: Dictionary = state.stats.pacing
 	var last: Dictionary = state.pacing_last
-	var offered := _info().offer_now()
 	var attacking := str(state.phase) == "ataque"
 	if attacking and float(last.attack_gap_start) < 0.0:
 		last.attack_gap_start = t
@@ -622,6 +625,7 @@ func give_signal() -> Dictionary:
 		return {"ok": false, "reason": str(c.reason)}
 	_ensure_started()
 	_note_order(_pt(0.0, 0.0), "", "give_signal")
+	_record_offer(float(state.elapsed), true)
 	_fire_signal(false)
 	return {"ok": true, "reason": ""}
 
@@ -1308,6 +1312,7 @@ func _apply_order(c: Dictionary, action: String, opts: Dictionary) -> void:
 	_ensure_started()
 	var prev := {"stage": str(u.stage), "order": (u.order as Dictionary).duplicate(true)}
 	_note_order(_pt(float(c.dest.x), float(c.dest.y)), str(u.id), action)
+	_record_offer(float(state.elapsed), true)
 	var last: Dictionary = (state.orders as Array)[(state.orders as Array).size() - 1]
 	last["prev"] = prev
 	u.detected = false

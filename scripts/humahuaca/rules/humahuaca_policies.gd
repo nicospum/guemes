@@ -407,27 +407,36 @@ static func play(rules: RefCounted, policy: String, opts: Dictionary = {}) -> Di
 	if opts.has("signal_s"):
 		mem["signal_override"] = float(opts.signal_s)
 	var max_s := float(opts.get("max_s", float(D.rules().time.deadline_s) + 5.0))
-	var approaches := {}
-	var exceptions := 0
-	var max_critical := 0
 	var guard := 0
 	while str(rules.state.status) == "playing" and float(rules.state.elapsed) < max_s and guard < 4000:
 		guard += 1
-		var view := make_view(rules, policy, mem)
-		var criticas := 0
-		for a in view.hud.get("alertas", []):
-			if str(a.nivel) == "critica":
-				criticas += 1
-		max_critical = maxi(max_critical, criticas)
-		var orders := decide(policy, view, rng)
-		for o in orders:
-			if str(o.action) == "position":
-				var fid := _group_front(str(o.actor))
-				approaches[fid] = str((o.opts as Dictionary).get("approach", ""))
-		for res in apply_orders(rules, orders):
-			if not (res is Dictionary):
-				exceptions += 1
+		step(rules, policy, mem, rng)
+	return record_of(rules, policy, mem)
+
+## Un paso de la partida: arma la vista, decide, aplica las órdenes y avanza STEP_S. Lo comparten play() y las herramientas que llevan el reloj por su cuenta (la escena
+## real, la ramificación de decisiones). Devuelve las órdenes dadas. En `mem` quedan el enfoque elegido por frente y el máximo de alertas críticas a la vez.
+static func step(rules: RefCounted, policy: String, mem: Dictionary, rng: RandomNumberGenerator, advance: bool = true) -> Array:
+	var view := make_view(rules, policy, mem)
+	var criticas := 0
+	for a in view.hud.get("alertas", []):
+		if str(a.nivel) == "critica":
+			criticas += 1
+	mem["max_critical"] = maxi(int(mem.get("max_critical", 0)), criticas)
+	var orders := decide(policy, view, rng)
+	var approaches: Dictionary = mem.get("approaches", {})
+	for o in orders:
+		if str(o.action) == "position":
+			approaches[_group_front(str(o.actor))] = str((o.opts as Dictionary).get("approach", ""))
+	mem["approaches"] = approaches
+	for res in apply_orders(rules, orders):
+		if not (res is Dictionary):
+			mem["exceptions"] = int(mem.get("exceptions", 0)) + 1
+	if advance:
 		rules.call("tick", STEP_S)
+	return orders
+
+## El registro de una partida terminada (o cortada): los campos que lee qa_balance.py. `mem` es la memoria con que se jugó (de ahí salen el enfoque y las alertas críticas).
+static func record_of(rules: RefCounted, policy: String, mem: Dictionary) -> Dictionary:
 	var timed_out := str(rules.state.status) == "playing"
 	var rep: Dictionary = rules.call("campaign_report")
 	var taken := 0
@@ -437,6 +446,7 @@ static func play(rules: RefCounted, policy: String, opts: Dictionary = {}) -> Di
 	var gp: Dictionary = rep.golpe
 	var pacing: Dictionary = rules.state.stats.pacing
 	var valid: bool = bool((rules.call("validate_snapshot", rules.call("snapshot")) as Dictionary).get("ok", false))
+	var approaches: Dictionary = mem.get("approaches", {})
 	var opening: Array = []
 	for fid in V.OBJECTIVES:
 		var ap := str(approaches.get(fid, ""))
@@ -447,4 +457,4 @@ static func play(rules: RefCounted, policy: String, opts: Dictionary = {}) -> Di
 		"elapsed_s": float(rep.elapsed), "golpe": float(gp.entregado) + float(gp.destruido) + float(gp.oculto), "loss_pct": float(rep.loss_pct), "fronts_taken": taken,
 		"opening": "|".join(PackedStringArray(opening)), "variant": rep.variant, "first_decision_s": float(pacing.first_decision_s),
 		"decision_gap_max_s": float(pacing.decision_gap_max_s), "decision_gap_attack_max_s": float(pacing.decision_gap_attack_max_s), "decision_metric": "oferta",
-		"max_critical_alerts": max_critical, "exceptions": exceptions + (1 if timed_out else 0), "timeout": timed_out, "valid": valid}
+		"max_critical_alerts": int(mem.get("max_critical", 0)), "exceptions": int(mem.get("exceptions", 0)) + (1 if timed_out else 0), "timeout": timed_out, "valid": valid}

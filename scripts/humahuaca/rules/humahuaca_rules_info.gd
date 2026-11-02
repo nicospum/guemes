@@ -160,6 +160,26 @@ func _arreo_step(t: float, allow_leave: bool) -> Dictionary:
 		return {}
 	return _step_dict("leave", {}, "arreo", "leave", _hito_pos("salida_este"), 2 if urgent else 1)
 
+## Quien terminó su frente puede socorrer al que más cuesta (es el «Arias acude a Portal» del diseño). {} si nadie puede o nada hace falta.
+func _support_step() -> Dictionary:
+	var hardest := ""
+	var lowest := 101.0
+	for fid in V.OBJECTIVES:
+		var o: Dictionary = state.objectives[fid]
+		if str(o.state) == "tomado" or str(o.state) != "asaltado":
+			continue
+		if float(o.toma) < lowest:
+			lowest = float(o.toma)
+			hardest = fid
+	if hardest == "":
+		return {}
+	for g in V.COMBAT_GROUPS:
+		var u := _unit(g)
+		var own := str(_rules.groups[g].front)
+		if own != hardest and str(state.objectives[own].state) == "tomado" and (str(u.stage) == "holding" or str(u.stage) == "idle"):
+			return _step_dict("support", {"grupo": str(_rules.groups[g].short), "socorrido": str(_rules.groups[str(_rules.objectives[hardest].group)].short)}, g, "support", _hito_pos(str(_rules.objectives[hardest].hito)), 1)
+	return {}
+
 func next_step() -> Dictionary:
 	var t := float(state.elapsed)
 	var tm: Dictionary = _rules.time
@@ -206,6 +226,9 @@ func next_step() -> Dictionary:
 				if D.dist(float(u2.x), float(u2.z), c.x, c.y) <= float(_rules.combat.attack_range_m):
 					return _step_dict("attack", {"grupo": str(_rules.groups[g].short), "frente": str(_rules.objectives[fid].place)}, g, "attack", c, 1)
 				return _step_dict("position", {"grupo": str(_rules.groups[g].short)}, g, "position", _attack_post(fid, {}), 1)
+		var help := _support_step()
+		if not help.is_empty():
+			return help
 		var pre := _arreo_step(t, false)
 		if not pre.is_empty():
 			return pre
