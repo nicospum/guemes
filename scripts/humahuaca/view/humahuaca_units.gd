@@ -279,20 +279,26 @@ func update_scales(host: Node, cam: Camera3D) -> void:
 ## vertical (más cuanto más empinado se lo mira: las fichas de abajo del cuadro se ven más bajas que las de arriba) y por el coseno del descentrado; se lo compensa
 ## estirando solo el alto, hasta 4,6 veces, para que el ancho no se dispare. Esa cuenta es una estimación: se la corrige con una medición de verdad (se proyectan el pie
 ## y la cabeza con la cámara que se dibuja) para que el alto en pantalla sea el pedido aunque la cámara sea otra (hallazgo I-R1.0-3: escala medida con la cámara dibujada).
+## Con la cámara muy empinada (más de ≈ 70°) de arriba no se ve la altura de una figura: estirarla más la vuelve un trazo largo hacia el nadir, así que el estirón tiene
+## un tope que baja de 6,9 a 2,2 veces entre los 58° y los 76°, y el alto pedido baja a los dos tercios entre los 60° y los 80°: la ficha mide menos de lo pedido (queda legible por su
+## anillo y por su silueta vista desde arriba) en vez de crecer sin límite.
 func upright_scale(host: Node, cam: Camera3D, pos: Vector3, px: float, base_h: float, min_scale: float) -> Vector3:
 	if cam == null:
 		return Vector3.ONE * min_scale
+	var looking_down := rad_to_deg(asin(clampf(cam.global_transform.basis.z.y, 0.0, 1.0)))  # inclinación de la mirada bajo el horizonte (la mirada es −Z: mirar abajo es +Z hacia arriba)
+	px *= lerpf(1.0, 0.65, smoothstep(60.0, 80.0, looking_down))  # muy empinada: la ficha se ve desde arriba, así que se achica en vez de crecer sin límite
 	var flat := clampf(px / gfx.screen_scale(host) * gfx.meters_per_px_at(cam, pos) / base_h, min_scale, 60.0)
 	var ray := pos - cam.global_position
 	var dist := maxf(ray.length(), 0.001)
 	var tilt := clampf(sqrt(maxf(1.0 - pow(ray.y / dist, 2.0), 0.0)) * (ray.dot(-cam.global_transform.basis.z) / dist), 0.2, 1.0)
-	var tall := clampf(flat / tilt, flat, flat * MAX_STRETCH)
+	var cap := lerpf(MAX_STRETCH * 1.5, 2.2, smoothstep(58.0, 76.0, looking_down))
+	var tall := clampf(flat / tilt, flat, flat * minf(MAX_STRETCH, cap))
 	if cam.is_inside_tree() and not cam.is_position_behind(pos):
 		var foot := cam.unproject_position(pos)
 		var head := cam.unproject_position(pos + Vector3(0.0, base_h * tall, 0.0))
 		var got: float = absf(foot.y - head.y) * float(gfx.screen_scale(host))
 		if got > 1.0:
-			tall = clampf(tall * clampf(px * 1.03 / got, 0.5, 2.0), flat * 0.9, flat * MAX_STRETCH * 1.5)  # el 3 % de más cubre la no linealidad de la perspectiva: el pedido es un mínimo
+			tall = clampf(tall * clampf(px * 1.03 / got, 0.5, 2.0), flat * 0.9, flat * cap)  # el 3 % de más cubre la no linealidad de la perspectiva: el pedido es un mínimo
 	return Vector3(flat, tall, flat)
 
 

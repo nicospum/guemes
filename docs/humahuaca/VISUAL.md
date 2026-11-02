@@ -21,7 +21,7 @@ Documento de la pista `visual` (CONTRATO 1.2). Dice **qué hay en R1** (la vista
 | `shaders/humahuaca_props.gdshader`, `humahuaca_water.gdshader`, `humahuaca_rain.gdshader` | 48 · 35 · 42 | Edificios y figuras (color de vértice y desgaste), agua y lluvia |
 | `shaders/humahuaca_noise.gdshaderinc` | 67 | **Copia** del ruido de la Justina con su procedencia declarada y funciones propias del nivel (nunca se incluye `justina_noise`: CONTRATO 1.3) |
 | `data/humahuaca_visual.json` | 268 | Paleta de 24 HEX, 7 vistas, `initial_frame`, luces, lluvia, niebla, materiales, `props`, `tokens`, `units`, calidades, `fx` y `content_ring` |
-| `tests/test_hx_view.gd` | 1 065 | **257 comprobaciones** sobre la vista real y el stub (sección 6) |
+| `tests/test_hx_view.gd` | 1 065 | **258 comprobaciones** sobre la vista real y el stub (sección 6) |
 | `tools/vis_humahuaca.gd` y `.sh` | 1 239 | Capturas reales con ventana, métricas, banco de rendimiento, escena real (`--flow`), render héroe (`--hero`) y relieve de prueba (`--relief`) |
 
 Ningún archivo pasa de 1 500 líneas (el mayor, 862), sin `class_name`, con tabuladores y LF. La dependencia va solo hacia abajo (`view` → `gfx`, `buildings`, `units`, `fx` → `gen`); los módulos reciben a los otros por parámetro y no hay ciclos.
@@ -53,7 +53,7 @@ Ningún archivo pasa de 1 500 líneas (el mayor, 862), sin `class_name`, con tab
 3. **`environment().time_of_day`** es continuo y creciente: 0 = noche plena, 0,5 = alba (4:45), 1 = día pleno.
 4. **`render_state().version`** sube con cada cambio; lo caro (figuras, luces, anillos) se reconstruye solo si cambia. Cada cuadro se recalculan escalas, efectos y selección.
 5. **Tamaños en píxeles** (`tokens.*.min_px`, `quality.*.enemy_min_px`) son **píxeles reales de la pantalla**: la vista divide por la escala de la ventana. El picking, `landmark_labels` y `probes` hablan en píxeles **lógicos**. El área lógica sigue el aspecto de la ventana: **16:9 a 1280 × 720 (1 600 × 900) y 16:10 a 1024 × 640**; por eso `initial_frame` da 470 m en 16:9 y 528,7 m en 16:10 (sección 4.1).
-6. **Escala de las fichas.** Una ficha parada se ve más baja cuanto más empinado se la mira. La vista la estima por el seno del ángulo del rayo (estirando solo el alto, hasta 4,6 veces) y **la corrige con una medición de verdad**: proyecta el pie y la cabeza con la cámara que se dibuja y ajusta el alto, con un 3 % de más (el pedido es un mínimo). Así miden ≥ 48 px con cualquier rumbo y en las esquinas del cuadro (en la escena real la estimación sola dejaba al jinete en 44 px). Casi desde arriba (≥ 75°) la altura no se puede sostener (de arriba no se ve la altura de una figura): el controlador de hoy no deja inclinar la cámara más allá de la del cuadro inicial.
+6. **Escala de las fichas.** Una ficha parada se ve más baja cuanto más empinado se la mira. La vista la estima por el seno del ángulo del rayo (estirando solo el alto, hasta 4,6 veces) y **la corrige con una medición de verdad**: proyecta el pie y la cabeza con la cámara que se dibuja y ajusta el alto, con un 3 % de más (el pedido es un mínimo). Así miden ≥ 48 px con cualquier rumbo y en las esquinas del cuadro (en la escena real la estimación sola dejaba al jinete en 44 px). Casi desde arriba la altura no se puede sostener (de arriba no se ve la altura de una figura) y estirarla más la vuelve un trazo largo hacia el nadir: pasados los 58° el tope del estirón baja de 6,9 a 2,2 veces (a los 76°) y, entre los 60° y los 80°, el alto pedido baja a los dos tercios; la ficha queda legible por su anillo y su silueta vista desde arriba. El controlador de R1 deja inclinar la cámara hasta 80°.
 7. **Orden de un cuadro.** `main` deja la cámara donde la quería el menú, el controlador llama a `update_state(delta)` con **esa** cámara y recién al final de su `_process` la ubica. Lo que depende de la cámara (escala de fichas, luces y etiquetas, ancho de los anillos) lo recalcula también el `_process` de la vista, que corre después del de su padre. Lo mejor sigue siendo que el controlador ubique la cámara antes (VP-08).
 8. **`yaw_deg` de la cámara es el rumbo de la mirada** (A-11): `initial_frame`, `canonical_view` y `qa_set_camera` dicen hacia dónde **mira**; la posición es `target + (−sin yaw · cos pitch, sin pitch, cos yaw · cos pitch) · distancia`. La primera versión del controlador usa `+sin(yaw)`, que es el espejo (VP-07).
 9. **Colores:** solo ids de la paleta; los `markers` de bando (celeste con borde blanco, borgoña con borde negro, dorado) llevan también el HEX exacto porque son marcadores de **interfaz**.
@@ -94,11 +94,13 @@ GPU NVIDIA GeForce RTX 3080 Ti, Forward+, Godot 4.7.2, ventana de 1440 × 900, s
 
 | Calidad | Construir la vista | Cuadro medio (tope) | p95 (tope 8,3) | Llamadas de dibujo | Primitivas |
 |---|---|---|---|---|---|
-| baja | 333 ms | **1,35 ms** (2,5) | **1,76 ms** | 163 | 146 510 |
-| media | 530 ms | **1,85 ms** (4,0) | **2,46 ms** | 227 | 433 310 |
-| alta | 559 ms | **1,86 ms** (6,0) | **2,40 ms** | 227 | 549 272 |
+| baja | 334 ms | **1,33 ms** (2,5) | **1,56 ms** | 163 | 146 510 |
+| media | 492 ms | **1,75 ms** (4,0) | **2,18 ms** | 227 | 433 310 |
+| alta | 577 ms | **1,78 ms** (6,0) | **2,13 ms** | 227 | 549 272 |
 
-Construir con el terreno de respaldo (plano) en `media`: 348 ms; el tope es 1 500 ms y el presupuesto propuesto para la vista, ≈ 800 ms. En la prueba sin ventana la construcción por etapa fue: terreno ≈ 120 a 150 ms, núcleo y vegetación ≈ 80 a 115 ms, hitos y rasgos ≈ 10 ms y fichas y lluvia ≈ 8 ms. En una GPU más débil habrá que volver a medir.
+Construir con el terreno de respaldo (plano) en `media`: 344 ms; el tope es 1 500 ms y el presupuesto propuesto para la vista, ≈ 800 ms. En la prueba sin ventana la construcción por etapa fue: terreno ≈ 120 a 150 ms, núcleo y vegetación ≈ 80 a 115 ms, hitos y rasgos ≈ 10 ms y fichas y lluvia ≈ 8 ms. En una GPU más débil habrá que volver a medir.
+
+**Con las clases reales de las otras pistas** (una copia de este código fuera del repositorio, con el terreno de `hx-relieve-r1` en 642019a y las reglas de `hx-reglas-r1` en adc08c9, leídos con `git archive`, sin tocar esas ramas ni sus carpetas; sin relieve de prueba ni `DressedRules`): `tools/vis_humahuaca.gd` da **44 comprobaciones, 0 fallas** (picking, ida y vuelta del rayo, sondas, vistas y fichas ≥ 48 px: 49,3 a 70,4 px), construir la vista tarda 488 ms en `media` y el banco da **1,51 ms (p95 2,20) en `baja`, 1,96 ms (p95 2,79) en `media` y 1,75 ms (p95 2,19) en `alta`** con 154 a 213 llamadas de dibujo. Las cinco partidas y los tres objetivos quedan a ≥ 5,8 % del borde en las cuatro resoluciones (el peor, el arreo: 5,8 % a 470 m y 6,1 % a 528,7 m). Falta la prueba con el controlador real de `ui_feel` (`hx-ui-r1`): solo se cruzaron a mano las llamadas a la vista de sus archivos (todas existen) y la fórmula de su cámara, que es la de A-11.
 
 **Alto de las fichas** (de la base a la cima de sus piezas, píxeles reales):
 
@@ -110,7 +112,7 @@ Construir con el terreno de respaldo (plano) en `media`: 348 ms; el tope es 1 50
 
 Pedido de 58 px en una grilla de 5 × 5 posiciones del cuadro: **58,5 a 60,4 px** con la corrección (53,8 a 71,1 px con la estimación sola; `test_hx_view`).
 
-**I-R1.0-3 en píxeles** (escena real y capturas de juego): naranja saturado **0,0 %** en `juego_alba`, ataque y extracción (tope 5 %); saturación media 0,251 en `juego_alba`, 0,318 en el ataque y 0,362 en la extracción (tope 0,42); **0,0 m** de trazo de un anillo de visibilidad dentro de otro círculo en las tres fases (tope 5 m).
+**I-R1.0-3 en píxeles** (escena real y capturas de juego): naranja saturado **0,0 %** en `juego_alba`, ataque y extracción (tope 5 %); saturación media 0,253 en `juego_alba`, 0,318 en el ataque y 0,362 en la extracción (tope 0,42); **0,0 m** de trazo de un anillo de visibilidad dentro de otro círculo en las tres fases (tope 5 m).
 
 **Picking:** las cinco fichas, los tres frentes y la ida y vuelta del rayo al suelo a 0,00 m en los tres hitos (tope 3 m). `meters_per_pixel` en la cámara inicial: 0,668 m/px.
 
@@ -136,7 +138,7 @@ La rúbrica V06 no se exige en R1 (`QA_NIVEL2.md`, tabla de rondas). La riqueza 
 
 ## 6. Pruebas
 
-`tests/test_hx_view.gd`: **257 comprobaciones, 0 fallas, ≈ 6 s** sin ventana (en R1.0 eran 105; la compuerta pide ≥ 25). Corre dos veces la misma batería, con la vista real y con el stub (cada comprobación lleva su etiqueta `[real]` o `[stub]`), y suma las propias de la vista real:
+`tests/test_hx_view.gd`: **258 comprobaciones, 0 fallas, ≈ 6 s** sin ventana (en R1.0 eran 105; la compuerta pide ≥ 25). Corre dos veces la misma batería, con la vista real y con el stub (cada comprobación lleva su etiqueta `[real]` o `[stub]`), y suma las propias de la vista real:
 
 - archivos ≤ 1 500 líneas, con tabuladores y LF y sin `class_name`; los cinco shaders existen, el del suelo incluye la copia del ruido y ningún shader incluye `justina_`; nada de `shader_globals`;
 - **un solo material** de suelo, las seis partes del terreno, malla hasta ±8 km, presupuesto de triángulos, bordes sin grietas;
@@ -144,13 +146,13 @@ La rúbrica V06 no se exige en R1 (`QA_NIVEL2.md`, tabla de rondas). La riqueza 
 - calidad: `baja` arma menos terreno que `media` y no dibuja lluvia; modo albedo;
 - **A-11:** los tres datos de rumbo, el cuadro inicial con las cinco partidas a ≥ 5 % en cuatro resoluciones (528,7 m a 1024 × 640 y 470 m en las otras tres, con 6,5 % y 6,2 % de peor margen);
 - ΔL\* del color de los arquetipos de a pares ≥ 8 (el render a 48 px se mide con `--hero`);
-- **V03 con cualquier cámara** (8 poses y una grilla de 25 posiciones por rumbo): las fichas miden ≥ 47 px.
+- **V03 con cualquier cámara** (8 poses y una grilla de 25 posiciones por rumbo): las fichas miden ≥ 47 px; y a 78° el estirón queda en ≤ 2,3 veces.
 
-Se probó que las pruebas **ven** lo que cuidan: sin la corrección con la proyección la grilla mide de 53,8 a 71,1 px y falla en los dos rumbos; sin el `_process` de la vista la ficha queda a escala 4,60 en vez de 12,87 (pase 2); con el alba de oro puro el suelo da 0,54 y 0,66 de saturación contra los topes de 0,40 y 0,46.
+Se probó que las pruebas **ven** lo que cuidan: sin la corrección con la proyección la grilla mide de 53,8 a 71,1 px y falla en los dos rumbos; con el signo de la inclinación invertido (un error que se cometió y que esta prueba vio) el estirón a 78° da 6,90; sin el `_process` de la vista la ficha queda a escala 4,60 en vez de 12,87 (pase 2); con el alba de oro puro el suelo da 0,54 y 0,66 de saturación contra los topes de 0,40 y 0,46.
 
 `tools/vis_humahuaca.gd` con ventana: 44 comprobaciones en las capturas de juego (7 vistas, albedo, minimapa y efectos), 29 a 1024 × 640, 26 por la escena real y 10 del render héroe; **0 fallas** en todas.
 
-**Compuerta rápida** (`bash tools/qa_gate.sh quick visual`, 1 min 48 s, sobre `main` en 35ef6ff): importación, protegidos (40 intactos), compartidos, propiedad (todos los archivos cambiados son de `visual`), `rules` 818/0, `integracion` 283/0, `hx_data` 289/0, `hx_smoke` 148/0 (3 pendientes de rondas futuras), `hx_view` 257/0 y `salida_limpia` (ningún `SCRIPT ERROR`, `SHADER ERROR`, `Parse Error` ni fuga). **Falla solo `higiene`**: las etiquetas `v0.2.0-alpha` y `v0.3.0-alpha` que no son de esta rama (B-017: la decisión es del usuario).
+**Compuerta rápida** (`bash tools/qa_gate.sh quick visual`, 1 min 48 s, sobre `main` en 35ef6ff): importación, protegidos (40 intactos), compartidos, propiedad (todos los archivos cambiados son de `visual`), `rules` 818/0, `integracion` 283/0, `hx_data` 289/0, `hx_smoke` 148/0 (3 pendientes de rondas futuras), `hx_view` 258/0 y `salida_limpia` (ningún `SCRIPT ERROR`, `SHADER ERROR`, `Parse Error` ni fuga). **Falla solo `higiene`**: las etiquetas `v0.2.0-alpha` y `v0.3.0-alpha` que no son de esta rama (B-017: la decisión es del usuario).
 
 ## 7. Pedidos a las otras pistas (id, firma, motivo y prueba de aceptación)
 
@@ -189,13 +191,13 @@ Evidencia de la ronda: `evidence/humahuaca/r1/visual/` (14 JPEG de ≤ 300 KB y 
 
 **Qué se encontró al reproducirlo por la escena real** (`--flow`, 1280 × 720): (1) el sol del alba era `oro_laton` sobre un suelo ya cálido y el 62,8 % de los píxeles de la extracción (81,7 % del ataque) quedaban en «naranja saturado» (saturación ≥ 0,55, brillo ≥ 0,30, matiz de 15° a 50°); (2) `visibility_pools` trae un círculo por ficha con el radio de `environment().visibility_m` y dibujados enteros se cruzaban (2 311,5 m de trazo dentro de otro círculo); (3) las fichas medían de 11,4 a 33,1 px porque la vista calculaba su tamaño con la cámara del menú; (4) la cámara del controlador es el espejo de la de `initial_frame` (VP-07).
 
-**Qué conserva la vista real** (a) el alba no pasa de «naranja saturado» (≤ 5 % de los píxeles) ni de saturación media 0,42 (medido: 0,0 % y 0,251 a 0,362); (b) los anillos de visibilidad son el contorno de la unión (sin cruces), de 2 px, tenues, y se apagan con luz plena (medido: 0,0 m de trazo dentro de otro círculo); (c) lo que depende de la cámara se calcula con la cámara que se dibuja, aunque el controlador llame a `update_state` antes de ubicarla (el `_process` de la vista y la corrección con la proyección de la sección 3.6); (d) las fichas miden ≥ 48 px **por la escena real** (medido: 49,3 a 69,7 px). Las pruebas de la vista real repiten las cuatro (sección 6), y `--flow` las mide sobre los píxeles de cada captura.
+**Qué conserva la vista real** (a) el alba no pasa de «naranja saturado» (≤ 5 % de los píxeles) ni de saturación media 0,42 (medido: 0,0 % y 0,253 a 0,362); (b) los anillos de visibilidad son el contorno de la unión (sin cruces), de 2 px, tenues, y se apagan con luz plena (medido: 0,0 m de trazo dentro de otro círculo); (c) lo que depende de la cámara se calcula con la cámara que se dibuja, aunque el controlador llame a `update_state` antes de ubicarla (el `_process` de la vista y la corrección con la proyección de la sección 3.6); (d) las fichas miden ≥ 48 px **por la escena real** (medido: 49,3 a 69,7 px). Las pruebas de la vista real repiten las cuatro (sección 6), y `--flow` las mide sobre los píxeles de cada captura.
 
 **Cómo se prueba.** `test_hx_view`: `_test_dawn_wash`, `_test_visibility_rings`, `_test_camera_order`, `_test_token_px_any_camera` y `_test_upright_scale_grid`. `tools/vis_humahuaca.gd` aplica los mismos umbrales sobre los píxeles de cada captura de juego.
 
 ## 10. Límites y lista para R2a
 
-- **No hay terreno ni reglas reales en esta ronda:** la vista se probó con el stub de reglas, el terreno de respaldo y el relieve de prueba. Con la clase real de `relieve_mapa` hay que volver a correr `--flow`, `vis_humahuaca` y el banco.
+- **Integración a medias:** la vista se probó con el stub de reglas, el terreno de respaldo y el relieve de prueba, y una vez con el terreno y las reglas reales de las ramas hermanas (sección 4.3). Falta correrla dentro del controlador real y de `main.tscn` con las tres ramas fusionadas: `--flow`, `vis_humahuaca`, el banco y `benchmark.py`.
 - **Rumbo:** el cuadro de la escena real sale espejado hasta que `ui_feel` aplique VP-07 (captura 12).
 - **V06** no cumple (sección 4.4): detalle a 300 a 450 m, capas de media distancia y cielo en `panorama_alto`.
 - **Anillo de contenido:** faltan las parcelas con tapias, las ruinas de la capilla de Santa Bárbara y las huellas de carreta.

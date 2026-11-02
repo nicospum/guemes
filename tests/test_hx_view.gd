@@ -920,6 +920,14 @@ func _test_token_px_any_camera() -> void:
 					short.append("%s %.1f px" % [id, h_px])
 
 			_ck(seen >= 1 and short.is_empty(), "V03 con la cámara «%s»%s las %d fichas que entran en el cuadro miden ≥ 47 px de alto%s" % [key, " (objetivo corrido)" if shifted else "", seen, "" if short.is_empty() else ": " + str(short)])
+	# casi cenital (78°): de arriba no se ve la altura de una figura, así que la ficha se achica y el estirón queda acotado (nada de trazos largos hacia el nadir)
+	_frame_camera(cam, {"yaw_deg": 90.0, "pitch_deg": 78.0, "distance": 330.0, "target": centroid})
+	view.update_state(0.016)
+	var worst_stretch := 0.0
+	for id in V.GROUPS:
+		var sc := (view.unit_nodes[id] as Node3D).scale
+		worst_stretch = maxf(worst_stretch, sc.y / maxf(sc.x, 0.001))
+	_ck(worst_stretch <= 2.3, "V03 con la cámara a 78° el estirón de las fichas queda en ≤ 2,3 veces (%.2f): de arriba no se ve la altura y no se las estira hasta un trazo" % worst_stretch)
 
 
 ## `upright_scale` sobre una grilla de 5 × 5 posiciones del cuadro (con el rumbo espejado y el del diseño): lo que se proyecta de verdad (el pie y la cabeza con la cámara) mide el
