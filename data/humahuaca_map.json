@@ -14,7 +14,7 @@
 		"unidad": "m"
 	},
 	"anchor": {
-		"id": "templo",
+		"id": "ancla_iglesia",
 		"x": 450.0,
 		"z": 325.0,
 		"lat": -23.2041,
@@ -28,16 +28,81 @@
 		"nota": "x = E + 450; z = 325 - N"
 	},
 	"datum_asl_m": 2940.0,
+	"relief": {
+		"height_file": "res://data/humahuaca_height.json",
+		"exaggeration": 1.0,
+		"game_relief": {"smooth_m": 30.0, "nota": "La ventana de 10 m ya viene suavizada por el builder (meta.smooth_m); la clase no vuelve a suavizar: interpola a 4 m con Catmull-Rom."},
+		"micro": {"amp_m": 0.5, "wavelength_m": 25.0, "seed": 1817, "edge_fade_m": 40.0, "tag": "diseno", "source": "Micro-relieve de semilla fija (±0,5 m, onda de 25 m o más): diseño; evita el suelo liso."},
+		"design_layers": [
+			{"id": "cerro_bateria", "kind": "dome", "center": {"x": 305.0, "z": 345.0}, "radius_m": 75.0, "core_m": 16.0, "delta_m": 12.31, "prominence_target_m": 12.0, "tag": "diseno", "source": "Domo de diseño: residuo del DEM para 12,0 m de prominencia sobre el anillo de 120–150 m. DISENO §4."},
+			{"id": "plataforma_bateria", "kind": "platform", "landmark": "bateria", "center": {"x": 318.0, "z": 350.0}, "length_m": 28.0, "width_m": 18.0, "yaw_deg": 0.0, "falloff_m": 6.0, "tag": "diseno", "source": "Plataforma de 28 × 18 m sobre el cerro: diseño. DISENO §4."},
+			{"id": "quebradita_norte", "kind": "gully", "landmark": "quebradita_norte", "center": {"x": 282.0, "z": 298.0}, "length_m": 36.0, "width_m": 8.0, "yaw_deg": 20.0, "delta_m": -2.5, "bank_m": 1.2, "falloff_m": 10.0, "open_side": "oeste", "tag": "diseno", "source": "Hondonada de 36 × 8 m y −2,5 m, abierta al oeste: diseño; el parte solo dice «una quebradita»."},
+			{"id": "quebradita_sur", "kind": "gully", "landmark": "quebradita_sur", "center": {"x": 288.0, "z": 402.0}, "length_m": 36.0, "width_m": 8.0, "yaw_deg": -20.0, "delta_m": -2.5, "bank_m": 1.2, "falloff_m": 10.0, "open_side": "oeste", "tag": "diseno", "source": "Hondonada de 36 × 8 m y −2,5 m, abierta al oeste: diseño; el parte solo dice «una quebradita»."},
+			{"id": "cauce_rio", "kind": "carve", "river": "rio_grande", "delta_m": -1.6, "falloff_m": 12.0, "tag": "diseno", "source": "Cauce tallado a lo largo de la traza del río (lecho de 25–40 m): diseño; el cauce de 1817 no tiene datos."}
+		],
+		"lamina_points": [
+			{"id": "P01", "E": 0, "N": 0, "banda_min_m": 2940, "banda_max_m": 2960, "est_m": 2957},
+			{"id": "P02", "E": -111, "N": -35, "banda_min_m": 2960, "banda_max_m": 2980, "est_m": 2961},
+			{"id": "P03", "E": -143, "N": 3, "banda_min_m": 2960, "banda_max_m": 2980, "est_m": 2962},
+			{"id": "P04", "E": -450, "N": 325, "banda_min_m": 2960, "banda_max_m": 2980, "est_m": 2971},
+			{"id": "P05", "E": 450, "N": 325, "banda_min_m": 2940, "banda_max_m": 2960, "est_m": 2954},
+			{"id": "P06", "E": -450, "N": -325, "banda_min_m": 2960, "banda_max_m": 2980, "est_m": 2969},
+			{"id": "P07", "E": 450, "N": -325, "banda_min_m": 2940, "banda_max_m": 2960, "est_m": 2946},
+			{"id": "P08", "E": -450, "N": 0, "banda_min_m": 2960, "banda_max_m": 2980, "est_m": 2970},
+			{"id": "P09", "E": 450, "N": 0, "banda_min_m": 2940, "banda_max_m": 2960, "est_m": 2952},
+			{"id": "P10", "E": 0, "N": 325, "banda_min_m": 2940, "banda_max_m": 2960, "est_m": 2955},
+			{"id": "P11", "E": 0, "N": -325, "banda_min_m": 2940, "banda_max_m": 2960, "est_m": 2958},
+			{"id": "P12", "E": -225, "N": 162, "banda_min_m": 2960, "banda_max_m": 2980, "est_m": 2964},
+			{"id": "P13", "E": 225, "N": 162, "banda_min_m": 2940, "banda_max_m": 2960, "est_m": 2953},
+			{"id": "P14", "E": -225, "N": -162, "banda_min_m": 2960, "banda_max_m": 2980, "est_m": 2965},
+			{"id": "P15", "E": 225, "N": -162, "banda_min_m": 2940, "banda_max_m": 2960, "est_m": 2952},
+			{"id": "P16", "E": 122, "N": 325, "banda_min_m": 2940, "banda_max_m": 2960, "est_m": 2954},
+			{"id": "P17", "E": 297, "N": 200, "banda_min_m": 2940, "banda_max_m": 2960, "est_m": 2953},
+			{"id": "P18", "E": 409, "N": 0, "banda_min_m": 2940, "banda_max_m": 2960, "est_m": 2952},
+			{"id": "P19", "E": 450, "N": -81, "banda_min_m": 2940, "banda_max_m": 2960, "est_m": 2951},
+			{"id": "P20", "E": 596, "N": -271, "banda_min_m": 2940, "banda_max_m": 2960, "est_m": 2948},
+			{"id": "P21", "E": 460, "N": -700, "banda_min_m": null, "banda_max_m": 2940, "est_m": 2939},
+			{"id": "P22", "E": -279, "N": 1000, "banda_min_m": 2940, "banda_max_m": 2960, "est_m": 2958},
+			{"id": "P23", "E": 435, "N": -1345, "banda_min_m": null, "banda_max_m": 2940, "est_m": 2932},
+			{"id": "P24", "E": -180, "N": 325, "banda_min_m": 2960, "banda_max_m": 2960, "est_m": 2960},
+			{"id": "P25", "E": -84, "N": 0, "banda_min_m": 2960, "banda_max_m": 2960, "est_m": 2960},
+			{"id": "P26", "E": -70, "N": -325, "banda_min_m": 2960, "banda_max_m": 2960, "est_m": 2960},
+			{"id": "P27", "E": -1800, "N": 0, "banda_min_m": 3000, "banda_max_m": 3020, "est_m": 3014},
+			{"id": "P28", "E": -1500, "N": 0, "banda_min_m": 3000, "banda_max_m": 3020, "est_m": 3004},
+			{"id": "P29", "E": -1000, "N": 0, "banda_min_m": 2980, "banda_max_m": 3000, "est_m": 2990},
+			{"id": "P30", "E": -750, "N": 0, "banda_min_m": 2960, "banda_max_m": 2980, "est_m": 2977},
+			{"id": "P31", "E": 750, "N": 0, "banda_min_m": 2940, "banda_max_m": 2960, "est_m": 2956},
+			{"id": "P32", "E": 1000, "N": 0, "banda_min_m": 2960, "banda_max_m": 2980, "est_m": 2973},
+			{"id": "P33", "E": 1250, "N": 0, "banda_min_m": 2980, "banda_max_m": 3000, "est_m": 2992},
+			{"id": "P34", "E": 1500, "N": 0, "banda_min_m": 3020, "banda_max_m": 3040, "est_m": 3024},
+			{"id": "P35", "E": 1800, "N": 0, "banda_min_m": 3080, "banda_max_m": 3100, "est_m": 3088},
+			{"id": "P36", "E": -1800, "N": 1350, "banda_min_m": 3020, "banda_max_m": 3040, "est_m": 3025},
+			{"id": "P37", "E": 1800, "N": 1350, "banda_min_m": 3060, "banda_max_m": 3080, "est_m": 3065},
+			{"id": "P38", "E": -1800, "N": -1350, "banda_min_m": 3000, "banda_max_m": 3020, "est_m": 3003},
+			{"id": "P39", "E": 1800, "N": -1350, "banda_min_m": 3100, "banda_max_m": 3120, "est_m": 3116},
+			{"id": "P40", "E": 350, "N": -1250, "banda_min_m": null, "banda_max_m": 2940, "est_m": 2932},
+			{"id": "P41", "E": 1800, "N": -750, "banda_min_m": 3120, "banda_max_m": null, "est_m": 3137}
+		]
+	},
 	"surfaces": {
 		"classes": ["suelo_seco", "sedimento_humedo", "piedra", "churqui", "irrigado", "agua", "camino", "patio", "zanja", "muro"],
-		"layers": [],
+		"layers": [
+			{"id": "ladera_churqui", "class": "churqui", "kind": "rule", "rule": {"type": "ring", "layer": "cerro_bateria", "r_min_m": 24.0, "r_max_m": 84.0, "patch_cell_m": 16.0, "patch_threshold": 0.5, "patch_seed": 11}, "priority": 24},
+			{"id": "ladera_piedra", "class": "piedra", "kind": "rule", "rule": {"type": "slope_deg", "min_deg": 8.0}, "priority": 22},
+			{"id": "hondonada_norte", "class": "churqui", "kind": "rule", "rule": {"type": "layer_area", "layer": "quebradita_norte"}, "priority": 26},
+			{"id": "hondonada_sur", "class": "churqui", "kind": "rule", "rule": {"type": "layer_area", "layer": "quebradita_sur"}, "priority": 26},
+			{"id": "lecho_sedimento", "class": "sedimento_humedo", "kind": "line", "from": "river", "width_factor": 1.0, "priority": 62},
+			{"id": "lecho_agua", "class": "agua", "kind": "line", "from": "river", "width_factor": 0.5, "priority": 70}
+		],
 		"mud": {
 			"camino": 0.9,
 			"suelo_seco": 0.95,
 			"sedimento_humedo": 0.75,
 			"irrigado": 0.6,
 			"zanja": 0.5,
-			"agua": 0.5
+			"agua": 0.5,
+			"piedra": 0.97,
+			"churqui": 0.9
 		},
 		"slope_penalty": {
 			"start_deg": 8.0,
@@ -118,14 +183,14 @@
 		},
 		{
 			"id": "quebradita_norte", "name": "Quebradita norte", "short": "Quebradita", "type": "refugio",
-			"x": 282.0, "z": 298.0, "yaw_deg": 0.0, "footprint": {"w": 36.0, "d": 8.0}, "height_m": 0.0,
+			"x": 282.0, "z": 298.0, "yaw_deg": 20.0, "footprint": {"w": 36.0, "d": 8.0}, "height_m": 0.0,
 			"tag": "diseno", "tag_parts": {"existencia": "documentado", "lugar": "diseno"},
 			"source": "Parte de Arias («una quebradita en ese alto»); el lugar es de diseño. DISENO §3",
 			"priority": 4, "variant": {"refugio": "norte"}
 		},
 		{
 			"id": "quebradita_sur", "name": "Quebradita sur", "short": "Quebradita", "type": "refugio",
-			"x": 288.0, "z": 402.0, "yaw_deg": 0.0, "footprint": {"w": 36.0, "d": 8.0}, "height_m": 0.0,
+			"x": 288.0, "z": 402.0, "yaw_deg": -20.0, "footprint": {"w": 36.0, "d": 8.0}, "height_m": 0.0,
 			"tag": "diseno", "tag_parts": {"existencia": "documentado", "lugar": "diseno"},
 			"source": "Parte de Arias («una quebradita en ese alto»); el lugar es de diseño. DISENO §3",
 			"priority": 4, "variant": {"refugio": "sur"}
@@ -195,5 +260,50 @@
 			"source": "Arrieros y mulas (parte de Arias); mulas propias y posición de diseño. DISENO §5.1",
 			"priority": 1, "variant": {}
 		}
-	]
+	],
+	"river": {
+		"id": "rio_grande",
+		"name": "Río Grande",
+		"pts": [
+			{"x": 574.5, "z": 0.0, "w": 37.2},
+			{"x": 604.0, "z": 15.0, "w": 40.0},
+			{"x": 631.2, "z": 31.0, "w": 37.2},
+			{"x": 654.4, "z": 50.0, "w": 30.8},
+			{"x": 680.0, "z": 68.0, "w": 25.7},
+			{"x": 706.6, "z": 85.0, "w": 25.7},
+			{"x": 730.8, "z": 104.0, "w": 30.8},
+			{"x": 749.4, "z": 129.0, "w": 37.2},
+			{"x": 768.1, "z": 154.0, "w": 40.0},
+			{"x": 785.5, "z": 179.0, "w": 37.2},
+			{"x": 795.0, "z": 208.0, "w": 30.8},
+			{"x": 806.0, "z": 236.0, "w": 25.7},
+			{"x": 823.4, "z": 261.0, "w": 25.7},
+			{"x": 839.4, "z": 287.0, "w": 30.8},
+			{"x": 855.0, "z": 313.0, "w": 37.2},
+			{"x": 871.2, "z": 338.0, "w": 40.0},
+			{"x": 882.0, "z": 366.0, "w": 37.2},
+			{"x": 894.6, "z": 394.0, "w": 30.8},
+			{"x": 900.0, "z": 405.0, "w": 25.7}
+		],
+		"bed_width_m": {"min": 25.0, "max": 40.0},
+		"depth_m": {"min": 0.2, "max": 0.6},
+		"fords": [
+			{"id": "vado_norte", "x": 766.0, "z": 152.0, "r_m": 14.0},
+			{"id": "vado_este", "landmark": "vado_este", "x": 862.0, "z": 340.0, "r_m": 14.0}
+		],
+		"tag": "diseno",
+		"tag_parts": {"traza_moderna": "razonado", "cauce_de_1817": "sin_datos", "ancho_del_lecho": "diseno", "vados": "diseno"},
+		"source": "Traza moderna medida en la lámina 03 (© OpenStreetMap contributors, ODbL); lecho y vados: diseño."
+	},
+	"provenance": {
+		"lines": [
+			"Relieve: lámina 03 (SRTM v3 de 90 m, NASA/USGS), 475 nodos de 150 m reconstruidos a ±10 m. Dato actual, no restitución del suelo de 1817.",
+			"Traza del Río Grande: 19 puntos medidos de la lámina 03, © OpenStreetMap contributors, licencia ODbL (subconjunto de una base de datos derivada).",
+			"Domo y plataforma de la batería, quebraditas, cauce, micro-relieve y vados: diseño del nivel, rotulado como tal en report().",
+			"Hitos: posiciones de diseño, salvo el sitio del templo (inferencia razonada, ±15 m). Una fuente de relieve nueva no mueve el juego (prueba A/B).",
+			"Detalle: docs/humahuaca/RELIEVE.md, CREDITOS_RELIEVE.md y PROCEDENCIA.md."
+		],
+		"license": "ODbL 1.0 (traza del río); SRTM: dominio público (NASA/USGS)",
+		"credits_ref": "docs/humahuaca/CREDITOS_RELIEVE.md"
+	}
 }
