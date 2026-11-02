@@ -280,7 +280,10 @@ func _test_first_frame() -> void:
 	var cards := hx.hud.card_rect("rodriguez") as Rect2
 	suite.check(cards.size.x > 20.0 and cards.size.y > 20.0, "primer cuadro: las fichas del panel tienen tamaño")
 	suite.extra["primer_cuadro"] = {"controles": int(qa.visible_controls), "botones": int(qa.visible_buttons), "caracteres": int(qa.text_chars), "caracteres_juego": int(qa.text_chars_juego), "grupos_de_controles": qa.control_groups}
-	# ninguna ficha queda bajo el HUD (BACKLOG B-021): con el rumbo de la mirada que fija el contrato (325°, A-11) en 1280 × 720 y a 1024 × 640
+	# el encuadre inicial lo decide la cámara (data/humahuaca_camera.json, preset activo; docs/humahuaca/CAMARA.md): los tres objetivos a ≥ 10 % del borde (V02), las partidas que
+	# el encuadre da por incluidas a ≥ 2 % y con su anillo a la vista, y ninguna ficha dentro del cuadro bajo el HUD (B-021). Las que quedan fuera del cuadro no cuentan: es el
+	# compromiso del 2-11-2026 («centrado en el pueblo con la zona de partida al borde»). Antes (B-015) se exigían las cinco a ≥ 5,5 %: eso dejaba la cámara a 489 m, lo que el
+	# usuario vio «muy chico». Con el rumbo de la mirada que fija el contrato (325°, A-11), en 1280 × 720 y a 1024 × 640.
 	var data_yaw := float(hx.initial_frame().yaw_deg)
 	var note := ""
 	if absf(data_yaw - 325.0) > 0.5:
@@ -292,18 +295,32 @@ func _test_first_frame() -> void:
 		hx.reset_camera()
 		await _frames(3)
 		var view_rect := Rect2(Vector2.ZERO, root.get_visible_rect().size)
+		var fit: Dictionary = hx.cam.last_fit
+		var included: Array = fit.get("soft_in", [])
 		var covered: Array = []
-		var edge_min := 100.0
+		var edge_in := 100.0
+		var visible := 0
 		for id in V.GROUPS:
 			var u: Dictionary = hx.rules.get_unit(str(id))
 			var s: Vector2 = _world_to_screen(float(u.x), float(u.z))
-			edge_min = minf(edge_min, 100.0 * minf(minf(s.x, view_rect.size.x - s.x) / view_rect.size.x, minf(s.y, view_rect.size.y - s.y) / view_rect.size.y))
-			for key in ["header", "fronts", "dock"]:
-				if (hx.hud.rects()[key] as Rect2).has_point(s):
-					covered.append("%s bajo %s" % [str(id), key])
-		suite.check(covered.is_empty(), "%dx%d: ninguna ficha queda bajo el HUD%s: %s" % [size.x, size.y, note, str(covered)])
-		suite.check(edge_min >= 5.5, "%dx%d: las cinco partidas quedan a ≥ 5,5 %% del borde, con su anillo entero a la vista: el arreo no toca el borde (mínimo %.1f %%; B-015)" % [size.x, size.y, edge_min])
-		suite.extra["borde_min_%dx%d" % [size.x, size.y]] = snappedf(edge_min, 0.1)
+			var edge := 100.0 * minf(minf(s.x, view_rect.size.x - s.x) / view_rect.size.x, minf(s.y, view_rect.size.y - s.y) / view_rect.size.y)
+			if edge >= 0.0:
+				visible += 1
+				for key in ["header", "fronts", "dock"]:
+					if (hx.hud.rects()[key] as Rect2).has_point(s):
+						covered.append("%s bajo %s" % [str(id), key])
+			if included.has(str(id)):
+				edge_in = minf(edge_in, edge)
+		var obj_min := 100.0
+		for fid in V.OBJECTIVES:
+			var p: Vector2 = hx.landmark_pos(str(fid))
+			var sp: Vector2 = _world_to_screen(p.x, p.y)
+			obj_min = minf(obj_min, 100.0 * minf(minf(sp.x, view_rect.size.x - sp.x) / view_rect.size.x, minf(sp.y, view_rect.size.y - sp.y) / view_rect.size.y))
+		suite.check(covered.is_empty(), "%dx%d: ninguna ficha dentro del cuadro queda bajo el HUD%s: %s" % [size.x, size.y, note, str(covered)])
+		suite.check(obj_min >= 10.0, "%dx%d: los tres objetivos quedan a ≥ 10 %% del borde (mínimo %.1f %%; V02)" % [size.x, size.y, obj_min])
+		suite.check(included.has("reconocedores") and edge_in >= 2.0, "%dx%d: las partidas que el encuadre incluye (%s) quedan a ≥ 2 %% del borde con su anillo a la vista (mínimo %.1f %%), y los reconocedores, la primera que se usa, están entre ellas" % [size.x, size.y, str(included), edge_in])
+		suite.extra["borde_min_%dx%d" % [size.x, size.y]] = snappedf(edge_in, 0.1)
+		suite.extra["encuadre_%dx%d" % [size.x, size.y]] = {"preset": str(fit.get("preset", "")), "distancia_m": fit.get("dist", 0.0), "partidas_dentro_del_cuadro": visible, "incluidas": included}
 		suite.check(not hx.hud.bar.visible and not hx.hud.notice_row.visible, "%dx%d: en el primer cuadro no hay barra de órdenes ni avisos de pie vacíos que ocupen lugar" % [size.x, size.y])
 	await _set_window(Vector2i(1280, 720))
 	await _leave_level()
@@ -334,7 +351,8 @@ func _test_camera() -> void:
 	g = _gaze()
 	suite.check(absf(g.x) <= 0.02 and absf(g.y - 1.0) <= 0.02, "cámara: con rumbo 180° la mirada va al sur (0, 1) (%s)" % str(g))
 	hx.qa_set_camera(Vector2(318, 350), 5.0, 40.0, 45.0)
-	suite.check(float(hx.qa_state().camera.dist) >= 40.0, "cámara: el zoom no baja de 40 m (%s)" % str(hx.qa_state().camera.dist))
+	var min_m: float = hx.cam.min_dist()  # 30 m desde data/humahuaca_camera.json (antes 40: el usuario pidió poder acercar más con la rueda)
+	suite.check(is_equal_approx(float(hx.qa_state().camera.dist), min_m) and min_m >= 25.0 and min_m <= 40.0, "cámara: el zoom no baja del mínimo de la cámara, entre 25 y 40 m (%.0f m: %s)" % [min_m, str(hx.qa_state().camera.dist)])
 	hx.qa_set_camera(Vector2(318, 350), 5000.0, 40.0, 45.0)
 	suite.check(float(hx.qa_state().camera.dist) <= 900.0, "cámara: el zoom no pasa de 900 m (%s)" % str(hx.qa_state().camera.dist))
 	hx.qa_set_camera(Vector2(-5000, 9000), 300.0, 50.0, 0.0)
