@@ -24,13 +24,14 @@ Un agente **sin acceso al código, a `qa_state()` ni a las reglas** juega por la
 
 Se informa (no bloquea) cualquier racha de 4 turnos seguidos esperando sin nada que decidir.
 
-**Cuándo corre.** Informativa al cierre de R1 y de R2a (para enterarse temprano de que «no se entiende»), **aprobada** desde R2b y en la certificación del QA. La corre el integrador o compuertas y documentos con `tools/hx_agent_play.gd` (R1) y la registra abajo.
+**Cuándo corre.** Informativa al cierre de R1 y de R2a (para enterarse temprano de que «no se entiende»), **aprobada** desde R2b y en la certificación del QA. La corre el integrador o compuertas y documentos con `tools/hx_agent_play.gd` (R1) y la registra abajo; como el agente tiene que ser un subagente nuevo sin acceso al código, quien escribió el arnés no puede serlo (B-027).
 
 ## Registro de corridas del agente-jugador
 
 | Fecha | Ronda | Commit | Turnos hasta la primera orden | Segundos de juego hasta la primera orden | Parte alcanzado | ¿Entendió qué hacer? | ¿Cuándo se aburrió? | Veredicto |
 |---|---|---|---|---|---|---|---|---|
-| — | — | — | — | — | — | — | — | Todavía no hay corridas: el arnés llega en R1 |
+| 2-nov-2026 | R1 | `15627bb` | 4 | 3,0 | con `--selftest` y esperas de 3 s: ningún parte en 150 turnos (a los 441 s de juego el arreo todavía iba al vado); con `--selftest=pasivo`: derrota por `amanecio` a los 390 s (turno 16) y, tras «Reintentar», dos derrotas por `interceptados` a los 582 s (el bot esperaba de a 12 s). El bot del recorrido, que avanza de a 1 s, gana a los 497 s | n/a | n/a | **Prueba del arnés, no del agente.** El arnés contestó solo con el botón de «siguiente paso» (con información que un agente no tiene): comprueba el lazo de punta a punta (`turno_NN.png`, `accion_NN.json`, `arnes.json` `hx_agente_v1`, reintento y cierres), no que el nivel se entienda |
+| — | — | — | — | — | — | — | — | **Todavía no hay una corrida del agente-jugador de verdad** (BACKLOG B-027). La hace el Jefe de QA con un subagente nuevo, sin acceso al código ni a `qa_state()`, con `tools/hx_agent_play.gd -- --turns-dir=<carpeta> --out=<arnes.json> --step-s=3 --max-turns=150` |
 
 ## Plantilla del mini-playtest humano (no se usa en este circuito)
 

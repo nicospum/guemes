@@ -256,3 +256,66 @@ La línea final de la compuerta dice `FALLA (1 pasos)` y el único paso que fall
 **Capturas reales** (todas con ventana, nunca `--headless`; se miraron **una por una** con `Read`). De la compuerta: el menú de tres botones a 1280 × 720, a 1920 × 1080 y a 2560 × 1440 (los botones I, II y III en ese orden; Humahuaca habilitado con «Recomendado tras la Justina»; el Norte con su candado y «Ganá la Justina para abrirlo»; «Continuar» apagado; el último texto del menú termina dentro del cuadro en las tres), el primer cuadro del nivel a 1280 × 720 y la Justina a 1280 × 720 (su interfaz completa y sin cortes). De la escena real: aproximación de noche, ataque a los 300 s y extracción a los 321 s. Las 123 de `ui_qa` (41 por resolución) y las 2 de `--qa=humahuaca` tienen el tamaño pedido y ninguna es negra ni uniforme (se midió el desvío de la luminancia). Lo que se ve es la caja gris de stubs, con el alba ya en tonos de arena y no en naranja saturado, los anillos como un solo contorno, las fichas con silueta y las luces de los tres objetivos. Defectos que se ven y no son de esta pista: el HUD y la línea roja «Se usa la versión mínima de: terreno, reglas, progreso y vista» tapan la ficha 1 y su rótulo en el primer cuadro (`ui_feel`, BACKLOG B-021) y las dos piezas de la batería parecen dos torres (`visual`, BACKLOG B-023).
 
 **No se verificó en R1.0 pase 2** (y por qué): el benchmark (omitido por orden); `hx_terrain` y `hx_flow` (no existen; obligatorios desde `r1`), `ui_qa_humahuaca`, `humahuaca_playthrough`, `hx_qa_tour` y `hx_agent_play` (los entregan las pistas y compuertas y documentos en R1); las reglas V6, V10 a V16, V18, V21 y V22 de `test_hx_data` (BACKLOG B-013, las enciende compuertas y documentos al abrirse R1); las cuatro clases reales de las capas; que la cámara del controlador use `yaw_deg` como rumbo de la mirada y que el mapa traiga `ancla_iglesia` (ADDENDA A-11 y A-10: las aplican `ui_feel` y `relieve_mapa` en R1; el mapa sigue con `anchor.id = templo`, BACKLOG B-018). Nadie jugó a mano: las capturas y los bots salen de la escena real con entrada inyectada.
+
+### R1 · las cuatro pistas fusionadas en `main` (2 de noviembre de 2026)
+
+Lo que corrió de verdad al cerrar R1, escrito por el integrador (que lleva también la propiedad de «compuertas y documentos»). Commits: los merges `fa9eb90` (relieve), `70efda5` (reglas), `f97e819` (visual) y `5a2c627` (ui); `792d7ab` (A-12); `cf1dc97` (abre la ronda `r1`); `15627bb` (herramientas del recorrido y del agente, y las reglas V6 a V22); `57ceafb` y `87f4214` (umbral de capturas, límites de cámara y hoja de fichas). Sin `push`, sin etiquetas nuevas, sin tocar `origin/main` (`72077c8`).
+
+**Compuerta rápida de cada pista sobre su rama rebasada** (ronda vigente `r1.0`; todas con `higiene` en FALLA por las etiquetas ajenas, ver B-017):
+
+| Pista | Rama | Resultado | Tiempo |
+|---|---|---|---|
+| `relieve_mapa` | `642019a` | protegidos 40; `rules` 818/0; integración 283/0; `hx_data` 289/0; `hx_smoke` 148/0; `hx_terrain` 158/0 | 1 min 22 s |
+| `reglas_historia` | `74ff500` (rebasada sobre `fa9eb90`, después `792d7ab`) | la primera corrida falló `hx_data` 304/1 («sanidad: agregar la fuente S46 es legal», defecto de la prueba, A-12); la segunda: `hx_data` 304/0; `hx_smoke` 152/0; `hx_rules` 621/0; propiedad en PASA | 1 min 46 s y 1 min 54 s |
+| `visual` | `d18a70d` (rebasada sobre `70efda5`) | `hx_data` 303/0; `hx_smoke` 154/0; `hx_view` 258/0 | 1 min 38 s |
+| `ui_feel` | `acce3bd` (rebasada sobre `f97e819`) | `hx_data` 312/0; `hx_smoke` 154/0; `hx_flow` 166/0 | 1 min 50 s |
+| integrador, `main` fusionada con `RONDA=r1` | `5a2c627` | `hx_data` 358/0; `hx_smoke` 154/0; solo `higiene` falla | 1 min 39 s |
+
+**Compuerta completa** (`SKIP=benchmark KEEP=1 bash tools/qa_gate.sh full`, ronda vigente `r1`, 13 min 53 s, sobre `15627bb`):
+
+| Paso de la compuerta | Resultado real | Filas que ejercita |
+|---|---|---|
+| `import` | PASA, 3 s | ninguna |
+| `protegidos` | PASA: 40 archivos protegidos intactos contra `5ebbd28` | TR-186 |
+| `compartidos` | PASA: `main.gd` +47/−4, `test_integration` +1/−1, `ui_qa` +1/−1, `run_qa` +1/−1 | TR-151 |
+| `rules` (completo) | PASA: 871 comprobaciones, 0 fallas, 3 min 33 s | TR-180 |
+| `integracion` | PASA: 283/0, 11 s | TR-181 |
+| `jev` y `audio` | PASA: Jev 15/0; audio 17 comprobaciones con 1 falla aceptada (driver Dummy) | TR-182 |
+| `hx_data` | PASA: 411/0, 2 s, con V6, V10 a V16, V18, V21 y V22 encendidas y sanidad por mutación; V20 lee 133 filas (115 activas, 6 adelantadas y 12 pendientes de rondas futuras) | TR-001 a TR-003, TR-130, TR-160 a TR-162, TR-171, TR-194 y TR-195 |
+| `hx_smoke` | PASA: 154/0, 28 s, sin pendientes: las cuatro clases reales cargadas, las cinco corridas degradadas y la ida y vuelta ×3 | TR-010, TR-030, TR-067, TR-080, TR-082, TR-090, TR-110 a TR-112, TR-131, TR-132, TR-140 a TR-148, TR-150, TR-152, TR-175, TR-176, TR-191 |
+| `hx_terrain` | PASA: 158/0, 1 s, con 2 pendientes de `r2a` (TR-021 y TR-022) | TR-011 a TR-020 |
+| `hx_rules` | PASA: 621/0, 21 s, en modo completo y con la clase real de reglas y de progreso (`impl: real`); rendimiento medido: `nav_build_ms` 4,4 (tope 80), `plan_route_ms` 2,9 (tope 30) y `tick_ms` 0,11 (tope 2); 1 pendiente de `r2b` (el barrido de la señal) | TR-031 a TR-043, TR-052, TR-060, TR-062, TR-064 a TR-072, TR-081, TR-153 |
+| `hx_view` | PASA: 258/0, 7 s | TR-091 a TR-105 |
+| `hx_flow` | PASA: 166/0, 33 s | las filas de `ui_feel` de `r1` |
+| `etapa` | PASA: los 4 stubs y el controlador real | CONTRATO 8.1 |
+| `higiene` | **FALLA**: `git tag --list` trae `v0.2.0-alpha` y `v0.3.0-alpha`, que no son de este equipo (B-017); `origin/main` sigue en `72077c8` | TR-192 |
+| `scenario` | PASA: `--scenario=humahuaca` sale con 0, 4 s | TR-155 |
+| `qa_humahuaca` | PASA: `--qa=humahuaca` sale con 0 y escribe `qa_report.json` y 16 capturas, 8 s | TR-156 |
+| `ui_qa` ×3 | PASA: 254/0 a 1280 × 720 (27 s), 1920 × 1080 (35 s) y 2560 × 1440 (44 s), con `captura_px` igual a la pedida | TR-183 |
+| `justina_playthrough` | PASA: 18 victorias, 6 estilos, 3 rutas, 6 derrotas y el bot de interfaz gana, 5 min 22 s | TR-185 |
+| `benchmark` | **OMITIDO por orden** (lo mide el Jefe de QA a solas): no se verificó | TR-157 y TR-184, sin verificar |
+| `ui_qa_humahuaca` | PASA: 104/0 a 1280 × 720 (piso 60) y chequeo de desborde 31/0 a 1920 × 1080 y a 2560 × 1440; primer cuadro con 3 controles accionables, 366 caracteres, 0 términos de jerga, apertura de 13,5 s, ficha más cercana al borde a 6,8 %, reintento en 0,32 s y contraste mínimo del HUD 7,49:1 | TR-119 y las filas de `ui_feel` |
+| `humahuaca_playthrough` | PASA: sale con 0; sobre las 8 semillas de calibración el experto gana 8 de 8 (551 s en promedio, golpe medio 46,8) y el pasivo pierde 8 de 8 por `amanecio` | TR-172 |
+| `hx_qa_tour` | **FALLA en esa corrida**: pedía 24 capturas y el recorrido escribe 23 (umbral mal contado, no defecto del recorrido); corregido en `57ceafb` y vuelto a correr: PASA (23 capturas, 7 vistas, cuadro inicial con los tres objetivos y la partida, templo de 7,3 m, el bot gana) | TR-173 y TR-196 |
+| `hx_agent_play` | PASA: arnés `hx_agente_v1`, 30 turnos con capturas de 1280 × 720, la primera orden entra por clic en el turno 4 a los 3,0 s de juego (con el arnés contestando solo) | TR-197 |
+| `vis_flow` | PASA: `tools/vis_humahuaca.sh --flow` con 0 fallas: fichas de 49,3 a 70,9 px, naranja saturado 0,2 % (tope 5 %) y saturación media de 0,315 y 0,343 (tope 0,42) | TR-198 |
+| `salida_limpia` | PASA: ningún `SCRIPT ERROR`, `SHADER ERROR`, `Parse Error`, `ERROR:` ni fuga en los registros; 0 `WARNING` | TR-193 |
+
+La línea final de la corrida completa dice `FALLA (2 pasos)`: `higiene` (las dos etiquetas ajenas) y `hx_qa_tour` (el umbral de 24 capturas, un error del paso nuevo). **Segunda corrida de los pasos del nivel** con el umbral corregido (`SKIP=` de todo lo demás, 2 min 05 s, sobre `57ceafb`): `hx_terrain` 158/0, `hx_rules` 621/0, `hx_view` 258/0, `hx_flow` 166/0, `ui_qa_humahuaca` 104/0 y 31/0 y 31/0, `humahuaca_playthrough`, `hx_qa_tour` (23 capturas), `hx_agent_play` y `vis_flow` en PASA. Ningún paso atribuible a una pista falló.
+
+**Qué cambió desde R1.0.**
+
+- Las cuatro clases reales entraron: `HumahuacaTerrain` (relieve de la lámina 03, malla de 4 m, `nav_grid` y `los` del nivel; A/B contra Copernicus: la lámina sigue, A-02 y A-13), `HumahuacaRules` y `HumahuacaProgress` (el bucle completo con mundo fijo, las 8 causas, guardado con `validate_snapshot`), la vista real partida por responsabilidad y el controlador completo de `ui_feel`. `qa_state().layers` informa las cuatro capas como `real`.
+- `test_hx_data` pasa de 296 a 411 comprobaciones: V6, V10, V11, V12, V13 completa, V14, V15, V16, V18, V21 y V22 corren desde `r1` y se prueban con copias rotas (B-013). Las reglas dieron un hallazgo real: una pista de reintento de 123 caracteres (B-025, excepción fechada hasta `r2a`).
+- Aparecen `tools/hx_qa_tour.gd`, `tools/hx_agent_play.gd` y tres pasos nuevos de la compuerta completa (`hx_qa_tour`, `hx_agent_play`, `vis_flow`); las pistas entregaron `humahuaca_playthrough.gd`, `ui_qa_humahuaca.gd`, `test_hx_terrain.gd` y `test_hx_flow.gd`.
+
+**Capturas reales de integración** (todas con ventana, nunca `--headless`; se miraron **una por una** con `Read`), en `evidence/humahuaca/r1/integrador/cierre_r1/` (14 JPEG de 300 KB o menos): el menú de tres botones (I Justina, II Humahuaca con «Recomendado tras la Justina», III el Norte con su candado); el briefing de una página con «Perder no es grave»; el primer cuadro en pausa (`inicial_caja_gris.jpg`, también en `evidence/humahuaca/r1/`, con su versión de albedo sin interfaz) con las cinco fichas numeradas, los tres objetivos encendidos y un solo «siguiente paso»; la aproximación bajo lluvia con el aviso «Dar la señal»; el ataque a los 300 s («Desde la señal: 0:15», «Atacando», «Golpe 0 de 100»); la extracción con el arreo cargando («Carga 2200 de 2200 kg», «Refuerzo: entre 1:30 y 4:00»); el parte de derrota por `amanecio` con causa, momento y lugar, consejo, tres datos y los botones de reintento; el parte de victoria con medalla de bronce y el epílogo con etiquetas; el primer cuadro a 1024 × 640; `juego_alba`; la batería vista desde arriba (una losa con parapeto y piezas bajas, sin torres); el patio de la posta con cañones, barriles y carros; la hoja de las cinco fichas (siluetas distintas sobre fondo liso, 71 a 96 px) y el límite norte con el horizonte. Las cifras y el dibujo están en `metrics_integrador_r1.json`.
+
+**Límites honestos de R1.**
+
+- **El benchmark no se corrió** (orden del encargo). La única señal es indicativa: el recorrido mide un cuadro medio de 4,0 a 5,0 ms en `media` con la escena real y el HUD (sin sincronía vertical, RTX 3080 Ti), contra el tope de 4,0 ms (B-030).
+- **No hubo una corrida del agente-jugador de verdad** (B-027): el arnés se probó con `--selftest` (el arnés contesta solo, con información que el agente no tiene) y con `--selftest=pasivo` (derrota por `amanecio` y reintento). No es una partida humana ni de un agente ciego.
+- Nadie jugó a mano (A-03): los bots leen `hud_state()` o aprietan el botón del «siguiente paso». El veredicto máximo sigue siendo «PRESENTABLE, no certificado por humanos».
+- `token_px` de `ui_qa_humahuaca` (38,4 a 46,4 px) no coincide con lo que se ve (hoja de fichas 71 a 96 px; proyección 49,3 a 70,9 px): B-026. El río termina en seco en el borde norte del mapa (B-029).
+- El render héroe no está aprobado: falta la respuesta del QA a VP-14 (A-13).
+- Las etiquetas ajenas siguen: `higiene` falla en toda compuerta y E05 no puede dar verde (B-017).
