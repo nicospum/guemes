@@ -15,6 +15,8 @@ El control de calidad marca como bloqueantes dos cosas que no dependen del traba
 
 ## Plan de la próxima ronda de trabajo (pedido del usuario, 2026-11-02)
 
+**DECIDIDO por el usuario el 2026-11-02: Blender para modelar y exportar a Godot.** Se queda el motor Godot; no se pasa a Unity ni a Unreal. Falta solo pedir permiso para lo que haya que descargar (modelos, plugins), con nombre, origen y tamaño.
+
 El usuario quiere que la próxima ronda sea un salto de calidad, no solo corrección de hallazgos. Lo dijo así, en sus palabras: usar Blender, Unreal, Unity, «no sé cuál pero vamos a mejorar»; mejorar soldados, caballos, árboles, todo; mejorar el mapa; hacer conexiones MCP; buscar skills; mejorar la dinámica de juego; «y lo vamos a terminar»; imágenes épicas; dibujos de Güemes «cuando lo elijas»; «volverlo cheto cheto».
 
 Cómo se traduce (el lead lo ordena al retomar):
