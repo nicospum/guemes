@@ -104,13 +104,14 @@ Compuerta rápida y recorridos, con `APPDATA` aislado, el 2-nov-2026:
 |---|---|
 | `test_hx_rules` | 621 comprobaciones, 0 fallas, 18 s (modo rápido; piso de R1: 150); la clase real de reglas y de progreso |
 | `performance` (línea final de la suite) | `nav_build_ms_avg` ≈ 3,3 (tope 80) · `plan_route_ms_avg` ≈ 2,2 (tope 30) · `tick_ms_avg` ≈ 0,06 (tope 2) · `hud_state` + `render_state` ≈ 0,26 ms |
-| Experto, 24 mundos de la compuerta, 1.er intento | 24 de 24 (Wilson 90 %: 0,90 a 1,00); victorias de 9:11 (mediana), golpe 46,8 (la victoria pide 45), bajas de 15,7 a 17,2 % |
-| Pasivo y «pausa y reanuda», 24 mundos × 3 intentos | 0 victorias; todas por `amanecio` a los 6:30 |
-| Obediente y torpe (informe, no compuerta) | 24 de 24 y 24 de 24 al 1.er intento (victorias de 8:15 y 8:51): **más fácil de lo que se quiere**; la intención de diseño es 25-40 % y 10-25 %, y con el mundo fijo de R1 el «siguiente paso» alcanza: lo que lo hace fallar son las variantes y el reconocimiento con riesgo de R2a y R2b |
+| Experto, 24 mundos de la compuerta, 1.er intento | 24 de 24 (48 de 48 con dos réplicas; Wilson 90 %: 0,95 a 1,00); victorias de 9:11 (mediana), golpe 46,8 (la victoria pide 45), bajas de 16,4 % (mediana) |
+| Pasivo y «pausa y reanuda», 24 mundos × 3 intentos × 2 réplicas | 0 de 288 victorias; todas por `amanecio` a los 6:30 |
+| Obediente y torpe (informe, no compuerta) | 48 de 48 y 47 de 48 al 1.er intento con dos réplicas por mundo (victorias de 8:15 y 8:50 de mediana; la única derrota es `sin_carga`): **más fácil de lo que se quiere**; la intención de diseño es 25-40 % y 10-25 %, y con el mundo fijo de R1 el «siguiente paso» alcanza: lo que lo hace fallar son las variantes y el reconocimiento con riesgo de R2a y R2b |
 | Barrido de la señal, 8 mundos (2:00 a 6:15) | máximo a las 4:45-5:00 (puntaje 38,4-38,5); 31,0 a las 2:00 (con `sin_carga`) y 35,2 a las 6:00: sube, llega a un máximo y baja |
-| Decisiones significativas del experto por ramificación | 0 de 15 órdenes cambian el final ≥ 10 puntos: **en R1 ninguna decisión suelta es significativa** (J03 se exige desde R2b) |
+| Decisiones significativas del experto por ramificación | 0 de 180 órdenes (12 partidas × 15) cambian el final ≥ 10 puntos: **en R1 ninguna decisión suelta es significativa** (J03 se exige desde R2b) |
 | Brechas por ofertas (experto, obediente y torpe, 24 mundos) | primera decisión a los 0-1 s; mayor brecha sin ofertas de 90 a 102 s, en la aproximación (todas las partidas en marcha: es lo que R2a llena con el informante, la patrulla, la tapia hallada y el aviso del alba); en el ataque, de 12 a 18 s (≤ 20 s); a lo sumo una alerta crítica a la vez |
-| Escena real (`--level=scene`) | experto gana y pasivo pierde por la escena con la clase real (551 s y 390 s) |
+| Escena real (`--level=scene`) | en la rama sola: experto 3 de 3 (9:11) y pasivo 0 de 3 por `amanecio` (6:30); `interfaz` se omite con su motivo porque la cáscara no tiene botón del «siguiente paso». Con la interfaz y el terreno reales de las otras pistas superpuestos (copia aparte, sin fusionar): experto 3 de 3, `interfaz` 3 de 3 por clics reales (8:15) y pasivo 0 de 9 |
+| Determinismo | dos corridas de 144 partidas (6 políticas, 24 mundos, 3 intentos): 288 comparadas, 0 `snapshot_sha256` distintos |
 
 ## Lo que todavía no hace (R2a y R2b)
 
