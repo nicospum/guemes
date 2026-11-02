@@ -366,6 +366,8 @@ func _test_archetypes_grayscale() -> void:
 	var short: Array = []
 	for id in V.GROUPS:  # alto parado de la figura (de la base a la cima de sus piezas), proyectado, en píxeles de la pantalla
 		var node_h: Node3D = view.unit_nodes[id]
+		if not Rect2(Vector2.ZERO, cam.get_viewport().get_visible_rect().size).has_point(cam.unproject_position(node_h.global_position)):
+			continue  # con los datos reales alguna partida cae fuera del cuadro inicial (que solo exige los objetivos y la zona)
 		var base_y := cam.unproject_position(node_h.global_position).y
 		var top_world := node_h.global_position.y
 		for part in node_h.find_children("*", "MeshInstance3D", true, false):

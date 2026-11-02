@@ -291,9 +291,10 @@ func _token_heights() -> void:
 			wide = maxf(wide, box.size.x)
 		var base_px := cam.unproject_position(node.global_position)
 		var top_px := cam.unproject_position(Vector3(node.global_position.x, top, node.global_position.z))
-		token_px[id] = {"alto": snappedf(absf(base_px.y - top_px.y) * screen_scale, 0.1), "escala": snappedf(node.scale.y, 0.01), "cima_m": snappedf(top - node.global_position.y, 0.01),
+		var inside := Rect2(Vector2.ZERO, root.get_visible_rect().size).has_point(base_px)  # con los datos reales alguna partida cae fuera del cuadro inicial
+		token_px[id] = {"en_pantalla": inside, "alto": snappedf(absf(base_px.y - top_px.y) * screen_scale, 0.1), "escala": snappedf(node.scale.y, 0.01), "cima_m": snappedf(top - node.global_position.y, 0.01),
 			"distancia_m": snappedf(cam.global_position.distance_to(node.global_position), 0.1)}
-		_check(float(token_px[id].alto) >= 40.0, "la ficha de %s mide %.1f px reales de alto con el cuadro inicial (el stub llega a ≈ 42 en el borde inferior; la vista real debe dar ≥ 48)" % [id, float(token_px[id].alto)])
+		_check(not inside or float(token_px[id].alto) >= 40.0, "la ficha de %s mide %.1f px reales de alto con el cuadro inicial (el stub llega a ≈ 42 en el borde inferior; la vista real debe dar ≥ 48)" % [id, float(token_px[id].alto)])
 	report["token_px"] = token_px
 	report["screen_scale"] = snappedf(screen_scale, 0.001)
 
