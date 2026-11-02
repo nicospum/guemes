@@ -4,13 +4,18 @@
 
 Uso (Git Bash; el tif y el csv viven FUERA del repo, se pasan con ruta absoluta):
 
-  # Plan B, el de R1: relieve reconstruido de la lámina 03 (475 nodos de 150 m, ±10 m)
-  python -I -X utf8 tools/build_humahuaca_terrain.py --source lamina03 --csv <01b_relieve_lamina03_nodos_25x19.csv> \
-      [--check-lamina <03_relieve_actual.png>] [--out data/humahuaca_height.json]
-
-  # Plan A, listo para cuando los ítems R02 a R06 pasen con ella (el .tif no entra nunca a Git: *.tif está en .gitignore)
+  # Plan A, EN USO desde el 2-nov-2026: la tesela Copernicus DEM GLO-30 (modelo de superficie de 30 m, ±5 m; el .tif no entra nunca a Git:
+  # *.tif está en .gitignore). --update-map escribe en el mapa el residuo del domo; --expect-sha256 corta si la tesela no es la autorizada (A-02).
   python -I -X utf8 tools/build_humahuaca_terrain.py --source copernicus --tif <Copernicus_DSM_COG_10_S24_00_W066_00_DEM.tif> \
-      --out <archivo temporal> [--smooth-m 45] [--check-lamina <03_relieve_actual.png>]
+      --expect-sha256 1b38c9054683f2ea927915ffc9f81e664f919cf13a6cbb4e93a1bd637301f97f --update-map [--smooth-m 45] [--check-lamina <03_relieve_actual.png>]
+
+  # Plan B, el de R1: relieve reconstruido de la lámina 03 (475 nodos de 150 m, ±10 m); sigue siendo la referencia de los 41 puntos (R02)
+  python -I -X utf8 tools/build_humahuaca_terrain.py --source lamina03 --csv <01b_relieve_lamina03_nodos_25x19.csv> \
+      [--check-lamina <03_relieve_actual.png>] [--out <archivo temporal>]
+
+  # Comparar dos o más archivos de relieve (los 41 puntos de R02, las referencias de R05, la curva de 2 960 m y las pendientes): es la verificación
+  # «DEM contra SRTM» del diseño (§4: error medio < 12 m) y la tabla de docs/humahuaca/RELIEVE_COPERNICUS.md
+  python -I -X utf8 tools/build_humahuaca_terrain.py --compare data/humahuaca_height.json <otro_relieve.json> [...]
 
   # Medir la traza del Río Grande en la lámina 03 (imprime los puntos del juego; los lleva a data/humahuaca_map.json quien los revisa)
   python -I -X utf8 tools/build_humahuaca_terrain.py --measure-river <03_relieve_actual.png>
@@ -104,9 +109,25 @@ def lamina_surface(csv_path, smooth_m):
     return smooth, {"nodos": n}
 
 
+def file_digests(path):
+    """Tamaño, SHA-256 y MD5 de un archivo (la tesela se identifica por sus hashes en meta.source_detail y en CREDITOS_RELIEVE.md)."""
+    import hashlib
+
+    sha, md5 = hashlib.sha256(), hashlib.md5()
+    with open(path, "rb") as fh:
+        for chunk in iter(lambda: fh.read(1 << 20), b""):
+            sha.update(chunk)
+            md5.update(chunk)
+    return pathlib.Path(path).stat().st_size, sha.hexdigest(), md5.hexdigest()
+
+
 def copernicus_surface(tif_path, smooth_m):
     """Tesela Copernicus GLO-30 (GeoTIFF float32, Deflate + predictor 3; solo Pillow, tifffile no sirve sin imagecodecs).
-    Modelo de SUPERFICIE: mediana de 5 × 5 píxeles (≈ 140 m: se van techos y árboles) y gaussiano de σ = smooth_m / 2."""
+    Georreferencia (etiquetas del GeoTIFF, verificadas el 2-nov-2026): WGS 84, 1 arcosegundo, GTRasterType = PixelIsPoint, punto de amarre
+    (−66,0; −23,0) en el CENTRO del píxel (0, 0): el píxel (fila r, columna c) está centrado en lon = −66 + c/3600, lat = −23 − r/3600, así que
+    las coordenadas continuas de abajo van directo a map_coordinates (sin corrimiento de medio píxel). El ancla cae en la fila 734,76 y la
+    columna 2342,88; un píxel mide 30,76 m de norte a sur y 28,44 m de oeste a este a esta latitud.
+    Modelo de SUPERFICIE: mediana de 5 × 5 píxeles (≈ 140 m: se van techos y árboles aislados) y gaussiano de σ = smooth_m / 2."""
     from PIL import Image
 
     a = np.asarray(Image.open(tif_path), dtype=np.float32)
@@ -243,6 +264,76 @@ def check_lamina(png, win, ctx, label):
            "R03_ventana_pct": round(ag_w, 2), "R03_dominio_pct": round(ag_t, 2)}
     print("CHECK", json.dumps(res, ensure_ascii=False))
     return res
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Comparación de archivos de relieve (A/B de fuentes): los 41 puntos de R02, las referencias de R05, la curva de 2 960 m y las pendientes
+
+def load_height(path):
+    d = json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
+    win = np.array(d["window"]["h"], float).reshape(WIN["nz"], WIN["nx"])
+    ctx = np.array(d["context"]["h"], float).reshape(CTX["nz"], CTX["nx"])
+    return d["meta"], win, ctx
+
+
+def height_m(win, ctx, x, z):
+    """Cota (m s. n. m.) en (x, z) del juego: bilineal de la ventana adentro y del contexto afuera (la lectura del QA, anexo A1, y de V7)."""
+    if 0.0 <= x <= 900.0 and 0.0 <= z <= 650.0:
+        return bilinear_dm(win, WIN, x, z) / 10.0 + DATUM
+    return bilinear_dm(ctx, CTX, x, z) / 10.0 + DATUM
+
+
+def compare_heights(paths, map_data):
+    """Imprime, para cada archivo, los 41 puntos (R02), las referencias (R05), la curva de 2 960 m y las pendientes: la verificación
+    «DEM contra SRTM» del diseño (§4, error medio < 12 m) y la tabla de docs/humahuaca/RELIEVE_COPERNICUS.md. Solo lectura."""
+    pts = map_data.get("relief", {}).get("lamina_points") or [
+        {"id": k, "E": e, "N": n, "banda_min_m": T41[k][0], "banda_max_m": T41[k][1], "est_m": T41[k][2]} for k, e, n in PTS41]
+    grids = [(pathlib.Path(p).name,) + load_height(p) for p in paths]
+    print("id       E      N   est  banda       | " + " | ".join("%-19s" % g[0][:19] for g in grids))
+    summ = [{"ok12": 0, "max": 0.0, "band": 0, "sum": 0.0} for _ in grids]
+    for p in pts:
+        x, z = p["E"] + OFF_X, OFF_Z - p["N"]
+        lo, hi, est = p.get("banda_min_m"), p.get("banda_max_m"), p["est_m"]
+        row = "%-4s %6d %6d %5d [%4s,%4s] |" % (p["id"], p["E"], p["N"], est, lo if lo is not None else "-", hi if hi is not None else "-")
+        for k, (_, _, win, ctx) in enumerate(grids):
+            v = height_m(win, ctx, x, z)
+            err = abs(v - est)
+            inb = (lo is None or v >= lo - 8) and (hi is None or v <= hi + 8)
+            s = summ[k]
+            s["ok12"] += err <= 12
+            s["max"] = max(s["max"], err)
+            s["band"] += inb
+            s["sum"] += err
+            row += " %7.1f %5.1f %-3s |" % (v, err, "si" if inb else "NO")
+        print(row)
+    for k, g in enumerate(grids):
+        s = summ[k]
+        print("R02 %-32s %d de 41 a <= 12 m | peor %.1f m | en banda %d/41 | error medio %.2f m" % (g[0], s["ok12"], s["max"], s["band"], s["sum"] / len(pts)))
+    refs = [("templo", 450, 325), ("cauce z=325", 859, 325), ("partida", 70, 470), ("plaza", 450, 392), ("sitio de la bateria", 318, 350),
+            ("cuartel", 418, 335), ("posta", 590, 300), ("oeste z=325", 40, 325), ("este z=325", 860, 325)]
+    for name, meta, win, ctx in grids:
+        def h(x, z, _w=win, _c=ctx):
+            return height_m(_w, _c, x, z) - DATUM
+        ring = sum(h(305 + 135 * math.cos(2 * math.pi * k / 16), 345 + 135 * math.sin(2 * math.pi * k / 16)) for k in range(16)) / 16.0
+        print("%s (%s, suavizado %s m): " % (name, meta.get("source", "?"), meta.get("smooth_m", "?")) + "; ".join("%s %+.1f" % (n, h(x, z)) for n, x, z in refs))
+        print("   DEM solo, m sobre el cero local: anillo de 135 m %.2f; bateria − anillo %.2f; bateria − plaza %.2f; oeste − este %.2f; templo − cauce %.2f" % (
+            ring, h(318, 350) - ring, h(318, 350) - h(450, 392), h(40, 325) - h(860, 325), h(450, 325) - h(859, 325)))
+        out = []
+        for z, ref in ((0.0, 270.0), (325.0, 366.0), (650.0, 380.0)):
+            vals = [h(float(x), z) + DATUM - 2960.0 for x in range(0, 901)]
+            cross = [float(x) for x in range(1, 901) if vals[x - 1] * vals[x] <= 0]
+            best = min(cross, key=lambda c: abs(c - ref)) if cross else None
+            out.append("z=%d x=%s (lámina %d)" % (z, "%.0f" % best if best is not None else "ninguno", ref))
+        gz, gx = np.gradient(win / 10.0, WIN["cell_m"])
+        slope = np.degrees(np.arctan(np.hypot(gx, gz)))
+        print("   curva de 2 960 m: " + "; ".join(out) + " | pendiente a 10 m: media %.2f°, p95 %.2f°, máx %.2f°, celdas ≥ 8°: %.1f %%" % (
+            slope.mean(), np.percentile(slope, 95), slope.max(), (slope >= 8).mean() * 100))
+    if len(grids) >= 2:
+        for name, _, win, ctx in grids[1:]:
+            dw = (win - grids[0][2]) / 10.0
+            dc = (ctx - grids[0][3]) / 10.0
+            print("%s − %s: ventana media %+.2f m (|d| media %.2f, mín %+.1f, máx %+.1f); contexto media %+.2f m (|d| media %.2f)" % (
+                name, grids[0][0], dw.mean(), np.abs(dw).mean(), dw.min(), dw.max(), dc.mean(), np.abs(dc).mean()))
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -403,13 +494,18 @@ def main():
     ap.add_argument("--check-lamina", help="03_relieve_actual.png: mide R02 y R03 con la lógica del QA")
     ap.add_argument("--measure-river", help="03_relieve_actual.png: imprime la traza del Río Grande medida en la lámina (no escribe nada)")
     ap.add_argument("--update-map", action="store_true", help="escribe en el mapa el residuo del domo (delta_m de cerro_bateria)")
+    ap.add_argument("--expect-sha256", help="con --source copernicus: corta si el SHA-256 de la tesela no es este (la autorizada en ADDENDA A-02)")
+    ap.add_argument("--compare", nargs="+", metavar="HEIGHT_JSON", help="compara dos o más archivos de relieve (R02, R05, curva de 2 960 m, pendientes) y no escribe nada")
     a = ap.parse_args()
 
+    map_data = json.loads(pathlib.Path(a.map).read_text(encoding="utf-8")) if pathlib.Path(a.map).exists() else {}
     if a.measure_river:
         measure_river(a.measure_river)
         return 0
+    if a.compare:
+        compare_heights(a.compare, map_data)
+        return 0
     smooth = a.smooth_m if a.smooth_m is not None else (30.0 if a.source == "lamina03" else 45.0)
-    map_data = json.loads(pathlib.Path(a.map).read_text(encoding="utf-8")) if pathlib.Path(a.map).exists() else {}
     map_version = int(map_data.get("map_version", 1))
     if a.source == "lamina03":
         if not a.csv:
@@ -424,10 +520,15 @@ def main():
     else:
         if not a.tif:
             raise SystemExit("--source copernicus pide --tif con ruta absoluta (la tesela vive fuera del repo)")
+        size, sha256, md5 = file_digests(a.tif)
+        if a.expect_sha256 and sha256.lower() != a.expect_sha256.lower():
+            raise SystemExit("la tesela %s tiene SHA-256 %s y se esperaba %s: no es la autorizada" % (a.tif, sha256, a.expect_sha256))
+        print("TESELA %s | %d B | SHA-256 %s | MD5 %s" % (pathlib.Path(a.tif).name, size, sha256, md5))
         surf, info = copernicus_surface(a.tif, smooth)
         meta = {
             "source": "copernicus_glo30",
-            "source_detail": "%s (39438103 B, MD5 8c0aef1d66f4d1e918a25ff7864ecab3), mediana 5x5 px y gaussiano de %d m; modificado: remuestreo, suavizado y recorte" % (info["tesela"], smooth),
+            "source_detail": "%s (%d B, SHA-256 %s, MD5 %s; bucket AWS copernicus-dem-30m), mediana 5x5 px y gaussiano de %d m; modificado: remuestreo, suavizado y recorte" % (
+                info["tesela"], size, sha256, md5, smooth),
             "datum_asl_m": DATUM, "unit": "dm", "order": "filas norte->sur, columnas oeste->este; índice = fila * nx + columna",
             "tag": "razonado", "uncertainty_m": 5.0, "modified": True, "smooth_m": smooth, "credits_ref": CREDITS_REF,
             "builder": "tools/build_humahuaca_terrain.py --source copernicus"}

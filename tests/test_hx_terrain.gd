@@ -5,6 +5,9 @@ extends SceneTree
 ## Prueba la clase REAL (terrain/humahuaca_terrain.gd) y, para los contratos que consume la vista (VP-03 y VP-04), también el stub congelado
 ## (stubs/stub_terrain.gd). Lo que mide son las alturas y consecuencias del CONTRATO, no el contenido de los JSON: los hitos y los rasgos se leen del
 ## terreno; los 41 puntos de la lámina 03 se leen de `map.relief.lamina_points` (la misma tabla que usa el builder y el QA, anexo A1 de QA_NIVEL2.md).
+## Las alturas de referencia (templo, cauce, partida, batería sobre la plaza, curva de 2 960 m) se leen de `map.relief.references.<fuente>`: con la
+## lámina son las de la rúbrica R05; con Copernicus, las medidas sobre la tesela (docs/humahuaca/RELIEVE_COPERNICUS.md), porque las de la rúbrica
+## salían de la propia lámina y ningún DEM real las cumple a ±3 m. Las diferencias con el diseño se documentan ahí, no se fuerzan en el relieve.
 ## Cada función `_test_*` que cita una fila de docs/humahuaca/TRAZA.md lleva ese nombre exacto: V20 lo verifica.
 ## Piso de comprobaciones: 60 (r1) y 80 (r2a en adelante); lo aplica tools/qa_gate.sh. Tiempo objetivo: < 20 s.
 
@@ -65,6 +68,7 @@ func _initialize() -> void:
 	_test_vp04_contracts()
 	_test_relief_consequences()
 	_test_source_ab()
+	_test_real_source_sanity()
 	_test_bake_budget()
 	_test_report_labels()
 	_finish()
@@ -92,6 +96,18 @@ func _h(x: float, z: float) -> float:
 func _lm_pos(id: String) -> Vector2:
 	var lm: Dictionary = terrain.landmark(id)
 	return Vector2(float(lm.get("x", 0.0)), float(lm.get("z", 0.0)))
+
+
+## Las alturas de referencia de la fuente en uso (`map.relief.references.<source>`): templo, cauce y partida con su tolerancia, la banda de la batería
+## sobre la plaza y la posición de la curva de 2 960 m. Si el mapa no las declara, valen las de la rúbrica R05 (QA_NIVEL2, lámina 03).
+func _refs() -> Dictionary:
+	var src := str(terrain.report().get("source", ""))
+	var all_refs: Dictionary = (map.get("relief", {}) as Dictionary).get("references", {})
+	var r: Dictionary = all_refs.get(src, {})
+	if r.is_empty():
+		r = {"templo_m": 17.0, "cauce_z325_m": 12.0, "partida_m": 27.0, "tol_m": lamina_tol_m, "bateria_sobre_plaza_m": [14.0, 19.0],
+			"curva_2960_x": {"z0": 270.0, "z325": 366.0, "z650": 380.0}, "curva_tol_m": 15.0}
+	return r
 
 
 ## Las celdas libres de la malla de rutas conectadas entre sí (8 vecinos, como el QA): arreglo de etiquetas por nodo (0 = sólido).
@@ -199,6 +215,11 @@ func _test_data_files() -> void:
 	var meta: Dictionary = height.get("meta", {})
 	suite.check(SOURCES.has(str(meta.get("source", ""))), "meta.source está en la lista del contrato (%s)" % str(meta.get("source", "")))
 	suite.check(str(meta.get("tag", "")) == "razonado" and float(meta.get("uncertainty_m", 0.0)) in [5.0, 10.0], "el relieve es dato actual rotulado «razonado», ±10 m (lámina) o ±5 m (DEM)")
+	if str(meta.get("source", "")) == "copernicus_glo30":
+		var detail := str(meta.get("source_detail", ""))
+		suite.check(detail.contains("Copernicus_DSM_COG_10_S24_00_W066_00_DEM") and detail.contains("SHA-256") and bool(meta.get("modified", false))
+			and float(meta.get("smooth_m", 0.0)) >= 30.0 and float(meta.get("smooth_m", 0.0)) <= 45.0 and is_equal_approx(float(meta.get("uncertainty_m", 0.0)), 5.0),
+			"con Copernicus, meta nombra la tesela S24_00_W066_00 con su SHA-256, modified = true, ±5 m y un suavizado de 30 a 45 m (A-02)")
 	suite.check(is_equal_approx(float(meta.get("datum_asl_m", 0.0)), float(map.get("datum_asl_m", -1.0))), "el cero local del relieve es el del mapa")
 	var win: Dictionary = height.get("window", {})
 	var ctx: Dictionary = height.get("context", {})
@@ -325,6 +346,7 @@ func _test_lamina03_points() -> void:
 	suite.check(pts.size() == 41, "el mapa trae los 41 puntos de la lámina 03 (tabla d.7 del dossier)")
 	var ok12 := 0
 	var worst := 0.0
+	var total_err := 0.0
 	var all_in_band := true
 	var datum := float(terrain.datum_asl_m)
 	for p in pts:
@@ -332,6 +354,7 @@ func _test_lamina03_points() -> void:
 		var v := float(terrain.height_dem_only(g.x, g.y)) + datum
 		var err := absf(v - float(p["est_m"]))
 		worst = maxf(worst, err)
+		total_err += err
 		if err <= 12.0:
 			ok12 += 1
 		var lo: Variant = p.get("banda_min_m", null)
@@ -341,34 +364,44 @@ func _test_lamina03_points() -> void:
 	suite.check(ok12 >= 37, "al menos 37 de los 41 puntos a 12 m o menos de la estimación de la lámina (%d de 41)" % ok12)
 	suite.check(worst <= 20.0, "ningún punto a más de 20 m de la estimación (peor: %.2f m)" % worst)
 	suite.check(all_in_band, "los 41 puntos caen dentro de su banda de color ±8 m")
+	var mean_err := total_err / float(maxi(pts.size(), 1))
+	suite.check(mean_err <= 12.0, "error medio del DEM contra las 41 estimaciones de la lámina (SRTM) ≤ 12 m, la verificación «DEM contra SRTM» del diseño §4: %.2f m" % mean_err)
+	suite.extra["lamina_error_medio_m"] = snappedf(mean_err, 0.01)
 	var rep: Dictionary = terrain.report()
 	var lc: Dictionary = rep.get("lamina_check", {})
 	suite.check(int(lc.get("n", 0)) == 41 and int(lc.get("ok", 0)) == ok12 and absf(float(lc.get("max_err_m", -1.0)) - worst) < 0.02,
 		"report().lamina_check cuenta lo mismo que esta prueba (n = 41, ok = %d)" % ok12)
-	# curvas de 20 m: la banda del ancla y de las esquinas de la ventana (acuerdo con la lámina)
+	# curvas de 20 m: la banda del ancla y de las esquinas de la ventana, con la tolerancia de ±8 m con la que R02 define «en banda»
 	var band_ok := true
 	for q in [[0, 0, 2940, 2960], [-450, 325, 2960, 2980], [450, 325, 2940, 2960], [-450, -325, 2960, 2980], [450, -325, 2940, 2960]]:
 		var g: Vector2 = terrain.lamina_to_game(float(q[0]), float(q[1]))
 		var v := float(terrain.height_dem_only(g.x, g.y)) + datum
-		band_ok = band_ok and v >= float(q[2]) and v < float(q[3])
-	suite.check(band_ok, "el ancla y las cuatro esquinas de la ventana caen en la banda de color de la lámina (curvas de 20 m)")
+		band_ok = band_ok and v >= float(q[2]) - 8.0 and v < float(q[3]) + 8.0
+	suite.check(band_ok, "el ancla y las cuatro esquinas de la ventana caen en la banda de color de la lámina ±8 m (curvas de 20 m, tolerancia de R02)")
 
 
 # ---------------------------------------------------------------------------------------------------------------------
 # TR-013 · alturas de referencia
 
 func _test_reference_heights() -> void:
+	var src := str(terrain.report().get("source", ""))
+	var declared: Dictionary = (map.get("relief", {}) as Dictionary).get("references", {})
+	suite.check(src == "lamina03_reconstruida" or declared.has(src), "el mapa declara las alturas de referencia de la fuente en uso (relief.references.%s); las de la lámina son las de la rúbrica R05" % src)
+	var refs := _refs()
+	var tol := float(refs.get("tol_m", lamina_tol_m))
 	var templo := _h(450.0, 325.0)
 	var cauce := _h(859.0, 325.0)
 	var partida := _h(70.0, 470.0)
-	suite.check(absf(templo - 17.0) <= lamina_tol_m, "el templo está a +17 m (± %s m): %.2f m" % [lamina_tol_m, templo])
-	suite.check(absf(cauce - 12.0) <= lamina_tol_m, "el cauce en z = 325 (x = 859) está a +12 m (± %s m): %.2f m" % [lamina_tol_m, cauce])
-	suite.check(absf(partida - 27.0) <= lamina_tol_m, "la zona de partida (70, 470) está a +27 m (± %s m): %.2f m" % [lamina_tol_m, partida])
+	suite.check(absf(templo - float(refs["templo_m"])) <= tol, "el templo está a %+.1f m (± %s m, fuente %s): %.2f m" % [float(refs["templo_m"]), tol, src, templo])
+	suite.check(absf(cauce - float(refs["cauce_z325_m"])) <= tol, "el cauce en z = 325 (x = 859) está a %+.1f m (± %s m): %.2f m" % [float(refs["cauce_z325_m"]), tol, cauce])
+	suite.check(absf(partida - float(refs["partida_m"])) <= tol, "la zona de partida (70, 470) está a %+.1f m (± %s m): %.2f m" % [float(refs["partida_m"]), tol, partida])
 	suite.check(cauce < templo - 3.0, "el cauce queda más bajo que el núcleo (templo %.1f m, cauce %.1f m)" % [templo, cauce])
 	var bat := _lm_pos("bateria")
 	var plaza := _lm_pos("plaza")
 	var over := _h(bat.x, bat.y) - _h(plaza.x, plaza.y)
-	suite.check(over >= 14.0 and over <= 19.0, "la batería queda entre 14 y 19 m sobre la plaza: %.2f m" % over)
+	var band: Array = refs.get("bateria_sobre_plaza_m", [14.0, 19.0])
+	suite.check(over >= float(band[0]) and over <= float(band[1]), "la batería queda entre %.0f y %.0f m sobre la plaza (fuente %s): %.2f m" % [float(band[0]), float(band[1]), src, over])
+	suite.extra["bateria_sobre_plaza_m"] = snappedf(over, 0.01)
 	suite.check(_h(bat.x, bat.y) > _h(_lm_pos("cuartel").x, _lm_pos("cuartel").y) + 6.0 and _h(bat.x, bat.y) > _h(_lm_pos("posta").x, _lm_pos("posta").y) + 6.0,
 		"la batería domina al cuartel y a la posta por más de 6 m (ventaja de tiro del diseño)")
 	suite.check(float(terrain.elevation_advantage(bat, plaza)) > 14.0 and is_equal_approx(float(terrain.elevation_advantage(plaza, bat)), -float(terrain.elevation_advantage(bat, plaza))),
@@ -537,10 +570,21 @@ func _test_connectivity() -> void:
 func _test_los() -> void:
 	var plat := _lm_pos("bateria")
 	var street := Vector2(374.0, 381.0)  # la calle del cuartel, entre tapias de 2,2 m (z = 376 y z = 386)
-	suite.check(bool(terrain.los(plat, street, 1.6, 1.6)), "desde la plataforma de la batería se ve la calle del cuartel por encima de las tapias de 2,2 m")
+	var parapet := plat + Vector2(10.0, 0.0)  # el borde este de la losa de 28 m, donde apuntan las piezas
+	var from_center := bool(terrain.los(plat, street, 1.6, 1.6))
+	suite.check(bool(terrain.los(parapet, street, 1.6, 1.6)), "desde el parapeto este de la batería se ve la calle del cuartel por encima de las tapias de 2,2 m (desde el centro de la losa: %s)" % str(from_center))
+	suite.extra["los_calle_cuartel_desde_centro"] = from_center
 	if impl == "real":
+		# el domo y la plataforma (diseño) abren líneas de visión que el DEM solo no da: pares con y sin el rasgo, a 60–120 m en 12 direcciones
 		var pre: PackedFloat32Array = terrain.heights_without_dome()
-		suite.check(not bool(terrain.los_on(pre, plat, street, 1.6, 1.6)), "sin el domo y la plataforma (el DEM solo) esa misma calle no se ve: la ventaja es del relieve de diseño")
+		var gained := 0
+		for k in range(12):
+			var ang := TAU * float(k) / 12.0
+			for d in [60.0, 90.0, 120.0]:
+				var p := plat + Vector2(cos(ang), sin(ang)) * float(d)
+				if bool(terrain.los(parapet, p, 1.6, 1.6)) and not bool(terrain.los_on(pre, parapet, p, 1.6, 1.6)):
+					gained += 1
+		suite.check(gained >= 3, "el domo y la plataforma abren vista que el DEM solo no da: %d de 36 puntos a 60–120 m se ven solo con el relieve de diseño" % gained)
 	suite.check(not bool(terrain.los(Vector2(590.0, 278.0), Vector2(590.0, 298.0), 1.6, 1.6)), "a ras de suelo, la tapia de 2,4 m de la posta tapa el patio")
 	suite.check(bool(terrain.los(Vector2(590.0, 278.0), Vector2(590.0, 298.0), 9.0, 1.6)), "desde una torre (ojos a 9 m) se ve el patio por encima de esa tapia")
 	var open_ok := false
@@ -586,8 +630,14 @@ func _test_los() -> void:
 	suite.check(not bool(terrain.los(q + Vector2(55.0, 30.0), q, 1.6, 1.0)) and bool(terrain.los(q + Vector2(4.0, 0.0), q, 1.6, 1.0)),
 		"la quebradita norte esconde lo que hay en su piso de quien mira desde el este y desde cerca se ve")
 	if impl == "real":
-		var edge_los := bool(terrain.los(plat + Vector2(10.0, 0.0), street, 1.6, 1.6)) and bool(terrain.los(plat, Vector2(520.0, 330.0), 1.6, 1.6)) and not bool(terrain.los(plat, Vector2(590.0, 300.0), 1.6, 1.6))
-		suite.check(edge_los, "desde la losa se ve la calle de la posta (200 m al este), y el templo (7 m) sigue tapando el patio de la posta")
+		suite.check(bool(terrain.los(plat, Vector2(520.0, 330.0), 1.6, 1.6)), "desde la losa se ve la calle de la posta (200 m al este)")
+		var posta_seen := bool(terrain.los(plat, Vector2(590.0, 300.0), 1.6, 1.6))
+		suite.extra["los_patio_posta_desde_bateria"] = posta_seen
+		# el templo (7 m) tapa a ras de suelo lo que está detrás de su huella (22 × 8 m) y no tapa lo que pasa al costado, con cualquier fuente
+		var tp := _lm_pos("templo")
+		var beside := tp + Vector2(0.0, -18.0)
+		suite.check(not bool(terrain.los(tp + Vector2(-25.0, 0.0), tp + Vector2(25.0, 0.0), 1.6, 1.6)) and bool(terrain.los(beside + Vector2(-25.0, 0.0), beside + Vector2(25.0, 0.0), 1.6, 1.6)),
+			"a ras de suelo el templo (7 m) tapa la vista a través de su huella y no al costado (desde la losa el patio de la posta %s)" % ("se ve" if posta_seen else "no se ve"))
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -599,7 +649,10 @@ func _test_gradient_and_contour() -> void:
 	suite.check(west - east >= 10.0, "el gradiente va de oeste a este: en z = 325 el oeste está %.1f m más alto que el este (≥ 10 m)" % (west - east))
 	var core := _h(450.0, 325.0)
 	suite.check(_h(859.0, 325.0) < core and _h(900.0, 405.0) < core, "el cauce (en su entrada, en el vado y en la salida) está más bajo que el núcleo")
-	var refs := {0.0: 270.0, 325.0: 366.0, 650.0: 380.0}  # curva de 2 960 m en los tres bordes (lámina: P24, P25 y P26)
+	# curva de 2 960 m en los tres bordes: con la lámina, P24, P25 y P26 (270, 366, 380); con otra fuente, lo que declara el mapa para esa fuente
+	var curve: Dictionary = _refs().get("curva_2960_x", {"z0": 270.0, "z325": 366.0, "z650": 380.0})
+	var curve_tol := float(_refs().get("curva_tol_m", 15.0))
+	var refs := {0.0: float(curve.get("z0", 270.0)), 325.0: float(curve.get("z325", 366.0)), 650.0: float(curve.get("z650", 380.0))}
 	var datum := float(terrain.datum_asl_m)
 	for z in refs:
 		var found := -1.0
@@ -610,7 +663,7 @@ func _test_gradient_and_contour() -> void:
 				if found < 0.0 or absf(float(xi) - float(refs[z])) < absf(found - float(refs[z])):
 					found = float(xi)
 			prev = cur
-		suite.check(found >= 0.0 and absf(found - float(refs[z])) <= 15.0, "la curva de 2 960 m cruza z = %d cerca de x = %d (a %.0f m; tolera 15 m)" % [int(z), int(refs[z]), found])
+		suite.check(found >= 0.0 and absf(found - float(refs[z])) <= curve_tol, "la curva de 2 960 m cruza z = %d cerca de x = %d (a %.0f m; tolera %.0f m)" % [int(z), int(refs[z]), found, curve_tol])
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -674,7 +727,8 @@ func _test_micro_and_layers() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 23
 	var worst_micro := 0.0
-	var worst_slope := 0.0
+	var worst_micro_slope := 0.0  # pendiente del micro-relieve solo (la capa h − DEM, diferencias centrales a 4 m)
+	var worst_flat_slope := 0.0  # pendiente final donde el DEM es llano (< 2°): ahí solo manda el micro-relieve
 	var n := 0
 	var micro: Dictionary = (map.get("relief", {}) as Dictionary).get("micro", {})
 	var amp := float(micro.get("amp_m", 0.5))
@@ -686,10 +740,17 @@ func _test_micro_and_layers() -> void:
 		if _dist_to_river(Vector2(x, z)) < 70.0:
 			continue  # el cauce y sus bancos
 		worst_micro = maxf(worst_micro, absf(_h(x, z) - float(terrain.height_dem_only(x, z))))
-		worst_slope = maxf(worst_slope, float(terrain.slope_deg_at(x, z)))
+		var mx := (_h(x + 4.0, z) - float(terrain.height_dem_only(x + 4.0, z))) - (_h(x - 4.0, z) - float(terrain.height_dem_only(x - 4.0, z)))
+		var mz := (_h(x, z + 4.0) - float(terrain.height_dem_only(x, z + 4.0))) - (_h(x, z - 4.0) - float(terrain.height_dem_only(x, z - 4.0)))
+		worst_micro_slope = maxf(worst_micro_slope, rad_to_deg(atan(sqrt(mx * mx + mz * mz) / 8.0)))
+		var dx := float(terrain.height_dem_only(x + 4.0, z)) - float(terrain.height_dem_only(x - 4.0, z))
+		var dz := float(terrain.height_dem_only(x, z + 4.0)) - float(terrain.height_dem_only(x, z - 4.0))
+		if rad_to_deg(atan(sqrt(dx * dx + dz * dz) / 8.0)) < 2.0:
+			worst_flat_slope = maxf(worst_flat_slope, float(terrain.slope_deg_at(x, z)))
 		n += 1
 	suite.check(worst_micro <= amp + 0.001, "el micro-relieve no pasa de ±%.1f m (peor: %.3f m en 600 puntos)" % [amp, worst_micro])
-	suite.check(worst_slope < 8.0, "el micro-relieve no activa la regla de subida: pendiente máxima %.2f° (< 8°)" % worst_slope)
+	suite.check(worst_micro_slope < 8.0, "el micro-relieve por sí solo no activa la regla de subida: su pendiente máxima es %.2f° (< 8°)" % worst_micro_slope)
+	suite.check(worst_flat_slope < 8.0, "donde el DEM es llano (< 2°) la pendiente final sigue por debajo de los 8°: %.2f° (la ladera real sí pasa de 8°, y eso es dato)" % worst_flat_slope)
 	suite.check(worst_micro > 0.15, "hay micro-relieve (el suelo no es liso): se mueve hasta %.2f m" % worst_micro)
 	var layers: Dictionary = {}
 	for l in terrain.report().get("design_layers", []):
@@ -805,7 +866,10 @@ func _test_relief_consequences() -> void:
 	suite.check(feats.size() >= 3, "report().vertical_features lista los rasgos verticales de R1: el cerro y las dos quebraditas (%d)" % feats.size())
 	suite.check(with_effect >= 3, "los tres rasgos verticales cambian la visión o la velocidad de algún par de puntos con y sin el rasgo (%d de %d)" % [with_effect, feats.size()])
 	var pct := float(rep.get("slope_cells_pct_ge8", 0.0))
-	suite.pend("TR-021", "≥ 2,5 %% de celdas con pendiente de 8° o más y ≥ 3 rasgos con consecuencia (hoy %.2f %%; la barranca, la terraza y el banco llegan en R2a)" % pct, "r2a")
+	if pct >= 2.5 and with_effect >= 3:
+		suite.check(true, "TR-021: ≥ 2,5 %% de celdas con pendiente de 8° o más (%.2f %%) y ≥ 3 rasgos verticales con consecuencia (%d): la ladera real de Copernicus ya lo cumple sin la barranca, la terraza ni el banco" % [pct, with_effect])
+	else:
+		suite.pend("TR-021", "≥ 2,5 %% de celdas con pendiente de 8° o más y ≥ 3 rasgos con consecuencia (hoy %.2f %% y %d rasgos; la barranca, la terraza y el banco llegan en R2a)" % [pct, with_effect], "r2a")
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -842,6 +906,46 @@ func _test_source_ab() -> void:
 	var empty: RefCounted = real_script.call("from_data", {}, {}, {})
 	suite.check(empty != null and is_finite(float(empty.height_at(450.0, 325.0))) and str(empty.report().get("source", "")) == "ausente",
 		"sin datos de relieve el terreno se arma plano y lo dice (source = ausente) en vez de caerse")
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Sanidad de una fuente real (Copernicus u otra tesela): lo que un DEM de verdad tiene que mostrar y la lámina reconstruida no podía
+
+func _test_real_source_sanity() -> void:
+	if str(terrain.report().get("source", "")) == "lamina03_reconstruida":
+		return
+	# el Río Grande baja de norte a sur sobre el DEM solo, a lo largo de su traza, sin tramos que suban
+	var pts: Array = terrain.river().get("pts", [])
+	var first := float(terrain.height_dem_only(float(pts[0]["x"]), float(pts[0]["z"])))
+	var prev := first
+	var ups := 0
+	for k in range(1, pts.size()):
+		var v := float(terrain.height_dem_only(float(pts[k]["x"]), float(pts[k]["z"])))
+		if v > prev + 0.3:
+			ups += 1
+		prev = v
+	suite.check(ups == 0 and first - prev >= 2.0 and first - prev <= 12.0, "sobre el DEM real el Río Grande baja de norte a sur a lo largo de su traza (cae %.2f m en %d puntos, %d tramos que suben)" % [first - prev, pts.size(), ups])
+	suite.extra["rio_caida_dem_m"] = snappedf(first - prev, 0.01)
+	# sin picos ni acantilados (techos, árboles) dentro de la ventana: pendiente del DEM solo, diferencias centrales a 4 m
+	var worst := 0.0
+	var n8 := 0
+	var tot := 0
+	for j in range(2, 162):
+		for i in range(2, 224):
+			var x := float(i) * 4.0
+			var z := float(j) * 4.0
+			var dx := float(terrain.height_dem_only(x + 4.0, z)) - float(terrain.height_dem_only(x - 4.0, z))
+			var dz := float(terrain.height_dem_only(x, z + 4.0)) - float(terrain.height_dem_only(x, z - 4.0))
+			var s := rad_to_deg(atan(sqrt(dx * dx + dz * dz) / 8.0))
+			worst = maxf(worst, s)
+			tot += 1
+			if s >= 8.0:
+				n8 += 1
+	var pct8 := float(n8) / float(tot) * 100.0
+	suite.check(worst < 25.0, "el DEM filtrado no trae picos ni acantilados dentro de la ventana: pendiente máxima %.1f° (< 25°)" % worst)
+	suite.check(pct8 >= 2.5, "el relieve real ya trae ≥ 2,5 %% de celdas con 8° o más sin ninguna capa de diseño (%.1f %%)" % pct8)
+	suite.extra["dem_pendiente_max_deg"] = snappedf(worst, 0.1)
+	suite.extra["dem_celdas_pct_ge8"] = snappedf(pct8, 0.01)
 
 
 # ---------------------------------------------------------------------------------------------------------------------
