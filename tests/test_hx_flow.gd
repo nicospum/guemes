@@ -6,7 +6,8 @@ extends SceneTree
 ##   _test_reserved_keys · _test_first_frame · _test_full_cycle · _test_expert_wins_passive_loses · _test_first_decision · _test_save_load · _test_cli_flags
 ## más la cámara (A-11), las acciones y su vista previa, las ventanas, el desborde a tres tamaños y la jerga; en el pase 3 de R1, el objetivo por fase y los textos cortados
 ## (H-R1-10), los avisos de orden y de rechazo (B-046, B-052), el chip de carga (B-053), la confirmación de destruir, el conteo de intentos y el paso apagado con su causa. `--only=<id>` corre una sola (ids: primer_cuadro, camara, teclas,
-## acciones, aviso, ventanas, hud_guiado, recortes, objetivo, avisos_orden, carga, avisos_pie, reintento, primera_decision, ciclo, experto_pasivo, guardado, banderas, desborde, textos, key_table). El «experto» de R1 es el que sigue el
+## vista_previa, acciones, aviso, ventanas, hud_guiado, recortes, objetivo, avisos_orden, carga, avisos_pie, reintento, primera_decision, ciclo, experto_pasivo, guardado, banderas, desborde,
+## textos, key_table). El «experto» de R1 es el que sigue el
 ## «siguiente paso» de las reglas hasta el final; la biblioteca de políticas (reglas_historia) corre por la escena real en humahuaca_playthrough.gd.
 
 const Fx = preload("res://tests/hx_fixtures.gd")
