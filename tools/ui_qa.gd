@@ -946,6 +946,8 @@ func _r5_checks() -> void:
 	# Ronda 5: claridad, un solo aviso transitorio, fases del objetivo, sensacion de juego. Capturas en diversion_r5_ui.
 	var view := root.get_visible_rect().size
 	check(game.right_panel.modulate.a >= 0.99, "R5: el panel de objetivo no se atenua en el primer paso (se lee completo)")
+	game.hover_mouse = Vector2(-1, -1)  # H-R1-4: el puntero real del SO puede estar sobre el mapa y fijar hover_mouse; se lo saca del cuadro y se recalcula en el mismo cuadro, antes de medir
+	game._update_place()
 	check(not game.place_label.visible, "R5: el rotulo 'Centro de la vista' no flota sin que el cursor este sobre el mapa")
 	check(game.speed == 1.0, "R5: la velocidad no cambia sola (la espera acelerada solo se sugiere)")
 	var leaks := 0

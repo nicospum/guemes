@@ -14,13 +14,11 @@ extends "res://tests/hx_validators.gd"
 const HISTORY_PATH := "res://data/history.json"
 const CONTRACT_PATH := "res://docs/CONTRATO_HUMAHUACA.md"
 const QA_PATH := "res://docs/QA_NIVEL2.md"
-## Excepciones fechadas de V11 (ADDENDA A-13): una pista de reintento de 123 caracteres (el tope es 120) que entregó reglas_historia en R1. Vence en r2a: desde esa ronda la
-## pista vuelve a fallar si sigue igual. Cada excepción es una ruta y la ronda en que deja de valer; ninguna sirve para relajar un tope en silencio.
-const V11_ACCEPTED := {"campaign.tips.dispersos[0]": "r2a"}
-## Excepciones fechadas de V10 (contracciones; BACKLOG B-033): cinco plantillas de reglas_historia anteponen «de» o «a» a {frente}, que el juego llena con `place` («el cuartel»), y
-## el jugador lee «Esperá la toma de el cuartel.». Vencen en r2a (el arreglo es de reglas_historia: un marcador que contraiga, como {deLugar} y {aLugar} de las causas). Misma regla
-## que V11: una ruta y la ronda en que deja de valer.
-const V10_ACCEPTED := {"texts.siguiente.attack": "r2a", "texts.siguiente.wait_attack": "r2a", "texts.eventos.apoyo": "r2a", "texts.eventos.detectado": "r2a", "texts.avisos_ruta.cerca": "r2a"}
+## Excepciones fechadas de V11 y de V10 (ADDENDA A-13): ya no queda ninguna. En el pase 2 de R1 `reglas_historia` acortó la pista de reintento a 117 caracteres (el tope es 120) y pasó las cinco
+## plantillas que anteponían «de» o «a» a {frente} a los marcadores {deFrente} y {aFrente} (BACKLOG B-025 y B-036; ADDENDA A-14), así que las dos reglas miran todo sin excepciones. El mecanismo
+## se conserva por si hace falta otra: cada excepción es una ruta y la ronda en que deja de valer; ninguna sirve para relajar un tope en silencio.
+const V11_ACCEPTED := {}
+const V10_ACCEPTED := {}
 const FLOOR_BY_ROUND := {"r0": 40, "r1.0": 40, "r1": 40, "r2a": 60, "r2b": 60, "r3": 60, "r4": 60}
 
 const REPORT_PENDING_RULES := {

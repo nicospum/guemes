@@ -68,6 +68,7 @@ func _run() -> void:
 
 # ------------------------------------------------------------------ Justina
 func _justina() -> void:
+	game.forced_seed = 1806  # B-045: sin semilla fija el fondo del río cambia en cada partida y la secuencia del vado, la señal y el abordaje fallaba 1 de cada 21 corridas
 	check(_press("EL RÍO OFRECE"), "Justina starts through its menu button")
 	await process_frame
 	await process_frame
