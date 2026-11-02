@@ -34,8 +34,8 @@ const WARN_BORDER := Color("b8584b")
 const WARN_TEXT := Color("fff1e6")
 ## Respaldo mínimo si ui.json no se pudo leer (los textos del juego salen de ese archivo, no del código).
 const FALLBACK_TITLE := "Humahuaca: el depósito de la retaguardia"
-const FALLBACK_RUNNING := "TIEMPO REAL · ▶ ×%d"
-const FALLBACK_PAUSED := "‖ EN PAUSA"
+const FALLBACK_RUNNING := "Tiempo real · ▶ ×%d"
+const FALLBACK_PAUSED := "‖ En pausa"
 
 var main: Node
 var rules: RefCounted  # reglas (la clase real o su versión mínima); null si no hay ninguna de las dos
@@ -505,7 +505,8 @@ func _refresh_hud(_force_now: bool = false) -> void:
 		clock_text = _mmss(_elapsed())
 	_title.text = "%s  ·  %s  ·  %s" % [_t("title", FALLBACK_TITLE), phase_name, clock_text]
 	var pattern := _t("clock_running", FALLBACK_RUNNING)
-	_clock_label.text = _t("clock_paused", FALLBACK_PAUSED) if paused else (pattern % int(speed) if pattern.find("%d") >= 0 else pattern)
+	var indicator := _t("clock_paused", FALLBACK_PAUSED) if paused else (pattern % int(speed) if pattern.find("%d") >= 0 else pattern)
+	_clock_label.text = indicator.to_upper()  # el contrato fija «TIEMPO REAL · ▶ ×1» y «‖ EN PAUSA»; en el JSON van en minúsculas para que ninguna cadena de texto quede entera en mayúsculas
 	var next_text := str(_dict(_hud_data.get("siguiente")).get("texto", ""))
 	if _ended:
 		_objective.text = _end_line

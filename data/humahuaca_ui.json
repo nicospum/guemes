@@ -3,8 +3,8 @@
 	"map_version": 1,
 	"texts": {
 		"title": "Humahuaca: el depósito de la retaguardia",
-		"clock_running": "TIEMPO REAL · ▶ ×%d",
-		"clock_paused": "‖ EN PAUSA",
+		"clock_running": "Tiempo real · ▶ ×%d",
+		"clock_paused": "‖ En pausa",
 		"keys_hint": "Espacio: pausa  ·  Esc: menú",
 		"objective": "Tomá la batería, el cuartel y la pólvora a la vez, y sacá lo que puedas antes del refuerzo.",
 		"phase_names": {
