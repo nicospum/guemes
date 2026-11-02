@@ -329,3 +329,66 @@ La línea final de la corrida completa dice `FALLA (2 pasos)`: `higiene` (las do
 - `token_px` de `ui_qa_humahuaca` (38,4 a 46,4 px) no coincide con lo que se ve (hoja de fichas 71 a 96 px; proyección 49,3 a 70,9 px): B-026. El río termina en seco en el borde norte del mapa (B-029).
 - El render héroe no está aprobado: falta la respuesta del QA a VP-14 (A-13).
 - Las etiquetas ajenas siguen: `higiene` falla en toda compuerta y E05 no puede dar verde (B-017).
+
+### R1 · compuerta completa de compuertas y documentos (2 de noviembre de 2026)
+
+Lo que corrió de verdad después del cierre del integrador (`70124a0`), escrito por «compuertas y documentos». Commits: `81b6c8c` (el arnés del agente-jugador, el recorrido de QA, la compuerta y V10), `c193166` (las claves de `qa_state()`, el guion de protocolo más robusto y los registros de pasos fallidos) y el de este registro. Sin `push`, sin etiquetas nuevas, sin tocar `origin/main` (`72077c8`).
+
+**Cómo se corrió.** Tres compuertas completas con `SKIP=benchmark KEEP=1 bash tools/qa_gate.sh full`, ronda `r1`, `APPDATA` aislado propio de cada corrida, ventana real (sin `--headless`) para `ui_qa`, `--qa=humahuaca`, `justina_playthrough`, `ui_qa_humahuaca`, el recorrido, el arnés y `vis_flow`, `--audio-driver Dummy`, Godot 4.7.2 con Forward+ en una NVIDIA GeForce RTX 3080 Ti y un monitor de 1920 × 1080, con el árbol limpio y sin que quien las corrió hiciera nada más con ventana en paralelo:
+
+- sobre `70124a0` (el cierre del integrador, sin tocar nada): **13 min 48 s**; la línea final dice `FALLA (1 pasos)` y el único paso que falla es `higiene` (BACKLOG B-017);
+- sobre `81b6c8c`: **15 min 04 s**; la línea final dice `FALLA (3 pasos)`: `higiene` y dos pasos de **un tropiezo del entorno** (`ui_qa` a 2560 × 1440 perdió la entrada real: 8 comprobaciones fallaron, el proceso salió con 0 después de 18 de sus 41 capturas y sin escribir su informe; `salida_limpia` solo contó las líneas `ERROR:` de ese registro). Repetido solo, a los pocos minutos y con el mismo comando, dio 254/0 en 42 s con la captura real de 2560 × 1440 y sin errores (BACKLOG B-044);
+- sobre `c193166` (el commit del código de esta pasada): **16 min 05 s**; la línea final dice `FALLA (1 pasos)` y el único paso que falla es `higiene`, por las dos etiquetas ajenas (B-017). **Es la corrida que vale**: todas las cifras de la tabla de abajo son de ella.
+
+El benchmark **no se corrió** (orden del encargo: lo corre el Jefe de QA a solas). Las cifras de las tres corridas son idénticas salvo lo que sumó `81b6c8c` y `c193166` (`hx_data` pasa de 411 a 419 comprobaciones y `hx_smoke` de 154 a 155; el recorrido suma las cifras de texto; la compuerta suma `hx_agent_protocolo` y `hx_agent_viejos`).
+
+| Paso de la compuerta | Resultado real | Filas que ejercita |
+|---|---|---|
+| `import` | PASA: proyecto importado en 0 min 04 s | ninguna |
+| `protegidos` | PASA: 40 archivos protegidos intactos contra 5ebbd28 | TR-186 |
+| `compartidos` | PASA: main.gd +47/-4, test_integration +1/-1, ui_qa +1/-1, run_qa +1/-1 (topes de la rúbrica T01) | TR-151 |
+| `rules` | PASA: 871 comprobaciones, 0 fallas, piso 871, 3 min 57 s | TR-180 |
+| `integracion` | PASA: 283 comprobaciones, 0 fallas, piso 283, 0 min 12 s | TR-181 |
+| `hx_data` | PASA: 419 comprobaciones, 0 fallas, piso 40, 0 min 03 s | TR-001 a TR-003, TR-160 a TR-162, TR-171, TR-194, TR-195 y TR-204 |
+| `hx_smoke` | PASA: 155 comprobaciones, 0 fallas, piso 25, 0 min 28 s | TR-010, TR-067, TR-082, TR-110 a TR-112, TR-131, TR-132, TR-140 a TR-148, TR-150, TR-152, TR-175, TR-176 y TR-191 |
+| `hx_terrain` | PASA: 158 comprobaciones, 0 fallas, piso 60, 0 min 01 s, 2 pendientes de rondas futuras | TR-011 a TR-019 |
+| `hx_rules` | PASA: 621 comprobaciones, 0 fallas, piso 150, 0 min 22 s, 1 pendientes de rondas futuras | TR-031 a TR-072 |
+| `hx_view` | PASA: 258 comprobaciones, 0 fallas, piso 25, 0 min 08 s | TR-091 a TR-105 |
+| `hx_flow` | PASA: 166 comprobaciones, 0 fallas, piso 50, 0 min 32 s | TR-119 y las filas de la interfaz |
+| `etapa` | PASA: entregables de R1.0 presentes (4 stubs y el controlador) | CONTRATO 8.1 |
+| `higiene` | **FALLA**: etiquetas={v0.1.0 v0.2.0-alpha v0.3.0-alpha} (debe quedar solo v0.1.0); | TR-192 |
+| `jev` | PASA: 15 comprobaciones, 0 fallas, piso 15, 0 min 01 s | TR-182 |
+| `audio` | PASA: 17 comprobaciones y 1 falla aceptada (driver de audio real, no Dummy), 0 min 06 s | TR-182 |
+| `scenario` | PASA: --scenario=humahuaca abre el nivel directo y sale con 0 (0 min 04 s) | TR-155 |
+| `qa_humahuaca` | PASA: --qa=humahuaca salió con 0, escribió qa_report.json y 16 capturas (mínimo 8), 0 min 10 s | TR-156 |
+| `ui_qa_1280x720` | PASA: 254 comprobaciones, 0 fallas, captura 1280x720 real, 0 min 27 s | TR-183 |
+| `ui_qa_1920x1080` | PASA: 254 comprobaciones, 0 fallas, captura 1920x1080 real, 0 min 37 s | TR-183 |
+| `ui_qa_2560x1440` | PASA: 254 comprobaciones, 0 fallas, captura 2560x1440 real, 0 min 46 s | TR-183 |
+| `justina_playthrough` | PASA: 18 victorias, 6 estilos, 3 rutas, 6 derrotas, el bot de interfaz gana (6 min 17 s) | TR-185 |
+| `benchmark` | **OMITIDO por orden**: pedido en SKIP; la compuerta queda PARCIAL | TR-157 y TR-184, sin verificar |
+| `ui_qa_hx_1280x720` | PASA: 104 comprobaciones, 0 fallas (piso 60) | TR-119 |
+| `ui_qa_hx_1920x1080` | PASA: 31 comprobaciones, 0 fallas (piso 1) | TR-119 |
+| `ui_qa_hx_2560x1440` | PASA: 31 comprobaciones, 0 fallas (piso 1) | TR-119 |
+| `humahuaca_playthrough` | PASA: sale con 0: el experto gana y el pasivo pierde | TR-172 |
+| `hx_qa_tour` | PASA: 23 capturas, 7 vistas, cuadro inicial con los tres objetivos y la partida, templo 7.3 m, cuadro medio 6.29 ms (indicativo), el bot victory; texto del bot: jerga 0, desbordes 0, brecha sin siguiente paso 153.0 s (ataque 17.0 s), contracciones sin hacer 0 (informativo); posiciones en píxeles de la captura (x0.8) | TR-173, TR-196, TR-202 y TR-203 |
+| `hx_agent_play` | PASA: arnés hx_agente_v1: 30 turnos con capturas de 1280x720, primera orden aceptada en el turno 4 (3.0 s de juego), cierre max_turnos (selftest, no es el agente) | TR-173 y TR-197 |
+| `hx_agent_protocolo` | PASA: el arnés atendió un agente de guion por archivos: 8 turnos, 9 comprobaciones sin fallas (acción a medias, JSON roto, clic fuera de la ventana, tipo desconocido, respuestas.json y bitácora), 17.0 s | TR-199 y TR-200 |
+| `hx_agent_viejos` | PASA: con una acción, unas respuestas y una captura viejas en la carpeta: las borró (3), no tocó la bitácora y abandonó a los 4 s sin contestar con lo viejo | TR-201 |
+| `vis_flow` | PASA: escena real por tools/vis_humahuaca.sh --flow: 0 fallas (fichas, alba y anillos) | TR-198 |
+| `salida_limpia` | PASA: ningún SCRIPT ERROR, SHADER ERROR, Parse Error, ERROR: ni fuga en los registros (0 WARNING contados) | TR-193 |
+
+La línea final de la corrida que vale: `GATE full (r1): FALLA (1 pasos) | protegidos 40 | rules 871/0 | integracion 283/0 | jev 15/0 | audio 17/1 | hx_data 419/0 | hx_smoke 155/0 | hx_terrain 158/0 | hx_rules 621/0 | hx_view 258/0 | hx_flow 166/0 | ui_qa_1280x720 254/0 | ui_qa_1920x1080 254/0 | ui_qa_2560x1440 254/0 | falla: higiene | 16 min 05 s`. El recorrido midió **un cuadro medio indicativo de 5,07 a 6,29 ms** (5,23, 5,81 y 6,29 ms en las tres compuertas; p95 de 6,9 a 8,0 ms; construcción de 907 a 1 171 ms; a 1920 × 1080, 8,41 ms), sin vsync, en la RTX 3080 Ti y con la máquina compartida: no es la medida oficial (el benchmark no se corrió), pero está por encima del tope de `media` (4,0 ms) en las cinco corridas (BACKLOG B-030).
+
+**Qué cambió desde `70124a0`.**
+
+- `tools/hx_agent_play.gd`: `objetivos_identificados_en_turnos` sale de la bitácora del agente (con la definición por clics J08 no podía aprobar nunca: tres frentes necesitan tres clics y la rúbrica pide menos de 3 turnos); el arnés borra los `turno_NN.png`, `accion_NN.json` y `respuestas.json` de una corrida anterior (demostrado antes del arreglo: con una acción y unas respuestas viejas, el arnés aplicaba la acción vieja en el turno 1 y cerraba con `respuestas` tras 1 turno; ahora los borra, no toca la bitácora y abandona a los 4 s con `--wait-s=4`); un archivo a medias ya no llena el registro de `ERROR: Parse JSON failed`; el informe suma `t_despues_s`, `mapa_desde_turno`, `objetivos_tocados_en_turnos` y `archivos_viejos_borrados`.
+- `tools/hx_agent_guion.py` (nuevo): un agente de guion que recorre el protocolo por archivos con un oráculo propio (TR-199, TR-200 y TR-201).
+- `tools/hx_qa_tour.gd`: las posiciones de `qa_report.json` salen en píxeles de la captura (venían en píxeles lógicos: ×0,8 a 1280 × 720 y ×1,2 a 1920 × 1080; `qa_imagen.py legible` no veía ningún edificio porque los rectángulos de la posta caían fuera de la imagen); suma la jerga, los desbordes de texto, la brecha de decisión y las contracciones sin hacer medidos sobre el arco del bot, y `textos_visibles.txt` (TR-202 y TR-203).
+- `tests/hx_validators.gd` y `tests/test_hx_data.gd`: V10 suma las contracciones y deja cinco plantillas de `reglas_historia` como excepción fechada hasta `r2a` (TR-204; BACKLOG B-036).
+- `tests/test_hx_smoke.gd`: el controlador real trae, con su tipo, las claves de `qa_state()` que leen el arnés y el recorrido (TR-205); `tools/qa_gate.sh`: el registro de un `ui_qa` que falla se renombra `.falla` y `salida_limpia` no cuenta la misma falla dos veces.
+
+**Ensayo de las herramientas del QA (anexo A de la rúbrica), sobre el paquete de esta corrida.** No es un veredicto: el Jefe de QA las corre sobre el commit que certifica. `qa_imagen.py tokens` (V03: 5 siluetas distintas, peor IoU 0,53) y `calib` (V04: mediana 0,4, p90 3,1, 0,00 % de píxeles sobre 22) dan PASA; `paleta` (V04) encuentra los 24 HEX exactos; `markers` (V05) encuentra celeste, oro y borgoña; `qa_etiquetas.py` (H01) da 186 entidades con etiqueta y 0 violaciones; `qa_agente.py` (J08) lee el `arnes.json` de la prueba por archivos sin errores (8 de 8 con el reintento, 7 de 8 sin él) y `qa_balance.py` lee el `hx_playthrough_v1` del recorrido de reglas (los ítems J dan FALLA por falta de datos: 8 semillas, solo experto y pasivo, y las victorias duran 9:11 contra 11:00 a 13:00). V06 da FALLA con las posiciones ya en píxeles (`legible`, `bordes` y `panorama`; BACKLOG B-033) y `contraste` (V05) no puede correr con los `notes.rects` de `ui_qa_humahuaca` (píxeles lógicos y un rectángulo de `alerta` vacío; BACKLOG B-032).
+
+**Capturas reales** (todas con ventana, nunca `--headless`; se miraron **una por una** con `Read`). Del recorrido: las 7 vistas con interfaz y las 7 sin ella, el primer cuadro, las 3 de albedo, las 4 de límite de cámara (más dos ampliaciones del horizonte para descartar una costura del terreno: la línea fina que cruza `limite_e` y `limite_o` es una curva de nivel del shader del terreno, cada 5 m), la hoja de fichas y `inicial_caja_gris.jpg`. Del arnés: los turnos 1 a 3 (las dos páginas del briefing y la apertura), 26, 28, 30 y 31 (el ataque y el parte de derrota) de la repetición por archivos. Lo que se ve: el cuadro inicial lee bien (cinco fichas con su anillo, tres luces amarillas con su rótulo, un solo «siguiente paso» con su botón y el minimapa); `grupos_en_accion` se saca con el juego en t = 0 y no muestra la torre ni las fichas (B-041); `panorama_alto` no muestra el cielo (B-033); la cinta de agua de `limite_n` termina en punta (B-029); el parte de derrota de 3:54 se lee bien (causa con momento y lugar, consejo, tres datos y «Reintentar»); y en el ataque el «siguiente paso» dice «Esperá la toma de el cuartel.» mientras la partida de Portal se rompe bajo la torre, sin aviso crítico a la vista (B-036 y B-037).
+
+**No se verificó en esta pasada** (y por qué): el benchmark (omitido por orden); la corrida del agente-jugador de verdad (J08, B-027: hace falta un subagente nuevo sin acceso al código); nadie jugó a mano (las capturas del arnés son de las acciones de un bot repetidas por archivos); el render héroe (sin aprobación del QA, VP-14); la tesela Copernicus como fuente del relieve (la rúbrica R05 se sigue midiendo contra la lámina, B-028); los tres escenarios de resolución del recorrido de QA (la compuerta corre uno a 1280 × 720; a mano corrió también a 1920 × 1080 con las posiciones en ×1,2, y el integrador lo había corrido a 1024 × 640; a 2560 × 1440 no se corrió).
