@@ -65,14 +65,16 @@ func _initialize() -> void:
 	map = _dict(Fx.read_json(V.MAP_PATH))
 	var real_rules := Fx.load_script(Fx.REAL_PATHS.rules)
 	var real_progress := Fx.load_script(Fx.REAL_PATHS.progress)
-	var use_real := (real_rules != null and real_progress != null and forced != "stub") or forced == "real"
-	if use_real:
-		rules_script = real_rules
-		progress_script = real_progress
-		impl = "real"
-	else:
-		rules_script = Fx.load_script(Fx.STUB_PATHS.rules)
-		progress_script = Fx.load_script(Fx.STUB_PATHS.progress)
+	for key in ["rules", "progress"]:
+		if ResourceLoader.exists(Fx.REAL_PATHS[key]) and Fx.load_script(Fx.REAL_PATHS[key]) == null:
+			ck(false, "la clase real de %s existe pero no carga ni se puede instanciar (%s): no se la reemplaza por el stub en silencio" % [key, Fx.REAL_PATHS[key]])
+	if forced == "real":
+		ck(real_rules != null and real_progress != null, "--impl=real pide las dos clases reales y falta alguna")
+	var want_real := forced != "stub"
+	rules_script = real_rules if want_real and real_rules != null else Fx.load_script(Fx.STUB_PATHS.rules)
+	progress_script = real_progress if want_real and real_progress != null else Fx.load_script(Fx.STUB_PATHS.progress)
+	impl = "real" if want_real and real_rules != null else "stub"
+	suite.extra["impl_progreso"] = "real" if want_real and real_progress != null else "stub"
 	game_rules_script = load("res://scripts/game_rules.gd")
 	suite.extra["impl"] = impl
 	suite.extra["modo"] = "rapido" if OS.get_cmdline_user_args().has("--skip-strategies") else "completo"
