@@ -19,6 +19,7 @@ Registro de los cambios al contrato (`docs/CONTRATO_HUMAHUACA.md`, revisión 1.1
 | A-11 | 1-nov-2026 | integrador (R1.0, pase 2) | Convención de `yaw_deg` (rumbo de la mirada), orden de un cuadro y cómo se fusionan el arreglo de la cámara y el dato del cuadro inicial (VP-07 y VP-08) | sí | no |
 | A-12 | 2-nov-2026 | integrador (R1) | La sanidad de V17 planta el id libre siguiente y `tests/hx_rules_checks.gd` es de `reglas_historia` (dos defectos de la compuerta, no de las ramas) | sí | no |
 | A-13 | 2-nov-2026 | integrador (R1) | El tren de merges de R1, respuesta a los pedidos entre pistas (C1, A1, VP-10 a VP-14), las herramientas del recorrido y del agente-jugador, la excepción fechada de V11 y lo que decide el usuario | sí | no |
+| A-14 | 2-nov-2026 | integrador (R1, pase 2) | El tren de merges del pase 2 (reglas y ui; relieve y visual sin entrega), hook-10 (`main.gd` deja de pisar la cámara del nivel: cierra H-R1-1), H-R1-4 (`ui_qa` y el puntero real), B-045, las excepciones de V10 y V11 retiradas y lo que decide el usuario | sí | no |
 
 ---
 
@@ -191,3 +192,48 @@ Registrado el 2 de noviembre de 2026 por el integrador al fusionar las cuatro ra
 | I-R1.0-4 (V6, V10 a V16, V18, V21 y V22; `hx_qa_tour`; `hx_agent_play`; primera corrida del agente) | **Cerrado salvo la corrida del agente de verdad.** Las reglas corren desde `r1` (`test_hx_data` 411/0), las dos herramientas existen y la compuerta completa las corre; la corrida del agente es BACKLOG B-027 (Jefe de QA) |
 | I-R1.0-5 y G-R1.0-7 (etiquetas ajenas, `higiene`) | **Abierto, lo decide el usuario** (B-017) |
 | I-R1.0-6 (benchmark) | **Abierto, lo corre el Jefe de QA a solas**; no se corrió por orden del encargo. Alerta indicativa: B-030 |
+
+## A-14 · Integración de R1 (pase 2): el tren de merges, hook-10 (H-R1-1), H-R1-4, B-045 y lo que sigue abierto
+
+Registrado el 2 de noviembre de 2026 por el integrador al fusionar las ramas del pase 2 de R1. **Ninguna firma de la sección 3 cambia. Hay un gancho nuevo en `main.gd`, el hook-10** (punto 2): `main.gd` queda en +48/−4 contra `5ebbd28` (topes +80/−10).
+
+1. **El tren de merges.** Orden del contrato (6.1), con `--no-ff`, sobre el `main` vigente (`f54ddc0`). Las dos ramas que llegaron se rebasearon antes de su compuerta rápida (la de `ui_feel` sobre el merge de `reglas_historia`; sin un solo conflicto, porque ninguna toca archivos de la otra):
+
+| Pista | Rama | Merge | Compuerta rápida sobre la rama rebasada (ronda vigente `r1`) |
+|---|---|---|---|
+| `relieve_mapa` | — (sin resultado en el pase 2) | — | No entra nada. Sigue en `main` su clase real de R1 (`fa9eb90`), no el stub; la lista de hallazgos abiertos de este pase no le asignaba ninguno |
+| `reglas_historia` | `hx-reglas-r1-p2` | `e0ce410` | protegidos 40 intactos, `test_rules` rápido 818/0, `test_integration` 283/0, `hx_data` 420/0, `hx_smoke` 155/0, `hx_rules` 679/0, salida limpia; 2 min 14 s |
+| `visual` | — (sin resultado en el pase 2) | — | No entra nada. Sigue en `main` su vista real de R1 (`f97e819`); H-R1-1, el único hallazgo de rendimiento, se asignó al integrador y se cierra acá (punto 2) |
+| `ui_feel` | `hx-ui-r1-p2` | `651476f` | protegidos 40 intactos, `test_rules` rápido 818/0, `test_integration` 283/0, `hx_data` 420/0, `hx_smoke` 155/0, `hx_flow` 213/0, salida limpia; 2 min 23 s |
+
+Como en A-13, **las dos fallan solo el paso `higiene`** (las etiquetas ajenas `v0.2.0-alpha` y `v0.3.0-alpha`, B-017 y H-R1-3), que falla igual en `main` antes de cualquier rama; ninguna rama puede causarlo ni arreglarlo, así que no impide el merge (el mensaje de cada merge lo dice). El contrato (7) pide anotar una pista sin entrega como P0 para la ronda siguiente: queda anotado para `relieve_mapa` y `visual`, que no corrieron en el pase 2 (sin hallazgos propios que cerrar; las capas corren con sus clases reales de R1, `qa_state().layers` las informa como `real`).
+
+2. **hook-10 · `main.gd` no mueve la cámara del nivel (cierra H-R1-1).** El QA midió el nivel en `media` a 4,11 ms de cuadro medio (peor de 3: 4,59) contra el tope de 4,0 y lo atribuyó al trabajo de la vista y del HUD. La causa está en `main.gd`: H8 daba por hecho que, con `mode == "hx"`, `_process` quedaba inerte, pero `_camera_goal_step` y `_apply_camera` siguen corriendo y pisaban `main.camera` con la pose de la Justina **en cada cuadro**, antes del `_process` del controlador (`process_priority` 10), que la vuelve a ubicar al final. En el medio, el `_process` de la vista (A-11) y después el `update_state` del controlador medían dos cámaras distintas por cuadro. Lo que cuesta es `check_rings` (`humahuaca_fx.gd`): compara el «balde» del ancho de los anillos de visibilidad a la distancia de la cámara y, si cambió, los rearma enteros (libera y vuelve a crear las mallas); con dos cámaras que alternaban eran dos rearmados por cuadro, y ese rearmado desaparece quitando cualquiera de los dos `_process`. **Cambio:** una línea al principio de `_process`: `if mode=="hx":return`. **H8 queda así:** `_process` vuelve de inmediato con el nivel en marcha (la cámara es del controlador); `_input` y `_unhandled_input` siguen sin cambios. **Medido** con un diagnóstico descartable del integrador (no es el benchmark oficial; la escena real en pleno ataque, 1440 × 900, Forward+, sin sincronía vertical, RTX 3080 Ti, 270 cuadros por configuración): antes, `media` 3,79 a 5,34 ms (con `main.gd` sin su `_process`, 1,32 ms; con la vista sin su `_process`, 1,31 ms; mismas 366 llamadas de dibujo y 384 000 primitivas); después, `media` 1,18 a 1,78 ms, `alta` 1,26 a 1,41 ms y `baja` 1,16 a 1,41 ms, con p95 de 1,3 a 3,1 ms (tope 8,3). **Prueba de aceptación:** `test_hx_smoke::_test_camera_owner` (TR-206; falla sin el renglón) y, para cerrar el hallazgo, el mismo comando de H-R1-1 que corre el Jefe de QA a solas (`benchmark.py … --scenarios humahuaca`: media, peor de 3 ≤ 4,0 ms, p95 ≤ 8,3 ms y construcción ≤ 1 500 ms). El integrador no corrió el benchmark (orden del encargo).
+
+3. **H-R1-4 · `ui_qa` a 2560 × 1440 y el puntero real (cerrado).** El rótulo «Centro de la vista» se ve cuando `hover_mouse` (el puntero **real** del SO, que `main.gd` toma de cada movimiento) cae sobre el mapa, y `ui_qa` medía R5 sin sacarlo del cuadro (la comprobación de la línea 748 ya fijaba el cursor a mano por esto mismo). **Cambio:** `tools/ui_qa.gd`, +2 líneas antes de R5 (`game.hover_mouse = Vector2(-1, -1)` y `game._update_place()`, sin `await` en el medio); en total +3/−1 contra `5ebbd28` (tope +6/−2). **Reproducido antes** (puntero quieto sobre la ventana, 2560 × 1440): 254/1 en 1 de 2 corridas, con R5 como única falla. **Después:** 254/0 en 5 de 5 corridas seguidas con el puntero quieto sobre la ventana. **Límite honesto:** con el puntero **moviéndose** sobre la ventana (un movimiento cada 120 ms, a propósito) otras comprobaciones de entrada inyectada de la Justina se rompen al azar (una corrida falló R1 «abandonar pide una segunda confirmación» y dos murieron con un error de script tras una falla de «Rechazar», sin informe): es la fragilidad que ya describía B-044 y no es del juego; se corre sin tocar el mouse.
+
+4. **B-045 · `test_integration` con la semilla fija.** `tests/test_integration.gd` arranca la Justina con `game.forced_seed = 1806` (las otras partes de la prueba ya lo hacen): sin eso el fondo del río cambiaba en cada partida y la secuencia del vado, la señal y el abordaje fallaba 1 de cada 21 corridas. 5 de 5 corridas seguidas dan 283/0; en total +2/−1 contra la base (tope +6/−2).
+
+5. **Excepciones fechadas retiradas.** `reglas_historia` acortó la pista de reintento (117 caracteres, B-025) y pasó las cinco plantillas a `{deFrente}` y `{aFrente}` (B-036): `V11_ACCEPTED` y `V10_ACCEPTED` de `tests/test_hx_data.gd` quedan vacías (el mecanismo se conserva) y TR-204 ya no habla de excepciones. `test_hx_data` 420/0.
+
+6. **Respuesta a los pedidos entre pistas.**
+
+| Pedido | De → a | Respuesta |
+|---|---|---|
+| H-R1-1 (cuadro medio de `media`) | QA → integrador | Cerrado por hook-10 (punto 2), a la espera del benchmark oficial |
+| La interfaz sigue sumando la parada fuera del mapa con Mayús + clic derecho y deja el motivo «Una de las paradas queda fuera del mapa.» en pantalla aun después de F9 | `reglas_historia` → `ui_feel` | Registrado como BACKLOG B-046 (informado por `reglas_historia`, no reproducido por el integrador); no hace falta ningún gancho |
+| El aviso de carga fallida sale con punto doble: «(Este guardado es de otro escenario.). Empezás de nuevo.» | `reglas_historia` → `ui_feel` | Confirmado leyendo el código: `texts.load.failed` de `humahuaca_ui.json` envuelve un motivo que ya termina en punto (`humahuaca_rules_save.gd` l. 110). BACKLOG B-046 |
+| C1 (Copernicus como fuente del relieve) | `relieve_mapa` → integrador (A-13) | Sin cambios: A-02 autoriza la tesela como fuente principal desde R2a **si R02 a R06 pasan con ella**; la rúbrica R05 se sigue midiendo contra la lámina 03 hasta que el QA enmiende (opción b o c de A-13) |
+| VP-14 (aprobación del render héroe) | `visual` → QA | Sin respuesta del QA |
+
+7. **Lo que decide el usuario (H-R1-3).** Las etiquetas `v0.2.0-alpha` y `v0.3.0-alpha` **no se tocaron** (no son de este equipo y el encargo prohíbe etiquetas nuevas y borrar historia). Mientras existan, `higiene` falla en toda compuerta y E05 no puede dar verde. **Dato nuevo para decidir** (leído con `git show`, sin tocar nada): cada etiqueta apunta al commit cuyo `VERSION.json` declara esa misma versión (`d988562` dice `0.2.0-alpha`; `72077c8`, la punta de `origin/main`, dice `0.3.0-alpha`, que es la versión vigente del proyecto), así que parecen los marcadores de las dos alfas anteriores del propio proyecto y no basura; lo razonable es aceptarlas, pero lo decide el usuario. Si las acepta, hacen falta dos cosas y ninguna se hizo: un addendum del integrador que cambie `step_hygiene` de `tools/qa_gate.sh` para admitir exactamente `v0.1.0 v0.2.0-alpha v0.3.0-alpha`, y una «QA enmienda 4» que fije E05 sobre esas tres etiquetas.
+
+8. **Estado de los hallazgos abiertos del integrador.**
+
+| Hallazgo | Estado |
+|---|---|
+| H-R1-1 (T06, P0) | **Corregido (hook-10)**; se cierra con el benchmark oficial del Jefe de QA, que lo corre a solas |
+| H-R1-3 (E05, P0) | **Abierto, lo decide el usuario** (B-017) |
+| H-R1-4 (T04, P0) | **Cerrado**: 5 de 5 corridas a 2560 × 1440 con el puntero sobre la ventana |
+
+9. **Compuerta completa de cierre** (`KEEP=1 SKIP=benchmark bash tools/qa_gate.sh full`, ronda `r1`, `APPDATA` aislado, ventana real, sobre `10d9ae0` con el árbol limpio): `GATE full (r1): FALLA (1 pasos) | protegidos 40 | rules 871/0 | integracion 283/0 | jev 15/0 | audio 17/1 | hx_data 420/0 | hx_smoke 158/0 | hx_terrain 158/0 | hx_rules 679/0 | hx_view 258/0 | hx_flow 213/0 | ui_qa_1280x720 254/0 | ui_qa_1920x1080 254/0 | ui_qa_2560x1440 254/0 | falla: higiene | 17 min 44 s`. El detalle paso por paso, las capturas y lo que no se verificó están en `TRAZA.md` («R1 pase 2»). El único paso que falla es `higiene` (H-R1-3) y el que no corrió es `benchmark` (orden del encargo): la compuerta no puede decir PASA mientras las etiquetas ajenas sigan y el benchmark no corra.

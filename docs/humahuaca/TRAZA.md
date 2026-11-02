@@ -395,3 +395,124 @@ La línea final de la corrida que vale: `GATE full (r1): FALLA (1 pasos) | prote
 **Capturas reales** (todas con ventana, nunca `--headless`; se miraron **una por una** con `Read`). Del recorrido: las 7 vistas con interfaz y las 7 sin ella, el primer cuadro, las 3 de albedo, las 4 de límite de cámara (más dos ampliaciones del horizonte para descartar una costura del terreno: la línea fina que cruza `limite_e` y `limite_o` es una curva de nivel del shader del terreno, cada 5 m), la hoja de fichas y `inicial_caja_gris.jpg`. Del arnés: los turnos 1 a 3 (las dos páginas del briefing y la apertura), 26, 28, 30 y 31 (el ataque y el parte de derrota) de la repetición por archivos. Lo que se ve: el cuadro inicial lee bien (cinco fichas con su anillo, tres luces amarillas con su rótulo, un solo «siguiente paso» con su botón y el minimapa); `grupos_en_accion` se saca con el juego en t = 0 y no muestra la torre ni las fichas (B-041); `panorama_alto` no muestra el cielo (B-033); la cinta de agua de `limite_n` termina en punta (B-029); el parte de derrota de 3:54 se lee bien (causa con momento y lugar, consejo, tres datos y «Reintentar»); y en el ataque el «siguiente paso» dice «Esperá la toma de el cuartel.» mientras la partida de Portal se rompe bajo la torre, sin aviso crítico a la vista (B-036 y B-037).
 
 **No se verificó en esta pasada** (y por qué): el benchmark (omitido por orden); la corrida del agente-jugador de verdad (J08, B-027: hace falta un subagente nuevo sin acceso al código); nadie jugó a mano (las capturas del arnés son de las acciones de un bot repetidas por archivos); el render héroe (sin aprobación del QA, VP-14); la tesela Copernicus como fuente del relieve (la rúbrica R05 se sigue midiendo contra la lámina, B-028); los tres escenarios de resolución del recorrido de QA (la compuerta corre uno a 1280 × 720; a mano corrió también a 1920 × 1080 con las posiciones en ×1,2, y el integrador lo había corrido a 1024 × 640; a 2560 × 1440 no se corrió).
+
+### R1 pase 2 · las ramas de `reglas_historia` y `ui_feel`, hook-10 y la compuerta completa (2 de noviembre de 2026)
+
+Lo que corrió de verdad al cerrar el pase 2 de R1, escrito por el integrador (que lleva también la propiedad de «compuertas y documentos»). Commits sobre `f54ddc0`: los merges `e0ce410` (reglas) y `651476f` (ui), `a219ff5` (H-R1-4, B-045 y V10/V11 sin excepciones), `10d9ae0` (hook-10, H-R1-1) y el de este registro. Sin `push`, sin etiquetas nuevas, `origin/main` en `72077c8`.
+
+**Compuerta rápida de cada pista sobre su rama rebasada** (ronda vigente `r1`; las dos con `higiene` en FALLA por las etiquetas ajenas `v0.2.0-alpha` y `v0.3.0-alpha`, que fallan igual en `main`, B-017):
+
+| Pista | Rama | Resultado | Tiempo |
+|---|---|---|---|
+| `relieve_mapa` | sin rama (sin resultado en el pase 2) | no entra nada; sigue su clase real de R1 | — |
+| `reglas_historia` | `hx-reglas-r1-p2` | protegidos 40, `test_rules` rápido 818/0, `test_integration` 283/0, `hx_data` 420/0, `hx_smoke` 155/0, `hx_rules` 679/0, salida limpia; falla solo `higiene` | 2 min 14 s |
+| `visual` | sin rama (sin resultado en el pase 2) | no entra nada; sigue su vista real de R1 | — |
+| `ui_feel` | `hx-ui-r1-p2`, rebaseada sobre el merge de reglas (los tres commits cambian de hash) | protegidos 40, `test_rules` rápido 818/0, `test_integration` 283/0, `hx_data` 420/0, `hx_smoke` 155/0, `hx_flow` 213/0, salida limpia; falla solo `higiene` | 2 min 23 s |
+
+**H-R1-4 (reproducción y arreglo).** `tools/ui_qa.gd` a 2560 × 1440 con el puntero real del SO sobre la ventana, antes y después de las dos líneas de `a219ff5`:
+
+| Condición | Corridas | Resultado |
+|---|---|---|
+| Código anterior, puntero quieto sobre la ventana | 2 | 254/1 (única falla: R5, «el rotulo 'Centro de la vista' no flota…») y 254/0 |
+| Código anterior, puntero moviéndose sobre la ventana (un movimiento cada 120 ms) | 1 | 254/1 (R5) |
+| **Código nuevo, puntero quieto sobre la ventana** | **5 seguidas** | **254/0 las cinco** (44, 45, 44, 46 y 47 s; captura real de 2560 × 1440) |
+| Código nuevo, puntero moviéndose a propósito | 4 | 254/0 en 1; falla R1 «abandonar pide una segunda confirmación» en 1; 2 murieron con un error de script tras una falla de «Rechazar», sin informe (la quinta, ya con el puntero quieto, dio 254/0) |
+
+La última fila no es el criterio de aceptación (el QA pide el puntero sobre la ventana, no agitándose): muestra que la prueba de la Justina no tolera que se mueva el mouse mientras inyecta su propia entrada, que es la causa de B-044.
+
+**H-R1-1 (diagnóstico de cuadro, no es el benchmark oficial).** Script descartable del integrador (fuera del repositorio): arma `main.tscn`, entra al nivel con `_start_humahuaca`, lo deja en pleno ataque con `benchmark_prepare()` y mide 270 cuadros por configuración (30 de calentamiento), 1440 × 900, Forward+, sin sincronía vertical, RTX 3080 Ti, `--audio-driver Dummy`. Cuadro medio en `media`:
+
+| Configuración (antes de hook-10) | Cuadro medio | Llamadas de dibujo |
+|---|---|---|
+| Todo encendido | 3,79 a 5,34 ms (cuatro mediciones) | 366 |
+| `main.gd` sin su `_process` | **1,32 ms** | 366 |
+| La vista sin su `_process` | **1,31 ms** | 366 |
+| Sin la interfaz 2D (el HUD sigue calculándose) | 3,77 ms | 202 |
+| Sin la vista 3D (se oculta; sus `_process` siguen) | 4,07 ms | 164 |
+| Sin 3D ni 2D (solo los scripts de cuadro) | 3,73 ms | 0 |
+| Sin 3D, sin 2D y sin el `_process` del controlador | 0,46 ms | 0 |
+
+Lo que dice: el costo no estaba en dibujar (ni la vista ni el HUD cuestan: ocultarlos casi no cambia el cuadro) sino en los scripts de cada cuadro, y desaparecía igual quitando el `_process` de `main.gd` o el de la vista. Es la cámara: en modo `hx`, `main._process` seguía llamando a `_apply_camera()` y pisaba `main.camera` con la pose de la Justina antes de que el controlador (prioridad 10) la volviera a ubicar, así que el `_process` de la vista y el `update_state` del controlador medían dos cámaras distintas por cuadro (A-11) y `check_rings` rearmaba los anillos de visibilidad enteros dos veces por cuadro (compara el ancho que les toca a la distancia de la cámara y, si cambió, libera y crea las mallas). Con hook-10 (una línea) todo lo demás queda igual:
+
+| Perfil (después de hook-10) | Cuadro medio, tres mediciones por corrida | p95 | Llamadas de dibujo |
+|---|---|---|---|
+| `media` | 1,18 a 1,78 ms | 1,3 a 3,1 ms | 363 a 367 |
+| `alta` | 1,26 a 1,41 ms | 1,7 a 2,1 ms | 365 a 367 |
+| `baja` | 1,16 a 1,41 ms | 1,8 a 2,1 ms | 302 a 308 |
+
+(Una corrida de `baja` dio 7,4 ms con p95 de 16 ms mientras la máquina tenía otra carga; repetida sola dio 1,16 a 1,41 ms. Se informa porque pasó.) El tope de `media` es 4,0 ms y el p95 8,3 ms; el benchmark oficial lo corre el Jefe de QA a solas y **no se corrió acá** (orden del encargo).
+
+**Compuerta completa** (`KEEP=1 SKIP=benchmark bash tools/qa_gate.sh full`, ronda `r1`, `APPDATA` aislado propio, ventana real —sin `--headless`— para `ui_qa`, `--qa=humahuaca`, `justina_playthrough`, `ui_qa_humahuaca`, el recorrido, el arnés y `vis_flow`, `--audio-driver Dummy`, Godot 4.7.2 con Forward+ en una NVIDIA GeForce RTX 3080 Ti, el árbol limpio en `10d9ae0` y con el puntero quieto; sin nada más con ventana en paralelo):
+
+| Paso de la compuerta | Resultado real | Filas que ejercita |
+|---|---|---|
+| `import` | PASA: proyecto importado en 0 min 03 s | ninguna |
+| `protegidos` | PASA: 40 archivos protegidos intactos contra 5ebbd28 | TR-186 |
+| `compartidos` | PASA: main.gd +48/-4, test_integration +2/-1, ui_qa +3/-1, run_qa +1/-1 (topes de la rúbrica T01) | TR-151 |
+| `rules` | PASA: 871 comprobaciones, 0 fallas, piso 871, 3 min 46 s | TR-180 |
+| `integracion` | PASA: 283 comprobaciones, 0 fallas, piso 283, 0 min 13 s | TR-181 |
+| `hx_data` | PASA: 420 comprobaciones, 0 fallas, piso 40, 0 min 02 s | TR-001 a TR-003, TR-160 a TR-162, TR-171, TR-194, TR-195 y TR-204 |
+| `hx_smoke` | PASA: 158 comprobaciones, 0 fallas, piso 25, 0 min 32 s | TR-010, TR-067, TR-082, TR-110 a TR-112, TR-131, TR-132, TR-140 a TR-148, TR-150, TR-152, TR-175, TR-176, TR-191 y TR-206 |
+| `hx_terrain` | PASA: 158 comprobaciones, 0 fallas, piso 60, 0 min 01 s, 2 pendientes de rondas futuras | TR-011 a TR-019 |
+| `hx_rules` | PASA: 679 comprobaciones, 0 fallas, piso 150, 2 min 15 s, 1 pendientes de rondas futuras | TR-031 a TR-072 |
+| `hx_view` | PASA: 258 comprobaciones, 0 fallas, piso 25, 0 min 09 s | TR-091 a TR-105 |
+| `hx_flow` | PASA: 213 comprobaciones, 0 fallas, piso 50, 0 min 44 s | TR-119 y las filas de la interfaz |
+| `etapa` | PASA: entregables de R1.0 presentes (4 stubs y el controlador) | CONTRATO 8.1 |
+| `higiene` | **FALLA**: etiquetas={v0.1.0 v0.2.0-alpha v0.3.0-alpha} (debe quedar solo v0.1.0) | TR-192 |
+| `jev` | PASA: 15 comprobaciones, 0 fallas, piso 15, 0 min 01 s | TR-182 |
+| `audio` | PASA: 17 comprobaciones y 1 falla aceptada (driver de audio real, no Dummy), 0 min 06 s | TR-182 |
+| `scenario` | PASA: --scenario=humahuaca abre el nivel directo y sale con 0 (0 min 04 s) | TR-155 |
+| `qa_humahuaca` | PASA: --qa=humahuaca salió con 0, escribió qa_report.json y 16 capturas (mínimo 8), 0 min 10 s | TR-156 |
+| `ui_qa_1280x720` | PASA: 254 comprobaciones, 0 fallas, captura 1280x720 real, 0 min 27 s | TR-183 |
+| `ui_qa_1920x1080` | PASA: 254 comprobaciones, 0 fallas, captura 1920x1080 real, 0 min 35 s | TR-183 |
+| `ui_qa_2560x1440` | PASA: 254 comprobaciones, 0 fallas, captura 2560x1440 real, 0 min 46 s | TR-183 |
+| `justina_playthrough` | PASA: 18 victorias, 6 estilos, 3 rutas, 6 derrotas, el bot de interfaz gana (5 min 58 s) | TR-185 |
+| `benchmark` | **OMITIDO por orden**: pedido en SKIP; la compuerta queda PARCIAL | TR-157 y TR-184, sin verificar |
+| `ui_qa_hx_1280x720` | PASA: 136 comprobaciones, 0 fallas (piso 60) | TR-119 |
+| `ui_qa_hx_1920x1080` | PASA: 54 comprobaciones, 0 fallas (piso 1) | TR-119 |
+| `ui_qa_hx_2560x1440` | PASA: 54 comprobaciones, 0 fallas (piso 1) | TR-119 |
+| `humahuaca_playthrough` | PASA: sale con 0: el experto gana y el pasivo pierde | TR-172 |
+| `hx_qa_tour` | PASA: 23 capturas, 7 vistas, cuadro inicial con los tres objetivos y la partida, templo 7.3 m, cuadro medio 1.16 ms (indicativo), el bot victory; texto del bot: jerga 0, desbordes 0, brecha sin siguiente paso 153.0 s (ataque 17.0 s), contracciones sin hacer 0 (informativo); posiciones en píxeles de la captura (x0.8) | TR-173, TR-196, TR-202 y TR-203 |
+| `hx_agent_play` | PASA: arnés hx_agente_v1: 30 turnos con capturas de 1280x720, primera orden aceptada en el turno 4 (3.0 s de juego), cierre max_turnos (selftest, no es el agente) | TR-173 y TR-197 |
+| `hx_agent_protocolo` | PASA: el arnés atendió un agente de guion por archivos: 8 turnos, 9 comprobaciones sin fallas (acción a medias, JSON roto, clic fuera de la ventana, tipo desconocido, respuestas.json y bitácora), 15.6 s | TR-199 y TR-200 |
+| `hx_agent_viejos` | PASA: con una acción, unas respuestas y una captura viejas en la carpeta: las borró (3), no tocó la bitácora y abandonó a los 4 s sin contestar con lo viejo | TR-201 |
+| `vis_flow` | PASA: escena real por tools/vis_humahuaca.sh --flow: 0 fallas (fichas, alba y anillos) | TR-198 |
+| `salida_limpia` | PASA: ningún SCRIPT ERROR, SHADER ERROR, Parse Error, ERROR: ni fuga en los registros (0 WARNING contados) | TR-193 |
+
+La línea final de la corrida: `GATE full (r1): FALLA (1 pasos) | protegidos 40 | rules 871/0 | integracion 283/0 | jev 15/0 | audio 17/1 | hx_data 420/0 | hx_smoke 158/0 | hx_terrain 158/0 | hx_rules 679/0 | hx_view 258/0 | hx_flow 213/0 | ui_qa_1280x720 254/0 | ui_qa_1920x1080 254/0 | ui_qa_2560x1440 254/0 | falla: higiene | 17 min 44 s`. El único paso que falla es `higiene` (H-R1-3, B-017) y el que no corrió es `benchmark` (orden del encargo), así que la compuerta no puede decir PASA. Frente a la completa de R1 (`c193166`): `hx_data` 419 → 420, `hx_smoke` 155 → 158 (`_test_camera_owner`), `hx_rules` 621 → 679, `hx_flow` 166 → 213 y `ui_qa_humahuaca` a 1280 × 720 104 → 136 y 31 → 54 en las otras dos resoluciones; el recorrido de QA baja de 5,07–6,29 ms a 1,16 ms de cuadro medio indicativo (hook-10) y V10 ya no necesita sus cinco excepciones fechadas.
+
+**Por la escena real** (criterio de cierre de R1: «el experto gana y el pasivo pierde por la escena real»), con ventana a 1280 × 720 sobre `10d9ae0` (`tools/humahuaca_playthrough.gd --level=scene --policies=experto,pasivo,interfaz --seeds=3,5,7`, 39 s): el experto gana 3 de 3 (mediana de 551 s), la política `interfaz` —que hace clic en el botón del «siguiente paso»— gana 3 de 3 (mediana de 496 s) y el pasivo pierde 0 de 3, los tres por `amanecio` a los 390 s; 0 excepciones y salida 0. Es lo mismo que en R1: el pase 2 no movió el balance.
+
+**Otras corridas con ventana después de la compuerta** (el nivel con el código final): `ui_qa_humahuaca.gd --full` a 1024 × 640 y a 1920 × 1080, 135/0 las dos (el arreo queda a 7,5 % y a 6,7 % del borde y las fichas miden de 49,2 a 70,8 px por proyección: BACKLOG B-015 y la parte de `ui_qa_humahuaca` de B-026); `hx_qa_tour.gd` a 1920 × 1080 sin fallas, con un cuadro medio indicativo de 1,56 ms (p95 2,1; construcción de 1 141 ms). Ningún registro de estas corridas tiene `SCRIPT ERROR`, `SHADER ERROR` ni `Parse Error`.
+
+**Qué cambió desde `f54ddc0`.**
+
+- `reglas_historia` (`e0ce410`): H-R1-5 y H-R1-6 (una parada fuera del mapa se rechaza con motivo en la orden y en la vista previa; `save_game` no escribe lo que `F9` no puede abrir; esquema estricto del estado guardado con las 229 claves del estado; el progreso y los puntos de control dañados se descartan sin reventar), B-025 y B-036. `test_hx_rules` pasa de 621 a 679 comprobaciones.
+- `ui_feel` (`651476f`): H-R1-2 (el parte nunca queda sin salida: el Diario y la ayuda vuelven adonde estabas), H-R1-7 (el HUD de abajo es una sola columna donde nada se pisa), el cuadro inicial con el arreo a 6,7 a 7,5 % del borde, el objetivo del briefing con una sola fuente y la alerta más angosta en ventanas chicas. `test_hx_flow` pasa de 166 a 213 comprobaciones y `ui_qa_humahuaca` de 104 a 136 a 1280 × 720.
+- Integrador (`a219ff5` y `10d9ae0`): H-R1-4, B-045, V10 y V11 sin excepciones y **hook-10** (H-R1-1).
+
+**Capturas reales** (todas con ventana, nunca `--headless`; se miraron **una por una** con `Read`), en `evidence/humahuaca/r1/integrador/cierre_r1_p2/` (13 JPEG de 300 KB o menos, con `indice_capturas.json`, `metrics_integrador_r1p2.json` y los registros chicos en `registros/`) y la cámara inicial en `evidence/humahuaca/r1/inicial_caja_gris.jpg` (con su versión de albedo sin interfaz). Lo que se ve:
+
+1. El menú de tres botones en orden I, II y III: Humahuaca habilitado con «Recomendado tras la Justina · El golpe de Arias, 1817», el Norte apagado con «Ganá la Justina para abrirlo» y «Continuar» apagado.
+2. El briefing de una página: «Esta noche, con lluvia, tenés unas 150 personas casi sin armas y un amanecer por delante…», «Perder no es grave» y «Empezar».
+3. El primer cuadro en pausa (también `inicial_caja_gris.jpg`): las cinco fichas numeradas con su anillo, los tres objetivos encendidos con su rótulo, un solo «Siguiente paso» con su botón, el reloj «Falta el alba: 4:30», el minimapa con escala y brújula y un panel de abajo de una sola columna.
+4. La aproximación bajo lluvia: una alerta con «Dar la señal», una nota de pie, la barra de órdenes con el estado de la señal y el panel de abajo, apilados y sin pisarse.
+5. El ataque a los 20 s: las tres tarjetas de frente con su estado y la sorpresa, «Torre: próxima descarga en 7 s», «Golpe 0 de 100» y las fichas atacando.
+6. La extracción de día: los tres frentes tomados, «Carga 2200 de 2200 kg», «Refuerzo: entre 1:30 y 4:00» y «Salir por el este [V]».
+7. El parte de derrota por `amanecio`: causa con momento (6:30) y lugar, consejo, tres datos y seis botones con «Reintentar» como el principal, sin scroll.
+8. El parte de victoria: medalla de bronce con su motivo, el epílogo fechado con sus etiquetas (● ◇ ▲), el contraste «en la realidad / en tu partida» con las piezas de la partida, el tiempo comprimido y «Ver la campaña completa: Sostener el norte».
+9. El parte tras abrir y cerrar el Diario (H-R1-2): vuelve el mismo parte con sus botones.
+10. `juego_alba`, la misma cámara al alba: más cálida, los tres objetivos y las fichas se distinguen del suelo.
+11. La hoja de las cinco fichas: cinco siluetas distintas sobre fondo liso.
+12. y 13. El primer cuadro y el ataque a 1024 × 640 (el mínimo del proyecto): el arreo entero dentro del cuadro y el panel de abajo sin tocar el minimapa.
+
+Defectos vistos que **no son de la zona del integrador** y vuelven como hallazgos de su pista: el objetivo del HUD no cambia con la fase (en la extracción repite «Tomá la batería…», ya tomada, y se corta con «…»; B-048, `reglas_historia` y `ui_feel`); en el ataque las fichas 3, 4 y 5 se pisan sobre la posta y la silueta de la ficha 4 se lee como un bloque blanco con un sombrero (B-049, `visual`); el aviso de carga fallida sale con punto doble (B-046, `ui_feel`). Ninguno bloquea.
+
+**Límites honestos de este pase.**
+
+- **El benchmark oficial no se corrió** (orden del encargo: lo corre el Jefe de QA a solas, sin otras ventanas). Las cifras de cuadro de arriba son un diagnóstico del integrador con otra herramienta y las del recorrido de QA (indicativas, sin sincronía vertical), no la medida oficial; H-R1-1 se cierra cuando el Jefe de QA repita su comando (`benchmark.py … --scenarios humahuaca --profiles baja,media,alta --repeat 3`) y dé `media` en 4,0 ms o menos (peor de 3), p95 en 8,3 ms o menos y construcción en 1 500 ms o menos. La Justina y el Norte no cambian (hook-10 solo actúa con `mode == "hx"`).
+- **`relieve_mapa` y `visual` no entregaron** en el pase 2 (sin resultado): sus clases de R1 siguen sin cambios y el CONTRATO 7 lo anota como P0 de cada una para la ronda siguiente.
+- **No hubo una corrida del agente-jugador de verdad** (B-027): hace falta un subagente nuevo sin acceso al código; el arnés se probó con `--selftest`, con el agente de guion y con archivos viejos. Nadie jugó a mano (A-03): el veredicto máximo sigue siendo «PRESENTABLE, no certificado por humanos».
+- **El render héroe** (VP-14) sigue sin la respuesta del QA, y la fuente del relieve sigue siendo la lámina 03 (C1, B-028).
+- **Las etiquetas ajenas** `v0.2.0-alpha` y `v0.3.0-alpha` siguen (H-R1-3, B-017): `higiene` falla en toda compuerta y E05 no puede dar verde. Cada una apunta a un commit cuyo `VERSION.json` declara esa misma versión: lo decide el usuario.
+- La prueba de interfaz de la Justina (`ui_qa`) no tolera que alguien mueva el mouse sobre la ventana mientras corre (B-044): estas corridas se hicieron con el puntero quieto.
