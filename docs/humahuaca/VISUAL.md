@@ -44,7 +44,9 @@ Las dejo escritas para que las otras pistas las confirmen o pidan un addendum (v
 
 ### 4.1 `initial_frame(camera)`
 
-Parte de `data/humahuaca_visual.json: initial_frame` (objetivo (350, 470), 470 m, 52°, rumbo 35°) y **solo se ensancha** (en pasos de 4 %, hasta 900 m) si no entran, con 5 % de borde libre, los tres objetivos, el centro de la zona de partida y las cinco partidas. La proyección se calcula a mano, así que no mueve la cámara real. Con las copias mínimas de terreno de `tools/vis_humahuaca.gd` (la zona y las partidas quedan más al sur que lo que parece prever el diseño) `fits` es verdadero a 1024 × 640, 1024 × 768, 1280 × 720, 1920 × 1080 y 2560 × 1440, y la distancia sale de **550 m**, no de 470: el cuadro real lo decide la posición de los hitos `spawn_*` y `zona_partida` que escriba `relieve_mapa`. Con la fórmula del diseño y la zona de (160, 550), el borde inferior queda justo en el 5 % libre.
+Parte de `data/humahuaca_visual.json: initial_frame` (objetivo (350, 470), 470 m, 52°, rumbo 35°) y **solo se ensancha** (en pasos de 4 %, hasta 900 m) si no entran, con 5 % de borde libre, los hitos de `initial_frame.must_include`: `bateria`, `cuartel`, `posta` y `zona_partida` (su centro). La proyección se calcula a mano, así que no mueve la cámara real. Con los datos reales de `relieve_mapa` (rama `hx-relieve-r1-0`) `fits` es verdadero **a 470 m** a 1024 × 640, 1280 × 720, 1920 × 1080 y 2560 × 1440; con las copias mínimas de `tools/vis_humahuaca.gd`, también.
+
+**Pregunta abierta para `ui_feel` y el integrador:** el cuadro de 470 m **no** incluye las cinco partidas, solo el centro de la zona. Con los `spawn_*` que escribió `relieve_mapa`, `spawn_arias` (260, 625) y `spawn_arreo` (60, 625) quedan **fuera del cuadro inicial** (con 5 % de borde libre entran hasta z ≈ 550). Si se las quiere a la vista al empezar, se agregan al `must_include` del JSON y el cuadro se abre hasta unos 810 m (todo queda ≈ 40 % más chico, peor lectura de noche); si no, la apertura de 12 a 15 s las muestra. No lo decide la vista.
 
 ### 4.2 Las 7 vistas y sus 5 rasgos (borrador de R1.0)
 
@@ -62,21 +64,25 @@ Escritas **antes de pintar** (CONTRATO 11, regla 7) a partir del anexo B del QA.
 
 ### 4.3 Medidas reales de R1.0 (stub, esta máquina)
 
-Con `tools/vis_humahuaca.gd` y las copias mínimas de terreno y reglas; GPU NVIDIA GeForce RTX 3080 Ti, Forward+, ventana de 1440 × 900, sin vsync, 180 cuadros medidos tras 30 de calentamiento. **Son informativas: no reemplazan a `benchmark.py`** (que mide la escena real y desde R1).
+Con `tools/vis_humahuaca.gd` sobre los **stubs reales** de relieve y reglas (ramas `hx-relieve-r1-0` 505e06a y `hx-reglas-r1-0` 6424dfe, probadas en un worktree temporal aparte); GPU NVIDIA GeForce RTX 3080 Ti, Forward+, ventana de 1440 × 900, sin vsync, 180 cuadros medidos tras 30 de calentamiento. **Son informativas: no reemplazan a `benchmark.py`** (que mide la escena real y desde R1).
 
 | Calidad | Luz | Construir | Cuadro medio | p95 | Llamadas de dibujo | Primitivas | Nodos |
 |---|---|---|---|---|---|---|---|
-| baja | noche · alba | 152 · 152 ms | 0,80 · 0,71 ms | 1,19 · 1,04 ms | 134 · 134 | 36 446 · 36 446 | 330 |
-| media | noche · alba | 292 · 286 ms | 0,79 · 0,90 ms | 1,02 · 1,16 ms | 166 · 218 | 76 038 · 126 210 | 333 |
-| alta | noche · alba | 288 · 287 ms | 0,79 · 0,91 ms | 1,09 · 1,18 ms | 166 · 218 | 76 038 · 126 210 | 333 |
+| baja | noche · alba | 129 · 120 ms | 0,81 · 0,84 ms | 1,46 · 1,67 ms | 118 · 118 | 29 570 · 29 570 | 310 |
+| media | noche · alba | 157 · 186 ms | 0,99 · 1,04 ms | 1,65 · 1,63 ms | 139 · 182 | 67 218 · 116 718 | 313 |
+| alta | noche · alba | 162 · 171 ms | 0,92 · 1,05 ms | 1,43 · 1,57 ms | 139 · 182 | 67 218 · 116 718 | 313 |
 
 Presupuestos del contrato: construir ≤ 1 500 ms; cuadro medio baja ≤ 2,5, media ≤ 4,0, alta ≤ 6,0 ms y p95 ≤ 8,3 ms. El stub los cumple con holgura (el alba suma las sombras del sol); lo que importa es lo que mida la vista real.
 
-**Alto de las fichas con el zoom inicial** (de la base a la cima de sus piezas, en píxeles reales; `metrics_visual.json: token_px`): a 1280 × 720, Rodríguez 58, Portal 60, Arias 63, reconocedores 62 y arreo 50; a 1920 × 1080, entre 48 y 61. El pedido es ≥ 48 (V03). El arreo es el que menos margen tiene.
+**Alto de las fichas con el cuadro inicial** (de la base a la cima de sus piezas, en píxeles reales; `metrics_visual.json: token_px`). Una ficha parada se ve más baja cuanto más empinado se la mira, y el stub la estira solo a lo alto hasta 4,6 veces: las que entran en el cuadro miden entre 50 y 85 px a 1280 × 720 (Rodríguez 50, reconocedores 61, Arias 85, que está en el borde inferior); con las copias mínimas, entre 42 y 67. El pedido de la vista real es **≥ 48 px** (V03); el stub no lo garantiza en el borde inferior del cuadro (llega a ≈ 42), y por eso su umbral propio es 40. Las partidas que caen fuera del cuadro (ver 4.1) no se miden.
 
 ### 4.4 Pruebas (R1.0)
 
-`tests/test_hx_view.gd`: 84 comprobaciones, 0 fallas, 2,3 s (sin ventana). Incluye: API completa de 3.4 contra `hx_fixtures`; construir ≤ 1 500 ms y sin nodos huérfanos al construir dos veces; `initial_frame().fits` a cinco resoluciones y con la cámara real; picking de las 5 fichas, de los 3 frentes y de un hito, e ida y vuelta del rayo al suelo a menos de 2 m; templo ≤ 8 m por la altura de sus vértices y sin nombres de la lista A; paleta (24 ids, ningún color suelto); las 7 vistas con sus 5 rasgos; luces, niebla y albedo; siluetas distintas; capas, selección y efectos; degradación sin reglas ni terreno. Se probó que **ve** un picking roto, un HEX suelto, una vista de menos y un templo de 12,9 m. `test_hx_data --pista=visual`: 278/0 en 0,4 s. `test_hx_smoke`: 111/0 en 19 s (12 pendientes de otras pistas). `tools/vis_humahuaca.gd` con ventana: 44 comprobaciones a 1280 × 720 (incluye el alto de las fichas en píxeles reales) y 31 a 1920 × 1080, 0 fallas.
+`tests/test_hx_view.gd`: **86 comprobaciones, 0 fallas, 2,3 s** (sin ventana). Incluye: API completa de 3.4 contra `hx_fixtures`; construir ≤ 1 500 ms y sin nodos huérfanos al construir dos veces; `initial_frame().fits` a cinco resoluciones y con la cámara real; picking de las 5 fichas (por la figura, no por un punto), de los 3 frentes y de un hito, e ida y vuelta del rayo al suelo a menos de 2 m; templo ≤ 8 m por la altura de sus vértices y sin nombres de la lista A; paleta (24 ids, ningún color suelto); las 7 vistas con sus 5 rasgos; luces, niebla y albedo; siluetas distintas y alto en pantalla; capas, selección y efectos; degradación sin reglas ni terreno. Se probó que **ve** un picking roto, un HEX suelto, una vista de menos y un templo de 12,9 m.
+
+- Sola esta rama (copias mínimas): `test_hx_view` 86/0 · `test_hx_data --pista=visual` 278/0 en 0,4 s · `test_hx_smoke` 111/0 en 21 s (12 pendientes de otras pistas).
+- Sobre los stubs de las otras tres ramas (worktree temporal aparte, sin tocar las ramas): `test_hx_view` 86/0 con `stub_rules` y `stub_terrain` de las otras pistas; `test_hx_smoke` **134/0**, con la corrida degradada de la vista dentro del controlador real de `ui_feel` y 4 pendientes (las clases reales que no existen todavía). `test_hx_data` sin `--pista` da 296 y **1 falla que no es de esta pista**: «sanidad: el validador ve “access que cita hitos sin mapa”» (una mutación de V5 sobre los datos de `reglas_historia` y `relieve_mapa`; se la paso a compuertas y documentos).
+- `tools/vis_humahuaca.gd` con ventana: 44 comprobaciones a 1280 × 720 y 31 a 1920 × 1080, 0 fallas.
 
 ## 5. Pedidos escritos a las otras pistas (id, firma, motivo y prueba de aceptación)
 
@@ -87,6 +93,7 @@ Presupuestos del contrato: construir ≤ 1 500 ms; cuadro medio baja ≤ 2,5, me
 | VP-03 | `relieve_mapa` | Confirmar (o corregir por addendum) la convención de la huella y del `yaw_deg` del apartado 3.1 y 3.2 | La vista dibuja los hitos con ella; si el terreno rasteriza otra, caja y muro no coincidirían | `test_hx_terrain`: la esquina de la huella de un hito con `yaw_deg` ≠ 0 es `centro + R(yaw)·(±w/2, ±d/2)` con la rotación horaria del mapa |
 | VP-04 | `relieve_mapa` | `height_at` continua en `x ∈ [−1350, 2250]`, `z ∈ [−1050, 1700]` (un poco más que el contexto); `landmarks({})` devuelve todos los hitos con `footprint` y `height_m`; `features(kind)` devuelve arreglos de objetos con `pts` como `{x, z}`; `river().bed_width_m` y `river().pts`; `minimap_image(px, {})` devuelve un `Image` de **exactamente** `px` | Lo que la vista consume | `test_hx_terrain`: esos cinco contratos sobre el terreno real y el stub |
 | VP-05 | `ui_feel` / integrador | El controlador pasa a `initial_frame(camera)` la cámara **ya dentro del árbol** (si no, supone 16:9 y 46°); llama `update_state(delta)` cada cuadro; ajusta `camera.far ≥ 9000` | La proyección y las escalas en pantalla salen de la cámara y del `Viewport` | `test_hx_flow`: `initial_frame().fits` con la cámara real a 1280 × 720 y a 1024 × 640 |
+| VP-06 | integrador / compuertas y documentos | Decidir si las cinco partidas entran en el cuadro inicial (ver la pregunta abierta de 4.1). Hoy no: solo la zona. Y revisar la mutación «access que cita hitos sin mapa» de `test_hx_data`, que falla con los datos de las otras dos pistas | Sin esa decisión, `spawn_arias` y `spawn_arreo` empiezan fuera de pantalla | `test_hx_flow`: en el primer cuadro jugable las cinco fichas (o las que se decida) están en pantalla; `test_hx_data` sin `--pista`: 0 fallas |
 
 ## 6. Cómo se corre
 
@@ -99,4 +106,4 @@ export APPDATA="$TEMP/ap_iso_visual"; rm -rf "$APPDATA"; mkdir -p "$APPDATA"
 #             --bench [--bench-tod=0.5 --bench-rain=0.42] · --index-base=N · --hide=Grupo1,Grupo2 (depuración)
 ```
 
-Evidencia de la ronda: `evidence/humahuaca/r1/visual/` (12 JPEG de ≤ 70 KB y `metrics_visual.json`; las rondas intermedias no entran a Git).
+Evidencia de la ronda: `evidence/humahuaca/r1/visual/` (12 JPEG de ≤ 80 KB y `metrics_visual.json`; las rondas intermedias no entran a Git). Las capturas salen de los **stubs reales** de las otras pistas (ramas citadas en 4.3). El minimapa (`09_minimapa`) es de un solo color porque así lo devuelve `stub_terrain.minimap_image` (CONTRATO 7); el sombreado y las curvas llegan con el terreno real de R1.
