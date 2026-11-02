@@ -2,6 +2,17 @@
 
 Estado al 2026-11-02, el trabajo llega hasta `d3a6882` en `main`. El bucle de agentes (Workflow `wf_962eddfe-336`, unas 20 h) se detuvo a pedido del usuario durante R1, pase 3: después de la compuerta completa y antes de los revisores y del jefe de QA. Todo es local: sin push, sin etiquetas nuevas, sin EXE y sin certificación. Según `docs/QA_NIVEL2.md` el nivel todavía **no** está presentable.
 
+## Lo primero al retomar: la cámara (pedido del usuario, 2026-11-02)
+
+El usuario miró las capturas y dijo que la cámara debería estar **más cerca**: todo se ve muy chico (fichas, edificios, texto del mapa). Es la prioridad uno de R2a, antes que el resto. Dónde tocar: `scripts/humahuaca/ui/humahuaca_camera.gd` y la sección de cámara de `data/humahuaca_ui.json`; la pista dueña es `ui_feel`. Criterios que lo miden: V02 (el encuadre inicial entra completo) y V03 (fichas ≥ 48 px a 1280×720), que hay que cumplir acercando la cámara. Ojo: acercar no puede romper que los tres objetivos entren en el primer cuadro.
+
+## Dos reglas que fallan por motivos ajenos al nivel (en palabras simples)
+
+El control de calidad marca como bloqueantes dos cosas que no dependen del trabajo de las pistas. El usuario todavía no respondió; la propuesta del lead, para decidir cuando retomen:
+1. **Etiquetas Git viejas.** `v0.2.0-alpha` y `v0.3.0-alpha` son versiones anteriores del propio usuario. La regla E05 esperaba que existiera solo `v0.1.0`. Propuesta: no borrar nada y cambiar la regla a «no se agregó ni se movió ninguna etiqueta».
+2. **Velocidad de la Justina.** La regla T06 pide 3,0 ms por cuadro. Hoy la PC del usuario da 3,1 a 5,1 ms, incluso con el juego original sin tocar. Propuesta: comparar contra el juego original medido en el mismo momento (tolerancia 1,15 ×).
+Si el usuario dice que sí a las dos, el lead edita `docs/QA_NIVEL2.md` (v1.5) y recién después se relanza el bucle.
+
 ## Qué hay en main
 
 - El nivel II «Humahuaca: el depósito de la retaguardia» se juega de punta a punta desde el botón II del menú: noche de preparación, señal, ataque a la batería, el cuartel y la posta, extracción al alba, parte de victoria o de derrota, reintento, guardado y carga.
