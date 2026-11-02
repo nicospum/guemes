@@ -1,0 +1,109 @@
+{
+ "abiertos": [
+  {
+   "id": "H-R1-3",
+   "criterio": "E05",
+   "severidad": "P0",
+   "titulo": "E05: git tag --list imprime v0.2.0-alpha y v0.3.0-alpha además de v0.1.0; la rúbrica exige solo v0.1.0 (lo decide el usuario)",
+   "evidencia": "evidence/humahuaca/r1/qa/A/p2/E05/seguridad.txt y etiquetas_detalle.txt: git tag --list = v0.1.0, v0.2.0-alpha, v0.3.0-alpha; las dos nuevas son livianas sobre d988562 (VERSION.json 0.2.0-alpha) y 72077c8 (0.3.0-alpha, punta de origin/main). Lo demás de E05 pasa. Arrastrado desde R1.0; ya es P0, no escala.",
+   "pista": "integrador",
+   "repro": "git tag --list",
+   "aceptacion": "git tag --list imprime solo v0.1.0; o, si el usuario acepta las dos etiquetas, un addendum del integrador para la compuerta y una QA enmienda 5 que fije E05 sobre esas tres etiquetas (el Jefe de QA no mueve ese poste solo).",
+   "estado_pase3": "Decisión del usuario pendiente (enmienda 5 de la rúbrica). Ninguna pista puede cerrarlo."
+  },
+  {
+   "id": "H-R1-8",
+   "criterio": "T06",
+   "severidad": "P0",
+   "titulo": "T06: la Justina mide 4,32 ms de media (peor 5,09) contra <=3,0 en esta PC; la base 5ebbd28 sin tocar mide lo mismo o peor",
+   "evidencia": "evidence/humahuaca/r1/qa/A/p2/T06/presupuestos.txt (justine media peor_media 5.088 FALLA; norte 1,385 y Humahuaca media 1,575 pasan); T06/ab/resumen_ab.txt (A/B alternado en la misma sesión, 3 rondas x 3 repeticiones: base 3,569/3,556/3,362 contra commit 3,450/3,397/3,209 de media de medias: sin regresión); T06/segunda/resumen_segunda.txt (2.a pasada: Justina 3,113/3,250); T06/gpu_muestras.csv (29-35 % de uso ajeno de la GPU en reposo); ESTADO_pase1.md (pase 1: Justina 3,103/3,177, base 3,097/3,399). T01 pasa, no se tocó nada de la Justina. La regla de ruido de P3 no alcanza (pide media de medias <=3,0).",
+   "pista": "integrador",
+   "repro": "python tools/benchmark.py --binary <godot> --project <worktree> --output <dir> --profiles media --scenarios justine,norte --repeat 3 --renderer forward_plus --max-frame-ms 3",
+   "aceptacion": "El mismo comando sale con 0 (Justina y Norte, peor media <=3,0 ms); o, si el usuario acepta que esta PC ya no reproduce los 2,71 ms de la base del 1-nov (ninguna pista puede arreglarlo: la Justina está protegida), una QA enmienda 5 que fije T06 para Justina y Norte contra la base 5ebbd28 medida en la misma sesión (A/B alternado de 3 rondas; vale si la media de medias del commit <=1,15 x la de la base, tolerancia de ms de la sección 6). El Jefe de QA no mueve ese poste solo.",
+   "estado_pase3": "Decisión del usuario pendiente (enmienda 5 de la rúbrica). Ninguna pista puede cerrarlo."
+  },
+  {
+   "id": "H-R1-9",
+   "criterio": "V01/J08 (defecto visual medido, fuera de la lista a-h)",
+   "severidad": "P2",
+   "titulo": "Las figuras de las agrupaciones no se mueven mientras marchan: quedan quietas hasta un evento y saltan (hasta 123 m de desfase)",
+   "evidencia": "evidence/humahuaca/r1/qa/A/p2/sondas/desfase.json (sonda propia jefe_desfase_probe.gd, escena real, tiempo real, 5 partidas en marcha): a x1 en 10 s 0 cuadros con la figura movida y 40 con la posición lógica movida, desfase 30,8 m; a x2 92,5 m; a x4 123,4 m con 2 saltos de vuelta a 0. Reproduce al revisor de usabilidad (rev/usabilidad/p2/medidas/sonda12_desfase: 121,1 m). Causa leída en el código: humahuaca_view.gd update_state solo llama a _sync_dynamic (units.sync_units) cuando cambia render_state().version y humahuaca_rules.gd _move_unit mueve posiciones sin _bump().",
+   "pista": "visual",
+   "repro": "Escena real: game._start_humahuaca({skip_intro:true, seed:9001}), 5 clics en el siguiente paso, F4, y medir cuadro a cuadro view.units.unit_nodes[id].position contra rules.get_unit(id) durante 10 s reales.",
+   "aceptacion": "A x1, x2 y x4 la distancia entre cada figura y su agrupación es <=1 m en todos los cuadros (hoy 30,8/92,5/123,4 m); una comprobación de test_hx_view o test_hx_flow con la escena real lo fija. Cierre en R2a.",
+   "razon_aceptada": "Ningún ítem exigible en R1 mide el movimiento de las figuras ni compara la figura con la insignia, y no está en la lista a-h de la regla 1; no bloquea R1. Pero es lo primero que va a notar una persona (V01/M05-M06, V02 y J08 lo van a mostrar desde R2a-R2b) y arreglarlo es barato (5 nodos por cuadro). Cuenta como 1 de las 3 MEDIA aceptables. Firmado: Jefe de QA.",
+   "estado_pase3": "La pista dueña lo cerró en el pase 3 con su prueba de aceptación (visual: H-R1-9 y H-R1-11; ui_feel: H-R1-10). Falta la verificación del jefe de QA: comprobarlo, no volver a hacerlo."
+  },
+  {
+   "id": "H-R1-10",
+   "criterio": "C01 / defecto objetivo (d) texto cortado",
+   "severidad": "P2",
+   "titulo": "A 1280x720, en la extracción, la línea del objetivo se corta con «…» y sigue pidiendo tomar los tres frentes ya tomados",
+   "evidencia": "evidence/humahuaca/r1/qa/A/p2/C01/recorte/usab_probe_1280x720.json (sonda del revisor de usabilidad reproducida: 21 muestras, todas HxObjective CORTADO por clip_text texto 541 > control 527/530, solo en estados extraccion@339...); mi captura hx-extraccion a 1280x720 («...antes del refue...»); BACKLOG B-048 (la frase no cambia con la fase).",
+   "pista": "ui_feel",
+   "repro": "tools/ui_qa_humahuaca.gd --size=1280x720, captura hx-extraccion.",
+   "aceptacion": "A 1280x720 y 1024x640, en las cuatro fases, HxObjective no se corta (la sonda de recortes da 0 controles CORTADO) y dice algo vigente en cada fase (una frase de unos 70 caracteres por fase). Cierre en R2a.",
+   "razon_aceptada": "El recorte es de unos 13 px y con puntos suspensivos; la línea de abajo (Siguiente paso) sí dice qué hacer y C01 no pide 0 recortes de texto hasta R2a. No bloquea R1. Cuenta como 1 de las 3 MEDIA aceptables. Firmado: Jefe de QA.",
+   "estado_pase3": "La pista dueña lo cerró en el pase 3 con su prueba de aceptación (visual: H-R1-9 y H-R1-11; ui_feel: H-R1-10). Falta la verificación del jefe de QA: comprobarlo, no volver a hacerlo."
+  },
+  {
+   "id": "H-R1-11",
+   "criterio": "R06 (observación visual; V01/V06 desde R2a)",
+   "severidad": "P2",
+   "titulo": "La cinta del río se corta en seco en los límites norte y sur, queda enterrada en 9 vértices y la malla tiene saltos de hasta 0,67 m",
+   "evidencia": "evidence/humahuaca/r1/qa/A/p2/R/limites_n.jpg y limites_s.jpg (la cinta termina en un corte dentro del terreno); V06/rio/rio.json (sonda del revisor visual reproducida: 9 de 78 vértices de rio_agua bajo el suelo renderizado, hasta -4,77 m en el contexto y -0,06 m en la ventana); V06/rio/costuras.json (salto de la malla renderizada 0,674 m en x=900 con 12 puntos >10 cm y 2 >50 cm; 0,32 m en z=0). Lo vio también el revisor técnico.",
+   "pista": "visual",
+   "repro": "tools/hx_qa_tour.gd (capturas limite_n y limite_s) y las sondas rev2_river.gd y rev2_seams.gd de evidence/humahuaca/r1/rev/visual/pase2/sondas.",
+   "aceptacion": "0 vértices de la cinta del río por debajo del terreno renderizado, saltos de la malla <=0,10 m en las cuatro costuras de la ventana y capturas limite_n y limite_s con el río continuo hasta el borde del contexto. Cierre en R2a.",
+   "razon_aceptada": "R06 pasa por su método (0,03 m sobre height_at, sin huecos ni borde del mundo en las 4 capturas); el corte del río y las costuras son pulido que el método de P8 no mide y no cambio el método (postes fijos). No bloquea R1. Cuenta como 1 de las 3 MEDIA aceptables. Firmado: Jefe de QA.",
+   "estado_pase3": "La pista dueña lo cerró en el pase 3 con su prueba de aceptación (visual: H-R1-9 y H-R1-11; ui_feel: H-R1-10). Falta la verificación del jefe de QA: comprobarlo, no volver a hacerlo."
+  }
+ ],
+ "permisos": [],
+ "etapas": [
+  {
+   "id": "R0",
+   "pase": 2,
+   "cierre_ok": true,
+   "resumen": "andamiaje T0 integrado (ganchos H1-H9, vocabulario, stubs, JSON minimos, compuertas)"
+  },
+  {
+   "id": "R1.0",
+   "pase": 2,
+   "cierre_ok": true,
+   "resumen": "stubs primero: 4 pistas, 2 pases"
+  },
+  {
+   "id": "R1",
+   "pase": 1,
+   "cierre_ok": false,
+   "todo_verde": false,
+   "p0": 4,
+   "p1": 2,
+   "p2": 1,
+   "commit": "70124a01e04d6778cb03003f83b87f4d8e4abfae",
+   "resumen": "R1 NO cierra. Corrí los procedimientos de los 15 ítems exigibles sobre 70124a0 (worktree propio, APPDATA aislado, una ventana por vez, benchmark a solas): 11 pasan (T01 T02 T03 T07 C01 J01 J02 R01 R02 R06 H01) y 4 fallan (T04 T05 T06 E05); ningún N. Hallazgos: 4 P0, 2 P1 y 1 MEDIA (cierre_ok = false). P0: H-R1-1 cuadro de Humahuaca en media 4,108 ms de media de medias y 4,591 el peor de 3 contra 4,0 con la GPU libre y fría (p95 5,73 y construcción 895 ms pasan; el costo casi no baja con el perfil); H-R1-2 pantalla sin salida: en el parte de derrota o victoria, abrir el Diario y cerrarlo deja 0 controles y Esc, Enter, Espacio y F9 no hacen nada (reproducido por mí con clics reales; causa en h"
+  },
+  {
+   "id": "R1",
+   "pase": 2,
+   "cierre_ok": false,
+   "todo_verde": false,
+   "p0": 2,
+   "p1": 0,
+   "p2": 3,
+   "commit": "4d7164bf5573f36886bdd1fc6679bb764aebdf11",
+   "resumen": "R1 pase 2 sobre 4d7164b (rúbrica 1.3, sha 4b527dcb...): de los 15 ítems exigibles, 13 pasan y 2 fallan (T06 y E05); 2 P0, 0 P1, 3 MEDIA. Los dos P0 no los arregla ninguna pista y los decide el usuario: (1) E05, las etiquetas ajenas v0.2.0-alpha y v0.3.0-alpha (H-R1-3, desde R1.0); (2) T06, porque la Justina mide 3,1 a 5,1 ms contra el tope absoluto de 3,0 en esta PC, pero el A/B del mismo día muestra que la base 5ebbd28 sin tocar mide lo mismo o peor (3,36-3,57 contra 3,21-3,45): no es regresión, es deriva de la máquina (H-R1-8; no moví el poste, dejé redactada la enmienda 5). Humahuaca en perfil media pasa con holgura: 1,52 ms de media y 1,575 de peor contra 4,0 (H-R1-1 cerrado por hook-10)"
+  },
+  {
+   "id": "R1",
+   "pase": 3,
+   "cierre_ok": false,
+   "resumen": "pase 3 integrado (visual cierra H-R1-9 y H-R1-11; ui_feel cierra H-R1-10) y compuerta completa hecha; SIN revision independiente ni jefe de QA: bucle detenido a pedido del usuario"
+  }
+ ],
+ "commit": "d3a68824a9069533422d9389231760c808efebfe",
+ "certificado": false,
+ "veredicto": null,
+ "integ": null
+}
