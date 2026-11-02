@@ -11,6 +11,7 @@ Cada exigencia de las secciones 3 a 5 de `docs/CONTRATO_HUMAHUACA.md` tiene acá
 - **Desde** es la ronda a partir de la cual la prueba **tiene que existir**. Antes, la fila figura como pendiente en el informe de `test_hx_data` (sin fallar); si la función ya existe, queda como adelantada. Desde esa ronda, una función inexistente es una falla («no evaluable = falla»).
 - Los nombres de función de las pruebas de las pistas (`test_hx_terrain`, `test_hx_rules`, `test_hx_view`, `test_hx_flow`) son **la propuesta de compuertas y documentos**: la pista dueña escribe esas funciones o pide por escrito el cambio de una fila (id, nombre nuevo y motivo). Nadie edita las filas salvo compuertas y documentos; la línea «Ronda vigente» la cambia el integrador.
 - No se usa el carácter de barra vertical dentro de una celda.
+- **Registro de verificación** (al final del archivo): lo que corrió de verdad en cada ronda, sobre qué commit y con qué cifras. Una fila de esta tabla queda verificada en una ronda cuando figura ahí con su resultado; lo que no corrió también se dice.
 
 | ID | Sección | Exigencia | Prueba | Desde |
 |---|---|---|---|---|
@@ -121,6 +122,8 @@ Cada exigencia de las secciones 3 a 5 de `docs/CONTRATO_HUMAHUACA.md` tiene acá
 | TR-172 | 5.1 | humahuaca_playthrough sale con 0 si el experto gana y el pasivo pierde, y desde R2b si se cumplen las compuertas | QA:J01 | r1 |
 | TR-173 | 5.1 | hx_qa_tour y hx_agent_play producen el paquete del QA (vistas, albedo, límites, fichas, bitácora del agente) | QA:J08 | r1 |
 | TR-174 | 5.1 | Las semillas de calibración, de la compuerta, del informe y las reservadas al QA no se mezclan | QA:J04 | r1 |
+| TR-175 | 5.1 | Cinco corridas degradadas (terreno, reglas, vista, interfaz y progreso reemplazados de a uno por su stub): el nivel arranca, avanza y vuelve al menú, y solo la capa forzada corre en su versión mínima según qa_state().layers | test_hx_smoke::_test_degraded_runs | r1.0 |
+| TR-176 | 5.1 | El comparador de capas efectivas ve una capa forzada que siguió siendo la real, otra que cambió sin pedirlo y una que no arrancó | test_hx_smoke::_test_forced_layer_comparator | r1.0 |
 | TR-180 | 5.2 | test_rules completo da 871 o más con 0 fallas y el rápido 818 o más | qa_gate::step_rules | r0 |
 | TR-181 | 5.2 | test_integration da 283 o más con 0 fallas | qa_gate::step_integration | r0 |
 | TR-182 | 5.2 | Jev da 15 o más con 0 fallas y el audio 17 comprobaciones con 1 falla aceptada | qa_gate::step_jev_audio | r0 |
@@ -132,3 +135,53 @@ Cada exigencia de las secciones 3 a 5 de `docs/CONTRATO_HUMAHUACA.md` tiene acá
 | TR-191 | 5.3 | Las pruebas que borran archivos de perfil se niegan a correr con el perfil real | test_hx_smoke::_require_isolated_profile | r0 |
 | TR-192 | 5.3 | Ningún comando de la compuerta abre ni imprime .env ni jev.cfg, y no hay etiquetas nuevas | qa_gate::step_hygiene | r0 |
 | TR-193 | 5.3 | Se buscan SCRIPT ERROR, SHADER ERROR, Parse Error y WARNING en la salida de cada prueba | qa_gate::scan_logs | r0 |
+
+## Registro de verificación por ronda
+
+Lo escribe «compuertas y documentos» al cerrar cada ronda y dice **qué corrió de verdad, sobre qué commit y con qué cifras**. Las cifras salen de los registros de `tools/qa_gate.sh` y de los informes JSON de las pruebas, no de lo que cuente cada pista; lo que no corrió, también se dice. La evidencia chica de cada ronda está en `evidence/humahuaca/<ronda>/compuertas/` (R1.0 usa `r1`, como las demás pistas; las rondas intermedias no entran a Git).
+
+### R1.0 · las cuatro pistas fusionadas en `main` (1 de noviembre de 2026)
+
+**Cómo se corrió.** Compuerta completa sobre `d038bcc` (el commit con que el integrador cerró la fusión): `SKIP=benchmark KEEP=1 bash tools/qa_gate.sh full`, ronda `r1.0`, `APPDATA` aislado propio de la corrida, ventana real (sin `--headless`) para `ui_qa`, `--qa=humahuaca` y `justina_playthrough`, `--audio-driver Dummy`, Godot 4.7.2 con Forward+ en una RTX 3080 Ti. Duró 11 min 34 s. Las cifras son **idénticas** a las que el integrador midió sobre el mismo commit (mismas comprobaciones en cada prueba; cambian solo los tiempos). El perfil real del usuario quedó intacto (ningún archivo de juego modificado durante la corrida). Después, `test_hx_smoke` y `test_hx_data` con las comprobaciones y filas que agrega esta ronda (146 y 296, 0 fallas) y la compuerta rápida sobre el árbol del commit de documentos y pruebas.
+
+| Paso de la compuerta | Resultado real | Filas que ejercita |
+|---|---|---|
+| `import` | PASA, 3 s | ninguna |
+| `protegidos` | PASA: 40 archivos protegidos intactos contra `5ebbd28` | TR-186 |
+| `compartidos` | PASA: `main.gd` +47/−4, `test_integration` +1/−1, `ui_qa` +1/−1, `run_qa` +1/−1 | TR-151 |
+| `rules` (completo) | PASA: 871 comprobaciones, 0 fallas, 3 min 27 s | TR-180 |
+| `integracion` | PASA: 283/0, 11 s | TR-181 |
+| `jev` y `audio` | PASA: Jev 15/0; audio 17 comprobaciones con 1 falla aceptada (driver Dummy) | TR-182 |
+| `hx_data` | PASA: 296/0, 2 s; V20 lee 118 filas (46 activas, 15 adelantadas y 57 pendientes de rondas futuras; con TR-175 y TR-176 son 120, 48 activas) | TR-001 a TR-003, TR-130, TR-160 a TR-162, TR-171 |
+| `hx_smoke` | PASA: 134/0, 21 s, con 4 pendientes (las clases reales, vencen en `r1`) | TR-067, TR-082, TR-110 a TR-112, TR-131, TR-132, TR-140 a TR-148, TR-150, TR-152 y TR-191; TR-010, TR-030, TR-080 y TR-090 solo para los stubs |
+| `hx_view` | PASA: 86/0, 2 s (la pista visual la entregó antes de tiempo: su piso de R1 es 25) | TR-091 a TR-099, adelantadas |
+| `hx_terrain`, `hx_rules`, `hx_flow` | N/A: los archivos todavía no existen (obligatorios desde `r1`); **no evaluadas** | las 55 filas pendientes de esos tres archivos |
+| `etapa` | PASA: los 4 stubs y un controlador que ya no es la copia de la cáscara | CONTRATO 8.1 |
+| `higiene` | **FALLA**: `git tag --list` trae `v0.2.0-alpha` y `v0.3.0-alpha`, que no son de este equipo (BACKLOG B-017) | TR-192 |
+| `scenario` | PASA: `--scenario=humahuaca` sale con 0, 3 s | TR-155 |
+| `qa_humahuaca` | PASA: `--qa=humahuaca` sale con 0 y escribe `qa_report.json` y 2 capturas (el menú y el primer cuadro), 5 s | TR-156 |
+| `ui_qa` ×3 | PASA: 254/0 a 1280 × 720 (25 s), 1920 × 1080 (34 s) y 2560 × 1440 (45 s), con `captura_px` igual a la pedida | TR-183 |
+| `justina_playthrough` | PASA: 18 victorias, 6 estilos, 3 rutas, 6 derrotas y el bot de interfaz gana, 5 min 28 s | TR-185 |
+| `benchmark` | **OMITIDO por orden** (lo mide el jefe de QA a solas): no se verificó | TR-157 y TR-184, sin verificar |
+| `herramientas_hx` | N/A: `ui_qa_humahuaca`, `humahuaca_playthrough` y `hx_qa_tour` se exigen desde `r1` | TR-119, TR-172 y TR-173, sin verificar |
+| `salida_limpia` | PASA: ningún `SCRIPT ERROR`, `SHADER ERROR`, `Parse Error`, `ERROR:` ni fuga en los registros; 0 `WARNING` | TR-193 |
+
+La línea final de la compuerta dice `FALLA (1 pasos)` y el único paso que falla es `higiene`, por las dos etiquetas ajenas: ningún paso atribuible a una pista o al integrador falló. La compuerta rápida sobre el árbol con los cambios de esta ronda (`quick integrador`, 1 min 26 s) da lo mismo: rules 818/0, integración 283/0, `hx_data` 296/0, `hx_smoke` 146/0 y solo `higiene` en FALLA.
+
+**Capturas reales de la compuerta.** Las dos que escribe `--qa=humahuaca` (el menú de tres botones y el primer cuadro del nivel, ambas a 1280 × 720) se miraron una por una; las 123 de `ui_qa` (41 por resolución) tienen el tamaño pedido y ninguna es negra ni uniforme (se midió el desvío de la luminancia), y se miró la de la Justina a 1280 × 720.
+
+**Las cinco corridas degradadas** (`test_hx_smoke::_test_degraded_runs`, TR-146 y TR-175). Cada una reemplaza **una** capa por su versión mínima, deja correr el nivel y vuelve al menú con Esc. La corrida normal (sin reemplazos) es la referencia: el controlador informa sus capas efectivas en `qa_state().layers`.
+
+| Capa reemplazada | Cómo se reemplaza | Arranca | Avanza | Vuelve al menú | Capas efectivas |
+|---|---|---|---|---|---|
+| terreno | `start` con `force_stub` de `terrain` | sí | sí | sí | terreno, reglas, progreso y vista en `minimo` |
+| reglas | `start` con `force_stub` de `rules` | sí | sí | sí | las cuatro en `minimo` |
+| progreso | `start` con `force_stub` de `progress` | sí | sí | sí | las cuatro en `minimo` |
+| vista | `start` con `force_stub` de `view` | sí | sí | sí | las cuatro en `minimo` |
+| interfaz | se instancia `stubs/stub_ui.gd` en lugar del controlador (`qa_state().shell` verdadero) | sí | sí | sí | la cáscara no informa capas |
+
+**Límite honesto de R1.0.** Todavía no existe ninguna de las cuatro clases reales (`terrain/humahuaca_terrain.gd`, `rules/humahuaca_rules.gd`, `rules/humahuaca_progress.gd` ni `view/humahuaca_view.gd`): el controlador ya arma esas cuatro capas con su versión mínima y forzar un stub no cambia nada, así que las cuatro corridas por capa son **iguales a la normal** (`degradadas.con_efecto` queda vacío en el informe). Lo que prueban hoy es que el camino de reemplazo corre y que el nivel vuelve al menú. Con la primera clase real (R1) la prueba exige que la corrida normal la use y que forzar su stub sí cambie la corrida: se probó en una copia descartable con un terreno «real» simulado (pasa, con `con_efecto` igual a terreno) y con un controlador que ignora `force_stub` (falla con dos mensajes que nombran la capa). Las cuatro clases reales figuran como pendientes `api-real-*` y se vuelven falla en `r1`. La comprobación usa `qa_state().layers`, que hoy trae el controlador de `ui_feel` y no figura en el contrato (BACKLOG B-020).
+
+**Ida y vuelta ×3** (`test_hx_smoke::_test_roundtrip_x3`, TR-111): Humahuaca → menú → Justina → menú, tres veces. Las 9 claves de estado global (`camera.far` y `fov`, escala 3D y MSAA del viewport, ambiente del audio, `settings.last_save`, `content_scale`, cámara actual y modo) quedan iguales tras salir del nivel y tras el ciclo completo con la Justina en las tres vueltas (18 comprobaciones); `OBJECT_ORPHAN_NODE_COUNT` vale 0 en las 7 mediciones; el árbol tiene 222 nodos antes y 222 tras cada vuelta.
+
+**No se verificó en R1.0** (y por qué): el benchmark (omitido por orden); `hx_terrain`, `hx_rules` y `hx_flow`, `ui_qa_humahuaca`, `humahuaca_playthrough`, `hx_qa_tour` y `hx_agent_play` (los entregan las pistas y compuertas y documentos en R1); las reglas V6, V10 a V16, V18, V21 y V22 de `test_hx_data` (BACKLOG B-013, las enciende compuertas y documentos al abrirse R1); las cuatro clases reales de las capas; la curva de `time_of_day` de las reglas contra VP-01 (BACKLOG B-016). Las 57 filas pendientes de la tabla de arriba son 34 de `test_hx_rules`, 12 de `test_hx_terrain`, 9 de `test_hx_flow` y 2 de `ui_qa_humahuaca`: 41 vencen en `r1`, 7 en `r2a` y 9 en `r2b`.
