@@ -181,6 +181,9 @@ Cada exigencia de las secciones 3 a 5 de `docs/CONTRATO_HUMAHUACA.md` tiene acá
 | TR-229 | 3.5 | La vista previa de la ruta alcanza al cursor: el último movimiento recibido dentro de la espera de 80 ms rehace el plan apenas pasa la espera | test_hx_flow::_test_preview_catches_up | r1 |
 | TR-230 | 3.5 | Los avisos no repiten el título de la alerta a la vista, el siguiente paso con el botón apagado dice la causa y los términos que nadie entendía (Golpe, Desvelo, ▲ y puntos) traen su cartel (B-052) | test_hx_flow::_test_alert_dedupe_and_tips | r1 |
 | TR-231 | 3.5 | La orden dada se nombra en un aviso, el rechazo dice quién sí puede hacerla y con qué tecla, y una parada fuera del mapa no se suma a la ruta (B-046 b y B-052 b y e) | test_hx_flow::_test_order_feedback | r1 |
+| TR-232 | 5.1 | La partida que el --selftest del arnés juega obedeciendo la guía (el botón del «siguiente paso», o el de la acción que la guía pide cuando un aviso lo esconde) llega al parte de victoria y cierra con respuestas.json, y repetida entera por archivos da la misma partida turno a turno (antes se cortaba a los 30 turnos y perdía el primer ataque porque daba la señal apenas un aviso la ofrecía) | qa_gate::step_level_tools | r1 |
+| TR-233 | 5.1 | Por el arnés, con el primer intento pasivo: el parte de derrota por amanecio trae «Reintentar», el arnés lo aprieta, el intento nuevo empieza de cero y gana, y la corrida cierra con respuestas.json (J08: «si perdés, podés reintentar») | qa_gate::step_level_tools | r1 |
+| TR-234 | 5.1 | Si la ventana no dibuja, el arnés espera --draw-timeout, la trae al frente y, si sigue sin dibujar, cierra con sin_captura y fin.json en lugar de quedarse colgado | hx_agent_play::_wait_draw | r1 |
 
 ## Registro de verificación por ronda
 

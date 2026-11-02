@@ -1,6 +1,6 @@
 extends SceneTree
 ## Arnés del agente-jugador del nivel «humahuaca» (CONTRATO 5.1; QA_NIVEL2 anexo D, pedido Q8, y criterio J08). Dueño: compuertas y documentos.
-## Uso: godot --path . --resolution 1280x720 --audio-driver Dummy --script tools/hx_agent_play.gd -- --turns-dir=<carpeta> --out=<arnes.json> [--seed=N] [--step-s=3] [--max-turns=150] [--wait-s=120] [--selftest]
+## Uso: godot --path . --resolution 1280x720 --audio-driver Dummy --script tools/hx_agent_play.gd -- --turns-dir=<carpeta> --out=<arnes.json> [--seed=N] [--step-s=3] [--max-turns=150] [--wait-s=120] [--selftest[=pasivo]] [--selftest-wait=12] [--draw-timeout=60]
 ## El arnés es el lado del juego: arma la escena real (main.tscn con el controlador, desde el briefing, como la ve quien juega por primera vez) y juega por turnos.
 ## Cada turno escribe turno_NN.png (1280 × 720, lo que ve el jugador: sin qa_state() ni código), espera accion_NN.json con
 ##   {"tipo":"clic","x":..,"y":..,"boton":"izq"|"der"}  |  {"tipo":"tecla","tecla":"4"}  (también "Space", "Escape", "ctrl+z", "shift+r"...)  |  {"tipo":"esperar","s":3}
@@ -10,7 +10,11 @@ extends SceneTree
 ## arnés y no el agente. lecturas_fuera_de_carpeta queda en 0: la auditoría de las herramientas del agente la hace el Jefe de QA. El arnés no lee ninguna carpeta del agente salvo
 ## accion_NN.json y respuestas.json.
 ## --selftest: no hay agente; el arnés contesta solo con el botón de «siguiente paso» (con información que el agente no tiene) para probar el lazo de punta a punta; con
-## --selftest=pasivo el primer intento no hace nada y el segundo sigue el «siguiente paso» (prueba el reintento). No es una corrida del agente-jugador.
+## --selftest=pasivo el primer intento no hace nada y el segundo sigue el «siguiente paso» (prueba el reintento). Cuando no hay botón que apretar espera --selftest-wait=<s> (12 por
+## defecto). No es una corrida del agente-jugador.
+## Ventana que no dibuja: si el motor deja de dibujar, la captura del turno no llegaría nunca (una corrida con semilla 5 se quedó sin avanzar a mitad de un intento y la cortó el tiempo
+## máximo; repetida, terminó sola, y minimizar la ventana a propósito no la reproduce). El arnés espera hasta --draw-timeout=<s> (60) un cuadro dibujado; si no llega, restaura la ventana
+## y la trae al frente y espera otra vez; si sigue sin dibujar, cierra con «sin_captura» (con fin.json) en lugar de colgarse. arnes.json suma ventana_traida_al_frente (cuántas veces hizo falta).
 ## No usa semillas reservadas al QA: la semilla viene por --seed.
 ## Archivos viejos: al arrancar borra de --turns-dir los turno_NN.png, accion_NN.json, respuestas.json y fin.json de una corrida anterior (si no, el arnés contestaría con acciones viejas o
 ## cerraría con unas respuestas viejas); la bitácora del agente no se toca. Lo informa como archivos_viejos_borrados.
@@ -35,6 +39,9 @@ var max_turns := 150
 var wait_s := 120.0
 var selftest := false
 var selftest_passive := false  # --selftest=pasivo: el primer intento no hace nada (pierde por el alba) y el segundo sigue el «siguiente paso»: prueba el reintento
+var selftest_wait_s := 12.0  # --selftest-wait=<s>: cuánto espera el --selftest cuando no hay botón que apretar (12 s por defecto)
+var draw_timeout_s := 60.0  # --draw-timeout=<s>: cuánto espera el arnés a que la ventana dibuje un cuadro antes de intentar traerla al frente (y, si sigue sin dibujar, cerrar con «sin_captura»)
+var redraws := 0  # cuántas veces hubo que traer la ventana al frente porque no dibujaba
 var turns: Array = []
 var attempts: Array = []
 var cur_attempt := 0
@@ -75,6 +82,10 @@ func _initialize() -> void:
 		elif arg == "--selftest=pasivo":
 			selftest = true
 			selftest_passive = true
+		elif arg.begins_with("--selftest-wait="):
+			selftest_wait_s = clampf(float(arg.trim_prefix("--selftest-wait=")), 0.25, 60.0)
+		elif arg.begins_with("--draw-timeout="):
+			draw_timeout_s = maxf(0.5, float(arg.trim_prefix("--draw-timeout=")))
 	if turns_dir == "" or out_path == "":
 		push_error("hx_agent_play: faltan --turns-dir=<carpeta> y --out=<arnes.json>")
 		quit(2)
@@ -302,8 +313,30 @@ func _check_bitacora(turn: int) -> void:
 	ident_turn = turn - map_first_turn + 1
 
 
+## Espera a que se dibuje un cuadro, con tope de tiempo: si el motor deja de dibujar, frame_post_draw no llega nunca y el arnés se quedaba colgado (TR-234). Devuelve false si no hubo cuadro
+## en `seconds`.
+func _wait_draw(seconds: float) -> bool:
+	var state := {"drawn": false}
+	var on_draw := func() -> void: state["drawn"] = true
+	RenderingServer.frame_post_draw.connect(on_draw, CONNECT_ONE_SHOT)
+	var t0 := Time.get_ticks_msec()
+	while not bool(state["drawn"]) and float(Time.get_ticks_msec() - t0) / 1000.0 < seconds:
+		await process_frame
+	if not bool(state["drawn"]) and RenderingServer.frame_post_draw.is_connected(on_draw):
+		RenderingServer.frame_post_draw.disconnect(on_draw)
+	return bool(state["drawn"])
+
+
 func _write_turn_png(n: int) -> bool:
-	await RenderingServer.frame_post_draw
+	var drawn := await _wait_draw(draw_timeout_s)
+	if not drawn:  # una vez más, con la ventana al frente y sin minimizar
+		if root.mode == Window.MODE_MINIMIZED:
+			root.mode = Window.MODE_WINDOWED
+		DisplayServer.window_move_to_foreground()
+		redraws += 1
+		drawn = await _wait_draw(draw_timeout_s)
+	if not drawn:
+		return false
 	var img := root.get_viewport().get_texture().get_image()
 	if img == null or img.is_empty():
 		return false
@@ -448,16 +481,20 @@ func _write_arnes() -> void:
 		"objetivos_identificados_en_turnos": ident_turn, "objetivos_identificados_criterio": "turnos contados desde el primer cuadro con mapa (apertura o juego; ver mapa_desde_turno) hasta que lo que el agente escribió en bitacora.md desde ese cuadro nombra los tres frentes (batería, cuartel y posta o pólvora); -1 si nunca los nombra o no hay bitácora",
 		"mapa_desde_turno": map_first_turn, "objetivos_tocados": touched, "objetivos_tocados_en_turnos": touched_turn,
 		"objetivos_tocados_criterio": "primer turno en que el agente hizo clic a menos de 70 px de cada uno de los tres frentes (dato aparte: tres frentes necesitan tres clics, así que nunca da menos de 3); -1 si no los tocó todos",
-		"archivos_viejos_borrados": stale_removed, "cierre": closing, "captura_px": [last_shot_size.x, last_shot_size.y], "selftest": selftest, "wait_s": wait_s}
+		"archivos_viejos_borrados": stale_removed, "cierre": closing, "captura_px": [last_shot_size.x, last_shot_size.y], "selftest": selftest, "wait_s": wait_s,
+		"ventana_traida_al_frente": redraws, "draw_timeout_s": draw_timeout_s}
 	_write_json(ProjectSettings.globalize_path(out_path), arnes)
 
 
 # ---------------------------------------------------------------------------------------------------------------------
 # --selftest: el arnés contesta solo, con el botón de «siguiente paso» y los botones de los partes (información que el agente no tiene)
 
-func _visible_button(part: String) -> Button:
+func _visible_button(part: String, exact: bool = false) -> Button:
 	for b in game.find_children("*", "Button", true, false):
-		if b is Button and part in (b as Button).text and (b as Button).is_visible_in_tree() and not (b as Button).disabled:
+		if not (b is Button) or not (b as Button).is_visible_in_tree() or (b as Button).disabled:
+			continue
+		var text := (b as Button).text.strip_edges()
+		if (text == part) if exact else (part in text):
 			return b
 	return null
 
@@ -481,7 +518,9 @@ func _selftest_action(q: Dictionary) -> Dictionary:
 	if mode == "opening":
 		return {"tipo": "tecla", "tecla": "Space"}
 	if mode == "ended":
-		var rb := _visible_button("Reintentar")
+		var rb := _visible_button("Reintentar", true)  # el «Reintentar» a secas (de cero); desde la segunda derrota seguida el parte suma «Reintentar desde las posiciones»
+		if rb == null:
+			rb = _visible_button("Reintentar")
 		if rb != null:
 			var c2 := _center_of(rb)
 			return {"tipo": "clic", "x": snappedf(c2.x, 0.1), "y": snappedf(c2.y, 0.1), "boton": "izq"}
@@ -490,9 +529,17 @@ func _selftest_action(q: Dictionary) -> Dictionary:
 	if mode == "play" and hx.hud != null and hx.hud.next_btn != null and hx.hud.next_btn.is_visible_in_tree() and not hx.hud.next_btn.disabled:
 		var c3 := _center_of(hx.hud.next_btn)
 		return {"tipo": "clic", "x": snappedf(c3.x, 0.1), "y": snappedf(c3.y, 0.1), "boton": "izq"}
-	if mode == "play":  # con alguien elegido el dock muestra la barra de acciones en lugar del botón de «siguiente paso»: se busca el de la señal
-		var sb := _visible_button("Dar la señal")
-		if sb != null:
-			var c4 := _center_of(sb)
-			return {"tipo": "clic", "x": snappedf(c4.x, 0.1), "y": snappedf(c4.y, 0.1), "boton": "izq"}
-	return {"tipo": "esperar", "s": 12.0}  # sin botón hay que esperar a que algo pase: un agente que espera dice cuánto
+	# El botón del «siguiente paso» se esconde cuando un aviso ofrece esa misma acción (humahuaca_ui_play.gd, _refresh_hud): la guía sigue diciendo «Dá la señal» pero el botón está en el
+	# aviso rojo y en la barra de acciones de quien está elegido. Se lo busca por el nombre de la acción de la guía, y solo si la guía la pide: la versión de R1 apretaba «Dar la señal» apenas
+	# un aviso lo ofrecía (a los 72-84 s, mucho antes del alba, con las otras partidas lejos) y perdía el primer ataque por el frente roto, lo que no era una prueba del juego.
+	if mode == "play":
+		var guide: Variant = q.get("guide", {})
+		var action_id := str((guide as Dictionary).get("action", "")) if guide is Dictionary else ""
+		if action_id != "" and action_id != "hold" and action_id != "cancel" and hx.rules != null and hx.rules.has_method("action_info"):
+			var info: Variant = hx.rules.call("action_info", action_id)
+			var label := str((info as Dictionary).get("name", "")) if info is Dictionary else ""
+			var ab := _visible_button(label) if label != "" else null
+			if ab != null:
+				var c4 := _center_of(ab)
+				return {"tipo": "clic", "x": snappedf(c4.x, 0.1), "y": snappedf(c4.y, 0.1), "boton": "izq"}
+	return {"tipo": "esperar", "s": selftest_wait_s}  # sin nada que apretar hay que esperar a que algo pase: un agente que espera dice cuánto

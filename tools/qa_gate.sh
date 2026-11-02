@@ -11,8 +11,8 @@
 # la higiene de Git y la limpieza de los registros. La completa suma test_rules completo (>= 871), Jev (15), audio (17 con 1 falla aceptada),
 # las cuatro pruebas del nivel, ui_qa x3 (>= 254), justina_playthrough, --scenario y --qa de Humahuaca y benchmark.py (Justina y Norte <= 3 ms). Desde r1 suma las herramientas
 # del nivel (herramientas_hx): ui_qa_humahuaca x3, humahuaca_playthrough (por reglas, y por la escena real: humahuaca_escena, el criterio de cierre de R1), el recorrido de QA
-# (hx_qa_tour, con las vistas en acción), el arnés del agente-jugador con --selftest (hx_agent_play) y con un agente de guion por archivos (hx_agent_partida: la partida del
-# --selftest repetida por archivos; hx_agent_protocolo y hx_agent_viejos) y la verificación por la escena real de visual (vis_flow).
+# (hx_qa_tour, con las vistas en acción), el arnés del agente-jugador con --selftest hasta la victoria (hx_agent_play), el reintento tras una derrota (hx_agent_reintento) y con un agente
+# de guion por archivos (hx_agent_partida: la partida del --selftest repetida por archivos; hx_agent_protocolo y hx_agent_viejos) y la verificación por la escena real de visual (vis_flow).
 # La última línea es siempre «GATE <modo> ...: PASA|FALLA|PARCIAL | cifras». Sale con 0 (PASA), 1 (FALLA), 2 (uso o entorno) o 3 (PARCIAL).
 #
 # Variables opcionales:
@@ -730,28 +730,31 @@ EOF
   else
     record hx_qa_tour FALLA "falta tools/hx_qa_tour.gd (no evaluable = falla)"
   fi
-  # el arnés del agente-jugador (Q8): el lazo de punta a punta con el arnés contestando solo (--selftest, no es una corrida del agente); la primera orden entra por clic
-  # a ≤ 8 turnos y ≤ 40 s de juego (J08). La corrida del agente de verdad la hace el Jefe de QA.
+  # el arnés del agente-jugador (Q8): el lazo de punta a punta con el arnés contestando solo (--selftest: aprieta el botón del «siguiente paso» como quien obedece la guía; no es una corrida
+  # del agente). La primera orden entra por clic a ≤ 8 turnos y ≤ 40 s de juego (J08) y la partida llega al parte de victoria y cierra con respuestas.json (en R1 el selftest de 30 turnos
+  # perdía el primer ataque porque daba la señal apenas un aviso la ofrecía: no probaba el final). La corrida del agente de verdad la hace el Jefe de QA.
   if [ -f "$SRC/tools/hx_agent_play.gd" ]; then
     out="$LOGD/hx_agent"; mkdir -p "$out"
-    run_godot 240 "$LOGD/hx_agent.log" --path "$SRC" --resolution 1280x720 --audio-driver Dummy --disable-vsync --script tools/hx_agent_play.gd -- "--turns-dir=$out" "--out=$out/arnes.json" --step-s=3 --max-turns=30 --selftest
+    run_godot 300 "$LOGD/hx_agent.log" --path "$SRC" --resolution 1280x720 --audio-driver Dummy --disable-vsync --script tools/hx_agent_play.gd -- "--turns-dir=$out" "--out=$out/arnes.json" --step-s=3 --max-turns=150 --selftest
     nums="$(py - "$out/arnes.json" <<'EOF'
 import json, sys
 try:
     a = json.load(open(sys.argv[1], encoding="utf-8"))
 except Exception:
     print("NOJSON"); sys.exit(0)
-print(a.get("schema"), len(a.get("turnos", [])), a.get("primera_orden_turno"), a.get("primera_orden_t_s"), "x".join(str(v) for v in a.get("captura_px", [])), a.get("cierre"))
+it = a.get("intentos", [])
+last = it[-1] if it else {}
+print(a.get("schema"), len(a.get("turnos", [])), a.get("primera_orden_turno"), a.get("primera_orden_t_s"), "x".join(str(v) for v in a.get("captura_px", [])), a.get("cierre"), last.get("resultado", "sin_intentos"), last.get("t_juego_s", 0))
 EOF
 )"
     if [ "$nums" = "NOJSON" ]; then
       record hx_agent_play FALLA "no escribió arnes.json (salida $RC; registro: $LOGD/hx_agent.log)"
     else
-      read -r aschema aturns aorder atime acap aclose <<< "$nums"
-      if [ "$RC" -eq 0 ] && [ "$aschema" = "hx_agente_v1" ] && [ "$aturns" -ge 20 ] && [ "$aorder" -ge 1 ] && [ "$aorder" -le 8 ] && [ "$acap" = "1280x720" ] && py -c "import sys; sys.exit(0 if 0 <= float('$atime') <= 40 else 1)"; then
-        record hx_agent_play PASA "arnés hx_agente_v1: $aturns turnos con capturas de $acap, primera orden aceptada en el turno $aorder (${atime} s de juego), cierre $aclose (selftest, no es el agente)"
+      read -r aschema aturns aorder atime acap aclose aresult asecs <<< "$nums"
+      if [ "$RC" -eq 0 ] && [ "$aschema" = "hx_agente_v1" ] && [ "$aturns" -ge 20 ] && [ "$aorder" -ge 1 ] && [ "$aorder" -le 8 ] && [ "$acap" = "1280x720" ] && [ "$aclose" = respuestas ] && [ "$aresult" = victory ] && py -c "import sys; sys.exit(0 if 0 <= float('$atime') <= 40 else 1)"; then
+        record hx_agent_play PASA "arnés hx_agente_v1: $aturns turnos con capturas de $acap, primera orden aceptada en el turno $aorder (${atime} s de juego), la partida llegó a la victoria a los ${asecs} s de juego y cerró con $aclose (selftest, no es el agente)"
       else
-        record hx_agent_play FALLA "salió con $RC; esquema $aschema, $aturns turnos, primera orden en el turno $aorder a los $atime s, captura $acap (pide ≤ 8 turnos y ≤ 40 s)"
+        record hx_agent_play FALLA "salió con $RC; esquema $aschema, $aturns turnos, primera orden en el turno $aorder a los $atime s, captura $acap, cierre $aclose (pide respuestas), último intento $aresult (pide victory) (registro: $LOGD/hx_agent.log)"
       fi
     fi
   else
@@ -761,12 +764,13 @@ EOF
   # escribe accion_NN.json, la mitad a medias) y el arnés tiene que dar la misma partida turno a turno: acción, tiempo de juego, órdenes aceptadas, fase, modo, primera orden y desenlace.
   # No juega: prueba que el protocolo por archivos no cambia la partida. La corrida del agente de verdad (J08) la hace el Jefe de QA.
   if [ -f "$SRC/tools/hx_agent_play.gd" ] && [ -f "$SRC/tools/hx_agent_guion.py" ]; then
-    local ppid prc pwaited pline pnums pturns pchecks psecs pstarted=$SECONDS
+    local ppid prc pwaited pline pnums pturns pchecks psecs rturns pstarted=$SECONDS
     out="$LOGD/hx_agent_partida"; mkdir -p "$out"
-    if [ ! -f "$LOGD/hx_agent/arnes.json" ]; then
+    rturns="$(py -c "import json, sys; print(len(json.load(open(sys.argv[1], encoding='utf-8'))['turnos']))" "$LOGD/hx_agent/arnes.json" 2>/dev/null)"   # la repetición tiene los mismos turnos que la referencia
+    if [ ! -f "$LOGD/hx_agent/arnes.json" ] || [ -z "$rturns" ]; then
       record hx_agent_partida FALLA "no hay arnes.json del --selftest con qué comparar (no evaluable = falla)"
     else
-      "$G" --path "$SRC" --resolution 1280x720 --audio-driver Dummy --disable-vsync --script tools/hx_agent_play.gd -- "--turns-dir=$out" "--out=$out/arnes.json" --step-s=3 --max-turns=30 --wait-s=60 > "$LOGD/hx_agent_partida.log" 2>&1 &
+      "$G" --path "$SRC" --resolution 1280x720 --audio-driver Dummy --disable-vsync --script tools/hx_agent_play.gd -- "--turns-dir=$out" "--out=$out/arnes.json" --step-s=3 --max-turns="$rturns" --wait-s=60 > "$LOGD/hx_agent_partida.log" 2>&1 &
       ppid=$!
       py "$SRC/tools/hx_agent_guion.py" --turns-dir "$out" --arnes "$out/arnes.json" --guion "repetir:$LOGD/hx_agent/arnes.json" --timeout 120 --log "$out/guion.json" > "$LOGD/hx_agent_partida_guion.log" 2>&1
       prc=$?
@@ -781,6 +785,35 @@ EOF
         record hx_agent_partida PASA "la partida del --selftest repetida por archivos da lo mismo turno a turno: $pturns turnos, $pchecks comprobaciones (acción, aplicada, orden aceptada, modo, diálogo, fase y tiempo de juego, primera orden e intentos), ${psecs} s; $(fmt_time $((SECONDS - pstarted)))"
       else
         record hx_agent_partida FALLA "el agente de guion salió con $prc; $(tr -d '\r' < "$LOGD/hx_agent_partida_guion.log" | tail -n 3 | cut -c1-420 | tr '\n' ' ') (registros: $LOGD/hx_agent_partida.log y $out/guion.json)"
+      fi
+    fi
+  fi
+  # el reintento por el arnés (J08: «si perdés, podés reintentar»): con --selftest=pasivo el primer intento no hace nada y pierde por el alba (amanecio); el arnés aprieta el «Reintentar» del parte
+  # y el segundo intento sigue el «siguiente paso» hasta la victoria. Prueba el parte de derrota, su botón y el intento nuevo por la interfaz real; no es una corrida del agente.
+  if [ -f "$SRC/tools/hx_agent_play.gd" ]; then
+    local rn rfirst rcause rlast rclose rturns2 rsecs
+    out="$LOGD/hx_agent_reintento"; mkdir -p "$out"
+    run_godot 300 "$LOGD/hx_agent_reintento.log" --path "$SRC" --resolution 1280x720 --audio-driver Dummy --disable-vsync --script tools/hx_agent_play.gd -- "--turns-dir=$out" "--out=$out/arnes.json" --step-s=3 --max-turns=150 --selftest=pasivo
+    nums="$(py - "$out/arnes.json" <<'EOF'
+import json, sys
+try:
+    a = json.load(open(sys.argv[1], encoding="utf-8"))
+except Exception:
+    print("NOJSON"); sys.exit(0)
+it = a.get("intentos", [])
+first = it[0] if it else {}
+last = it[-1] if it else {}
+print(len(it), first.get("resultado", "?"), first.get("cause_id") or "-", last.get("resultado", "?"), a.get("cierre"), len(a.get("turnos", [])), last.get("t_juego_s", 0))
+EOF
+)"
+    if [ "$nums" = "NOJSON" ]; then
+      record hx_agent_reintento FALLA "no escribió arnes.json (salida $RC; registro: $LOGD/hx_agent_reintento.log)"
+    else
+      read -r rn rfirst rcause rlast rclose rturns2 rsecs <<< "$nums"
+      if [ "$RC" -eq 0 ] && [ "$rn" -ge 2 ] && [ "$rfirst" = defeat ] && [ "$rcause" = amanecio ] && [ "$rlast" = victory ] && [ "$rclose" = respuestas ]; then
+        record hx_agent_reintento PASA "el primer intento pasivo perdió por amanecio, el arnés apretó «Reintentar» en el parte y el intento $rn ganó a los ${rsecs} s de juego; cerró con $rclose en $rturns2 turnos (selftest, no es el agente)"
+      else
+        record hx_agent_reintento FALLA "salió con $RC; $rn intentos, el primero $rfirst ($rcause) y el último $rlast (pide defeat por amanecio y victory), cierre $rclose (pide respuestas) (registro: $LOGD/hx_agent_reintento.log)"
       fi
     fi
   fi
