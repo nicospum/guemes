@@ -21,3 +21,8 @@ const TIME_OF_DAY := {"noche_lluvia": 0.0, "alba": 0.5, "dia": 1.0}
 
 ## Cuántos píxeles de borde se respetan al verificar que un cuadro «incluye» un punto (V02 del QA pide ≥ 5 % del borde).
 const FRAME_MARGIN_PCT := 5.0
+
+## Agregados de R1 (solo-agregar): la vista real y su generador procedural.
+const ARCHETYPES := ["poncho_sombrero", "camisa_gorra", "artillero", "realista_1817"]  # los tres arquetipos de figura y el realista retintado
+const BUILDERS := ["templo_nave", "casa_cura", "plataforma", "patio_posta", "torre", "polvorin", "parque", "corral", "caja_con_techo", "plano", "mojon", "ninguno"]  # los constructores de `props.por_id` y `props.por_tipo`
+const TERRAIN_PARTS := ["terreno_ventana", "terreno_contexto_oeste", "terreno_contexto_este", "terreno_contexto_norte", "terreno_contexto_sur", "terreno_horizonte"]  # un solo material de suelo
