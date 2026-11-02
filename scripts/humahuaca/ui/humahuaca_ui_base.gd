@@ -622,6 +622,7 @@ func _pick_seed() -> int:
 
 ## Empieza un intento (o lo reinicia). `extra` pisa las opciones de new_game; la vista se rearma si ya existía.
 func _new_attempt(extra: Dictionary = {}, count_attempt: bool = false, rebuild_view: bool = true) -> void:
+	clear_transients()
 	_ended = false
 	_end_delay = 0.0
 	_rec = {}
@@ -658,6 +659,25 @@ func _new_attempt(extra: Dictionary = {}, count_attempt: bool = false, rebuild_v
 	_find_group_fronts()
 
 
+## Lo pasajero de la interfaz que no debe sobrevivir a empezar un intento ni a recuperar una partida (B-046 b): el motivo de la última orden rechazada, el que
+## muestra el cartel de un botón, la orden en la mano y las paradas sueltas.
+func clear_transients() -> void:
+	_motive_text = ""
+	_motive_until = 0.0
+	_hover_motive = ""
+	if orders != null:
+		orders.cancel_aim()
+		orders.waypoints = []
+		orders.motive = ""
+		orders.last_error = ""
+
+
+## Un motivo de rechazo tal como lo dicen las reglas (texts.errores.<clave>), o «» si no lo traen.
+func rules_error(key: String) -> String:
+	var e: Variant = _rules_texts().get("errores", {})
+	return str((e as Dictionary).get(key, "")) if e is Dictionary else ""
+
+
 ## «Continuar» y F9 llegan con opts.load. Si el guardado falta, está dañado o las reglas lo rechazan, se explica y se empieza de cero.
 func _try_load_save() -> bool:
 	var reason := ""
@@ -679,8 +699,19 @@ func _try_load_save() -> bool:
 			reason = str(result.get("reason", "")) if result is Dictionary else ""
 			if reason.strip_edges() == "":
 				reason = tx("load.reasons.broken", "")
-	_notice = tx("load.failed", "%s") % reason
+	_notice = tx("load.failed", "%s") % _reason_fragment(reason)
 	return false
+
+
+## El motivo de una carga fallida para meterlo en una frase (B-046 a): sin el punto final que ya trae («Este guardado es de otro escenario.») y con la primera
+## letra en minúscula, salvo que sea una sigla.
+static func _reason_fragment(reason: String) -> String:
+	var t := reason.strip_edges()
+	while t.ends_with(".") or t.ends_with(" "):
+		t = t.left(t.length() - 1)
+	if t.length() > 1 and t[0] != t[0].to_lower() and t[1] == t[1].to_lower():
+		t = t[0].to_lower() + t.substr(1)
+	return t
 
 
 func _rules_state() -> Dictionary:

@@ -25,6 +25,8 @@ var last_shot_size := Vector2i.ZERO
 var ui_json: Dictionary = {}
 var shots: Array = []
 var contrast_min := 99.0
+var cuts_seen: Dictionary = {}  # momento → textos cortados (H-R1-10); vacío si ninguno se cortó
+var cuts_checked := 0
 
 
 func _initialize() -> void:
@@ -300,6 +302,42 @@ func _check_overflow(label: String) -> void:
 	for id in V.GROUPS:
 		var card: Rect2 = hx.hud.card_rect(str(id))
 		check(_inside(card) and card.size.x >= 60.0, "%s: la ficha de %s entra en el dock (%s)" % [label, str(id), str(card)])
+	_check_text_cuts(label)
+
+
+## H-R1-10: ningún texto de la interfaz queda cortado (una línea recortada con «…», líneas escondidas o un botón más chico que su texto). Es la misma medida que usa la sonda
+## de recortes del QA y mira todo lo que hay a la vista (el HUD, las ventanas y el aviso de pie), no solo la línea del objetivo.
+func _check_text_cuts(label: String) -> void:
+	var cuts: Array = Kit.cut_labels(game.ui)
+	cuts_checked += 1
+	if not cuts.is_empty():
+		cuts_seen[label] = cuts
+	check(cuts.is_empty(), "%s: ningún texto queda cortado (%d: %s)" % [label, cuts.size(), str(cuts.slice(0, 3))])
+
+
+## H-R1-10: el objetivo dice algo vigente en cada fase y entra entero. Arranca el nivel directo en cada fase (opts.phase) y mide la línea del objetivo y todos los textos.
+func _phase_sweep(tag: String) -> void:
+	var seen: Dictionary = {}
+	for phase in ["aproximacion", "ataque", "extraccion"]:
+		game._start_humahuaca({"skip_intro": true, "phase": phase, "seed": 7})
+		await _frames(8)
+		hx = game.hx
+		if not check(is_instance_valid(hx) and str(hx.qa_state().phase) == phase, "%s: el nivel arranca en la fase «%s»" % [tag, phase]):
+			continue
+		hx.refresh_hud_now()
+		await _frames(2)
+		var text: String = hx.hud.objective_l.text
+		seen[phase] = text
+		check(text != "" and not text.ends_with("…"), "%s · %s: el objetivo dice algo y no termina en «…» («%s»)" % [tag, phase, text])
+		_check_text_cuts("%s · %s" % [tag, phase])
+	var distinct := {}
+	for k in seen:
+		distinct[str(seen[k])] = true
+	check(distinct.size() == seen.size() and seen.size() == 3, "%s: el objetivo cambia con la fase (%d frases distintas en %d fases)" % [tag, distinct.size(), seen.size()])
+	notes["objetivo_por_fase_" + tag] = seen
+	game._start_humahuaca({"skip_intro": true})  # el resto del recorrido sigue con un nivel normal, no con el último del barrido
+	await _frames(6)
+	hx = game.hx
 
 
 ## El alto de cada ficha parada (de la base a la cima de sus piezas, sin los anillos), proyectado y en píxeles REALES de la captura: lo que mide V03. Antes salía de `probes()`,
@@ -395,6 +433,7 @@ func _probe_guided(label: String, steps: int) -> void:
 	var toast_steps := 0
 	var bar_steps := 0
 	var done := 0
+	var cut_set: Dictionary = {}
 	for i in range(steps):
 		if str(hx.qa_state().status) != "playing" or str(hx.qa_state().dialog) != "":
 			break
@@ -419,6 +458,8 @@ func _probe_guided(label: String, steps: int) -> void:
 		if hx.hud.next_text_l.is_visible_in_tree():
 			lines_max = maxi(lines_max, hx.hud.next_text_l.get_line_count())
 			width_min = minf(width_min, hx.hud.next_text_l.size.x * hx.ui_scale)
+		for cut in Kit.cut_labels(game.ui):
+			cut_set[str(cut.text)] = cut
 		if hx.hud.toast_panel.is_visible_in_tree():
 			toast_steps += 1
 		if hx.hud.bar.is_visible_in_tree():
@@ -427,6 +468,10 @@ func _probe_guided(label: String, steps: int) -> void:
 	check(done >= 40 and toast_steps > 0 and bar_steps > 0, "Partida guiada %s: %d pasos con fichas elegidas, con avisos (%d pasos) y barra de órdenes (%d pasos) a la vista" % [label, done, toast_steps, bar_steps])
 	check(crossings.is_empty(), "Partida guiada %s: ningún panel del HUD pisa a otro en %d pasos (%s)" % [label, done, str(crossings)])
 	check(outside == 0, "Partida guiada %s: ningún panel del HUD sale del cuadro (%d veces)" % [label, outside])
+	cuts_checked += 1
+	if not cut_set.is_empty():
+		cuts_seen["guiada " + label] = cut_set.values()
+	check(cut_set.is_empty(), "Partida guiada %s: ningún texto queda cortado en %d pasos (%d distintos: %s)" % [label, done, cut_set.size(), str(cut_set.values().slice(0, 3))])
 	check(lines_max <= 2 and width_min >= 250.0, "Partida guiada %s: el «siguiente paso» ocupa %d líneas como máximo y nunca queda en una columna menor de 250 px (mínimo %d px)" % [label, lines_max, int(width_min)])
 	hx.reset_camera()  # tocar dos veces la misma tecla centra la cámara en un frente: el resto del recorrido sigue con el cuadro inicial
 
@@ -705,6 +750,7 @@ func _cycle_full() -> void:
 	check(hx.hud.chip_labels.carga.panel.visible and hx.hud.chip_labels.golpe.panel.visible and hx.hud.chip_labels.refuerzo.panel.visible, "Extracción: aparecen la carga, el golpe y el reloj del refuerzo en el dock")
 	_check_overflow("Extracción")
 	_measure_contrast(img4, "extraccion")
+	await _phase_sweep("%dx%d" % [root.size.x, root.size.y])  # H-R1-10: las fases, el objetivo y los recortes
 	# --- derrota por pasividad: parte, consejo, tres datos, reintento ≤ 3 s con el mismo mundo ---
 	await _cycle_defeat_and_victory()
 
@@ -816,6 +862,7 @@ func _cycle_overflow() -> void:
 	notes["rects"] = _capture_rects()
 	_check_overflow("Ataque")
 	_measure_contrast(img_hud, "ataque")
+	await _phase_sweep("%dx%d" % [root.size.x, root.size.y])  # H-R1-10
 	# lo que sigue es lo de siempre: una partida nueva, orden, pausa, ayuda y derrota
 	hx.retry("mismo_mundo")
 	await _frames(4)
@@ -839,6 +886,7 @@ func _cycle_overflow() -> void:
 
 
 func _finish() -> void:
+	notes["recortes"] = {"revisiones": cuts_checked, "con_recortes": cuts_seen}
 	var out := {"suite": "ui_qa_humahuaca", "checks": checks, "failures": failures, "ok": failures.is_empty(), "notes": notes, "capturas": shots}
 	notes["contraste_texto_min"] = snappedf(contrast_min, 0.01) if contrast_min < 99.0 else 0.0
 	var file := FileAccess.open(ProjectSettings.globalize_path(out_dir).path_join("ui_qa_report.json"), FileAccess.WRITE)

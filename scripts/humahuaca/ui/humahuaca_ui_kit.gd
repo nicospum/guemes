@@ -218,6 +218,39 @@ static func text_chars(node: Node) -> int:
 	return n
 
 
+## Los textos que no entran en su control (H-R1-10): una etiqueta de una línea más angosta que su texto (se recorta con «…» o se pasa de su caja), una etiqueta con líneas
+## escondidas o un botón más chico que su mínimo. Es la misma medida que usa la sonda de recortes del QA (ancho del texto contra el ancho del control, con 1,5 px de
+## tolerancia), así que lo que acá da vacío no se le va a marcar. Devuelve [{name, text, need, have, why}], sin repetir un control.
+static func cut_labels(node: Node) -> Array:
+	var out: Array = []
+	if node == null:
+		return out
+	for n in node.find_children("*", "Control", true, false):
+		var c := n as Control
+		if not c.is_visible_in_tree():
+			continue
+		if c is Label:
+			var l := c as Label
+			if l.text.strip_edges() == "" or l.size.x < 1.0:
+				continue
+			if l.get_line_count() > l.get_visible_line_count() and l.get_visible_line_count() > 0:
+				out.append({"name": str(l.name), "text": l.text.left(60), "need": float(l.get_line_count()), "have": float(l.get_visible_line_count()), "why": "líneas"})
+			elif l.autowrap_mode == TextServer.AUTOWRAP_OFF:
+				var fnt: Font = l.get_theme_font("font")
+				var fs: int = l.get_theme_font_size("font_size")
+				var need := fnt.get_string_size(l.text.get_slice("\n", 0), HORIZONTAL_ALIGNMENT_LEFT, -1.0, fs).x
+				if need > l.size.x + 1.5:
+					out.append({"name": str(l.name), "text": l.text.left(60), "need": snappedf(need, 0.1), "have": snappedf(l.size.x, 0.1), "why": "recortado" if l.clip_text else "se pasa"})
+		elif c is Button:
+			var b := c as Button
+			if b.text.strip_edges() == "":
+				continue
+			var ms := b.get_minimum_size()
+			if b.size.x + 1.0 < ms.x:
+				out.append({"name": str(b.name), "text": b.text.left(60), "need": snappedf(ms.x, 0.1), "have": snappedf(b.size.x, 0.1), "why": "botón"})
+	return out
+
+
 ## Los botones visibles bajo `node` y cuántos controles distintos son: los de un mismo grupo (meta «hx_group») cuentan como uno.
 static func controls_report(node: Node) -> Dictionary:
 	var groups := {}

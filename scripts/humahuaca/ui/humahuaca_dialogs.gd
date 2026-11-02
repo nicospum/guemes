@@ -206,6 +206,11 @@ func show_help() -> void:
 	for line in lines:
 		n += 1
 		Kit.label(body, "%d. %s" % [n, str(line)], 16, Kit.PAPER, true)
+	var glossary: Variant = ui.texts.get("help", {}).get("glossary", [])
+	if glossary is Array and not (glossary as Array).is_empty():
+		Kit.label(body, _t("help.glossary_title", "Qué significa lo que ves"), 15, Kit.GOLD)
+		for line in glossary:
+			Kit.label(body, str(line), 14, Kit.PAPER, true)
 	Kit.label(body, _t("help.keys_title", "Teclas"), 15, Kit.GOLD)
 	var grid := GridContainer.new()
 	grid.columns = 2

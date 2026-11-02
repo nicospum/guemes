@@ -52,7 +52,13 @@
 			"strength": "Fuerza",
 			"fatigue": "Fatiga",
 			"custody": "Custodia %d",
-			"group_tip": "Clic para elegirla; un segundo clic centra la cámara. Teclas 1 a 5."
+			"group_tip": "Clic para elegirla; un segundo clic centra la cámara. Teclas 1 a 5.",
+			"chip_tips": {
+				"golpe": "Golpe: cuánto valor sacaste, de 0 a 100. Cuenta lo que cruza el vado; lo que destruís vale menos y lo que se pierde, nada.",
+				"carga": "Carga: lo que llevan las mulas, contra lo que aguantan.",
+				"refuerzo": "Refuerzo: tropa realista que llega desde el sur. Antes de eso tenés que cruzar el vado con la carga."
+			},
+			"status_tip": "Oscuridad: de noche se apunta peor y cuesta coordinar. Desvelo: la guardia se va despertando y la sorpresa vale menos."
 		},
 		"actions": {
 			"cost_prefix": "Cuesta: ",
@@ -67,18 +73,36 @@
 			"preview_reveals": "revela %s",
 			"risk": {"bajo": "bajo", "medio": "medio", "alto": "alto", "desconocido": "desconocido"},
 			"no_selection": "Elegí primero una agrupación (teclas 1 a 5).",
-			"nothing_to_undo": "No hay nada para deshacer."
+			"nothing_to_undo": "No hay nada para deshacer.",
+			"stop_outside": "Esa parada queda fuera del mapa: elegí un punto adentro.",
+			"who": {"reconocedores": "los reconocedores", "arreo": "el arreo"},
+			"only_one": "Eso lo hace %s (tecla %s).",
+			"only_many": "Eso lo hacen %s (teclas %s)."
 		},
 		"toast": {
 			"saved": "Partida guardada. F9 la recupera.",
 			"save_failed": "No se pudo guardar la partida. Probá de nuevo.",
 			"loaded": "Partida recuperada.",
 			"started_clock": "El reloj ya corre.",
-			"center_front": "Cámara en %s."
+			"center_front": "Cámara en %s.",
+			"order_given": "Orden dada a %s: %s."
 		},
 		"phase_hint": {
 			"briefing": "Preparación",
 			"waiting": "El reloj arranca con tu primera orden o con Espacio."
+		},
+		"stage_compact": {
+			"holding": "Sostiene lo tomado",
+			"waiting_signal": "Espera la señal"
+		},
+		"objective": {
+			"source": "ui",
+			"by_phase": {
+				"aproximacion": ["Poné a cada partida en su puesto y dá la señal antes de que aclare.", "Todas a su puesto y dá la señal antes del alba."],
+				"ataque": ["Tomá los tres frentes a la vez y socorré a la partida que más sufra.", "Tomá los tres frentes y socorré a la que sufra."],
+				"extraccion": ["Cargá el arreo y salí por el vado antes de que llegue el refuerzo.", "Cargá y salí por el vado antes del refuerzo.", "Sacá el arreo antes del refuerzo."],
+				"epilogo": ["Terminó el golpe: leé el parte."]
+			}
 		},
 		"result": {
 			"victory": "Victoria",
@@ -102,7 +126,7 @@
 			"missing": "No se pudo cargar ni la versión mínima de: %s"
 		},
 		"load": {
-			"failed": "No se pudo abrir la partida guardada (%s). Empezás de nuevo.",
+			"failed": "No se pudo abrir la partida guardada: %s. Empezás de nuevo.",
 			"reasons": {
 				"missing": "no hay un archivo guardado",
 				"broken": "el archivo está vacío o dañado",
@@ -157,6 +181,15 @@
 			],
 			"keys_title": "Teclas",
 			"tags_title": "Cómo se rotula lo que se cuenta",
+			"glossary_title": "Qué significa lo que ves",
+			"glossary": [
+				"Golpe: cuánto valor lograste sacar, de 0 a 100. La carga que cruza el vado cuenta entera; lo que destruís, una parte; lo que se pierde, nada.",
+				"Fuerza y fatiga: la barra de arriba es la gente en pie y la de abajo, el cansancio. Marchar rápido y atacar cansan.",
+				"Ruido (●○○ a ●●●): cuánto se oye a la partida. A la carrera se oye más; en silencio, casi nada.",
+				"Oscuridad: de noche se apunta peor y cuesta coordinar a las partidas lejanas.",
+				"Desvelo: desde las 4:30 la guardia se va despertando sola y la sorpresa vale menos cuanto más esperás.",
+				"Atacar a fondo (Ctrl) pega más fuerte pero cuesta más bajas; con cautela es al revés."
+			],
 			"close": "Entendido"
 		},
 		"diary": {

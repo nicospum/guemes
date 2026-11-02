@@ -28,6 +28,7 @@ func load_game() -> bool:
 		return false
 	if dialogs != null:
 		dialogs.close()
+	clear_transients()
 	selected = []
 	_auto_start = false
 	paused = true
@@ -356,7 +357,22 @@ func on_order_ok(actor: String, action: String) -> void:
 	_motive_until = 0.0
 	if action != "cancel":
 		play_sound("order")
+	_order_feedback(actor, action)
 	_refresh_hud(true)
+
+
+## Dice qué orden se dio (B-052 b): antes un clic derecho sobre la posta solo dibujaba la línea y nadie sabía qué había pasado.
+func _order_feedback(actor: String, action: String) -> void:
+	if action == "cancel":
+		_toast(tx("hud.cancel_done", ""), "info")
+		return
+	if actor == "" or action == "give_signal" or rules == null or hud == null:
+		return  # la señal ya tiene su propio aviso: el disparo
+	var info: Variant = rules.call("action_info", action)
+	var name_text := str((info as Dictionary).get("name", "")) if info is Dictionary else ""
+	if name_text == "":
+		return
+	_toast(tx("toast.order_given", "") % [str(hud.short_names().get(actor, actor)), name_text], "info")
 
 
 func on_order_failed(reason: String) -> void:
@@ -700,6 +716,18 @@ func _idle_groups() -> Array:
 	return out
 
 
+## La etapa de cada agrupación (id → «moving», «holding»…): el HUD la usa para elegir el texto compacto cuando el de las reglas no entra en la ficha.
+func _stages_by_group() -> Dictionary:
+	var out := {}
+	if rules == null:
+		return out
+	for id in V.GROUPS:
+		var u: Variant = rules.call("get_unit", str(id))
+		if u is Dictionary:
+			out[str(id)] = str((u as Dictionary).get("stage", "idle"))
+	return out
+
+
 func _refresh_hud(_force_now: bool = false) -> void:
 	_hud_timer = float(ui_data.get("hud_limits", {}).get("hud_period_s", 0.2))
 	if main == null or hud == null or not is_instance_valid(hud.root):
@@ -723,7 +751,7 @@ func _refresh_hud(_force_now: bool = false) -> void:
 	var phase_id := str(_hs.get("fase", {}).get("id", _phase())) if _hs.get("fase", {}) is Dictionary else _phase()
 	var ctx := {"paused": paused or mode != "play", "speed": speed, "phase": phase_id, "selected": selected, "guide": guide, "alert": alert,
 		"toast": _toast_cur, "warn": _warn_text(), "motive": motive, "status": _status_line(), "suggest_x2": _suggest_x2,
-		"bar_items": orders.bar_items(_hs) if orders != null and mode == "play" else [], "idle_groups": _idle_groups(),
+		"bar_items": orders.bar_items(_hs) if orders != null and mode == "play" else [], "idle_groups": _idle_groups(), "stages": _stages_by_group(),
 		"pace": orders.pace if orders != null else "march", "pace_visible": orders != null and orders.aiming() and str(orders.aim.get("action", "")) != "support"}
 	if mode == "play" and selected.is_empty() and _playing() and order_count >= 1:
 		ctx["motive"] = motive if motive != "" else tx("hud.pick_hint", "")
