@@ -2,10 +2,10 @@
 	"contract": 1,
 	"map_version": 1,
 	"texts": {
-		"title": "Humahuaca: el depósito de la retaguardia",
+		"title": "II · Humahuaca",
+		"title_long": "Humahuaca: el depósito de la retaguardia",
 		"clock_running": "Tiempo real · ▶ ×%d",
 		"clock_paused": "‖ En pausa",
-		"keys_hint": "Espacio: pausa  ·  Esc: menú",
 		"objective": "Tomá la batería, el cuartel y la pólvora a la vez, y sacá lo que puedas antes del refuerzo.",
 		"phase_names": {
 			"briefing": "Preparación",
@@ -13,6 +13,73 @@
 			"ataque": "Ataque",
 			"extraccion": "Extracción",
 			"epilogo": "Epílogo"
+		},
+		"time": {
+			"pause": "‖",
+			"play": "▶",
+			"speeds": ["×1", "×2", "×4"],
+			"pause_tip": "Pausa o sigue el tiempo (Espacio)",
+			"speed_tip": "Velocidad del tiempo: ×1 es tiempo real (F2, F3 y F4)",
+			"suggest_x2": "Esperá tranquilo: podés acelerar con ×2.",
+			"suggest_button": "Acelerar ×2"
+		},
+		"hud": {
+			"menu": "Menú",
+			"menu_tip": "Pausa, guardar, diario y salir (Esc)",
+			"help": "?",
+			"help_tip": "Cómo se juega (F1)",
+			"next_title": "Siguiente paso",
+			"pick_hint": "Elegí una agrupación (1 a 5)",
+			"guard_unknown": "Guardia ?",
+			"guard_known": "Guardia %d",
+			"guard_range": "Guardia %d a %d",
+			"take": "Toma %d %%",
+			"surprise": "Sorpresa %s",
+			"support": "Apoyo de %s",
+			"signal_wait": "Señal: falta %s",
+			"signal_ready": "Señal lista",
+			"signal_dark": "Oscuridad %d %%",
+			"signal_drift": "Desvelo %d %%",
+			"tower_next": "Torre: próxima descarga en %d s",
+			"tower_empty": "La torre se quedó sin munición",
+			"dawn_tip": "El alba: cuando llega la luz, la guardia ve más lejos",
+			"order_to": "La orden va a %d agrupaciones",
+			"selected_one": "%s",
+			"unavailable": "No se puede: %s",
+			"order_sent": "Orden dada",
+			"cancel_done": "Orden cancelada",
+			"noise": {"silencio": "En silencio", "se_oye": "Se oye", "los_oyen": "Los oyen"},
+			"noise_dots": {"silencio": "●○○", "se_oye": "●●○", "los_oyen": "●●●"},
+			"strength": "Fuerza",
+			"fatigue": "Fatiga",
+			"custody": "Custodia %d",
+			"group_tip": "Clic para elegirla; un segundo clic centra la cámara. Teclas 1 a 5."
+		},
+		"actions": {
+			"cost_prefix": "Cuesta: ",
+			"risk_prefix": "Con riesgo: ",
+			"aim_hint": "Marcá el destino con un clic. Mayús suma una parada, Esc cancela.",
+			"aim_hint_front": "Elegí el frente con un clic. Esc cancela.",
+			"pace": {"sneak": "En silencio", "march": "Marcha", "run": "A la carrera"},
+			"pace_title": "Ritmo",
+			"preview": "%d m · llega en %s · riesgo %s",
+			"preview_seen": "te ven a %d m",
+			"preview_recon": "Reconocer: %d %% de riesgo · %s",
+			"preview_reveals": "revela %s",
+			"risk": {"bajo": "bajo", "medio": "medio", "alto": "alto", "desconocido": "desconocido"},
+			"no_selection": "Elegí primero una agrupación (teclas 1 a 5).",
+			"nothing_to_undo": "No hay nada para deshacer."
+		},
+		"toast": {
+			"saved": "Partida guardada. F9 la recupera.",
+			"save_failed": "No se pudo guardar la partida. Probá de nuevo.",
+			"loaded": "Partida recuperada.",
+			"started_clock": "El reloj ya corre.",
+			"center_front": "Cámara en %s."
+		},
+		"phase_hint": {
+			"briefing": "Preparación",
+			"waiting": "El reloj arranca con tu primera orden o con Espacio."
 		},
 		"result": {
 			"victory": "Victoria",
@@ -27,12 +94,12 @@
 				"view": "vista"
 			},
 			"one": {
-				"terrain": "Falta o falló el terreno: se usa la versión mínima",
-				"rules": "Faltan o fallaron las reglas: se usa la versión mínima",
-				"progress": "Falta o falló el progreso: se usa la versión mínima",
-				"view": "Falta o falló la vista: se usa la versión mínima"
+				"terrain": "Versión mínima del terreno",
+				"rules": "Versión mínima de las reglas",
+				"progress": "Versión mínima del progreso",
+				"view": "Versión mínima de la vista"
 			},
-			"many": "Se usa la versión mínima de: %s",
+			"many": "Versión mínima de: %s",
 			"missing": "No se pudo cargar ni la versión mínima de: %s"
 		},
 		"load": {
@@ -46,43 +113,137 @@
 		"briefing": {
 			"page1": {
 				"title": "Humahuaca, 1817",
-				"lines": [
-					"Tomá la batería, el cuartel y la pólvora a la vez, y sacá lo que puedas antes del refuerzo.",
-					"Es de noche y llueve: tenés que atacar antes de que amanezca.",
-					"Perder no es grave: volvés a intentar con lo que aprendiste."
-				]
+				"today": "Hoy: %s",
+				"fallback": "Tomá la batería, el cuartel y la pólvora a la vez, y sacá lo que puedas antes del refuerzo."
 			},
 			"page2": {
 				"title": "La carta del 26 de febrero",
-				"label": "Dramatización",
-				"tag": "diseno",
-				"tag_parts": {
-					"carta": "documentado",
-					"escena": "diseno"
-				},
-				"source": "Carta de Güemes a Arias, 26-II-1817; la escena es una dramatización",
-				"lines": [
-					"Salta, 26 de febrero de 1817. Güemes le escribe a Arias: llegó la noticia de la victoria de San Martín en Chacabuco, Chile, y le pide que la celebre con su gente.",
-					"La carta no trae ninguna orden. El golpe a Humahuaca se preparaba desde febrero: la carta solo trae la noticia."
-				],
-				"date_note": {
-					"text": "Fecha: la madrugada del 1 de marzo, según el itinerario de Arias; el 2, según La Serna y una inscripción del premio.",
-					"tag": "discutido",
-					"source": "Itinerario de Arias (1 de marzo); La Serna e inscripción del premio (2 de marzo)"
-				}
+				"label": "Dramatización"
 			},
 			"opening": {
 				"subtitle": "«La mayor parte sin más armas que palos», escribió Arias.",
+				"skip_hint": "Cualquier tecla salta la presentación",
 				"tag": "documentado",
 				"source": "Parte de Arias, 3-III-1817"
 			},
+			"notes_title": "Qué es real y qué es diseño",
 			"buttons": {
 				"start": "Empezar",
-				"next": "Seguir",
-				"skip": "Saltar"
+				"next": "Seguir leyendo",
+				"skip": "Saltar",
+				"back": "Volver"
 			}
+		},
+		"pause": {
+			"title": "Pausa",
+			"resume": "Seguir jugando",
+			"save": "Guardar (F5)",
+			"load": "Cargar (F9)",
+			"help": "Cómo se juega (F1)",
+			"diary": "Diario",
+			"retreat": "Retirada general",
+			"retreat_ask": "¿Ordenar la retirada general? El golpe termina como derrota y volvés a intentar con lo aprendido.",
+			"retreat_yes": "Sí, retirarse",
+			"retreat_no": "No, seguir",
+			"menu": "Volver al menú"
+		},
+		"help": {
+			"title": "Cómo se juega",
+			"lines": [
+				"Primero reconocé: mandá a los reconocedores a mirar la batería, el cuartel y la posta.",
+				"Llevá cada partida a su puesto de ataque: elegila con las teclas 1 a 5 y usá «A su puesto».",
+				"Dá la señal cuando haya partidas en sus puestos: atacar a oscuras cuesta, pero esperar la luz también.",
+				"Atacá los tres frentes a la vez y socorré a la partida que más sufre.",
+				"Con el depósito tomado, cargá el arreo; lo que no entre en las mulas, destruilo.",
+				"Sacá la carga por el vado, al este, antes de que llegue el refuerzo."
+			],
+			"keys_title": "Teclas",
+			"tags_title": "Cómo se rotula lo que se cuenta",
+			"close": "Entendido"
+		},
+		"diary": {
+			"title": "Diario de Humahuaca",
+			"empty": "Todavía no anotaste nada. Lo que aprendas en cada intento queda acá.",
+			"close": "Cerrar"
+		},
+		"decision": {
+			"countdown": "Se decide sola en %d s",
+			"back_to_x1": "El tiempo volvió a ×1."
+		},
+		"report": {
+			"title_victory": "Se cumplió el golpe",
+			"title_defeat": "No se logró el golpe",
+			"advice": "Consejo",
+			"facts_title": "Tu partida",
+			"fact_fronts": "Frentes tomados: %d de 3",
+			"fact_golpe": "Golpe: %d de 100",
+			"fact_losses": "Bajas: %d %%",
+			"fact_time": "Tiempo: %s",
+			"best_medal": "Mejor medalla: %s",
+			"no_medal": "todavía sin medalla",
+			"retry": "Reintentar",
+			"retry_world": "Reintentar (mismo mundo)",
+			"play_again": "Jugar de nuevo",
+			"new_world": "Mundo nuevo",
+			"new_world_ask": "Un mundo nuevo cambia lo que sabías del anterior y borra el diario. ¿Seguimos?",
+			"new_world_yes": "Sí, mundo nuevo",
+			"new_world_no": "No, volver",
+			"diary": "Diario",
+			"menu": "Menú",
+			"more": "Ver la historia del combate",
+			"less": "Ocultar la historia",
+			"epilogue_title": "Qué pasó después",
+			"reality_vs_game": "En la realidad y en tu partida",
+			"assists": "Ayudas usadas: %s",
+			"next_label": "Ver la campaña completa: Sostener el norte"
+		},
+		"quit": {
+			"keep_going": "Volver al juego"
 		}
 	},
+	"key_table": [
+		{"id": "pause", "keys": ["Space"], "show": "Espacio", "label": "Pausa o sigue el tiempo", "group": "tiempo"},
+		{"id": "speed_1", "keys": ["F2"], "show": "F2", "label": "Tiempo real ×1", "group": "tiempo"},
+		{"id": "speed_2", "keys": ["F3"], "show": "F3", "label": "Doble velocidad ×2", "group": "tiempo"},
+		{"id": "speed_4", "keys": ["F4"], "show": "F4", "label": "Cuádruple velocidad ×4", "group": "tiempo"},
+		{"id": "speed_up", "keys": ["Equal", "Plus", "KP Add"], "show": "+", "label": "Más velocidad", "group": "tiempo"},
+		{"id": "speed_down", "keys": ["Minus", "KP Subtract"], "show": "−", "label": "Menos velocidad", "group": "tiempo"},
+		{"id": "help", "keys": ["F1"], "show": "F1", "label": "Cómo se juega", "group": "interfaz"},
+		{"id": "menu", "keys": ["Escape"], "show": "Esc", "label": "Cancela lo que hacés o abre el menú de pausa", "group": "interfaz"},
+		{"id": "save", "keys": ["F5"], "show": "F5", "label": "Guarda la partida", "group": "interfaz"},
+		{"id": "load", "keys": ["F9"], "show": "F9", "label": "Recupera la partida guardada", "group": "interfaz"},
+		{"id": "fullscreen", "keys": ["F11"], "show": "F11", "label": "Pantalla completa", "group": "interfaz"},
+		{"id": "group_1", "keys": ["1"], "show": "1", "label": "Partida de Rodríguez (otra vez: centra la cámara en la batería)", "group": "seleccion"},
+		{"id": "group_2", "keys": ["2"], "show": "2", "label": "Partida de Portal (otra vez: centra la cámara en el cuartel)", "group": "seleccion"},
+		{"id": "group_3", "keys": ["3"], "show": "3", "label": "División de Arias (otra vez: centra la cámara en la posta)", "group": "seleccion"},
+		{"id": "group_4", "keys": ["4"], "show": "4", "label": "Reconocedores", "group": "seleccion"},
+		{"id": "group_5", "keys": ["5"], "show": "5", "label": "Arreo", "group": "seleccion"},
+		{"id": "cycle", "keys": ["Tab"], "show": "Tab", "label": "Pasa a la agrupación siguiente (Mayús: la anterior)", "group": "seleccion"},
+		{"id": "undo", "keys": ["Ctrl+Z"], "show": "Ctrl+Z", "label": "Deshace la última orden", "group": "seleccion"},
+		{"id": "cam_pan", "keys": ["W", "A", "S", "D", "Up", "Left", "Down", "Right"], "show": "W A S D o flechas", "label": "Mueve la cámara (Mayús: más rápido)", "group": "camara"},
+		{"id": "cam_yaw", "keys": ["Q", "E"], "show": "Q y E", "label": "Gira la cámara", "group": "camara"},
+		{"id": "cam_pitch", "keys": ["PageUp", "PageDown"], "show": "RePág y AvPág", "label": "Inclina la cámara", "group": "camara"},
+		{"id": "cam_reset", "keys": ["Home"], "show": "Inicio", "label": "Vuelve al cuadro inicial", "group": "camara"},
+		{"id": "cam_zoom", "keys": [], "show": "Rueda del mouse", "label": "Acerca y aleja hacia el cursor", "group": "camara"},
+		{"id": "cam_drag", "keys": [], "show": "Botón del medio", "label": "Arrastra el mapa", "group": "camara"},
+		{"id": "minimap_size", "keys": ["M"], "show": "M", "label": "Agranda o achica el minimapa", "group": "camara"},
+		{"id": "act_move", "keys": ["G"], "show": "G", "label": "Mover (a un punto del mapa)", "group": "acciones", "action": "move", "rules_shortcut": "m", "note": "M agranda el minimapa"},
+		{"id": "act_position", "keys": ["P"], "show": "P", "label": "A su puesto de ataque", "group": "acciones", "action": "position", "rules_shortcut": "p"},
+		{"id": "act_attack", "keys": ["T"], "show": "T", "label": "Atacar el frente", "group": "acciones", "action": "attack", "rules_shortcut": "a", "note": "A mueve la cámara"},
+		{"id": "act_support", "keys": ["C"], "show": "C", "label": "Socorrer a otra partida", "group": "acciones", "action": "support", "rules_shortcut": "s", "note": "S mueve la cámara"},
+		{"id": "act_recon", "keys": ["R"], "show": "R", "label": "Reconocer un punto", "group": "acciones", "action": "recon", "rules_shortcut": "r"},
+		{"id": "act_load", "keys": ["L"], "show": "L", "label": "Cargar en el arreo", "group": "acciones", "action": "load", "rules_shortcut": "l"},
+		{"id": "act_destroy", "keys": ["X"], "show": "X", "label": "Destruir lo que no se lleva", "group": "acciones", "action": "destroy", "rules_shortcut": "x"},
+		{"id": "act_leave", "keys": ["V"], "show": "V", "label": "Salir por el vado, al este", "group": "acciones", "action": "leave", "rules_shortcut": "e", "note": "E gira la cámara"},
+		{"id": "act_signal", "keys": ["F"], "show": "F", "label": "Dar la señal", "group": "acciones", "action": "give_signal", "rules_shortcut": "f"},
+		{"id": "act_hold", "keys": ["H"], "show": "H", "label": "Sostener lo tomado", "group": "acciones", "action": "hold", "rules_shortcut": "h"},
+		{"id": "act_cancel", "keys": ["Delete", "BackSpace"], "show": "Supr", "label": "Cancela la orden en curso", "group": "acciones", "action": "cancel", "rules_shortcut": "esc", "note": "Esc cierra lo abierto o abre el menú"},
+		{"id": "mod_stop", "keys": ["Shift"], "show": "Mayús + clic", "label": "Suma una parada a la ruta (hasta 4)", "group": "ordenes"},
+		{"id": "mod_run", "keys": ["Ctrl"], "show": "Ctrl + clic", "label": "Marcha a la carrera", "group": "ordenes"},
+		{"id": "mod_sneak", "keys": ["Alt"], "show": "Alt + clic", "label": "Marcha en silencio", "group": "ordenes"},
+		{"id": "mouse_order", "keys": [], "show": "Clic derecho", "label": "Da la orden más lógica al punto o al frente", "group": "ordenes"},
+		{"id": "mouse_select", "keys": [], "show": "Clic o caja", "label": "Elige agrupaciones (Mayús suma, Ctrl alterna)", "group": "seleccion"}
+	],
 	"jargon_blacklist": [
 		"ETA",
 		"ZOC",
@@ -150,5 +311,121 @@
 			"etiqueta": "Sin datos suficientes",
 			"descripcion": "No hay información: el juego lo completa y lo avisa."
 		}
+	},
+	"camera": {
+		"bounds_margin_m": 120,
+		"min_distance_m": 40,
+		"max_distance_m": 900,
+		"min_pitch_deg": 10,
+		"max_pitch_deg": 80,
+		"ground_clearance_m": 3.0,
+		"pan_speed": 0.9,
+		"pan_fast_mult": 3.0,
+		"edge_px": 6,
+		"edge_speed": 0.7,
+		"initial_fit": {"above_head_px": 78, "below_px": 10, "side_pct": 5.0, "max_steps": 40},
+		"yaw_deg_s": 70,
+		"pitch_deg_s": 40,
+		"zoom_step": 0.86,
+		"zoom_ease": 14.0,
+		"opening_s": [12, 15],
+		"opening": {
+			"seconds": 13.5,
+			"stops": [
+				{"focus": "bateria", "dist": 150, "pitch_deg": 26, "yaw_deg": 95, "share": 0.22},
+				{"focus": "cuartel", "dist": 130, "pitch_deg": 28, "yaw_deg": 70, "share": 0.22},
+				{"focus": "posta", "dist": 140, "pitch_deg": 28, "yaw_deg": 320, "share": 0.22}
+			],
+			"start": {"x": 450, "z": 330, "dist": 760, "pitch_deg": 60, "yaw_deg": 325},
+			"hold_s": 1.1
+		}
+	},
+	"minimap": {
+		"default_size_px": [260, 188],
+		"large_size_px": [520, 376],
+		"refresh_s": 2,
+		"colors": {
+			"unit": "#7FAAC4",
+			"unit_border": "#EFE8D7",
+			"arreo": "#B99A50",
+			"selected": "#D9B576",
+			"frame": "#E9E3D4",
+			"front": "#983F36",
+			"front_taken": "#9AC4AB",
+			"border": "#50543A",
+			"back": "#14180F"
+		},
+		"scale_steps_m": [50, 100, 200, 500]
+	},
+	"layout": {
+		"margin": 12,
+		"gap": 8,
+		"header_h": 46,
+		"fronts_card": [212, 56],
+		"dock_h": 164,
+		"group_card": [142, 58],
+		"toast_w": 440,
+		"alert_w": 520,
+		"font": {"title": 17, "body": 15, "small": 13, "tiny": 12},
+		"modal": {"max_w": 940, "pad": 22},
+		"fit_scale": {"enabled": true, "min_window": [1024, 640]}
+	},
+	"hud_limits": {
+		"max_controls": 5,
+		"max_chars": 400,
+		"hud_period_s": 0.2,
+		"auto_pause_max_s": 2.0,
+		"decision_max_s": 25.0,
+		"retry_max_s": 3.0,
+		"first_decision_max_s": 60.0,
+		"esc_menu_free_s": 20.0
+	},
+	"toasts": {
+		"levels": {
+			"info": {"priority": 1, "seconds": 4.5},
+			"aviso": {"priority": 2, "seconds": 6.5},
+			"critica": {"priority": 3, "seconds": 9.0}
+		},
+		"max_queue": 3,
+		"kinds": {
+			"signal": {"level": "critica", "sound": "cannon", "fx": "senal", "shake": 0.5},
+			"alarm": {"level": "critica", "sound": "alert"},
+			"detected": {"level": "aviso", "sound": "alert"},
+			"capture": {"level": "aviso", "sound": "capture", "fx": "captura"},
+			"tower": {"level": "aviso", "sound": "volley_warn", "fx": "fogonazo"},
+			"shot": {"level": "info", "fx": "fogonazo"},
+			"melee": {"level": "info", "fx": "impacto"},
+			"dawn": {"level": "aviso", "sound": "bell"},
+			"weather": {"level": "info"},
+			"noise": {"level": "info"},
+			"recon": {"level": "info", "sound": "bell"},
+			"decoy": {"level": "info"},
+			"support": {"level": "aviso", "sound": "order"},
+			"horses": {"level": "info", "sound": "hoof"},
+			"messenger": {"level": "aviso", "sound": "messenger"},
+			"reinforcement_warning": {"level": "critica", "sound": "alert"},
+			"reinforcement": {"level": "critica", "sound": "alert"},
+			"loot": {"level": "info"},
+			"load": {"level": "info"},
+			"destroy": {"level": "aviso", "sound": "cannon", "fx": "explosion"},
+			"hide": {"level": "info"},
+			"exit": {"level": "aviso", "sound": "ford"},
+			"objective": {"level": "info"},
+			"briefing": {"level": "info"},
+			"decision": {"level": "aviso", "sound": "alert"},
+			"hint": {"level": "info"},
+			"assist": {"level": "info"},
+			"checkpoint": {"level": "info"},
+			"victory": {"level": "critica", "sound": "victory"},
+			"defeat": {"level": "critica", "sound": "defeat"},
+			"info": {"level": "info"},
+			"warning": {"level": "aviso", "sound": "alert"}
+		}
+	},
+	"onboarding": {
+		"arrow": true,
+		"first_order_hint_s": 12,
+		"speed_suggestion": {"after_calm_s": 20, "repeat_s": 60},
+		"retry_skips_briefing": true
 	}
 }

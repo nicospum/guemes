@@ -1,0 +1,708 @@
+extends RefCounted
+## HUD de una mirada del nivel «humahuaca» (CONTRATO 3.5). SOLO PINTA: todo lo que dice sale de hud_state() (lo que le pasa el controlador) y de
+## los textos de humahuaca_ui.json; no recalcula reglas. Qué dibuja:
+##   · arriba: título, indicador permanente «TIEMPO REAL · ▶ ×1» / «‖ EN PAUSA» con pausa y velocidades, fase, reloj y barra del alba, ayuda y menú;
+##     debajo, a la derecha, las tres tarjetas de frente (batería, cuartel y pólvora);
+##   · abajo (el dock): una sola línea de objetivo, UN «siguiente paso» con su botón, la barra de acciones de la selección, una línea de motivo de
+##     alto fijo (para que los botones no se muevan bajo el cursor) y las cinco fichas de agrupación (teclas 1 a 5);
+##   · una alerta a la vez, un aviso a la vez y la línea roja de las capas que corren en su versión mínima.
+## Los paneles NO van sobre los laterales: las fichas de la zona de partida quedan contra el borde izquierdo del cuadro inicial (BACKLOG B-021).
+## Los controles que no son botones (fichas y tarjetas) se eligen con el mouse pero no cuentan como «controles accionables» del primer cuadro.
+
+const Kit = preload("res://scripts/humahuaca/ui/humahuaca_ui_kit.gd")
+const U = preload("res://scripts/humahuaca/ui/vocab_ui.gd")
+const V = preload("res://scripts/humahuaca/humahuaca_vocab.gd")
+
+var root: Control
+var texts: Dictionary = {}
+var layout: Dictionary = {}
+var tags: Dictionary = {}
+var emit: Callable = Callable()
+var title_font: Font = null
+
+var header: PanelContainer
+var title_l: Label
+var clock_l: Label
+var btn_pause: Button
+var btn_speed: Array = []
+var phase_l: Label
+var reloj_l: Label
+var dawn_bar: ProgressBar
+var btn_help: Button
+var btn_menu: Button
+
+var fronts_box: HBoxContainer
+var front_cards: Dictionary = {}
+
+var dock: PanelContainer
+var objective_l: Label
+var chips_box: HBoxContainer
+var chip_labels: Dictionary = {}
+var next_title_l: Label
+var next_text_l: Label
+var next_btn: Button
+var suggest_btn: Button
+var actions_box: HBoxContainer
+var pace_box: HBoxContainer
+var pace_btns: Dictionary = {}
+var motive_l: Label
+var status_l: Label
+var cards_box: HBoxContainer
+var group_cards: Dictionary = {}
+
+var alert_panel: PanelContainer
+var alert_title_l: Label
+var alert_text_l: Label
+var alert_btn: Button
+var alert_count_l: Label
+var toast_panel: PanelContainer
+var toast_l: Label
+var warn_panel: PanelContainer
+var warn_l: Label
+
+var _action_sig := ""
+var _action_buttons: Dictionary = {}
+var _alert_data: Dictionary = {}
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Construcción
+
+func _num(path: Array, fallback: float) -> float:
+	var cur: Variant = layout
+	for part in path:
+		if cur is Dictionary and (cur as Dictionary).has(part):
+			cur = cur[part]
+		else:
+			return fallback
+	return float(cur) if (typeof(cur) == TYPE_INT or typeof(cur) == TYPE_FLOAT) else fallback
+
+
+func _vec(key: String, fallback: Vector2) -> Vector2:
+	var v: Variant = layout.get(key, null)
+	if v is Array and (v as Array).size() >= 2:
+		return Vector2(float(v[0]), float(v[1]))
+	return fallback
+
+
+func _t(path: String, fallback: String = "") -> String:
+	var cur: Variant = texts
+	for part in path.split("."):
+		if cur is Dictionary and (cur as Dictionary).has(part):
+			cur = cur[part]
+		else:
+			return fallback
+	return str(cur) if typeof(cur) == TYPE_STRING else fallback
+
+
+func _anchor(c: Control, a_left: float, a_top: float, a_right: float, a_bottom: float, o_left: float, o_top: float, o_right: float, o_bottom: float) -> void:
+	c.anchor_left = a_left
+	c.anchor_top = a_top
+	c.anchor_right = a_right
+	c.anchor_bottom = a_bottom
+	c.offset_left = o_left
+	c.offset_top = o_top
+	c.offset_right = o_right
+	c.offset_bottom = o_bottom
+
+
+func build(parent: Control, texts_in: Dictionary, layout_in: Dictionary, tags_in: Dictionary, emit_in: Callable, font_in: Font, minimap_w: float) -> void:
+	texts = texts_in
+	layout = layout_in
+	tags = tags_in
+	emit = emit_in
+	title_font = font_in
+	root = Control.new()
+	root.name = "HumahuacaHud"
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	parent.add_child(root)
+	_build_header()
+	_build_fronts()
+	_build_dock(minimap_w)
+	_build_alert()
+	_build_toast()
+	_build_warn(minimap_w)
+
+
+func _build_header() -> void:
+	var m := _num(["margin"], 12.0)
+	var fs := int(_num(["font", "body"], 15.0))
+	header = Kit.panel(root, Kit.PANEL_BG, Kit.PANEL_BORDER, 12.0, 4.0)
+	header.name = "HxHeader"
+	_anchor(header, 0.0, 0.0, 1.0, 0.0, m, m, -m, m + _num(["header_h"], 46.0))
+	header.custom_minimum_size.y = _num(["header_h"], 46.0)
+	var row := Kit.hbox(header, 14)
+	row.alignment = BoxContainer.ALIGNMENT_BEGIN
+	title_l = Kit.label(row, "", int(_num(["font", "title"], 17.0)), Kit.PAPER)
+	title_l.name = "HxTitle"
+	title_l.autowrap_mode = TextServer.AUTOWRAP_OFF
+	title_l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	if title_font != null:
+		title_l.add_theme_font_override("font", title_font)
+	var time_box := Kit.hbox(row, 6)
+	time_box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	clock_l = Kit.label(time_box, "", fs, Kit.GOLD)
+	clock_l.name = "HxClock"
+	clock_l.autowrap_mode = TextServer.AUTOWRAP_OFF
+	clock_l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	btn_pause = Kit.button(time_box, _t("time.pause", "‖"), fs, "normal", "tiempo")
+	btn_pause.name = "HxPause"
+	btn_pause.custom_minimum_size = Vector2(34.0, 30.0)
+	btn_pause.tooltip_text = _t("time.pause_tip")
+	btn_pause.pressed.connect(func(): _fire("pause"))
+	var names: Array = texts.get("time", {}).get("speeds", ["×1", "×2", "×4"])
+	for i in range(names.size()):
+		var b := Kit.button(time_box, str(names[i]), fs - 1, "normal", "tiempo")
+		b.name = "HxSpeed%d" % i
+		b.toggle_mode = true
+		b.custom_minimum_size = Vector2(34.0, 30.0)
+		b.tooltip_text = _t("time.speed_tip")
+		b.pressed.connect(func(): _fire("speed", i))
+		btn_speed.append(b)
+	Kit.spacer(row, true)
+	var phase_box := Kit.vbox(row, 0)
+	phase_box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	phase_l = Kit.label(phase_box, "", fs, Kit.PAPER)
+	phase_l.name = "HxPhase"
+	phase_l.autowrap_mode = TextServer.AUTOWRAP_OFF
+	reloj_l = Kit.label(phase_box, "", int(_num(["font", "small"], 13.0)), Kit.MUTED)
+	reloj_l.name = "HxReloj"
+	reloj_l.autowrap_mode = TextServer.AUTOWRAP_OFF
+	dawn_bar = Kit.bar(row, Kit.GOLD, 8.0, 0.0)
+	dawn_bar.name = "HxAlba"
+	dawn_bar.custom_minimum_size = Vector2(120.0, 8.0)
+	dawn_bar.size_flags_horizontal = Control.SIZE_SHRINK_END
+	dawn_bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	dawn_bar.tooltip_text = _t("hud.dawn_tip")
+	dawn_bar.mouse_filter = Control.MOUSE_FILTER_PASS
+	Kit.spacer(row, true)
+	var sys := Kit.hbox(row, 6)
+	sys.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	btn_help = Kit.button(sys, _t("hud.help", "?"), fs, "normal", "sistema")
+	btn_help.name = "HxHelp"
+	btn_help.custom_minimum_size = Vector2(34.0, 30.0)
+	btn_help.tooltip_text = _t("hud.help_tip")
+	btn_help.pressed.connect(func(): _fire("help"))
+	btn_menu = Kit.button(sys, _t("hud.menu", "Menú"), fs, "normal", "sistema")
+	btn_menu.name = "HxMenu"
+	btn_menu.custom_minimum_size = Vector2(0.0, 30.0)
+	btn_menu.tooltip_text = _t("hud.menu_tip")
+	btn_menu.pressed.connect(func(): _fire("menu"))
+
+
+func _build_fronts() -> void:
+	var m := _num(["margin"], 12.0)
+	var gap := _num(["gap"], 8.0)
+	var card := _vec("fronts_card", Vector2(212.0, 56.0))
+	fronts_box = Kit.hbox(root, int(gap))
+	fronts_box.name = "HxFronts"
+	var total_w := card.x * 3.0 + gap * 2.0
+	_anchor(fronts_box, 1.0, 0.0, 1.0, 0.0, -(m + total_w), m + _num(["header_h"], 46.0) + gap, -m, m + _num(["header_h"], 46.0) + gap + card.y)
+	fronts_box.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	for id in V.OBJECTIVES:
+		var p := Kit.panel(fronts_box, Kit.PANEL_BG, Kit.PANEL_BORDER, 8.0, 4.0, 6)
+		p.name = "HxFront_%s" % id
+		p.custom_minimum_size = card
+		p.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		p.gui_input.connect(func(ev: InputEvent): _card_input(ev, "front", str(id)))
+		var row := Kit.hbox(p, 6)
+		var accent := ColorRect.new()
+		accent.color = Kit.ROYAL
+		accent.custom_minimum_size = Vector2(4.0, 0.0)
+		accent.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(accent)
+		var col := Kit.vbox(row, 1)
+		col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var line1 := Kit.hbox(col, 6)
+		var name_l := Kit.trimmed(Kit.label(line1, "", int(_num(["font", "body"], 15.0)), Kit.PAPER))
+		name_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var guard_l := Kit.label(line1, "", int(_num(["font", "tiny"], 12.0)), Kit.MUTED, false, HORIZONTAL_ALIGNMENT_RIGHT)
+		guard_l.clip_text = false
+		var take_bar := Kit.bar(col, Kit.ROYAL, 7.0, 0.0)
+		var alert_bar := Kit.bar(col, Kit.AMBER, 3.0, 0.0)
+		var info_l := Kit.label(col, "", int(_num(["font", "tiny"], 12.0)), Kit.GOLD)
+		info_l.visible = false
+		front_cards[id] = {"panel": p, "accent": accent, "name": name_l, "guard": guard_l, "take": take_bar, "alert": alert_bar, "info": info_l}
+
+
+func _build_dock(minimap_w: float) -> void:
+	var m := _num(["margin"], 12.0)
+	var fs := int(_num(["font", "body"], 15.0))
+	var small := int(_num(["font", "small"], 13.0))
+	dock = Kit.panel(root, Kit.PANEL_BG, Kit.PANEL_BORDER, 12.0, 6.0)
+	dock.name = "HxDock"
+	var dock_h := _num(["dock_h"], 164.0)
+	_anchor(dock, 0.0, 1.0, 1.0, 1.0, m, -(dock_h + m), -(minimap_w + 2.0 * m), -m)
+	dock.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	var col := Kit.vbox(dock, 3)
+	# fila A: objetivo y chips
+	var row_a := Kit.hbox(col, 10)
+	objective_l = Kit.label(row_a, "", small, Kit.MUTED, true)
+	objective_l.name = "HxObjective"
+	objective_l.custom_minimum_size = Vector2(80.0, 18.0)
+	chips_box = Kit.hbox(row_a, 6)
+	chips_box.size_flags_horizontal = Control.SIZE_SHRINK_END
+	for id in ["golpe", "carga", "refuerzo"]:
+		var chip := Kit.panel(chips_box, Color(0.16, 0.19, 0.12, 1.0), Kit.PANEL_BORDER, 6.0, 1.0, 4)
+		var l := Kit.label(chip, "", int(_num(["font", "tiny"], 12.0)), Kit.PAPER)
+		l.clip_text = false
+		chip.visible = false
+		chip_labels[id] = {"panel": chip, "label": l}
+	# fila B: siguiente paso y acciones
+	var row_b := Kit.hbox(col, 10)
+	row_b.custom_minimum_size.y = 36.0
+	var guide := Kit.hbox(row_b, 8)
+	guide.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	guide.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	next_title_l = Kit.label(guide, _t("hud.next_title", "Siguiente paso"), small, Kit.GOLD)
+	next_title_l.name = "HxNextTitle"
+	next_title_l.autowrap_mode = TextServer.AUTOWRAP_OFF
+	next_text_l = Kit.label(guide, "", fs, Kit.PAPER, true)
+	next_text_l.name = "HxNextText"
+	next_text_l.custom_minimum_size = Vector2(60.0, 20.0)
+	next_btn = Kit.button(guide, "", fs, "primary", "accion:siguiente")
+	next_btn.name = "HxNextButton"
+	next_btn.pressed.connect(func(): _fire("next"))
+	next_btn.visible = false
+	suggest_btn = Kit.button(guide, _t("time.suggest_button", "Acelerar ×2"), small, "normal", "tiempo")
+	suggest_btn.name = "HxSuggest"
+	suggest_btn.pressed.connect(func(): _fire("speed", 1))
+	suggest_btn.visible = false
+	actions_box = Kit.hbox(row_b, 6)
+	actions_box.name = "HxActions"
+	actions_box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	pace_box = Kit.hbox(row_b, 4)
+	pace_box.name = "HxPace"
+	pace_box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	pace_box.visible = false
+	var pace_names: Dictionary = texts.get("actions", {}).get("pace", {})
+	for pid in U.PACE_ORDER:
+		var pb := Kit.button(pace_box, str(pace_names.get(pid, pid)), small, "normal", "ritmo")
+		pb.name = "HxPace_%s" % pid
+		pb.toggle_mode = true
+		pb.custom_minimum_size = Vector2(0.0, 28.0)
+		pb.pressed.connect(func(): _fire("pace", pid))
+		pace_btns[pid] = pb
+	# fila C: motivo / vista previa (alto fijo) y estado de la señal
+	var row_c := Kit.hbox(col, 10)
+	row_c.custom_minimum_size.y = 18.0
+	motive_l = Kit.label(row_c, "", small, Kit.GOLD)
+	motive_l.name = "HxMotive"
+	motive_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	status_l = Kit.label(row_c, "", int(_num(["font", "tiny"], 12.0)), Kit.MUTED, false, HORIZONTAL_ALIGNMENT_RIGHT)
+	status_l.name = "HxStatus"
+	status_l.size_flags_horizontal = Control.SIZE_SHRINK_END
+	status_l.clip_text = false
+	# fila D: las cinco agrupaciones
+	cards_box = Kit.hbox(col, 6)
+	cards_box.name = "HxCards"
+	var gc := _vec("group_card", Vector2(142.0, 58.0))
+	for id in V.GROUPS:
+		_make_group_card(str(id), gc)
+
+
+func _make_group_card(id: String, size: Vector2) -> void:
+	var p := Kit.panel(cards_box, Color(0.1, 0.12, 0.08, 1.0), Kit.PANEL_BORDER, 6.0, 3.0, 6)
+	p.name = "HxCard_%s" % id
+	p.custom_minimum_size = Vector2(minf(size.x, 96.0), size.y)
+	p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	p.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	p.tooltip_text = _t("hud.group_tip")
+	p.gui_input.connect(func(ev: InputEvent): _card_input(ev, "card", id))
+	var row := Kit.hbox(p, 5)
+	var accent := ColorRect.new()
+	accent.color = Kit.NEUTRAL if id == "arreo" else Kit.PATRIOT
+	accent.custom_minimum_size = Vector2(4.0, 0.0)
+	accent.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(accent)
+	var col := Kit.vbox(row, 1)
+	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var line1 := Kit.hbox(col, 4)
+	var key_l := Kit.label(line1, str(V.GROUPS.find(id) + 1), int(_num(["font", "body"], 15.0)), Kit.GOLD)
+	key_l.clip_text = false
+	var name_l := Kit.trimmed(Kit.label(line1, "", int(_num(["font", "small"], 13.0)), Kit.PAPER))
+	name_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var tag_l := Kit.label(line1, "", int(_num(["font", "tiny"], 12.0)), Kit.PAPER)
+	tag_l.clip_text = false
+	tag_l.visible = false
+	var noise_l := Kit.label(line1, "", int(_num(["font", "tiny"], 12.0)), Kit.MUTED)
+	noise_l.clip_text = false
+	noise_l.visible = false
+	var stage_l := Kit.trimmed(Kit.label(col, "", int(_num(["font", "tiny"], 12.0)), Kit.MUTED))
+	stage_l.custom_minimum_size.y = 15.0
+	var bar_force := Kit.bar(col, Kit.PATRIOT if id != "arreo" else Kit.NEUTRAL, 5.0, 100.0)
+	var bar_tired := Kit.bar(col, Kit.AMBER, 3.0, 0.0)
+	group_cards[id] = {"panel": p, "name": name_l, "tag": tag_l, "noise": noise_l, "stage": stage_l, "force": bar_force, "tired": bar_tired, "key": key_l}
+
+
+func _build_alert() -> void:
+	var m := _num(["margin"], 12.0)
+	var gap := _num(["gap"], 8.0)
+	var w := _num(["alert_w"], 520.0)
+	alert_panel = Kit.panel(root, Kit.WARN_BG, Kit.WARN_BORDER, 14.0, 8.0, 8)
+	alert_panel.name = "HxAlert"
+	var top := m + _num(["header_h"], 46.0) + gap + _vec("fronts_card", Vector2(212.0, 56.0)).y + gap
+	_anchor(alert_panel, 0.5, 0.0, 0.5, 0.0, -w * 0.5, top, w * 0.5, top + 80.0)
+	alert_panel.grow_vertical = Control.GROW_DIRECTION_END
+	var col := Kit.vbox(alert_panel, 3)
+	alert_title_l = Kit.label(col, "", int(_num(["font", "body"], 15.0)) + 1, Kit.WARN_TEXT, true)
+	alert_text_l = Kit.label(col, "", int(_num(["font", "small"], 13.0)), Kit.WARN_TEXT, true)
+	var row := Kit.hbox(col, 10)
+	alert_btn = Kit.button(row, "", int(_num(["font", "body"], 15.0)), "primary", "accion:alerta")
+	alert_btn.name = "HxAlertButton"
+	alert_btn.pressed.connect(func(): _fire("alert"))
+	alert_count_l = Kit.label(row, "", int(_num(["font", "small"], 13.0)), Kit.WARN_TEXT)
+	alert_count_l.clip_text = false
+	alert_panel.visible = false
+
+
+func _build_toast() -> void:
+	var m := _num(["margin"], 12.0)
+	var w := _num(["toast_w"], 440.0)
+	toast_panel = Kit.panel(root, Kit.PANEL_BG, Kit.GOLD, 12.0, 5.0, 6)
+	toast_panel.name = "HxToast"
+	toast_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var bottom := -(_num(["dock_h"], 164.0) + 2.0 * m + 4.0)
+	_anchor(toast_panel, 0.0, 1.0, 0.0, 1.0, m, bottom - 34.0, m + w, bottom)
+	toast_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	toast_l = Kit.label(toast_panel, "", int(_num(["font", "body"], 15.0)), Kit.PAPER, true)
+	toast_panel.visible = false
+
+
+func _build_warn(minimap_w_now: float = 260.0) -> void:
+	var m := _num(["margin"], 12.0)
+	warn_panel = Kit.panel(root, Kit.WARN_BG, Kit.WARN_BORDER, 12.0, 4.0, 6)
+	warn_panel.name = "HxWarn"
+	warn_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var bottom := -(_num(["dock_h"], 164.0) + 2.0 * m + 4.0)
+	var left := m + _num(["toast_w"], 440.0) + 16.0
+	_anchor(warn_panel, 0.0, 1.0, 1.0, 1.0, left, bottom - 28.0, -(minimap_w_now + 3.0 * m), bottom)
+	warn_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	warn_l = Kit.label(warn_panel, "", int(_num(["font", "small"], 13.0)), Kit.WARN_TEXT, true)
+	warn_panel.visible = false
+
+
+func _fire(kind: String, arg: Variant = null) -> void:
+	if emit.is_valid():
+		emit.call(kind, arg)
+
+
+func _card_input(ev: InputEvent, kind: String, id: String) -> void:
+	if ev is InputEventMouseButton and (ev as InputEventMouseButton).pressed and (ev as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
+		_fire(kind, {"id": id, "shift": Input.is_key_pressed(KEY_SHIFT), "ctrl": Input.is_key_pressed(KEY_CTRL)})
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Pintado (solo hud_state y el contexto del controlador)
+
+func refresh(hs: Dictionary, ctx: Dictionary) -> void:
+	if root == null:
+		return
+	_refresh_header(hs, ctx)
+	_refresh_fronts(hs)
+	_refresh_dock(hs, ctx)
+	_refresh_groups(hs, ctx)
+	_refresh_alert(ctx)
+	_refresh_toast(ctx)
+	_refresh_warn(ctx)
+
+
+func _dict(v: Variant) -> Dictionary:
+	return v if v is Dictionary else {}
+
+
+func _refresh_header(hs: Dictionary, ctx: Dictionary) -> void:
+	title_l.text = _t("title", "Humahuaca")
+	var paused := bool(ctx.get("paused", true))
+	var speed := int(ctx.get("speed", 1.0))
+	var pattern := _t("clock_running", "Tiempo real · ▶ ×%d")
+	var shown := _t("clock_paused", "‖ En pausa") if paused else (pattern % speed if pattern.find("%d") >= 0 else pattern)
+	clock_l.text = shown.to_upper()  # el contrato fija «TIEMPO REAL · ▶ ×1» y «‖ EN PAUSA»; en el JSON van en minúsculas para que ninguna cadena quede entera en mayúsculas
+	btn_pause.text = _t("time.play", "▶") if paused else _t("time.pause", "‖")
+	for i in range(btn_speed.size()):
+		(btn_speed[i] as Button).set_pressed_no_signal(not paused and absi(speed - [1, 2, 4][i]) == 0)
+	var fase := _dict(hs.get("fase"))
+	var phase_name := str(fase.get("nombre", ""))
+	if phase_name == "":
+		phase_name = _t("phase_names." + str(ctx.get("phase", "briefing")), "")
+	phase_l.text = phase_name
+	reloj_l.text = str(fase.get("reloj", ""))
+	dawn_bar.value = 100.0 * clampf(float(_dict(hs.get("alba")).get("progreso", 0.0)), 0.0, 1.0)
+
+
+func _refresh_fronts(hs: Dictionary) -> void:
+	var list: Variant = hs.get("frentes", [])
+	if not (list is Array):
+		return
+	for f in list:
+		var d := _dict(f)
+		var id := str(d.get("id", ""))
+		if not front_cards.has(id):
+			continue
+		var c: Dictionary = front_cards[id]
+		(c.name as Label).text = str(d.get("nombre", id))
+		var guard := _dict(d.get("guardia"))
+		if bool(guard.get("conocida", false)):
+			(c.guard as Label).text = _t("hud.guard_known", "Guardia %d") % int(guard.get("min", 0))
+		else:
+			(c.guard as Label).text = _t("hud.guard_unknown", "Guardia ?")
+		var taken := str(d.get("estado", "")) == "tomado"
+		(c.take as ProgressBar).value = float(d.get("toma_pct", 0.0))
+		Kit.recolor_bar(c.take as ProgressBar, Kit.GOOD if taken else Kit.ROYAL)
+		(c.alert as ProgressBar).value = 100.0 * clampf(float(d.get("alerta", 0.0)), 0.0, 1.0)
+		(c.accent as ColorRect).color = Kit.GOOD if taken else Kit.ROYAL
+		var parts: Array = []
+		var state := str(d.get("estado", "guardado"))
+		if state != "guardado":
+			parts.append(str(d.get("estado_txt", state)))
+		if float(d.get("toma_pct", 0.0)) > 0.0 and not taken:
+			parts.append(_t("hud.take", "Toma %d %%") % int(round(float(d.get("toma_pct", 0.0)))))
+		if float(d.get("sorpresa_s", 0.0)) > 0.0:
+			parts.append(_t("hud.surprise", "Sorpresa %s") % Kit.mmss(float(d.get("sorpresa_s", 0.0))))
+		var support: Variant = d.get("apoyo", [])
+		if support is Array and not (support as Array).is_empty():
+			var names: Array = []
+			for sid in support:
+				names.append(_short_name(str(sid)))
+			parts.append(_t("hud.support", "Apoyo de %s") % ", ".join(PackedStringArray(names)))
+		(c.info as Label).text = " · ".join(PackedStringArray(parts))
+		(c.info as Label).visible = not parts.is_empty()
+		var tag_id := str(d.get("tag", "diseno"))
+		(c.panel as Control).tooltip_text = "%s %s" % [Kit.tag_glyph(tags, tag_id), str(Kit.tag_info(tags, tag_id).get("etiqueta", ""))]
+
+
+## El nombre corto de una agrupación («Rodríguez»): sale de las tarjetas ya pintadas (que lo tomaron de hud_state).
+func _short_name(id: String) -> String:
+	if group_cards.has(id):
+		return str((group_cards[id].name as Label).text)
+	return id
+
+
+func short_names() -> Dictionary:
+	var out := {}
+	for id in group_cards:
+		out[id] = str((group_cards[id].name as Label).text)
+	return out
+
+
+func _refresh_dock(hs: Dictionary, ctx: Dictionary) -> void:
+	var goal := str(hs.get("objetivo", ""))
+	objective_l.text = goal if goal != "" else _t("objective", "")
+	var guide := _dict(ctx.get("guide"))
+	next_title_l.visible = not guide.is_empty() and str(guide.get("text", "")) != ""
+	next_text_l.text = str(guide.get("text", ""))
+	var urgency := int(guide.get("urgencia", 0))
+	next_text_l.add_theme_color_override("font_color", Kit.WARN_TEXT if urgency >= 2 else Kit.PAPER)
+	var button_text := str(guide.get("button", ""))
+	next_btn.visible = button_text != ""
+	next_btn.text = button_text
+	next_btn.disabled = not bool(guide.get("enabled", true))
+	suggest_btn.visible = bool(ctx.get("suggest_x2", false))
+	# chips: solo cuando ya importan (el golpe desde el ataque; la carga y el refuerzo en la extracción)
+	var phase := str(_dict(hs.get("fase")).get("id", ctx.get("phase", "briefing")))
+	var chips: Dictionary = {}
+	for c in hs.get("chips", []):
+		chips[str(_dict(c).get("id", ""))] = _dict(c)
+	var refuerzo := _dict(hs.get("refuerzo"))
+	for id in chip_labels:
+		var info: Dictionary = chip_labels[id]
+		var visible_now := false
+		match id:
+			"golpe":
+				visible_now = phase == "ataque" or phase == "extraccion"
+			"carga":
+				visible_now = phase == "extraccion"
+			"refuerzo":
+				visible_now = phase == "extraccion" or str(refuerzo.get("estado", "desconocido")) in ["visible", "llego"]
+		(info.panel as Control).visible = visible_now and chips.has(id)
+		if chips.has(id):
+			(info.label as Label).text = str(chips[id].get("txt", ""))
+	_refresh_actions(ctx)
+	motive_l.text = str(ctx.get("motive", ""))
+	status_l.text = str(ctx.get("status", ""))
+	var pace_on := bool(ctx.get("pace_visible", false))
+	pace_box.visible = pace_on
+	if pace_on:
+		var cur := str(ctx.get("pace", "march"))
+		for pid in pace_btns:
+			(pace_btns[pid] as Button).set_pressed_no_signal(str(pid) == cur)
+
+
+func _refresh_actions(ctx: Dictionary) -> void:
+	var items: Array = ctx.get("bar_items", [])
+	var sig := ""
+	for it in items:
+		sig += "%s|%s|%s;" % [str(it.action), str(it.ok), str(it.label)]
+	if sig == _action_sig:
+		return
+	_action_sig = sig
+	for child in actions_box.get_children():
+		actions_box.remove_child(child)
+		child.queue_free()
+	_action_buttons = {}
+	var small := int(_num(["font", "small"], 13.0))
+	for it in items:
+		var key := str(it.get("key", ""))
+		var text := "%s  [%s]" % [str(it.label), key] if key != "" else str(it.label)
+		var b := Kit.button(actions_box, text, small + 1, "primary" if bool(it.get("recommended", false)) else "normal", "accion:%s" % str(it.action))
+		b.name = "HxAction_%s" % str(it.action)
+		b.disabled = not bool(it.ok)
+		var act := str(it.action)
+		b.pressed.connect(func(): _fire("action", act))
+		b.mouse_entered.connect(func(): _fire("hover_action", act))
+		b.mouse_exited.connect(func(): _fire("hover_action", ""))
+		_action_buttons[act] = b
+
+
+func _refresh_groups(hs: Dictionary, ctx: Dictionary) -> void:
+	var list: Variant = hs.get("grupos", [])
+	if not (list is Array):
+		return
+	var selected: Array = ctx.get("selected", [])
+	for g in list:
+		var d := _dict(g)
+		var id := str(d.get("id", ""))
+		if not group_cards.has(id):
+			continue
+		var c: Dictionary = group_cards[id]
+		var is_sel := selected.has(id)
+		(c.name as Label).text = _group_short(id, str(d.get("nombre", id)))
+		(c.force as ProgressBar).value = float(d.get("fuerza_pct", 100.0))
+		(c.tired as ProgressBar).value = float(d.get("fatiga_pct", 0.0))
+		var stage_txt := str(d.get("etapa_txt", ""))
+		var idle := stage_txt == "" or (ctx.get("idle_groups", []) as Array).has(id)
+		(c.stage as Label).text = "" if idle else stage_txt
+		var noise := str(d.get("ruido", "silencio"))
+		(c.noise as Label).text = str(texts.get("hud", {}).get("noise_dots", {}).get(noise, ""))
+		(c.noise as Label).visible = noise != "silencio" or is_sel
+		(c.noise as Control).tooltip_text = str(texts.get("hud", {}).get("noise", {}).get(noise, ""))
+		var tag_id := str(d.get("tag", "diseno"))
+		(c.tag as Label).text = Kit.tag_glyph(tags, tag_id)
+		(c.tag as Label).add_theme_color_override("font_color", Kit.tag_color(tags, tag_id))
+		(c.tag as Label).visible = is_sel
+		var alive := bool(d.get("vivo", true))
+		var border := Kit.GOLD if is_sel else Kit.PANEL_BORDER
+		var bg := Color(0.19, 0.22, 0.13, 1.0) if is_sel else Color(0.1, 0.12, 0.08, 1.0)
+		(c.panel as PanelContainer).add_theme_stylebox_override("panel", Kit.style(bg, border, 2 if is_sel else 1, 6, 6.0, 3.0))
+		(c.panel as Control).modulate = Color(1, 1, 1, 1) if alive else Color(1, 1, 1, 0.55)
+		var tip_parts: Array = ["%s (%d)" % [str(d.get("nombre", id)), V.GROUPS.find(id) + 1]]
+		tip_parts.append("%s %d %%" % [_t("hud.strength", "Fuerza"), int(round(float(d.get("fuerza_pct", 0.0))))])
+		tip_parts.append("%s %d %%" % [_t("hud.fatigue", "Fatiga"), int(round(float(d.get("fatiga_pct", 0.0))))])
+		if int(d.get("custodia", 0)) > 0:
+			tip_parts.append(_t("hud.custody", "Custodia %d") % int(d.get("custodia", 0)))
+		tip_parts.append("%s %s" % [Kit.tag_glyph(tags, tag_id), str(Kit.tag_info(tags, tag_id).get("etiqueta", ""))])
+		(c.panel as Control).tooltip_text = "\n".join(PackedStringArray(tip_parts))
+
+
+## Nombre corto de la ficha: el de reglas (`short`) llega por el controlador en ctx; si no, se recorta «Partida de» y «División de».
+var short_by_id: Dictionary = {}
+
+func _group_short(id: String, full: String) -> String:
+	if short_by_id.has(id):
+		return str(short_by_id[id])
+	for prefix in ["Partida de ", "División de "]:
+		if full.begins_with(prefix):
+			return full.trim_prefix(prefix)
+	return full
+
+
+func _refresh_alert(ctx: Dictionary) -> void:
+	var a := _dict(ctx.get("alert"))
+	_alert_data = a
+	alert_panel.visible = not a.is_empty()
+	if a.is_empty():
+		return
+	var critical := str(a.get("nivel", "aviso")) == "critica"
+	alert_panel.add_theme_stylebox_override("panel", Kit.style(Kit.WARN_BG if critical else Color(0.13, 0.16, 0.1, 0.97), Kit.WARN_BORDER if critical else Kit.GOLD, 2, 8, 14.0, 8.0))
+	alert_title_l.text = str(a.get("corto", ""))
+	alert_text_l.text = str(a.get("largo", ""))
+	alert_text_l.visible = alert_text_l.text != ""
+	var button := str(a.get("boton", ""))
+	alert_btn.visible = button != ""
+	alert_btn.text = button
+	var left := float(a.get("vence_s", 0.0))
+	alert_count_l.text = Kit.mmss(left) if left > 0.0 else ""
+
+
+func _refresh_toast(ctx: Dictionary) -> void:
+	var t := _dict(ctx.get("toast"))
+	toast_panel.visible = not t.is_empty() and str(t.get("text", "")) != ""
+	if toast_panel.visible:
+		toast_l.text = str(t.get("text", ""))
+		var level := str(t.get("level", "info"))
+		var border := Kit.GOLD if level != "info" else Kit.PANEL_BORDER
+		toast_panel.add_theme_stylebox_override("panel", Kit.style(Kit.PANEL_BG, border, 1, 6, 12.0, 5.0))
+
+
+func _refresh_warn(ctx: Dictionary) -> void:
+	var text := str(ctx.get("warn", ""))
+	warn_l.text = text
+	warn_panel.visible = text != ""
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Consultas para las pruebas y la herramienta de interfaz
+
+func visible_root(on: bool) -> void:
+	if root != null:
+		root.visible = on
+
+
+## Controles accionables visibles (la medida del primer cuadro) y botones sueltos.
+func controls_report() -> Dictionary:
+	return Kit.controls_report(root)
+
+
+## Caracteres de texto visibles; con `with_warn` false no cuenta la línea roja de las capas en su versión mínima (aviso de desarrollo).
+func text_chars(with_warn: bool = true) -> int:
+	var n := Kit.text_chars(root)
+	if not with_warn and is_instance_valid(warn_panel) and warn_panel.is_visible_in_tree():
+		n -= warn_l.text.length()
+	return n
+
+
+func rects() -> Dictionary:
+	var out := {}
+	out["titulo"] = Kit.rect_of(title_l)
+	out["objetivo"] = Kit.rect_of(objective_l)
+	out["siguiente"] = Kit.rect_of(next_text_l)
+	out["frente_bateria"] = Kit.rect_of(front_cards["bateria"].panel as Control)
+	out["alerta"] = Kit.rect_of(alert_panel) if alert_panel.is_visible_in_tree() else Rect2()
+	var first_action := Kit.rect_of(next_btn) if next_btn.is_visible_in_tree() else Rect2()
+	for act in _action_buttons:
+		first_action = Kit.rect_of(_action_buttons[act] as Control)
+		break
+	out["accion_1"] = first_action
+	out["dock"] = Kit.rect_of(dock)
+	out["header"] = Kit.rect_of(header)
+	out["fronts"] = Kit.rect_of(fronts_box)
+	out["cards"] = Kit.rect_of(cards_box)
+	return out
+
+
+## Todos los paneles grandes del HUD (para comprobar que ninguno sale del cuadro y que no se pisan).
+func panels() -> Dictionary:
+	var out := {"header": header, "fronts": fronts_box, "dock": dock}
+	if alert_panel.is_visible_in_tree():
+		out["alert"] = alert_panel
+	if toast_panel.is_visible_in_tree():
+		out["toast"] = toast_panel
+	return out
+
+
+func button_by_name(button_name: String) -> Button:
+	if root == null:
+		return null
+	var found := root.find_child(button_name, true, false)
+	return found as Button
+
+
+func action_button(action: String) -> Button:
+	return _action_buttons.get(action, null)
+
+
+func card_rect(id: String) -> Rect2:
+	if group_cards.has(id):
+		return Kit.rect_of(group_cards[id].panel as Control)
+	return Rect2()
