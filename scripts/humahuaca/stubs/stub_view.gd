@@ -23,7 +23,7 @@ const PICK_FRONT_PX := 60.0
 const PICK_LANDMARK_PX := 40.0
 const MAX_THINGS := 48
 const MAX_RAY_M := 6000.0
-const MAX_STRETCH := 2.3
+const MAX_STRETCH := 4.6
 const BURY_M := 0.3
 const SURFACE_COLOR := {"suelo_seco": "suelo_seco", "sedimento_humedo": "sedimento_humedo", "piedra": "piedra_gris", "churqui": "churqui",
 	"irrigado": "vegetacion_irrigada", "agua": "agua_turbia", "camino": "suelo_seco", "patio": "suelo_seco", "zanja": "sedimento_humedo", "muro": "adobe"}
@@ -946,20 +946,24 @@ func _update_scales() -> void:
 
 ## Escala (x, y, z) para que algo parado de `base_h` m mida `px` píxeles reales de alto en pantalla. Lo vertical se achata por el seno del ángulo entre el
 ## rayo y la vertical (más cuanto más empinado se lo mira: las fichas de abajo del cuadro se ven más bajas que las de arriba) y por el coseno del
-## descentrado; se lo compensa estirando solo el alto, hasta 2,3 veces, para que el ancho no se dispare.
+## descentrado; se lo compensa estirando solo el alto, hasta 4,6 veces, para que el ancho no se dispare.
 func _upright_scale(cam: Camera3D, pos: Vector3, px: float, base_h: float, min_scale: float) -> Vector3:
 	if cam == null:
 		return Vector3.ONE * min_scale
 	var flat := clampf(px / _screen_scale() * _meters_per_px_at(cam, pos) / base_h, min_scale, 60.0)
 	var ray := pos - cam.global_position
 	var dist := maxf(ray.length(), 0.001)
-	var tilt := clampf(sqrt(maxf(1.0 - pow(ray.y / dist, 2.0), 0.0)) * (ray.dot(-cam.global_transform.basis.z) / dist), 0.3, 1.0)
+	var tilt := clampf(sqrt(maxf(1.0 - pow(ray.y / dist, 2.0), 0.0)) * (ray.dot(-cam.global_transform.basis.z) / dist), 0.2, 1.0)
 	return Vector3(flat, clampf(flat / tilt, flat, flat * MAX_STRETCH), flat)
 
 
 ## Píxeles reales por píxel lógico (la ventana escala el área de 1 440 × 900): los tamaños en píxeles del JSON son los de la pantalla.
+## Sin ventana real (pruebas sin pantalla) la escala es ínfima y no significa nada: se toma 1.
 func _screen_scale() -> float:
-	return maxf(get_viewport().get_screen_transform().get_scale().y, 0.2) if is_inside_tree() else 1.0
+	if not is_inside_tree():
+		return 1.0
+	var scale_y := get_viewport().get_screen_transform().get_scale().y
+	return scale_y if scale_y >= 0.2 else 1.0
 
 ## Metros por píxel (vertical) de un punto del mundo: 2·profundidad·tan(fov/2) / alto del cuadro.
 func _meters_per_px_at(cam: Camera3D, pos: Vector3) -> float:
@@ -1230,38 +1234,39 @@ func meters_per_pixel(camera: Camera3D, pos: Vector2 = Vector2(-1, -1)) -> float
 func _screen_of(camera: Camera3D, p: Vector3) -> Dictionary:
 	return {"screen": camera.unproject_position(p), "behind": camera.is_position_behind(p)}
 
-func _unit_anchor(id: String) -> Vector3:
+func _unit_top(id: String) -> Vector3:
 	var info: Dictionary = _tokens[id]
 	var root: Node3D = info.root
-	return root.position + Vector3(0.0, float(info.base_h) * root.scale.y * 0.5, 0.0)
+	return root.position + Vector3(0.0, float(info.base_h) * root.scale.y, 0.0)
 
-## [[id, pantalla], …] de las agrupaciones visibles y delante de la cámara, en el orden de GROUPS.
+## [[id, base en pantalla, cima en pantalla], …] de las agrupaciones visibles y delante de la cámara, en el orden de GROUPS.
 func _unit_ids_on_screen(camera: Camera3D) -> Array:
 	var out: Array = []
 	if not _cam_ok(camera):
 		return out
 	for id in V.GROUPS:
 		if _tokens.has(id) and (_tokens[id].root as Node3D).visible:
-			var s := _screen_of(camera, _unit_anchor(id))
-			if not bool(s.behind):
-				out.append([id, s.screen])
+			var base := _screen_of(camera, (_tokens[id].root as Node3D).position)
+			if not bool(base.behind):
+				out.append([id, base.screen, camera.unproject_position(_unit_top(id))])
 	return out
 
+## La agrupación cuya figura (el segmento de la base a la cima en pantalla) queda a ≤ 55 px de `pos`; si hay varias, la más cercana.
 func pick_unit(camera: Camera3D, pos: Vector2) -> String:
 	var best := ""
 	var best_d := PICK_UNIT_PX
-	for pair in _unit_ids_on_screen(camera):
-		var d := (pair[1] as Vector2).distance_to(pos)
+	for trio in _unit_ids_on_screen(camera):
+		var d := Geometry2D.get_closest_point_to_segment(pos, trio[1], trio[2]).distance_to(pos)
 		if d <= best_d:
 			best_d = d
-			best = str(pair[0])
+			best = str(trio[0])
 	return best
 
 func pick_units_in_rect(camera: Camera3D, rect: Rect2) -> Array:
 	var out: Array = []
-	for pair in _unit_ids_on_screen(camera):
-		if rect.abs().has_point(pair[1]):
-			out.append(pair[0])
+	for trio in _unit_ids_on_screen(camera):
+		if rect.abs().has_point(((trio[1] as Vector2) + (trio[2] as Vector2)) * 0.5):
+			out.append(trio[0])
 	return out
 
 ## El hito más cercano a `pos` dentro de `radius_px` entre los de `ids` (anclado a `lift` m sobre el suelo).
@@ -1325,12 +1330,10 @@ func frame_transform(target: Vector3, distance: float, pitch_deg: float, yaw_deg
 	var look := Vector3(sin(yaw) * cos(pitch), -sin(pitch), -cos(yaw) * cos(pitch))
 	return Transform3D(Basis.looking_at(look, Vector3.UP), target - look * distance)
 
-## Los puntos que el cuadro inicial debe incluir: los tres objetivos, el centro de la zona de partida y las cinco partidas (que están dentro de ella).
+## Los puntos que el cuadro inicial debe incluir: los hitos de `initial_frame.must_include` (los tres objetivos y el centro de la zona de partida).
 func _frame_points() -> Array:
 	var pts: Array = []
 	var ids: Array = (_data.get("initial_frame", {}) as Dictionary).get("must_include", V.OBJECTIVES + ["zona_partida"])
-	for group in V.GROUPS:
-		ids = ids + ["spawn_" + group]
 	for id in ids:
 		if _lm_by_id.has(str(id)):
 			var lm: Dictionary = _lm_by_id[str(id)]
@@ -1348,7 +1351,7 @@ func _frame_fits(target: Vector3, distance: float, pitch: float, yaw: float, vfo
 			return false
 	return true
 
-## El cuadro inicial: el del JSON, ensanchado solo lo necesario (hasta 900 m) para que entren los objetivos y la zona de partida; si no entran, `fits` es falso.
+## El cuadro inicial: el del JSON, ensanchado solo lo necesario (hasta 900 m) para que entren los hitos de `must_include`; si no entran, `fits` es falso.
 func initial_frame(camera: Camera3D) -> Dictionary:
 	var frame: Dictionary = _data.get("initial_frame", {})
 	var t := _pt(frame.get("target", {"x": 350.0, "z": 470.0}))
@@ -1433,9 +1436,9 @@ func probes(camera: Camera3D) -> Array:
 		if building.size != Vector2.ZERO:
 			out.append({"kind": "objetivo" if V.OBJECTIVES.has(id) else "edificio", "id": id, "rect": _rect_array(building)})
 			out.append({"kind": "suelo", "id": id, "rect": _rect_array(building.grow(maxf(building.size.x, building.size.y) * 0.35))})
-	for pair in _unit_ids_on_screen(camera):
-		var h_px := float((_tokens[pair[0]] as Dictionary).px)
-		var token := Rect2((pair[1] as Vector2) - Vector2(h_px * 0.4, h_px * 0.7), Vector2(h_px * 0.8, h_px))
-		out.append({"kind": "ficha", "id": str(pair[0]), "rect": _rect_array(token)})
-		out.append({"kind": "suelo", "id": str(pair[0]), "rect": _rect_array(token.grow(h_px * 0.6))})
+	for trio in _unit_ids_on_screen(camera):
+		var h_px := float((_tokens[trio[0]] as Dictionary).px)
+		var token := Rect2((trio[1] as Vector2) - Vector2(h_px * 0.4, h_px), Vector2(h_px * 0.8, h_px))
+		out.append({"kind": "ficha", "id": str(trio[0]), "rect": _rect_array(token)})
+		out.append({"kind": "suelo", "id": str(trio[0]), "rect": _rect_array(token.grow(h_px * 0.6))})
 	return out

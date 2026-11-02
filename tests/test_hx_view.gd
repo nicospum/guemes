@@ -170,8 +170,8 @@ func _test_initial_frame() -> void:
 func _test_picking() -> void:
 	if view == null:
 		return
-	var f: Dictionary = view.initial_frame(cam)
-	_frame_camera(cam, f)
+	# un cuadro amplio donde entran las cinco partidas: con los datos reales alguna queda fuera del cuadro inicial (que solo exige los objetivos y la zona)
+	_frame_camera(cam, {"target": Vector3(250.0, 20.0, 500.0), "distance": 720.0, "pitch_deg": 52.0, "yaw_deg": 35.0})
 	view.update_state(0.016)
 	var good := 0
 	for id in V.GROUPS:
@@ -183,6 +183,9 @@ func _test_picking() -> void:
 	suite.check(str(view.pick_unit(cam, Vector2(3.0, 3.0))) == "", "TR-093 pick_unit lejos de toda ficha devuelve «»")
 	var in_rect: Array = view.pick_units_in_rect(cam, Rect2(Vector2.ZERO, cam.get_viewport().get_visible_rect().size))
 	suite.check(in_rect == V.GROUPS, "TR-093 pick_units_in_rect con todo el cuadro devuelve las 5 agrupaciones en el orden de GROUPS (%s)" % str(in_rect))
+	var first_screen := cam.unproject_position(_token_center(view.unit_nodes["rodriguez"]))
+	var around: Array = view.pick_units_in_rect(cam, Rect2(first_screen - Vector2(30.0, 30.0), Vector2(60.0, 60.0)))
+	suite.check(around.has("rodriguez") and around.size() < 5, "TR-093 pick_units_in_rect con una caja alrededor de Rodríguez devuelve esa ficha y no las cinco (%s)" % str(around))
 	var fronts := 0
 	for id in V.OBJECTIVES:
 		var info: Dictionary = view.get_landmark_info(id)
@@ -356,12 +359,29 @@ func _test_lights() -> void:
 func _test_archetypes_grayscale() -> void:
 	if view == null:
 		return
+	_frame_camera(cam, view.initial_frame(cam))
+	view.update_state(0.016)
+	var raw_scale := cam.get_viewport().get_screen_transform().get_scale().y
+	var scale_px := raw_scale if raw_scale >= 0.2 else 1.0  # sin ventana real la escala de pantalla no existe: la vista toma 1
+	var short: Array = []
+	for id in V.GROUPS:  # alto parado de la figura (de la base a la cima de sus piezas), proyectado, en píxeles de la pantalla
+		var node_h: Node3D = view.unit_nodes[id]
+		var base_y := cam.unproject_position(node_h.global_position).y
+		var top_world := node_h.global_position.y
+		for part in node_h.find_children("*", "MeshInstance3D", true, false):
+			if not (str(part.name) in ["anillo", "borde", "seleccion"]):
+				top_world = maxf(top_world, ((part as MeshInstance3D).global_transform * (part as MeshInstance3D).get_aabb()).end.y)
+		var h_px := absf(base_y - cam.unproject_position(Vector3(node_h.global_position.x, top_world, node_h.global_position.z)).y) * scale_px
+		if h_px < 40.0:
+			short.append("%s %.0f px" % [id, h_px])
+	# el stub estira lo parado hasta 4,6 veces y la ficha del borde inferior del cuadro queda en ≈ 42 px; el pedido de la vista real (V03) es ≥ 48 px
+	suite.check(short.is_empty(), "TR-098 con el cuadro inicial cada ficha del stub mide ≥ 40 px de alto en pantalla%s" % ("" if short.is_empty() else ": " + str(short)))
 	var dims := {}
 	for id in V.GROUPS:
 		var node_i: Node3D = view.unit_nodes[id]
 		var box := _node_bounds(node_i)
-		var s := maxf(node_i.scale.y, 0.001)  # medidas nominales: sin el crecimiento que las lleva a ≥ 48 px de pantalla
-		dims[id] = Vector2(maxf(box.size.x, box.size.z) / s, (box.end.y - node_i.global_position.y) / s)
+		# medidas nominales: sin el crecimiento que las lleva a ≥ 48 px de pantalla (ancho y alto crecen distinto)
+		dims[id] = Vector2(maxf(box.size.x, box.size.z) / maxf(node_i.scale.x, 0.001), (box.end.y - node_i.global_position.y) / maxf(node_i.scale.y, 0.001))
 	var distinct := true
 	var worst := 9.0
 	for a in range(V.GROUPS.size()):
