@@ -108,15 +108,23 @@ func _initialize() -> void:
 	_test_foreign_saves()
 	_test_progress()
 	_test_progress_win_next()
-	_checks().call("_test_progress_checkpoints_and_diary")
-	_checks().call("_test_nav_and_routes")
-	_checks().call("_test_sentinels_and_tower_sight")
-	_checks().call("_test_pacing_offers")
+	_run_check("_test_progress_checkpoints_and_diary")
+	_run_check("_test_nav_and_routes")
+	_run_check("_test_sentinels_and_tower_sight")
+	_run_check("_test_pacing_offers")
+	_test_waypoints_outside_map()
+	_test_save_schema_cases()
+	_test_save_type_fuzz()
+	_test_valid_states_everywhere()
+	_test_order_fuzz()
+	_test_progress_files_hostile()
+	_test_contractions()
 	_test_policies_extremes()
 	_test_policies_blindness()
 	_test_performance()
 	_test_pending_for_r1()
-	suite.check(suite.elapsed_ms() < 60000, "test_hx_rules corre en poco tiempo (objetivo < 60 s, CONTRATO 5.1): %d ms" % suite.elapsed_ms())
+	var budget_ms := 60000 if str(suite.extra.get("modo", "rapido")) == "rapido" else 240000  # CONTRATO 5.1: rápido < 60 s; completo ≤ 240 s
+	suite.check(suite.elapsed_ms() < budget_ms, "test_hx_rules corre en poco tiempo (%s: objetivo < %d s, CONTRATO 5.1): %d ms" % [str(suite.extra.get("modo", "rapido")), budget_ms / 1000, suite.elapsed_ms()])
 	_cleanup_files()
 	suite.finish(self)
 
@@ -1506,19 +1514,59 @@ func _checks() -> RefCounted:
 		checks = Checks.new(self)
 	return checks
 
+## Corre una comprobación de hx_rules_checks.gd y anota cuánto tardó (`tiempos_ms` en la línea final): la suite tiene que caber en el tiempo de la compuerta rápida.
+func _run_check(fn: String) -> void:
+	var t0 := Time.get_ticks_msec()
+	var watcher := Checks.ErrorCounter.new()  # un SCRIPT ERROR en la propia prueba corta la función sin tirar la suite: acá queda como falla
+	OS.add_logger(watcher)
+	_checks().call(fn)
+	OS.remove_logger(watcher)
+	ck(watcher.script_errors == 0, "%s corrió sin errores de script del motor (%d): %s" % [fn, watcher.script_errors, watcher.last])
+	var laps: Dictionary = suite.extra.get("tiempos_ms", {})
+	laps[fn.trim_prefix("_test_")] = Time.get_ticks_msec() - t0
+	suite.extra["tiempos_ms"] = laps
+
+## H-R1-5: una parada fuera del mapa se rechaza con motivo (en la orden y en la vista previa) y el estado queda válido y se puede guardar y volver a abrir.
+func _test_waypoints_outside_map() -> void:
+	_run_check("_test_waypoints_outside_map")
+
+## H-R1-6: los guardados con un dato de otro tipo (los del QA y de su revisión técnica) se rechazan con motivo y ruta, sin errores de script.
+func _test_save_schema_cases() -> void:
+	_run_check("_test_save_schema_cases")
+
+## H-R1-6: la mutación de tipo (ocho clases) sobre cada nodo de varios guardados; lo aceptado se juega y no revienta.
+func _test_save_type_fuzz() -> void:
+	_run_check("_test_save_type_fuzz")
+
+## El esquema nunca rechaza un estado que el juego produce (partidas enteras de todas las políticas) y cubre todas las claves del estado.
+func _test_valid_states_everywhere() -> void:
+	_run_check("_test_valid_states_everywhere")
+
+## Órdenes con basura (paradas fuera del mapa, opciones de otro tipo): ninguna deja un estado inválido ni un error de script.
+func _test_order_fuzz() -> void:
+	_run_check("_test_order_fuzz")
+
+## Un progreso o unos puntos de control dañados no bloquean ni revientan: se descartan con nota.
+func _test_progress_files_hostile() -> void:
+	_run_check("_test_progress_files_hostile")
+
+## BACKLOG B-036: ningún texto del jugador trae «de el» ni «a el».
+func _test_contractions() -> void:
+	_run_check("_test_contractions")
+
 ## TR-075 (CONTRATO 3.2.5): el experto gana y el pasivo pierde.
 func _test_policies_extremes() -> void:
-	_checks().call("_test_policies_extremes")
+	_run_check("_test_policies_extremes")
 
 ## TR-076: las políticas sin ventaja no leen estado oculto.
 func _test_policies_blindness() -> void:
-	_checks().call("_test_policies_blindness")
+	_run_check("_test_policies_blindness")
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Rendimiento (CONTRATO 5.1) y lo que todavía no se puede evaluar
 
 func _test_performance() -> void:
-	_checks().call("_test_performance")
+	_run_check("_test_performance")
 
 func _test_pending_for_r1() -> void:
 	if stub_only():

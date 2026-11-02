@@ -55,3 +55,9 @@ Se movieron solo cifras de contenido, nunca un multiplicador global:
 5. **Textos de las ocho causas**: todas llevan el momento (m:ss) y el lugar, con la preposición contraída (`{deLugar}`: «del cuartel», «de la batería»).
 
 Nada de esto cambia una etiqueta: todo sigue siendo ▲.
+
+## Lo que se tocó en el pase 2 de R1 (solo textos y topes de sensatez)
+
+1. **Preposiciones contraídas (BACKLOG B-036).** Cinco plantillas de `texts` (`siguiente.attack`, `siguiente.wait_attack`, `eventos.apoyo`, `eventos.detectado`, `avisos_ruta.cerca`) anteponían «de» o «a» a `{frente}`, que se llena con el lugar («el cuartel»), y el jugador leía «de el cuartel». Ahora usan `{deFrente}` y `{aFrente}` (el lugar con la preposición contraída: «del cuartel», «a la batería»), que `humahuaca_data.gd` deriva solo de `{frente}` y de `{lugar}`. Ninguna cifra ni etiqueta cambia.
+2. **Pista de reintento acortada (B-025).** `campaign.tips.dispersos[0]` medía 123 caracteres y el tope es 120: ahora mide 117 y dice lo mismo.
+3. **Textos nuevos del guardado y de las paradas** (`texts.guardado` y `texts.errores.parada_fuera`): diseño, sin cifras. Los topes del esquema del guardado (un porcentaje va de 0 a 100, una cantidad de hombres hasta 1 000…) son de sensatez, no de juego: las cifras de juego siguen saliendo solo de `humahuaca_rules.json`.

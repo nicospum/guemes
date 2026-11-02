@@ -117,7 +117,24 @@ static func tx(path: String) -> Variant:
 	return cur
 
 static func ts(path: String, vars: Dictionary = {}) -> String:
-	return fmt(str(tx(path)), vars)
+	return fmt(str(tx(path)), with_contractions(vars))
+
+## Para cada lugar dicho en palabras que trae `vars` (`frente`, `lugar`) suma sus formas con la preposición contraída: `deFrente` («del cuartel», «de la batería») y `aFrente`
+## («al cuartel», «a la batería»), y lo mismo con `deLugar` y `aLugar`. Así una plantilla dice «el ataque {deFrente}» y nunca sale «de el cuartel» (BACKLOG B-036). Lo que
+## la llamada ya trajo no se pisa.
+static func with_contractions(vars: Dictionary) -> Dictionary:
+	var out: Dictionary = vars
+	for key in ["frente", "lugar"]:
+		if not vars.has(key):
+			continue
+		var cap: String = String(key).capitalize()
+		if not out.has("de" + cap):
+			out = out.duplicate()
+			out["de" + cap] = de_place(str(vars[key]))
+		if not out.has("a" + cap):
+			out = out.duplicate()
+			out["a" + cap] = a_place(str(vars[key]))
+	return out
 
 ## Segundos como m:ss («6:30»).
 static func clock(seconds: float) -> String:
