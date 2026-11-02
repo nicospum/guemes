@@ -1,601 +1,252 @@
-extends Node
-## Controlador de «humahuaca» (CONTRATO 3.5 y 7). Primera versión de ui_feel (R1.0), hecha a partir de la cáscara de T0 (stubs/stub_ui.gd).
-## Lo que suma a la cáscara es lo único que el contrato pide en esta ronda: arma el nivel con la clase real de cada capa (terreno, reglas,
-## progreso y vista) o, si falta o no parsea, con su versión mínima de stubs/ (carga con respaldo; start(opts.force_stub) fuerza el reemplazo),
-## avisa con una línea roja qué capa corre en respaldo y mantiene el reloj, la pausa y las velocidades. Si falta hasta la versión mínima, el
-## nivel arranca igual y se vuelve al menú con Esc. El HUD completo, las tarjetas, la cámara con entrada y las órdenes llegan en R1.
-## Dependencia solo hacia abajo (V19): importa vocabularios; las capas se cargan con load() diferido por rutas en constantes, nunca con preload.
-## Lo que toca de `main` (camera.far y fov) lo restaura stop(), que es idempotente. Se libera con queue_free(), nunca con free().
+extends "res://scripts/humahuaca/ui/humahuaca_ui_play.gd"
+## Controlador de «humahuaca», parte 3 de 3 y el archivo que carga main.gd (CONTRATO 3.5): start/stop, el reloj de cada cuadro (con el orden de
+## ADDENDA A-11: cámara antes de view.update_state) y la API de QA estable. El resto del controlador está en humahuaca_ui_base.gd y humahuaca_ui_play.gd.
 
-signal exited(to: String)  # "menu" | "norte"
-
-const V = preload("res://scripts/humahuaca/humahuaca_vocab.gd")
-const R = preload("res://scripts/humahuaca/rules/vocab_rules.gd")
-const W = preload("res://scripts/humahuaca/view/vocab_view.gd")
-const U = preload("res://scripts/humahuaca/ui/vocab_ui.gd")
-
-## Por capa: [clase real, versión mínima]. Son cadenas sueltas (no load literal) para que un archivo ausente no rompa el grafo de dependencias.
-const LAYER_PATHS := {
-	"terrain": ["res://scripts/humahuaca/terrain/humahuaca_terrain.gd", "res://scripts/humahuaca/stubs/stub_terrain.gd"],
-	"rules": ["res://scripts/humahuaca/rules/humahuaca_rules.gd", "res://scripts/humahuaca/stubs/stub_rules.gd"],
-	"progress": ["res://scripts/humahuaca/rules/humahuaca_progress.gd", "res://scripts/humahuaca/stubs/stub_progress.gd"],
-	"view": ["res://scripts/humahuaca/view/humahuaca_view.gd", "res://scripts/humahuaca/stubs/stub_view.gd"]}
-
-const DEFAULT_SEED := 1817
-const HUD_PERIOD := 0.2  # segundos entre dos lecturas de hud_state()
-const MAX_FRAME_DT := 0.25  # un cuadro lento no avanza más que esto (antes de multiplicar por la velocidad)
-const MAX_STEP_S := 3600.0  # tope de qa_step: una llamada no puede colgar la herramienta
-const PAPER := Color("e9e3d4")
-const GOLD := Color("d9b576")
-const PANEL_BG := Color(0.075, 0.095, 0.062, 0.94)
-const PANEL_BORDER := Color("50543a")
-const WARN_BG := Color("7a2e26")
-const WARN_BORDER := Color("b8584b")
-const WARN_TEXT := Color("fff1e6")
-## Respaldo mínimo si ui.json no se pudo leer (los textos del juego salen de ese archivo, no del código).
-const FALLBACK_TITLE := "Humahuaca: el depósito de la retaguardia"
-const FALLBACK_RUNNING := "Tiempo real · ▶ ×%d"
-const FALLBACK_PAUSED := "‖ En pausa"
-
-var main: Node
-var rules: RefCounted  # reglas (la clase real o su versión mínima); null si no hay ninguna de las dos
-var progress: RefCounted
-var view: Node3D  # la vista; null si no hay ninguna o no hay reglas que dibujar
-var paused := true
-var speed := 1.0
-var layers: Dictionary = {}  # id de capa → "real" | "minimo" | "falta"
-
-var _opts: Dictionary = {}
-var _cli: Dictionary = {}
-var _texts: Dictionary = {}
-var _force: Array = []
-var _scripts: Dictionary = {}  # id de capa → Script elegido
-var _seed := DEFAULT_SEED
-var _attempt := 1
-var _start_phase := ""
-var _skip_intro := false
-var _clock := 0.0  # reloj propio: solo cuenta cuando no hay reglas
-var _saved_cam: Dictionary = {}
-var _cam := {"target": Vector2(450.0, 325.0), "dist": 600.0, "pitch_deg": 55.0, "yaw_deg": 0.0}
-var _hud: VBoxContainer
-var _title: Label
-var _clock_label: Label
-var _objective: Label
-var _next: Label
-var _warn_panel: PanelContainer
-var _warn: Label
-var _hud_data: Dictionary = {}
-var _hud_timer := 0.0
-var _notice := ""
-var _ended := false
-var _end_line := ""
-
-# ---------------------------------------------------------------------------------------------------------------------
-# Arranque y cierre
 
 ## opts: {load, qa, attempt, seed, phase, skip_intro, force_stub}. Las banderas --hx-seed, --hx-phase y --hx-skip-intro completan lo que opts no trae.
 func start(m: Node, opts: Dictionary = {}) -> void:
 	main = m
 	_opts = opts.duplicate(true)
 	_cli = _cli_flags()
-	_texts = _load_texts()
+	process_priority = 10  # después de main: la cámara de main.gd se pisa con la de este nivel en cada cuadro
+	_read_json()
 	_read_options()
+	_remember_global_state()
 	if is_instance_valid(main.camera):
-		_saved_cam = {"far": main.camera.far, "fov": main.camera.fov}
 		main.camera.far = 9000.0
 		main.camera.fov = 46.0
-	_build_hud()
+	_build_ui()
+	_fit_scale()
 	_build_layers()
 	_begin_game()
 	_build_view()
-	_apply_initial_camera()
-	_apply_camera()
+	_setup_camera()
+	_open_first_screen()
 	_refresh_hud(true)
+	if is_instance_valid(main.audio_manager):
+		main.audio_manager.set_environment("norte")  # viento; la lluvia propia llega con los efectos (sin música)
+
 
 ## Libera lo propio y deja `main` como estaba; main.gd libera este nodo y vuelve al menú o al norte. Se puede llamar más de una vez.
 func stop() -> void:
-	if main != null and is_instance_valid(main.camera):
-		if not _saved_cam.is_empty():
-			main.camera.far = _saved_cam.far
-			main.camera.fov = _saved_cam.fov
-		main.camera.current = true
-	_saved_cam = {}
+	if main != null and is_instance_valid(main):
+		var vp: Viewport = main.get_viewport()
+		if is_instance_valid(main.camera):
+			if _saved.has("far"):
+				main.camera.far = _saved.far
+				main.camera.fov = _saved.fov
+			main.camera.current = true
+		if vp != null and _saved.has("scale3d"):
+			vp.scaling_3d_scale = _saved.scale3d
+			vp.msaa_3d = _saved.msaa
+		var win: Window = main.get_window()
+		if win != null:
+			if _size_cb.is_valid() and win.size_changed.is_connected(_size_cb):
+				win.size_changed.disconnect(_size_cb)
+			if _saved.has("content_scale"):
+				win.content_scale_factor = _saved.content_scale
+		if is_instance_valid(main.audio_manager) and _saved.has("audio_env") and str(_saved.audio_env) != "":
+			main.audio_manager.set_environment(str(_saved.audio_env))
+		if not _saved_by_player and _saved.has("last_save"):
+			main.settings.last_save = _saved.last_save
+	_saved = {}
 	if is_instance_valid(view):
 		view.queue_free()
 	view = null
-	if is_instance_valid(_hud):
-		_hud.queue_free()
-	_hud = null
-	_title = null
-	_clock_label = null
-	_objective = null
-	_next = null
-	_warn_panel = null
-	_warn = null
+	if dialogs != null:
+		dialogs.close()
+	for n in [_modal_layer, overlay, minimap, _subtitle, _skip_hint]:
+		if n != null and is_instance_valid(n):
+			(n as Node).queue_free()
+	if hud != null and is_instance_valid(hud.root):
+		hud.root.queue_free()
+	hud = null
+	overlay = null
+	minimap = null
+	dialogs = null
+	_modal_layer = null
+	_subtitle = null
+	_skip_hint = null
 	rules = null
 	progress = null
 	main = null
 	set_process(false)
+	set_process_input(false)
 	set_process_unhandled_input(false)
 
-func _read_options() -> void:
-	_force = []
-	var forced: Variant = _opts.get("force_stub", [])
-	if forced is Array:
-		for id in forced:
-			if U.LAYER_IDS.has(str(id)) and not _force.has(str(id)):
-				_force.append(str(id))
-	_skip_intro = bool(_opts.get("skip_intro", _cli.get("skip_intro", false)))
-	var wanted := str(_opts.get("phase", _cli.get("phase", "")))
-	_start_phase = wanted if R.PHASES.has(wanted) and wanted != "epilogo" else ""
 
-static func _cli_flags() -> Dictionary:
-	var out := {}
-	for arg in OS.get_cmdline_user_args():
-		var text := str(arg)
-		if text.begins_with("--hx-seed="):
-			out["seed"] = int(text.trim_prefix("--hx-seed="))
-		elif text.begins_with("--hx-phase="):
-			out["phase"] = text.trim_prefix("--hx-phase=")
-		elif text == "--hx-skip-intro":
-			out["skip_intro"] = true
-	return out
-
-func _load_texts() -> Dictionary:
-	var data := V.load_json(V.UI_PATH)
-	var texts: Variant = data.get("texts", {})
-	return texts if texts is Dictionary else {}
-
-# ---------------------------------------------------------------------------------------------------------------------
-# Capas con respaldo (CONTRATO 7)
-
-func _build_layers() -> void:
-	for id in U.LAYER_IDS:
-		var picked := _pick_layer(str(id))
-		_scripts[id] = picked.script
-		layers[id] = picked.kind
-	progress = _make_progress(_scripts.get("progress"))
-	rules = _make_rules(_scripts.get("rules"))
-	if rules == null:
-		layers["rules"] = "falta"
-
-## La clase real si carga; si no (o si se la fuerza), la versión mínima; si tampoco, ninguna.
-func _pick_layer(id: String) -> Dictionary:
-	var paths: Array = LAYER_PATHS[id]
-	if not _force.has(id):
-		var real := _try_load(str(paths[0]))
-		if real != null:
-			return {"script": real, "kind": "real"}
-	var minimal := _try_load(str(paths[1]))
-	if minimal != null:
-		return {"script": minimal, "kind": "minimo"}
-	return {"script": null, "kind": "falta"}
-
-static func _try_load(path: String) -> Script:
-	if not ResourceLoader.exists(path):
-		return null
-	var res: Resource = load(path)
-	if res == null or not (res is Script):
-		return null
-	var loaded: Script = res
-	return loaded if loaded.can_instantiate() else null
-
-static func _script_has(layer_script: Script, method: String) -> bool:
-	for entry in layer_script.get_script_method_list():
-		if str(entry.name) == method:
-			return true
-	return false
-
-func _make_progress(layer_script: Script) -> RefCounted:
-	if layer_script == null:
-		return null
-	var progress_path: String = V.PROGRESS_PATH
-	var checkpoint_path: String = V.CHECKPOINT_PATH
-	if bool(_opts.get("qa", false)) or bool(main.qa_mode):
-		progress_path = "user://qa_humahuaca_progress.json"
-		checkpoint_path = "user://qa_humahuaca_checkpoint.json"
-	var made: Variant = layer_script.new(progress_path, checkpoint_path)
-	if not (made is RefCounted):
-		return null
-	var made_progress: RefCounted = made
-	if made_progress.has_method("load_progress"):
-		made_progress.call("load_progress")
-	return made_progress
-
-## Si el terreno corre en su versión mínima (falta la clase real o se la forzó) y las reglas aceptan que se les dé uno, se lo damos.
-func _make_rules(layer_script: Script) -> RefCounted:
-	if layer_script == null:
-		return null
-	var made: Variant = layer_script.new()
-	if not (made is RefCounted):
-		return null
-	var made_rules: RefCounted = made
-	var terrain_script: Script = _scripts.get("terrain")
-	if str(layers.get("terrain", "")) == "minimo" and terrain_script != null and made_rules.has_method("set_terrain"):
-		var terrain: Variant = terrain_script.call("load_default") if _script_has(terrain_script, "load_default") else terrain_script.new()
-		if terrain != null:
-			made_rules.call("set_terrain", terrain)
-	return made_rules
-
-func _build_view() -> void:
-	if is_instance_valid(view):
-		view.queue_free()
-	view = null
-	var view_script: Script = _scripts.get("view")
-	if view_script == null or rules == null:
+func _process(delta: float) -> void:
+	if main == null:
 		return
-	var made: Variant = view_script.new()
-	if not (made is Node3D):
-		if made is Node:
-			(made as Node).free()
-		return
-	view = made
-	add_child(view)
-	view.call("build", rules, _quality())
+	if orders != null:
+		orders.tick(delta)
+	_toast_tick(delta)
+	_input_camera(delta)
+	if mode == "opening" and cam != null:
+		if not cam.update_opening(delta):
+			_finish_opening()
+	_decision_tick(delta)
+	if _auto_resume > 0.0:
+		_auto_resume -= delta
+		if _auto_resume <= 0.0 and _playing() and mode == "play" and not (dialogs != null and dialogs.is_open()):
+			paused = false
+	if _shake > 0.0:
+		_shake = maxf(0.0, _shake - delta * 2.2)
+	if mode == "play" and not paused and _playing() and not (dialogs != null and dialogs.is_open()):
+		_advance(minf(delta, MAX_FRAME_DT) * speed)
+	elif rules == null:
+		pass
+	if _ended and _end_delay > 0.0:
+		_end_delay -= delta
+		if _end_delay <= 0.0:
+			_show_report()
+	apply_camera()
+	if is_instance_valid(view) and view.has_method("update_state"):
+		view.call("update_state", delta)
+	_calm_tick(delta)
+	_hud_timer -= delta
+	if _hud_timer <= 0.0:
+		_refresh_hud()
 
-func _quality() -> String:
-	var wanted := str(main.settings.get("quality", "media"))
-	return wanted if W.QUALITY.has(wanted) else "media"
-
-# ---------------------------------------------------------------------------------------------------------------------
-# Partida
-
-func _begin_game() -> void:
-	_seed = _pick_seed()
-	_attempt = int(_opts.get("attempt", 0))
-	if _attempt <= 0:
-		var done: Variant = progress.get("attempts") if progress != null else null
-		_attempt = 1 + (int(done) if typeof(done) == TYPE_INT or typeof(done) == TYPE_FLOAT else 0)
-	if bool(_opts.get("load", false)) and _try_load_save():
-		return
-	_new_attempt({}, true)
-
-func _pick_seed() -> int:
-	if _opts.has("seed"):
-		return int(_opts.seed)
-	if _cli.has("seed"):
-		return int(_cli.seed)
-	if progress != null and progress.has_method("world_seed"):
-		var from_progress: Variant = progress.call("world_seed")
-		if typeof(from_progress) == TYPE_INT or typeof(from_progress) == TYPE_FLOAT:
-			return int(from_progress)
-	return DEFAULT_SEED
-
-## Empieza un intento (o lo reinicia). `extra` pisa las opciones de new_game; la vista se rearma si ya existía.
-func _new_attempt(extra: Dictionary = {}, count_attempt: bool = false) -> void:
-	_ended = false
-	_end_line = ""
-	_clock = 0.0
-	if rules == null:
-		return
-	var new_opts := {}
-	if _skip_intro:
-		new_opts["skip_intro"] = true
-	if _start_phase != "":
-		new_opts["phase"] = _start_phase
-	if not _force.is_empty():
-		new_opts["force_stub"] = _force.duplicate()
-	new_opts.merge(extra, true)
-	rules.call("new_game", _seed, _attempt, new_opts)
-	if count_attempt and progress != null and progress.has_method("begin_attempt"):
-		progress.call("begin_attempt", rules)
-	if is_instance_valid(view):
-		_build_view()
-
-## «Continuar» y F9 llegan con opts.load. Si el guardado falta, está dañado o las reglas lo rechazan, se explica y se empieza de cero.
-func _try_load_save() -> bool:
-	var reason := ""
-	var path := str(main._save_path(V.SCENARIO))
-	if rules == null:
-		reason = _t("load.reasons.no_rules", "")
-	elif not FileAccess.file_exists(path):
-		reason = _t("load.reasons.missing", "")
-	else:
-		var parser := JSON.new()  # parse() devuelve un código de error; parse_string() imprime un ERROR en la consola si el archivo está dañado
-		var parsed: Variant = parser.data if parser.parse(FileAccess.get_file_as_string(path)) == OK else null
-		if not (parsed is Dictionary) or (parsed as Dictionary).is_empty():
-			reason = _t("load.reasons.broken", "")
-		else:
-			var result: Variant = rules.call("load_game", path)
-			if result is Dictionary and bool(result.get("ok", false)):
-				return true
-			reason = str(result.get("reason", "")) if result is Dictionary else ""
-			if reason.strip_edges() == "":
-				reason = _t("load.reasons.broken", "")
-	_notice = _t("load.failed", "%s") % reason
-	return false
-
-func _rules_state() -> Dictionary:
-	if rules == null:
-		return {}
-	var state: Variant = rules.get("state")
-	return state if state is Dictionary else {}
-
-func _elapsed() -> float:
-	return float(_rules_state().get("elapsed", 0.0)) if rules != null else _clock
-
-func _phase() -> String:
-	var fallback := _start_phase if _start_phase != "" else "briefing"
-	return str(_rules_state().get("phase", fallback))
-
-func _playing() -> bool:
-	return rules == null or str(_rules_state().get("status", "playing")) == "playing"
 
 func _advance(dt: float) -> void:
 	if rules == null:
 		_clock += dt
 		return
-	rules.call("tick", dt)
+	var ev: Variant = rules.call("tick", dt)
+	if ev is Array:
+		_handle_events(ev)
 	if progress != null and progress.has_method("checkpoint_tick"):
 		progress.call("checkpoint_tick", rules)
-	_check_end()
+	_check_end(true)
 
-## Al terminar la partida se frena el reloj y se dice cómo salió. El parte completo llega en R1.
-func _check_end() -> void:
-	if rules == null or _ended:
+
+## Cámara por teclado: WASD y flechas, Q y E, RePág y AvPág, y el borde de la pantalla. Lee las teclas que este nodo vio (sirve también con entrada inyectada).
+func _input_camera(delta: float) -> void:
+	if cam == null or mode == "opening" or (dialogs != null and dialogs.is_open()):
 		return
-	var status := str(_rules_state().get("status", "playing"))
-	if status == "playing":
-		return
-	_ended = true
-	paused = true
-	var detail := ""
-	var report: Variant = rules.call("campaign_report")
-	if report is Dictionary:
-		detail = str(report.get("cause", "")) if status == "defeat" else str(report.get("outcome_title", ""))
-	var head := _t("result.victory", "") if status == "victory" else _t("result.defeat", "")
-	_end_line = "%s%s  ·  %s" % [head, (": " + detail) if detail != "" else "", _t("result.exit", "")]
+	var mv := Vector2.ZERO
+	if _held(KEY_W) or _held(KEY_UP):
+		mv.y += 1.0
+	if _held(KEY_S) or _held(KEY_DOWN):
+		mv.y -= 1.0
+	if _held(KEY_D) or _held(KEY_RIGHT):
+		mv.x += 1.0
+	if _held(KEY_A) or _held(KEY_LEFT):
+		mv.x -= 1.0
+	var fast := _held(KEY_SHIFT)
+	if mv != Vector2.ZERO:
+		cam.pan(mv.normalized(), delta, fast)
+	elif edge_pan and _mouse_seen and not _middle_drag and not _pressing and main != null and not main.qa_mode and DisplayServer.window_is_focused():
+		var edge := _edge_vector()
+		if edge != Vector2.ZERO:
+			cam.pan(edge, delta, false, _ui_num("camera", "edge_speed", 0.7))
+	var yaw_dir := 0.0
+	if _held(KEY_E):
+		yaw_dir += 1.0
+	if _held(KEY_Q):
+		yaw_dir -= 1.0
+	var pitch_dir := 0.0
+	if _held(KEY_PAGEUP):
+		pitch_dir += 1.0
+	if _held(KEY_PAGEDOWN):
+		pitch_dir -= 1.0
+	cam.rotate_view(yaw_dir, pitch_dir, delta)
+
+
+func _held(code: int) -> bool:
+	return bool(_keys_down.get(code, false))
+
+
+func _edge_vector() -> Vector2:
+	var vp := main.get_viewport()
+	var size := vp.get_visible_rect().size
+	var p := _mouse_pos
+	if p.x < 0.0 or p.y < 0.0 or p.x > size.x or p.y > size.y:
+		return Vector2.ZERO
+	var px := _ui_num("camera", "edge_px", 6.0)
+	var v := Vector2.ZERO
+	if p.x <= px:
+		v.x = -1.0
+	elif p.x >= size.x - px:
+		v.x = 1.0
+	if p.y <= px:
+		v.y = 1.0
+	elif p.y >= size.y - px:
+		v.y = -1.0
+	return v
+
 
 # ---------------------------------------------------------------------------------------------------------------------
-# Cuadro a cuadro
+# Entrada
 
-func _process(delta: float) -> void:
-	if main == null:
-		return
-	if not paused and _playing():
-		_advance(minf(delta, MAX_FRAME_DT) * speed)
-	if is_instance_valid(view) and view.has_method("update_state"):
-		view.call("update_state", delta)
-	_apply_camera()
-	_hud_timer -= delta
-	if _hud_timer <= 0.0:
-		_refresh_hud()
+func _visible_controls() -> Dictionary:
+	if hud == null:
+		return {"controls": 0, "buttons": 0, "groups": [], "names": []}
+	return hud.controls_report()
 
-func _unhandled_input(event: InputEvent) -> void:
-	if main == null or not (event is InputEventKey and event.pressed and not event.echo):
-		return
-	match event.keycode:
-		KEY_ESCAPE:
-			get_viewport().set_input_as_handled()
-			exited.emit("menu")
-			return
-		KEY_SPACE:
-			paused = not paused
-		KEY_F2:
-			speed = U.SPEEDS[0]
-		KEY_F3:
-			speed = U.SPEEDS[1]
-		KEY_F4:
-			speed = U.SPEEDS[2]
-		KEY_EQUAL, KEY_PLUS, KEY_KP_ADD:
-			_shift_speed(1)
-		KEY_MINUS, KEY_KP_SUBTRACT:
-			_shift_speed(-1)
-		_:
-			return
-	get_viewport().set_input_as_handled()
-	_refresh_hud(true)
 
-func _shift_speed(direction: int) -> void:
-	var index := clampi(U.SPEEDS.find(speed) + direction, 0, U.SPEEDS.size() - 1)
-	speed = U.SPEEDS[index]
+func _text_chars(with_warn: bool) -> int:
+	var n := 0
+	if hud != null:
+		n += hud.text_chars(with_warn)
+	if overlay != null:
+		n += overlay.drawn_text_chars
+	if minimap != null:
+		n += minimap.drawn_text_chars
+	return n
 
-# ---------------------------------------------------------------------------------------------------------------------
-# Cámara mínima: apunta a main.camera al nivel (main la mueve con la del menú en cada cuadro; este nodo corre después por ser su hijo)
-
-func _apply_initial_camera() -> void:
-	if not is_instance_valid(view) or not is_instance_valid(main.camera) or not view.has_method("initial_frame"):
-		return
-	var frame: Variant = view.call("initial_frame", main.camera)
-	if frame is Dictionary and frame.get("target", null) is Vector3:
-		var focus: Vector3 = frame.target
-		_cam.target = Vector2(focus.x, focus.z)
-		_cam.dist = float(frame.get("distance", _cam.dist))
-		_cam.pitch_deg = clampf(float(frame.get("pitch_deg", _cam.pitch_deg)), 5.0, 89.0)
-		_cam.yaw_deg = float(frame.get("yaw_deg", _cam.yaw_deg))
-
-func _apply_camera() -> void:
-	if main == null or not is_instance_valid(main.camera):
-		return
-	var focus: Vector2 = _cam.target
-	var ground := float(rules.call("terrain_height_at", focus.x, focus.y)) if rules != null and rules.has_method("terrain_height_at") else 0.0
-	var pitch := deg_to_rad(float(_cam.pitch_deg))
-	var yaw := deg_to_rad(float(_cam.yaw_deg))
-	var center := Vector3(focus.x, ground, focus.y)
-	var offset := Vector3(sin(yaw) * cos(pitch), sin(pitch), cos(yaw) * cos(pitch)) * float(_cam.dist)
-	main.camera.position = center + offset
-	main.camera.look_at(center)
-
-# ---------------------------------------------------------------------------------------------------------------------
-# Interfaz mínima: una cabecera, el objetivo, el siguiente paso y, si hace falta, la línea roja
-
-func _t(path: String, fallback: String = "") -> String:
-	var cur: Variant = _texts
-	for part in path.split("."):
-		if cur is Dictionary and (cur as Dictionary).has(part):
-			cur = cur[part]
-		else:
-			return fallback
-	return str(cur) if typeof(cur) == TYPE_STRING else fallback
-
-func _build_hud() -> void:
-	if not is_instance_valid(main.ui):
-		return
-	_hud = VBoxContainer.new()
-	_hud.name = "HumahuacaHud"
-	_hud.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_hud.anchor_right = 1.0
-	_hud.offset_left = 14.0
-	_hud.offset_top = 10.0
-	_hud.offset_right = -14.0
-	_hud.offset_bottom = 10.0
-	_hud.add_theme_constant_override("separation", 6)
-	main.ui.add_child(_hud)
-	var bar := _make_panel(PANEL_BG, PANEL_BORDER)
-	_hud.add_child(bar)
-	var column := VBoxContainer.new()
-	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	column.add_theme_constant_override("separation", 4)
-	bar.add_child(column)
-	var head := HBoxContainer.new()
-	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	head.add_theme_constant_override("separation", 16)
-	column.add_child(head)
-	_title = _make_label(head, 17, PAPER)
-	_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	if main.title_font != null:
-		_title.add_theme_font_override("font", main.title_font)
-	_clock_label = _make_label(head, 16, GOLD)
-	_clock_label.autowrap_mode = TextServer.AUTOWRAP_OFF
-	_objective = _make_label(column, 16, PAPER)
-	_next = _make_label(column, 16, GOLD)
-	_warn_panel = _make_panel(WARN_BG, WARN_BORDER)
-	_hud.add_child(_warn_panel)
-	_warn = _make_label(_warn_panel, 15, WARN_TEXT)
-
-func _make_panel(background: Color, border: Color) -> PanelContainer:
-	var panel := PanelContainer.new()
-	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var style := StyleBoxFlat.new()
-	style.bg_color = background
-	style.border_color = border
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(7)
-	style.content_margin_left = 12.0
-	style.content_margin_right = 12.0
-	style.content_margin_top = 7.0
-	style.content_margin_bottom = 7.0
-	panel.add_theme_stylebox_override("panel", style)
-	return panel
-
-func _make_label(parent: Node, font_size: int, color: Color) -> Label:
-	var label := Label.new()
-	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	label.add_theme_font_size_override("font_size", font_size)
-	label.add_theme_color_override("font_color", color)
-	parent.add_child(label)
-	return label
-
-func _refresh_hud(_force_now: bool = false) -> void:
-	_hud_timer = HUD_PERIOD
-	if main == null or not is_instance_valid(_hud):
-		return
-	_hud_data = {}
-	if rules != null:
-		var state: Variant = rules.call("hud_state")
-		if state is Dictionary:
-			_hud_data = state
-	var phase_info: Dictionary = _dict(_hud_data.get("fase"))
-	var phase_name := str(phase_info.get("nombre", ""))
-	if phase_name == "":
-		phase_name = _t("phase_names." + _phase(), "")
-	var clock_text := str(phase_info.get("reloj", ""))
-	if clock_text == "":
-		clock_text = _mmss(_elapsed())
-	_title.text = "%s  ·  %s  ·  %s" % [_t("title", FALLBACK_TITLE), phase_name, clock_text]
-	var pattern := _t("clock_running", FALLBACK_RUNNING)
-	var indicator := _t("clock_paused", FALLBACK_PAUSED) if paused else (pattern % int(speed) if pattern.find("%d") >= 0 else pattern)
-	_clock_label.text = indicator.to_upper()  # el contrato fija «TIEMPO REAL · ▶ ×1» y «‖ EN PAUSA»; en el JSON van en minúsculas para que ninguna cadena de texto quede entera en mayúsculas
-	var next_text := str(_dict(_hud_data.get("siguiente")).get("texto", ""))
-	if _ended:
-		_objective.text = _end_line
-		next_text = ""
-	else:
-		var goal := str(_hud_data.get("objetivo", ""))
-		_objective.text = goal if goal != "" else _t("objective", "")
-	_next.text = next_text
-	_next.visible = next_text != ""
-	_warn.text = _warn_text()
-	_warn_panel.visible = _warn.text != ""
-
-static func _dict(value: Variant) -> Dictionary:
-	return value if value is Dictionary else {}
-
-static func _mmss(seconds: float) -> String:
-	return "%d:%02d" % [floori(seconds / 60.0), int(seconds) % 60]
-
-## La línea roja: qué capas corren en su versión mínima (o no corren) y por qué no se pudo abrir el guardado.
-func _warn_text() -> String:
-	var minimal: Array = []
-	var absent: Array = []
-	for id in U.LAYER_IDS:
-		var kind := str(layers.get(id, "real"))
-		if kind == "minimo":
-			minimal.append(str(id))
-		elif kind == "falta":
-			absent.append(str(id))
-	var lines: Array = []
-	if not absent.is_empty():
-		lines.append(_t("layers.missing", "%s") % _layer_names(absent))
-	if minimal.size() == 1:
-		lines.append(_t("layers.one." + str(minimal[0]), ""))
-	elif minimal.size() > 1:
-		lines.append(_t("layers.many", "%s") % _layer_names(minimal))
-	if _notice != "":
-		lines.append(_notice)
-	return "\n".join(PackedStringArray(lines))
-
-func _layer_names(ids: Array) -> String:
-	var names: Array = []
-	for id in ids:
-		names.append(_t("layers.labels." + str(id), str(id)))
-	if names.size() <= 1:
-		return "".join(PackedStringArray(names))
-	return ", ".join(PackedStringArray(names.slice(0, names.size() - 1))) + " y " + str(names[names.size() - 1])
-
-func _visible_controls() -> int:
-	var count := 0
-	if is_instance_valid(_hud):
-		for control in _hud.find_children("*", "BaseButton", true, false):
-			if (control as Control).is_visible_in_tree():
-				count += 1
-	return count
-
-func _text_chars() -> int:
-	var count := 0
-	if is_instance_valid(_hud):
-		for label in _hud.find_children("*", "Label", true, false):
-			if (label as Label).is_visible_in_tree():
-				count += str(label.text).length()
-	return count
-
-# ---------------------------------------------------------------------------------------------------------------------
-# API de QA estable (contrato 3.5): ninguna prueba toca atributos privados de main ni del controlador
 
 func qa_state() -> Dictionary:
 	_refresh_hud(true)
 	var alerts: Array = []
-	var alert_list: Variant = _hud_data.get("alertas", [])
+	var alert_list: Variant = _hs.get("alertas", [])
 	if alert_list is Array:
 		for entry in alert_list:
 			if entry is Dictionary:
 				alerts.append({"id": str(entry.get("id", "")), "nivel": str(entry.get("nivel", "info"))})
 	var fronts := {"bateria": "guardado", "cuartel": "guardado", "posta": "guardado"}
-	var front_list: Variant = _hud_data.get("frentes", [])
+	var front_list: Variant = _hs.get("frentes", [])
 	if front_list is Array:
 		for entry in front_list:
 			if entry is Dictionary and fronts.has(str(entry.get("id", ""))):
 				fronts[str(entry.id)] = str(entry.get("estado", "guardado"))
-	var focus: Vector2 = _cam.target
-	return {"phase": _phase(), "elapsed": _elapsed(), "paused": paused, "speed": speed, "selected": [],
-		"camera": {"target": [focus.x, focus.y], "dist": float(_cam.dist), "pitch_deg": float(_cam.pitch_deg), "yaw_deg": float(_cam.yaw_deg)},
-		"visible_controls": _visible_controls(), "text_chars": _text_chars(), "alerts": alerts, "front_states": fronts,
-		"status": str(_rules_state().get("status", "playing")), "layers": layers.duplicate()}
+	var ctl := _visible_controls()
+	var focus: Vector2 = cam.target if cam != null else Vector2(450.0, 325.0)
+	return {"phase": _phase(), "elapsed": _elapsed(), "paused": paused or mode != "play", "speed": speed, "selected": selected.duplicate(),
+		"camera": {"target": [focus.x, focus.y], "dist": cam.dist if cam != null else 0.0, "pitch_deg": cam.pitch_deg if cam != null else 0.0, "yaw_deg": cam.yaw_deg if cam != null else 0.0},
+		"visible_controls": int(ctl.controls), "visible_buttons": int(ctl.buttons), "control_groups": ctl.groups, "text_chars": _text_chars(true), "text_chars_juego": _text_chars(false),
+		"alerts": alerts, "front_states": fronts, "status": str(_rules_state().get("status", "playing")), "layers": layers.duplicate(),
+		"mode": mode, "dialog": dialogs.current if dialogs != null else "", "guide": {"text": str(guide.get("text", "")), "action": str(guide.get("action", "")), "actor": str(guide.get("actor", ""))},
+		"seed": _seed, "attempt": _attempt, "orders": order_count, "issued": orders.issued.duplicate(true) if orders != null else [], "first_order_s": first_order_s, "aiming": orders != null and orders.aiming(), "retry_ms": retry_ms,
+		"toast": str(_toast_cur.get("text", "")), "motive": _motive_text, "auto_start": _auto_start}
+
+
+## Solo QA: fija el rumbo de la mirada del cuadro inicial (A-11: la vista pasa de 35° a 325° en el mismo merge; con el dato nuevo esto no cambia nada) y lo aplica.
+func qa_set_initial_yaw(yaw_deg: float) -> void:
+	_yaw_override = yaw_deg
+	reset_camera()
+
 
 func qa_set_camera(target: Vector2, dist: float, pitch_deg: float, yaw_deg: float) -> void:
-	_cam = {"target": target, "dist": clampf(dist, 5.0, 3000.0), "pitch_deg": clampf(pitch_deg, 5.0, 89.0), "yaw_deg": yaw_deg}
-	_apply_camera()
+	if cam == null:
+		return
+	if mode == "opening":
+		cam.finish_opening()
+		_finish_opening()
+	cam.set_frame(target, dist, pitch_deg, yaw_deg)
+	apply_camera()
+
+
+## Muestra u oculta la interfaz (para las vistas sin interfaz de la herramienta de recorrido).
+func qa_set_ui_visible(on: bool) -> void:
+	if hud != null:
+		hud.visible_root(on)
+	if overlay != null:
+		overlay.visible = on
+	if _modal_layer != null:
+		_modal_layer.visible = on
+
 
 ## Fija el reloj de juego. Las reglas no retroceden: si piden un tiempo anterior, se empieza el intento de nuevo y se avanza hasta ahí.
 func qa_set_time(t: float) -> void:
@@ -605,50 +256,126 @@ func qa_set_time(t: float) -> void:
 		return
 	if target_time < _elapsed() - 0.001:
 		_new_attempt()
+		mode = "play"
 	if target_time > _elapsed() and rules.has_method("advance_to"):
 		rules.call("advance_to", target_time)
-	_check_end()
+	_auto_start = false
+	_check_end(false)
 	_refresh_hud(true)
+
 
 ## Avanza `seconds` de juego a ×1 y vuelve a pausar. Se detiene si termina la partida o si queda una decisión sin resolver.
 func qa_step(seconds: float) -> void:
+	if mode == "opening":
+		skip_opening()
 	var left := minf(maxf(seconds, 0.0), MAX_STEP_S)
 	if rules == null:
 		_clock += left
 	else:
+		if dialogs != null and dialogs.current in ["pausa", "ayuda", "diario", "confirmar"]:
+			dialogs.close()
 		while left > 0.0 and _playing() and not _decision_pending():
 			var dt := minf(left, 1.0)
-			rules.call("tick", dt)
+			var ev: Variant = rules.call("tick", dt)
+			if ev is Array:
+				_handle_events(ev)
 			left -= dt
 		if progress != null and progress.has_method("checkpoint_tick"):
 			progress.call("checkpoint_tick", rules)
-		_check_end()
+		_auto_start = false
+		_check_end(false)
+		_check_decision()
 	paused = true
 	if is_instance_valid(view) and view.has_method("update_state"):
 		view.call("update_state", 0.0)
 	_refresh_hud(true)
 
-func _decision_pending() -> bool:
-	var pending: Variant = rules.call("pending_choice")
-	return pending is Dictionary and not (pending as Dictionary).is_empty()
 
-## Una captura y un qa_report.json en main.qa_path. Las 7 vistas canónicas (con y sin interfaz) llegan en R1; por ahora `views` va vacío.
+## Solo QA: aprieta el botón del «siguiente paso» como lo haría un clic (lo usa la política «interfaz» de la herramienta de recorrido de reglas). Devuelve true si
+## había un botón visible y habilitado que apretar.
+func qa_press_next() -> bool:
+	if mode != "play" or not _playing() or hud == null:
+		return false
+	_refresh_hud(true)
+	var button: Button = hud.next_btn
+	if button == null or not button.is_visible_in_tree() or button.disabled:
+		return false
+	button.pressed.emit()
+	return true
+
+
+## Recorrido de las 7 vistas canónicas (con y sin interfaz) y qa_report.json en main.qa_path (--qa=humahuaca).
 func qa_run() -> void:
 	var dir := str(main.qa_path) if main != null else ""
 	if dir.is_empty():
 		return
 	DirAccess.make_dir_recursive_absolute(dir)
+	if mode != "play":
+		_start_play_after_briefing(true)
 	_refresh_hud(true)
 	await RenderingServer.frame_post_draw
 	if main == null:
 		return
+	var report := {"controlador": "r1", "capas": layers, "views": {}, "initial_frame": _initial_frame_report()}
+	_save_shot(dir.path_join("humahuaca-inicio.png"))
+	var start_frame := cam.frame() if cam != null else {}
+	for id in W.VIEW_IDS:
+		if not is_instance_valid(view) or not view.has_method("canonical_view"):
+			break
+		var cv: Variant = view.call("canonical_view", str(id))
+		if not (cv is Dictionary) or (cv as Dictionary).is_empty():
+			continue
+		var d := cv as Dictionary
+		var t3: Vector3 = d.target
+		qa_set_camera(Vector2(t3.x, t3.z), float(d.distance), float(d.pitch_deg), float(d.yaw_deg))
+		view.call("set_time_override", float(d.time_of_day), float(d.rain))
+		for i in range(4):
+			await get_tree().process_frame
+		await RenderingServer.frame_post_draw
+		_save_shot(dir.path_join("vista_%s.png" % str(id)))
+		qa_set_ui_visible(false)
+		for i in range(2):
+			await get_tree().process_frame
+		await RenderingServer.frame_post_draw
+		_save_shot(dir.path_join("vista_%s_sin_ui.png" % str(id)))
+		qa_set_ui_visible(true)
+		var probes: Variant = view.call("probes", main.camera) if view.has_method("probes") else []
+		(report.views as Dictionary)[str(id)] = {"probes": probes, "must_show": d.get("must_show", [])}
+	if is_instance_valid(view):
+		view.call("set_time_override", -1.0, -1.0)
+	if cam != null and not start_frame.is_empty():
+		cam.set_frame(start_frame.target, start_frame.dist, start_frame.pitch_deg, start_frame.yaw_deg)
+		apply_camera()
+	report["state"] = qa_state()
+	var file := FileAccess.open(dir.path_join("qa_report.json"), FileAccess.WRITE)
+	if file:
+		file.store_string(JSON.stringify(report, "\t"))
+		file.close()
+
+
+func _save_shot(path: String) -> void:
 	var image: Image = main.get_viewport().get_texture().get_image()
 	if image != null and not image.is_empty():
-		image.save_png(dir.path_join("humahuaca-inicio.png"))
-	var report := FileAccess.open(dir.path_join("qa_report.json"), FileAccess.WRITE)
-	if report:
-		report.store_string(JSON.stringify({"controlador": "r1.0", "capas": layers, "views": [], "state": qa_state()}, "\t"))
-		report.close()
+		image.save_png(path)
+
+
+## ¿Entran los tres objetivos y la zona de partida en el cuadro inicial, con su margen? (V02)
+func _initial_frame_report() -> Dictionary:
+	var out := {"fits": false, "targets": []}
+	var camera := camera3d()
+	if camera == null:
+		return out
+	var f := initial_frame()
+	out["fits"] = bool(f.fits)
+	var size := main.get_viewport().get_visible_rect().size
+	for id in ["bateria", "cuartel", "posta", "zona_partida"]:
+		var p := landmark_pos(str(id))
+		var v := Vector3(p.x, ground_height(p.x, p.y), p.y)
+		var s := camera.unproject_position(v)
+		var on_screen := not camera.is_position_behind(v) and s.x >= size.x * 0.05 and s.x <= size.x * 0.95 and s.y >= size.y * 0.05 and s.y <= size.y * 0.95
+		(out.targets as Array).append({"id": str(id), "x": snappedf(s.x, 0.1), "y": snappedf(s.y, 0.1), "on_screen": on_screen})
+	return out
+
 
 ## Deja el nivel en pleno ataque (las reglas empiezan en esa fase) y corriendo, para medir el cuadro con lluvia, fichas y efectos.
 func benchmark_prepare() -> void:
@@ -656,7 +383,11 @@ func benchmark_prepare() -> void:
 		return
 	_start_phase = "ataque"
 	_skip_intro = true
+	if dialogs != null:
+		dialogs.close()
 	_new_attempt()
+	mode = "play"
+	_auto_start = false
 	paused = false
 	speed = U.SPEEDS[0]
 	_refresh_hud(true)
