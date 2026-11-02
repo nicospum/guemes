@@ -34,8 +34,8 @@ El generador es determinista (sin fechas): correrlo dos veces da el mismo archiv
 | Capa (`id`) | Tipo | Qué hace | Consecuencia de juego |
 |---|---|---|---|
 | `cerro_bateria` | `dome` | Domo de núcleo plano de 16 m y flanco de coseno hasta 75 m de radio, centrado en (305, 345). Es un **residuo**: `delta_m` se calcula para que la plataforma quede a 12,0 m sobre la media del anillo de 16 puntos a 135 m (la medida del QA, R05) con la fuente que sea. Hoy `delta_m` = 12,3 m | Ventaja de vista y de tiro de la batería; subir el flanco (hasta 18°) cuesta velocidad (×0,7) |
-| `plataforma_bateria` | `platform` | Losa llana de 28 × 18 m en (318, 350), a 33,9 m sobre el cero local (talud de 6 m). La visión de quien está sobre la losa pasa por encima de su propio borde (7.2) | La batería domina la calle del cuartel y la plaza (16,7 m sobre la plaza) |
-| `quebradita_norte`, `quebradita_sur` | `gully` | Hondonada de 36 × 8 m (ancho medido a media profundidad), −2,5 m, piso de un nodo de ancho, bancos de 1,2 m a los costados, abierta al oeste. Giradas ±20° para seguir la caída de la ladera (los hitos llevan el mismo `yaw_deg`) | Refugio de caballos: desde el este y el sur no se ve el piso a más de 25–40 m; desde el norte y el oeste (cuesta abajo, extremo abierto) sí |
+| `plataforma_bateria` | `platform` | Losa llana de 28 × 18 m en (318, 350), a 33,9 m sobre el cero local (talud de 6 m). La visión de quien está sobre la losa pasa por encima de su propio borde (sección 4, punto 1) | La batería domina la calle del cuartel y la plaza (16,7 m sobre la plaza) |
+| `quebradita_norte`, `quebradita_sur` | `gully` | Hondonada de 36 × 8 m (ancho medido a media profundidad), −2,5 m, piso de un nodo de ancho, bancos de 1,2 m a los costados, abierta al oeste. Giradas ±20° para seguir la caída de la ladera (los hitos llevan el mismo `yaw_deg`) | Refugio de caballos: desde el este (el pueblo) no se ve el piso a más de 40 m y desde el lado de la ladera, a más de 25 m; desde el oeste (extremo abierto) y desde el lado cuesta abajo sí |
 | `cauce_rio` | `carve` | Talla de −1,6 m a lo largo de la traza del río (fondo llano hasta 0,55 del semiancho, subida suave hasta el semiancho + 12 m) | El cauce queda más bajo que el núcleo; define el agua y el sedimento |
 | `micro` | micro-relieve | Cinco ondas planas de semilla fija (1817), torcidas por un desplazamiento suave y con la amplitud modulada: ±0,5 m como tope, onda de 25 m o más; medido sobre la malla: amplitud máxima 0,46 m, rms 0,13 m y pendiente máxima 3,5° (cota teórica 6°). Se apaga en los 40 m del borde de la ventana y sobre la plataforma | Ninguna regla (no llega a los 8°); da sombras largas al alba y evita el suelo liso |
 
@@ -57,7 +57,7 @@ La recta va de la altura de los ojos de A (suelo + `eye_a`) a la de B y la tapan
 Dos decisiones que conviene saber:
 
 1. **La losa de la batería ve por encima de su propio borde.** Desde el centro de una losa llana de 28 × 18 m con ojos a 1,6 m no se vería nada a menos de ≈ 140 m (el borde estorba), lo contrario de lo que pide el diseño («quien la tiene ve el núcleo entero»). Para quien está parado sobre la plataforma de diseño (y para quien mira hacia ella) no se cuenta el tramo de la recta que pasa sobre la losa y su talud. El resto del terreno, las tapias y los edificios tapan igual. La prueba lo fija: la calle del cuartel se ve desde la batería y **no** se ve en el DEM sin domo ni plataforma.
-2. **La quebradita esconde el piso solo de quien mira cuesta arriba.** El hueco de 2,5 m está en el flanco del domo: desde el este y el sur (hacia la ladera) no se ve el piso a más de 25–40 m, que es lo que pide el diseño («no se ve desde más de 40 m»); desde el norte y el oeste, el terreno de afuera queda más bajo que el piso y se ve. Las reglas ponen su propio umbral de 40 m y 60 m: el terreno solo da la geometría. No se movieron los hitos (posiciones de diseño).
+2. **La quebradita esconde el piso solo de quien mira cuesta arriba.** El hueco de 2,5 m está en el flanco del domo: desde el este (la dirección del pueblo) no se ve el piso a más de 40 m y desde el lado de la ladera, a más de 25 m, que es lo que pide el diseño («no se ve desde más de 40 m»); desde el oeste (el extremo abierto) y desde el lado cuesta abajo, el terreno de afuera queda más bajo que el piso y se ve. Las reglas ponen su propio umbral de 40 m y 60 m: el terreno solo da la geometría. No se movieron los hitos (posiciones de diseño).
 
 ## 5. Mapa chico
 
@@ -101,7 +101,7 @@ Tesela `Copernicus_DSM_COG_10_S24_00_W066_00_DEM.tif` (39 438 103 B, SHA-256 `1b
 - La lámina resuelve 150 m: dentro de la ventana el relieve base sube 25 m en 900 m. Todo lo que se ve como cerro, plataforma, hondonada o cauce es diseño; la forma del relieve de 1817 se desconoce.
 - Las tapias, zanjas, caminos y parcelas vienen de `humahuaca_level.json` (de `reglas_historia`) y se rasterizan a 4 m: una zanja de 1,6 m de ancho es un renglón de nodos, no un hueco en la malla (la vista dibuja sus cintas).
 - El camino cubierto solo pinta su suelo (sus tapias de 1,8 m no son sólidas) y las manzanas no son sólidas: simplificaciones heredadas del stub.
-- Las quebraditas no esconden el piso de quien mira desde el norte o el oeste (4, punto 2).
+- Las quebraditas no esconden el piso de quien las mira desde el oeste ni desde el lado cuesta abajo (sección 4, punto 2).
 - El contexto es de 30 m: el cerro occidental llega a ≈ 3 135 m, pero sus detalles no existen.
 - La herramienta `scripts/humahuaca/terrain/terrain_preview.gd` saca capturas del relieve sin las otras capas (la vista real es de `visual`): `godot --path . --resolution 1280x720 --script res://scripts/humahuaca/terrain/terrain_preview.gd -- --out=<carpeta> --views=acceso_so,desde_bateria,general`.
 
