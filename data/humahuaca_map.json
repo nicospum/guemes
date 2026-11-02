@@ -27,5 +27,173 @@
 		"offset_z": 325.0,
 		"nota": "x = E + 450; z = 325 - N"
 	},
-	"datum_asl_m": 2940.0
+	"datum_asl_m": 2940.0,
+	"surfaces": {
+		"classes": ["suelo_seco", "sedimento_humedo", "piedra", "churqui", "irrigado", "agua", "camino", "patio", "zanja", "muro"],
+		"layers": [],
+		"mud": {
+			"camino": 0.9,
+			"suelo_seco": 0.95,
+			"sedimento_humedo": 0.75,
+			"irrigado": 0.6,
+			"zanja": 0.5,
+			"agua": 0.5
+		},
+		"slope_penalty": {
+			"start_deg": 8.0,
+			"per_deg": 0.03,
+			"floor": 0.6
+		}
+	},
+	"landmarks": [
+		{
+			"id": "templo", "name": "Templo", "short": "Templo", "type": "hito",
+			"x": 450.0, "z": 325.0, "yaw_deg": 0.0, "footprint": {"w": 22.0, "d": 8.0}, "height_m": 7.0,
+			"tag": "sin_datos", "tag_parts": {"sitio": "razonado", "forma_en_1817": "sin_datos"},
+			"source": "Lámina 03 (sitio, ±15 m); la forma de 1817 no tiene datos. DISENO §3",
+			"priority": 1, "variant": {}
+		},
+		{
+			"id": "bateria", "name": "Batería de Santa Bárbara", "short": "Batería", "type": "objetivo",
+			"x": 318.0, "z": 350.0, "yaw_deg": 0.0, "footprint": {"w": 28.0, "d": 18.0}, "height_m": 1.6,
+			"tag": "diseno", "tag_parts": {"existencia": "documentado", "posicion_cota_y_gola": "diseno"},
+			"source": "Parte de Arias, 3-III-1817 (objetivo); posición, cota y gola de diseño. DISENO §3",
+			"priority": 2, "variant": {}
+		},
+		{
+			"id": "cuartel", "name": "Cuartel (casa del cura)", "short": "Cuartel", "type": "objetivo",
+			"x": 418.0, "z": 335.0, "yaw_deg": 0.0, "footprint": {"w": 22.0, "d": 14.0}, "height_m": 3.2,
+			"tag": "diseno", "tag_parts": {"existencia": "documentado", "lugar": "diseno"},
+			"source": "Parte de Arias, 3-III-1817 («casa del Cura»); el lugar exacto es de diseño. DISENO §3",
+			"priority": 2, "variant": {}
+		},
+		{
+			"id": "posta", "name": "Posta", "short": "Posta", "type": "objetivo",
+			"x": 590.0, "z": 300.0, "yaw_deg": 0.0, "footprint": {"w": 30.0, "d": 24.0}, "height_m": 2.4,
+			"tag": "diseno", "tag_parts": {"existencia": "documentado", "planta": "diseno", "polvora_en_la_posta": "razonado"},
+			"source": "Parte de Arias, 3-III-1817 («casa de Posta»); la planta es de diseño. DISENO §3",
+			"priority": 2, "variant": {}
+		},
+		{
+			"id": "torre_casa_cura", "name": "Torre provisional (casa del cura)", "short": "Torre", "type": "torre",
+			"x": 426.0, "z": 326.0, "yaw_deg": 0.0, "footprint": {"w": 3.5, "d": 3.5}, "height_m": 10.0,
+			"tag": "sin_datos", "tag_parts": {"resistencia_desde_una_torre": "documentado", "cual_torre_y_donde": "sin_datos"},
+			"source": "Parte de Arias («la torre»); cuál torre y dónde no tiene datos. DISENO §3",
+			"priority": 3, "variant": {"torre_en": "casa_cura"}
+		},
+		{
+			"id": "torre_templo", "name": "Torre provisional (templo)", "short": "Torre", "type": "torre",
+			"x": 466.0, "z": 322.0, "yaw_deg": 0.0, "footprint": {"w": 3.5, "d": 3.5}, "height_m": 10.0,
+			"tag": "sin_datos", "tag_parts": {"resistencia_desde_una_torre": "documentado", "cual_torre_y_donde": "sin_datos"},
+			"source": "Parte de Arias («la torre»); cuál torre y dónde no tiene datos. DISENO §3",
+			"priority": 3, "variant": {"torre_en": "templo"}
+		},
+		{
+			"id": "plaza", "name": "Plaza", "short": "Plaza", "type": "plaza",
+			"x": 450.0, "z": 392.0, "yaw_deg": 0.0, "footprint": {"w": 56.0, "d": 50.0}, "height_m": 0.0,
+			"tag": "diseno",
+			"source": "Parámetro de prototipo (diseño); no hay planta de 1817. DISENO §3",
+			"priority": 1, "variant": {}
+		},
+		{
+			"id": "polvorin", "name": "Polvorín", "short": "Polvorín", "type": "edificio",
+			"x": 601.0, "z": 292.0, "yaw_deg": 0.0, "footprint": {"w": 6.0, "d": 5.0}, "height_m": 3.0,
+			"tag": "diseno", "tag_parts": {"polvora_en_la_posta": "razonado", "ubicacion": "diseno"},
+			"source": "Parte de Arias («ganar la pólvora»); la ubicación es de diseño. DISENO §11.4",
+			"priority": 5, "variant": {}
+		},
+		{
+			"id": "parque", "name": "Parque de artillería", "short": "Parque", "type": "edificio",
+			"x": 583.0, "z": 304.0, "yaw_deg": 0.0, "footprint": {"w": 10.0, "d": 8.0}, "height_m": 1.5,
+			"tag": "diseno", "tag_parts": {"piezas_capturadas": "discutido", "ubicacion": "diseno"},
+			"source": "Parte de Arias («siete piezas», cifra discutida); ubicación de diseño. DISENO §11.4",
+			"priority": 5, "variant": {}
+		},
+		{
+			"id": "corral_posta", "name": "Corral de la posta", "short": "Corral", "type": "edificio",
+			"x": 618.0, "z": 302.0, "yaw_deg": 0.0, "footprint": {"w": 20.0, "d": 14.0}, "height_m": 1.2,
+			"tag": "diseno", "tag_parts": {"mulas_capturadas": "documentado", "ubicacion": "diseno"},
+			"source": "Parte de Arias (16 mulas capturadas); la ubicación es de diseño. DISENO §11.4",
+			"priority": 5, "variant": {}
+		},
+		{
+			"id": "quebradita_norte", "name": "Quebradita norte", "short": "Quebradita", "type": "refugio",
+			"x": 282.0, "z": 298.0, "yaw_deg": 0.0, "footprint": {"w": 36.0, "d": 8.0}, "height_m": 0.0,
+			"tag": "diseno", "tag_parts": {"existencia": "documentado", "lugar": "diseno"},
+			"source": "Parte de Arias («una quebradita en ese alto»); el lugar es de diseño. DISENO §3",
+			"priority": 4, "variant": {"refugio": "norte"}
+		},
+		{
+			"id": "quebradita_sur", "name": "Quebradita sur", "short": "Quebradita", "type": "refugio",
+			"x": 288.0, "z": 402.0, "yaw_deg": 0.0, "footprint": {"w": 36.0, "d": 8.0}, "height_m": 0.0,
+			"tag": "diseno", "tag_parts": {"existencia": "documentado", "lugar": "diseno"},
+			"source": "Parte de Arias («una quebradita en ese alto»); el lugar es de diseño. DISENO §3",
+			"priority": 4, "variant": {"refugio": "sur"}
+		},
+		{
+			"id": "vado_este", "name": "Vado del Río Grande", "short": "Vado", "type": "acceso",
+			"x": 862.0, "z": 340.0, "yaw_deg": 0.0, "footprint": {"r": 14.0}, "height_m": 0.0,
+			"tag": "diseno", "tag_parts": {"rio_actual": "razonado", "vado_de_1817": "sin_datos", "ubicacion": "diseno"},
+			"source": "Traza moderna del río (lámina 03); el vado de 1817 no tiene datos. DISENO §3",
+			"priority": 4, "variant": {}
+		},
+		{
+			"id": "salida_este", "name": "Salida al este", "short": "Salida", "type": "salida",
+			"x": 895.0, "z": 332.0, "yaw_deg": 0.0, "footprint": {"r": 4.0}, "height_m": 0.0,
+			"tag": "diseno", "tag_parts": {"destino_san_andres": "documentado", "ruta_de_salida": "sin_datos", "punto_de_salida": "diseno"},
+			"source": "El parte no dice por dónde salieron: «borde este» es de diseño. DISENO §3",
+			"priority": 4, "variant": {}
+		},
+		{
+			"id": "entrada_sur", "name": "Entrada sur", "short": "Entrada sur", "type": "entrada",
+			"x": 540.0, "z": 650.0, "yaw_deg": 0.0, "footprint": {"r": 3.0}, "height_m": 0.0,
+			"tag": "diseno",
+			"source": "Por acá llega el refuerzo desde Jujuy: diseño, el refuerzo inmediato no ocurrió. DISENO §3",
+			"priority": 4, "variant": {}
+		},
+		{
+			"id": "zona_partida", "name": "Zona de partida", "short": "Partida", "type": "partida",
+			"x": 160.0, "z": 550.0, "yaw_deg": 0.0,
+			"footprint": {"poly": [{"x": 55.0, "z": 455.0}, {"x": 245.0, "z": 462.0}, {"x": 275.0, "z": 640.0}, {"x": 45.0, "z": 640.0}]},
+			"height_m": 0.0,
+			"tag": "diseno",
+			"source": "Acceso sudoeste de las cinco partidas: diseño. DISENO §3 y §5.1",
+			"priority": 1, "variant": {}
+		},
+		{
+			"id": "spawn_rodriguez", "name": "Partida de Rodríguez", "short": "Rodríguez", "type": "partida",
+			"x": 70.0, "z": 470.0, "yaw_deg": 0.0, "footprint": {"r": 9.0}, "height_m": 0.0,
+			"tag": "diseno", "tag_parts": {"jefe_y_funcion": "documentado", "reparto_y_posicion": "diseno"},
+			"source": "Capitán Hilario Rodríguez (parte de Arias); reparto y posición de diseño. DISENO §5.1",
+			"priority": 1, "variant": {}
+		},
+		{
+			"id": "spawn_portal", "name": "Partida de Portal y Ontiveros", "short": "Portal", "type": "partida",
+			"x": 110.0, "z": 580.0, "yaw_deg": 0.0, "footprint": {"r": 9.0}, "height_m": 0.0,
+			"tag": "diseno", "tag_parts": {"jefes_y_funcion": "documentado", "reparto_y_posicion": "diseno"},
+			"source": "Teniente Portal y alférez Ontiveros (parte de Arias); reparto de diseño. DISENO §5.1",
+			"priority": 1, "variant": {}
+		},
+		{
+			"id": "spawn_arias", "name": "División de Arias", "short": "Arias", "type": "partida",
+			"x": 260.0, "z": 625.0, "yaw_deg": 0.0, "footprint": {"r": 9.0}, "height_m": 0.0,
+			"tag": "diseno", "tag_parts": {"jefe_y_funcion": "documentado", "reparto_y_posicion": "diseno"},
+			"source": "Manuel Eduardo Arias, tercera división (parte); reparto y posición de diseño. DISENO §5.1",
+			"priority": 1, "variant": {}
+		},
+		{
+			"id": "spawn_reconocedores", "name": "Reconocedores", "short": "Reconoc.", "type": "partida",
+			"x": 230.0, "z": 480.0, "yaw_deg": 0.0, "footprint": {"r": 3.0}, "height_m": 0.0,
+			"tag": "diseno", "tag_parts": {"reconocimiento_en_persona": "documentado", "posicion": "diseno"},
+			"source": "Reconocimiento en persona de «tapial, zanjita» (parte); posición de diseño. DISENO §5.1",
+			"priority": 1, "variant": {}
+		},
+		{
+			"id": "spawn_arreo", "name": "Arreo de mulas", "short": "Arreo", "type": "partida",
+			"x": 60.0, "z": 625.0, "yaw_deg": 0.0, "footprint": {"r": 7.0}, "height_m": 0.0,
+			"tag": "diseno", "tag_parts": {"arrieros_y_mulas": "documentado", "mulas_propias_y_posicion": "diseno"},
+			"source": "Arrieros y mulas (parte de Arias); mulas propias y posición de diseño. DISENO §5.1",
+			"priority": 1, "variant": {}
+		}
+	]
 }
