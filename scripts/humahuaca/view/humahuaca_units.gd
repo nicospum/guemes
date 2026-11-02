@@ -207,7 +207,7 @@ func sync_things(root: Node3D, category: String, list: Array) -> int:
 		var z := float(e.get("z", 0.0))
 		var holder := Node3D.new()
 		holder.name = "%s_%s" % [category, str(e.get("id", count))]
-		holder.position = Vector3(x, gfx.h(x, z), z)
+		holder.position = Vector3(x, gfx.rendered_h(x, z), z)
 		root.add_child(holder)
 		if category == "enemy":
 			var mi := MeshInstance3D.new()
@@ -245,7 +245,7 @@ func sync_poses(state: Dictionary) -> bool:
 		var z := float(u.get("z", 0.0))
 		var yaw := -deg_to_rad(float(u.get("yaw_deg", 0.0)))
 		if absf(node.position.x - x) > 0.0005 or absf(node.position.z - z) > 0.0005 or absf(node.rotation.y - yaw) > 0.0005:
-			node.position = Vector3(x, gfx.h(x, z), z)
+			node.position = Vector3(x, gfx.rendered_h(x, z), z)  # el pie apoya en la malla que se dibuja (en `baja` la ventana tiene un vértice cada 8 m y se aparta hasta ≈ 0,25 m de `height_at`)
 			node.rotation.y = yaw
 			moved = true
 	return moved
