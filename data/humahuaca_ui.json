@@ -1,4 +1,154 @@
 {
 	"contract": 1,
-	"map_version": 1
+	"map_version": 1,
+	"texts": {
+		"title": "Humahuaca: el depósito de la retaguardia",
+		"clock_running": "TIEMPO REAL · ▶ ×%d",
+		"clock_paused": "‖ EN PAUSA",
+		"keys_hint": "Espacio: pausa  ·  Esc: menú",
+		"objective": "Tomá la batería, el cuartel y la pólvora a la vez, y sacá lo que puedas antes del refuerzo.",
+		"phase_names": {
+			"briefing": "Preparación",
+			"aproximacion": "Aproximación",
+			"ataque": "Ataque",
+			"extraccion": "Extracción",
+			"epilogo": "Epílogo"
+		},
+		"result": {
+			"victory": "Victoria",
+			"defeat": "Derrota",
+			"exit": "Esc vuelve al menú"
+		},
+		"layers": {
+			"labels": {
+				"terrain": "terreno",
+				"rules": "reglas",
+				"progress": "progreso",
+				"view": "vista"
+			},
+			"one": {
+				"terrain": "Falta o falló el terreno: se usa la versión mínima",
+				"rules": "Faltan o fallaron las reglas: se usa la versión mínima",
+				"progress": "Falta o falló el progreso: se usa la versión mínima",
+				"view": "Falta o falló la vista: se usa la versión mínima"
+			},
+			"many": "Se usa la versión mínima de: %s",
+			"missing": "No se pudo cargar ni la versión mínima de: %s"
+		},
+		"load": {
+			"failed": "No se pudo abrir la partida guardada (%s). Empezás de nuevo.",
+			"reasons": {
+				"missing": "no hay un archivo guardado",
+				"broken": "el archivo está vacío o dañado",
+				"no_rules": "faltan las reglas del nivel"
+			}
+		},
+		"briefing": {
+			"page1": {
+				"title": "Humahuaca, 1817",
+				"lines": [
+					"Tomá la batería, el cuartel y la pólvora a la vez, y sacá lo que puedas antes del refuerzo.",
+					"Es de noche y llueve: tenés que atacar antes de que amanezca.",
+					"Perder no es grave: volvés a intentar con lo que aprendiste."
+				]
+			},
+			"page2": {
+				"title": "La carta del 26 de febrero",
+				"label": "Dramatización",
+				"tag": "diseno",
+				"tag_parts": {
+					"carta": "documentado",
+					"escena": "diseno"
+				},
+				"source": "Carta de Güemes a Arias, 26-II-1817; la escena es una dramatización",
+				"lines": [
+					"Salta, 26 de febrero de 1817. Güemes le escribe a Arias: llegó la noticia de la victoria de San Martín en Chacabuco, Chile, y le pide que la celebre con su gente.",
+					"La carta no trae ninguna orden. El golpe a Humahuaca se preparaba desde febrero: la carta solo trae la noticia."
+				],
+				"date_note": {
+					"text": "Fecha: la madrugada del 1 de marzo, según el itinerario de Arias; el 2, según La Serna y una inscripción del premio.",
+					"tag": "discutido",
+					"source": "Itinerario de Arias (1 de marzo); La Serna e inscripción del premio (2 de marzo)"
+				}
+			},
+			"opening": {
+				"subtitle": "«La mayor parte sin más armas que palos», escribió Arias.",
+				"tag": "documentado",
+				"source": "Parte de Arias, 3-III-1817"
+			},
+			"buttons": {
+				"start": "Empezar",
+				"next": "Seguir",
+				"skip": "Saltar"
+			}
+		}
+	},
+	"jargon_blacklist": [
+		"ETA",
+		"ZOC",
+		"LOS",
+		"DPS",
+		"HUD",
+		"FPS",
+		"FOV",
+		"GUI",
+		"NPC",
+		"RNG",
+		"sondeo",
+		"sondear",
+		"tag",
+		"aggro",
+		"buff",
+		"debuff",
+		"nerf",
+		"fog",
+		"spawn",
+		"waypoint",
+		"pathfinding",
+		"snapshot",
+		"hash",
+		"seed",
+		"payload",
+		"cooldown",
+		"loot",
+		"checkpoint",
+		"timer",
+		"toast",
+		"tooltip",
+		"stealth",
+		"minimap",
+		"gameplay"
+	],
+	"source_tags": {
+		"documentado": {
+			"glifo": "●",
+			"color": "#9AC4AB",
+			"etiqueta": "Documentado",
+			"descripcion": "Lo cuenta un documento de la época, como el parte de Arias. Igual conviene contrastarlo."
+		},
+		"razonado": {
+			"glifo": "◇",
+			"color": "#A8B8E0",
+			"etiqueta": "Inferencia razonada",
+			"descripcion": "No está escrito, pero se deduce de lo que sí se sabe."
+		},
+		"discutido": {
+			"glifo": "◆",
+			"color": "#E0B25A",
+			"etiqueta": "Versión discutida",
+			"descripcion": "Las fuentes no coinciden y el juego muestra una de las versiones."
+		},
+		"diseno": {
+			"glifo": "▲",
+			"color": "#D8D2C0",
+			"etiqueta": "Diseño",
+			"descripcion": "Es una decisión nuestra para que el juego funcione: no es un dato histórico."
+		},
+		"sin_datos": {
+			"glifo": "○",
+			"color": "#9FA9A7",
+			"etiqueta": "Sin datos suficientes",
+			"descripcion": "No hay información: el juego lo completa y lo avisa."
+		}
+	}
 }
