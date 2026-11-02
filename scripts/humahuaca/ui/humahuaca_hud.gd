@@ -45,6 +45,7 @@ var bar: PanelContainer
 var motive_row: HBoxContainer
 var dock: PanelContainer
 var objective_l: Label
+var objective_row: HBoxContainer
 var chips_box: HBoxContainer
 var chip_labels: Dictionary = {}
 var next_title_l: Label
@@ -69,6 +70,7 @@ var toast_l: Label
 var warn_panel: PanelContainer
 var warn_l: Label
 
+var _minimap_w := 260.0
 var _action_sig := ""
 var _action_buttons: Dictionary = {}
 var _alert_data: Dictionary = {}
@@ -122,6 +124,7 @@ func build(parent: Control, texts_in: Dictionary, layout_in: Dictionary, tags_in
 	tags = tags_in
 	emit = emit_in
 	title_font = font_in
+	_minimap_w = minimap_w
 	root = Control.new()
 	root.name = "HumahuacaHud"
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -229,7 +232,7 @@ func _build_fronts() -> void:
 		guard_l.clip_text = false
 		var take_bar := Kit.bar(col, Kit.ROYAL, 7.0, 0.0)
 		var alert_bar := Kit.bar(col, Kit.AMBER, 3.0, 0.0)
-		var info_l := Kit.label(col, "", int(_num(["font", "tiny"], 12.0)), Kit.GOLD)
+		var info_l := Kit.trimmed(Kit.label(col, "", int(_num(["font", "tiny"], 12.0)), Kit.GOLD))  # no ensancha la tarjeta: si no entra se sacan partes (_fit_parts)
 		info_l.visible = false
 		front_cards[id] = {"panel": p, "accent": accent, "name": name_l, "guard": guard_l, "take": take_bar, "alert": alert_bar, "info": info_l}
 
@@ -271,6 +274,8 @@ func _build_bar(parent: Control) -> void:
 	status_l.name = "HxStatus"
 	status_l.size_flags_horizontal = Control.SIZE_SHRINK_END
 	status_l.clip_text = false
+	status_l.mouse_filter = Control.MOUSE_FILTER_PASS
+	status_l.tooltip_text = _t("hud.status_tip")  # B-052: nadie entendía «Desvelo»
 	actions_box = HFlowContainer.new()
 	actions_box.name = "HxActions"
 	actions_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -301,6 +306,8 @@ func _build_dock(parent: Control) -> void:
 	var col := Kit.vbox(dock, 3)
 	# fila A: objetivo y chips
 	var row_a := Kit.hbox(col, 10)
+	row_a.name = "HxGoalRow"
+	objective_row = row_a
 	objective_l = Kit.trimmed(Kit.label(row_a, "", small, Kit.MUTED))  # una sola línea siempre: si los chips de la extracción le quitan lugar se recorta con «…» (la frase entera, en el cartel) y el panel no cambia de alto según la fase
 	objective_l.name = "HxObjective"
 	objective_l.custom_minimum_size = Vector2(80.0, 18.0)
@@ -312,6 +319,7 @@ func _build_dock(parent: Control) -> void:
 		var chip := Kit.panel(chips_box, Color(0.16, 0.19, 0.12, 1.0), Kit.PANEL_BORDER, 6.0, 1.0, 4)
 		var l := Kit.label(chip, "", int(_num(["font", "tiny"], 12.0)), Kit.PAPER)
 		l.clip_text = false
+		chip.tooltip_text = _t("hud.chip_tips." + str(id))  # B-052: nadie entendía «Golpe»
 		chip.visible = false
 		chip_labels[id] = {"panel": chip, "label": l}
 	# fila B: el «siguiente paso» en su propia fila, a todo el ancho del dock y de dos líneas como máximo (H-R1-7: antes compartía la fila con las acciones y quedaba en
@@ -347,36 +355,44 @@ func _build_dock(parent: Control) -> void:
 
 
 func _make_group_card(id: String, size: Vector2) -> void:
-	var p := Kit.panel(cards_box, Color(0.1, 0.12, 0.08, 1.0), Kit.PANEL_BORDER, 6.0, 3.0, 6)
+	var p := Kit.panel(cards_box, Color(0.1, 0.12, 0.08, 1.0), Kit.PANEL_BORDER, 5.0, 3.0, 6)
 	p.name = "HxCard_%s" % id
 	p.custom_minimum_size = Vector2(minf(size.x, 96.0), size.y)
 	p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	p.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	p.tooltip_text = _t("hud.group_tip")
 	p.gui_input.connect(func(ev: InputEvent): _card_input(ev, "card", id))
-	var row := Kit.hbox(p, 5)
+	var row := Kit.hbox(p, 4)
 	var accent := ColorRect.new()
 	accent.color = Kit.NEUTRAL if id == "arreo" else Kit.PATRIOT
-	accent.custom_minimum_size = Vector2(4.0, 0.0)
+	accent.custom_minimum_size = Vector2(3.0, 0.0)
 	accent.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(accent)
 	var col := Kit.vbox(row, 1)
 	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# H-R1-10: a 1024 × 640 la ficha mide ≈ 136 px. El nombre («Reconocedores» pide 97) tiene la fila entera para él: la etiqueta de fuente y el ruido van abajo, junto a las barras
 	var line1 := Kit.hbox(col, 4)
 	var key_l := Kit.label(line1, str(V.GROUPS.find(id) + 1), int(_num(["font", "body"], 15.0)), Kit.GOLD)
 	key_l.clip_text = false
 	var name_l := Kit.trimmed(Kit.label(line1, "", int(_num(["font", "small"], 13.0)), Kit.PAPER))
 	name_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var tag_l := Kit.label(line1, "", int(_num(["font", "tiny"], 12.0)), Kit.PAPER)
-	tag_l.clip_text = false
-	tag_l.visible = false
-	var noise_l := Kit.label(line1, "", int(_num(["font", "tiny"], 12.0)), Kit.MUTED)
-	noise_l.clip_text = false
-	noise_l.visible = false
 	var stage_l := Kit.trimmed(Kit.label(col, "", int(_num(["font", "tiny"], 12.0)), Kit.MUTED))
 	stage_l.custom_minimum_size.y = 15.0
-	var bar_force := Kit.bar(col, Kit.PATRIOT if id != "arreo" else Kit.NEUTRAL, 5.0, 100.0)
-	var bar_tired := Kit.bar(col, Kit.AMBER, 3.0, 0.0)
+	var foot := Kit.hbox(col, 4)
+	foot.custom_minimum_size.y = 15.0  # alto fijo: las barras no suben ni bajan cuando aparecen o se van la etiqueta y el ruido
+	var bars := Kit.vbox(foot, 2)
+	bars.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bars.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var bar_force := Kit.bar(bars, Kit.PATRIOT if id != "arreo" else Kit.NEUTRAL, 5.0, 100.0)
+	var bar_tired := Kit.bar(bars, Kit.AMBER, 3.0, 0.0)
+	var tag_l := Kit.label(foot, "", int(_num(["font", "tiny"], 12.0)), Kit.PAPER)
+	tag_l.clip_text = false
+	tag_l.visible = false
+	tag_l.mouse_filter = Control.MOUSE_FILTER_PASS  # B-052: nadie entendía el triángulo ni los puntos; cada uno explica qué es al pasar el mouse
+	var noise_l := Kit.label(foot, "", int(_num(["font", "tiny"], 12.0)), Kit.MUTED)
+	noise_l.clip_text = false
+	noise_l.visible = false
+	noise_l.mouse_filter = Control.MOUSE_FILTER_PASS
 	group_cards[id] = {"panel": p, "name": name_l, "tag": tag_l, "noise": noise_l, "stage": stage_l, "force": bar_force, "tired": bar_tired, "key": key_l}
 
 
@@ -491,24 +507,29 @@ func _refresh_fronts(hs: Dictionary) -> void:
 		Kit.recolor_bar(c.take as ProgressBar, Kit.GOOD if taken else Kit.ROYAL)
 		(c.alert as ProgressBar).value = 100.0 * clampf(float(d.get("alerta", 0.0)), 0.0, 1.0)
 		(c.accent as ColorRect).color = Kit.GOOD if taken else Kit.ROYAL
-		var parts: Array = []
+		var parts: Array = []  # en orden de importancia: si no entran todas se sacan del final (la toma ya la dice la barra de arriba; la sorpresa, no)
 		var state := str(d.get("estado", "guardado"))
 		if state != "guardado":
 			parts.append(str(d.get("estado_txt", state)))
-		if float(d.get("toma_pct", 0.0)) > 0.0 and not taken:
-			parts.append(_t("hud.take", "Toma %d %%") % int(round(float(d.get("toma_pct", 0.0)))))
 		if float(d.get("sorpresa_s", 0.0)) > 0.0:
 			parts.append(_t("hud.surprise", "Sorpresa %s") % Kit.mmss(float(d.get("sorpresa_s", 0.0))))
+		if float(d.get("toma_pct", 0.0)) > 0.0 and not taken:
+			parts.append(_t("hud.take", "Toma %d %%") % int(round(float(d.get("toma_pct", 0.0)))))
 		var support: Variant = d.get("apoyo", [])
 		if support is Array and not (support as Array).is_empty():
 			var names: Array = []
 			for sid in support:
 				names.append(_short_name(str(sid)))
 			parts.append(_t("hud.support", "Apoyo de %s") % ", ".join(PackedStringArray(names)))
-		(c.info as Label).text = " · ".join(PackedStringArray(parts))
+		(c.info as Label).text = _fit_parts(c.info as Label, parts, _vec("fronts_card", Vector2(212.0, 56.0)).x - 24.0)
 		(c.info as Label).visible = not parts.is_empty()
 		var tag_id := str(d.get("tag", "diseno"))
-		(c.panel as Control).tooltip_text = "%s %s" % [Kit.tag_glyph(tags, tag_id), str(Kit.tag_info(tags, tag_id).get("etiqueta", ""))]
+		var tip := "%s %s" % [Kit.tag_glyph(tags, tag_id), str(Kit.tag_info(tags, tag_id).get("etiqueta", ""))]
+		if (c.info as Label).text != " · ".join(PackedStringArray(parts)):
+			tip = " · ".join(PackedStringArray(parts)) + "
+" + tip  # lo que no entró en la tarjeta queda en el cartel
+		tip += "\n" + _t("hud.front_tip")
+		(c.panel as Control).tooltip_text = tip
 
 
 ## El nombre corto de una agrupación («Rodríguez»): sale de las tarjetas ya pintadas (que lo tomaron de hud_state).
@@ -526,12 +547,13 @@ func short_names() -> Dictionary:
 
 
 func _refresh_dock(hs: Dictionary, ctx: Dictionary) -> void:
-	var goal := str(hs.get("objetivo", ""))
-	objective_l.text = goal  # la frase la dicen las reglas (hud_state().objetivo): la interfaz no guarda otra copia
-	objective_l.tooltip_text = goal
 	var guide := _dict(ctx.get("guide"))
 	next_title_l.visible = not guide.is_empty() and str(guide.get("text", "")) != ""
-	next_text_l.text = str(guide.get("text", ""))
+	var next_text := str(guide.get("text", ""))
+	var why := str(guide.get("why", ""))
+	if why != "" and not bool(guide.get("enabled", true)):
+		next_text += " " + why  # B-052: el botón apagado no decía por qué; ahora la causa va junto al paso
+	next_text_l.text = next_text
 	var urgency := int(guide.get("urgencia", 0))
 	next_text_l.add_theme_color_override("font_color", Kit.WARN_TEXT if urgency >= 2 else Kit.PAPER)
 	var button_text := str(guide.get("button", ""))
@@ -552,12 +574,13 @@ func _refresh_dock(hs: Dictionary, ctx: Dictionary) -> void:
 			"golpe":
 				visible_now = phase == "ataque" or phase == "extraccion"
 			"carga":
-				visible_now = phase == "extraccion"
+				visible_now = phase == "extraccion" or (phase == "ataque" and float(_dict(chips.get("carga")).get("valor", 0.0)) > 0.0)  # el arreo carga desde el ataque (B-053)
 			"refuerzo":
 				visible_now = phase == "extraccion" or str(refuerzo.get("estado", "desconocido")) in ["visible", "llego"]
 		(info.panel as Control).visible = visible_now and chips.has(id)
 		if chips.has(id):
 			(info.label as Label).text = str(chips[id].get("txt", ""))
+	_refresh_objective(hs, phase)  # después de los chips: lo que le queda a la frase depende de cuáles se ven
 	_refresh_actions(ctx)
 	motive_l.text = str(ctx.get("motive", ""))
 	status_l.text = str(ctx.get("status", ""))
@@ -570,6 +593,59 @@ func _refresh_dock(hs: Dictionary, ctx: Dictionary) -> void:
 		var cur := str(ctx.get("pace", "march"))
 		for pid in pace_btns:
 			(pace_btns[pid] as Button).set_pressed_no_signal(str(pid) == cur)
+
+
+## Las frases del objetivo de la fase, de la más completa a la más corta. Las reglas dicen una sola frase para todo el nivel (hud_state().objetivo; BACKLOG B-048) y en la
+## extracción seguía pidiendo tomar los tres frentes ya tomados (H-R1-10): mientras `texts.objective.source` sea «ui», cada fase usa su propia lista de humahuaca_ui.json;
+## con «rules» (cuando las reglas den la frase de cada fase) manda lo que digan ellas. Una fase sin lista usa la frase de las reglas.
+func objective_variants(hs: Dictionary, phase: String) -> Array:
+	var rules_goal := str(hs.get("objetivo", ""))
+	var cfg: Variant = texts.get("objective", {})
+	if cfg is Dictionary and str((cfg as Dictionary).get("source", "ui")) == "ui":
+		var by_phase: Variant = (cfg as Dictionary).get("by_phase", {})
+		if by_phase is Dictionary:
+			var own: Variant = (by_phase as Dictionary).get(phase, null)
+			var list: Array = []
+			if own is Array:
+				for v in own:
+					if str(v) != "":
+						list.append(str(v))
+			elif own is String and str(own) != "":
+				list.append(str(own))
+			if not list.is_empty():
+				return list
+	return [rules_goal] if rules_goal != "" else []
+
+
+## Lo que le queda de ancho a la frase del objetivo en su fila: el ancho del dock menos los chips que se ven (golpe, carga y refuerzo). Sale de números del diseño y de
+## lo ya medido, no del último reparto de la fila: así vale también en el primer cuadro y apenas cambia la ventana.
+func objective_room() -> float:
+	var margin := _num(["margin"], 12.0)
+	var by_design := root.size.x - _minimap_w - 3.0 * margin - 2.0 * 12.0  # el dock va de la izquierda al minimapa, con 12 px de relleno a cada lado
+	var row_w := objective_row.size.x
+	var width := minf(by_design, row_w) if row_w >= 160.0 else by_design
+	var chips_w := chips_box.get_combined_minimum_size().x
+	return maxf(width - chips_w - 10.0, 80.0)
+
+
+## Pone la frase más completa de la fase que entra entera en lo que le queda a la fila (si ninguna entra, la más corta; el «…» queda de último recurso) y deja la frase
+## completa en el cartel que aparece al pasar el mouse.
+func _refresh_objective(hs: Dictionary, phase: String) -> void:
+	var variants := objective_variants(hs, phase)
+	if variants.is_empty():
+		objective_l.text = ""
+		objective_l.tooltip_text = ""
+		return
+	var room := objective_room()
+	var fnt: Font = objective_l.get_theme_font("font")
+	var px: int = objective_l.get_theme_font_size("font_size")
+	var pick := str(variants[variants.size() - 1])
+	for v in variants:
+		if fnt.get_string_size(str(v), HORIZONTAL_ALIGNMENT_LEFT, -1.0, px).x <= room - 2.0:
+			pick = str(v)
+			break
+	objective_l.text = pick
+	objective_l.tooltip_text = str(variants[0])
 
 
 func _refresh_actions(ctx: Dictionary) -> void:
@@ -618,13 +694,14 @@ func _refresh_groups(hs: Dictionary, ctx: Dictionary) -> void:
 		(c.tired as ProgressBar).value = float(d.get("fatiga_pct", 0.0))
 		var stage_txt := str(d.get("etapa_txt", ""))
 		var idle := stage_txt == "" or (ctx.get("idle_groups", []) as Array).has(id)
-		(c.stage as Label).text = "" if idle else stage_txt
+		_fit_stage(c.stage as Label, "" if idle else stage_txt, str(_dict(ctx.get("stages")).get(id, "")))
 		var noise := str(d.get("ruido", "silencio"))
 		(c.noise as Label).text = str(texts.get("hud", {}).get("noise_dots", {}).get(noise, ""))
 		(c.noise as Label).visible = noise != "silencio" or is_sel
 		(c.noise as Control).tooltip_text = str(texts.get("hud", {}).get("noise", {}).get(noise, ""))
 		var tag_id := str(d.get("tag", "diseno"))
 		(c.tag as Label).text = Kit.tag_glyph(tags, tag_id)
+		(c.tag as Control).tooltip_text = "%s %s: %s" % [Kit.tag_glyph(tags, tag_id), str(Kit.tag_info(tags, tag_id).get("etiqueta", "")), str(Kit.tag_info(tags, tag_id).get("descripcion", ""))]
 		(c.tag as Label).add_theme_color_override("font_color", Kit.tag_color(tags, tag_id))
 		(c.tag as Label).visible = is_sel
 		var alive := bool(d.get("vivo", true))
@@ -637,8 +714,36 @@ func _refresh_groups(hs: Dictionary, ctx: Dictionary) -> void:
 		tip_parts.append("%s %d %%" % [_t("hud.fatigue", "Fatiga"), int(round(float(d.get("fatiga_pct", 0.0))))])
 		if int(d.get("custodia", 0)) > 0:
 			tip_parts.append(_t("hud.custody", "Custodia %d") % int(d.get("custodia", 0)))
+		if stage_txt != "" and not idle:
+			tip_parts.insert(1, stage_txt)
 		tip_parts.append("%s %s" % [Kit.tag_glyph(tags, tag_id), str(Kit.tag_info(tags, tag_id).get("etiqueta", ""))])
 		(c.panel as Control).tooltip_text = "\n".join(PackedStringArray(tip_parts))
+
+
+## Une las partes de una línea corta (estado, toma, sorpresa, apoyo) y, si no entra entera en la etiqueta, saca partes del final hasta que entre: nada queda cortado con «…»
+## (H-R1-10) y lo que se saca sigue en el cartel de la tarjeta. Antes de que la fila se acomode (ancho 0) usa `fallback_room`.
+func _fit_parts(l: Label, parts: Array, fallback_room: float) -> String:
+	var fnt: Font = l.get_theme_font("font")
+	var px: int = l.get_theme_font_size("font_size")
+	var room := l.size.x if l.size.x >= 24.0 else fallback_room
+	var shown := parts.duplicate()
+	while shown.size() > 1 and fnt.get_string_size(" · ".join(PackedStringArray(shown)), HORIZONTAL_ALIGNMENT_LEFT, -1.0, px).x > room - 2.0:
+		shown.pop_back()
+	return " · ".join(PackedStringArray(shown))
+
+
+## La etapa de una ficha en palabras: la de las reglas («Sosteniendo lo tomado») si entra en la ficha y, si no (a 1024 × 640 la ficha mide ≈ 136 px), la compacta de
+## humahuaca_ui.json (texts.stage_compact, por id de etapa). La frase completa queda en el cartel de la ficha.
+func _fit_stage(l: Label, rules_text: String, stage: String) -> void:
+	var shown := rules_text
+	if rules_text != "" and l.size.x >= 24.0:
+		var fnt: Font = l.get_theme_font("font")
+		var px: int = l.get_theme_font_size("font_size")
+		if fnt.get_string_size(rules_text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, px).x > l.size.x - 2.0:
+			var compact := _t("stage_compact." + stage, "")
+			if compact != "":
+				shown = compact
+	l.text = shown
 
 
 ## Nombre corto de la ficha: el de reglas (`short`) llega por el controlador en ctx; si no, se recorta «Partida de» y «División de».

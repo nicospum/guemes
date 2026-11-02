@@ -28,6 +28,8 @@ var motive := ""
 var last_error := ""
 var last_result: Dictionary = {}
 var _preview_wait := 0.0
+var _preview_pending := false  # el último movimiento del cursor llegó dentro de los 80 ms de la vista previa anterior: se rehace apenas pasa la espera
+var _preview_pos := Vector2.ZERO
 ## Las órdenes que la interfaz dio con éxito, en orden: {actor, action}. Para las pruebas (qa_state().issued).
 var issued: Array = []
 
@@ -124,6 +126,39 @@ func availability(actor: String, action: String) -> Dictionary:
 	return av if av is Dictionary else {"ok": false, "reason": "", "cost_text": "", "tag": "diseno"}
 
 
+## ¿El punto (x, z) está dentro del mapa jugable? Las reglas rechazan las paradas de afuera («Una de las paradas queda fuera del mapa.»); la interfaz avisa antes de
+## sumarlas a la ruta (B-046 b), no después de armar una orden que va a fallar.
+func inside_map(p: Vector2) -> bool:
+	if ui.rules == null or not ui.rules.has_method("map_size"):
+		return true
+	var size: Variant = ui.rules.call("map_size")
+	return not (size is Vector2) or (p.x >= 0.0 and p.y >= 0.0 and p.x <= (size as Vector2).x and p.y <= (size as Vector2).y)
+
+
+## Un rechazo de las reglas dicho con más ayuda (B-052 e): «Esa agrupación no puede hacer eso.» no decía quién sí. Se suma quién la hace y con qué tecla; el resto de los
+## motivos queda tal cual.
+func explain(reason: String, action: String) -> String:
+	var generic := str(ui.call("rules_error", "no_corresponde"))
+	if ui.rules == null or action == "" or generic == "" or reason != generic:
+		return reason
+	var names: Array = []
+	var keys: Array = []
+	var shorts: Dictionary = ui.hud.short_names() if ui.hud != null else {}
+	for i in range(V.GROUPS.size()):
+		var id := str(V.GROUPS[i])
+		var kind := actor_kind(id)
+		if kind != "" and (ui.rules.call("list_actions", kind) as Array).has(action):
+			names.append(_t("actions.who." + id, str(shorts.get(id, id))))
+			keys.append(i + 1)
+	if names.is_empty():
+		return reason
+	var key_text := str(keys[0])
+	if keys.size() > 1:
+		key_text = "%d a %d" % [keys[0], keys[keys.size() - 1]] if int(keys[keys.size() - 1]) - int(keys[0]) == keys.size() - 1 else ", ".join(PackedStringArray(keys.map(func(k): return str(k))))
+	var who: String = str(names[0]) if names.size() == 1 else ", ".join(PackedStringArray(names.slice(0, names.size() - 1))) + " y " + str(names[names.size() - 1])
+	return (_t("actions.only_one") if names.size() == 1 else _t("actions.only_many")) % [who, key_text]
+
+
 # ---------------------------------------------------------------------------------------------------------------------
 # Ejecutar
 
@@ -144,7 +179,7 @@ func issue(actor: String, action: String, target: Vector2 = Vector2.ZERO, opts: 
 		issued.append({"actor": actor, "action": action})
 		ui.call("on_order_ok", actor, action)
 	else:
-		last_error = str(res.get("reason", ""))
+		last_error = explain(str(res.get("reason", "")), action)
 		ui.call("on_order_failed", last_error)
 	return res
 
@@ -164,7 +199,22 @@ func press(action: String) -> bool:
 	if U.AIM_ACTIONS.has(action):
 		begin_aim(action)
 		return true
+	if action == "destroy" and needs_destroy_confirmation():
+		ui.call("ask_destroy")
+		return true
 	return issue_selected(action, Vector2.ZERO, {})
+
+
+## ¿Hay que preguntar antes de destruir? Sí cuando alguna de las agrupaciones elegidas puede destruir ahora y el siguiente paso no lo está pidiendo. Si no puede (no hay
+## carga a mano) no se pregunta: se dice por qué como con cualquier otra acción.
+func needs_destroy_confirmation() -> bool:
+	var g: Variant = ui.guide
+	if g is Dictionary and str((g as Dictionary).get("action", "")) == "destroy":
+		return false
+	for id in V.GROUPS:
+		if (ui.selected as Array).has(id) and bool(availability(str(id), "destroy").get("ok", false)):
+			return true
+	return false
 
 
 ## La misma orden a cada agrupación elegida a la que le corresponde. Si ninguna puede, se muestra el motivo de la primera.
@@ -185,8 +235,8 @@ func issue_selected(action: String, target: Vector2, opts: Dictionary) -> bool:
 		elif first_reason == "":
 			first_reason = str(res.get("reason", ""))
 	if done == 0 and first_reason != "":
-		last_error = first_reason
-		ui.call("on_order_failed", first_reason)
+		last_error = explain(first_reason, action)
+		ui.call("on_order_failed", last_error)
 	return done > 0
 
 
@@ -215,7 +265,7 @@ func begin_aim(action: String) -> void:
 	if actors.is_empty():
 		var first := primary_actor()
 		var av2 := availability(first, action)
-		ui.call("set_motive", str(av2.get("reason", _t("actions.no_selection"))), true)
+		ui.call("set_motive", explain(str(av2.get("reason", _t("actions.no_selection"))), action), true)
 		ui.call("play_sound", "error")
 		return
 	aim = {"action": action, "actors": actors}
@@ -230,6 +280,7 @@ func begin_aim(action: String) -> void:
 
 
 func cancel_aim() -> void:
+	_preview_pending = false
 	if aim.is_empty() and waypoints.is_empty():
 		return
 	aim = {}
@@ -243,6 +294,10 @@ func cancel_aim() -> void:
 
 func tick(delta: float) -> void:
 	_preview_wait = maxf(0.0, _preview_wait - delta)
+	if _preview_pending and _preview_wait <= 0.0:
+		_preview_pending = false
+		if not aim.is_empty():
+			aim_move(_preview_pos)
 
 
 ## El cursor se movió con una orden en la mano: arma la vista previa (sin efectos) a lo sumo cada 80 ms.
@@ -264,7 +319,10 @@ func aim_move(pos: Vector2) -> void:
 	target_now = g
 	has_target = true
 	if _preview_wait > 0.0 and not plan.is_empty():
+		_preview_pending = true  # sin esto el cursor se quedaba quieto con la vista previa del movimiento anterior (a veces de un punto de afuera del mapa)
+		_preview_pos = pos
 		return
+	_preview_pending = false
 	_preview_wait = PREVIEW_PERIOD
 	var actor := str((aim.actors as Array)[0])
 	if action == "recon":
@@ -301,6 +359,10 @@ func aim_confirm(pos: Vector2, shift: bool) -> bool:
 	target_now = g
 	var limit_stops := 2 if action == "recon" else MAX_STOPS  # reconocer admite 3 puntos (dos paradas y el último); mover, 4 paradas
 	if shift and waypoints.size() < limit_stops:
+		if not inside_map(target_now):
+			ui.call("set_motive", _t("actions.stop_outside"), true)
+			ui.call("play_sound", "error")
+			return false
 		waypoints.append(target_now)
 		_preview_wait = 0.0
 		return true
@@ -378,6 +440,10 @@ func context_order(pos: Vector2, shift: bool, ctrl: bool, alt: bool) -> bool:
 	var front: String = str(ui.call("pick_front_at", pos))
 	var g: Variant = ui.call("ground_from_screen", pos)
 	if shift and g is Vector2 and front == "":
+		if not inside_map(g):
+			ui.call("set_motive", _t("actions.stop_outside"), true)
+			ui.call("play_sound", "error")
+			return false
 		if waypoints.size() < MAX_STOPS - 1:
 			waypoints.append(g)
 			ui.call("set_motive", "", false)
@@ -385,6 +451,7 @@ func context_order(pos: Vector2, shift: bool, ctrl: bool, alt: bool) -> bool:
 		return false
 	var done := 0
 	var first_reason := ""
+	var first_action := ""
 	for id in V.GROUPS:
 		if not (ui.selected as Array).has(id):
 			continue
@@ -412,6 +479,7 @@ func context_order(pos: Vector2, shift: bool, ctrl: bool, alt: bool) -> bool:
 		if av is Dictionary and not bool((av as Dictionary).get("ok", false)):
 			if first_reason == "":
 				first_reason = str((av as Dictionary).get("reason", ""))
+				first_action = action
 			continue
 		var res := issue(str(id), action, target, opts)
 		if bool(res.get("ok", false)):
@@ -422,6 +490,6 @@ func context_order(pos: Vector2, shift: bool, ctrl: bool, alt: bool) -> bool:
 		waypoints = []
 		return true
 	if first_reason != "":
-		last_error = first_reason
-		ui.call("on_order_failed", first_reason)
+		last_error = explain(first_reason, first_action)
+		ui.call("on_order_failed", last_error)
 	return false

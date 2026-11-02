@@ -28,6 +28,7 @@ func load_game() -> bool:
 		return false
 	if dialogs != null:
 		dialogs.close()
+	clear_transients()
 	selected = []
 	_auto_start = false
 	paused = true
@@ -301,10 +302,23 @@ func select_group(index: int) -> void:
 	if index < 0 or index >= V.GROUPS.size():
 		return
 	var id := str(V.GROUPS[index])
-	if selected == [id] and index < 3:
-		center_on_front(str(group_fronts.get(id, "")))
+	if selected == [id]:
+		if index < 3:
+			center_on_front(str(group_fronts.get(id, "")))
+		else:
+			center_on_unit(id)  # los reconocedores y el arreo no tienen un frente: se sigue a la agrupación misma
 		return
 	select([id], "replace")
+
+
+## Centra la cámara en una agrupación (la ficha o la tecla de los reconocedores y del arreo, que no tienen un frente).
+func center_on_unit(id: String) -> void:
+	if cam == null or rules == null:
+		return
+	var u: Variant = rules.call("get_unit", id)
+	if u is Dictionary and not (u as Dictionary).is_empty():
+		cam.center_on(Vector2(float((u as Dictionary).get("x", 0.0)), float((u as Dictionary).get("z", 0.0))))
+		apply_camera()
 
 
 func cycle_selection(backwards: bool) -> void:
@@ -356,7 +370,22 @@ func on_order_ok(actor: String, action: String) -> void:
 	_motive_until = 0.0
 	if action != "cancel":
 		play_sound("order")
+	_order_feedback(actor, action)
 	_refresh_hud(true)
+
+
+## Dice qué orden se dio (B-052 b): antes un clic derecho sobre la posta solo dibujaba la línea y nadie sabía qué había pasado.
+func _order_feedback(actor: String, action: String) -> void:
+	if action == "cancel":
+		_toast(tx("hud.cancel_done", ""), "info")
+		return
+	if actor == "" or action == "give_signal" or rules == null or hud == null:
+		return  # la señal ya tiene su propio aviso: el disparo
+	var info: Variant = rules.call("action_info", action)
+	var name_text := str((info as Dictionary).get("name", "")) if info is Dictionary else ""
+	if name_text == "":
+		return
+	_toast(tx("toast.order_given", "") % [str(hud.short_names().get(actor, actor)), name_text], "info")
 
 
 func on_order_failed(reason: String) -> void:
@@ -383,6 +412,13 @@ func _toast(text: String, level: String, force: bool = false) -> void:
 	var max_queue := int(ui_data.get("toasts", {}).get("max_queue", 3))
 	while _toast_queue.size() > max_queue:
 		_toast_queue.pop_front()
+
+
+## El aviso de pie que se pinta: el mismo, salvo que repita el título de la alerta que ya está a la vista (el refuerzo salía dos veces: arriba con su botón y abajo en la nota).
+func _toast_for_hud(alert: Dictionary) -> Dictionary:
+	if not alert.is_empty() and not _toast_cur.is_empty() and str(_toast_cur.get("text", "")).strip_edges() == str(alert.get("corto", "")).strip_edges():
+		return {}
+	return _toast_cur
 
 
 func _toast_tick(delta: float) -> void:
@@ -521,11 +557,14 @@ func _compute_guide() -> void:
 	if button != "" and key_hint != "":
 		button = "%s  [%s]" % [button, key_hint]
 	var enabled := true
+	var why := ""
 	if actionable:
 		var av: Variant = rules.call("action_availability", actor, action, target, _guide_opts(action, target))
 		enabled = av is Dictionary and bool((av as Dictionary).get("ok", false))
+		if not enabled and av is Dictionary:
+			why = str((av as Dictionary).get("reason", ""))
 	guide = {"text": str(s.get("texto", "")), "action": action, "actor": actor, "target": target, "urgencia": int(s.get("urgencia", 0)), "button": button,
-		"button_visible": button != "", "enabled": enabled, "arrow": actionable and bool(ui_data.get("onboarding", {}).get("arrow", true)) and mode == "play" and _playing()}
+		"button_visible": button != "", "enabled": enabled, "why": why, "arrow": actionable and bool(ui_data.get("onboarding", {}).get("arrow", true)) and mode == "play" and _playing()}
 	if mode != "play" or not _playing():
 		guide = {}
 
@@ -689,6 +728,17 @@ func _calm_tick(delta: float) -> void:
 			_suggest_x2 = false
 
 
+## Si pasan `onboarding.first_order_hint_s` segundos (12) sin que el jugador dé ninguna orden, un aviso le dice cómo arranca el reloj (con la primera orden o con Espacio): el nivel
+## empieza en pausa y quien no sabe qué apretar se queda mirando. Una sola vez por intento; no cuenta mientras hay una ventana abierta ni durante la presentación.
+func _first_order_hint_tick(delta: float) -> void:
+	if _idle_first_done or mode != "play" or order_count > 0 or not _auto_start or not _playing() or (dialogs != null and dialogs.is_open()):
+		return
+	_idle_first_s += delta
+	if _idle_first_s >= float(ui_data.get("onboarding", {}).get("first_order_hint_s", 12.0)):
+		_idle_first_done = true
+		_toast(tx("phase_hint.waiting", ""), "aviso")
+
+
 func _idle_groups() -> Array:
 	var out: Array = []
 	if rules == null:
@@ -697,6 +747,18 @@ func _idle_groups() -> Array:
 		var u: Variant = rules.call("get_unit", str(id))
 		if u is Dictionary and str((u as Dictionary).get("stage", "idle")) == "idle":
 			out.append(str(id))
+	return out
+
+
+## La etapa de cada agrupación (id → «moving», «holding»…): el HUD la usa para elegir el texto compacto cuando el de las reglas no entra en la ficha.
+func _stages_by_group() -> Dictionary:
+	var out := {}
+	if rules == null:
+		return out
+	for id in V.GROUPS:
+		var u: Variant = rules.call("get_unit", str(id))
+		if u is Dictionary:
+			out[str(id)] = str((u as Dictionary).get("stage", "idle"))
 	return out
 
 
@@ -722,8 +784,8 @@ func _refresh_hud(_force_now: bool = false) -> void:
 		motive = _hover_motive
 	var phase_id := str(_hs.get("fase", {}).get("id", _phase())) if _hs.get("fase", {}) is Dictionary else _phase()
 	var ctx := {"paused": paused or mode != "play", "speed": speed, "phase": phase_id, "selected": selected, "guide": guide, "alert": alert,
-		"toast": _toast_cur, "warn": _warn_text(), "motive": motive, "status": _status_line(), "suggest_x2": _suggest_x2,
-		"bar_items": orders.bar_items(_hs) if orders != null and mode == "play" else [], "idle_groups": _idle_groups(),
+		"toast": _toast_for_hud(alert), "warn": _warn_text(), "motive": motive, "status": _status_line(), "suggest_x2": _suggest_x2,
+		"bar_items": orders.bar_items(_hs) if orders != null and mode == "play" else [], "idle_groups": _idle_groups(), "stages": _stages_by_group(),
 		"pace": orders.pace if orders != null else "march", "pace_visible": orders != null and orders.aiming() and str(orders.aim.get("action", "")) != "support"}
 	if mode == "play" and selected.is_empty() and _playing() and order_count >= 1:
 		ctx["motive"] = motive if motive != "" else tx("hud.pick_hint", "")
@@ -754,10 +816,7 @@ func _on_hud(kind: String, arg: Variant) -> void:
 			if selected == [id] and not bool(d.shift) and not bool(d.ctrl):
 				center_on_front(str(group_fronts.get(id, "")))
 				if str(group_fronts.get(id, "")) == "":
-					var u: Variant = rules.call("get_unit", id) if rules != null else {}
-					if u is Dictionary:
-						cam.center_on(Vector2(float((u as Dictionary).get("x", 0.0)), float((u as Dictionary).get("z", 0.0))))
-						apply_camera()
+					center_on_unit(id)
 			else:
 				select([id], "add" if bool(d.shift) else ("toggle" if bool(d.ctrl) else "replace"))
 		"front":
@@ -874,6 +933,15 @@ func _show_pause_window() -> void:
 	dialogs.show_pause(_playing() and rules != null, FileAccess.file_exists(str(main._save_path(V.SCENARIO))))
 
 
+## Destruir apretado a mano (la tecla X o el botón) sin que el siguiente paso lo pida: no se deshace y puede arruinar la extracción (lo vio el agente-jugador: un X por costumbre
+## quemó la carga sin avisar), así que se pregunta una vez. Si el siguiente paso lo recomienda, se hace directo.
+func ask_destroy() -> void:
+	if dialogs == null or rules == null or mode != "play" or dialogs.is_open():
+		return
+	_confirm_back = "juego"
+	dialogs.show_confirm(tx("pause.destroy_ask", ""), tx("pause.destroy_yes", ""), tx("pause.destroy_no", ""), "destroy_yes", true)
+
+
 func open_help() -> void:
 	if dialogs == null or mode == "briefing" or mode == "opening":
 		return
@@ -900,6 +968,10 @@ func _close_dialog() -> void:
 	dialogs.close()
 	if mode == "ended":
 		_show_report()
+		return
+	if id == "confirmar" and _confirm_back == "juego":  # destruir se confirma sobre el juego: Esc es «No» y no abre el menú de pausa
+		_confirm_back = ""
+		_refresh_hud(true)
 		return
 	if mode == "play" and ((back == "pausa" and id in ["ayuda", "diario"]) or id == "confirmar"):  # la retirada se confirma desde el menú de pausa: Esc es «No»
 		_show_pause_window()
@@ -934,14 +1006,24 @@ func _on_dialog(kind: String, arg: Variant) -> void:
 			_dialog_back = "pausa" if mode == "play" else ""
 			dialogs.show_diary(entries)
 		"pause_retreat":
+			_confirm_back = ""
 			dialogs.show_confirm(tx("pause.retreat_ask", ""), tx("pause.retreat_yes", ""), tx("pause.retreat_no", ""), "retreat_yes", true)
 		"confirm_no":
 			dialogs.close()
+			var back := _confirm_back
+			_confirm_back = ""
 			if mode == "ended":
 				_show_report()
+			elif back == "juego":
+				_refresh_hud(true)  # destruir: el reloj y la selección quedan como estaban
 			else:
 				_show_pause_window()  # sigue en pausa: el reloj no cambia por cancelar la retirada
 				_refresh_hud(true)
+		"destroy_yes":
+			dialogs.close()
+			_confirm_back = ""
+			orders.issue_selected("destroy", Vector2.ZERO, {})
+			_refresh_hud(true)
 		"retreat_yes":
 			dialogs.close()
 			paused = false
@@ -1013,11 +1095,11 @@ func retry(kind: String) -> void:
 	_seed = _pick_seed()
 	var restored := false
 	if (kind == "posiciones" or kind == "salida") and progress != null and progress.has_method("restore_checkpoint"):
-		_new_attempt({}, true)
+		_new_attempt({}, false)  # restore_checkpoint cuenta el intento: contarlo acá también daba «Intento 3» tras un solo reintento
 		var res: Variant = progress.call("restore_checkpoint", rules, kind)
 		restored = res is Dictionary and bool((res as Dictionary).get("ok", false))
 	if not restored:
-		_new_attempt({}, kind != "posiciones" and kind != "salida")
+		_new_attempt({}, true)  # sin punto de control (o si no sirvió) se empieza de cero y se cuenta ese intento
 	mode = "play"
 	paused = true
 	_auto_start = not restored

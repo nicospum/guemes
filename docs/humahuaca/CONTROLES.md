@@ -5,7 +5,7 @@ Dueña: `ui_feel`. La tabla sale de `data/humahuaca_ui.json` (`key_table`); `tes
 ## Lo básico en 30 segundos
 
 1. Mirá el **siguiente paso** (abajo): es una sola cosa por vez y tiene su botón (con la tecla entre corchetes). Si no sabés qué hacer, apretalo.
-2. El reloj arranca con tu **primera orden** (o con Espacio). Podés pausar en cualquier momento para pensar y dar órdenes.
+2. El reloj arranca con tu **primera orden** (o con Espacio): si a los 12 segundos no diste ninguna, un aviso te lo recuerda. Podés pausar en cualquier momento para pensar y dar órdenes.
 3. Elegí una agrupación con las teclas **1 a 5** o con un clic en su ficha; con el **clic derecho** le das la orden más lógica al punto o al frente que señalás.
 
 ## Tiempo
@@ -36,8 +36,8 @@ Dueña: `ui_feel`. La tabla sale de `data/humahuaca_ui.json` (`key_table`); `tes
 | 1 | Partida de Rodríguez (otra vez: centra la cámara en la batería) |
 | 2 | Partida de Portal (otra vez: centra la cámara en el cuartel) |
 | 3 | División de Arias (otra vez: centra la cámara en la posta) |
-| 4 | Reconocedores |
-| 5 | Arreo |
+| 4 | Reconocedores (otra vez: centra la cámara en ellos) |
+| 5 | Arreo (otra vez: centra la cámara en él) |
 | Tab | Pasa a la agrupación siguiente (Mayús: la anterior) |
 | Ctrl+Z | Deshace la última orden |
 | Clic o caja | Elige agrupaciones (Mayús suma, Ctrl alterna) |
@@ -58,17 +58,17 @@ Dueña: `ui_feel`. La tabla sale de `data/humahuaca_ui.json` (`key_table`); `tes
 
 | Tecla o gesto | Qué hace |
 |---|---|
-| G | Mover (a un punto del mapa) · M agranda el minimapa. |
+| G | Mover (a un punto del mapa) |
 | P | A su puesto de ataque |
-| T | Atacar el frente · A mueve la cámara. |
-| C | Socorrer a otra partida · S mueve la cámara. |
+| T | Atacar el frente (con Ctrl, a fondo) |
+| C | Socorrer a otra partida |
 | R | Reconocer un punto |
 | L | Cargar en el arreo |
-| X | Destruir lo que no se lleva |
-| V | Salir por el vado, al este · E gira la cámara. |
+| X | Destruir lo que no se lleva (se pregunta antes, salvo que el siguiente paso lo pida) |
+| V | Salir por el vado, al este |
 | F | Dar la señal |
 | H | Sostener lo tomado |
-| Supr | Cancela la orden en curso · Esc cierra lo abierto o abre el menú. |
+| Supr | Cancela la orden en curso |
 
 ## Órdenes con el mouse
 
@@ -98,13 +98,19 @@ Dueña: `ui_feel`. La tabla sale de `data/humahuaca_ui.json` (`key_table`); `tes
 - Después: abre el **menú de pausa** (seguir, guardar, cargar, ayuda, diario, retirada general con dos clics, volver al menú).
 - Durante la presentación de cámara, **cualquier tecla** la salta; en el briefing, Enter es «Empezar» y Espacio empieza ya con el reloj corriendo.
 
+## Fichas, avisos y cartel de cada cosa
+
+Cada ficha de agrupación (teclas 1 a 5) muestra, de arriba abajo: su número y nombre, lo que está haciendo en palabras, y las barras de **fuerza** (la gente en pie) y **fatiga** (el cansancio). Al elegirla suma, junto a las barras, la **etiqueta de fuente** (▲ diseño, ● documentado, ◇ razonado, ◆ discutido, ○ sin datos) y el **ruido** (●○○ en silencio, ●●○ se oye, ●●● los oyen); los dos explican qué son al pasar el mouse. Los chips de golpe, carga y refuerzo y la línea de la señal (oscuridad y desvelo) también traen su cartel, y F1 explica todo en «Qué significa lo que ves». El chip de **carga** se ve apenas el arreo empieza a cargar, ya en el ataque.
+
+Cada orden dada se nombra en un aviso de pie («Orden dada a Rodríguez: Atacar»). Si una agrupación no puede hacer lo que le pedís, el motivo dice quién sí («Eso lo hacen Rodríguez, Portal y Arias (teclas 1 a 3)»). **Destruir** apretado a mano (X o el botón de la barra) pregunta una vez, porque no se deshace y quemar la pólvora adelanta al refuerzo; si es el siguiente paso el que lo pide, se hace directo. Pulsar otra vez 4 o 5 centra la cámara en los reconocedores o en el arreo. Mayús + clic derecho fuera del mapa no suma la parada y dice por qué. Si el botón del siguiente paso está apagado, el paso dice la causa («… El arreo no lleva carga.»).
+
 ## Ritmo de marcha y paradas
 
 Al apuntar «Mover» aparecen tres botones de ritmo (*En silencio*, *Marcha*, *A la carrera*); con el clic derecho, **Alt** marcha en silencio y **Ctrl** a la carrera. **Mayús + clic** suma una parada (hasta 4 en «Mover» y 2 en «Reconocer»). La vista previa dice cuántos metros son, cuánto se tarda y el riesgo de que te vean, sin dar la orden. **Ctrl** con la tecla de «Atacar» ataca *a fondo* (más poder y más bajas); sin Ctrl, *con cautela*.
 
 ## Avisos, barra de órdenes y panel de abajo
 
-Abajo hay **una sola columna que crece hacia arriba**, así que nada se pisa aunque haya de todo a la vez. De arriba hacia abajo: (1) las **notas al pie** (un aviso a la vez y, si una capa corre en su versión mínima, la línea roja); (2) la **barra de órdenes**, que solo existe mientras hay algo que decir o hacer con lo que elegiste: la línea de motivo y el estado de la señal y de la torre arriba, y debajo las acciones (si no entran en una línea siguen en la de abajo) y, al apuntar, los tres ritmos de marcha; (3) el **panel de abajo**: el objetivo en una línea, el **siguiente paso** en su propia fila (de dos líneas como máximo, con su botón) y las cinco fichas de agrupación. En el primer cuadro no hay barra ni notas: solo el panel de abajo, de alto fijo en todas las fases. El objetivo es **una sola línea**: cuando en el ataque y la extracción aparecen el golpe, la carga y el reloj del refuerzo, la frase se recorta con «…» (entera, en el cartel al pasar el mouse) en vez de agrandar el panel. Lo que aparece o desaparece está siempre *encima* de lo que no, para que los botones no se muevan bajo el cursor.
+Abajo hay **una sola columna que crece hacia arriba**, así que nada se pisa aunque haya de todo a la vez. De arriba hacia abajo: (1) las **notas al pie** (un aviso a la vez y, si una capa corre en su versión mínima, la línea roja); (2) la **barra de órdenes**, que solo existe mientras hay algo que decir o hacer con lo que elegiste: la línea de motivo y el estado de la señal y de la torre arriba, y debajo las acciones (si no entran en una línea siguen en la de abajo) y, al apuntar, los tres ritmos de marcha; (3) el **panel de abajo**: el objetivo en una línea, el **siguiente paso** en su propia fila (de dos líneas como máximo, con su botón) y las cinco fichas de agrupación. En el primer cuadro no hay barra ni notas: solo el panel de abajo, de alto fijo en todas las fases. El objetivo es **una sola línea y cambia con la fase** (H-R1-10): en la preparación dice el golpe entero; en la aproximación, llevar a cada partida a su puesto y dar la señal antes del alba; en el ataque, tomar los tres frentes a la vez y socorrer; en la extracción, cargar y salir por el vado antes del refuerzo. De cada fase hay una frase completa y otras más cortas (`texts.objective.by_phase` en `humahuaca_ui.json`) y el HUD pone la más completa que entra **entera** junto a los chips de golpe, carga y refuerzo: a 1024 × 640 en la extracción entra la mediana o la corta, y nunca queda cortada con «…». Si las reglas dan algún día la frase de cada fase (BACKLOG B-048), `texts.objective.source = "rules"` hace que mande la de ellas. Lo que aparece o desaparece está siempre *encima* de lo que no, para que los botones no se muevan bajo el cursor.
 
 Una sola alerta a la vez, y solo si pide algo (lleva un botón) o es crítica; lo que apenas informa sale como nota breve abajo a la izquierda, una vez. La alerta aparece debajo de los frentes, al centro (en ventanas chicas es más angosta, 40 % del ancho, para entrar entre las fichas), y se **corre** a la derecha o a la izquierda si taparía una ficha o el rótulo de un frente (`HxHud.place_alert`, que recibe de la interfaz los rectángulos de las fichas). Mientras su lugar siga libre no salta de un lado al otro. Si el botón de la alerta repite el del «siguiente paso», se muestra una sola vez.
 
@@ -114,4 +120,4 @@ La rúbrica pide ≤ 5 controles accionables (C03). Se cuentan **grupos**: pausa
 
 ## Legibilidad
 
-Desde 1024 × 640 el texto de la interfaz no baja de 13 px reales: en ventanas menores que la base de 1440 × 900 la interfaz propia se agranda (`ui_scale`). El cuadro inicial deja las cinco partidas con su anillo entero a la vista (a ≥ 6 % del borde, también a 1024 × 640) y por encima de lo que ocupan la cabecera, el panel de abajo y una barra de órdenes de una línea. Ningún dato depende solo del color: el riesgo de una ruta cambia también el trazo (continuo, largo, corto) y se dice con palabras; el ruido de cada partida son tres puntos (●○○, ●●○, ●●●) con su nombre en el cartel; las etiquetas de fuente llevan glifo (● ◇ ◆ ▲ ○).
+Desde 1024 × 640 el texto de la interfaz no baja de 12 px reales (13 en los títulos y 15 en el cuerpo): en ventanas menores que la base de 1440 × 900 la interfaz propia se agranda (`ui_scale`). **Ningún texto queda cortado** a 1280 × 720, 1024 × 640, 1920 × 1080 ni 2560 × 1440: lo que no entra se acorta por partes (la línea de estado de un frente saca primero el apoyo y la sorpresa; la etapa de una ficha usa su texto compacto, «Sostiene lo tomado») y la frase completa queda en el cartel. `tools/ui_qa_humahuaca.gd` y `tests/test_hx_flow.gd` lo miden con la misma cuenta que la sonda de recortes del QA (`Kit.cut_labels`). El cuadro inicial deja las cinco partidas con su anillo entero a la vista (a ≥ 6 % del borde, también a 1024 × 640) y por encima de lo que ocupan la cabecera, el panel de abajo y una barra de órdenes de una línea. Ningún dato depende solo del color: el riesgo de una ruta cambia también el trazo (continuo, largo, corto) y se dice con palabras; el ruido de cada partida son tres puntos (●○○, ●●○, ●●●) con su nombre en el cartel; las etiquetas de fuente llevan glifo (● ◇ ◆ ▲ ○).

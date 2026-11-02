@@ -89,6 +89,7 @@ var _rec: Dictionary = {}
 var _auto_start := true
 var _auto_resume := 0.0
 var _paused_before_dialog := true
+var _confirm_back := ""  # a dónde vuelve «No» de una confirmación: "" al menú de pausa (retirada) o "juego" (destruir sin que lo pida el siguiente paso)
 var _dialog_back := ""  # a qué ventana vuelve «Cerrar» en el diario y la ayuda: "pausa" si se abrieron desde el menú de pausa (si no, al juego; en el parte, siempre al parte)
 var _decision_left := 0.0
 var _decision_id := ""
@@ -109,6 +110,8 @@ var _toast_cur: Dictionary = {}
 var _toast_queue: Array = []
 var _shake := 0.0
 var _calm_s := 0.0
+var _idle_first_s := 0.0  # segundos reales con el nivel en pausa y sin ninguna orden dada (onboarding.first_order_hint_s)
+var _idle_first_done := false
 var _suggest_x2 := false
 var _saved_by_player := false
 var _alert_seen: Dictionary = {}
@@ -510,8 +513,10 @@ func _build_ui() -> void:
 	_modal_layer.add_child(_subtitle)
 	_skip_hint = Label.new()
 	_skip_hint.name = "HxSkipHint"
-	_skip_hint.add_theme_font_size_override("font_size", 14)
-	_skip_hint.add_theme_color_override("font_color", Kit.MUTED)
+	_skip_hint.add_theme_font_size_override("font_size", 16)
+	_skip_hint.add_theme_color_override("font_color", Kit.PAPER)
+	_skip_hint.add_theme_color_override("font_outline_color", Color(0.02, 0.03, 0.02, 1.0))
+	_skip_hint.add_theme_constant_override("outline_size", 5)
 	_skip_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_skip_hint.anchor_left = 1.0
 	_skip_hint.anchor_right = 1.0
@@ -622,6 +627,7 @@ func _pick_seed() -> int:
 
 ## Empieza un intento (o lo reinicia). `extra` pisa las opciones de new_game; la vista se rearma si ya existía.
 func _new_attempt(extra: Dictionary = {}, count_attempt: bool = false, rebuild_view: bool = true) -> void:
+	clear_transients()
 	_ended = false
 	_end_delay = 0.0
 	_rec = {}
@@ -634,6 +640,8 @@ func _new_attempt(extra: Dictionary = {}, count_attempt: bool = false, rebuild_v
 	_toast_cur = {}
 	_toast_queue = []
 	_calm_s = 0.0
+	_idle_first_s = 0.0
+	_idle_first_done = false
 	_suggest_x2 = false
 	selected = []
 	if orders != null:
@@ -658,6 +666,25 @@ func _new_attempt(extra: Dictionary = {}, count_attempt: bool = false, rebuild_v
 	_find_group_fronts()
 
 
+## Lo pasajero de la interfaz que no debe sobrevivir a empezar un intento ni a recuperar una partida (B-046 b): el motivo de la última orden rechazada, el que
+## muestra el cartel de un botón, la orden en la mano y las paradas sueltas.
+func clear_transients() -> void:
+	_motive_text = ""
+	_motive_until = 0.0
+	_hover_motive = ""
+	if orders != null:
+		orders.cancel_aim()
+		orders.waypoints = []
+		orders.motive = ""
+		orders.last_error = ""
+
+
+## Un motivo de rechazo tal como lo dicen las reglas (texts.errores.<clave>), o «» si no lo traen.
+func rules_error(key: String) -> String:
+	var e: Variant = _rules_texts().get("errores", {})
+	return str((e as Dictionary).get(key, "")) if e is Dictionary else ""
+
+
 ## «Continuar» y F9 llegan con opts.load. Si el guardado falta, está dañado o las reglas lo rechazan, se explica y se empieza de cero.
 func _try_load_save() -> bool:
 	var reason := ""
@@ -679,8 +706,19 @@ func _try_load_save() -> bool:
 			reason = str(result.get("reason", "")) if result is Dictionary else ""
 			if reason.strip_edges() == "":
 				reason = tx("load.reasons.broken", "")
-	_notice = tx("load.failed", "%s") % reason
+	_notice = tx("load.failed", "%s") % _reason_fragment(reason)
 	return false
+
+
+## El motivo de una carga fallida para meterlo en una frase (B-046 a): sin el punto final que ya trae («Este guardado es de otro escenario.») y con la primera
+## letra en minúscula, salvo que sea una sigla.
+static func _reason_fragment(reason: String) -> String:
+	var t := reason.strip_edges()
+	while t.ends_with(".") or t.ends_with(" "):
+		t = t.left(t.length() - 1)
+	if t.length() > 1 and t[0] != t[0].to_lower() and t[1] == t[1].to_lower():
+		t = t[0].to_lower() + t.substr(1)
+	return t
 
 
 func _rules_state() -> Dictionary:

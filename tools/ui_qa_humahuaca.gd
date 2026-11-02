@@ -25,6 +25,9 @@ var last_shot_size := Vector2i.ZERO
 var ui_json: Dictionary = {}
 var shots: Array = []
 var contrast_min := 99.0
+var cuts_seen: Dictionary = {}  # momento → textos cortados (H-R1-10); vacío si ninguno se cortó
+var cuts_checked := 0
+var overlaps_seen: Dictionary = {}  # momento → textos que se pisan (C01); vacío si ninguno
 
 
 func _initialize() -> void:
@@ -104,6 +107,7 @@ func _move(pos: Vector2) -> void:
 
 func _click(pos: Vector2, button: int = MOUSE_BUTTON_LEFT, shift: bool = false) -> void:
 	await _move(pos)
+	# apretar y soltar en el mismo cuadro: si el puntero real del SO manda un movimiento entre los dos (B-044) el botón cree que el mouse salió y pierde el clic
 	for pressed in [true, false]:
 		var e := InputEventMouseButton.new()
 		e.position = _to_window(pos)
@@ -113,11 +117,28 @@ func _click(pos: Vector2, button: int = MOUSE_BUTTON_LEFT, shift: bool = false) 
 		e.shift_pressed = shift
 		e.button_mask = (1 << (button - 1)) if pressed else 0
 		root.push_input(e)
-		await process_frame
+	await process_frame
 
 
 func _click_control(c: Control) -> void:
 	await _click(Kit.rect_of(c).get_center())
+
+
+## Aprieta un botón y, si el estado que se espera no llegó, lo repite una vez y lo anota en notes.clics_repetidos: a veces la entrada inyectada se pierde cuando el puntero real
+## del SO está sobre la ventana (B-044) y una sola falla de este tipo tumbaba una decena de comprobaciones que dependen del clic. Si tras repetirlo sigue sin llegar, la
+## comprobación que sigue falla como siempre.
+func _click_expect(part: String, expect: Callable, frames: int) -> void:
+	var b := _button(part)
+	if b == null:
+		return
+	await _click_control(b)
+	await _frames(frames)
+	if not bool(expect.call()):
+		notes["clics_repetidos"] = int(notes.get("clics_repetidos", 0)) + 1
+		b = _button(part)
+		if b != null:
+			await _click_control(b)
+			await _frames(frames)
 
 
 func _button(part: String) -> Button:
@@ -300,6 +321,46 @@ func _check_overflow(label: String) -> void:
 	for id in V.GROUPS:
 		var card: Rect2 = hx.hud.card_rect(str(id))
 		check(_inside(card) and card.size.x >= 60.0, "%s: la ficha de %s entra en el dock (%s)" % [label, str(id), str(card)])
+	_check_text_cuts(label)
+
+
+## H-R1-10: ningún texto de la interfaz queda cortado (una línea recortada con «…», líneas escondidas o un botón más chico que su texto). Es la misma medida que usa la sonda
+## de recortes del QA y mira todo lo que hay a la vista (el HUD, las ventanas y el aviso de pie), no solo la línea del objetivo.
+func _check_text_cuts(label: String) -> void:
+	var cuts: Array = Kit.cut_labels(game.ui)
+	cuts_checked += 1
+	if not cuts.is_empty():
+		cuts_seen[label] = cuts
+	check(cuts.is_empty(), "%s: ningún texto queda cortado (%d: %s)" % [label, cuts.size(), str(cuts.slice(0, 3))])
+	var overlaps: Array = Kit.text_overlaps(game.ui)
+	if not overlaps.is_empty():
+		overlaps_seen[label] = overlaps
+	check(overlaps.is_empty(), "%s: ningún texto pisa a otro (%d: %s)" % [label, overlaps.size(), str(overlaps.slice(0, 3))])
+
+
+## H-R1-10: el objetivo dice algo vigente en cada fase y entra entero. Arranca el nivel directo en cada fase (opts.phase) y mide la línea del objetivo y todos los textos.
+func _phase_sweep(tag: String) -> void:
+	var seen: Dictionary = {}
+	for phase in ["aproximacion", "ataque", "extraccion"]:
+		game._start_humahuaca({"skip_intro": true, "phase": phase, "seed": 7})
+		await _frames(8)
+		hx = game.hx
+		if not check(is_instance_valid(hx) and str(hx.qa_state().phase) == phase, "%s: el nivel arranca en la fase «%s»" % [tag, phase]):
+			continue
+		hx.refresh_hud_now()
+		await _frames(2)
+		var text: String = hx.hud.objective_l.text
+		seen[phase] = text
+		check(text != "" and not text.ends_with("…"), "%s · %s: el objetivo dice algo y no termina en «…» («%s»)" % [tag, phase, text])
+		_check_text_cuts("%s · %s" % [tag, phase])
+	var distinct := {}
+	for k in seen:
+		distinct[str(seen[k])] = true
+	check(distinct.size() == seen.size() and seen.size() == 3, "%s: el objetivo cambia con la fase (%d frases distintas en %d fases)" % [tag, distinct.size(), seen.size()])
+	notes["objetivo_por_fase_" + tag] = seen
+	game._start_humahuaca({"skip_intro": true})  # el resto del recorrido sigue con un nivel normal, no con el último del barrido
+	await _frames(6)
+	hx = game.hx
 
 
 ## El alto de cada ficha parada (de la base a la cima de sus piezas, sin los anillos), proyectado y en píxeles REALES de la captura: lo que mide V03. Antes salía de `probes()`,
@@ -395,6 +456,8 @@ func _probe_guided(label: String, steps: int) -> void:
 	var toast_steps := 0
 	var bar_steps := 0
 	var done := 0
+	var cut_set: Dictionary = {}
+	var overlap_set: Dictionary = {}
 	for i in range(steps):
 		if str(hx.qa_state().status) != "playing" or str(hx.qa_state().dialog) != "":
 			break
@@ -419,6 +482,10 @@ func _probe_guided(label: String, steps: int) -> void:
 		if hx.hud.next_text_l.is_visible_in_tree():
 			lines_max = maxi(lines_max, hx.hud.next_text_l.get_line_count())
 			width_min = minf(width_min, hx.hud.next_text_l.size.x * hx.ui_scale)
+		for cut in Kit.cut_labels(game.ui):
+			cut_set[str(cut.text)] = cut
+		for ov in Kit.text_overlaps(game.ui):
+			overlap_set["%s/%s" % [str(ov.a), str(ov.b)]] = ov
 		if hx.hud.toast_panel.is_visible_in_tree():
 			toast_steps += 1
 		if hx.hud.bar.is_visible_in_tree():
@@ -427,6 +494,13 @@ func _probe_guided(label: String, steps: int) -> void:
 	check(done >= 40 and toast_steps > 0 and bar_steps > 0, "Partida guiada %s: %d pasos con fichas elegidas, con avisos (%d pasos) y barra de órdenes (%d pasos) a la vista" % [label, done, toast_steps, bar_steps])
 	check(crossings.is_empty(), "Partida guiada %s: ningún panel del HUD pisa a otro en %d pasos (%s)" % [label, done, str(crossings)])
 	check(outside == 0, "Partida guiada %s: ningún panel del HUD sale del cuadro (%d veces)" % [label, outside])
+	cuts_checked += 1
+	if not cut_set.is_empty():
+		cuts_seen["guiada " + label] = cut_set.values()
+	check(cut_set.is_empty(), "Partida guiada %s: ningún texto queda cortado en %d pasos (%d distintos: %s)" % [label, done, cut_set.size(), str(cut_set.values().slice(0, 3))])
+	if not overlap_set.is_empty():
+		overlaps_seen["guiada " + label] = overlap_set.values()
+	check(overlap_set.is_empty(), "Partida guiada %s: ningún texto pisa a otro en %d pasos (%d distintos: %s)" % [label, done, overlap_set.size(), str(overlap_set.values().slice(0, 3))])
 	check(lines_max <= 2 and width_min >= 250.0, "Partida guiada %s: el «siguiente paso» ocupa %d líneas como máximo y nunca queda en una columna menor de 250 px (mínimo %d px)" % [label, lines_max, int(width_min)])
 	hx.reset_camera()  # tocar dos veces la misma tecla centra la cámara en un frente: el resto del recorrido sigue con el cuadro inicial
 
@@ -587,15 +661,13 @@ func _cycle_full() -> void:
 	check(texts1.find("Perder no es grave") >= 0 and texts1.find("Hoy:") >= 0, "Briefing 1: dice el objetivo, que perder no es grave y la variante del mundo")
 	check(_jargon_hits(texts1).is_empty(), "Briefing 1: sin jerga (%s)" % str(_jargon_hits(texts1)))
 	check(texts1.length() < 700, "Briefing 1: es corto (%d caracteres)" % texts1.length())
-	await _click_control(_button("Seguir leyendo"))
-	await _frames(3)
+	await _click_expect("Seguir leyendo", func(): return " ".join(PackedStringArray(_visible_texts())).find("Dramatización") >= 0, 3)
 	await _shot("hx-briefing-2")
 	_check_dialog_fit("Briefing 2")
 	var texts2 := " ".join(PackedStringArray(_visible_texts()))
 	check(texts2.find("Dramatización") >= 0 and texts2.find("restitución") >= 0 and texts2.find("no hubo refuerzo") >= 0, "Briefing 2: la carta es una dramatización y dice qué es real y qué es diseño")
 	check(_jargon_hits(texts2).is_empty(), "Briefing 2: sin jerga (%s)" % str(_jargon_hits(texts2)))
-	await _click_control(_button("Empezar"))
-	await _frames(40)
+	await _click_expect("Empezar", func(): return str(hx.qa_state().mode) == "opening", 40)
 	check(str(hx.qa_state().mode) == "opening", "Apertura: «Empezar» abre la presentación de cámara")
 	await _shot("hx-apertura")
 	check(not hx.hud.root.visible and hx._subtitle.visible and hx._subtitle.text.find("palos") >= 0, "Apertura: sin HUD y con la frase de Arias («%s»)" % hx._subtitle.text.left(60))
@@ -655,6 +727,12 @@ func _cycle_full() -> void:
 	await _frames(6)
 	await _shot("hx-apuntar")
 	_check_overflow("Apuntando")  # la barra de órdenes con los ritmos de marcha y la línea de motivo: la columna de abajo no pisa nada
+	if not (bool(hx.qa_state().aiming) and hx.orders.preview_text("recon").find("riesgo") >= 0):
+		# el puntero real del SO puede mandar un movimiento propio entre el nuestro y la medición (B-044) y rehacer la vista previa sobre OTRO punto (a 2560 × 1440 la ventana es más grande
+		# que el monitor y el puntero cae afuera del mapa: «Ese punto queda fuera del mapa.»): se vuelve a apuntar con la entrada inyectada, se anota y, si sigue mal, falla como siempre
+		notes["vista_previa_rehecha"] = int(notes.get("vista_previa_rehecha", 0)) + 1
+		await _move(bat)
+		await _frames(10)
 	check(bool(hx.qa_state().aiming) and hx.orders.preview_text("recon").find("riesgo") >= 0, "Órdenes: al apuntar «Reconocer» se ve la vista previa con su riesgo («%s»)" % hx.orders.preview_text("recon"))
 	var pill: Array = []
 	for lab in hx.overlay.drawn_labels:
@@ -705,6 +783,22 @@ func _cycle_full() -> void:
 	check(hx.hud.chip_labels.carga.panel.visible and hx.hud.chip_labels.golpe.panel.visible and hx.hud.chip_labels.refuerzo.panel.visible, "Extracción: aparecen la carga, el golpe y el reloj del refuerzo en el dock")
 	_check_overflow("Extracción")
 	_measure_contrast(img4, "extraccion")
+	# --- destruir a mano se pregunta (un X por costumbre quemó la carga de un agente-jugador sin avisar); si cabe, se ve la pregunta ---
+	await _key(KEY_5)
+	if hx.orders.needs_destroy_confirmation():
+		var destroyed_before: int = hx.qa_state().issued.filter(func(i): return str(i.action) == "destroy").size()
+		await _key(KEY_X)
+		await _frames(3)
+		check(str(hx.qa_state().dialog) == "confirmar" and _button("Sí, destruir") != null and _button("No, esperar") != null, "Destruir: apretar X a mano pregunta antes de quemar la carga (%s)" % str(hx.qa_state().dialog))
+		await _shot("hx-destruir")
+		_check_dialog_fit("Destruir")
+		_check_text_cuts("Destruir")
+		await _key(KEY_ESCAPE)
+		await _frames(3)
+		check(str(hx.qa_state().dialog) == "" and hx.qa_state().issued.filter(func(i): return str(i.action) == "destroy").size() == destroyed_before, "Destruir: Esc es «No»: no se destruyó nada")
+	else:
+		notes["destruir"] = "no se pudo armar: el arreo no estaba junto a la carga en este cuadro"
+	await _phase_sweep("%dx%d" % [root.size.x, root.size.y])  # H-R1-10: las fases, el objetivo y los recortes
 	# --- derrota por pasividad: parte, consejo, tres datos, reintento ≤ 3 s con el mismo mundo ---
 	await _cycle_defeat_and_victory()
 
@@ -732,6 +826,10 @@ func _cycle_defeat_and_victory() -> void:
 	var t0 := Time.get_ticks_msec()
 	await _click_control(retry_button)
 	await _frames(2)
+	if str(hx.qa_state().mode) != "play":  # una entrada inyectada perdida (B-044): se repite una vez y se anota; el tiempo medido incluye la repetición
+		notes["clics_repetidos"] = int(notes.get("clics_repetidos", 0)) + 1
+		await _click_control(retry_button)
+		await _frames(2)
 	var retry_s := float(Time.get_ticks_msec() - t0) / 1000.0
 	notes["reintento_s"] = snappedf(retry_s, 0.01)
 	check(retry_s <= 3.0 and str(hx.qa_state().mode) == "play", "Derrota: del clic en «Reintentar» al primer cuadro jugable pasan ≤ 3 s (%.2f s)" % retry_s)
@@ -758,6 +856,10 @@ func _cycle_defeat_and_victory() -> void:
 	# --- pausa y ayuda ---
 	await _click_control(again)
 	await _frames(4)
+	if str(hx.qa_state().dialog) == "parte":  # ídem: el clic de «Jugar de nuevo» se perdió
+		notes["clics_repetidos"] = int(notes.get("clics_repetidos", 0)) + 1
+		await _click_control(again)
+		await _frames(4)
 	hx.orders.issue("reconocedores", "recon", hx.landmark_pos("bateria"), {})
 	await _key(KEY_ESCAPE)
 	await _frames(4)
@@ -816,6 +918,7 @@ func _cycle_overflow() -> void:
 	notes["rects"] = _capture_rects()
 	_check_overflow("Ataque")
 	_measure_contrast(img_hud, "ataque")
+	await _phase_sweep("%dx%d" % [root.size.x, root.size.y])  # H-R1-10
 	# lo que sigue es lo de siempre: una partida nueva, orden, pausa, ayuda y derrota
 	hx.retry("mismo_mundo")
 	await _frames(4)
@@ -839,6 +942,7 @@ func _cycle_overflow() -> void:
 
 
 func _finish() -> void:
+	notes["recortes"] = {"revisiones": cuts_checked, "con_recortes": cuts_seen, "con_solapes": overlaps_seen}
 	var out := {"suite": "ui_qa_humahuaca", "checks": checks, "failures": failures, "ok": failures.is_empty(), "notes": notes, "capturas": shots}
 	notes["contraste_texto_min"] = snappedf(contrast_min, 0.01) if contrast_min < 99.0 else 0.0
 	var file := FileAccess.open(ProjectSettings.globalize_path(out_dir).path_join("ui_qa_report.json"), FileAccess.WRITE)

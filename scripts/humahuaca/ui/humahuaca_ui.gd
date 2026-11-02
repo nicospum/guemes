@@ -106,6 +106,7 @@ func _process(delta: float) -> void:
 	if is_instance_valid(view) and view.has_method("update_state"):
 		view.call("update_state", delta)
 	_calm_tick(delta)
+	_first_order_hint_tick(delta)
 	_hud_timer -= delta
 	if _hud_timer <= 0.0:
 		_refresh_hud()
