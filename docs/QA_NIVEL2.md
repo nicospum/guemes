@@ -1,6 +1,6 @@
 # QA del nivel 2 «Humahuaca»: qué es «presentable» y cómo se verifica
 
-Documento del **Jefe de Control de Calidad**. Versión **1.2** (enmiendas 1 y 2, ver el anexo F) · 1 de noviembre de 2026 · alineado con el diseño y el contrato **1.1** (revisión final antes de escribir código) sobre la línea base `5ebbd28` (Justina y Norte). Está **congelado desde el commit que lo introduce**: los números de este texto son los postes del bucle y no se mueven entre rondas (sección 4, regla 5); la enmienda 2 existe porque el arquitecto cambió el diseño y el contrato por addendum fechado, y ninguno de sus cambios endurece un umbral por una observación nueva.
+Documento del **Jefe de Control de Calidad**. Versión **1.3** (enmiendas 1, 2 y 3, ver el anexo F) · 1 de noviembre de 2026 · alineado con el diseño y el contrato **1.1** (revisión final antes de escribir código) sobre la línea base `5ebbd28` (Justina y Norte). Está **congelado desde el commit que lo introduce**: los números de este texto son los postes del bucle y no se mueven entre rondas (sección 4, regla 5); la enmienda 2 existe porque el arquitecto cambió el diseño y el contrato por addendum fechado, y ninguno de sus cambios endurece un umbral por una observación nueva.
 
 > **Para qué sirve.** En el nivel 1 el control de calidad dijo «no» cinco de cinco rondas porque cada ronda pedía algo nuevo (94 hallazgos sin priorizar) y porque lo que decidía el «sí» —personas jugando— no estaba al alcance del circuito. Acá el criterio se fija **antes** de empezar: 41 ítems con comando, umbral, severidad y evidencia; un presupuesto de hallazgos; tres certificadores que no pueden agregar ítems; y una lista de límites aceptados de antemano. Si todo lo exigible pasa, el QA dice «presentable» y el bucle termina.
 >
@@ -57,7 +57,7 @@ Documento del **Jefe de Control de Calidad**. Versión **1.2** (enmiendas 1 y 2,
 | T02 | T | Regresión de reglas, integración, Jev y audio (Justina y Norte) | P1-b: `test_rules.gd`, `test_integration.gd`, `jev_contract_test.gd`, `audio_runtime_test.gd` | reglas ≥ **871** y 0 fallas; integración ≥ **283** y 0; Jev ≥ **15** y 0; audio «RESULTADO: N comprobaciones, 1 fallas» con N ≥ 17 y la única línea `FALLA:` es «driver de audio real (no Dummy)»; ningún comando se corta por `timeout` | BLOQUEA | `T02/*.log`, `T02/resumen.txt` |
 | T03 | T | Suites nuevas del nivel, con los pisos de la ronda | P1-c: `tests/test_hx_{data,terrain,rules,view,flow,smoke}.gd` | cada una imprime su JSON final con `failures: []` y llega a los pisos de la tabla 5.1 del contrato: al cierre (R2b, R3, R4) data **60**, terrain **80**, rules **400**, view **40**, flow **80**, smoke **25**; antes, los de la ronda (rules **150** en R1 y **250** en R2a; data 40 y 60; terrain 60 y 80; view 25 y 40; flow 50 y 80); en `test_hx_rules`, `performance`: `nav_build_ms` ≤ 80, `plan_route_ms` ≤ 30, `tick_ms` ≤ 2 (promedios); `docs/humahuaca/TRAZA.md` sin exigencias huérfanas (V20) | BLOQUEA | `T03/*.log`, `T03/resumen.txt` |
 | T04 | T | Regresión de la Justina y el Norte por interfaz y escena real | P2: `tools/ui_qa.gd` ×3 y `tools/justina_playthrough.gd` | `ui_qa` ≥ **254** y 0 fallas en 1280×720, 1920×1080 y 2560×1440, con `captura_px` igual al tamaño pedido; `justina_playthrough` sale con 0, ≥ 3 estilos ganadores, ≥ 2 rutas, ≥ 1 derrota y `ui_real_victory` verdadero (base medida: 18 victorias, 3 rutas, 6 derrotas) | BLOQUEA | `T04/ui_<WxH>.json`, `T04/justina-playthrough.json` |
-| T05 | T | Salida limpia: sin errores de script ni de shader, sin fugas de ObjectDB, sin cuelgues | P1-d: función `limpio` sobre todos los logs (suites, corridas con ventana y EXE); P5-c y P10-b con `--verbose` | `limpio` no imprime nada: 0 líneas que empiecen con `SCRIPT ERROR`, `SHADER ERROR`, `USER ERROR`, `Parse Error`, `ERROR:`, `FATAL`; 0 de «ObjectDB instances leaked», «resources still in use at exit»; 0 `exit=124` (timeout) en `exits.txt`. Única excepción: `T07_guardado.log` (corrompe archivos a propósito), donde solo cuentan `SCRIPT ERROR`, `SHADER ERROR` y `Parse Error` | BLOQUEA | `T05/limpio.txt` (vacío), `exits.txt` |
+| T05 | T | Salida limpia: sin errores de script ni de shader, sin fugas de ObjectDB, sin cuelgues | P1-d: función `limpio` sobre todos los logs (suites, corridas con ventana y EXE); P5-c y P10-b con `--verbose` | `limpio` no imprime nada: 0 líneas que empiecen con `SCRIPT ERROR`, `SHADER ERROR`, `USER ERROR`, `Parse Error`, `ERROR:`, `FATAL`; 0 de «ObjectDB instances leaked», «resources still in use at exit»; 0 `exit=124` (timeout) en `exits.txt`. Única excepción: `T07_guardado.log` (corrompe archivos a propósito), donde solo cuentan `SCRIPT ERROR`, `SHADER ERROR` y `Parse Error`. **Excepción ambiental (QA enmienda 3):** no cuenta la línea `ERROR: GENERAL - Message Id Number: 0 \| Message Id Name: Loader Message` que el cargador de Vulkan de esta PC imprime con `--verbose` (la imprime igual un proyecto vacío y la línea base `5ebbd28`; no es del proyecto) | BLOQUEA | `T05/limpio.txt` (vacío), `exits.txt` |
 | T06 | T | Rendimiento y presupuestos por perfil | P3 (GPU exclusiva): `tools/benchmark.py` en dos corridas: `--scenarios justine,norte --max-frame-ms 3` y `--scenarios humahuaca --profiles baja,media,alta --max-frame-ms 4`, tres repeticiones | Justina y Norte: cuadro medio ≤ **3,0 ms** (base 2,71 y 0,97); Humahuaca en perfil `media` (peor de las 3 repeticiones): cuadro medio ≤ **4,0 ms**, p95 (`frame_ms_p95_mean`) ≤ **8,3 ms** y `scene_build_ms` ≤ **1500**; los perfiles `baja` (≤ 2,5) y `alta` (≤ 6,0) se miden y se informan, y solo `media` es compuerta | BLOQUEA | `T06/resumen.json`, `T06/bench.log` |
 | T07 | T | Guardado y carga | P4-a: `qa_guardado.gd` (anexo A5); P4-b: `campaign.json` antes y después; `test_hx_smoke` | round-trip sin cambios (tolerancia 1e-6, RNG exacto); **24 de 24** mutaciones obligatorias rechazadas con motivo y sin tocar el estado, **≥ 8 de 13** deseables; guardados de la Justina y del Norte rechazados; `campaign.json` idéntico byte a byte tras correr el nivel; «Continuar» abre el escenario guardado | BLOQUEA | `T07/guardado.json`, `T07/campaign_sha.txt` |
 | T08 | T | Robustez y determinismo | P4-c: 200 partidas con la política `aleatorio`; 2 corridas idénticas de 12 semillas | 200 partidas: 0 excepciones, `valid` verdadero al final de todas, ninguna por `timeout`; las 2 corridas dan el mismo `snapshot_sha256` en **≥ 100** partidas comparadas y 0 distintas; `git status --porcelain` del worktree vacío al terminar la certificación | ALTA | `T08/fuzz.json`, `T08/determinismo.txt` |
@@ -139,7 +139,7 @@ export QT="$RAW/qa_tools"; mkdir -p "$EV" "$RAW" "$QT"
 sha256sum "$SRC/docs/QA_NIVEL2.md" | tee "$EV/rubrica_sha256.txt"        # la rúbrica que se aplica (va en el veredicto)
 
 # Herramientas de QA: se extraen del anexo A de ESTE documento (así no las puede cambiar nadie sin una enmienda)
-python -I - "$SRC/docs/QA_NIVEL2.md" "$QT" <<'EOF'
+python -I -X utf8 - "$SRC/docs/QA_NIVEL2.md" "$QT" <<'EOF'
 import re, sys, pathlib
 doc = pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"); out = pathlib.Path(sys.argv[2]); out.mkdir(parents=True, exist_ok=True)
 for m in re.finditer(r"```(?:python|gdscript)\n# FILE: (\S+)\n(.*?)```", doc, re.S):
@@ -151,7 +151,7 @@ run() { local n="$1"; shift; mkdir -p "$EV/${n%%_*}"; timeout "${TMO:-900}" "$@"
 lastjson() { grep -E '^([A-Z_]+ )?\{' "$1" | tail -n 1 | sed -E 's/^[A-Z_]+ //'; }
 suite() { lastjson "$1" | python -I -c "import sys,json;d=json.load(sys.stdin);print('checks=%s fallas=%d ok=%s'%(d.get('checks'),len(d.get('failures',[])),d.get('ok')))"; }
 limpio() {   # debe imprimir NADA (criterio T05)
-  find "$EV" -name '*.log' ! -name 'T07_guardado.log' -print0 | xargs -0 -r grep -nE '^(SCRIPT ERROR|SHADER ERROR|USER ERROR|Parse Error|ERROR:|FATAL|Segmentation|Assertion failed)'
+  find "$EV" -name '*.log' ! -name 'T07_guardado.log' -print0 | xargs -0 -r grep -nE '^(SCRIPT ERROR|SHADER ERROR|USER ERROR|Parse Error|ERROR:|FATAL|Segmentation|Assertion failed)' | grep -vE 'ERROR: GENERAL - Message Id Number: 0 \| Message Id Name: Loader Message$'   # QA enmienda 3: esa línea la imprime el cargador de Vulkan de la PC con --verbose (anexo F)
   find "$EV" -name 'T07_guardado.log' -print0 | xargs -0 -r grep -nE '^(SCRIPT ERROR|SHADER ERROR|Parse Error)'
   find "$EV" -name '*.log' -print0 | xargs -0 -r grep -niE 'ObjectDB instances leaked|resources still in use at exit|Leaked instance|leaked at exit'
   grep -n 'exit=124' "$EV/exits.txt"
@@ -197,7 +197,7 @@ for S in 1280x720 1920x1080 2560x1440; do
   cp "$RAW/uiqa_legacy/$S/ui_qa_report.json" "$EV/T04/ui_$S.json"
 done
 TMO=900 run T04_jpt "$G" --path "$SRC" --resolution 1440x900 --audio-driver Dummy --script tools/justina_playthrough.gd -- --out="$EV/T04/justina-playthrough.json"
-python -I - "$EV" <<'EOF'
+python -I -X utf8 - "$EV" <<'EOF'
 import json, glob, sys
 for f in sorted(glob.glob(sys.argv[1] + "/T04/ui_*.json")):
     d = json.load(open(f, encoding="utf-8")); n = d.get("notes", {}); print(f.split("/")[-1], "checks", d["checks"], "fallas", len(d["failures"]), "captura", n.get("captura_px"), "real", n.get("resolucion_real"))
@@ -216,7 +216,7 @@ python "$SRC/tools/benchmark.py" --binary "$G" --project "$SRC" --output "$RAW/b
 python "$SRC/tools/benchmark.py" --binary "$G" --project "$SRC" --output "$RAW/bench_hx" --profiles baja,media,alta --scenarios humahuaca \
   --repeat 3 --renderer forward_plus --max-frame-ms 6 > "$EV/T06/bench.log" 2>&1; echo "benchmark humahuaca exit=$?"                    # 6 = techo del perfil alto; cada perfil se mira abajo
 cp "$RAW/bench/resumen.json" "$EV/T06/resumen_regresion.json"; cp "$RAW/bench_hx/resumen.json" "$EV/T06/resumen.json"
-python -I - "$EV/T06" <<'EOF' | tee "$EV/T06/presupuestos.txt"      # presupuestos por perfil (diseño 11.2); solo «media» es compuerta
+python -I -X utf8 - "$EV/T06" <<'EOF' | tee "$EV/T06/presupuestos.txt"      # presupuestos por perfil (diseño 11.2); solo «media» es compuerta
 import json, sys
 B = {"baja": 2.5, "media": 4.0, "alta": 6.0}
 ok = True
@@ -265,7 +265,7 @@ for S in 1280x720 1920x1080 2560x1440 1024x640; do
   cp "$RAW/uiqa_hx/$S/ui_qa_report.json" "$EV/$ID/ui_$S.json"
 done
 # P5-b / P5-a: lo que informa cada resolución
-python -I - "$EV" <<'EOF'
+python -I -X utf8 - "$EV" <<'EOF'
 import json, glob, sys
 for f in sorted(glob.glob(sys.argv[1] + "/C0[12]/ui_*.json")):
     d = json.load(open(f, encoding="utf-8")); n = d.get("notes", {})
@@ -278,7 +278,7 @@ mkdir -p "$EV/C04"; python -I "$QT/qa_imagen.py" jpg "$RAW/uiqa_hx/1280x720/hx-m
 # P5-c el nivel directo, con --verbose (fugas al salir) y --scenario
 run T05_directo "$G" --path "$SRC" --resolution 1280x720 --audio-driver Dummy --verbose --quit-after 900 -- --scenario=humahuaca --hx-skip-intro
 # P5-d jerga: todas las cadenas visibles (JSON y literales de la interfaz) contra jargon_blacklist (siglas sensibles a mayúsculas; palabras sin distinguir mayúsculas ni tildes; identificadores snake_case)
-python -I - "$SRC" <<'EOF' | tee "$EV/C03/jerga.txt"
+python -I -X utf8 - "$SRC" <<'EOF' | tee "$EV/C03/jerga.txt"
 import json, re, sys, pathlib, unicodedata
 src = pathlib.Path(sys.argv[1]); fold = lambda s: "".join(c for c in unicodedata.normalize("NFD", s.lower()) if unicodedata.category(c) != "Mn")
 raw = json.load(open(src / "data/humahuaca_ui.json", encoding="utf-8")).get("jargon_blacklist", [])
@@ -312,7 +312,7 @@ for h in hits: print("JERGA", h)
 print("aciertos:", len(hits), "(debe ser 0)")
 EOF
 # C05: las causas de derrota del JSON (≥ 8, con texto ≤ 140 caracteres y consejo)
-python -I - "$SRC" <<'EOF' | tee "$EV/C05/causas.txt"
+python -I -X utf8 - "$SRC" <<'EOF' | tee "$EV/C05/causas.txt"
 import json, sys, pathlib
 c = json.load(open(pathlib.Path(sys.argv[1]) / "data/humahuaca_rules.json", encoding="utf-8")).get("outcome", {}).get("causes", [])
 items = list(c.values()) if isinstance(c, dict) else list(c)
@@ -350,7 +350,7 @@ TMO=1800 run J03_ramificacion "$G" --headless --path "$SRC" --script tools/humah
 # P6-c agregación con los umbrales congelados (anexo A3)
 python -I "$QT/qa_balance.py" --in "$EV/J04/reglas_bots.json" "$EV/J06/reglas_matriz.json" "$EV/J06/reglas_extraccion.json" "$EV/J06/reglas_senal.json" "$EV/J03/reglas_decisiones.json" "$EV/J01/scene.json" "$EV/J01/ui.json" --out "$EV/J04" | tee "$EV/J04/J_resumen.txt"
 for k in J03 J05 J06 J07; do mkdir -p "$EV/$k"; cp "$EV/J04/J_result.json" "$EV/$k/"; done
-python -I - "$EV" <<'EOF'      # J01 y C05: causas de derrota y textos
+python -I -X utf8 - "$EV" <<'EOF'      # J01 y C05: causas de derrota y textos
 import json, sys, re
 g = []
 for f in ("J04/reglas_bots.json", "J06/reglas_matriz.json", "J01/scene.json", "J01/ui.json"): g += json.load(open(sys.argv[1] + "/" + f, encoding="utf-8"))["games"]
@@ -396,7 +396,7 @@ for S in 1280x720 1920x1080 2560x1440; do
   mkdir -p "$RAW/tour/$S"
   run V01_tour_$S "$G" --path "$SRC" --resolution $S --audio-driver Dummy -- --qa=humahuaca --qa-path="$RAW/tour/$S" --qa-size=$S
 done
-python -I - "$RAW/tour" "$EV" <<'EOF'      # tamaño real de cada PNG y claves de qa_report.json
+python -I -X utf8 - "$RAW/tour" "$EV" <<'EOF'      # tamaño real de cada PNG y claves de qa_report.json
 import sys, glob, json
 from PIL import Image
 for S in ("1280x720", "1920x1080", "2560x1440"):
@@ -431,7 +431,7 @@ tour/1280x720/vista_juego_noche.png V1280_juego_noche.jpg
 tour/1280x720/vista_juego_alba.png V1280_juego_alba.jpg
 EOF
 for L in n s e o; do python -I "$QT/qa_imagen.py" jpg "$RAW/tour/1920x1080/limite_$L.png" "$EV/R/limites_$L.jpg"; done
-python -I - "$RAW" "$EV/V01/capturas/INDEX.json" <<'EOF'
+python -I -X utf8 - "$RAW" "$EV/V01/capturas/INDEX.json" <<'EOF'
 import hashlib, json, glob, sys, os
 idx = {os.path.relpath(p, sys.argv[1]).replace("\\", "/"): hashlib.sha256(open(p, "rb").read()).hexdigest() for p in glob.glob(sys.argv[1] + "/tour/*/*.png") + glob.glob(sys.argv[1] + "/uiqa_hx/*/hx-*.png")}
 json.dump(idx, open(sys.argv[2], "w"), indent=1); print("índice:", len(idx), "originales")
@@ -473,7 +473,7 @@ wc -l "$EV"/H02/aciertos_A*.txt
 # P9-c textos obligatorios y prohibidos (anexo C.2) y 12 hechos muestreados con semilla fija
 PAT_B='(todos (los )?(infernales|de rojo|de blanco)|uniformes? (rojos?|blancos?|homog(é|e)neos?))|(tormenta (durante|todo|toda)|llov(í|i)a (todo|durante todo))|(ruta final de arias|paso de zenta|garc(í|i)a camba)|(cabildo|premio de humahuaca)'
 grep -rnEi "$PAT_B" data/humahuaca_rules.json data/humahuaca_level.json data/humahuaca_ui.json scripts/humahuaca/ui > "$EV/H03/aciertos_B.txt"
-python -I - "$SRC" <<'EOF' | tee "$EV/H03/obligatorios.txt"
+python -I -X utf8 - "$SRC" <<'EOF' | tee "$EV/H03/obligatorios.txt"
 import re, sys, pathlib
 t = " ".join((pathlib.Path(sys.argv[1]) / ("data/humahuaca_%s.json" % n)).read_text(encoding="utf-8") for n in ("rules", "ui"))
 OBL = {"carta del 26-II como dramatización": r"dramatizaci(ó|o)n", "nota de fecha 1 o 2 de marzo": r"2 de marzo", "el refuerzo no ocurrió o es diseño": r"no hubo refuerzo|refuerzo[^\"]{0,80}dise(ñ|n)o|dise(ñ|n)o[^\"]{0,80}refuerzo",
@@ -484,7 +484,7 @@ OBL = {"carta del 26-II como dramatización": r"dramatizaci(ó|o)n", "nota de fe
 falta = [k for k, p in OBL.items() if not re.search(p, t, re.I)]
 print("obligatorios presentes: %d de %d" % (len(OBL) - len(falta), len(OBL)), "| faltan:", falta)
 EOF
-python -I - "$SRC" <<'EOF' | tee "$EV/H03/hechos.md"      # 12 afirmaciones muestreadas con semilla fija 9317: el certificador las coteja con 02_fuentes_primarias.md §f y §e.3
+python -I -X utf8 - "$SRC" <<'EOF' | tee "$EV/H03/hechos.md"      # 12 afirmaciones muestreadas con semilla fija 9317: el certificador las coteja con 02_fuentes_primarias.md §f y §e.3
 import json, random, sys, pathlib
 src = pathlib.Path(sys.argv[1]); cand = []
 def walk(o, p):
@@ -531,7 +531,7 @@ El EXE **no se reconstruye para entregarlo**: se verifica el que dejó el integr
 cd "$SRC"; mkdir -p "$EV/E03" "$EV/E04" "$EV/E05"
 # E03
 { grep -c -i 'tres escenarios\|tres momentos' README.md; grep -c -i 'dos escenarios' README.md project.godot
-  python -I - <<'EOF'
+  python -I -X utf8 - <<'EOF'
 import json, re, pathlib
 keys = json.load(open("data/humahuaca_ui.json", encoding="utf-8")).get("key_table", []); doc = pathlib.Path("docs/CONTROLES.md").read_text(encoding="utf-8")
 falta = [k for k in keys if str(k.get("tecla", k.get("key", ""))).lower() not in doc.lower()]
@@ -610,7 +610,7 @@ Estas limitaciones **no son hallazgos** y no se reabren. Cada una dice qué sí 
 **Formato (`veredicto.json`, más `VEREDICTO.md` con lo mismo en tabla):**
 
 ```json
-{"rubrica": "QA_NIVEL2 1.2", "rubrica_sha256": "<sha256 de docs/QA_NIVEL2.md>", "commit": "<hash completo certificado>", "ronda": "r4", "certificador": "A", "fecha": "2026-11-..",
+{"rubrica": "QA_NIVEL2 1.3", "rubrica_sha256": "<sha256 de docs/QA_NIVEL2.md>", "commit": "<hash completo certificado>", "ronda": "r4", "certificador": "A", "fecha": "2026-11-..",
  "entorno": {"os": "Windows 11", "gpu": "RTX 3080 Ti", "godot": "4.7.2", "python": "3.11"},
  "criterios": {"T01": {"v": "P", "medicion": "git diff exit 0; main.gd +21/-4", "evidencia": ["qa/A/T01/protegidos.txt"], "nota": ""},
                "V01": {"v": "F", "medicion": "M05 item (a): la torre no se identifica", "evidencia": ["qa/A/V01/capturas/M05_torre.jpg"], "nota": "..."}},
@@ -2033,6 +2033,8 @@ La corre el usuario o quien designe, **fuera del circuito**; no es condición de
 - **1 · 1-nov-2026 · E05 (y P11)**: «`git remote -v` vacío» se reemplaza por «`origin/main` sigue en `72077c8655f8489109950a24b0b09db14af7563c` y su reflog no tiene entradas nuevas ni `forced-update`». **Motivo:** error demostrable de la rúbrica 1.0: el repo **sí** tiene el remoto `origin` (`https://github.com/nicospum/guemes.git`) y `origin/main` ya estaba en `72077c8`; la frase «no hay remoto» del informe `03_arquitectura_actual.md` era incorrecta y el criterio habría fallado desde el primer día. No cambia ningún umbral de juego ni de calidad: solo la forma de comprobar «sin push». **Quién:** el Jefe de QA, al verificar los comandos contra el repo real.
 
 - **2 · 1-nov-2026 · rúbrica 1.2 (39 → 41 ítems), escalera, procedimientos P3, P5-d, P6 y P7, anexos A y B a D**: el arquitecto, como revisor final de los tres documentos, **cambió el diseño y el contrato por addendum fechado (contrato 1.1; ver «Objeciones y decisiones» en `DISENO_HUMAHUACA.md`)**, que es la causa (ii) de la regla 5 de la sección 4. Qué cambia: **(a)** J04 queda con los extremos medibles (experto ≥ 80 %, ciegos ≤ 10 %, pasivo 0 %, escena) y el obediente y el torpe pasan a **J05 (MEDIA, informe con intervalos)**; **(b)** J06 suma las comprobaciones de contrapeso del diseño 1.1 (cada enfoque es el mejor en algún mundo, las recetas de extracción y el barrido de la señal) y la matriz pide ≥ 8 estrategias de frente (antes ≥ 12; el diseño 1.1 tiene 8 enfoques); J03 mide las decisiones **significativas** por ramificación en ≥ 12 partidas del experto además de las ofertas; **(c)** criterios nuevos **J08** (agente-jugador por la interfaz real) y **V06** (legibilidad a distancia de juego y riqueza uniforme), V01 y V02 suman las vistas `juego_noche` y `juego_alba` (14 capturas, 7 vistas), V04 pasa a **render de albedo**, R05 mide la **prominencia** de la batería sobre su anillo de 120–150 m (±0,5 m; el domo es un residuo del DEM), H03 suma el 14.º texto (el tiempo comprimido) y renombra el botón del epílogo; **(d)** T06 y E02: Humahuaca usa presupuestos por perfil (`media` ≤ 4,0 ms, p95 ≤ 8,3 ms; Justina y Norte siguen en ≤ 3,0 ms); T03 y C01 se escalonan por ronda con los pisos del contrato 1.1; C04: Humahuaca siempre habilitado con la nota «Recomendado tras la Justina» (el Norte conserva su candado); la escalera pasa a R0, R1, R2a, R2b, R3 y R4; **(e)** herramientas: `qa_balance.py`, `qa_imagen.py` (`legible`, `bordes`, `panorama`), `qa_relieve.gd` y `qa_relieve.py` (anillo de la batería), `qa_etiquetas.py` (techos de los rasgos nuevos) y la nueva `qa_agente.py` (A7). **Ningún umbral de un ítem que ya existía sube por una observación nueva**: los que cambian se aflojan (J04, J06, T03, T06, E02, C01) o vienen del diseño 1.1; las exigencias nuevas (J08, V06, contrapesos) también. **Quién:** el arquitecto, con el Jefe de QA.
+
+- **3 · 2-nov-2026 · T05 (P0 `limpio`, P5-c y P10-b) y los bloques de Python de la sección 3**: **(a)** `limpio` no cuenta la línea `ERROR: GENERAL - Message Id Number: 0 | Message Id Name: Loader Message`. **Motivo:** error demostrable de un procedimiento de medición: con `--verbose` el motor crea el contexto de Vulkan con el mensajero de depuración encendido y el cargador de Vulkan de esta PC avisa que no encuentra el manifiesto de una capa de superposición de Epic Games (`EOSOverlayVkLayer-Win64.json`); esa línea empieza con `ERROR:` y hacía fallar T05 sin que haya un error del proyecto. **Evidencia** (`evidence/humahuaca/r1/qa/A/T05/loader/`): la imprime igual un proyecto vacío de un solo nodo, la línea base `5ebbd28` (Justina) y el nivel; la base de la rúbrica 1.0 se midió con `--headless`, donde el contexto de Vulkan no existe. No cambia ningún umbral: siguen valiendo `SCRIPT ERROR`, `SHADER ERROR`, `USER ERROR`, `Parse Error`, el resto de los `ERROR:`, `FATAL` y las fugas de ObjectDB. **(b)** Los bloques de Python por entrada estándar de la sección 3 se invocan con `python -I -X utf8` (la consola cp1252 de Windows rechazaba «≤», «≥» y «→» con `UnicodeEncodeError` en P3, C05, J01 y H03). Solo cambia la forma de invocar. **Quién:** el Jefe de QA al correr la ronda R1 (certificador A), con los hallazgos de los revisores técnico y de usabilidad.
 
 **Estado al congelar (1-nov-2026, `main` en `5a84c50`; enmienda 2 sobre `cfd59eb`).**
 
