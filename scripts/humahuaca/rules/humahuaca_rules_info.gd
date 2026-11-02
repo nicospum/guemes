@@ -459,7 +459,12 @@ func _tu_partida() -> String:
 	for it in state.loot.items:
 		if str(it.kind) == "canones":
 			n[_piece_treatment(it)] = int(n[_piece_treatment(it)]) + 1
-	return _fmt(str(_rules.epilogue.en_tu_partida), {"llevadas": n.entregar, "clavadas": n.destruir, "ocultas": n.ocultar, "abandonadas": n.abandonar})
+	var words: Dictionary = _rules.epilogue.piezas
+	var vars := {"total": int(n.entregar) + int(n.destruir) + int(n.ocultar) + int(n.abandonar)}
+	for pair in [["entregar", "llevadas"], ["destruir", "clavadas"], ["ocultar", "ocultas"], ["abandonar", "abandonadas"]]:
+		var form: Array = words[pair[0]]
+		vars[pair[1]] = "%d %s" % [int(n[pair[0]]), str(form[0]) if int(n[pair[0]]) == 1 else str(form[1])]
+	return _fmt(str(_rules.epilogue.en_tu_partida), vars)
 
 func epilogue() -> Array:
 	var out: Array = []

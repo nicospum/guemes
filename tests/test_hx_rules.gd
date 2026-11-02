@@ -737,6 +737,19 @@ func _test_campaign_report_shape() -> void:
 		if not V.TAGS.has(str(line.tag)) or String(line.texto).strip_edges() == "":
 			tags_ok = false
 	ck(tags_ok, "todas las líneas del epílogo tienen etiqueta del vocabulario y texto")
+	var cannons: Array = []
+	for it in ended.state.loot.items:
+		if str(it.kind) == "canones":
+			cannons.append(it)
+	if cannons.size() >= 3:
+		cannons[0].state = "destruido"
+		cannons[1].state = "entregado"
+		var tu := ""
+		for line in ended.call("epilogue"):
+			if str(line.fecha).begins_with("9 al 16"):
+				tu = str(line.texto)
+		ck(tu.find("1 llevada,") >= 0 and tu.find("1 clavada,") >= 0 and tu.find("llevadas") < 0 and tu.find("clavadas") < 0 and tu.find("%d abandonadas" % (cannons.size() - 2)) >= 0,
+			"el epílogo cuenta las piezas de la partida con singular y plural: «%s»" % tu.right(75))
 
 func _test_plan_route_shape() -> void:
 	var r := new_rules(1817, {"skip_intro": true})

@@ -71,7 +71,7 @@ El barro arranca en 0,55, se mantiene hasta las 5:30 y se seca 0,01 por segundo.
 | `plazo` | 14:00 | «A los 14:00 se cumplió el plazo con la columna cerca de la posta y el depósito sin vaciar.» |
 | `retirada` | «Retirada general» | «A los 0:05 diste la retirada general cerca de la zona de partida: el golpe quedó a medias.» |
 
-Los textos de la tabla son los que escribe el juego en esas situaciones (el momento y el lugar cambian con la partida). Cada causa trae su consejo (`outcome.causes.<id>.consejo`) y, desde el segundo intento seguido, un consejo que rota (`campaign.tips`). `tests/test_hx_rules.gd::_test_outcomes` las alcanza las ocho.
+Los textos de la tabla son los que escribe el juego en esas situaciones (el momento y el lugar cambian con la partida). Cada causa trae su consejo (`outcome.causes.<id>.consejo`) y, desde el segundo intento seguido por la misma causa, una pista que rota (`campaign.tips`) y que **agrega** algo en vez de repetir el consejo de siempre. `tests/test_hx_rules.gd::_test_outcomes` las alcanza las ocho.
 
 ### Ritmo (`stats.pacing`)
 
@@ -102,8 +102,8 @@ Compuerta rápida y recorridos, con `APPDATA` aislado, el 2-nov-2026:
 
 | Medida | Resultado |
 |---|---|
-| `test_hx_rules` | 620 comprobaciones, 0 fallas, 16 s (modo rápido); la clase real de reglas y de progreso |
-| `performance` (línea final de la suite) | `nav_build_ms_avg` ≈ 3,2 (tope 80) · `plan_route_ms_avg` ≈ 2,3 (tope 30) · `tick_ms_avg` ≈ 0,06 (tope 2) · `hud_state` + `render_state` ≈ 0,26 ms |
+| `test_hx_rules` | 621 comprobaciones, 0 fallas, 18 s (modo rápido; piso de R1: 150); la clase real de reglas y de progreso |
+| `performance` (línea final de la suite) | `nav_build_ms_avg` ≈ 3,3 (tope 80) · `plan_route_ms_avg` ≈ 2,2 (tope 30) · `tick_ms_avg` ≈ 0,06 (tope 2) · `hud_state` + `render_state` ≈ 0,26 ms |
 | Experto, 24 mundos de la compuerta, 1.er intento | 24 de 24 (Wilson 90 %: 0,90 a 1,00); victorias de 9:11 (mediana), golpe 46,8 (la victoria pide 45), bajas de 15,7 a 17,2 % |
 | Pasivo y «pausa y reanuda», 24 mundos × 3 intentos | 0 victorias; todas por `amanecio` a los 6:30 |
 | Obediente y torpe (informe, no compuerta) | 24 de 24 y 24 de 24 al 1.er intento (victorias de 8:15 y 8:51): **más fácil de lo que se quiere**; la intención de diseño es 25-40 % y 10-25 %, y con el mundo fijo de R1 el «siguiente paso» alcanza: lo que lo hace fallar son las variantes y el reconocimiento con riesgo de R2a y R2b |

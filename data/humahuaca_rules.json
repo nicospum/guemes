@@ -242,14 +242,14 @@
 			"victoria": "Ganaste a los {t} con {golpe} de 100 de golpe."
 		},
 		"tips": {
-			"amanecio": ["Con la luz la guardia se desvela: dá la señal cuando las tres partidas estén en su puesto, alrededor del alba.", "Si una partida no llega, atacá con las otras dos antes de que amanezca del todo."],
-			"descubiertos": ["Andá en silencio y evitá pasar a menos de 60 m de los centinelas: correr bajo la lluvia se oye de lejos.", "Rodeá por detrás de las tapias: la guardia no ve lo que una tapia le tapa."],
-			"frente_roto": ["Mandá a Arias a socorrer a la partida que sufre antes de que se rompa.", "Atacá con cautela el cuartel: la torre castiga más a quien corre por la calle abierta."],
-			"sin_carga": ["Cargá primero lo que más puntos da por kilo: pólvora, fusiles y plata; lo pesado, destruilo.", "Empezá a cargar apenas caiga la posta, sin esperar al último frente."],
-			"interceptados": ["Mirá el reloj del refuerzo y salí por el vado con lo que tengas: una carga menos es mejor que ninguna.", "Quemar la pólvora adelanta el refuerzo: destruí otra cosa si el reloj aprieta."],
-			"dispersos": ["Cuidá la fuerza: no mandes a la misma partida contra la torre dos veces seguidas.", "Alterná el ataque a fondo con el ataque con cautela según cuánto aguante cada partida."],
-			"plazo": ["Salí en cuanto cargues lo que entra: cada minuto de espera acerca al refuerzo.", "Tené las mulas en la posta antes de la señal y cargá mientras se toma el último frente."],
-			"retirada": ["Probá otro reparto: los reconocedores muestran dónde está más floja la guardia."]
+			"amanecio": ["Apuntá a dar la señal hacia los 4:45: ya hay luz para tirar y la guardia todavía no se desveló.", "Mientras esperás en el puesto, aprovechá el tiempo: traé el arreo y reconocé el cuartel y la posta."],
+			"descubiertos": ["Pasá por detrás de las tapias: la guardia no ve lo que una tapia le tapa.", "Quedate a más de 60 m de los centinelas hasta la señal: más cerca, hasta al paso te oyen."],
+			"frente_roto": ["Mirá la fuerza de cada partida en su tarjeta: si se acerca a la mitad, pedí apoyo antes de que se rompa.", "Acercate al cuartel con una tapia de por medio: la torre castiga el doble a quien cruza por la calle abierta."],
+			"sin_carga": ["Empezá a cargar apenas caiga la posta, sin esperar al último frente.", "Traé el arreo cerca de la posta antes de la señal: así las mulas cargan mientras todavía se pelea."],
+			"interceptados": ["Quemar la pólvora adelanta el refuerzo: destruí otra cosa si el reloj aprieta.", "Cuando aparece la polvareda al sur queda un minuto: cruzá el vado sin cargar nada más."],
+			"dispersos": ["Entrá con las tres partidas a la vez: la sorpresa dura 45 segundos y cuanto más juntas entran, más rápido caen los frentes.", "Alterná el ataque a fondo con el ataque con cautela según cuánto aguante cada partida."],
+			"plazo": ["Después del último frente el reloj corre: cargá y mandá la columna al vado sin esperar a tenerlo todo guardado.", "Decidí qué dejar: con las mulas y los 600 kg propios no entra todo, y destruir lo que sobra lleva menos que cargarlo."],
+			"retirada": ["Con «Reintentar desde las posiciones» te ahorrás la marcha y probás otra hora para la señal."]
 		},
 		"lines": {
 			"victoria": "{medalla} · golpe {golpe} de 100 · bajas {bajas} %",
@@ -395,7 +395,8 @@
 		"history": [
 			{"texto": "Hacia el 1 de marzo de 1817, Arias atacó los depósitos realistas de Humahuaca; Güemes conducía desde Salta y no estuvo en el asalto.", "tag": "discutido", "tag_parts": {"hecho": "documentado", "fecha": "discutido"}, "source": "Parte de Arias; el día exacto es discutido (1 o 2 de marzo)."}
 		],
-		"en_tu_partida": "En tu partida: {llevadas} llevadas, {clavadas} clavadas, {ocultas} ocultas, {abandonadas} abandonadas.",
+		"en_tu_partida": "En tu partida, de {total} piezas: {llevadas}, {clavadas}, {ocultas} y {abandonadas}.",
+		"piezas": {"entregar": ["llevada", "llevadas"], "destruir": ["clavada", "clavadas"], "ocultar": ["oculta", "ocultas"], "abandonar": ["abandonada", "abandonadas"]},
 		"tag": "documentado",
 		"source": "Fechas de los partes y oficios; ver cada línea."
 	}
