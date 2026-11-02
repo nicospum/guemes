@@ -79,6 +79,9 @@ Cada exigencia de las secciones 3 a 5 de `docs/CONTRATO_HUMAHUACA.md` tiene acá
 | TR-098 | 3.4 | Los 3 arquetipos de figura se distinguen en escala de grises a 48 px | test_hx_view::_test_archetypes_grayscale | r1 |
 | TR-099 | 3.4 | set_albedo_mode y probes para las métricas del QA | test_hx_view::_test_albedo_and_probes | r2a |
 | TR-100 | 3.4 | Presupuesto de cuadro por perfil (baja 2,5 ms, media 4,0 ms, alta 6,0 ms, p95 8,3 ms) y construcción en 1 500 ms o menos | QA:T06 | r1 |
+| TR-101 | 3.4 | Anillos de visibilidad: contorno de la unión de los círculos, de 2 px en pantalla, sin cruces entre anillos y apagados con luz plena (ADDENDA A-08) | test_hx_view::_test_visibility_rings | r1.0 |
+| TR-102 | 3.4 | El alba no lava el cuadro de naranja saturado: la saturación del suelo bajo la luz del alba queda dentro de los topes y el sol sigue cálido (ADDENDA A-08) | test_hx_view::_test_dawn_wash | r1.0 |
+| TR-103 | 3.4 | La escala en pantalla (fichas, luces, etiquetas y anillos) se mide con la cámara del cuadro que se dibuja, aunque el controlador llame a update_state antes de ubicarla (ADDENDA A-08) | test_hx_view::_test_camera_order | r1.0 |
 | TR-110 | 3.5 | El controlador (la cáscara de T0 y el real) tiene la API de QA estable: start, stop, qa_state, qa_set_camera, qa_set_time, qa_run, qa_step y benchmark_prepare | test_hx_smoke::_test_api_conformance | r0 |
 | TR-111 | 3.5 | stop() es idempotente y restaura camera.far y fov, escala 3D, MSAA, ambiente del audio, content_scale y settings.last_save | test_hx_smoke::_test_roundtrip_x3 | r0 |
 | TR-112 | 3.5 | El controlador recibe la entrada antes que main y nada queda huérfano al volver al menú | test_hx_smoke::_test_input_order | r0 |
