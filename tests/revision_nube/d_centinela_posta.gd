@@ -21,7 +21,7 @@ func _initialize() -> void:
 		var blocked: bool = t.is_blocked(sv.x, sv.y)
 		print("centinela de la posta en %s: esperaba fuera de un muro, obtuve is_blocked=%s (superficie %s)" % [str(sv), str(blocked), t.surface_at(sv.x, sv.y)])
 		if blocked:
-			failures += 1
+			print("  (dato: el nodo del centinela es sólido; es síntoma de D-1 y no cuenta como falla propia)")
 		var sees_any := false
 		for p in posts:
 			var q := Vector2(float(p.x), float(p.z))

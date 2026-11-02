@@ -71,4 +71,8 @@ func _run() -> void:
 	quit(1 if failed else 0)
 
 func _initialize() -> void:
+	if OS.get_user_data_dir().to_lower().find("ap_iso") < 0:
+		push_error("perfil NO aislado: exportá APPDATA=\"$TEMP/ap_iso_revision\" antes de correr (la prueba escribe o borra archivos de user://)")
+		quit(2)
+		return
 	_run()

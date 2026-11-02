@@ -9,6 +9,10 @@ const RULES := "res://scripts/humahuaca/rules/humahuaca_rules.gd"
 const SAVE := "user://revision_a_acumulador.json"
 
 func _initialize() -> void:
+	if OS.get_user_data_dir().to_lower().find("ap_iso") < 0:
+		push_error("perfil NO aislado: exportá APPDATA=\"$TEMP/ap_iso_revision\" antes de correr (la prueba escribe o borra archivos de user://)")
+		quit(2)
+		return
 	var Rs = load(RULES)
 	var r = Rs.new()
 	r.call("new_game", 1817, 1, {"phase": "ataque"})

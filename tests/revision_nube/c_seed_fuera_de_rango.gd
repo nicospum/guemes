@@ -8,6 +8,10 @@ extends SceneTree
 const RULES := "res://scripts/humahuaca/rules/humahuaca_rules.gd"
 
 func _initialize() -> void:
+	if OS.get_user_data_dir().to_lower().find("ap_iso") < 0:
+		push_error("perfil NO aislado: exportá APPDATA=\"$TEMP/ap_iso_revision\" antes de correr (la prueba escribe o borra archivos de user://)")
+		quit(2)
+		return
 	var R = load(RULES)
 	var failures := 0
 	for seed_value in [2147483648, -2147483648, 4294967294, 9223372036854775807]:
@@ -24,4 +28,8 @@ func _initialize() -> void:
 			"OK" if ok else "FALLA", seed_value, int(r.state.rng_state), str(r.state.status), str(check.get("ok", false)), str(check.get("reason", "")) + " path=" + str(check.get("path", "")), err])
 		if not ok:
 			failures += 1
+	for seed_value in [2147483648, -2147483648, 4294967294, 9223372036854775807]:  # si save_game llegara a escribir, no dejar nada en user://
+		var leftover := "user://revision_c_seed_%d.json" % (seed_value % 1000)
+		if FileAccess.file_exists(leftover):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(leftover))
 	quit(1 if failures > 0 else 0)

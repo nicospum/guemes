@@ -8,6 +8,10 @@ extends SceneTree
 ## Sale con 1 si falla (el estado nuevo no valida / no se puede guardar) y 0 si pasa.
 
 func _initialize() -> void:
+	if OS.get_user_data_dir().to_lower().find("ap_iso") < 0:
+		push_error("perfil NO aislado: exportá APPDATA=\"$TEMP/ap_iso_revision\" antes de correr (la prueba escribe o borra archivos de user://)")
+		quit(2)
+		return
 	var ppath := "user://rn_b_progress.json"
 	var cpath := "user://rn_b_checkpoint.json"
 	var spath := "user://rn_b_save.json"
