@@ -303,6 +303,8 @@ Lo que corrió de verdad al cerrar R1, escrito por el integrador (que lleva tamb
 
 La línea final de la corrida completa dice `FALLA (2 pasos)`: `higiene` (las dos etiquetas ajenas) y `hx_qa_tour` (el umbral de 24 capturas, un error del paso nuevo). **Segunda corrida de los pasos del nivel** con el umbral corregido (`SKIP=` de todo lo demás, 2 min 05 s, sobre `57ceafb`): `hx_terrain` 158/0, `hx_rules` 621/0, `hx_view` 258/0, `hx_flow` 166/0, `ui_qa_humahuaca` 104/0 y 31/0 y 31/0, `humahuaca_playthrough`, `hx_qa_tour` (23 capturas), `hx_agent_play` y `vis_flow` en PASA. Ningún paso atribuible a una pista falló.
 
+**Por la escena real** (criterio de cierre de R1: «el experto gana y el pasivo pierde por la escena real»). `tools/humahuaca_playthrough.gd --level=scene --policies=experto,pasivo,interfaz --seeds=3,5,7` con ventana real a 1280 × 720 (40 s, sobre `48e60ac`): el experto gana 3 de 3 (mediana de 551 s), la política `interfaz` —que hace clic en el botón del «siguiente paso»— gana 3 de 3 (mediana de 496 s) y el pasivo pierde 0 de 3, los tres por `amanecio` a los 390 s. Salida 0.
+
 **Qué cambió desde R1.0.**
 
 - Las cuatro clases reales entraron: `HumahuacaTerrain` (relieve de la lámina 03, malla de 4 m, `nav_grid` y `los` del nivel; A/B contra Copernicus: la lámina sigue, A-02 y A-13), `HumahuacaRules` y `HumahuacaProgress` (el bucle completo con mundo fijo, las 8 causas, guardado con `validate_snapshot`), la vista real partida por responsabilidad y el controlador completo de `ui_feel`. `qa_state().layers` informa las cuatro capas como `real`.
