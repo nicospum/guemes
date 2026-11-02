@@ -34,10 +34,10 @@ El generador es determinista (sin fechas): correrlo dos veces da el mismo archiv
 | Capa (`id`) | Tipo | Qué hace | Consecuencia de juego |
 |---|---|---|---|
 | `cerro_bateria` | `dome` | Domo de núcleo plano de 16 m y flanco de coseno hasta 75 m de radio, centrado en (305, 345). Es un **residuo**: `delta_m` se calcula para que la plataforma quede a 12,0 m sobre la media del anillo de 16 puntos a 135 m (la medida del QA, R05) con la fuente que sea. Hoy `delta_m` = 12,3 m | Ventaja de vista y de tiro de la batería; subir el flanco (hasta 18°) cuesta velocidad (×0,7) |
-| `plataforma_bateria` | `platform` | Losa llana de 28 × 18 m en (318, 350), a 33,9 m sobre el cero local (talud de 6 m). La visión de quien está sobre la losa pasa por encima de su propio borde (7.2) | La batería domina la calle del cuartel y la plaza (16,5 m sobre la plaza) |
+| `plataforma_bateria` | `platform` | Losa llana de 28 × 18 m en (318, 350), a 33,9 m sobre el cero local (talud de 6 m). La visión de quien está sobre la losa pasa por encima de su propio borde (7.2) | La batería domina la calle del cuartel y la plaza (16,7 m sobre la plaza) |
 | `quebradita_norte`, `quebradita_sur` | `gully` | Hondonada de 36 × 8 m (ancho medido a media profundidad), −2,5 m, piso de un nodo de ancho, bancos de 1,2 m a los costados, abierta al oeste. Giradas ±20° para seguir la caída de la ladera (los hitos llevan el mismo `yaw_deg`) | Refugio de caballos: desde el este y el sur no se ve el piso a más de 25–40 m; desde el norte y el oeste (cuesta abajo, extremo abierto) sí |
 | `cauce_rio` | `carve` | Talla de −1,6 m a lo largo de la traza del río (fondo llano hasta 0,55 del semiancho, subida suave hasta el semiancho + 12 m) | El cauce queda más bajo que el núcleo; define el agua y el sedimento |
-| `micro` | micro-relieve | Cinco ondas planas de semilla fija (1817), torcidas por un desplazamiento suave y con la amplitud modulada: ±0,5 m, onda de 25 m o más, pendiente máxima 5,5°. Se apaga en los 40 m del borde de la ventana y sobre la plataforma | Ninguna regla (no llega a los 8°); da sombras largas al alba y evita el suelo liso |
+| `micro` | micro-relieve | Cinco ondas planas de semilla fija (1817), torcidas por un desplazamiento suave y con la amplitud modulada: ±0,5 m como tope, onda de 25 m o más; medido sobre la malla: amplitud máxima 0,46 m, rms 0,13 m y pendiente máxima 3,5° (cota teórica 6°). Se apaga en los 40 m del borde de la ventana y sobre la plataforma | Ninguna regla (no llega a los 8°); da sombras largas al alba y evita el suelo liso |
 
 Faltan, y llegan en R2a: las explanadas del cuartel, la posta y la plaza (`pad`), la barranca del cauce, la terraza del núcleo y el banco de grava.
 
@@ -52,7 +52,7 @@ Faltan, y llegan en R2a: las explanadas del cuartel, la posta y la plaza (`pad`)
 
 ## 4. Visión (`los`)
 
-La recta va de la altura de los ojos de A (suelo + `eye_a`) a la de B y la tapan, en este orden: el **terreno** (se lee `height_at` cada 3 m), las **tapias y barricadas** (cota del suelo en el cruce más su alto; un portillo abierto deja pasar) y los **edificios** de los hitos (quien está adentro de uno lo ignora). Cuesta 26 µs en 100–170 m. Es simétrica con ojos a la misma altura.
+La recta va de la altura de los ojos de A (suelo + `eye_a`) a la de B y la tapan, en este orden: el **terreno** (se lee `height_at` cada 3 m), las **tapias y barricadas** (cota del suelo en el cruce más su alto; un portillo abierto deja pasar) y los **edificios** de los hitos (quien está adentro de uno lo ignora). Cuesta 27 µs en 100–170 m. Es simétrica con ojos a la misma altura.
 
 Dos decisiones que conviene saber:
 
@@ -73,11 +73,11 @@ Dos decisiones que conviene saber:
 | R02 los 41 puntos | ≥ 37 a ≤ 12 m; ninguno > 20; banda ±8 | **41 de 41** a ≤ 12 m, peor 2,2 m, 41 en banda |
 | R03 curvas de 20 m | ventana ≥ 97 %, dominio ≥ 95 % | **99,64 %** y **98,54 %** |
 | R04 Río Grande | ≥ 15 filas, medio ≤ 6 m, máx ≤ 12 m | 21 filas, medio **0,7 m**, máx **2,6 m**; entra en (574,5; 0) y sale en (900; 405) |
-| R05 prominencia y referencias | 12,0 ± 0,5; batería 14–19 m sobre la plaza; ±10 m | **12,000 m**; **16,51 m**; templo +16,9, cauce +10,5, partida +28,7 |
+| R05 prominencia y referencias | 12,0 ± 0,5; batería 14–19 m sobre la plaza; ±10 m | **12,000 m**; **16,67 m**; templo +17,2, cauce +10,6, partida +28,7 |
 | R06 continuidad y rutas | salto ≤ 0,10 m; 5 partidas → 3 objetivos y vado | **0,03 m**; un solo componente (9 de 9 puntos) |
 | H01 (A-10) | 0 violaciones | **188 entidades, 0 violaciones, 0 sin etiqueta** (con `anchor.id = ancla_iglesia`) |
 
-`tests/test_hx_terrain.gd`: **160 comprobaciones**, 0 fallas, < 1 s, en la clase real (la vista y el stub entran en VP-03 y VP-04). Horneado completo **≈ 56 ms** (lectura 2,4; relieve 4,0; capas 33,8; pendiente 6,8; superficies 5,4; muros 0,3; navegación 1,7; informe 1,2) y ≈ 70 ms desde que se piden los JSON, contra el tope de 300 ms. `height_at`: **2,5 millones de consultas por segundo** (tope pedido: 1 millón). Sanidad por mutación (copias descartables): sin nivelar la plataforma, sin las tapias en la visión, sin el cauce, sin muros sólidos y con `height_at` sin contexto hacen fallar al menos una prueba cada una.
+`tests/test_hx_terrain.gd`: **158 comprobaciones**, 0 fallas, 0,8 s, en la clase real (la vista y el stub entran en VP-03 y VP-04). Horneado completo **≈ 55 ms** (lectura 2,4; relieve 4,0; capas 33,8; pendiente 6,8; superficies 5,4; muros 0,3; navegación 1,7; informe 1,2) y ≈ 70 ms desde que se piden los JSON, contra el tope de 300 ms. `height_at`: **2,4 millones de consultas por segundo** (tope pedido: 1 millón). Sanidad por mutación (copias descartables): sin nivelar la plataforma, sin las tapias en la visión, sin el cauce, sin muros sólidos y con `height_at` sin contexto hacen fallar al menos una prueba cada una.
 
 Fuera de la tabla del QA, `report()` informa: 2,1 % de las celdas con pendiente ≥ 8° (R2a pide ≥ 2,5 % y lo alcanzan la barranca, la terraza y el banco) y los tres rasgos verticales de R1 (domo y las dos quebraditas) con pares de puntos cuya visión o velocidad cambia con y sin el rasgo.
 
@@ -91,7 +91,7 @@ Tesela `Copernicus_DSM_COG_10_S24_00_W066_00_DEM.tif` (39 438 103 B, SHA-256 `1b
 | R02 (41 puntos) | 41 de 41; peor 2,2 m | 40 de 41 a ≤ 12 m; peor 14,3 m; 41 en banda; **pasa** |
 | R03 (curvas) | 99,64 % / 98,54 % | 93,27 % / 84,94 %: **pasa** con el umbral de otra fuente (75 / 70) |
 | R04 (río) | pasa | pasa |
-| R05 referencias | templo +16,9; cauce +10,5; partida +28,7; batería 16,5 m sobre la plaza | templo **+7,9** (pide +17 ± 3); cauce **+0,2** (pide +12 ± 3); partida +28,9; batería **25,6 m** sobre la plaza (pide 14–19): **falla** |
+| R05 referencias | templo +17,2; cauce +10,6; partida +28,7; batería 16,7 m sobre la plaza | templo **+7,9** (pide +17 ± 3); cauce **+0,2** (pide +12 ± 3); partida +28,9; batería **25,6 m** sobre la plaza (pide 14–19): **falla** |
 | R06 | pasa | pasa |
 
 **Lectura.** La tesela real discrepa de la lámina en el núcleo y el cauce por 9 a 12 m, que es la incertidumbre de la lámina (±10 m): las cotas de referencia del QA (+17, +12, +27) salen de la lámina, así que ningún DEM real las cumple con ±3 m. Una mezcla (lámina de baja frecuencia más el detalle local de Copernicus) se midió en un experimento descartable: R02 y R03 pasan, pero templo y cauce siguen a 4 a 7 m de lo pedido. Por la regla de la ADDENDA A-02 («si alguno falla, el relieve se queda con la lámina y se anota acá»), **R1 sigue con la lámina y `--source copernicus` queda listo**. Para pasar a Copernicus en R2a hace falta una enmienda del QA que fije las alturas de referencia de R05 sobre la fuente real (o un addendum que acepte el híbrido); es una decisión del integrador (pedido C1 de abajo). La prueba A/B de `test_hx_terrain` ya corre con una fuente sintética (+4 m y ondulación de ±0,8 m): la prominencia sigue en 12,0 ± 0,5 m y el signo del gradiente se conserva; la parte «los tres objetivos a ≤ 1 m entre sí» espera a las explanadas de R2a.

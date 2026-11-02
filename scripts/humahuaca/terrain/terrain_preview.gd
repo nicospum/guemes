@@ -22,6 +22,9 @@ const VIEWS := {
 	"cauce": [800.0, 240.0, 220.0, 24.0, 290.0],
 	"cerro_oeste": [305.0, 345.0, 260.0, 20.0, 80.0],
 	"limite_ne": [900.0, 0.0, 120.0, 20.0, 225.0],
+	"limite_so": [0.0, 650.0, 120.0, 20.0, 45.0],
+	"limite_n": [450.0, 0.0, 120.0, 14.0, 180.0],
+	"limite_e": [900.0, 325.0, 120.0, 14.0, 270.0],
 }
 
 var _terrain: RefCounted
@@ -145,6 +148,27 @@ func _add_terrain_mesh() -> void:
 		for i in range(nx - 1):
 			var k := j * nx + i
 			idx.append_array([k, k + 1, k + nx, k + 1, k + nx + 1, k + nx])
+	# falda de 5 m en los cuatro bordes (tapa la grieta contra el contexto)
+	var base := verts.size()
+	var border: Array = []
+	for i in range(nx):
+		border.append(i)
+	for j in range(1, nz):
+		border.append(j * nx + nx - 1)
+	for i in range(nx - 2, -1, -1):
+		border.append((nz - 1) * nx + i)
+	for j in range(nz - 2, 0, -1):
+		border.append(j * nx)
+	for b in border:
+		verts.append(verts[int(b)] - Vector3(0.0, 5.0, 0.0))
+		norms.append(Vector3.UP)
+		cols.append(cols[int(b)])
+	for n in range(border.size()):
+		var a1 := int(border[n])
+		var a2 := int(border[(n + 1) % border.size()])
+		var d1 := base + n
+		var d2 := base + (n + 1) % border.size()
+		idx.append_array([a1, a2, d1, a2, d2, d1])
 	var arrays := []
 	arrays.resize(Mesh.ARRAY_MAX)
 	arrays[Mesh.ARRAY_VERTEX] = verts
@@ -159,7 +183,8 @@ func _add_terrain_mesh() -> void:
 	root.add_child(mi)
 
 
-## El contexto de 30 m alrededor de la ventana (sin los triángulos que caen adentro de ella).
+## El contexto de 30 m alrededor de la ventana. Los nodos que caen adentro de la ventana van 4 m más hondos que el terreno (más que cualquier capa de diseño),
+## así que la malla de la ventana, con su falda, los tapa sin dejar huecos; los de afuera van apenas 0,6 m por debajo.
 func _add_context_mesh() -> void:
 	var cf: Dictionary = _terrain.context_field()
 	var nx := int(cf["nx"])
@@ -177,15 +202,12 @@ func _add_context_mesh() -> void:
 			var x := ox + float(i) * cell
 			var z := oz + float(j) * cell
 			var h: float = _terrain.height_at(x, z)
-			verts.append(Vector3(x, h - 0.6, z))
+			var inside := x > 0.5 and x < 899.5 and z > 0.5 and z < 649.5
+			verts.append(Vector3(x, h - (4.0 if inside else 0.6), z))
 			norms.append(_terrain.normal_at(x, z))
 			cols.append(dry.darkened(clampf((h - 17.0) / 260.0, 0.0, 0.45)))
 	for j in range(nz - 1):
 		for i in range(nx - 1):
-			var cx := ox + (float(i) + 0.5) * cell
-			var cz := oz + (float(j) + 0.5) * cell
-			if cx > 0.0 and cx < 900.0 and cz > 0.0 and cz < 650.0:
-				continue
 			var k := j * nx + i
 			idx.append_array([k, k + 1, k + nx, k + 1, k + nx + 1, k + nx])
 	var arrays := []
@@ -218,8 +240,8 @@ func _add_river() -> void:
 		var half := 0.25 * float(pts[n].get("w", 32.0))
 		var a := p + side * half
 		var b := p - side * half
-		verts.append(Vector3(a.x, _terrain.height_at(a.x, a.y) + 0.12, a.y))
-		verts.append(Vector3(b.x, _terrain.height_at(b.x, b.y) + 0.12, b.y))
+		verts.append(Vector3(a.x, _terrain.height_at(a.x, a.y) + 0.45, a.y))
+		verts.append(Vector3(b.x, _terrain.height_at(b.x, b.y) + 0.45, b.y))
 	for n in range(pts.size() - 1):
 		var k := n * 2
 		idx.append_array([k, k + 1, k + 2, k + 1, k + 3, k + 2])
@@ -236,6 +258,7 @@ func _add_river() -> void:
 	var mi := MeshInstance3D.new()
 	mi.mesh = mesh
 	mi.material_override = m
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF  # una cinta de agua no proyecta sombra
 	root.add_child(mi)
 
 
