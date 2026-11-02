@@ -296,8 +296,8 @@ func build_features(root: Node3D) -> void:
 				continue
 			var line: PackedVector2Array = gfx.pts(f.get("pts", []))
 			var width := maxf(float(f.get("width_m", 1.6)), 1.0)
-			gfx.strip(root, line, width + 1.8, float(spec_z.get("raise_m", 0.08)) - 0.02, gfx.mat("suelo_seco", 0.95, 1.12))
-			gfx.strip(root, line, width, float(spec_z.get("raise_m", 0.08)) + 0.04, gfx.mat(str(spec_z.get("color", "sedimento_humedo")), 0.8, 0.62))
+			gfx.strip(root, line, width + 1.8, float(spec_z.get("raise_m", 0.08)) - 0.02, gfx.mat("suelo_seco", 0.95, 1.12), false, false, "zanja_borde_%d" % ditches, 4.0, true)  # cintas del suelo: tramos de 4 m y sobre la malla dibujada
+			gfx.strip(root, line, width, float(spec_z.get("raise_m", 0.08)) + 0.04, gfx.mat(str(spec_z.get("color", "sedimento_humedo")), 0.8, 0.62), false, false, "zanja_%d" % ditches, 4.0, true)
 			ditches += 1
 	content_counts["zanjas"] = ditches
 	var roads := 0
@@ -306,7 +306,7 @@ func build_features(root: Node3D) -> void:
 		for f in _terrain.call("features", kind):
 			if f is Dictionary:
 				var line: PackedVector2Array = gfx.pts(f.get("pts", []))
-				gfx.strip(root, line, maxf(float(f.get("width_m", 5.0)), 2.0), float(spec_c.get("raise_m", 0.09)), gfx.mat(str(spec_c.get("color", "suelo_seco")), 0.95, float(spec_c.get("gain", 1.12))))
+				gfx.strip(root, line, maxf(float(f.get("width_m", 5.0)), 2.0), float(spec_c.get("raise_m", 0.09)), gfx.mat(str(spec_c.get("color", "suelo_seco")), 0.95, float(spec_c.get("gain", 1.12))), false, false, "camino_%d" % roads, 4.0, true)
 				roads += 1
 	content_counts["caminos"] = roads
 
@@ -491,20 +491,27 @@ func build_vegetation(root: Node3D, river_line: PackedVector2Array) -> void:
 		var s := 1.2 + rng.randf() * 1.4
 		rocks.append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s * (0.6 + rng.randf() * 0.5), s)), Vector3(p.x, gfx.h(p.x, p.y) - 0.15, p.y)))
 	# sauces: el monte ribereño, a 26 – 64 m del eje del río (la foto de 1923: línea continua de arbolado oscuro delante del lecho claro)
+	# el monte ribereño tiene su propio generador y solo sortea lo que cae cerca de la ventana: así no depende de cuánto se prolongue la traza fuera del contexto, y se alterna de
+	# orilla en orilla (3 de cada 4 veces) para que las dos orillas tengan su línea de arbolado
+	var wrng := RandomNumberGenerator.new()
+	wrng.seed = int(ring.get("seed", 1817)) + 99
 	var samples := line_samples(river_line, 22.0 / maxf(factor, 0.3))
+	var side := 1.0
 	for k in range(samples.size()):
-		if rng.randf() < 0.18:
-			continue
 		var at: Vector2 = samples[k]
+		if not win.grow(reach + 70.0).has_point(at):
+			continue
+		if wrng.randf() < 0.18:
+			continue
 		var nrm := Vector2(1.0, 0.0)
 		if k + 1 < samples.size():
 			var tan_v: Vector2 = ((samples[k + 1] as Vector2) - at).normalized()
 			nrm = Vector2(-tan_v.y, tan_v.x)
-		var side := 1.0 if rng.randf() < 0.5 else -1.0
-		var p := at + nrm * side * (26.0 + rng.randf() * 38.0)
+		side = -side if wrng.randf() < 0.75 else side
+		var p := at + nrm * side * (26.0 + wrng.randf() * 38.0)
 		if win.grow(reach).has_point(p) and _free_spot(p, false):
-			var s := 0.85 + rng.randf() * 0.45
-			willows.append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s, s)), Vector3(p.x, gfx.h(p.x, p.y) - 0.1, p.y)))
+			var s := 0.85 + wrng.randf() * 0.45
+			willows.append(Transform3D(Basis(Vector3.UP, wrng.randf() * TAU).scaled(Vector3(s, s, s)), Vector3(p.x, gfx.h(p.x, p.y) - 0.1, p.y)))
 	for q in extra_trees:  # sauces chicos de los patios de las manzanas
 		var p2: Vector2 = q
 		var s2 := 0.45 + rng.randf() * 0.3

@@ -3,7 +3,8 @@ render_mode cull_disabled, specular_schlick_ggx;
 #include "res://shaders/humahuaca_noise.gdshaderinc"
 // Agua del Río Grande (pista visual): turbia y opaca, sin degradé de profundidad (CONTRATO 11.1: «agua turbia», un solo color de la paleta), con hebras largas
 // que siguen la corriente (UV.x = metros a lo largo del cauce, UV.y = −1 a 1 de orilla a orilla), una orilla más clara donde el agua es poco profunda y
-// anillitos de lluvia. Aspecto reconstruido: el cauce de 1817 y el caudal son sin datos.
+// anillitos de lluvia. Aspecto reconstruido: el cauce de 1817 y el caudal son sin datos. La opacidad llega por el color de vértice (COLOR.a): la cinta del río es opaca
+// en todo su largo y se apaga en las puntas que se recortan en el borde del contexto (el río se pierde en la bruma en vez de terminar en un corte).
 uniform vec3 pal_agua : source_color = vec3(0.549, 0.608, 0.569);
 uniform vec3 pal_orilla : source_color = vec3(0.808, 0.761, 0.655);
 uniform float rain : hint_range(0.0, 1.0) = 0.0;
@@ -11,6 +12,7 @@ uniform float albedo_mode = 0.0;
 uniform float flow_speed = 1.1;
 
 void fragment(){
+	ALPHA = COLOR.a;
 	float across = abs(UV.y);
 	vec2 q = vec2(UV.x * 0.22 - TIME * flow_speed * 0.22, UV.y * 2.6);
 	float strands = hx_fbm2(q * vec2(1.0, 2.2));

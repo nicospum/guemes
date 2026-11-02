@@ -143,7 +143,7 @@
 			{"id": "camisa_gorra", "para": ["infantes"], "silueta": "camisa corta y gorra, fusil al hombro", "height_m": 1.72, "outer_color": "lino_crudo", "inner_color": "lino_crudo", "hat_color": "lana_natural", "accent_color": "azul_elegido"},
 			{"id": "artillero", "para": ["artilleros"], "silueta": "delantal de cuero y atacador largo", "height_m": 1.7, "outer_color": "madera_oscura", "inner_color": "lana_natural", "hat_color": "lana_parda", "accent_color": "hierro"}
 		],
-		"realista_1817": {"silueta": "camisa y gorra retintadas (royalist_1817), sin uniforme cerrado y con una banda de acento", "outer_color": "lana_parda", "inner_color": "lino_crudo", "hat_color": "lana_parda", "accent_color": "borgona_hipotetica"},
+		"realista_1817": {"silueta": "camisa y gorra retintadas del modelo del realista de 1817, sin uniforme cerrado y con una banda de acento", "outer_color": "lana_parda", "inner_color": "lino_crudo", "hat_color": "lana_parda", "accent_color": "borgona_hipotetica"},
 		"variants": [
 			{"camisa": "lino_crudo", "abrigo": "lana_parda", "sombrero": "madera_oscura", "acento": ""},
 			{"camisa": "lana_natural", "abrigo": "azul_elegido", "sombrero": "lana_parda", "acento": ""},
@@ -233,7 +233,7 @@
 				"Los tres objetivos identificables",
 				"El núcleo se distingue del suelo por luz y trazo, no solo por color",
 				"Sin torres de campanas ni monumento"],
-			"tag": "diseno", "source": "diseño 11.3 y anexo B del QA (M14); la misma cámara que juego_noche (rumbo 325°, A-11)"
+			"tag": "diseno", "source": "diseño 11.3 y anexo B del QA (M14); la misma cámara que la de juego de noche (rumbo 325°, A-11)"
 		}
 	],
 	"initial_frame": {

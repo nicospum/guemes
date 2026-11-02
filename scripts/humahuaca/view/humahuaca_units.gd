@@ -207,7 +207,7 @@ func sync_things(root: Node3D, category: String, list: Array) -> int:
 		var z := float(e.get("z", 0.0))
 		var holder := Node3D.new()
 		holder.name = "%s_%s" % [category, str(e.get("id", count))]
-		holder.position = Vector3(x, gfx.h(x, z), z)
+		holder.position = Vector3(x, gfx.rendered_h(x, z), z)
 		root.add_child(holder)
 		if category == "enemy":
 			var mi := MeshInstance3D.new()
@@ -232,16 +232,33 @@ func sync_things(root: Node3D, category: String, list: Array) -> int:
 	return count
 
 
+## La pose de cada ficha (posición y rumbo) tal como la dice `render_state().units`. Se la lee EN CADA CUADRO: las agrupaciones se mueven en cada paso de las reglas sin
+## subir `version`, así que si la pose solo se leyera cuando la versión cambia las figuras se quedaban quietas hasta el próximo evento y después saltaban decenas de metros
+## (hallazgo H-R1-9: 30,8 m a ×1, 92,5 m a ×2 y 123,4 m a ×4). Cuesta lo que cinco nodos. Devuelve verdadero si alguna ficha se movió.
+func sync_poses(state: Dictionary) -> bool:
+	var moved := false
+	for u in state.get("units", []):
+		if not (u is Dictionary) or not unit_nodes.has(str(u.get("id", ""))):
+			continue
+		var node: Node3D = unit_nodes[str(u.id)]
+		var x := float(u.get("x", 0.0))
+		var z := float(u.get("z", 0.0))
+		var yaw := -deg_to_rad(float(u.get("yaw_deg", 0.0)))
+		if absf(node.position.x - x) > 0.0005 or absf(node.position.z - z) > 0.0005 or absf(node.rotation.y - yaw) > 0.0005:
+			node.position = Vector3(x, gfx.rendered_h(x, z), z)  # el pie apoya en la malla que se dibuja (en `baja` la ventana tiene un vértice cada 8 m y se aparta hasta ≈ 0,25 m de `height_at`)
+			node.rotation.y = yaw
+			moved = true
+	return moved
+
+
+## Pose, visibilidad, rótulo y color del anillo de cada ficha (lo que cambia con la versión del estado).
 func sync_units(state: Dictionary, labels_on: bool) -> void:
+	sync_poses(state)
 	for u in state.get("units", []):
 		if not (u is Dictionary) or not unit_nodes.has(str(u.get("id", ""))):
 			continue
 		var id := str(u.id)
 		var node: Node3D = unit_nodes[id]
-		var x := float(u.get("x", 0.0))
-		var z := float(u.get("z", 0.0))
-		node.position = Vector3(x, gfx.h(x, z), z)
-		node.rotation.y = -deg_to_rad(float(u.get("yaw_deg", 0.0)))
 		var gone := str(u.get("stage", "")) == "exited"
 		node.visible = not gone
 		(unit_labels[id] as Label3D).visible = not gone and labels_on

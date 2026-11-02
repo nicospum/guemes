@@ -32,6 +32,7 @@ var selected_ids: Array = []
 var unit_nodes: Dictionary = {}
 var unit_labels: Dictionary = {}
 var build_ms := 0.0  ## lo que tardó el último build() (lo informa el recorrido de QA)
+var scale_updates := 0  ## cuántas veces se midió la escala de lo dibujado contra la cámara (la prueba de B-047 lo mira: una por cada cámara distinta, no dos por cuadro)
 var build_stages_ms: Dictionary = {}  ## y por etapa (terreno, texturas, edificios, vegetación, fichas)
 var content_report: Dictionary = {}  ## cuánto contenido armó: triángulos, casas, tapias, vegetación
 
@@ -62,6 +63,12 @@ var _version := -2
 var _time := 0.0
 var _splats: Array = []
 var _ctx_tex: Texture2D = null
+var _dyn_serial := 0  ## sube cada vez que cambia algo dibujado que se mide contra la cámara (fichas, defensores, botín, luces)
+var _sig_serial := -1  ## la firma de lo que se midió la última vez contra la cámara: serie, pose y fov de la cámara, tamaño de la ventana y su escala
+var _sig_xf := Transform3D.IDENTITY
+var _sig_fov := -1.0
+var _sig_vp := Vector2.ZERO
+var _sig_screen := 1.0
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -119,6 +126,7 @@ func build(rules: RefCounted, quality: String = "media") -> void:
 	_apply_layers()
 	_env_dirty = true
 	_version = -2
+	_sig_serial = -1
 	update_state(0.0)
 	build_ms = float(Time.get_ticks_usec() - started) / 1000.0
 	content_report = {"terreno": gfx.build_stats, "triangulos_edificios_y_vegetacion": buildings.triangle_count, "contenido": buildings.content_counts.duplicate(),
@@ -191,12 +199,16 @@ func update_state(delta: float) -> void:
 			if version != _version or version < 0:
 				_version = version
 				_sync_dynamic(state)
+			else:
+				# las agrupaciones se mueven en cada paso de las reglas SIN subir la versión: su pose y sus círculos de visibilidad se siguen en cada cuadro (H-R1-9)
+				if units.sync_poses(state):
+					_dyn_serial += 1
+				fxm.follow_pools(_roots.Anillos, state, delta)
 	if gfx == null:
 		return
 	if _env_dirty:
 		_apply_environment()
-	_update_scales()
-	_check_rings()
+	_update_camera_dependents()
 	fxm.update_fx(delta)
 	fxm.animate_lights(delta)
 	units.update_selection(selected_ids, _time)
@@ -208,15 +220,29 @@ func update_state(delta: float) -> void:
 func _process(_delta: float) -> void:
 	if _rules == null or _roots.is_empty() or gfx == null:
 		return
-	_update_scales()
-	_check_rings()
+	_update_camera_dependents()
 
 
-func _update_scales() -> void:
-	units.update_scales(self, get_viewport().get_camera_3d() if is_inside_tree() else null)
-
-
-func _check_rings() -> void:
+## Escala de las fichas, defensores, botín y luces, y ancho de los anillos: dependen de la cámara que se DIBUJA. Se calculan una vez por cada cámara distinta: `update_state`
+## (que llama el controlador antes de ubicar la cámara) y el `_process` de la vista (que corre con la cámara ya puesta) llegan acá los dos, y con la cámara quieta y nada
+## que se haya movido el segundo (y los cuadros siguientes) no recalculan: la firma es la cámara (pose, fov y ventana) y la serie de cambios del estado dibujado (BACKLOG B-047).
+func _update_camera_dependents() -> void:
+	if gfx == null or units == null or not is_inside_tree():
+		return
+	var camera: Camera3D = get_viewport().get_camera_3d()
+	var xf := camera.global_transform if camera != null and camera.is_inside_tree() else Transform3D.IDENTITY
+	var fov := camera.fov if camera != null else -1.0
+	var vp_size := get_viewport().get_visible_rect().size
+	var screen := get_viewport().get_screen_transform().get_scale().y
+	if _dyn_serial == _sig_serial and xf == _sig_xf and fov == _sig_fov and vp_size == _sig_vp and screen == _sig_screen:
+		return
+	_sig_serial = _dyn_serial
+	_sig_xf = xf
+	_sig_fov = fov
+	_sig_vp = vp_size
+	_sig_screen = screen
+	scale_updates += 1
+	units.update_scales(self, camera)
 	fxm.check_rings(_roots.Anillos)
 
 
@@ -241,7 +267,13 @@ func _sync_dynamic(state: Dictionary) -> void:
 	units.sync_things(_roots.Defensores, "enemy", state.get("enemies", []))
 	units.sync_things(_roots.Botin, "loot", state.get("loot", []))
 	fxm.sync_lights(_roots.Luces, state, bool(_layers.get("lights", true)))
-	_update_scales()
+	_dyn_serial += 1  # cambiaron las fichas, los defensores, el botín o las luces: hay que medir de nuevo contra la cámara
+
+
+## Fuerza el cálculo por cámara (invalida la firma): para las pruebas y las herramientas que mueven la cámara o el estado a mano y quieren la escala de ese instante.
+func _update_scales() -> void:
+	_sig_serial = -1
+	_update_camera_dependents()
 
 
 ## Anillos de estado de los objetivos y de visibilidad; y cuál de las dos torres del diseño es la del mundo (la que `tower` ubica).
@@ -717,11 +749,15 @@ func _rect_array(r: Rect2) -> Array:
 	return [snappedf(r.position.x, 0.1), snappedf(r.position.y, 0.1), snappedf(r.size.x, 0.1), snappedf(r.size.y, 0.1)]
 
 
-## Rectángulos en píxeles para medir ΔL*: la huella proyectada de cada edificio u objetivo, la ficha de cada agrupación y el suelo que los rodea.
+## Rectángulos en píxeles LÓGICOS (los de `unproject_position`: multiplicados por la escala de la ventana dan los de la captura) para medir ΔL*: la huella proyectada de cada
+## edificio u objetivo, la ficha de cada agrupación y el suelo que los rodea. El rectángulo de una ficha mide el alto que se DIBUJA (de la base a la cima, con la cámara que
+## se dibuja) y no el que se pidió, así que `alto × escala de la ventana` es lo que se ve en la captura (BACKLOG B-026). Cada sonda lleva `on_screen`: si su rectángulo cae
+## entero dentro del cuadro (una ficha detrás de la cámara o más allá del borde sale con `false` en vez de un rectángulo de miles de píxeles, BACKLOG B-034).
 func probes(camera: Camera3D) -> Array:
 	var out: Array = []
 	if not _cam_ok(camera) or buildings == null:
 		return out
+	var frame := camera.get_viewport().get_visible_rect()
 	for lm in buildings.landmarks:
 		var id := str(lm.id)
 		var type_name := str(lm.get("type", ""))
@@ -736,11 +772,15 @@ func probes(camera: Camera3D) -> Array:
 			pts.append(Vector3(c.x, _h(c.x, c.y) + top, c.y))
 		var building := _screen_rect(camera, pts)
 		if building.size != Vector2.ZERO:
-			out.append({"kind": "objetivo" if V.OBJECTIVES.has(id) else "edificio", "id": id, "rect": _rect_array(building)})
-			out.append({"kind": "suelo", "id": id, "rect": _rect_array(building.grow(maxf(building.size.x, building.size.y) * 0.35))})
+			var around := building.grow(maxf(building.size.x, building.size.y) * 0.35)
+			out.append({"kind": "objetivo" if V.OBJECTIVES.has(id) else "edificio", "id": id, "rect": _rect_array(building), "on_screen": frame.encloses(building)})
+			out.append({"kind": "suelo", "id": id, "rect": _rect_array(around), "on_screen": frame.encloses(around)})
 	for trio in _unit_ids_on_screen(camera):
-		var h_px := float((units.tokens[trio[0]] as Dictionary).px)
-		var token := Rect2((trio[1] as Vector2) - Vector2(h_px * 0.4, h_px), Vector2(h_px * 0.8, h_px))
-		out.append({"kind": "ficha", "id": str(trio[0]), "rect": _rect_array(token)})
-		out.append({"kind": "suelo", "id": str(trio[0]), "rect": _rect_array(token.grow(h_px * 0.6))})
+		var base: Vector2 = trio[1]
+		var top: Vector2 = trio[2]
+		var h_px := maxf(absf(base.y - top.y), 1.0)  # el alto dibujado de la figura en píxeles lógicos
+		var token := Rect2(Vector2(base.x - h_px * 0.4, minf(base.y, top.y)), Vector2(h_px * 0.8, h_px))
+		var around_token := token.grow(h_px * 0.6)
+		out.append({"kind": "ficha", "id": str(trio[0]), "rect": _rect_array(token), "on_screen": frame.encloses(token)})
+		out.append({"kind": "suelo", "id": str(trio[0]), "rect": _rect_array(around_token), "on_screen": frame.encloses(around_token)})
 	return out

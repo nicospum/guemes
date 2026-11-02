@@ -15,6 +15,10 @@ const LIGHT_HEIGHT := {"brasero": 1.4, "ventana": 2.6, "candil": 2.0, "fogata": 
 const RING_DEFAULTS := {"visibilidad": {"alpha": 0.55, "fade_from_m": 70.0, "fade_to_m": 180.0, "width_px": 2.0, "color": "celeste_produccion"},
 	"objetivo": {"alpha": 0.9, "width_px": 4.0}}
 const RAIN_SHADER := "res://shaders/humahuaca_rain.gdshader"
+## Cuánto se tiene que correr una agrupación (o cambiar su radio) y cada cuánto como mínimo se rearman los círculos de visibilidad que la siguen.
+const RING_FOLLOW_M := 1.5
+const RING_FOLLOW_R_M := 1.0
+const RING_FOLLOW_MIN_S := 0.06
 
 var gfx
 var units
@@ -28,6 +32,7 @@ var light_nodes: Dictionary = {}
 var _fx: Array = []
 var _ring_bucket := -999
 var _ring_hash := 0
+var _pool_age := 1.0  ## segundos reales desde el último rearmado de los círculos de visibilidad
 var _ring_root: Node3D = null
 var _flames: Array = []
 var _pool_tex: GradientTexture2D = null
@@ -49,6 +54,7 @@ func reset() -> void:
 	ring_state = {"objs": [], "pools": []}
 	_ring_bucket = -999
 	_ring_hash = 0
+	_pool_age = 1.0
 	_flames = []
 	light_nodes = {}
 	omni_count = 0
@@ -287,7 +293,37 @@ func sync_objectives(root: Node3D, state: Dictionary, lm_by_id: Dictionary, foot
 	if wanted.hash() != _ring_hash or _ring_bucket != ring_bucket_now():  # la versión sube en casi cada paso: se rearma solo si cambió algo de los anillos
 		ring_state = wanted
 		_ring_hash = wanted.hash()
+		_pool_age = 0.0
 		rebuild_rings(root)
+
+
+## Los círculos de visibilidad siguen a las agrupaciones que marchan. Sus posiciones (y su radio, que sale del ambiente) cambian en cada paso de las reglas sin subir la
+## `version` del estado (hallazgo H-R1-9), así que se los mira en cada cuadro; rearmarlos es lo caro (~1 ms), por eso solo se rearman cuando alguno se corrió `RING_FOLLOW_M`
+## metros o cambió `RING_FOLLOW_R_M` de radio y a lo sumo cada `RING_FOLLOW_MIN_S` segundos: 1,5 m sobre un círculo de decenas de metros no se ve.
+func follow_pools(root: Node3D, state: Dictionary, delta: float) -> void:
+	_pool_age += delta
+	var old: Array = ring_state.pools
+	var listed: Array = state.get("visibility_pools", [])
+	var changed := listed.size() != old.size()
+	if not changed:
+		for i in range(listed.size()):
+			var p: Variant = listed[i]
+			if not (p is Dictionary):
+				continue
+			var shift := absf(float(p.get("x", 0.0)) - float(old[i].x)) + absf(float(p.get("z", 0.0)) - float(old[i].z))
+			if shift > RING_FOLLOW_M or absf(maxf(float(p.get("r", 20.0)), 3.0) - float(old[i].r)) > RING_FOLLOW_R_M:
+				changed = true
+				break
+	if not changed or _pool_age < RING_FOLLOW_MIN_S:
+		return
+	var pools: Array = []
+	for p in listed:
+		if p is Dictionary:
+			pools.append({"x": float(p.get("x", 0.0)), "z": float(p.get("z", 0.0)), "r": maxf(float(p.get("r", 20.0)), 3.0)})
+	_pool_age = 0.0
+	ring_state = {"objs": ring_state.objs, "pools": pools}
+	_ring_hash = ring_state.hash()
+	rebuild_rings(root)
 
 
 func rebuild_rings(root: Node3D) -> void:
