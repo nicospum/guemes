@@ -187,8 +187,10 @@ func _run_policy(policy: String) -> void:
 					rec = await _play_scene(policy, int(sd), rep, att, progress)
 				else:
 					rec = _play_rules(policy, int(sd), rep, att, progress)
+				if rec.is_empty():
+					break
 				games.append(rec)
-				if rec.is_empty() or str(rec.status) != "defeat":
+				if str(rec.status) != "defeat":
 					break
 			if progress != null:
 				progress.call("reset_all")
@@ -351,7 +353,14 @@ func _play_scene(policy: String, sd: int, rep: int, att: int, progress: RefCount
 	while str(rules.state.status) == "playing" and float(rules.state.elapsed) < float(D.rules().time.deadline_s) + 5.0 and steps < 4000:
 		steps += 1
 		if policy == "interfaz":
-			await _click_next_step(hx, rules)
+			var found := await _click_next_step(hx, rules)
+			mem["clicks"] = int(mem.get("clicks", 0)) + (1 if found else 0)
+			if not found and float(rules.state.elapsed) >= 10.0 and int(mem.get("clicks", 0)) == 0:
+				skipped.append({"policy": "interfaz", "reason": "el controlador de esta versión no tiene un botón del «siguiente paso» que se pueda pulsar (ni qa_press_next)"})
+				game.queue_free()
+				await process_frame
+				game = null
+				return {}
 		else:
 			var view := Pol.make_view(rules, policy, mem)
 			Pol.apply_orders(rules, Pol.decide(policy, view, rng))
@@ -377,15 +386,15 @@ func _play_scene(policy: String, sd: int, rep: int, att: int, progress: RefCount
 
 ## La política «interfaz»: hace clic en el botón del «siguiente paso». Si el controlador ofrece qa_press_next(), lo usa; si no, busca un botón visible cuyo nombre diga
 ## «siguiente»/«next» o cuyo texto sea el del paso, y le manda un clic real (movimiento, apretar y soltar) a su centro.
-func _click_next_step(hx: Node, rules: RefCounted) -> void:
+func _click_next_step(hx: Node, rules: RefCounted) -> bool:
 	if hx.has_method("qa_press_next"):
 		hx.call("qa_press_next")
-		return
+		return true
 	var hud: Dictionary = rules.call("hud_state")
 	var nxt: Dictionary = hud.get("siguiente", {})
 	var action := str(nxt.get("action", ""))
 	if action == "" or action == "hold" or action == "cancel":
-		return
+		return true  # no hay nada que pulsar: el botón puede existir y la partida estar esperando
 	var text := str(nxt.get("texto", ""))
 	var btn: Button = null
 	for b in game.find_children("*", "Button", true, false):
@@ -397,9 +406,10 @@ func _click_next_step(hx: Node, rules: RefCounted) -> void:
 			btn = button
 			break
 	if btn == null:
-		return
+		return false
 	await _click_at(btn.get_global_rect().get_center())
 	ui_log.append("%d s: clic en el botón del siguiente paso (%s)" % [int(rules.state.elapsed), action])
+	return true
 
 func _to_win(pos: Vector2) -> Vector2:
 	return root.get_final_transform() * pos

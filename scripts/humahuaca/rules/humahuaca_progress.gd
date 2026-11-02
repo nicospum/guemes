@@ -217,7 +217,7 @@ func _note_diary(rules: RefCounted, rep: Dictionary, golpe: float) -> Array:
 						at = D.hito(str(D.rules().objectives[fid].hito))
 						place = str(D.rules().objectives[fid].place)
 						break
-	var entry := {"attempt": attempts, "kind": key, "text": D.fmt(str(texts[key]), {"t": D.clock(float(rep.get("elapsed", 0.0))), "lugar": place, "deLugar": D.de_place(place), "golpe": roundi(golpe)}),
+	var entry := {"attempt": attempts, "kind": key, "text": D.fmt(str(texts[key]), {"t": D.clock(float(rep.get("elapsed", 0.0))), "lugar": place, "deLugar": D.de_place(place), "aLugar": D.a_place(place), "golpe": roundi(golpe)}),
 		"x": at.x, "z": at.y, "tag": "diseno"}
 	_diary.append(entry)
 	var cap := int(_campaign.get("diary_max_entries", 40))

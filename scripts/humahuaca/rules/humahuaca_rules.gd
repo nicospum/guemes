@@ -514,7 +514,7 @@ func _step_units(t: float) -> void:
 			_bump()
 			if not _all_taken():
 				var fid := str(_rules.groups[u.id].front)
-				_finish("defeat", "frente_roto", {"grupo": str(u.name), "frente": fid})
+				_finish("defeat", "frente_roto", {"grupo": str(_rules.groups[str(u.id)].phrase), "frente": fid})
 
 func _move_unit(u: Dictionary) -> void:
 	var path: Array = u.path
@@ -951,7 +951,7 @@ func _finish(status: String, cause_id: String, ctx: Dictionary = {}) -> void:
 			place = str(_rules.objectives[str(ctx.frente)].place)
 		if place == "":
 			place = D.place_of(_combat_centroid())
-		var vars := {"t": D.clock(float(state.elapsed)), "lugar": place, "deLugar": D.de_place(place), "grupo": str(ctx.get("grupo", _tx("una_partida")))}
+		var vars := {"t": D.clock(float(state.elapsed)), "lugar": place, "deLugar": D.de_place(place), "aLugar": D.a_place(place), "grupo": str(ctx.get("grupo", _tx("una_partida")))}
 		out.cause_id = cause_id
 		out.title = str(c.titulo)
 		out.cause = D.fmt(str(c.texto), vars)

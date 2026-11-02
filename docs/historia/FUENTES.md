@@ -117,3 +117,21 @@ Tabla de procedencia visual: `PROCEDENCIA_VISUAL.md`. Pendiente cotejar contra e
 | S45 | Paquete Justina_Retiro_1806 (informe A-K, info/*.md, láminas, georef experimental), 30-oct-2026. | Punto de partida del usuario, no fuente primaria. Usado para área, perfil, paleta y fichas; lo que depende solo de él (cronología P1) queda «dato del paquete, sin cotejo». El georef (residuo ~17 m) no fija el encallamiento. |
 
 Estado de verificación (Ronda 7): S3, S10 y S11 (ubicación del varado) son divulgación de confianza media, enlaces sin reabrir; el lugar del buque es Reconstrucción hipotética. Gillespie pp. 93, 94, 121: solo OCR.
+
+## Humahuaca (nivel II), R1 (2-nov-2026): fuentes S46 a S54
+
+Las fuentes de Humahuaca están completas en `data/history.json` (`sources`, S46 a S54) y se muestran en «Historia y reconstrucción»; las notas institucionales S8a a S8c de arriba también hablan de este golpe. Todo lo leído fue **transcripción OCR local** de la biblioteca de investigación del proyecto (no se redistribuye) y no se cotejó con el facsímil. «Documentado» quiere decir que lo informó su autor, no que sea verdadero: el parte de Arias es de parte interesada, igual que el Diario realista.
+
+| ID | Referencia | Estado de verificación |
+| --- | --- | --- |
+| S46 | Arias, parte a Güemes, San Andrés, 3-III-1817, con el anexo de la bandera, en *Güemes documentado*, t. IV (1980), pp. 355-358. | Leído en OCR; las cifras y fechas dudosas quedan marcadas «(OCR)». Fuente de los tres trozos, la marcha, la descarga del alba, la torre y el traidor. |
+| S47 | Güemes a Arias, Salta, 26-II-1817 (la noticia de Chacabuco), t. VI, carta 161, pp. 199-200. | Leído en OCR. No trae ninguna orden ni nombra Humahuaca: el briefing del juego la dramatiza y lo dice. |
+| S48 | Güemes a Belgrano, 20-II-1817 (Arias en San Andrés «a virtud de mis órdenes»; la fuga del teniente Portal), t. IV, p. 334. | Leído en OCR. Fecha el plan antes de que llegara Chacabuco. |
+| S49 | Diario del Estado Mayor realista, 1816-1817 (extracto), en el conde de Torata, *Documentos para la historia de la guerra separatista del Perú*, t. II (1895), pp. 176-197, 213 y 402-407. | Leído en OCR regular; hay tramos corruptos y las marcas de página no son fiables. Fuente realista publicada décadas después. |
+| S50 | García Camba, *Memorias para la historia de las armas españolas en el Perú*, t. I (ed. de 1916, escritas hacia 1846), pp. 303-323. | Leído en OCR. Relato retrospectivo: el autor no estuvo y atribuye el golpe a La Madrid, que es un error; no se usa para el itinerario de Arias. |
+| S51 | Belgrano a Güemes, marzo y abril de 1817 («golpe de Humahuaca», medallas, «tres cargas de plata»), t. VI, cartas 165, 169 y 173. | Leído en OCR. La plata es versión de oídas de Portal (discutida). |
+| S52 | Informe de Arias del 31-I-1817 (capilla de Santa Bárbara derribada y batería en esa altura), t. IV, pp. 316-317. | Leído en OCR. Informante indígena recogido por Arias. |
+| S53 | Güemes envía «las dos banderas tomadas en la gloriosa jornada de Humahuaca» (25-IV-1817) y el Cabildo de Salta resuelve colocar la suya en la Catedral, t. IV, pp. 374-376. | Leído en OCR. |
+| S54 | Dossier del usuario «Humahuaca, comienzos de marzo de 1817» (resumen .md, láminas 02, 03 y 06, foto de 1923). | Punto de partida, no fuente primaria. Usado para el área jugable (900 × 650 m), el relieve de referencia, la paleta y las hipótesis de diseño. |
+
+**Pendientes de Humahuaca** (no bloquean; ningún texto del juego depende de ellos): cotejar con el facsímil el parte de Arias y la carta del 26-II; leer *Güemes documentado* t. VII (la inscripción del premio con «2 de marzo») y t. VIII; la *Gazeta de Buenos Aires* original de marzo de 1817; Temple y Mata; y el dossier completo de 52 páginas, el paquete de 39 archivos, las láminas 01, 04 y 05 y la tabla de 23 elementos, que no se recibieron (se trabaja con el resumen y lo que falta se rotula como diseño). No hay plano de 1817 del pueblo ni de la torre, ni cotas, alturas de tapias, caudal o vados medidos: todo eso figura como diseño o «sin datos». La procedencia de cada grupo de números está en `docs/humahuaca/PROCEDENCIA.md`.

@@ -85,6 +85,12 @@ static func place_of(p: Vector2) -> String:
 			best = str(hitos[id])
 	return best
 
+## «a la batería» / «al cuartel»: el lugar con su preposición contraída (para «frente al cuartel»).
+static func a_place(place: String) -> String:
+	if place.begins_with("el "):
+		return "al " + place.substr(3)
+	return "a " + place
+
 ## «de la batería» / «del cuartel»: el lugar con su preposición contraída.
 static func de_place(place: String) -> String:
 	if place.begins_with("el "):

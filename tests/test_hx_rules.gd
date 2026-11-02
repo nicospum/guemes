@@ -1174,7 +1174,7 @@ func _test_outcomes() -> void:
 	snake.compile("[a-z]+_[a-z]+")
 	for id in R.CAUSES:
 		var c: Dictionary = oc.causes[id]
-		var shown := String(c.texto).replace("{t}", "10:00").replace("{lugar}", "la zona de partida").replace("{deLugar}", "de la zona de partida").replace("{grupo}", "la partida de Portal")
+		var shown := String(c.texto).replace("{t}", "10:00").replace("{lugar}", "la zona de partida").replace("{deLugar}", "de la zona de partida").replace("{aLugar}", "a la zona de partida").replace("{grupo}", "la partida de Portal")
 		ck(String(c.titulo) != "" and String(c.consejo) != "" and shown.length() <= 140 and snake.search(shown) == null and snake.search(String(c.consejo)) == null, "causa %s: título, consejo y texto de %d caracteres (máximo 140), sin jerga" % [id, shown.length()])
 	var reached := {}
 	# amanecio
