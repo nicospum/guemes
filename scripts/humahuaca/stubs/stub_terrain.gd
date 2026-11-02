@@ -34,7 +34,7 @@ const MUD_FALLBACK := {"camino": 0.9, "suelo_seco": 0.95, "sedimento_humedo": 0.
 const WET := {  # superficie → [humedad base, ganancia por lluvia]
 	"suelo_seco": [0.0, 0.8], "sedimento_humedo": [0.5, 0.5], "piedra": [0.0, 0.3], "churqui": [0.0, 0.7], "irrigado": [0.4, 0.6],
 	"agua": [1.0, 0.0], "camino": [0.0, 0.9], "patio": [0.0, 0.9], "zanja": [0.7, 0.3], "muro": [0.0, 0.0]}
-const RIVER_FALLBACK := [[572.0, 0.0], [862.0, 340.0], [900.0, 406.0]]  # entra por el norte, pasa por el vado y sale por el este (DISENO §3)
+const RIVER_FALLBACK := [[572.0, 0.0], [859.0, 325.0], [862.0, 340.0], [900.0, 406.0]]  # entra por el norte, cruza z = 325 en x = 859, pasa por el vado y sale por el este
 const MINIMAP_COLOR := Color("B99A72")
 const BOX_TYPES := ["hito", "objetivo", "edificio", "torre"]  # los hitos de estos tipos con altura tapan la vista
 
@@ -75,6 +75,13 @@ var _stages_ms: Dictionary = {}
 var _bake_ms := 0.0
 var _t_lap := 0
 
+## `new()` a secas arma el terreno con los datos del juego; `new(mapa, nivel)`, con esos diccionarios (las pruebas usan niveles sintéticos).
+func _init(map: Dictionary = {}, level: Dictionary = {}) -> void:
+	if map.is_empty():
+		map = V.load_json(V.MAP_PATH)
+		level = V.load_json(V.LEVEL_PATH)  # si falta, el terreno queda sin rasgos (load_json ya avisó)
+	_bake(map, level)
+
 ## El terreno de respaldo del proceso (caché). null, con push_error, si falta o no sirve data/humahuaca_map.json.
 static func load_default() -> RefCounted:
 	if _default != null:
@@ -83,15 +90,12 @@ static func load_default() -> RefCounted:
 	if map.is_empty():
 		push_error("Terreno de respaldo: falta o no sirve " + V.MAP_PATH)
 		return null
-	var level: Dictionary = V.load_json(V.LEVEL_PATH)  # si falta, el terreno queda sin rasgos (load_json ya avisó)
-	_default = from_data(map, level)
+	_default = new(map, V.load_json(V.LEVEL_PATH))
 	return _default
 
-## Arma un terreno con los diccionarios dados (sin caché): lo usan las pruebas con niveles sintéticos.
+## Arma un terreno con los diccionarios dados, sin caché.
 static func from_data(map: Dictionary, level: Dictionary = {}) -> RefCounted:
-	var t := new()
-	t._bake(map, level)
-	return t
+	return new(map, level)
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Conversión lámina ↔ juego
@@ -262,9 +266,12 @@ func context_field() -> Dictionary:
 
 func nav_grid() -> Dictionary:
 	if _weight.is_empty():
+		var by_surface := PackedFloat32Array()  # costo por superficie, con el suelo seco
+		for sid in range(VT.SURFACES.size()):
+			by_surface.append(1.0 / maxf(_speed_for(sid, 0.0), 0.05))
 		_weight.resize(nx * nz)
 		for idx in range(nx * nz):
-			_weight[idx] = 1.0 if _solid[idx] == 1 else 1.0 / maxf(_speed_for(_surf[idx], 0.0), 0.05)
+			_weight[idx] = 1.0 if _solid[idx] == 1 else by_surface[_surf[idx]]
 	return {"nx": nx, "nz": nz, "cell": cell_m, "origin_x": 0.0, "origin_z": 0.0, "solid": _solid, "weight": _weight}
 
 ## Un solo color (el respaldo no dibuja relieve), norte arriba y sin unidades.
@@ -398,7 +405,7 @@ func _read_river() -> void:
 		for p in RIVER_FALLBACK:
 			_river_pts.append(Vector2(p[0], p[1]))
 		_river = {"id": "rio_grande", "bed_width_m": {"min": 25.0, "max": 40.0}, "depth_m": {"min": 0.2, "max": 0.6}, "fords": [],
-			"tag": "diseno", "source": "Trazo mínimo del respaldo (3 puntos); la traza de 14 puntos de la lámina 03 llega con el terreno real. DISENO §3"}
+			"tag": "diseno", "source": "Trazo mínimo del respaldo (4 puntos de DISENO §3); la traza de 14 puntos de la lámina 03 llega con el terreno real"}
 	if _ford_pts.is_empty() and _lm_by_id.has("vado_este"):
 		_ford_pts.append(_pt(_lm_by_id["vado_este"]))
 	var pts_out: Array = []
