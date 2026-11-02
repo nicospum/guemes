@@ -463,14 +463,15 @@ step_hygiene() {
   skipped higiene && return
   local bad="" tags secret bin blend
   tags="$(git -C "$SRC" tag --list | tr -d '\r' | tr '\n' ' ' | sed 's/ $//')"
-  if [ "$tags" != "v0.1.0" ]; then bad="$bad etiquetas={$tags} (debe quedar solo v0.1.0);"; fi
+  # enmienda 5: las etiquetas deben ser exactamente las que ya existían (v0.1.0, v0.2.0-alpha, v0.3.0-alpha); ninguna nueva ni movida
+  if [ "$tags" != "v0.1.0 v0.2.0-alpha v0.3.0-alpha" ]; then bad="$bad etiquetas={$tags} (deben ser v0.1.0 v0.2.0-alpha v0.3.0-alpha, sin agregar ni mover);"; fi
   secret="$(git -C "$SRC" ls-files | grep -E '(^|/)(\.env[^/]*|jev\.cfg|[^/]*\.key)$' | head -n 3 | tr '\n' ' ')"
   if [ -n "$secret" ]; then bad="$bad hay archivos de secretos versionados: $secret;"; fi
   bin="$(git -C "$SRC" ls-files '*.tif' '*.exe' '*.zip' | head -n 3 | tr '\n' ' ')"
   if [ -n "$bin" ]; then bad="$bad hay binarios versionados que no van a Git: $bin;"; fi
   blend="$(git -C "$SRC" diff --name-only --diff-filter=A "$BASE" -- '*.blend' '*.glb' ':!assets/models/humahuaca/' | head -n 3 | tr '\n' ' ')"
   if [ -n "$blend" ]; then bad="$bad modelos nuevos de origen externo (Blender no está autorizado): $blend;"; fi
-  if [ -n "$bad" ]; then record higiene FALLA "$bad"; else record higiene PASA "etiquetas = v0.1.0, sin secretos, binarios ni modelos externos versionados"; fi
+  if [ -n "$bad" ]; then record higiene FALLA "$bad"; else record higiene PASA "etiquetas = las tres de siempre, sin secretos, binarios ni modelos externos versionados"; fi
   local origin
   origin="$(git -C "$SRC" rev-parse origin/main 2>/dev/null | tr -d '\r')"
   if [ -n "$origin" ] && [ "$origin" != "$ORIGIN_MAIN_FROZEN" ]; then
