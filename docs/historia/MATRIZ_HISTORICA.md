@@ -204,3 +204,38 @@ Esta matriz es un contrato de contenido para la implementación. La inclusión d
 | Abordaje disputado | Gillespie: toma «al cerrar el 12» | La dotación contraatacando es Diseño | `texts.boarding_not_described` |
 
 **Pendientes (Ronda 7):** playtest humano; banco expuesto; cotejo de pp. 93, 94, 121 con el escaneo; Concha, oficio y parte de Liniers en original; Obligado 1920; fuente primaria de 1801. El georef del paquete NO se usa.
+
+## J. Humahuaca, ronda R1 (2 de noviembre de 2026): qué se afirma, de dónde y con qué etiqueta
+
+Afirmaciones del nivel II («Humahuaca: el depósito de la retaguardia», 1 de marzo de 1817). El detalle por afirmación está en `docs/humahuaca/HISTORIA.md`; la procedencia de cada cifra, en `docs/humahuaca/PROCEDENCIA.md`; los textos, en `data/history.json` (`scenarios.humahuaca`, 18 hechos) y `data/humahuaca_rules.json`. Una entidad mixta lleva la etiqueta de su parte más débil. Las fuentes S46 a S54 figuran en `FUENTES.md`.
+
+| Afirmación o elemento | Fuente (qué se tomó de dónde) | Etiqueta | Cómo se muestra |
+| --- | --- | --- | --- |
+| Arias dirige el asalto, en tres trozos: batería (Rodríguez), cuartel (Portal y Ontiveros), posta y pólvora (Arias, de reserva) | S46 | **Documentado** (el hecho) · Diseño (reparto 48/52/50, armas, mulas propias) | `groups`, briefing |
+| Güemes conduce desde Salta, informa a Belgrano y recibe el parte; no está en el asalto | S46, S48 | **Documentado** | briefing y epílogo |
+| Carta del 26 de febrero | S47 | **Documentado** (existe y no trae órdenes) · Diseño (el texto del juego es una lectura adaptada) | briefing, rotulada «dramatización» |
+| Marcha de unas 26 horas; lluvia copiosa la tarde del 27 | S46 | **Documentado**; la lluvia de la noche y el alba, Razonado | `environment.segments` |
+| 150 atacantes «la mayor parte sin más armas que palos»; el Diario realista dice 300 | S46, S49 | **Documentado** la cifra de Arias · **Discutido** la discrepancia | `groups` |
+| Reconocimiento de «tapial, zanjita» | S46 | **Documentado** (el hecho) · Diseño (posiciones y alturas) | `features` |
+| Descarga «que pareció cañonazo», artillero que grita «viva el rey», dos caídos de la pólvora, oficial alcanzado «a media cuadra» | S46 | **Documentado** (los hechos) · Diseño (momento y lugar dentro del mapa) | eventos del alba |
+| Resistencia desde una torre, de 5:00 a 6:30 | S46 | **Documentado** el hecho · Sin datos (qué torre y dónde) · Diseño (cadencia; compresión a unos 90 s) | `tower`, variante de torre |
+| Un traidor avisó; la guardia «lo había esperado noches antes» | S46 | **Documentado** como acusación sin identificar · Diseño (variante «guardia atenta») | briefing, variante |
+| Capilla de Santa Bárbara derribada y batería en esa altura (enero) | S52 | **Documentado** (informe de un informante) | batería al oeste |
+| Reducto con foso y camino cubierto hacia el pueblo | S49 | **Razonado** | `features.camino_cubierto` |
+| Altura de 12 m y gola al este | Ninguna fuente | Diseño | batería |
+| Guarnición de unos 130 y 6 o 7 piezas | S46, S49, S50 | **Documentado** · Discutido (las cuentas difieren) | `objectives` |
+| Munición quemada o echada al río, cañones sin llevar, luego recuperados | S46, S49, S50 | **Documentado** (Arias y La Serna) · **Discutido** («ocultos o enterrados») | tratamientos del botín |
+| Clavar los cañones, tirar los víveres, los tres escondites y su distancia al camino | Ninguna fuente | Diseño | acciones |
+| Refuerzo realista por el camino del sur durante la extracción | S49, S50 (se supo el 4-III; salieron columnas el 5 y el 6) | Diseño: **no ocurrió** | nota de pantalla |
+| Fecha: 1 de marzo (itinerario de Arias, Diario) o 2 (prisioneros, La Serna, inscripción del premio) | S46, S49, S50, S53 | **Discutido** | nota de fecha en pantalla |
+| Parte del 3-III (San Andrés), 8-III Salta (22 h), 13-III Tucumán | S46, S51 | **Documentado** | epílogo fechado |
+| Seis piezas recuperadas por una columna realista entre el 9 y el 16 de marzo | S49, S50 | **Discutido** (versión realista) | epílogo, «en la realidad» |
+| Plata en «tres cargas» | S51 | **Discutido** (de oídas de Portal) | no entra en el botín |
+| Medallas de abril, premio posterior al combate, dos banderas tomadas | S51, S53 | **Documentado** | epílogo |
+| Planta del pueblo, posición del cuartel, la posta y la torre; vestuario de ambos bandos | Ninguna fuente | Sin datos / Diseño; el relieve es dato actual, no restitución de 1817 | rótulo de relieve |
+
+**Lo que el juego no afirma:** que Güemes lideró el asalto; que San Martín ordenó atacarlo; que fue consecuencia de Chacabuco ni que Chacabuco hizo retirarse a La Serna; que el refuerzo realista fue un hecho; que hubo bandera argentina o sol en las partidas; «coronel mayor» (es de mayo); cotas, alturas o vados como medidos.
+
+**Compromisos de presentación:** el desenlace de una partida es un resultado de esa partida, no un hecho nuevo; las órdenes y avisos redactados para el juego son dramatización; el tiempo está comprimido (unas 26 horas de marcha y hora y media de fuego pasan a minutos); la proporción de figuras representa agrupaciones.
+
+**Pendientes (R1):** cotejo con facsímil del parte y de la carta del 26-II; t. VII y VIII de *Güemes documentado*; *Gazeta de Buenos Aires* de marzo de 1817; el dossier completo y las láminas que no se recibieron; playtest humano (a cargo del QA de la ronda).

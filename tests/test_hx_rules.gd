@@ -1,20 +1,17 @@
 extends SceneTree
 ## Pruebas de la capa de reglas del nivel «humahuaca» (CONTRATO 3.2, 3.3, 3.6 y 5.1). Dueña: reglas_historia. Sin ventana:
-##   godot --headless --path . --script tests/test_hx_rules.gd [-- --ronda=r1.0 --skip-strategies --impl=stub|real]
-##
-## Prueba la capa EFECTIVA: la clase real (rules/humahuaca_rules.gd y rules/humahuaca_progress.gd) si ya existe y, si no, el stub (stubs/stub_rules*.gd y
-## stub_progress.gd); `--impl=` fuerza una u otra. Las comprobaciones son del CONTRATO (forma, rangos, vocabulario, cifras de data/humahuaca_rules.json, que
-## se leen del JSON y no se repiten acá); lo que solo garantiza el stub se marca con `stub_only()` y se apaga solo cuando la clase real lo reemplaza.
-##
-## Fija desde R1.0 las cinco muestras de `environment().time_of_day` de VP-01 (ADDENDA A-07; BACKLOG B-016) y la torre de `render_state()` a menos de 40 m
-## del hito de su variante (VP-02). Lo que todavía no se puede evaluar (políticas, `nav_build_ms`, la clase real) queda en `pending` y pasa a ser falla
-## desde la ronda r1 («no evaluable = falla»). `--skip-strategies` es el modo rápido de la compuerta: esta suite aún no tiene matriz ni barridos.
-## Piso de comprobaciones: 150 desde r1 (lo aplica tools/qa_gate.sh). Tiempo objetivo: < 60 s. Escribe solo en user:// con nombres propios y se niega a
-## correr sin APPDATA aislado (export APPDATA="$TEMP/ap_iso_<pista>").
+##   godot --headless --path . --script tests/test_hx_rules.gd [-- --ronda=r1 --skip-strategies --impl=stub|real]
+## Prueba la capa EFECTIVA: la clase real (rules/humahuaca_rules.gd y humahuaca_progress.gd) si existe y, si no, el stub; `--impl=` fuerza una u otra. Las cifras se leen de
+## data/humahuaca_rules.json (no se repiten acá) y las partidas ganadas las juega la biblioteca de políticas, no un guion aparte. Rutas de A*, visión, torre, ritmo, controles y
+## políticas viven en tests/hx_rules_checks.gd (tope de líneas del contrato) y cuentan en esta misma suite. La línea final trae `performance` (nav_build_ms_avg ≤ 80,
+## plan_route_ms_avg ≤ 30, tick_ms_avg ≤ 2). Lo que no se puede evaluar queda en `pending` y pasa a ser falla desde su ronda («no evaluable = falla»). `--skip-strategies` es el
+## modo rápido de la compuerta; la matriz de enfoques, el barrido de la señal y las recetas de extracción son de R2b. Piso de comprobaciones: 150 desde r1. Tiempo: < 60 s.
+## Escribe solo en user:// y se niega a correr sin APPDATA aislado (export APPDATA="$TEMP/ap_iso_<pista>").
 
 const Fx = preload("res://tests/hx_fixtures.gd")
 const V = preload("res://scripts/humahuaca/humahuaca_vocab.gd")
 const R = preload("res://scripts/humahuaca/rules/vocab_rules.gd")
+const Checks = preload("res://tests/hx_rules_checks.gd")
 
 const SAVE_PATH := "user://hx_rules_test_save.json"
 const PROGRESS_PATH := "user://hx_rules_test_progress.json"
@@ -47,6 +44,8 @@ var cfg: Dictionary = {}
 var level: Dictionary = {}
 var map: Dictionary = {}
 var game_rules_script: Script = null
+var pol: Script = null  # la biblioteca de políticas (rules/humahuaca_policies.gd); null si falta o no carga
+var nav_script: Script = null  # la grilla de navegación (rules/humahuaca_nav.gd)
 
 func _initialize() -> void:
 	suite.begin("hx_rules", OS.get_cmdline_user_args())
@@ -76,6 +75,8 @@ func _initialize() -> void:
 	impl = "real" if want_real and real_rules != null else "stub"
 	suite.extra["impl_progreso"] = "real" if want_real and real_progress != null else "stub"
 	game_rules_script = load("res://scripts/game_rules.gd")
+	pol = Fx.load_script("res://scripts/humahuaca/rules/humahuaca_policies.gd")
+	nav_script = Fx.load_script("res://scripts/humahuaca/rules/humahuaca_nav.gd")
 	suite.extra["impl"] = impl
 	suite.extra["modo"] = "rapido" if OS.get_cmdline_user_args().has("--skip-strategies") else "completo"
 	if not ck(rules_script != null and progress_script != null and not cfg.is_empty() and not level.is_empty() and not map.is_empty(), "cargan las clases de reglas y progreso (%s) y los tres JSON" % impl):
@@ -107,6 +108,12 @@ func _initialize() -> void:
 	_test_foreign_saves()
 	_test_progress()
 	_test_progress_win_next()
+	_checks().call("_test_progress_checkpoints_and_diary")
+	_checks().call("_test_nav_and_routes")
+	_checks().call("_test_sentinels_and_tower_sight")
+	_checks().call("_test_pacing_offers")
+	_test_policies_extremes()
+	_test_policies_blindness()
 	_test_performance()
 	_test_pending_for_r1()
 	suite.check(suite.elapsed_ms() < 60000, "test_hx_rules corre en poco tiempo (objetivo < 60 s, CONTRATO 5.1): %d ms" % suite.elapsed_ms())
@@ -119,9 +126,13 @@ func _initialize() -> void:
 func ck(cond: bool, what: String) -> bool:
 	return suite.check(cond, what)
 
-## Lo que solo el stub garantiza (la clase real lo cubre con sus propias pruebas de R1).
+## Lo que solo el stub garantiza.
 func stub_only() -> bool:
 	return impl == "stub"
+
+## Lo que solo tiene la clase real (rutas de A*, visión de los centinelas, causa «descubiertos», puntos de control).
+func real_only() -> bool:
+	return impl == "real"
 
 static func _dict(v: Variant) -> Dictionary:
 	return v if v is Dictionary else {}
@@ -181,6 +192,13 @@ func run_until(r: RefCounted, pred: Callable, limit_s: float, dt: float = 1.0) -
 func unit_of(r: RefCounted, id: String) -> Dictionary:
 	return _dict(r.call("get_unit", id))
 
+## La agrupación del estado (no una copia): las pruebas que arman una situación la editan.
+func unit_dict(r: RefCounted, id: String) -> Dictionary:
+	for u in r.state.units:
+		if str(u.id) == id:
+			return u
+	return {}
+
 func order(r: RefCounted, actor: String, action: String, target: Vector2 = Vector2.ZERO, opts: Dictionary = {}) -> Dictionary:
 	return _dict(r.call("issue_order", actor, action, target, opts))
 
@@ -218,18 +236,23 @@ func shape(forma_name: String, out: Variant, label: String) -> bool:
 	var diffs := Fx.shape_diff(forma.example, out, forma.optional) if out is Dictionary else ["no es un Dictionary"]
 	return ck(diffs.is_empty(), "forma de %s en %s: %s" % [forma_name, label, str(diffs)])
 
-## La partida «a mano» del contrato 7: A su puesto ×3, esperar el puesto, Atacar ×3, Salir por el este. Solo el stub garantiza que gane.
+## Juega `policy` de la biblioteca única (decide, aplica y avanza de a un segundo) hasta `until_s` o hasta que termine la partida.
+func play_policy(r: RefCounted, policy: String, until_s: float = 900.0) -> void:
+	if pol == null:
+		return
+	var mem := {}
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 1817
+	var guard := 0
+	while str(r.state.status) == "playing" and float(r.state.elapsed) < until_s - 1e-9 and guard < 5000:
+		guard += 1
+		var view: Dictionary = pol.call("make_view", r, policy, mem)
+		pol.call("apply_orders", r, pol.call("decide", policy, view, rng))
+		r.call("tick", minf(1.0, until_s - float(r.state.elapsed)))
+
+## La partida ganadora de la prueba: la del experto (reconoce, lleva cada partida a su puesto, da la señal, socorre, carga lo que más puntos da por kilo y sale).
 func play_by_hand(r: RefCounted, until_s: float = 840.0) -> void:
-	order(r, "reconocedores", "recon", hito("bateria"))
-	for g in V.COMBAT_GROUPS:
-		order(r, g, "position")
-	order(r, "arreo", "move", hito("posta") + Vector2(0.0, 30.0))
-	run_to(r, 260.0)
-	for g in V.COMBAT_GROUPS:
-		order(r, g, "attack")
-	run_until(r, func(): return str(r.state.phase) == "extraccion", 340.0)
-	order(r, "arreo", "leave")
-	run_to(r, until_s)
+	play_policy(r, "experto", until_s)
 
 ## Sigue el «siguiente paso» de hud_state() una orden por segundo hasta que termine la partida (la política «obediente» del contrato 3.2.5, mínima).
 ## Devuelve las fases por las que pasó y todos los eventos que entregó tick.
@@ -333,7 +356,7 @@ func _test_determinism() -> void:
 	var a := new_rules(1817, {"skip_intro": true})
 	var b := new_rules(1817, {"skip_intro": true})
 	ck(snap_hash(a) == snap_hash(b), "la misma semilla da el mismo estado inicial")
-	if stub_only():
+	if pol != null:
 		play_by_hand(a, 60.0)
 		play_by_hand(b, 60.0)
 		ck(snap_hash(a) == snap_hash(b), "dos partidas con las mismas órdenes dan el mismo estado a los 60 s")
@@ -421,14 +444,13 @@ func _test_phases() -> void:
 	ck(all_taken, "la fase de extracción empieza con los tres frentes tomados")
 	var inv := new_rules(1817, {"phase": "epilogo"})
 	ck(str(inv.state.phase) != "epilogo", "opts.phase no puede abrir el epílogo")
-	if stub_only():
+	if pol != null:
 		var seq := new_rules(1817, {"skip_intro": true})
 		seq.call("tick", 1.0)
 		ck(str(seq.state.phase) == "aproximacion", "el reloj en marcha deja la fase de aproximación")
-		play_by_hand(seq, 500.0)
-		ck(str(seq.state.phase) == "epilogo" and str(seq.state.status) == "victory", "la partida a mano pasa por ataque y extracción y termina en el epílogo con victoria")
-	if stub_only():
-		var walk := follow_next_step(new_rules(1817, {"skip_intro": true}), 600.0)
+		play_by_hand(seq, 840.0)
+		ck(str(seq.state.phase) == "epilogo" and str(seq.state.status) == "victory", "la partida del experto pasa por ataque y extracción y termina en el epílogo con victoria")
+		var walk := follow_next_step(new_rules(1817, {"skip_intro": true}), 840.0)
 		ck(walk.phases == ["aproximacion", "ataque", "extraccion", "epilogo"], "siguiendo el siguiente paso las fases se suceden en orden: %s" % str(walk.phases))
 	var dawn := new_rules(1817, {"skip_intro": true})
 	run_to(dawn, 900.0)
@@ -487,16 +509,14 @@ func _test_environment_curve() -> void:
 	# el reloj llega a 420 s con la partida en juego si ya se dio la señal; una partida pasiva termina a los 390 s y su reloj se detiene ahí
 	var live := new_rules(1817, {"phase": "ataque"})
 	live.call("advance_to", 420.0)
-	if stub_only():
-		ck(str(live.state.status) == "playing" and absf(float(live.state.elapsed) - 420.0) < 1e-6, "una partida con la señal dada llega a 420 s jugando")
+	ck(str(live.state.status) == "playing" and absf(float(live.state.elapsed) - 420.0) < 1e-6, "una partida con la señal dada llega a 420 s jugando")
 	if str(live.state.status) == "playing":
 		ck(absf(float(live.call("environment").time_of_day) - 1.0) <= VP01_TOLERANCE, "VP-01 en vivo: a los 420 s de una partida en juego time_of_day vale %.3f" % float(live.call("environment").time_of_day))
 	var passive := new_rules(1817, {"skip_intro": true})
 	passive.call("advance_to", 420.0)
 	ck(str(passive.state.status) == "defeat" and float(passive.state.elapsed) < 420.0, "una partida pasiva termina antes de los 420 s y su reloj se detiene (por eso VP-01 se mide con el reloj fijado o con la señal dada)")
-	if stub_only():
-		var pre: RefCounted = rules_script.new()
-		ck(absf(float(pre.call("environment").time_of_day)) <= VP01_TOLERANCE, "antes de new_game el ambiente es el del instante 0 (noche)")
+	var pre: RefCounted = rules_script.new()
+	ck(absf(float(pre.call("environment").time_of_day)) <= VP01_TOLERANCE, "antes de new_game el ambiente es el del instante 0 (noche)")
 
 # ---------------------------------------------------------------------------------------------------------------------
 # hud_state, render_state y campaign_report
@@ -515,7 +535,7 @@ func _states_for_shapes() -> Array:
 	var lost := new_rules(1817, {"skip_intro": true})
 	run_to(lost, 900.0)
 	out.append(["derrota por el alba", lost])
-	if stub_only():
+	if pol != null:
 		var won := new_rules(1817, {"skip_intro": true})
 		play_by_hand(won, 840.0)
 		out.append(["victoria", won])
@@ -717,6 +737,19 @@ func _test_campaign_report_shape() -> void:
 		if not V.TAGS.has(str(line.tag)) or String(line.texto).strip_edges() == "":
 			tags_ok = false
 	ck(tags_ok, "todas las líneas del epílogo tienen etiqueta del vocabulario y texto")
+	var cannons: Array = []
+	for it in ended.state.loot.items:
+		if str(it.kind) == "canones":
+			cannons.append(it)
+	if cannons.size() >= 3:
+		cannons[0].state = "destruido"
+		cannons[1].state = "entregado"
+		var tu := ""
+		for line in ended.call("epilogue"):
+			if str(line.fecha).begins_with("9 al 16"):
+				tu = str(line.texto)
+		ck(tu.find("1 llevada,") >= 0 and tu.find("1 clavada,") >= 0 and tu.find("llevadas") < 0 and tu.find("clavadas") < 0 and tu.find("%d abandonadas" % (cannons.size() - 2)) >= 0,
+			"el epílogo cuenta las piezas de la partida con singular y plural: «%s»" % tu.right(75))
 
 func _test_plan_route_shape() -> void:
 	var r := new_rules(1817, {"skip_intro": true})
@@ -1098,7 +1131,7 @@ func _test_loot_and_treatments() -> void:
 	ck(not bool(too_much.get("ok", true)) and str(too_much.get("reason", "")).find("kg") >= 0, "un lote que no entra en la capacidad se rechaza diciendo cuántos kg faltan: «%s»" % str(too_much.get("reason", "")))
 	# contabilidad del golpe: entregar, destruir y abandonar
 	var acc := new_rules(1817, {"skip_intro": true})
-	if stub_only():
+	if pol != null:
 		play_by_hand(acc, 840.0)
 		var rep: Dictionary = _dict(acc.call("campaign_report"))
 		var g: Dictionary = rep.golpe
@@ -1154,7 +1187,7 @@ func _test_outcomes() -> void:
 	snake.compile("[a-z]+_[a-z]+")
 	for id in R.CAUSES:
 		var c: Dictionary = oc.causes[id]
-		var shown := String(c.texto).replace("{t}", "10:00").replace("{lugar}", "el cuartel").replace("{grupo}", "la partida de Portal")
+		var shown := String(c.texto).replace("{t}", "10:00").replace("{lugar}", "la zona de partida").replace("{deLugar}", "de la zona de partida").replace("{aLugar}", "a la zona de partida").replace("{grupo}", "la partida de Portal")
 		ck(String(c.titulo) != "" and String(c.consejo) != "" and shown.length() <= 140 and snake.search(shown) == null and snake.search(String(c.consejo)) == null, "causa %s: título, consejo y texto de %d caracteres (máximo 140), sin jerga" % [id, shown.length()])
 	var reached := {}
 	# amanecio
@@ -1194,6 +1227,8 @@ func _test_outcomes() -> void:
 	pl.state.elapsed = float(cfg.time.deadline_s) - 0.25
 	pl.call("tick", 1.0)
 	reached[str(pl.state.reason)] = _dict(pl.call("campaign_report"))
+	if real_only():
+		_checks().call("_test_discovered", reached)
 	var reached_ids: Array = []
 	for k in reached:
 		reached_ids.append(k)
@@ -1204,7 +1239,7 @@ func _test_outcomes() -> void:
 	if stub_only():
 		suite.pend("causa-descubiertos", "el stub no produce la causa «descubiertos» (BACKLOG B-019): la clase real cubre las 8", "r1")
 	# victoria
-	if stub_only():
+	if pol != null:
 		var w := new_rules(1817, {"skip_intro": true})
 		play_by_hand(w, 840.0)
 		var rep_w: Dictionary = _dict(w.call("campaign_report"))
@@ -1439,7 +1474,7 @@ func _test_progress_win_next() -> void:
 	var p := new_progress()
 	p.call("reset_all")
 	var seed_before := int(p.call("world_seed"))
-	if stub_only():
+	if pol != null:
 		var rg := new_rules(seed_before, {"skip_intro": true})
 		p.call("begin_attempt", rg)
 		play_by_hand(rg, 840.0)
@@ -1459,39 +1494,39 @@ func _test_progress_win_next() -> void:
 		ck(p2.call("load_progress") and bool(p2.won) and str(p2.best_medal) == str(p.best_medal) and int(p2.attempts) == int(p.attempts), "la victoria y los intentos sobreviven a cerrar y abrir")
 		p.call("reset_all")
 		ck(int(p.attempts) == 0 and not bool(p.won) and str(p.best_medal) == "", "reset_all vuelve todo a cero")
-	else:
-		ck(bool(p.call("recommended_by_profile", {"justina_ganada": true})), "la clase real de progreso lee justina_ganada")
+	ck(bool(p.call("recommended_by_profile", {"justina_ganada": true})), "la capa de progreso lee justina_ganada")
 
 # ---------------------------------------------------------------------------------------------------------------------
-# Rendimiento y lo que todavía no se puede evaluar
+# Rutas, visión, ritmo, controles y políticas (tests/hx_rules_checks.gd)
+
+var checks: RefCounted = null
+
+func _checks() -> RefCounted:
+	if checks == null:
+		checks = Checks.new(self)
+	return checks
+
+## TR-075 (CONTRATO 3.2.5): el experto gana y el pasivo pierde.
+func _test_policies_extremes() -> void:
+	_checks().call("_test_policies_extremes")
+
+## TR-076: las políticas sin ventaja no leen estado oculto.
+func _test_policies_blindness() -> void:
+	_checks().call("_test_policies_blindness")
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Rendimiento (CONTRATO 5.1) y lo que todavía no se puede evaluar
 
 func _test_performance() -> void:
-	var t0 := Time.get_ticks_usec()
-	var rt := new_rules(1817, {"phase": "ataque"})
-	for i in range(400):
-		rt.call("tick", 0.25)
-	var tick_ms := float(Time.get_ticks_usec() - t0) / 1000.0 / 400.0
-	var t1 := Time.get_ticks_usec()
-	for i in range(100):
-		rt.call("plan_route", "portal", Vector2(500, 400))
-	var plan_ms := float(Time.get_ticks_usec() - t1) / 1000.0 / 100.0
-	var t2 := Time.get_ticks_usec()
-	for i in range(100):
-		rt.call("hud_state")
-		rt.call("render_state")
-	var hud_ms := float(Time.get_ticks_usec() - t2) / 1000.0 / 100.0
-	suite.extra["rendimiento_ms"] = {"tick": snappedf(tick_ms, 0.001), "plan_route": snappedf(plan_ms, 0.001), "hud_y_render": snappedf(hud_ms, 0.001)}
-	ck(tick_ms <= 2.0, "rendimiento: tick promedia %.3f ms (tope 2 ms)" % tick_ms)
-	ck(plan_ms <= 30.0, "rendimiento: plan_route promedia %.3f ms (tope 30 ms)" % plan_ms)
-	ck(hud_ms <= 6.0, "rendimiento: hud_state y render_state juntos promedian %.3f ms (deben caber en un cuadro)" % hud_ms)
-	suite.pend("nav_build_ms", "el armado de la grilla de navegación (nav_build_ms ≤ 80) lo mide la clase real con el terreno real (CONTRATO 5.1)", "r1")
+	_checks().call("_test_performance")
 
 func _test_pending_for_r1() -> void:
 	if stub_only():
-		suite.pend("api-real-rules", "la clase real rules/humahuaca_rules.gd todavía no existe: esta suite prueba el stub (CONTRATO 7 y 8.2)", "r1")
-		suite.pend("api-real-progress", "la clase real rules/humahuaca_progress.gd todavía no existe: esta suite prueba el stub (CONTRATO 7 y 8.2)", "r1")
-	var policies := Fx.load_script("res://scripts/humahuaca/rules/humahuaca_policies.gd")
-	if policies == null:
-		suite.pend("politicas", "la biblioteca de políticas rules/humahuaca_policies.gd (experto gana, pasivo pierde) llega en R1 (CONTRATO 3.2.5 y 8.2)", "r1")
+		suite.pend("api-real-rules", "la prueba corrió contra el stub: la clase real rules/humahuaca_rules.gd es la que se certifica (CONTRATO 7 y 8.2)", "r1")
+		suite.pend("api-real-progress", "la prueba corrió contra el stub: la clase real rules/humahuaca_progress.gd es la que se certifica (CONTRATO 7 y 8.2)", "r1")
+		suite.pend("causa-descubiertos", "el stub no produce la causa «descubiertos» (BACKLOG B-019): la clase real cubre las 8", "r1")
+	if pol == null:
+		suite.pend("politicas", "la biblioteca de políticas rules/humahuaca_policies.gd (experto gana, pasivo pierde) falta o no carga (CONTRATO 3.2.5 y 8.2)", "r1")
 	else:
-		ck(policies.get_script_method_list().size() > 0, "la biblioteca de políticas carga")
+		ck(pol.get_script_method_list().size() > 0, "la biblioteca de políticas carga")
+	suite.pend("barrido-senal", "el barrido del instante de la señal (compuerta 7) y la matriz de enfoques (compuerta 6) llegan en R2b", "r2b")

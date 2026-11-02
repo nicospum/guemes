@@ -218,7 +218,241 @@
       "context": "Hacia el 1 de marzo de 1817, una fuerza al mando de Manuel Eduardo Arias atacó los depósitos que el ejército realista de La Serna tenía en Humahuaca, en su retaguardia: una batería, un cuartel y la posta con la pólvora. Güemes conducía el frente regional desde Salta y no estuvo en el asalto.",
       "notice": "Reconstrucción jugable, no crónica. Las posiciones, los tiempos y las reglas son decisiones de diseño sobre pocos datos: en el juego cada dato lleva una etiqueta (documentado, inferencia razonada, versión discutida, diseño o sin datos suficientes).",
       "art_note": "El relieve parte de datos de elevación actuales, no del suelo de 1817. No hay plano del pueblo ni descripción de la ropa de ambos bandos: los edificios, la planta y el vestuario son reconstrucciones sin datos.",
-      "facts": [],
+      "facts": [
+        {
+          "title": "El parte de Arias",
+          "text": "Manuel Eduardo Arias firmó el parte del golpe de Humahuaca en San Andrés el 3 de marzo de 1817. Juan Pablo Mariscal lo llevó a Salta, donde entró a las 22 h del 8 de marzo, y al día siguiente Güemes lo remitió a Belgrano, que lo reenvió desde Tucumán el 13.",
+          "kind": "documento de época de parte interesada",
+          "verification": "leído en transcripción OCR; sin facsímil",
+          "source_ids": [
+            "S46"
+          ],
+          "tag": "documentado"
+        },
+        {
+          "title": "Güemes conduce desde Salta",
+          "text": "Güemes, coronel y gobernador intendente de Salta, conducía el frente regional, informaba a Belgrano y recibió el parte: no estuvo en el asalto. El plan de operar contra la guarnición de Humahuaca ya figura en su oficio del 20 de febrero, que dice haber mandado a Arias a San Andrés «a virtud de mis órdenes» para reunir divisiones.",
+          "kind": "documentos de época de parte interesada",
+          "verification": "leído en transcripción OCR; el texto de las órdenes no se conserva",
+          "source_ids": [
+            "S46",
+            "S48"
+          ],
+          "tag": "documentado"
+        },
+        {
+          "title": "La carta del 26 de febrero",
+          "text": "Güemes le escribió a Arias el 26 de febrero para comunicarle la victoria de San Martín en Chacabuco. La carta no contiene ninguna orden de operaciones ni menciona Humahuaca. El juego la dramatiza en el briefing y lo dice: es una lectura adaptada.",
+          "kind": "carta de época y dramatización del juego",
+          "verification": "leído en transcripción OCR; la dramatización es diseño",
+          "source_ids": [
+            "S47"
+          ],
+          "tag": "diseno",
+          "tag_parts": {
+            "carta": "documentado",
+            "dramatizacion_en_el_briefing": "diseno"
+          }
+        },
+        {
+          "title": "No fue una consecuencia de Chacabuco",
+          "text": "El plan de atacar Humahuaca es de mediados de febrero, anterior a que llegara la noticia de Chacabuco (el 25). En lo leído no hay ninguna orden de San Martín: él es contexto, no dirige este golpe, y la retirada realista de 1817 tuvo muchas causas.",
+          "kind": "inferencia a partir de los documentos",
+          "verification": "no se encontró orden de San Martín; ausencia de documento, no prueba",
+          "source_ids": [
+            "S46",
+            "S47",
+            "S48"
+          ],
+          "tag": "razonado"
+        },
+        {
+          "title": "Portal conoce el pueblo",
+          "text": "El teniente Manuel Portal había sido prisionero de los realistas en Humahuaca desde la entrada de diciembre y se fugó de noche, a las 11, con el jefe de la guardia, un sargento y otros, armados y gritando «Viva la patria». En marzo conduce el trozo que asalta el cuartel; que conozca las calles es una inferencia.",
+          "kind": "oficio de época y deducción",
+          "verification": "leído en transcripción OCR",
+          "source_ids": [
+            "S48",
+            "S46"
+          ],
+          "tag": "razonado",
+          "tag_parts": {
+            "fuga": "documentado",
+            "conoce_las_calles": "razonado"
+          }
+        },
+        {
+          "title": "La marcha y la lluvia",
+          "text": "Arias movió su cuartel el 27 de febrero al atardecer, con «copiosa lluvia»; la tropa salió a la una de la madrugada del 28, caminó todo el día y la noche y avistó Humahuaca hacia las tres del 1 de marzo: unas 26 horas. Lluvia solo consta la tarde del 27; la de la noche y el alba es reconstrucción del juego, y las horas del parte no se trasladan al reloj de la partida.",
+          "kind": "parte de Arias y reconstrucción razonada",
+          "verification": "leído en transcripción OCR",
+          "source_ids": [
+            "S46"
+          ],
+          "tag": "diseno",
+          "tag_parts": {
+            "marcha": "documentado",
+            "lluvia_de_la_noche_y_el_alba": "razonado",
+            "reloj_de_la_partida": "diseno"
+          }
+        },
+        {
+          "title": "Tres trozos",
+          "text": "A una legua del pueblo, 150 hombres «la mayor parte sin más armas que palos» se dividieron en tres: la batería (capitán Hilario Rodríguez), el cuartel (Portal y Ontiveros) y la casa de posta con la pólvora (Arias, de reserva). El Diario realista da 300 atacantes. El reparto 48/52/50, las armas y las mulas propias son diseño.",
+          "kind": "parte de Arias; reparto de diseño",
+          "verification": "leído en transcripción OCR; la cifra de 150 es de Arias",
+          "source_ids": [
+            "S46",
+            "S49"
+          ],
+          "tag": "diseno",
+          "tag_parts": {
+            "tres_trozos_y_objetivos": "documentado",
+            "cifra_de_150": "discutido",
+            "reparto_y_armas": "diseno"
+          }
+        },
+        {
+          "title": "El reconocimiento",
+          "text": "Antes del alba Arias reconoció «tapial, zanjita» y el campo «con la mayor cautela» para evitar una celada. Existen tapiales y una zanja; cuántos hay y dónde están, en el juego, es diseño.",
+          "kind": "parte de Arias",
+          "verification": "leído en transcripción OCR",
+          "source_ids": [
+            "S46"
+          ],
+          "tag": "diseno",
+          "tag_parts": {
+            "reconocimiento": "documentado",
+            "posiciones": "diseno"
+          }
+        },
+        {
+          "title": "La descarga del alba",
+          "text": "Al alba una descarga «tan militar y disciplinada que pareció ser cañonazo» y un «Viva la patria» tomaron la batería; un artillero que gritó «viva el rey» murió. La guardia de la pólvora resistió y mató a dos soldados de Arias; el oficial que huía a su cuartel fue alcanzado «a media cuadra». El momento y el lugar de cada escena dentro del mapa son diseño.",
+          "kind": "parte de Arias",
+          "verification": "leído en transcripción OCR",
+          "source_ids": [
+            "S46"
+          ],
+          "tag": "diseno",
+          "tag_parts": {
+            "hechos": "documentado",
+            "momento_y_lugar": "diseno"
+          }
+        },
+        {
+          "title": "La torre",
+          "text": "Desde el cuartel los realistas «se subieron a la torre» y mantuvieron un fuego «indecible» durante hora y media, de las 5 a las 6:30. El parte no dice qué torre era ni dónde estaba: el juego la pone en la casa del cura o en el templo según la variante y comprime la hora y media a unos 90 segundos, y lo declara en el epílogo.",
+          "kind": "parte de Arias; ubicación y cadencia de diseño",
+          "verification": "leído en transcripción OCR",
+          "source_ids": [
+            "S46"
+          ],
+          "tag": "diseno",
+          "tag_parts": {
+            "fuego_desde_una_torre": "documentado",
+            "cual_torre_y_donde": "sin_datos",
+            "cadencia_y_compresion": "diseno"
+          }
+        },
+        {
+          "title": "El delator",
+          "text": "Arias atribuyó la resistencia a «algún pícaro, vil, infame traidor» que avisó «la noche en que debía ser». Nadie lo identifica. La variante «guardia atenta» del juego lo representa, y el briefing agrega «Algún pícaro avisó la noche».",
+          "kind": "acusación de parte interesada",
+          "verification": "leído en transcripción OCR",
+          "source_ids": [
+            "S46"
+          ],
+          "tag": "diseno",
+          "tag_parts": {
+            "acusacion": "documentado",
+            "variante_atenta": "diseno"
+          }
+        },
+        {
+          "title": "Santa Bárbara",
+          "text": "Un informe de Arias del 31 de enero cuenta que los realistas derribaron la capilla de Santa Bárbara y armaron una batería en esa altura. El Diario realista agrega un reducto con foso en una altura inmediata y un camino cubierto hacia el pueblo. Que la altura esté al oeste, su cota y la orientación de la gola son diseño.",
+          "kind": "informe de un informante y diario realista",
+          "verification": "leído en transcripción OCR",
+          "source_ids": [
+            "S52",
+            "S49"
+          ],
+          "tag": "diseno",
+          "tag_parts": {
+            "capilla_derribada_y_bateria": "documentado",
+            "camino_cubierto": "razonado",
+            "ubicacion_y_gola": "diseno"
+          }
+        },
+        {
+          "title": "Lo capturado y lo que no se pudo llevar",
+          "text": "Arias contó siete cañones (los demás informes dicen seis), unos cien fusiles, 86 soldados y 7 oficiales prisioneros, dos mil ovejas, un misal forrado de terciopelo y una bandera. Quemó o echó al río buena parte de las municiones «por no tener cómo conducirlas» y escribió que los cañones no se atrevía a llevarlos.",
+          "kind": "parte de Arias",
+          "verification": "leído en transcripción OCR; cifras de parte interesada",
+          "source_ids": [
+            "S46",
+            "S49"
+          ],
+          "tag": "documentado"
+        },
+        {
+          "title": "Lo que contaron los realistas",
+          "text": "El 4 de marzo La Serna supo en Jujuy que la guarnición de Humahuaca había caído. Entre el 9 y el 16 de marzo una columna realista recuperó seis cañones, vino, aguardiente, harina, azúcar y municiones de artillería que estaban ocultos o enterrados cerca de San Andrés, e inutilizó lo que no pudo cargar «por falta de acémilas». No hubo refuerzo inmediato.",
+          "kind": "versión realista (Camba, Diario, oficio de La Serna)",
+          "verification": "leído en transcripción OCR; «ocultos o enterrados» es versión discutida",
+          "source_ids": [
+            "S49",
+            "S50"
+          ],
+          "tag": "discutido"
+        },
+        {
+          "title": "El refuerzo del juego",
+          "text": "El refuerzo que llega por el camino del sur durante la extracción es un recurso del juego para dar tensión: en la realidad los realistas se enteraron el 4 de marzo y salieron columnas el 5 y el 6. Se rotula como diseño en pantalla.",
+          "kind": "recurso de diseño",
+          "verification": "contrastado con los relatos realistas",
+          "source_ids": [
+            "S49",
+            "S50"
+          ],
+          "tag": "diseno"
+        },
+        {
+          "title": "La fecha",
+          "text": "El itinerario de Arias y el Diario del Estado Mayor realista llevan al 1 de marzo; los prisioneros, La Serna y una inscripción del premio dicen el 2. El juego muestra «1 de marzo, según el itinerario de Arias; el 2, según La Serna y una inscripción del premio».",
+          "kind": "fuentes que discrepan",
+          "verification": "contrastado; sin facsímil de la inscripción",
+          "source_ids": [
+            "S46",
+            "S49",
+            "S50"
+          ],
+          "tag": "discutido"
+        },
+        {
+          "title": "Premios y banderas",
+          "text": "Belgrano mandó hacer medallas en abril para los de Humahuaca: el premio se concedió después del combate, no antes. El 25 de abril Güemes envió «las dos banderas tomadas en la gloriosa jornada de Humahuaca». El juego no dibuja bandera para las partidas ni sol en ninguna, y el premio aparece solo en el epílogo.",
+          "kind": "documentos de época",
+          "verification": "leído en transcripción OCR",
+          "source_ids": [
+            "S51",
+            "S53"
+          ],
+          "tag": "documentado"
+        },
+        {
+          "title": "Lo que el juego no afirma",
+          "text": "No afirma que Güemes lideró el asalto, que San Martín ordenó atacar Humahuaca, que el golpe fue consecuencia de Chacabuco ni que Chacabuco hizo retirarse a La Serna. La planta del pueblo, la posición del cuartel, la posta y la torre, el vestuario de ambos bandos, las cotas, las alturas de tapias, el caudal y los vados son diseño o no tienen datos; el relieve es dato actual, no restitución del suelo de 1817.",
+          "kind": "límites del juego",
+          "verification": "ver la matriz de afirmaciones del diseño (12.2)",
+          "source_ids": [
+            "S46",
+            "S54"
+          ],
+          "tag": "diseno"
+        }
+      ],
       "reference_outcome": "Según los partes de ambos bandos, la munición se quemó o se echó al río y los cañones no se llevaron; los realistas dijeron después haber recuperado seis piezas. La victoria o la derrota de tu partida dependen de tus decisiones, no de este desenlace."
     },
     "norte": {
@@ -572,6 +806,77 @@
       "url": "paquete local del usuario (no se redistribuye)",
       "kind": "informe de investigación del usuario; punto de partida, no fuente primaria",
       "verification": "usado para área jugable, perfil de ribera, paleta y fichas; hitos de cronología con solo P1 quedan «dato del paquete, sin cotejo» (tag reconstruccion). El georef (residuo ~17 m) NO fija el encallamiento."
+    },
+    {
+      "id": "S46",
+      "title": "Manuel E. Arias, parte a Güemes, San Andrés, 3 de marzo de 1817 (con el anexo de la bandera), en Luis Güemes (comp.), Güemes documentado, t. IV (1980)",
+      "url": "texto local de la biblioteca de investigación del proyecto (no se redistribuye)",
+      "kind": "parte de campaña de parte interesada (patriota); copia de archivo («Es copia»)",
+      "pages": "355-358 (páginas impresas)",
+      "verification": "leído en la transcripción OCR local, no cotejado con el facsímil; cifras, fechas y marcas de página dudosas quedan como «(OCR)»"
+    },
+    {
+      "id": "S47",
+      "title": "Güemes a Arias, Salta, 26 de febrero de 1817: la noticia de la victoria de San Martín en Chacabuco, en Güemes documentado, t. VI (epistolario), carta 161",
+      "url": "texto local de la biblioteca de investigación del proyecto (no se redistribuye)",
+      "kind": "carta de época; no contiene orden de operaciones ni menciona Humahuaca",
+      "pages": "199-200",
+      "verification": "leído en la transcripción OCR local; el número de carta y la fecha del OCR son irregulares"
+    },
+    {
+      "id": "S48",
+      "title": "Güemes a Belgrano, 20 de febrero de 1817: Arias pasó a San Andrés «a virtud de mis órdenes»; la fuga del teniente Portal, en Güemes documentado, t. IV",
+      "url": "texto local de la biblioteca de investigación del proyecto (no se redistribuye)",
+      "kind": "oficio de época de parte interesada (patriota)",
+      "pages": "334",
+      "verification": "leído en la transcripción OCR local, no cotejado con el facsímil"
+    },
+    {
+      "id": "S49",
+      "title": "Diario del Estado Mayor del Ejército realista del Alto Perú, 1816-1817 (extracto), en el conde de Torata, Documentos para la historia de la guerra separatista del Perú, t. II (Madrid, 1895)",
+      "url": "texto local de la biblioteca de investigación del proyecto (no se redistribuye)",
+      "kind": "fuente realista extractada y publicada décadas después; no sabemos cuánto de la redacción es contemporánea",
+      "pages": "176-197, 213 y 402-407",
+      "verification": "leído en la transcripción OCR local (regular); algunos tramos están corruptos y las marcas de página no son fiables"
+    },
+    {
+      "id": "S50",
+      "title": "Andrés García Camba, Memorias para la historia de las armas españolas en el Perú, t. I (edición de 1916; escritas hacia 1846)",
+      "url": "texto local de la biblioteca de investigación del proyecto (no se redistribuye)",
+      "kind": "relato realista retrospectivo; el autor no estuvo en Humahuaca y atribuye el golpe a La Madrid, que es un error",
+      "pages": "303-323",
+      "verification": "leído en la transcripción OCR local; páginas legibles en los encabezados"
+    },
+    {
+      "id": "S51",
+      "title": "Belgrano a Güemes, marzo y abril de 1817: el «golpe de Humahuaca», las medallas y las «tres cargas de plata», en Güemes documentado, t. VI, cartas 165, 169 y 173",
+      "url": "texto local de la biblioteca de investigación del proyecto (no se redistribuye)",
+      "kind": "cartas de época entre corresponsales amigos",
+      "pages": "cartas 165, 169 y 173",
+      "verification": "leído en la transcripción OCR local; los números de carta y las fechas del OCR son irregulares"
+    },
+    {
+      "id": "S52",
+      "title": "Informe de Arias del 31 de enero de 1817: la capilla de Santa Bárbara derribada y la batería armada en esa altura, en Güemes documentado, t. IV",
+      "url": "texto local de la biblioteca de investigación del proyecto (no se redistribuye)",
+      "kind": "informe de un informante indígena recogido por Arias",
+      "pages": "316-317",
+      "verification": "leído en la transcripción OCR local, no cotejado con el facsímil"
+    },
+    {
+      "id": "S53",
+      "title": "Güemes envía «las dos banderas tomadas en la gloriosa jornada de Humahuaca» (25 de abril de 1817) y el Cabildo de Salta resuelve colocar la suya en la Catedral, en Güemes documentado, t. IV",
+      "url": "texto local de la biblioteca de investigación del proyecto (no se redistribuye)",
+      "kind": "documentos de época",
+      "pages": "374-376",
+      "verification": "leído en la transcripción OCR local, no cotejado con el facsímil"
+    },
+    {
+      "id": "S54",
+      "title": "Dossier del usuario «Humahuaca, comienzos de marzo de 1817» (resumen .md; láminas 02, 03 y 06; foto de 1923)",
+      "url": "paquete local del usuario (no se redistribuye)",
+      "kind": "resumen de investigación del usuario; punto de partida, no fuente primaria",
+      "verification": "usado para el área jugable (900 × 650 m), el relieve de referencia (lámina 03), la paleta (lámina 06) y las hipótesis de diseño; el dossier completo de 52 páginas, el paquete de 39 archivos y las láminas 01, 04 y 05 no se recibieron"
     }
   ],
   "justina_package": {

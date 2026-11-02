@@ -28,14 +28,14 @@
 		"mud_dry_per_s": 0.01,
 		"mud_slow": 0.2,
 		"tag": "diseno",
-		"source": "Lluvia: reconstrucción razonada. time_of_day (luz): 0 hasta 4:00, 0,5 a las 4:45, 0,67 a las 5:30 y 1 a las 7:00."
+		"source": "Lluvia: reconstrucción razonada. Luz: noche hasta 4:00, alba 4:45, mañana 5:30 y día pleno 7:00."
 	},
 	"groups": {
-		"rodriguez": {"key": 1, "name": "Partida de Rodríguez", "short": "Rodríguez", "glyph": "R", "kind": "partida", "front": "bateria", "men": 48, "strength": 100.0, "armed": 0.25, "mounted": true, "horses": 16, "capacity_kg": 0, "pace": "march", "tag": "diseno", "tag_parts": {"funcion": "documentado", "reparto_y_armas": "diseno"}, "source": "Parte de Arias, 3-III-1817: quién y dónde. El reparto y las armas son diseño."},
-		"portal": {"key": 2, "name": "Partida de Portal", "short": "Portal", "glyph": "P", "kind": "partida", "front": "cuartel", "men": 52, "strength": 100.0, "armed": 0.3, "mounted": false, "horses": 0, "capacity_kg": 0, "pace": "march", "tag": "diseno", "tag_parts": {"funcion": "documentado", "reparto_y_armas": "diseno"}, "source": "Parte de Arias, 3-III-1817: Portal y Ontiveros. El reparto y las armas son diseño."},
-		"arias": {"key": 3, "name": "División de Arias", "short": "Arias", "glyph": "A", "kind": "reserva", "front": "posta", "men": 50, "strength": 100.0, "armed": 0.35, "mounted": false, "horses": 0, "capacity_kg": 0, "pace": "march", "tag": "diseno", "tag_parts": {"funcion": "documentado", "reparto_y_armas": "diseno"}, "source": "Parte de Arias, 3-III-1817: tercera división. El reparto y las armas son diseño."},
-		"reconocedores": {"key": 4, "name": "Reconocedores", "short": "Reconocedores", "glyph": "O", "kind": "reconocedores", "front": "", "men": 2, "strength": 100.0, "armed": 0.5, "mounted": false, "horses": 0, "capacity_kg": 0, "pace": "march", "tag": "diseno", "tag_parts": {"hecho": "documentado", "cantidad_y_armas": "diseno"}, "source": "Parte de Arias: reconocimiento en persona. Cantidad y armas: diseño."},
-		"arreo": {"key": 5, "name": "Arreo", "short": "Arreo", "glyph": "M", "kind": "arreo", "front": "", "men": 6, "strength": 100.0, "armed": 0.0, "mounted": false, "horses": 0, "capacity_kg": 600, "pace": "march", "tag": "diseno", "tag_parts": {"hecho": "documentado", "mulas_propias": "diseno"}, "source": "Parte de Arias: 16 mulas capturadas. Las mulas propias son diseño."}
+		"rodriguez": {"key": 1, "name": "Partida de Rodríguez", "phrase": "la partida de Rodríguez", "short": "Rodríguez", "glyph": "R", "kind": "partida", "front": "bateria", "men": 48, "strength": 100.0, "armed": 0.25, "mounted": true, "horses": 16, "capacity_kg": 0, "pace": "march", "tag": "diseno", "tag_parts": {"funcion": "documentado", "reparto_y_armas": "diseno"}, "source": "Parte de Arias, 3-III-1817: quién y dónde. El reparto y las armas son diseño."},
+		"portal": {"key": 2, "name": "Partida de Portal", "phrase": "la partida de Portal", "short": "Portal", "glyph": "P", "kind": "partida", "front": "cuartel", "men": 52, "strength": 100.0, "armed": 0.3, "mounted": false, "horses": 0, "capacity_kg": 0, "pace": "march", "tag": "diseno", "tag_parts": {"funcion": "documentado", "reparto_y_armas": "diseno"}, "source": "Parte de Arias, 3-III-1817: Portal y Ontiveros. El reparto y las armas son diseño."},
+		"arias": {"key": 3, "name": "División de Arias", "phrase": "la división de Arias", "short": "Arias", "glyph": "A", "kind": "reserva", "front": "posta", "men": 50, "strength": 100.0, "armed": 0.35, "mounted": false, "horses": 0, "capacity_kg": 0, "pace": "march", "tag": "diseno", "tag_parts": {"funcion": "documentado", "reparto_y_armas": "diseno"}, "source": "Parte de Arias, 3-III-1817: tercera división. El reparto y las armas son diseño."},
+		"reconocedores": {"key": 4, "name": "Reconocedores", "phrase": "los reconocedores", "short": "Reconocedores", "glyph": "O", "kind": "reconocedores", "front": "", "men": 2, "strength": 100.0, "armed": 0.5, "mounted": false, "horses": 0, "capacity_kg": 0, "pace": "march", "tag": "diseno", "tag_parts": {"hecho": "documentado", "cantidad_y_armas": "diseno"}, "source": "Parte de Arias: reconocimiento en persona. Cantidad y armas: diseño."},
+		"arreo": {"key": 5, "name": "Arreo", "phrase": "el arreo", "short": "Arreo", "glyph": "M", "kind": "arreo", "front": "", "men": 6, "strength": 100.0, "armed": 0.0, "mounted": false, "horses": 0, "capacity_kg": 600, "pace": "march", "tag": "diseno", "tag_parts": {"hecho": "documentado", "mulas_propias": "diseno"}, "source": "Parte de Arias: 16 mulas capturadas. Las mulas propias son diseño."}
 	},
 	"objectives": {
 		"bateria": {"name": "Batería", "full_name": "Batería de Santa Bárbara", "gender": "f", "place": "la batería", "hito": "bateria", "group": "rodriguez", "garrison": 24, "cover": 1.6, "capture_radius_m": 22, "report_range": [18, 32], "sentinels": [{"dx": -8, "dz": -5}, {"dx": 6, "dz": 7}], "reveal_text": "2 centinelas · 24 artilleros · 3 cañones", "tag": "diseno", "tag_parts": {"objetivo": "documentado", "lugar_y_guarnicion": "diseno"}, "source": "Parte de Arias: batería de Santa Bárbara. Lugar y guarnición: diseño."},
@@ -49,16 +49,20 @@
 		"messenger": {"leaves_after_alarm_s": 40},
 		"posta_officer": {"survives_s": 15, "reinforces_cuartel": 8},
 		"alert": {"alertado_at": 0.5, "alarma_at": 1.0, "alarm_delay_s": 6, "detect_gain_per_s": 0.02, "alarm_gain_per_s": 0.01},
+		"armed_share": 0.8,
 		"tag": "diseno",
 		"source": "Guarnición de 100 a 135 hombres según los partes de ambos bandos; el reparto es diseño."
 	},
 	"combat": {
 		"attack_range_m": 150,
 		"mirador_range_m": 180,
+		"front_pick_m": 60,
+		"reliability_ref": 0.9,
+		"cost_minutes_div": 6,
 		"surprise_bonus_max": 0.8,
 		"posture": {"a_fondo": {"power": 1.4, "casualties": 1.6}, "con_cautela": {"power": 0.8, "casualties": 0.7}},
 		"capture_k": 3.4,
-		"casualty_k": 0.06,
+		"casualty_k": 0.09,
 		"alarm_cover_mult": 1.25,
 		"taken_garrison_pct": 15,
 		"fatigue_per_attack": 20,
@@ -79,12 +83,20 @@
 			"gallop": {"speed": 8.5, "noise": 0.9, "fatigue_per_s": 0.1, "mounted": true}
 		},
 		"rain_noise_mult": 0.8,
+		"noise_attacking": 0.8,
+		"noise_loading": 0.3,
+		"rest_fatigue_per_s": 0.01,
+		"blocked_speed_mult": 0.5,
+		"plan_sample_m": 8,
+		"mud_speed_below": 0.8,
+		"risk_medium_from": 0.2,
+		"risk_high_from": 0.5,
 		"detection": {"noise_mult": 2.0, "tower_height_mult": 1.5},
 		"noise_states": {"se_oye_from": 0.2, "los_oyen_from": 0.5},
-		"dark_cost": {"aim_min": 0.4, "assault_min": 0.8, "range_dark_m": 25, "recon_dark_m": 25, "ramp_from_m": 35, "ramp_to_m": 100, "coordination_below_m": 60, "coordination_min_dist_m": 150, "messenger_speed_mps": 3.2},
+		"dark_cost": {"aim_min": 0.25, "assault_min": 0.7, "range_dark_m": 25, "recon_dark_m": 25, "ramp_from_m": 35, "ramp_to_m": 100, "coordination_below_m": 60, "coordination_min_dist_m": 150, "messenger_speed_mps": 3.2},
 		"dawn_drift": {"per_s_factor": 0.004, "reference_visibility_m": 60},
 		"light_reveal_m": 60,
-		"recon": {"duration_s": 2, "radius_m": 40, "radius_dark_m": 25, "dark_below_m": 100, "lit_radius_m": 60, "risk_base": 0.1, "risk_per_noise": 0.5, "risk_per_alert": 0.3},
+		"recon": {"duration_s": 2, "radius_m": 40, "radius_dark_m": 25, "dark_below_m": 100, "lit_radius_m": 60, "risk_base": 0.1, "risk_per_noise": 0.5, "risk_per_alert": 0.3, "alert_when_seen": 0.15, "more_until_dawn_s": 30},
 		"tag": "diseno",
 		"source": "Ritmos, ruido y oscuridad: diseño; la lluvia de la noche es reconstrucción razonada."
 	},
@@ -95,6 +107,9 @@
 		"dead_angle_m": 12,
 		"arm_delay_s": {"descuidada": 12, "atenta": 0},
 		"damage_per_volley_pct": 2.0,
+		"jitter": 0.5,
+		"eye_m": 10.0,
+		"cross_gap_s": 3.0,
 		"damage_mult": {"calle_abierta": 2.0, "tapia": 0.5, "corriendo": 0.3},
 		"hito": {"casa_cura": "torre_casa_cura", "templo": "torre_templo"},
 		"responses": [
@@ -139,6 +154,7 @@
 		"capacity": {"own_mules": 6, "kg_per_mule": 100, "corral_mules": {"completo": 16, "desbandado": 10}},
 		"treatments": {"entregar": 1.0, "destruir": 0.35, "ocultar": 0.7, "abandonar": 0.0},
 		"powder_wet_mult": 0.2,
+		"light_max_kg": 450,
 		"tag": "diseno",
 		"source": "Tratamientos y valores del botín: diseño."
 	},
@@ -148,7 +164,12 @@
 		"load_radius_m": 30,
 		"destroy_radius_m": 30,
 		"ford_mult": 0.5,
+		"ford_radius_m": 25,
 		"mule_pace": "march",
+		"mule_speed_mult": 0.85,
+		"exit_margin_s": 25,
+		"load_margin": 15,
+		"bring_radius_m": 60,
 		"tag": "diseno",
 		"source": "Ritmo de carga y de la columna: diseño."
 	},
@@ -181,14 +202,14 @@
 	"outcome": {
 		"victory": {"golpe_min": 45, "strength_min_pct": 20, "titulo": "Se cumplió el golpe", "por_que": "Tomaron los tres frentes y sacaron la carga por el vado antes de que llegara el refuerzo."},
 		"causes": {
-			"amanecio": {"titulo": "Amaneció y nadie había atacado", "texto": "A los {t} salió el sol y ninguna partida había dado el golpe: la guarnición los vio venir.", "consejo": "Dá la señal antes del alba, aunque falte una partida: esperar a todos cuesta más que atacar con dos."},
-			"descubiertos": {"titulo": "Los descubrieron antes de la señal", "texto": "A los {t} la guardia de {lugar} dio la alarma antes de la señal y los tres frentes se defendieron alertas.", "consejo": "Andá en silencio y reconocé por tramos: correr bajo la lluvia se oye de lejos."},
-			"frente_roto": {"titulo": "Una partida se rompió", "texto": "A los {t} {grupo} quedó clavada frente a {lugar} y se rompió bajo el fuego.", "consejo": "Atacá con cautela y mandá a Arias en apoyo: un frente solo, bajo la torre, no se sostiene."},
-			"sin_carga": {"titulo": "Tomaron el depósito, pero casi sin carga", "texto": "A los {t} salió la columna con menos de la mitad del golpe: faltaron mulas, tiempo o decisión.", "consejo": "Elegí qué cargar: lo más valioso por peso va primero; lo pesado, destruilo."},
-			"interceptados": {"titulo": "El refuerzo alcanzó a la columna", "texto": "A los {t} el refuerzo cayó sobre la columna cerca del vado y la carga se perdió.", "consejo": "Mirá el reloj del refuerzo y salí antes: una carga menos es mejor que ninguna."},
-			"dispersos": {"titulo": "Las partidas se dispersaron", "texto": "A los {t} las tres partidas quedaron con menos de la quinta parte de su fuerza y se dispersaron.", "consejo": "Cuidá la fuerza: apoyá a la partida que sufre y no la dejes sola frente a la torre."},
-			"plazo": {"titulo": "Se acabó el plazo", "texto": "A los {t} se cumplió el plazo y el depósito quedó sin vaciar.", "consejo": "Cargá y salí en cuanto caiga el depósito: cada minuto de espera acerca al refuerzo."},
-			"retirada": {"titulo": "Retirada general", "texto": "A los {t} diste la retirada general: el golpe quedó a medias.", "consejo": "Si salió mal, probá otro reparto: los reconocedores muestran dónde está más floja la guardia."}
+			"amanecio": {"titulo": "Amaneció y nadie había atacado", "texto": "A los {t} amaneció con las partidas cerca {deLugar} y sin señal dada: la guarnición los vio venir.", "consejo": "Dá la señal antes del alba, aunque falte una partida: esperar a todos cuesta más que atacar con dos."},
+			"descubiertos": {"titulo": "Los descubrieron antes de la señal", "texto": "A los {t} la guardia {deLugar} dio la alarma antes de la señal y los frentes se defendieron alertas.", "consejo": "Andá en silencio y reconocé por tramos: correr bajo la lluvia se oye de lejos."},
+			"frente_roto": {"titulo": "Una partida se rompió", "texto": "A los {t} {grupo} quedó clavada frente {aLugar} y se rompió bajo el fuego.", "consejo": "Atacá con cautela y mandá a Arias en apoyo: un frente solo, bajo la torre, no se sostiene."},
+			"sin_carga": {"titulo": "Tomaron el depósito, pero salieron con poca carga", "texto": "A los {t} la columna cruzó {lugar} con menos de la mitad del golpe: faltaron mulas, tiempo o decisión.", "consejo": "Elegí qué cargar: lo más valioso por peso va primero; lo pesado, destruilo."},
+			"interceptados": {"titulo": "El refuerzo alcanzó a la columna", "texto": "A los {t} el refuerzo cayó sobre la columna cerca {deLugar} y la carga se perdió.", "consejo": "Mirá el reloj del refuerzo y salí antes: una carga menos es mejor que ninguna."},
+			"dispersos": {"titulo": "Las partidas se dispersaron", "texto": "A los {t} las tres partidas quedaron con menos de la quinta parte de su fuerza cerca {deLugar} y se dispersaron.", "consejo": "Cuidá la fuerza: apoyá a la partida que sufre y no la dejes sola frente a la torre."},
+			"plazo": {"titulo": "Se acabó el plazo", "texto": "A los {t} se cumplió el plazo con la columna cerca {deLugar} y el depósito sin vaciar.", "consejo": "Cargá y salí en cuanto caiga el depósito: cada minuto de espera acerca al refuerzo."},
+			"retirada": {"titulo": "Retirada general", "texto": "A los {t} diste la retirada general cerca {deLugar}: el golpe quedó a medias.", "consejo": "Si salió mal, probá otro reparto: los reconocedores muestran dónde está más floja la guardia."}
 		},
 		"medals": {
 			"bronce": {"label": "Medalla de bronce", "golpe_min": 0},
@@ -208,6 +229,28 @@
 			"mundo_nuevo": "Mundo nuevo"
 		},
 		"next_label": "Ver la campaña completa: Sostener el norte",
+		"marks": {"anotado": "Anotado"},
+		"diary": {
+			"descubiertos": "Te vieron cerca {deLugar} y la guardia dio la alarma antes de la señal.",
+			"frente_roto": "Una partida se rompió frente {aLugar}.",
+			"interceptados": "El refuerzo llegó a los {t}, cerca {deLugar}.",
+			"amanecio": "Amaneció a los {t} sin que nadie diera la señal.",
+			"sin_carga": "La columna salió a los {t} con apenas {golpe} de 100 de golpe.",
+			"dispersos": "Las partidas quedaron sin fuerza a los {t}.",
+			"plazo": "A los {t} se cumplió el plazo con la carga sin sacar.",
+			"retirada": "Diste la retirada general a los {t}.",
+			"victoria": "Ganaste a los {t} con {golpe} de 100 de golpe."
+		},
+		"tips": {
+			"amanecio": ["Apuntá a dar la señal hacia los 4:45: ya hay luz para tirar y la guardia todavía no se desveló.", "Mientras esperás en el puesto, aprovechá el tiempo: traé el arreo y reconocé el cuartel y la posta."],
+			"descubiertos": ["Pasá por detrás de las tapias: la guardia no ve lo que una tapia le tapa.", "Quedate a más de 60 m de los centinelas hasta la señal: más cerca, hasta al paso te oyen."],
+			"frente_roto": ["Mirá la fuerza de cada partida en su tarjeta: si se acerca a la mitad, pedí apoyo antes de que se rompa.", "Acercate al cuartel con una tapia de por medio: la torre castiga el doble a quien cruza por la calle abierta."],
+			"sin_carga": ["Empezá a cargar apenas caiga la posta, sin esperar al último frente.", "Traé el arreo cerca de la posta antes de la señal: así las mulas cargan mientras todavía se pelea."],
+			"interceptados": ["Quemar la pólvora adelanta el refuerzo: destruí otra cosa si el reloj aprieta.", "Cuando aparece la polvareda al sur queda un minuto: cruzá el vado sin cargar nada más."],
+			"dispersos": ["Entrá con las tres partidas a la vez: la sorpresa dura 45 segundos y cuanto más juntas entran, más rápido caen los frentes.", "Alterná el ataque a fondo con el ataque con cautela según cuánto aguante cada partida."],
+			"plazo": ["Después del último frente el reloj corre: cargá y mandá la columna al vado sin esperar a tenerlo todo guardado.", "Decidí qué dejar: con las mulas y los 600 kg propios no entra todo, y destruir lo que sobra lleva menos que cargarlo."],
+			"retirada": ["Con «Reintentar desde las posiciones» te ahorrás la marcha y probás otra hora para la señal."]
+		},
 		"lines": {
 			"victoria": "{medalla} · golpe {golpe} de 100 · bajas {bajas} %",
 			"derrota": "Intento {n} · derrotas seguidas: {racha}",
@@ -234,6 +277,8 @@
 		"nota_relieve": {"texto": "El relieve es dato actual del terreno, no una restitución del suelo de 1817.", "tag": "razonado", "source": "Relieve actual remuestreado; no hay planos del suelo de 1817."},
 		"mercy": {"sin_ayudas": "Sin ayudas", "con_ayudas": "Con ayudas"},
 		"una_partida": "una partida",
+		"lugares": {"radio_m": 140, "campo": "el campo", "hitos": {"bateria": "la batería", "cuartel": "el cuartel", "posta": "la posta", "plaza": "la plaza", "templo": "el templo", "vado_este": "el vado", "zona_partida": "la zona de partida", "entrada_sur": "el camino del sur"}},
+		"lugares_fijos": {"vado": "el vado"},
 		"aclaracion_tiempo": {"texto": "En la realidad la marcha duró unas 26 horas y el fuego desde la torre, hora y media; el juego los reduce a minutos.", "tag": "diseno", "source": "Compresión del tiempo declarada: diseño."},
 		"fases": {"briefing": "Preparación", "aproximacion": "Aproximación", "ataque": "Ataque", "extraccion": "Extracción", "epilogo": "Epílogo"},
 		"momentos": {"noche": "Noche", "alba": "Alba", "dia": "Mañana"},
@@ -253,6 +298,7 @@
 			"bring": "Traé el arreo hasta la posta.",
 			"signal": "Dá la señal: las partidas en su puesto atacan los tres frentes a la vez.",
 			"attack": "Mandá a {grupo} al ataque de {frente}.",
+			"support": "{grupo} ya terminó su frente: mandalo a socorrer a {socorrido}.",
 			"wait_group": "Esperá: {grupo} todavía no llegó a su puesto.",
 			"wait_light": "Todo listo: esperá la luz del alba para dar la señal.",
 			"wait_load": "El arreo está cargando: esperá.",
@@ -323,6 +369,7 @@
 			"partida_terminada": "La partida terminó.",
 			"sin_accion": "No existe esa acción.",
 			"paradas": "Son demasiadas paradas: hasta 4.",
+			"sin_paso": "No hay camino hasta ese punto.",
 			"ya_cargada": "Esa carga ya no está a mano.",
 			"sin_ayuda": "Esa ayuda llega en una versión posterior del nivel.",
 			"sin_decision": "No hay ninguna decisión pendiente.",
@@ -348,7 +395,8 @@
 		"history": [
 			{"texto": "Hacia el 1 de marzo de 1817, Arias atacó los depósitos realistas de Humahuaca; Güemes conducía desde Salta y no estuvo en el asalto.", "tag": "discutido", "tag_parts": {"hecho": "documentado", "fecha": "discutido"}, "source": "Parte de Arias; el día exacto es discutido (1 o 2 de marzo)."}
 		],
-		"en_tu_partida": "En tu partida: {llevadas} llevadas, {clavadas} clavadas, {ocultas} ocultas, {abandonadas} abandonadas.",
+		"en_tu_partida": "En tu partida, de {total} piezas: {llevadas}, {clavadas}, {ocultas} y {abandonadas}.",
+		"piezas": {"entregar": ["llevada", "llevadas"], "destruir": ["clavada", "clavadas"], "ocultar": ["oculta", "ocultas"], "abandonar": ["abandonada", "abandonadas"]},
 		"tag": "documentado",
 		"source": "Fechas de los partes y oficios; ver cada línea."
 	}
