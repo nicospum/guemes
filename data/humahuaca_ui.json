@@ -99,7 +99,7 @@
 		"objective": {
 			"source": "ui",
 			"by_phase": {
-				"aproximacion": ["Poné a cada partida en su puesto y dá la señal antes de que aclare.", "Todas a su puesto y dá la señal antes del alba."],
+				"aproximacion": ["Poné a cada partida en su puesto y da la señal antes de que aclare.", "Todas a su puesto y da la señal antes del alba."],
 				"ataque": ["Tomá los tres frentes a la vez y socorré a la partida que más sufra.", "Tomá los tres frentes y socorré a la que sufra."],
 				"extraccion": ["Cargá el arreo y salí por el vado antes de que llegue el refuerzo.", "Cargá y salí por el vado antes del refuerzo.", "Sacá el arreo antes del refuerzo."],
 				"epilogo": ["Terminó el golpe: leé el parte."]
@@ -178,7 +178,7 @@
 			"lines": [
 				"Primero reconocé: mandá a los reconocedores a mirar la batería, el cuartel y la posta.",
 				"Llevá cada partida a su puesto de ataque: elegila con las teclas 1 a 5 y usá «A su puesto».",
-				"Dá la señal cuando haya partidas en sus puestos: atacar a oscuras cuesta, pero esperar la luz también.",
+				"Da la señal cuando haya partidas en sus puestos: atacar a oscuras cuesta, pero esperar la luz también.",
 				"Atacá los tres frentes a la vez y socorré a la partida que más sufre.",
 				"Con el depósito tomado, cargá el arreo; lo que no entre en las mulas, destruilo.",
 				"Sacá la carga por el vado, al este, antes de que llegue el refuerzo."

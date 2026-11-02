@@ -331,6 +331,8 @@ func _test_r1_rules() -> void:
 		_visible_strings((f.ui as Dictionary).get(key, null) if f.ui is Dictionary else null, key, seen)
 	suite.check(v10.is_empty(), "V10 ninguna de las %d cadenas visibles tiene jerga, snake_case ni mayúsculas enteras (%d violaciones)%s" % [seen.size(), v10.size(), _fmt_v(v10)])
 	suite.extra["v10_cadenas_visibles"] = seen.size()
+	var v10v := v10_visual_strings(f.visual, f.ui)
+	suite.check(v10v.is_empty(), "C03 ninguna cadena visible de humahuaca_visual.json trae jerga ni identificadores en snake_case (%d violaciones)%s" % [v10v.size(), _fmt_v(v10v)])
 	var v10c := v10_contractions(f.rules, round_id, V10_ACCEPTED)
 	suite.check(v10c.is_empty(), "V10 ninguna cadena visible de reglas trae «de el» ni «a el» sin contraer, ni antepone «de» o «a» a un lugar masculino (%d violaciones)%s" % [v10c.size(), _fmt_v(v10c)])
 	suite.extra["v10_contracciones_excepciones_fechadas"] = V10_ACCEPTED
@@ -452,6 +454,61 @@ func _mut_r1_rules() -> void:
 	_flaw(base, "una hora del día fuera de 0..1", func(f): f.visual.canonical_views[0]["time_of_day"] = 1.5, func(f): return v22_camera_and_quality(f.visual, f.ui))
 	_flaw(base, "un perfil de calidad de menos", func(f): f.visual.quality.erase("alta"), func(f): return v22_camera_and_quality(f.visual, f.ui))
 	_flaw(base, "un presupuesto de cuadro distinto del de D14", func(f): f.visual.quality.media["frame_ms_mean_max"] = 9.0, func(f): return v22_camera_and_quality(f.visual, f.ui))
+	# C03 (BACKLOG B-051): la misma lista negra de V10 sobre las cadenas visibles de humahuaca_visual.json
+	_flaw(base, "un identificador snake_case en una cadena visible de humahuaca_visual.json", func(f): _view_set(f, "juego_alba", "source", "la misma cámara que juego_noche (rumbo 325°)"), func(f): return v10_visual_strings(f.visual, f.ui))
+	_flaw(base, "una sigla prohibida en una silueta de humahuaca_visual.json", func(f): f.visual.units.archetypes[0]["silueta"] = "poncho largo visto desde el HUD", func(f): return v10_visual_strings(f.visual, f.ui))
+
+## C03 (QA P5-d, BACKLOG B-051): V10 mira rules y ui; esto pasa la misma lista negra (siglas en mayúsculas, palabras sin tildes) y el patrón de
+## snake_case por las cadenas con espacios de humahuaca_visual.json (nombres, siluetas, fuentes, must_show, notas), que son las que el escáner del QA lee.
+func v10_visual_strings(visual: Variant, ui: Variant) -> Array:
+	var v: Array = []
+	if not (visual is Dictionary) or not (ui is Dictionary):
+		return v
+	var acronyms: Array = []
+	var words: Array = []
+	for entry in _array_of((ui as Dictionary).get("jargon_blacklist", null)):
+		var s := str(entry).strip_edges()
+		if s == "":
+			continue
+		if s == s.to_upper() and s != s.to_lower():
+			acronyms.append(s)
+		else:
+			words.append(_fold(s))
+	var strings: Array = []
+	_all_strings_with_spaces(visual, "humahuaca_visual.json", strings)  # como el escáner del QA: también `source`, `name` y `nota`, que la leyenda puede mostrar
+	var snake := RegEx.new()
+	snake.compile("\\b[a-z]+(?:_[a-z0-9]+)+\\b")
+	for item in strings:
+		var where: String = item[0]
+		var text: String = item[1]
+		if snake.search(text) != null:
+			v.append("C03 %s: identificador en snake_case en una cadena visible («%s»)" % [where, text.left(60)])
+		var folded := _fold(text)
+		for a in acronyms:
+			var rx := RegEx.new()
+			rx.compile("\\b" + str(a) + "\\b")
+			if rx.search(text) != null:
+				v.append("C03 %s: la sigla «%s» está prohibida («%s»)" % [where, str(a), text.left(50)])
+		for wd in words:
+			var rw := RegEx.new()
+			rw.compile("\\b" + str(wd) + "\\b")
+			if rw.search(folded) != null:
+				v.append("C03 %s: la palabra «%s» está prohibida («%s»)" % [where, str(wd), text.left(50)])
+	return v
+
+## Toda cadena con un espacio, con su ruta (el mismo recorrido que el escáner P5-d del QA: ids, colores y claves sueltas quedan fuera porque no llevan espacio).
+func _all_strings_with_spaces(node: Variant, path: String, out: Array) -> void:
+	if node is Dictionary:
+		for key in node:
+			if str(key) != "jargon_blacklist":
+				_all_strings_with_spaces(node[key], path + "." + str(key), out)
+	elif node is Array:
+		var i := 0
+		for item in node:
+			_all_strings_with_spaces(item, path + "[%d]" % i, out)
+			i += 1
+	elif node is String and str(node).contains(" "):
+		out.append([path, str(node)])
 
 func _lm_set(f: Dictionary, id: String, x: float, z: float) -> void:
 	for lm in f.map.landmarks:
