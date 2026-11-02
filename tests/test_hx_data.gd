@@ -5,8 +5,8 @@ extends "res://tests/hx_validators.gd"
 ##
 ## Ronda: `--ronda=<id>` o la línea «Ronda vigente: rX» de docs/humahuaca/TRAZA.md (tools/qa_gate.sh pasa el mismo valor).
 ## Encendidas en R0: V1, V2, V3, V4, V5, V7, V8, V9, V17, V19 y V20, más guardas de documentos (vocabularios solo-agregar, ejemplos de forma,
-## ganchos de herramientas y reglas de Git). Todavía NO corren, y el informe las lista en `reglas_pendientes`: V6, V10 a V16, V18, V21 y V22
-## (se encienden en R1.0/R1 cuando los archivos de las pistas tienen con qué verificarlas; ese trabajo es de compuertas y documentos).
+## ganchos de herramientas y reglas de Git). En R1.0 todavía NO corrían (el informe las lista en `reglas_pendientes`); desde `r1` corren V6, V10 a V16, V18, V21 y V22 sobre los datos de las
+## cuatro pistas (BACKLOG B-013) y `reglas_pendientes` queda vacío.
 ##
 ## Cada regla es un validador puro que devuelve la lista de violaciones. Cada validador se prueba contra los datos reales Y contra copias rotas a
 ## propósito (`_test_self_mutations`): si no ve el error plantado, el test falla. Un validador que nunca falla no protege nada.
@@ -14,6 +14,9 @@ extends "res://tests/hx_validators.gd"
 const HISTORY_PATH := "res://data/history.json"
 const CONTRACT_PATH := "res://docs/CONTRATO_HUMAHUACA.md"
 const QA_PATH := "res://docs/QA_NIVEL2.md"
+## Excepciones fechadas de V11 (ADDENDA A-13): una pista de reintento de 123 caracteres (el tope es 120) que entregó reglas_historia en R1. Vence en r2a: desde esa ronda la
+## pista vuelve a fallar si sigue igual. Cada excepción es una ruta y la ronda en que deja de valer; ninguna sirve para relajar un tope en silencio.
+const V11_ACCEPTED := {"campaign.tips.dispersos[0]": "r2a"}
 const FLOOR_BY_ROUND := {"r0": 40, "r1.0": 40, "r1": 40, "r2a": 60, "r2b": 60, "r3": 60, "r4": 60}
 
 const REPORT_PENDING_RULES := {
@@ -51,6 +54,7 @@ func _initialize() -> void:
 	_test_v7_height_grid()
 	_test_v8_sizes()
 	_test_v9_palette()
+	_test_r1_rules()
 	_test_v13_vocab_add_only()
 	_test_v13_rules_vs_vocab()
 	_test_v17_history()
@@ -60,7 +64,11 @@ func _initialize() -> void:
 	_test_tooling_hooks()
 	_test_self_mutations()
 	suite.extra["reglas_activas"] = ["V1", "V2", "V3", "V4", "V5", "V7", "V8", "V9", "V13 (solo-agregar)", "V17", "V19", "V20"]
-	suite.extra["reglas_pendientes"] = REPORT_PENDING_RULES
+	if _r1_rules_on():
+		suite.extra["reglas_activas"] += ["V6", "V10", "V11", "V12", "V13 (completa)", "V14", "V15", "V16", "V18", "V21", "V22"]
+		suite.extra["reglas_pendientes"] = {}
+	else:
+		suite.extra["reglas_pendientes"] = REPORT_PENDING_RULES
 	## El objetivo del contrato es < 5 s (suele tardar 0,5 s). Falla recién a los 15 s: con cuatro pistas corriendo su compuerta a la vez la PC va más lenta.
 	suite.check(suite.elapsed_ms() < 15000, "test_hx_data corre en poco tiempo (objetivo < 5 s, CONTRATO 5.1; falla a los 15 s): %d ms" % suite.elapsed_ms())
 	suite.require_floor(int(FLOOR_BY_ROUND.get(round_id, 40)))
@@ -298,6 +306,142 @@ func _test_tooling_hooks() -> void:
 # ---------------------------------------------------------------------------------------------------------------------
 # Sanidad de los validadores: cada uno ve un error plantado
 
+# ---------------------------------------------------------------------------------------------------------------------
+# V6, V10 a V16, V18, V21 y V22 (BACKLOG B-013): corren desde r1 sobre los datos de las cuatro pistas
+
+func _r1_rules_on() -> bool:
+	return Fx.round_ge(round_id, "r1")
+
+func _fmt_v(v: Array) -> String:
+	return "" if v.is_empty() else ": " + str(v[0])
+
+func _test_r1_rules() -> void:
+	if not _r1_rules_on():
+		return
+	var f := parsed_files
+	var v6 := v6_geometry(f.map, f.level)
+	suite.check(v6.is_empty(), "V6 hitos y rasgos dentro de 900 × 650 m, objetivos separados 80 m o más y tapias sin cruzar un objetivo (%d violaciones)%s" % [v6.size(), _fmt_v(v6)])
+	var v10 := v10_jargon(f.rules, f.ui)
+	var seen: Array = []
+	for key in ["texts", "field_events", "outcome", "actions"]:
+		_visible_strings((f.rules as Dictionary).get(key, null) if f.rules is Dictionary else null, key, seen)
+	for key in ["texts", "tutorial_steps"]:
+		_visible_strings((f.ui as Dictionary).get(key, null) if f.ui is Dictionary else null, key, seen)
+	suite.check(v10.is_empty(), "V10 ninguna de las %d cadenas visibles tiene jerga, snake_case ni mayúsculas enteras (%d violaciones)%s" % [seen.size(), v10.size(), _fmt_v(v10)])
+	suite.extra["v10_cadenas_visibles"] = seen.size()
+	var v11 := v11_limits(f.rules, round_id, V11_ACCEPTED)
+	suite.check(v11.is_empty(), "V11 causas ≤ 140, página 1 del briefing ≤ 250 y pistas ≤ 120 caracteres (%d violaciones)%s" % [v11.size(), _fmt_v(v11)])
+	suite.extra["v11_excepciones_fechadas"] = V11_ACCEPTED
+	var v12 := v12_res_paths(f)
+	suite.check(v12.is_empty(), "V12 todo res:// que citan los JSON existe (%d violaciones)%s" % [v12.size(), _fmt_v(v12)])
+	var v13 := v13_variants_vs_vocab(f.rules)
+	suite.check(v13.is_empty(), "V13 las dimensiones de rules.variants son las del vocabulario%s" % _fmt_v(v13))
+	var v14 := v14_variants(f.rules, f.level, f.map)
+	suite.check(v14.is_empty(), "V14 variantes y layouts legales (%d violaciones)%s" % [v14.size(), _fmt_v(v14)])
+	var v15 := v15_views(f.visual)
+	suite.check(v15.is_empty(), "V15 las 7 vistas canónicas con sus campos y 5 rasgos, y el cuadro inicial (%d violaciones)%s" % [v15.size(), _fmt_v(v15)])
+	var v16 := v16_clock_and_loot(f.rules, round_id)
+	suite.check(v16.is_empty(), "V16 el reloj ordenado y el botín suma exactamente 100 (%d violaciones)%s" % [v16.size(), _fmt_v(v16)])
+	var credits := _read_project_text("res://docs/humahuaca/CREDITOS_RELIEVE.md")
+	suite.check(credits != "", "V18 existe docs/humahuaca/CREDITOS_RELIEVE.md")
+	var v18 := v18_credits(f.height, f.map, credits)
+	suite.check(v18.is_empty(), "V18 los créditos del relieve traen lo que exige su fuente (%d violaciones)%s" % [v18.size(), _fmt_v(v18)])
+	var v21 := v21_single_source(f.map, f.level, f.rules)
+	suite.check(v21.is_empty(), "V21 una sola fuente por número: puestos de ataque a 60–120 m, spawn_* en la zona de partida y sin números de juego en el mapa ni el nivel (%d violaciones)%s" % [v21.size(), _fmt_v(v21)])
+	var v22 := v22_camera_and_quality(f.visual, f.ui)
+	suite.check(v22.is_empty(), "V22 las vistas canónicas y el cuadro inicial son coherentes con la cámara y quality trae los tres presupuestos (%d violaciones)%s" % [v22.size(), _fmt_v(v22)])
+
+## Sanidad por mutación de las reglas encendidas en r1: cada una ve lo que se le planta y deja pasar lo legal.
+func _mut_r1_rules() -> void:
+	var base := _files_copy()
+	var clean := v6_geometry(base.map, base.level).is_empty() and v10_jargon(base.rules, base.ui).is_empty() and v12_res_paths(base).is_empty() \
+		and v14_variants(base.rules, base.level, base.map).is_empty() and v15_views(base.visual).is_empty() and v16_clock_and_loot(base.rules, round_id).is_empty() \
+		and v21_single_source(base.map, base.level, base.rules).is_empty() and v22_camera_and_quality(base.visual, base.ui).is_empty()
+	if not clean:
+		suite.extra["sanidad_r1_omitida"] = "los datos reales ya tienen violaciones de estas reglas: la falla real está informada arriba"
+		return
+	var lms: Array = base.map.landmarks
+	var bat_i := -1
+	for i in range(lms.size()):
+		if str(lms[i].id) == "bateria":
+			bat_i = i
+	var bat: Dictionary = lms[bat_i]
+	# V6
+	_flaw(base, "un hito fuera del mapa", func(f): f.map.landmarks[3].x = 1500.0, func(f): return v6_geometry(f.map, f.level))
+	_flaw(base, "dos objetivos a 10 m", func(f): _lm_set(f, "cuartel", float(bat.x) + 10.0, float(bat.z)), func(f): return v6_geometry(f.map, f.level))
+	_flaw(base, "una tapia que cruza el objetivo sin portillo", func(f): f.level.features.tapias.append({"id": "tapia_plantada", "pts": [{"x": float(bat.x) - 30.0, "z": float(bat.z)}, {"x": float(bat.x) + 30.0, "z": float(bat.z)}]}), func(f): return v6_geometry(f.map, f.level))
+	var outside_ok := base.duplicate(true)
+	outside_ok.map.landmarks[3].x = 1500.0
+	outside_ok.map.landmarks[3]["outside"] = true
+	suite.check(v6_geometry(outside_ok.map, outside_ok.level).is_empty(), "sanidad: un hito marcado outside: true puede quedar fuera del mapa")
+	# V10
+	_flaw(base, "la palabra «spawn» en un título", func(f): f.ui.texts["title"] = "II · spawn Humahuaca", func(f): return v10_jargon(f.rules, f.ui))
+	_flaw(base, "la sigla ETA en un texto de reglas", func(f): f.rules.texts["objetivo"] = "Llegá a tiempo: ETA 3 min", func(f): return v10_jargon(f.rules, f.ui))
+	_flaw(base, "un identificador snake_case en una causa", func(f): f.rules.outcome.causes.amanecio["texto"] = "A los {t} frente_roto en {deLugar}", func(f): return v10_jargon(f.rules, f.ui))
+	_flaw(base, "un texto entero en mayúsculas", func(f): f.ui.texts["title"] = "HUMAHUACA", func(f): return v10_jargon(f.rules, f.ui))
+	_flaw(base, "la lista negra vacía", func(f): f.ui["jargon_blacklist"] = [], func(f): return v10_jargon(f.rules, f.ui))
+	_flaw(base, "una lista negra sin siglas", func(f): f.ui["jargon_blacklist"] = ["spawn", "loot"], func(f): return v10_jargon(f.rules, f.ui))
+	var legal := base.duplicate(true)
+	legal.ui.texts["title"] = "II · Los de Humahuaca, con tilde y sin sigla: sondeo de los caminos"
+	suite.check(not v10_jargon(legal.rules, legal.ui).is_empty(), "sanidad: «sondeo» (palabra de la lista) se ve aunque la frase tenga «Los»")
+	legal.ui.texts["title"] = "II · Los de Humahuaca"
+	suite.check(v10_jargon(legal.rules, legal.ui).is_empty(), "sanidad: «Los» no dispara la sigla LOS (las siglas se buscan respetando mayúsculas)")
+	# V11
+	_flaw(base, "una causa de 200 caracteres", func(f): f.rules.outcome.causes.plazo["texto"] = "x".repeat(200), func(f): return v11_limits(f.rules, round_id, {}))
+	_flaw(base, "la página 1 del briefing de 300 caracteres", func(f): f.rules.texts.briefing["pagina_1"] = "x".repeat(300), func(f): return v11_limits(f.rules, round_id, {}))
+	_flaw(base, "una pista de 130 caracteres", func(f): f.rules.campaign.tips.plazo[0] = "x".repeat(130), func(f): return v11_limits(f.rules, round_id, {}))
+	var late := base.duplicate(true)
+	late.rules.campaign.tips.plazo[0] = "x".repeat(130)
+	var dated := {"campaign.tips.plazo[0]": "r2a", "campaign.tips.dispersos[0]": "r2a"}  # la real (dispersos) y la plantada (plazo)
+	suite.check(v11_limits(late.rules, "r1", dated).is_empty(), "sanidad: una excepción fechada deja pasar la pista hasta su ronda")
+	suite.check(not v11_limits(late.rules, "r2a", dated).filter(func(m): return String(m).find("plazo[0]") >= 0).is_empty(), "sanidad: la excepción fechada vence en su ronda y la pista vuelve a fallar")
+	# V12
+	_flaw(base, "un res:// que no existe", func(f): f.rules["ruta_plantada"] = "res://data/no_existe_nunca.json", func(f): return v12_res_paths(f))
+	# V13 (variantes)
+	_flaw(base, "una dimensión de variante que no está en el vocabulario", func(f): f.rules.variants.dimensions["inventada"] = {"values": ["a"]}, func(f): return v13_variants_vs_vocab(f.rules))
+	# V14
+	_flaw(base, "un valor de variante ilegal", func(f): f.rules.variants.dimensions.guardia["values"] = ["descuidada", "distraida"], func(f): return v14_variants(f.rules, f.level, f.map))
+	_flaw(base, "una dimensión inactiva sin valor fijo", func(f): f.rules.variants.fixed.erase("refugio"), func(f): return v14_variants(f.rules, f.level, f.map))
+	_flaw(base, "un layout C", func(f): f.level.features.tapias[0]["layout"] = "C", func(f): return v14_variants(f.rules, f.level, f.map))
+	_flaw(base, "una dimensión activa desconocida", func(f): f.rules.variants.active.append("clima"), func(f): return v14_variants(f.rules, f.level, f.map))
+	# V15
+	_flaw(base, "una vista de menos", func(f): f.visual.canonical_views.pop_back(), func(f): return v15_views(f.visual))
+	_flaw(base, "una vista con 4 rasgos", func(f): f.visual.canonical_views[0].must_show.pop_back(), func(f): return v15_views(f.visual))
+	_flaw(base, "una vista sin yaw", func(f): f.visual.canonical_views[1].erase("yaw_deg"), func(f): return v15_views(f.visual))
+	# V16
+	_flaw(base, "el alba antes de su comienzo", func(f): f.rules.time["alba_full_s"] = 100, func(f): return v16_clock_and_loot(f.rules, round_id))
+	_flaw(base, "un botín que suma 101", func(f): f.rules.loot.classes.polvora["points"] = int(f.rules.loot.classes.polvora.points) + 1, func(f): return v16_clock_and_loot(f.rules, round_id))
+	_flaw(base, "la salida de los desvelados antes del alba", func(f): f.rules.time["dawn_discovery_s"] = 100, func(f): return v16_clock_and_loot(f.rules, round_id))
+	# V18
+	var credits_ok := _read_project_text("res://docs/humahuaca/CREDITOS_RELIEVE.md")
+	suite.check(v18_credits(base.height, base.map, credits_ok).is_empty(), "sanidad: los créditos reales cumplen V18")
+	suite.check(not v18_credits(base.height, base.map, "sin nada").is_empty(), "sanidad: V18 ve unos créditos sin OpenStreetMap ni ODbL")
+	var cop := base.duplicate(true)
+	cop.height.meta["source"] = "copernicus_glo30"
+	suite.check(not v18_credits(cop.height, cop.map, credits_ok.replace("produced using Copernicus WorldDEM-30", "")).is_empty(), "sanidad: V18 ve que con Copernicus falta el aviso")
+	_flaw(base, "una procedencia sin la ODbL", func(f): f.map.provenance = {"lines": ["Relieve: lámina 03"]}, func(f): return v18_credits(f.height, f.map, credits_ok))
+	# V21
+	_flaw(base, "un puesto de ataque a 200 m", func(f): f.level.access.attack_posts.bateria[0] = {"x": float(bat.x) - 200.0, "z": float(bat.z)}, func(f): return v21_single_source(f.map, f.level, f.rules))
+	_flaw(base, "un número de juego en el nivel", func(f): f.level.features["attack_range_m"] = 150, func(f): return v21_single_source(f.map, f.level, f.rules))
+	_flaw(base, "un spawn fuera de la zona de partida", func(f): _lm_set(f, "spawn_portal", 800.0, 100.0), func(f): return v21_single_source(f.map, f.level, f.rules))
+	# V22
+	_flaw(base, "un cuadro inicial a 5 000 m", func(f): f.visual.initial_frame["distance"] = 5000.0, func(f): return v22_camera_and_quality(f.visual, f.ui))
+	_flaw(base, "una vista de juego que no repite el cuadro inicial", func(f): _view_set(f, "juego_noche", "yaw_deg", 10.0), func(f): return v22_camera_and_quality(f.visual, f.ui))
+	_flaw(base, "una hora del día fuera de 0..1", func(f): f.visual.canonical_views[0]["time_of_day"] = 1.5, func(f): return v22_camera_and_quality(f.visual, f.ui))
+	_flaw(base, "un perfil de calidad de menos", func(f): f.visual.quality.erase("alta"), func(f): return v22_camera_and_quality(f.visual, f.ui))
+	_flaw(base, "un presupuesto de cuadro distinto del de D14", func(f): f.visual.quality.media["frame_ms_mean_max"] = 9.0, func(f): return v22_camera_and_quality(f.visual, f.ui))
+
+func _lm_set(f: Dictionary, id: String, x: float, z: float) -> void:
+	for lm in f.map.landmarks:
+		if str(lm.id) == id:
+			lm.x = x
+			lm.z = z
+
+func _view_set(f: Dictionary, id: String, key: String, value: Variant) -> void:
+	for view in f.visual.canonical_views:
+		if str(view.id) == id:
+			view[key] = value
+
 func _flaw(files: Dictionary, label: String, mutate: Callable, validator: Callable) -> void:
 	var copy := files.duplicate(true)
 	mutate.call(copy)
@@ -353,6 +497,8 @@ func _test_self_mutations() -> void:
 		_mut_v17()
 	else:
 		skipped.append("v17")
+	if _r1_rules_on():
+		_mut_r1_rules()
 	_mut_v19()
 	_mut_v20()
 	_mut_formas()

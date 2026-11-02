@@ -665,6 +665,72 @@ step_level_tools() {
     run_godot 900 "$LOGD/hx_playthrough.log" --headless --path "$SRC" --script tools/humahuaca_playthrough.gd -- --level=rules --policies=experto,pasivo "--out=$LOGD/hx_playthrough.json"
     if [ "$RC" -eq 0 ]; then record humahuaca_playthrough PASA "sale con 0: el experto gana y el pasivo pierde"; else record humahuaca_playthrough FALLA "salió con $RC (registro: $LOGD/hx_playthrough.log)"; fi
   fi
+  # el recorrido de QA por la escena real (Q2): las 7 vistas con y sin interfaz, la calibración de albedo, los límites de cámara, la hoja de fichas, los nombres de la escena
+  # y qa_report.json. Con --disable-vsync, porque frame_ms_mean solo vale sin sincronía vertical.
+  if [ -f "$SRC/tools/hx_qa_tour.gd" ]; then
+    out="$LOGD/hx_tour"; mkdir -p "$out"
+    run_godot 300 "$LOGD/hx_tour.log" --path "$SRC" --resolution 1280x720 --audio-driver Dummy --disable-vsync --script tools/hx_qa_tour.gd -- "--out=$out" --size=1280x720
+    nums="$(py - "$out/qa_report.json" <<'EOF'
+import json, sys
+try:
+    r = json.load(open(sys.argv[1], encoding="utf-8"))
+except Exception:
+    print("NOJSON"); sys.exit(0)
+png = [a for a in r.get("archivos", []) if a.endswith(".png")]
+print(len(png), len(r.get("failures", [])), len(r.get("views", {})), r.get("initial_frame", {}).get("fits"), r.get("templo_aabb_h_m"), r.get("frame_ms_mean"), (r.get("bot") or {}).get("status", "sin_bot"))
+EOF
+)"
+    if [ "$nums" = "NOJSON" ]; then
+      record hx_qa_tour FALLA "no escribió qa_report.json (salida $RC; registro: $LOGD/hx_tour.log)"
+    else
+      read -r tpng tfails tviews tfits taabb tframe tbot <<< "$nums"
+      if [ "$RC" -eq 0 ] && [ "$tfails" = "0" ] && [ "$tpng" -ge 24 ] && [ "$tviews" -ge 7 ] && [ "$tfits" = "True" ]; then
+        record hx_qa_tour PASA "$tpng capturas, 7 vistas, cuadro inicial con los tres objetivos y la partida, templo ${taabb} m, cuadro medio ${tframe} ms (indicativo), el bot ${tbot}"
+      else
+        record hx_qa_tour FALLA "salió con $RC; $tpng capturas (mínimo 24), $tfails fallas, $tviews vistas, initial_frame.fits=$tfits"
+      fi
+    fi
+  else
+    record hx_qa_tour FALLA "falta tools/hx_qa_tour.gd (no evaluable = falla)"
+  fi
+  # el arnés del agente-jugador (Q8): el lazo de punta a punta con el arnés contestando solo (--selftest, no es una corrida del agente); la primera orden entra por clic
+  # a ≤ 8 turnos y ≤ 40 s de juego (J08). La corrida del agente de verdad la hace el Jefe de QA.
+  if [ -f "$SRC/tools/hx_agent_play.gd" ]; then
+    out="$LOGD/hx_agent"; mkdir -p "$out"
+    run_godot 240 "$LOGD/hx_agent.log" --path "$SRC" --resolution 1280x720 --audio-driver Dummy --disable-vsync --script tools/hx_agent_play.gd -- "--turns-dir=$out" "--out=$out/arnes.json" --step-s=3 --max-turns=30 --selftest
+    nums="$(py - "$out/arnes.json" <<'EOF'
+import json, sys
+try:
+    a = json.load(open(sys.argv[1], encoding="utf-8"))
+except Exception:
+    print("NOJSON"); sys.exit(0)
+print(a.get("schema"), len(a.get("turnos", [])), a.get("primera_orden_turno"), a.get("primera_orden_t_s"), "x".join(str(v) for v in a.get("captura_px", [])), a.get("cierre"))
+EOF
+)"
+    if [ "$nums" = "NOJSON" ]; then
+      record hx_agent_play FALLA "no escribió arnes.json (salida $RC; registro: $LOGD/hx_agent.log)"
+    else
+      read -r aschema aturns aorder atime acap aclose <<< "$nums"
+      if [ "$RC" -eq 0 ] && [ "$aschema" = "hx_agente_v1" ] && [ "$aturns" -ge 20 ] && [ "$aorder" -ge 1 ] && [ "$aorder" -le 8 ] && [ "$acap" = "1280x720" ] && py -c "import sys; sys.exit(0 if 0 <= float('$atime') <= 40 else 1)"; then
+        record hx_agent_play PASA "arnés hx_agente_v1: $aturns turnos con capturas de $acap, primera orden aceptada en el turno $aorder (${atime} s de juego), cierre $aclose (selftest, no es el agente)"
+      else
+        record hx_agent_play FALLA "salió con $RC; esquema $aschema, $aturns turnos, primera orden en el turno $aorder a los $atime s, captura $acap (pide ≤ 8 turnos y ≤ 40 s)"
+      fi
+    fi
+  else
+    record hx_agent_play FALLA "falta tools/hx_agent_play.gd (no evaluable = falla)"
+  fi
+  # lo que solo se ve por la escena real (VP-13, B-024): fichas ≥ 48 px, el alba sin naranja saturado y los anillos de visibilidad sin cruces
+  if [ -f "$SRC/tools/vis_humahuaca.sh" ]; then
+    out="$LOGD/vis_flow"; mkdir -p "$out"
+    run_proc 360 "$LOGD/vis_flow.log" env TIMEOUT=300 bash "$SRC/tools/vis_humahuaca.sh" "$out" 1280x720 --no-views --flow=aproximacion,ataque@300,extraccion@321
+    line="$(tr -d '\r' < "$LOGD/vis_flow.log" | grep -E '^VIS_HUMAHUACA ' | tail -n 1)"
+    if [ "$RC" -eq 0 ] && printf '%s' "$line" | grep -q '"fallas":0'; then
+      record vis_flow PASA "escena real por tools/vis_humahuaca.sh --flow: 0 fallas (fichas, alba y anillos)"
+    else
+      record vis_flow FALLA "salió con $RC; $line"
+    fi
+  fi
 }
 
 # ---------------------------------------------------------------------------------------------------------------------

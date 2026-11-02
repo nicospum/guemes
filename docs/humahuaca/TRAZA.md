@@ -143,6 +143,11 @@ Cada exigencia de las secciones 3 a 5 de `docs/CONTRATO_HUMAHUACA.md` tiene acá
 | TR-191 | 5.3 | Las pruebas que borran archivos de perfil se niegan a correr con el perfil real | test_hx_smoke::_require_isolated_profile | r0 |
 | TR-192 | 5.3 | Ningún comando de la compuerta abre ni imprime .env ni jev.cfg, y no hay etiquetas nuevas | qa_gate::step_hygiene | r0 |
 | TR-193 | 5.3 | Se buscan SCRIPT ERROR, SHADER ERROR, Parse Error y WARNING en la salida de cada prueba | qa_gate::scan_logs | r0 |
+| TR-194 | 2.4 | V6, V10 a V12, V14 a V16, V18, V21 y V22 corren desde r1 sobre los datos de las cuatro pistas (V13 suma las dimensiones de variante) | test_hx_data::_test_r1_rules | r1 |
+| TR-195 | 2.4 | Sanidad por mutación de esas reglas: cada una ve el error plantado y deja pasar lo legal (una sigla se busca respetando mayúsculas; una excepción fechada vence en su ronda) | test_hx_data::_mut_r1_rules | r1 |
+| TR-196 | 5.1 | El recorrido de QA por la escena real escribe las 7 vistas con y sin interfaz, la calibración de albedo, los límites de cámara, la hoja de fichas, scene_names.txt y qa_report.json (Q2) | qa_gate::step_level_tools | r1 |
+| TR-197 | 5.1 | El arnés del agente-jugador escribe turno_NN.png y arnes.json (hx_agente_v1) y la primera orden entra por clic en 8 turnos o menos y 40 s de juego (Q8, J08; con el arnés contestando solo) | qa_gate::step_level_tools | r1 |
+| TR-198 | 5.1 | Lo que solo se ve por la escena real (fichas de 48 px o más, alba sin naranja saturado, anillos sin cruces) pasa por tools/vis_humahuaca.sh --flow en la compuerta completa (VP-13) | qa_gate::step_level_tools | r1 |
 
 ## Registro de verificación por ronda
 

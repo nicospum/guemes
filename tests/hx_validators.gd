@@ -1122,3 +1122,433 @@ func traza_file_path(file_part: String) -> String:
 	if file_part == "qa_gate":
 		return "res://tools/qa_gate.sh"
 	return "res://tools/" + file_part + ".gd"
+
+# ---------------------------------------------------------------------------------------------------------------------
+# V6, V10 a V12, V14 a V16, V18, V21 y V22 (BACKLOG B-013: se encienden en R1; cada una se prueba contra los datos reales y contra copias rotas a propósito)
+
+## Claves que no son texto de pantalla (ids, etiquetas, atajos, tipos): V10 no las revisa.
+const NOT_VISIBLE_KEYS := ["tag", "tag_parts", "source", "id", "shortcut", "target", "round", "who", "kind", "layout", "state", "cause_id", "key", "keys"]
+const VARIANT_LAYOUTS := ["A", "B", "AB"]
+const GAME_NUMBER_KEYS := ["attack_range_m", "mirador_range_m", "sight_m", "vision_m", "detect_m", "hear_m", "noise_m", "speed_mps", "damage", "dps", "hp"]
+const TEXT_LIMITS := {"causa": 140, "briefing_p1": 250, "pista": 120}
+const QUALITY_BUDGETS := {"baja": 2.5, "media": 4.0, "alta": 6.0}
+
+func _dict_of(value: Variant) -> Dictionary:
+	return value as Dictionary if value is Dictionary else {}
+
+func _array_of(value: Variant) -> Array:
+	return value as Array if value is Array else []
+
+func _pt(p: Variant) -> Vector2:
+	if p is Dictionary and (p as Dictionary).has("x") and (p as Dictionary).has("z"):
+		return Vector2(float(p.x), float(p.z))
+	return Vector2(-99999.0, -99999.0)
+
+func _seg_dist(p: Vector2, a: Vector2, b: Vector2) -> float:
+	var ab := b - a
+	var len2 := ab.length_squared()
+	if len2 <= 0.000001:
+		return p.distance_to(a)
+	return p.distance_to(a + ab * clampf((p - a).dot(ab) / len2, 0.0, 1.0))
+
+func _in_poly(p: Vector2, poly: Array) -> bool:
+	var inside := false
+	var n := poly.size()
+	var j := n - 1
+	for i in range(n):
+		var a := _pt(poly[i])
+		var b := _pt(poly[j])
+		if (a.y > p.y) != (b.y > p.y) and p.x < (b.x - a.x) * (p.y - a.y) / (b.y - a.y) + a.x:
+			inside = not inside
+		j = i
+	return inside
+
+## V6: hitos y rasgos dentro de [0, x] × [0, z] (salvo outside: true); los tres objetivos separados 80 m o más; una tapia no atraviesa un objetivo sin portillo.
+func v6_geometry(map_data: Variant, level: Variant) -> Array:
+	var v: Array = []
+	if not (map_data is Dictionary):
+		return v
+	var size := _dict_of((map_data as Dictionary).get("size_m", null))
+	var w := float(size.get("x", 900.0))
+	var d := float(size.get("z", 650.0))
+	var centers := {}
+	for lm in _array_of((map_data as Dictionary).get("landmarks", null)):
+		if not (lm is Dictionary) or bool(lm.get("outside", false)):
+			continue
+		var p := Vector2(float(lm.get("x", -1.0)), float(lm.get("z", -1.0)))
+		if p.x < 0.0 or p.x > w or p.y < 0.0 or p.y > d:
+			v.append("V6 humahuaca_map.json: el hito «%s» (%.1f, %.1f) queda fuera de [0, %.0f] × [0, %.0f] y no dice outside: true" % [str(lm.get("id", "?")), p.x, p.y, w, d])
+		centers[str(lm.get("id", ""))] = {"p": p, "w": float(_dict_of(lm.get("footprint", null)).get("w", 0.0)), "d": float(_dict_of(lm.get("footprint", null)).get("d", 0.0))}
+	for i in range(OBJECTIVES.size()):
+		for j in range(i + 1, OBJECTIVES.size()):
+			if centers.has(OBJECTIVES[i]) and centers.has(OBJECTIVES[j]):
+				var sep: float = (centers[OBJECTIVES[i]].p as Vector2).distance_to(centers[OBJECTIVES[j]].p)
+				if sep < 80.0:
+					v.append("V6 los objetivos «%s» y «%s» están a %.1f m (mínimo 80 m)" % [OBJECTIVES[i], OBJECTIVES[j], sep])
+	if not (level is Dictionary):
+		return v
+	var features := _dict_of((level as Dictionary).get("features", null))
+	for kind in ["tapias", "zanjas", "acequias", "barricadas", "calles", "caminos"]:
+		for f in _array_of(features.get(kind, null)):
+			if not (f is Dictionary) or bool(f.get("outside", false)):
+				continue
+			for pt in _array_of(f.get("pts", null)):
+				var q := _pt(pt)
+				if q.x < -1.0 or q.x > w + 1.0 or q.y < -1.0 or q.y > d + 1.0:
+					v.append("V6 humahuaca_level.json features.%s «%s»: el punto (%.1f, %.1f) queda fuera del mapa" % [kind, str(f.get("id", "?")), q.x, q.y])
+					break
+	var with_gate := {}
+	for g in _array_of(features.get("portillos", null)):
+		if g is Dictionary:
+			with_gate[str(g.get("tapia", ""))] = true
+	for t in _array_of(features.get("tapias", null)):
+		if not (t is Dictionary) or with_gate.has(str(t.get("id", ""))):
+			continue
+		var pts := _array_of(t.get("pts", null))
+		for obj in OBJECTIVES:
+			if not centers.has(obj):
+				continue
+			var half := minf(float(centers[obj].w), float(centers[obj].d)) * 0.5
+			for k in range(pts.size() - 1):
+				if _seg_dist(centers[obj].p, _pt(pts[k]), _pt(pts[k + 1])) < half:
+					v.append("V6 la tapia «%s» atraviesa el objetivo «%s» y no tiene portillo" % [str(t.get("id", "?")), obj])
+					break
+	return v
+
+func _fold(text: String) -> String:
+	var out := text.to_lower()
+	for pair in [["á", "a"], ["é", "e"], ["í", "i"], ["ó", "o"], ["ú", "u"], ["ü", "u"], ["ñ", "n"]]:
+		out = out.replace(pair[0], pair[1])
+	return out
+
+## Las cadenas que ve el jugador dentro de un subárbol: todas salvo las de las claves de NOT_VISIBLE_KEYS (ids, etiquetas, atajos).
+func _visible_strings(node: Variant, path: String, out: Array) -> void:
+	if node is Dictionary:
+		for key in node:
+			if NOT_VISIBLE_KEYS.has(str(key)):
+				continue
+			_visible_strings(node[key], path + "." + str(key), out)
+	elif node is Array:
+		var i := 0
+		for item in node:
+			_visible_strings(item, path + "[%d]" % i, out)
+			i += 1
+	elif node is String and str(node).strip_edges() != "":
+		out.append([path, str(node)])
+
+## V10: la lista negra separa siglas de palabras y ninguna cadena visible de rules.texts, field_events, outcome, actions, ui.texts ni ui.tutorial_steps trae un término
+## prohibido, un identificador en snake_case o un texto escrito entero en mayúsculas.
+func v10_jargon(rules: Variant, ui: Variant) -> Array:
+	var v: Array = []
+	if not (ui is Dictionary):
+		return v
+	var list := _array_of((ui as Dictionary).get("jargon_blacklist", null))
+	if list.is_empty():
+		return ["V10 humahuaca_ui.json: jargon_blacklist está vacía o no es una lista"]
+	var acronyms: Array = []
+	var words: Array = []
+	for entry in list:
+		var s := str(entry).strip_edges()
+		if s == "":
+			v.append("V10 jargon_blacklist trae una entrada vacía")
+		elif s == s.to_upper() and s != s.to_lower():
+			acronyms.append(s)
+		else:
+			words.append(_fold(s))
+	if acronyms.is_empty() or words.is_empty():
+		v.append("V10 jargon_blacklist tiene que separar las siglas (en mayúsculas) de las palabras: %d siglas y %d palabras" % [acronyms.size(), words.size()])
+	var strings: Array = []
+	if rules is Dictionary:
+		for key in ["texts", "field_events", "outcome", "actions"]:
+			_visible_strings((rules as Dictionary).get(key, null), "humahuaca_rules.json " + key, strings)
+	for key in ["texts", "tutorial_steps"]:
+		_visible_strings((ui as Dictionary).get(key, null), "humahuaca_ui.json " + key, strings)
+	var snake := RegEx.new()
+	snake.compile("\\b[a-z]+(?:_[a-z0-9]+)+\\b")
+	for item in strings:
+		var where: String = item[0]
+		var text: String = item[1]
+		var folded := _fold(text)
+		for a in acronyms:
+			var rx := RegEx.new()
+			rx.compile("\\b" + str(a) + "\\b")
+			if rx.search(text) != null:
+				v.append("V10 %s: la sigla «%s» está prohibida («%s»)" % [where, str(a), text.left(50)])
+		for wd in words:
+			var rw := RegEx.new()
+			rw.compile("\\b" + str(wd) + "\\b")
+			if rw.search(folded) != null:
+				v.append("V10 %s: la palabra «%s» está prohibida («%s»)" % [where, str(wd), text.left(50)])
+		if snake.search(text) != null:
+			v.append("V10 %s: trae un identificador en snake_case («%s»)" % [where, text.left(50)])
+		var letters := RegEx.new()
+		letters.compile("[A-Za-zÁÉÍÓÚÑáéíóúñ]")
+		if letters.search_all(text).size() >= 4 and text == text.to_upper():
+			v.append("V10 %s: es un texto entero en mayúsculas («%s»)" % [where, text.left(50)])
+	return v
+
+## V11: las causas de derrota (con sus marcadores de lugar y momento expandidos) 140 caracteres o menos, la página 1 del briefing 250 y las pistas de reintento 120.
+## `accepted`: {ruta: ronda de vencimiento}, excepciones fechadas que dejan de valer en esa ronda (ADDENDA A-13).
+func v11_limits(rules: Variant, round_now: String = "r1", accepted: Dictionary = {}) -> Array:
+	var v: Array = []
+	if not (rules is Dictionary):
+		return v
+	var marker := RegEx.new()
+	marker.compile("\\{[A-Za-z_]+\\}")
+	var causes := _dict_of(_dict_of((rules as Dictionary).get("outcome", null)).get("causes", null))
+	for id in causes:
+		var text := str(_dict_of(causes[id]).get("texto", ""))
+		var expanded := text.replace("{t}", "12:34")
+		for m in marker.search_all(expanded):
+			expanded = expanded.replace(m.get_string(), "x".repeat(18))
+		if expanded.length() > int(TEXT_LIMITS.causa):
+			v.append("V11 outcome.causes.%s.texto mide %d caracteres con sus marcadores (máximo %d)" % [str(id), expanded.length(), int(TEXT_LIMITS.causa)])
+	var briefing := _dict_of(_dict_of((rules as Dictionary).get("texts", null)).get("briefing", null))
+	if str(briefing.get("pagina_1", "")).length() > int(TEXT_LIMITS.briefing_p1):
+		v.append("V11 texts.briefing.pagina_1 mide %d caracteres (máximo %d)" % [str(briefing.get("pagina_1", "")).length(), int(TEXT_LIMITS.briefing_p1)])
+	var tips := _dict_of(_dict_of((rules as Dictionary).get("campaign", null)).get("tips", null))
+	for id in tips:
+		var i := 0
+		for tip in _array_of(tips[id]):
+			var path := "campaign.tips.%s[%d]" % [str(id), i]
+			if str(tip).length() > int(TEXT_LIMITS.pista):
+				if accepted.has(path) and not Fx.round_ge(round_now, str(accepted[path])):
+					i += 1
+					continue
+				v.append("V11 %s mide %d caracteres (máximo %d)" % [path, str(tip).length(), int(TEXT_LIMITS.pista)])
+			i += 1
+	return v
+
+## V12: todo `res://` que citan los JSON del nivel existe (y cada .glb de assets/models/humahuaca tiene su .import).
+func v12_res_paths(files: Dictionary) -> Array:
+	var v: Array = []
+	for key in FILES:
+		if not (files.get(key) is Dictionary) or key == "height":
+			continue
+		_walk(files[key], "", func(node, path):
+			if not (node is Dictionary):
+				return
+			for k in node:
+				var value: Variant = node[k]
+				if value is String and str(value).begins_with("res://"):
+					var p := str(value)
+					if not (FileAccess.file_exists(p) or DirAccess.dir_exists_absolute(p) or FileAccess.file_exists(p + ".import")):
+						v.append("V12 %s%s.%s: «%s» no existe" % [FILES[key], path, str(k), p])
+					elif p.ends_with(".glb") and not FileAccess.file_exists(p + ".import"):
+						v.append("V12 %s%s.%s: «%s» no tiene su .import (correr --import)" % [FILES[key], path, str(k), p]))
+	return v
+
+## V13 (variantes): las dimensiones de rules.variants son las del vocabulario (layout vive en el nivel y no se sortea en las reglas).
+func v13_variants_vs_vocab(rules: Variant) -> Array:
+	var v: Array = []
+	var variants := _dict_of(_dict_of(rules).get("variants", null))
+	var dims := _dict_of(variants.get("dimensions", null))
+	if dims.is_empty():
+		return v  # que la sección exista lo exige V2 (desde r2b)
+	var vocab: Dictionary = _vocab("vocab_rules.gd", "VARIANTS")
+	for dim in vocab:
+		if str(dim) != "layout" and not dims.has(dim):
+			v.append("V13 humahuaca_rules.json variants.dimensions: falta la dimensión «%s» del vocabulario" % str(dim))
+	for dim in dims:
+		if not vocab.has(dim):
+			v.append("V13 humahuaca_rules.json variants.dimensions: «%s» no está en VARIANTS (sumarla al vocabulario es legal; usarla sin sumarla, no)" % str(dim))
+	return v
+
+## V14: variantes legales: valores del vocabulario, activas dentro de las seis dimensiones, inactivas con un valor fijo legal, layouts A, B o AB.
+func v14_variants(rules: Variant, level: Variant, map_data: Variant) -> Array:
+	var v: Array = []
+	var vocab: Dictionary = _vocab("vocab_rules.gd", "VARIANTS")
+	var variants := _dict_of(_dict_of(rules).get("variants", null))
+	var dims := _dict_of(variants.get("dimensions", null))
+	for dim in dims:
+		if not vocab.has(dim):
+			continue
+		for val in _array_of(_dict_of(dims[dim]).get("values", null)):
+			if not (vocab[dim] as Array).has(val):
+				v.append("V14 variants.dimensions.%s: el valor «%s» no es legal (%s)" % [str(dim), str(val), str(vocab[dim])])
+	var active := _array_of(variants.get("active", null))
+	var fixed := _dict_of(variants.get("fixed", null))
+	for dim in active:
+		if not vocab.has(dim):
+			v.append("V14 variants.active: «%s» no es una de las dimensiones %s" % [str(dim), str(vocab.keys())])
+	for dim in vocab:
+		if not active.has(dim):
+			if not fixed.has(dim):
+				v.append("V14 variants.fixed: la dimensión inactiva «%s» no tiene valor fijo" % str(dim))
+			elif not (vocab[dim] as Array).has(fixed[dim]):
+				v.append("V14 variants.fixed.%s = «%s» no es un valor legal (%s)" % [str(dim), str(fixed[dim]), str(vocab[dim])])
+	if level is Dictionary:
+		for l in _array_of((level as Dictionary).get("layouts", null)):
+			if not VARIANT_LAYOUTS.has(str(l)):
+				v.append("V14 humahuaca_level.json layouts: «%s» no es A, B ni AB" % str(l))
+		var features := _dict_of((level as Dictionary).get("features", null))
+		for kind in features:
+			for f in _array_of(features[kind]):
+				if f is Dictionary and f.has("layout") and not VARIANT_LAYOUTS.has(str(f.layout)):
+					v.append("V14 humahuaca_level.json features.%s «%s»: layout «%s» no es A, B ni AB" % [str(kind), str(f.get("id", "?")), str(f.layout)])
+	if map_data is Dictionary:
+		for lm in _array_of((map_data as Dictionary).get("landmarks", null)):
+			var var_of := _dict_of(_dict_of(lm).get("variant", null))
+			for dim in var_of:
+				if not vocab.has(dim):
+					v.append("V14 humahuaca_map.json landmarks «%s»: variant usa «%s», que no es una dimensión" % [str(_dict_of(lm).get("id", "?")), str(dim)])
+					continue
+				var vals: Variant = var_of[dim]
+				for one in (vals if vals is Array else [vals]):
+					if not (vocab[dim] as Array).has(one):
+						v.append("V14 humahuaca_map.json landmarks «%s»: variant.%s = «%s» no es legal" % [str(_dict_of(lm).get("id", "?")), str(dim), str(one)])
+	return v
+
+## V15: las 7 vistas canónicas del vocabulario con sus campos y 5 rasgos a mostrar, y el cuadro inicial.
+func v15_views(visual: Variant) -> Array:
+	var v: Array = []
+	if not (visual is Dictionary):
+		return v
+	var views := _array_of((visual as Dictionary).get("canonical_views", null))
+	var ids: Array = []
+	for view in views:
+		if not (view is Dictionary):
+			v.append("V15 canonical_views trae un elemento que no es un objeto")
+			continue
+		var id := str(view.get("id", ""))
+		ids.append(id)
+		var t := _dict_of(view.get("target", null))
+		if not (t.has("x") and t.has("z")):
+			v.append("V15 canonical_views «%s»: target debe traer x y z" % id)
+		for k in ["distance", "pitch_deg", "yaw_deg", "time_of_day", "rain"]:
+			if not _type_ok(view.get(k, null), "number"):
+				v.append("V15 canonical_views «%s»: falta el número «%s»" % [id, k])
+		var show := _array_of(view.get("must_show", null))
+		if show.size() != 5:
+			v.append("V15 canonical_views «%s»: must_show trae %d rasgos y deben ser 5" % [id, show.size()])
+	for want in _vocab("vocab_view.gd", "VIEW_IDS"):
+		if not ids.has(want):
+			v.append("V15 canonical_views: falta la vista «%s»" % str(want))
+	if views.size() != 7:
+		v.append("V15 canonical_views trae %d vistas y deben ser 7" % views.size())
+	var frame := _dict_of((visual as Dictionary).get("initial_frame", null))
+	if not (_dict_of(frame.get("target", null)).has("x") and _type_ok(frame.get("distance", null), "number") and _type_ok(frame.get("pitch_deg", null), "number") and _type_ok(frame.get("yaw_deg", null), "number")):
+		v.append("V15 initial_frame: faltan target, distance, pitch_deg o yaw_deg")
+	return v
+
+## V16: el reloj ordenado (alba_start < alba_full < day_full < deadline y alba_start < dawn_discovery) y el botín que suma exactamente 100 puntos con clases del vocabulario.
+func v16_clock_and_loot(rules: Variant, round_now: String) -> Array:
+	var v: Array = []
+	var time := _dict_of(_dict_of(rules).get("time", null))
+	if not time.is_empty():
+		var chain := ["alba_start_s", "alba_full_s", "day_full_s", "deadline_s"]
+		for i in range(chain.size() - 1):
+			if not (_type_ok(time.get(chain[i], null), "number") and _type_ok(time.get(chain[i + 1], null), "number") and float(time[chain[i]]) < float(time[chain[i + 1]])):
+				v.append("V16 time: %s debe ser menor que %s (%s y %s)" % [chain[i], chain[i + 1], str(time.get(chain[i], "falta")), str(time.get(chain[i + 1], "falta"))])
+		if not (_type_ok(time.get("dawn_discovery_s", null), "number") and float(time.get("alba_start_s", 0.0)) < float(time.dawn_discovery_s)):
+			v.append("V16 time: alba_start_s debe ser menor que dawn_discovery_s")
+	var classes := _dict_of(_dict_of(_dict_of(rules).get("loot", null)).get("classes", null))
+	if not classes.is_empty():
+		var kinds: Array = _vocab("vocab_rules.gd", "LOOT_KINDS")
+		var total := 0.0
+		for id in classes:
+			if not kinds.has(str(id)):
+				v.append("V16 loot.classes: «%s» no está en LOOT_KINDS" % str(id))
+			total += float(_dict_of(classes[id]).get("points", 0.0))
+		if not is_equal_approx(total, 100.0):
+			v.append("V16 loot.classes: los puntos suman %s y deben sumar exactamente 100" % str(total))
+		var need := 9 if Fx.round_ge(round_now, "r2a") else 5
+		if classes.size() < need:
+			v.append("V16 loot.classes: hay %d clases y desde %s se exigen %d" % [classes.size(), "r2a" if need == 9 else "r1", need])
+	return v
+
+## V18: los créditos del relieve: el aviso de Copernicus si esa es la fuente; «OpenStreetMap» y «ODbL» (y la ODbL en map.provenance) si el río sale de la lámina 03.
+func v18_credits(height: Variant, map_data: Variant, credits_text: String) -> Array:
+	var v: Array = []
+	var meta := _dict_of(_dict_of(height).get("meta", null))
+	if str(meta.get("source", "")) == "copernicus_glo30":
+		for need in ["produced using Copernicus WorldDEM-30", "no se hace responsable"]:
+			if credits_text.find(need) < 0:
+				v.append("V18 CREDITOS_RELIEVE.md: con Copernicus como fuente falta «%s»" % need)
+	var river := _dict_of(_dict_of(map_data).get("river", null))
+	var from_lamina := str(river.get("source", "")).to_lower().find("lámina 03") >= 0 or str(river.get("source", "")).to_lower().find("lamina 03") >= 0
+	if from_lamina:
+		for need in ["OpenStreetMap", "ODbL"]:
+			if credits_text.find(need) < 0:
+				v.append("V18 CREDITOS_RELIEVE.md: el río sale de la lámina 03 y falta «%s»" % need)
+		if json_text(_dict_of(map_data).get("provenance", null)).find("ODbL") < 0:
+			v.append("V18 humahuaca_map.json provenance: el río sale de la lámina 03 y no declara la ODbL")
+	return v
+
+func json_text(value: Variant) -> String:
+	return JSON.stringify(value)
+
+## V21: una sola fuente por número: cada puesto de ataque a 60–120 m de su objetivo y a attack_range_m o menos, los spawn_* dentro de la zona de partida y ningún número
+## de juego (alcances, velocidades, daño) en el mapa ni en el nivel.
+func v21_single_source(map_data: Variant, level: Variant, rules: Variant) -> Array:
+	var v: Array = []
+	var centers := {}
+	var zone: Array = []
+	var spawns := {}
+	for lm in _array_of(_dict_of(map_data).get("landmarks", null)):
+		if not (lm is Dictionary):
+			continue
+		centers[str(lm.get("id", ""))] = Vector2(float(lm.get("x", 0.0)), float(lm.get("z", 0.0)))
+		if str(lm.get("id", "")) == "zona_partida":
+			zone = _array_of(_dict_of(lm.get("footprint", null)).get("poly", null))
+		if str(lm.get("id", "")).begins_with("spawn_"):
+			spawns[str(lm.id)] = centers[str(lm.id)]
+	var range_m := float(_dict_of(_dict_of(rules).get("combat", null)).get("attack_range_m", 150.0))
+	var posts := _dict_of(_dict_of(_dict_of(level).get("access", null)).get("attack_posts", null))
+	for obj in posts:
+		if not centers.has(obj):
+			continue
+		var i := 0
+		for post in _array_of(posts[obj]):
+			var dist: float = (centers[obj] as Vector2).distance_to(_pt(post))
+			if dist < 60.0 or dist > 120.0:
+				v.append("V21 access.attack_posts.%s[%d] está a %.1f m del objetivo (debe estar entre 60 y 120 m)" % [str(obj), i, dist])
+			if dist > range_m:
+				v.append("V21 access.attack_posts.%s[%d] está a %.1f m, más allá del alcance de combate (%.0f m)" % [str(obj), i, dist, range_m])
+			i += 1
+	if not zone.is_empty():
+		for id in spawns:
+			if not _in_poly(spawns[id], zone):
+				v.append("V21 el hito «%s» (%.1f, %.1f) no está dentro de la zona de partida" % [str(id), (spawns[id] as Vector2).x, (spawns[id] as Vector2).y])
+	for pair in [["humahuaca_map.json", map_data], ["humahuaca_level.json", level]]:
+		_walk(pair[1], "", func(node, path):
+			if node is Dictionary:
+				for k in node:
+					if GAME_NUMBER_KEYS.has(str(k)):
+						v.append("V21 %s%s.%s: un número de juego vive en %s (su fuente es humahuaca_rules.json)" % [pair[0], path, str(k), pair[0]]))
+	return v
+
+## V22: las vistas canónicas y el cuadro inicial son coherentes con la cámara de la interfaz, juego_noche y juego_alba repiten el cuadro inicial y quality trae los
+## tres perfiles con su presupuesto de cuadro (D14: 2,5, 4,0 y 6,0 ms de media y 8,3 ms de p95).
+func v22_camera_and_quality(visual: Variant, ui: Variant) -> Array:
+	var v: Array = []
+	var frame := _dict_of(_dict_of(visual).get("initial_frame", null))
+	var cam := _dict_of(_dict_of(ui).get("camera", null))
+	if not frame.is_empty() and not cam.is_empty():
+		if float(frame.get("distance", 0.0)) < float(cam.get("min_distance_m", 0.0)) or float(frame.get("distance", 0.0)) > float(cam.get("max_distance_m", 99999.0)):
+			v.append("V22 initial_frame.distance %.0f m queda fuera de ui.camera [%s, %s]" % [float(frame.get("distance", 0.0)), str(cam.get("min_distance_m")), str(cam.get("max_distance_m"))])
+		if float(frame.get("pitch_deg", 0.0)) < float(cam.get("min_pitch_deg", 0.0)) or float(frame.get("pitch_deg", 0.0)) > float(cam.get("max_pitch_deg", 90.0)):
+			v.append("V22 initial_frame.pitch_deg %.0f° queda fuera de ui.camera [%s, %s]" % [float(frame.get("pitch_deg", 0.0)), str(cam.get("min_pitch_deg")), str(cam.get("max_pitch_deg"))])
+	for view in _array_of(_dict_of(visual).get("canonical_views", null)):
+		if not (view is Dictionary):
+			continue
+		var tod := float(view.get("time_of_day", -1.0))
+		if tod < 0.0 or tod > 1.0:
+			v.append("V22 canonical_views «%s»: time_of_day %s fuera de 0..1" % [str(view.get("id", "?")), str(view.get("time_of_day"))])
+		if str(view.get("id", "")) in ["juego_noche", "juego_alba"]:
+			for k in ["distance", "pitch_deg", "yaw_deg"]:
+				if not is_equal_approx(float(view.get(k, -1.0)), float(frame.get(k, -2.0))):
+					v.append("V22 canonical_views «%s»: %s (%s) no repite el del cuadro inicial (%s)" % [str(view.id), k, str(view.get(k)), str(frame.get(k))])
+			if not (is_equal_approx(float(_dict_of(view.get("target", null)).get("x", -1.0)), float(_dict_of(frame.get("target", null)).get("x", -2.0))) and is_equal_approx(float(_dict_of(view.get("target", null)).get("z", -1.0)), float(_dict_of(frame.get("target", null)).get("z", -2.0)))):
+				v.append("V22 canonical_views «%s»: target no repite el del cuadro inicial" % str(view.id))
+	var quality := _dict_of(_dict_of(visual).get("quality", null))
+	for profile in QUALITY_BUDGETS:
+		var q := _dict_of(quality.get(profile, null))
+		if q.is_empty():
+			v.append("V22 visual.quality: falta el perfil «%s»" % str(profile))
+			continue
+		if not is_equal_approx(float(q.get("frame_ms_mean_max", -1.0)), float(QUALITY_BUDGETS[profile])):
+			v.append("V22 visual.quality.%s: frame_ms_mean_max %s y D14 fija %s ms" % [str(profile), str(q.get("frame_ms_mean_max")), str(QUALITY_BUDGETS[profile])])
+		if float(q.get("frame_ms_p95_max", 99.0)) > 8.3 + 0.0001:
+			v.append("V22 visual.quality.%s: frame_ms_p95_max %s supera 8,3 ms" % [str(profile), str(q.get("frame_ms_p95_max"))])
+	return v
