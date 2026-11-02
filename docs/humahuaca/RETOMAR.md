@@ -11,7 +11,7 @@ El usuario miró las capturas y dijo que la cámara debería estar **más cerca*
 El control de calidad marca como bloqueantes dos cosas que no dependen del trabajo de las pistas. El usuario todavía no respondió; la propuesta del lead, para decidir cuando retomen:
 1. **Etiquetas Git viejas.** `v0.2.0-alpha` y `v0.3.0-alpha` son versiones anteriores del propio usuario. La regla E05 esperaba que existiera solo `v0.1.0`. Propuesta: no borrar nada y cambiar la regla a «no se agregó ni se movió ninguna etiqueta».
 2. **Velocidad de la Justina.** La regla T06 pide 3,0 ms por cuadro. Hoy la PC del usuario da 3,1 a 5,1 ms, incluso con el juego original sin tocar. Propuesta: comparar contra el juego original medido en el mismo momento (tolerancia 1,15 ×).
-Si el usuario dice que sí a las dos, el lead edita `docs/QA_NIVEL2.md` (v1.5) y recién después se relanza el bucle.
+**Aprobadas por el usuario el 2026-11-02 y aplicadas (QA_NIVEL2.md v1.5, enmienda 5). Se puede relanzar el bucle.**
 
 ## Qué hay en main
 
