@@ -353,7 +353,7 @@ Con estos valores no hay un tratamiento que gane siempre: **entregar** gana en l
 | 4 de marzo | En Jujuy, La Serna sabe que la guarnición de Humahuaca «había caído en poder de los enemigos». (No hubo refuerzo inmediato.) | ● versión realista |
 | 8 y 9 de marzo | Juan Pablo Mariscal entra en Salta con el parte a las 22 h del 8; Güemes lo remite a Belgrano el 9. | ● |
 | 13 de marzo | Belgrano reenvía el parte formal desde Tucumán. | ● |
-| 9 al 16 de marzo | **En la realidad:** una columna realista entra en el pueblo vacío; según La Serna recupera **seis piezas** ocultas o enterradas cerca de San Andrés e inutiliza lo que no puede cargar «por falta de acémilas». **En tu partida:** lo que pasó con cada una de las 7 piezas (llevadas, clavadas, ocultas a salvo, ocultas y halladas, abandonadas), que sale de `campaign_report()`. | ◆ la línea histórica; ▲ la de tu partida |
+| 9 al 16 de marzo | **En la realidad:** una columna realista entra en el pueblo vacío y, según las fuentes realistas (el Diario del Estado Mayor y Camba; no el oficio de La Serna: H03, 2-11-2026), recupera **seis piezas** ocultas o enterradas cerca de San Andrés e inutiliza lo que no puede cargar «por falta de acémilas». **En tu partida:** lo que pasó con cada una de las 7 piezas (llevadas, clavadas, ocultas a salvo, ocultas y halladas, abandonadas), que sale de `campaign_report()`. | ◆ la línea histórica; ▲ la de tu partida |
 | Abril | Belgrano manda hacer medallas para los de Humahuaca; el premio se concede después del combate, no antes. | ● |
 | 6 de julio | Un oficial realista cuenta «la sorpresa de Humahuaca» entre las causas de la retirada del ejército del rey: la retirada tuvo muchas causas. | ● versión realista |
 | Marzo a mayo | La resistencia continúa. Botón **«Ver la campaña completa: Sostener el norte»** (1816–1817, desde Salta: Humahuaca es una de sus operaciones; no es la continuación del nivel II). | ● |
@@ -598,7 +598,7 @@ El código usa cuatro (`documentado`, `tradicion`, `reconstruccion`, `diseno`) y
 | Refuerzo realista inmediato | ▲ (**no ocurrió**: se supo el 4 y salieron columnas el 5–6) | Camba; Diario |
 | Pueblo casi vacío de vecinos; informantes y arrieros presentes | ● / ◇ | Diario; md §D |
 | Parte: 3-III San Andrés → 8-III Salta (22 h) → 13-III Tucumán | ● | md §C.1; GD IV |
-| Seis piezas recuperadas por La Serna | ● versión realista | oficio de La Serna, 11-IV |
+| Seis piezas recuperadas por una columna realista entre el 9 y el 16 de marzo | ◆ versión realista (no se atribuye a La Serna: H03, 2-11-2026) | Diario; Camba (S49, S50) |
 | Bandera del primer regimiento, «Pumacagua degollado» en una punta | ● parcial; diseño del paño ▲ ○ | anexo del parte |
 | Premio de Humahuaca (medallas, abril) | ● posterior al combate | Belgrano, 10-IV |
 | Vestuario de ambos bandos | ○ | — |

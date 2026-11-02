@@ -224,12 +224,12 @@ Afirmaciones del nivel II («Humahuaca: el depósito de la retaguardia», 1 de m
 | Reducto con foso y camino cubierto hacia el pueblo | S49 | **Razonado** | `features.camino_cubierto` |
 | Altura de 12 m y gola al este | Ninguna fuente | Diseño | batería |
 | Guarnición de unos 130 y 6 o 7 piezas | S46, S49, S50 | **Documentado** · Discutido (las cuentas difieren) | `objectives` |
-| Munición quemada o echada al río, cañones sin llevar, luego recuperados | S46, S49, S50 | **Documentado** (Arias y La Serna) · **Discutido** («ocultos o enterrados») | tratamientos del botín |
+| Munición quemada o echada al río, cañones sin llevar, luego recuperados | S46 (lo quemado y lo no llevado); S49, S50 (la recuperación posterior) | **Documentado** (Arias) · **Discutido** («ocultos o enterrados», según el Diario y Camba) | tratamientos del botín |
 | Clavar los cañones, tirar los víveres, los tres escondites y su distancia al camino | Ninguna fuente | Diseño | acciones |
 | Refuerzo realista por el camino del sur durante la extracción | S49, S50 (se supo el 4-III; salieron columnas el 5 y el 6) | Diseño: **no ocurrió** | nota de pantalla |
 | Fecha: 1 de marzo (itinerario de Arias, Diario) o 2 (prisioneros, La Serna, inscripción del premio) | S46, S49, S50, S53 | **Discutido** | nota de fecha en pantalla |
 | Parte del 3-III (San Andrés), 8-III Salta (22 h), 13-III Tucumán | S46, S51 | **Documentado** | epílogo fechado |
-| Seis piezas recuperadas por una columna realista entre el 9 y el 16 de marzo | S49, S50 | **Discutido** (versión realista) | epílogo, «en la realidad» |
+| Seis piezas recuperadas por una columna realista entre el 9 y el 16 de marzo | S49 (Diario del Estado Mayor realista), S50 (Camba); **no** el oficio de La Serna (H03) | **Discutido** (versión realista) | epílogo, «en la realidad»; `history.json`, «Lo que contaron los realistas» |
 | Plata en «tres cargas» | S51 | **Discutido** (de oídas de Portal) | no entra en el botín |
 | Medallas de abril, premio posterior al combate, dos banderas tomadas | S51, S53 | **Documentado** | epílogo |
 | Planta del pueblo, posición del cuartel, la posta y la torre; vestuario de ambos bandos | Ninguna fuente | Sin datos / Diseño; el relieve es dato actual, no restitución de 1817 | rótulo de relieve |
@@ -239,3 +239,5 @@ Afirmaciones del nivel II («Humahuaca: el depósito de la retaguardia», 1 de m
 **Compromisos de presentación:** el desenlace de una partida es un resultado de esa partida, no un hecho nuevo; las órdenes y avisos redactados para el juego son dramatización; el tiempo está comprimido (unas 26 horas de marcha y hora y media de fuego pasan a minutos); la proporción de figuras representa agrupaciones.
 
 **Pendientes (R1):** cotejo con facsímil del parte y de la carta del 26-II; t. VII y VIII de *Güemes documentado*; *Gazeta de Buenos Aires* de marzo de 1817; el dossier completo y las láminas que no se recibieron; playtest humano (a cargo del QA de la ronda).
+
+**Corrección H03 (2 de noviembre de 2026, rama `hx-docs-nube`).** El epílogo del 9 al 16 de marzo decía «según La Serna recupera seis piezas…» con fuente «Oficio de La Serna, 11-IV-1817». La recuperación de las piezas, el lugar (cerca de San Andrés) y la frase «por falta de acémilas» están en el Diario del Estado Mayor realista (S49) y en las Memorias de Camba (S50), que son las fuentes que este repositorio tiene leídas; el oficio de La Serna no se cita para ese detalle. Corregidos: `data/history.json` (hecho «Lo que contaron los realistas»), esta sección, `docs/humahuaca/HISTORIA.md` y `docs/DISENO_HUMAHUACA.md` (11.5 y 12.2). Pendiente de la pista `reglas_historia`: la línea `epilogue.lines[4]` de `data/humahuaca_rules.json` (texto listo en `docs/humahuaca/TEXTOS_REVISION.md`). Sin cotejo en el repo: la cita del oficio de La Serna («se ha logrado quitarles los seis cañones») que trae el banco de hechos `02_fuentes_primarias.md`, que no está en Git.
