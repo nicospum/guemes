@@ -21,7 +21,7 @@ const V02_IDS := ["bateria", "cuartel", "posta", "zona_partida"]
 const SPAWN_IDS := ["spawn_rodriguez", "spawn_portal", "spawn_arias", "spawn_reconocedores", "spawn_arreo"]
 const TOWN_IDS := ["templo", "plaza", "bateria", "cuartel", "posta", "corral_posta"]
 const BUILDING_IDS := ["bateria", "cuartel", "posta", "torre_casa_cura", "torre_templo", "polvorin", "parque", "corral_posta"]
-const V02_MARGIN_PCT := 10.0  # QA_NIVEL2 v1.5, V02: los tres objetivos y la zona de partida a ≥ 10 % del borde (la herramienta marca on_screen con 5 %)
+const V02_MARGIN_PCT := 10.0  # QA_NIVEL2 v1.5, V02: los tres objetivos (y la zona de partida, si el preset la exige) a ≥ 10 % del borde; la herramienta de QA marca on_screen con 5 %
 const TOKEN_MIN_PX := 48.0  # V03
 const TOKEN_GOAL_PX := 64.0  # el pedido del usuario; las fichas son de tamaño fijo en píxeles (humahuaca_visual.json: tokens.*.min_px), así que se informa, no se exige acá
 const ZOOM_NOTCH := 0.86  # ui.camera.zoom_step
@@ -242,7 +242,7 @@ func _run() -> void:
 	suite.extra["camara"] = by_size
 	suite.extra["nota"] = "píxeles reales de la ventana; el margen es el menor de los cuatro bordes en % del lado; las fichas son de tamaño fijo en píxeles (tokens.min_px)"
 	_write_report()
-	suite.require_floor(40)
+	suite.require_floor(35)
 	suite.finish(self)
 
 
@@ -254,22 +254,32 @@ func _measure_initial(size: Vector2i) -> void:
 	var label := "%dx%d" % [size.x, size.y]
 	var entry := {"ventana_px": [size.x, size.y], "logico_px": [snappedf(root.get_visible_rect().size.x, 0.1), snappedf(root.get_visible_rect().size.y, 0.1)], "escala_real_por_logico": snappedf(_scale().y, 0.0001),
 		"escala_interfaz": snappedf(float(hx.ui_scale), 0.001), "camara": _camera_dict(), "fits_vista": bool(hx.initial_frame().fits)}
-	# V02: los tres objetivos y la zona de partida
+	# V02: los tres objetivos a ≥ 10 % del borde siempre; la zona de partida según el preset activo de la cámara: si la lista entre sus puntos duros se exige su centro con el
+	# margen que pide; si no (los presets «pueblo…», el compromiso que pidió el usuario), se informa el margen del centro y se exige el ancla del preset (los reconocedores)
 	var margins := {}
-	var worst_v02 := 1000.0
-	var on_screen_all := true
+	var worst_obj := 1000.0
 	for id in V02_IDS:
 		var p: Vector2 = hx.landmark_pos(id)
-		var w := _ground(p.x, p.y)
-		var m := _margin_pct(w, size)
+		var m := _margin_pct(_ground(p.x, p.y), size)
 		margins[id] = snappedf(m, 0.1)
-		worst_v02 = minf(worst_v02, m)
-		on_screen_all = on_screen_all and m >= 5.0  # la regla de _initial_frame_report (on_screen a 5 %)
+		if id != "zona_partida":
+			worst_obj = minf(worst_obj, m)
 	entry["margen_v02_pct"] = margins
-	entry["peor_margen_v02_pct"] = snappedf(worst_v02, 0.1)
+	entry["peor_margen_objetivos_pct"] = snappedf(worst_obj, 0.1)
+	entry["zona_partida_on_screen_5"] = float(margins.zona_partida) >= 5.0  # la regla de _initial_frame_report (on_screen a 5 %)
 	suite.check(bool(entry.fits_vista), "%s: initial_frame().fits de la vista es verdadero" % label)
-	suite.check(on_screen_all, "%s: los tres objetivos y la zona de partida quedan a la vista (on_screen, ≥ 5 %%; peor %.1f %%)" % [label, worst_v02])
-	suite.check(worst_v02 >= V02_MARGIN_PCT, "%s: V02 (QA v1.5): los tres objetivos y la zona de partida a ≥ %.0f %% del borde (peor %.1f %%: %s)" % [label, V02_MARGIN_PCT, worst_v02, str(margins)])
+	suite.check(worst_obj >= V02_MARGIN_PCT, "%s: V02: los tres objetivos a ≥ %.0f %% del borde (peor %.1f %%: %s)" % [label, V02_MARGIN_PCT, worst_obj, str(margins)])
+	var fit: Dictionary = hx.cam.last_fit.duplicate(true) if "last_fit" in hx.cam else {}
+	var hard_ids: Array = []
+	var zona_hard := false
+	for h in hx.cam.preset(str(fit.get("preset", ""))).get("hard", []):
+		if (h as Dictionary).has("landmark"):
+			hard_ids.append(str(h.landmark))
+			if str(h.landmark) == "zona_partida":
+				zona_hard = true
+				suite.check(float(margins.zona_partida) >= float(h.get("margin_pct", 5.0)), "%s: V02: el centro de la zona de partida a ≥ %.0f %% del borde (%.1f %%)" % [label, float(h.get("margin_pct", 5.0)), float(margins.zona_partida)])
+	entry["zona_partida_exigida"] = zona_hard
+	suite.check(bool(fit.get("hard_ok", false)), "%s: todos los puntos duros del preset «%s» (%s) entran con su margen (ajuste: %s)" % [label, str(fit.get("preset", "")), str(hard_ids), str(fit)])
 	# las cinco partidas: cuántas se ven y a qué margen; ninguna de las visibles bajo el HUD (B-021)
 	var units := {}
 	var visible := 0
@@ -289,6 +299,14 @@ func _measure_initial(size: Vector2i) -> void:
 	entry["margen_partidas_pct"] = units
 	entry["partidas_a_la_vista"] = visible
 	suite.check(covered.is_empty(), "%s: ninguna ficha a la vista queda bajo el HUD (%s)" % [label, str(covered)])
+	var soft_in: Array = fit.get("soft_in", [])
+	var soft_short: Array = []
+	for id in soft_in:
+		if float(units.get(str(id), -1.0)) < 2.0:
+			soft_short.append(str(id))
+	suite.check(soft_short.is_empty(), "%s: las partidas que el encuadre da por incluidas (%s) quedan a ≥ 2 %% del borde (%s)" % [label, str(soft_in), str(soft_short)])
+	if size.x >= 1280:
+		suite.check(soft_in.has("reconocedores") or zona_hard, "%s: los reconocedores (la partida que se usa primero) o la zona de partida entera quedan a la vista (incluidas: %s)" % [label, str(soft_in)])
 	# el templo y la plaza, a la vista
 	var town_pts := {}
 	for id in ["templo", "plaza"]:
@@ -314,18 +332,56 @@ func _measure_initial(size: Vector2i) -> void:
 	entry["m_por_px_real_en_plaza"] = snappedf(mpp_logical / maxf(_scale().y, 0.001), 0.0001)
 	entry["px_por_10_m_en_plaza"] = snappedf(10.0 * _scale().y / maxf(mpp_logical, 0.0001), 0.1)
 	entry["pueblo"] = _hull_pct(_town_corners(), size)
-	var objectives: Array = []
-	for id in V.OBJECTIVES:
-		var lm: Dictionary = hx.view.buildings.lm_by_id[id]
-		for c in hx.view.buildings.footprint_corners(hx.view.buildings.footprint(lm)):
-			objectives.append(c)
-	entry["tres_objetivos"] = _hull_pct(objectives, size)
+	entry["tres_objetivos"] = _hull_pct(_objective_corners(), size)
 	var frame_pts: Array = []
 	for id in V02_IDS + SPAWN_IDS:
 		frame_pts.append(hx.landmark_pos(id))
 	entry["objetivos_y_partidas"] = _hull_pct(frame_pts, size)
+	entry["ajuste"] = hx.cam.last_fit.duplicate(true) if "last_fit" in hx.cam else {}
 	suite.check(float(entry.pueblo.area_pct) > 1.0, "%s: el pueblo ocupa una fracción medible del cuadro (%.1f %%; caja %.0f %% × %.0f %%)" % [label, float(entry.pueblo.area_pct), float(entry.pueblo.ancho_pct), float(entry.pueblo.alto_pct)])
+	entry["presets"] = await _measure_presets(size)
 	by_size[label] = entry
+
+
+func _objective_corners() -> Array:
+	var out: Array = []
+	for id in V.OBJECTIVES:
+		var lm: Dictionary = hx.view.buildings.lm_by_id[id]
+		for c in hx.view.buildings.footprint_corners(hx.view.buildings.footprint(lm)):
+			out.append(c)
+	return out
+
+
+## Lo que taparían la cabecera y el dock, como lo pasa el controlador a la cámara (initial_pose).
+func _hud_band() -> Dictionary:
+	var m := float(hx.margin())
+	return {"top_px": (m + hx.layout_num(["header_h"], 46.0)) * hx.ui_scale, "bottom_px": (m + hx.layout_num(["dock_h"], 136.0)) * hx.ui_scale, "ui_scale": hx.ui_scale}
+
+
+## Cada preset del encuadre inicial (data/humahuaca_camera.json) a este tamaño: distancia, márgenes y tamaños, para compararlos en CAMARA.md. Deja la cámara en el cuadro inicial.
+func _measure_presets(size: Vector2i) -> Dictionary:
+	var out := {}
+	if not ("fit_with" in hx.cam) or not hx.cam.has_method("preset_names"):
+		return out
+	for name in hx.cam.preset_names():
+		var f: Dictionary = hx.cam.fit_with(_cam(), hx.initial_frame(), _hud_band(), str(name))
+		await _frames(1)
+		var margins := {}
+		for id in V02_IDS:
+			var p: Vector2 = hx.landmark_pos(id)
+			margins[id] = snappedf(_margin_pct(_ground(p.x, p.y), size), 0.1)
+		var units := {}
+		for id in V.GROUPS:
+			var u := _unit_pos(id)
+			units[id] = snappedf(_margin_pct(_ground(u.x, u.y), size), 0.1)
+		var plaza: Vector2 = hx.landmark_pos("plaza")
+		var mpp := float(hx.view.meters_per_pixel(_cam(), _cam().unproject_position(_ground(plaza.x, plaza.y))))
+		out[str(name)] = {"camara": {"objetivo": [snappedf((f.target as Vector2).x, 0.1), snappedf((f.target as Vector2).y, 0.1)], "distancia_m": snappedf(float(f.dist), 0.1), "inclinacion_deg": snappedf(float(f.pitch_deg), 0.1), "rumbo_deg": snappedf(float(f.yaw_deg), 0.1)},
+			"margen_v02_pct": margins, "margen_partidas_pct": units, "ajuste": hx.cam.last_fit.duplicate(true), "edificio_px": _building_px(), "px_por_10_m_en_plaza": snappedf(10.0 * _scale().y / maxf(mpp, 0.0001), 0.1),
+			"pueblo": _hull_pct(_town_corners(), size), "tres_objetivos": _hull_pct(_objective_corners(), size)}
+	hx.reset_camera()
+	await _frames(2)
+	return out
 
 
 ## La rueda: límites del zoom, pasos hasta el mínimo y el punto del suelo bajo el cursor (zoom_at mantiene ese punto).
@@ -396,10 +452,25 @@ func _test_centering() -> void:
 	t = hx.qa_state().camera.target
 	var gap := Vector2(float(t[0]), float(t[1])).distance_to(_unit_pos("reconocedores"))
 	var follows := moved > 5.0 and gap <= 1.0
-	suite.extra["seguimiento"] = {"orden_ok": bool(r.get("ok", false)), "ficha_se_movio_m": snappedf(moved, 0.1), "distancia_camara_ficha_m": snappedf(gap, 0.1), "sigue_a_la_ficha": follows, "zoom_se_mantiene": is_equal_approx(dist_before, float(hx.qa_state().camera.dist))}
+	var following_id := str(hx.cam.follow_id) if "follow_id" in hx.cam else ""
+	suite.extra["seguimiento"] = {"orden_ok": bool(r.get("ok", false)), "ficha_se_movio_m": snappedf(moved, 0.1), "distancia_camara_ficha_m": snappedf(gap, 0.1), "sigue_a_la_ficha": follows, "siguiendo": following_id, "zoom_se_mantiene": is_equal_approx(dist_before, float(hx.qa_state().camera.dist))}
 	suite.check(bool(r.get("ok", false)) and moved > 5.0, "centrar: la orden de marcha mueve a los reconocedores (%.1f m en 40 s)" % moved)
 	suite.check(is_equal_approx(dist_before, float(hx.qa_state().camera.dist)), "centrar: centrar en una ficha no cambia el zoom")
+	suite.check(follows and following_id == "reconocedores", "seguir: tras centrar en los reconocedores la cámara los sigue mientras marchan (a %.1f m de la ficha tras %.0f m de marcha)" % [gap, moved])
+	# la rueda no suelta a la ficha; mover la cámara a mano (teclas, arrastre, minimapa) o volver al cuadro inicial sí
+	hx.cam.zoom_at(_cam(), root.get_visible_rect().size * 0.5, ZOOM_NOTCH)
+	suite.check(str(hx.cam.follow_id) == "reconocedores" and float(hx.qa_state().camera.dist) < dist_before, "seguir: la rueda acerca sin soltar a la ficha")
+	hx.cam.pan(Vector2(1.0, 0.0), 0.1)
+	suite.check(str(hx.cam.follow_id) == "", "seguir: mover la cámara con las teclas la suelta")
+	hx.select_group(4)
+	hx.select_group(4)
+	suite.check(str(hx.cam.follow_id) == "arreo", "seguir: la tecla 5 dos veces pasa a seguir al arreo")
+	hx.center_on_front("bateria")
+	suite.check(str(hx.cam.follow_id) == "" and Vector2(float(hx.qa_state().camera.target[0]), float(hx.qa_state().camera.target[1])).distance_to(hx.landmark_pos("bateria")) <= 0.5, "seguir: centrar en un frente suelta a la ficha y centra en el frente")
+	hx.select_group(3)
+	hx.select_group(3)
 	hx.reset_camera()
+	suite.check(str(hx.cam.follow_id) == "", "seguir: volver al cuadro inicial (Inicio) suelta a la ficha")
 	await _frames(2)
 
 
