@@ -571,6 +571,37 @@ func _test_alert_placement() -> void:
 	var avoid: Array = hx.avoid_rects()
 	suite.check(avoid.size() >= 8, "aviso: el controlador entrega un rectángulo por ficha y por frente (%d)" % avoid.size())
 	await _to_menu()
+	# la alerta más alta (título, texto largo y botón) con la barra de órdenes en su peor caso (todas las acciones y los ritmos) y un aviso de pie: nada se pisa
+	for size in [Vector2i(1280, 720), Vector2i(1024, 640)]:
+		await _set_window(size)
+		if not suite.check(await _start_level({"skip_intro": true, "seed": 7}), "alerta y barra %dx%d: el nivel arranca" % [size.x, size.y]):
+			continue
+		for id in ["rodriguez", "portal", "arias"]:
+			hx.orders.issue(id, "position")
+		for wait in range(40):
+			hx.qa_step(5.0)
+			if bool(hx.rules.signal_info().can_give):
+				break
+		await _key(KEY_2)
+		await _key(KEY_G)  # apuntando: la barra muestra las acciones y los tres ritmos
+		hx.set_process(false)  # sin refresco: lo que sigue se arma a mano y no lo pisa el HUD
+		var hh: Variant = hx.hud
+		hh.alert_panel.visible = true
+		hh.alert_title_l.text = "La torre del cuartel tiene la partida de Portal en la mira"
+		hh.alert_text_l.text = "Si seguís avanzando por la calle abierta, la descarga llega en 7 segundos. Podés rodear por los patios o esperar la señal."
+		hh.alert_btn.visible = true
+		hh.alert_btn.text = "Rodear por los patios [P]"
+		hh.toast_panel.visible = true
+		hh.toast_l.text = "Cuartel de la casa del cura: la guardia dio la alarma."
+		hh.place_alert([])
+		await _frames(3)
+		var crossing := _hud_crossings()
+		var vp2 := Rect2(Vector2.ZERO, root.get_visible_rect().size)
+		var inside := _inside(Kit.rect_of(hh.alert_panel), vp2) and _inside(Kit.rect_of(hh.bar), vp2) and _inside(Kit.rect_of(hh.dock), vp2)
+		suite.check(hh.bar.visible and hh.alert_panel.is_visible_in_tree() and crossing.is_empty() and inside, "alerta y barra %dx%d: con la alerta más alta, la barra en su peor caso y un aviso de pie, ningún panel pisa a otro (%s)" % [size.x, size.y, str(crossing)])
+		hx.set_process(true)
+		await _to_menu()
+	await _set_window(Vector2i(1280, 720))
 
 
 # ---------------------------------------------------------------------------------------------------------------------

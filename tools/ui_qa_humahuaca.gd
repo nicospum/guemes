@@ -449,6 +449,8 @@ func _diary_roundtrip(label: String, shot_name: String = "") -> void:
 		return
 	await _click_control(_button("Cerrar"))
 	await _frames(4)
+	if shot_name != "":
+		await _shot("hx-parte-tras-diario")  # la prueba de H-R1-2: tras cerrar el diario el parte está de nuevo, con su botón principal
 	var again := game.find_child("HxRetry", true, false) as Button
 	var back_by_click: bool = str(hx.qa_state().dialog) == "parte" and again != null and again.is_visible_in_tree() and _inside(Kit.rect_of(again))
 	check(back_by_click, "%s: «Cerrar» vuelve al parte con «%s» a la vista" % [label, again.text if again != null else "—"])
@@ -652,6 +654,7 @@ func _cycle_full() -> void:
 	await _move(bat)
 	await _frames(6)
 	await _shot("hx-apuntar")
+	_check_overflow("Apuntando")  # la barra de órdenes con los ritmos de marcha y la línea de motivo: la columna de abajo no pisa nada
 	check(bool(hx.qa_state().aiming) and hx.orders.preview_text("recon").find("riesgo") >= 0, "Órdenes: al apuntar «Reconocer» se ve la vista previa con su riesgo («%s»)" % hx.orders.preview_text("recon"))
 	var pill: Array = []
 	for lab in hx.overlay.drawn_labels:

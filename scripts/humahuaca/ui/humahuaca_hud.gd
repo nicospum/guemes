@@ -263,8 +263,9 @@ func _build_bar(parent: Control) -> void:
 	motive_row.name = "HxMotiveRow"
 	motive_row.custom_minimum_size.y = 18.0
 	motive_row.visible = false
-	motive_l = Kit.label(motive_row, "", small, Kit.GOLD)
+	motive_l = Kit.label(motive_row, "", small, Kit.GOLD, true)  # si el motivo y el estado de la señal no entran juntos, el motivo sigue en otra línea (hacia arriba): nunca ensancha la columna
 	motive_l.name = "HxMotive"
+	motive_l.custom_minimum_size = Vector2(280.0, 18.0)  # con menos ancho el primer cuadro de una frase larga saldría muy alto
 	motive_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	status_l = Kit.label(motive_row, "", int(_num(["font", "tiny"], 12.0)), Kit.MUTED, false, HORIZONTAL_ALIGNMENT_RIGHT)
 	status_l.name = "HxStatus"
@@ -296,13 +297,15 @@ func _build_dock(parent: Control) -> void:
 	var small := int(_num(["font", "small"], 13.0))
 	dock = Kit.panel(parent, Kit.PANEL_BG, Kit.PANEL_BORDER, 12.0, 5.0)
 	dock.name = "HxDock"
-	dock.custom_minimum_size.y = _num(["dock_h"], 132.0)
-	var col := Kit.vbox(dock, 2)
+	dock.custom_minimum_size.y = _num(["dock_h"], 136.0)
+	var col := Kit.vbox(dock, 3)
 	# fila A: objetivo y chips
 	var row_a := Kit.hbox(col, 10)
-	objective_l = Kit.label(row_a, "", small, Kit.MUTED, true)
+	objective_l = Kit.trimmed(Kit.label(row_a, "", small, Kit.MUTED))  # una sola línea siempre: si los chips de la extracción le quitan lugar se recorta con «…» (la frase entera, en el cartel) y el panel no cambia de alto según la fase
 	objective_l.name = "HxObjective"
 	objective_l.custom_minimum_size = Vector2(80.0, 18.0)
+	objective_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	objective_l.mouse_filter = Control.MOUSE_FILTER_PASS
 	chips_box = Kit.hbox(row_a, 6)
 	chips_box.size_flags_horizontal = Control.SIZE_SHRINK_END
 	for id in ["golpe", "carga", "refuerzo"]:
@@ -525,6 +528,7 @@ func short_names() -> Dictionary:
 func _refresh_dock(hs: Dictionary, ctx: Dictionary) -> void:
 	var goal := str(hs.get("objetivo", ""))
 	objective_l.text = goal  # la frase la dicen las reglas (hud_state().objetivo): la interfaz no guarda otra copia
+	objective_l.tooltip_text = goal
 	var guide := _dict(ctx.get("guide"))
 	next_title_l.visible = not guide.is_empty() and str(guide.get("text", "")) != ""
 	next_text_l.text = str(guide.get("text", ""))
