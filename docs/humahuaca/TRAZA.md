@@ -223,6 +223,8 @@ La línea final de la compuerta dice `FALLA (1 pasos)` y el único paso que fall
 
 La línea final de la compuerta dice `FALLA (1 pasos)` y el único paso que falla es `higiene`, por las dos etiquetas ajenas (BACKLOG B-017): ningún paso atribuible a una pista o al integrador falló. No hay etiquetas nuevas de este equipo, ni `push`, ni archivos de secretos versionados.
 
+**Compuerta rápida sobre el commit de documentos** (`496762c`, `KEEP=1 bash tools/qa_gate.sh quick integrador`, 1 min 31 s): protegidos 40, `rules` 818/0 (50 s), integración 283/0, `hx_data` 296/0 con las 128 filas, `hx_smoke` 146/0 (24 s, 4 pendientes), `etapa` y `salida_limpia` en PASA y, otra vez, solo `higiene` en FALLA por las dos etiquetas ajenas. Es la rápida del integrador: no corre `hx_rules` ni `hx_view` (son de las pistas y corrieron en la completa).
+
 **Qué cambió desde el pase 1.**
 
 - `hx_rules` existe y corre: 558/0 sobre el stub de reglas. Fija VP-01 (la curva de `time_of_day` pasa por las cinco muestras) y VP-02 (la versión y la torre de `render_state`) y mide el rendimiento del stub: `tick` 0,031 ms, `plan_route` 0,016 ms y `hud_state` más `render_state` 0,268 ms.
