@@ -43,7 +43,7 @@ func _initialize() -> void:
 	var map: Dictionary = V.load_json(V.MAP_PATH).duplicate(true)
 	map.erase("relief")
 	for off in [0.0, 1.0, 2.0, 3.0]:
-		var z0 := 300.0 + off
+		var z0: float = 300.0 + float(off)
 		var level := {"features": {"tapias": [
 			{"id": "a", "pts": [{"x": 400.0, "z": z0 - 30.0}, {"x": 400.0, "z": z0 - 2.0}], "height_m": 2.0, "layout": "AB"},
 			{"id": "b", "pts": [{"x": 400.0, "z": z0 + 2.0}, {"x": 400.0, "z": z0 + 30.0}], "height_m": 2.0, "layout": "AB"}]}}
