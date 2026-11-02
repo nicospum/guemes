@@ -155,6 +155,7 @@ Cada exigencia de las secciones 3 a 5 de `docs/CONTRATO_HUMAHUACA.md` tiene acá
 | TR-202 | 5.1 | El recorrido de QA da las posiciones de qa_report.json (rect de los probes, horizon_y, objetivos del cuadro inicial y límites) en píxeles de la captura y deja la escala usada, porque qa_imagen.py las lee como píxeles de la imagen (V06) | hx_qa_tour::_pixelize | r1 |
 | TR-203 | 5.1 | El recorrido de QA mide sobre el arco del bot la jerga, los desbordes de texto, la brecha de decisión y las contracciones sin hacer, y deja todo el texto visible en textos_visibles.txt | hx_qa_tour::_bot_arc | r1 |
 | TR-204 | 2.4 | V10 (contracciones): ninguna cadena visible de reglas trae «de el» ni «a el» sin contraer ni antepone «de» o «a» a un marcador de lugar masculino; cinco plantillas de reglas_historia quedan como excepción fechada hasta r2a | tests/hx_validators.gd::v10_contractions | r1 |
+| TR-205 | 3.5 | qa_state() del controlador real trae, con su tipo, las claves que leen el arnés del agente y el recorrido de QA (mode, dialog, status, attempt, orders, first_order_s, visible_buttons, text_chars_juego): si la interfaz las renombra, falla la compuerta rápida de quien las toca y no recién la completa | test_hx_smoke::_test_shapes | r1 |
 
 ## Registro de verificación por ronda
 

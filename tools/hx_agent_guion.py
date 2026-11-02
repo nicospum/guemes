@@ -6,7 +6,7 @@ con el máximo de turnos o con «abandono». El --selftest del arnés contesta s
 fijo que no depende de la disposición de la interfaz (solo teclas, esperas y entradas inválidas a propósito), y comprueba lo que el arnés escribe.
 
 Uso: python -I hx_agent_guion.py --turns-dir <carpeta> --arnes <arnes.json> [--guion protocolo|<guion.json>] [--timeout 120] [--log <log.json>]
-  --guion protocolo   el guion de la compuerta (7 turnos: espera, JSON roto, clic fuera de la ventana, tipo desconocido, dos teclas y una espera) y después respuestas.json
+  --guion protocolo   el guion de la compuerta (8 turnos: espera, JSON roto, clic fuera de la ventana, tipo desconocido, tres teclas y una espera) y después respuestas.json
   --guion <archivo>   una lista JSON de entradas: {"tipo": "clic"|"tecla"|"esperar", ...}, {"crudo": "<texto sin tocar>"} u {"omitir": true} (no contesta: el arnés abandona)
 Sale con 0 si cada comprobación del guion «protocolo» pasa (o, con otro guion, si no hubo errores de entrega) y con 1 si falla alguna. Imprime «HX_AGENT_GUION {json}».
 """
@@ -20,18 +20,20 @@ import unicodedata
 from pathlib import Path
 
 # Guion de la compuerta: (entrada, ¿el arnés la aplica?). La entrada «crudo» es un JSON que nunca se completa: el arnés reintenta 3 s y la da por inválida.
-# «nota» es lo que el «agente» anota en bitacora.md antes de ese turno (no viaja en la acción). Con el briefing de hoy (Enter lo cierra y empieza la apertura) el turno 5 nombra los
-# tres frentes ANTES de ver el mapa (no cuenta), el 6 es el primer cuadro con mapa y nombra solo la batería, y el 7 nombra el cuartel y la posta: los tres quedan nombrados 2 turnos
-# después de ver el mapa (7 - 6 + 1). Lo esperado no está escrito a mano: `esperado_identificacion` lo recalcula con los modos que informó el arnés, así que un briefing que cambie
-# de largo no rompe la prueba (la rompe solo si ya ningún turno con mapa recibe una nota que complete los tres nombres).
+# «nota» es lo que el «agente» anota en bitacora.md antes de ese turno (no viaja en la acción). Con el briefing de hoy (Enter lo cierra y empieza la apertura, otra tecla la salta)
+# el turno 5 nombra los tres frentes ANTES de ver el mapa (no cuenta), el 6 es el primer cuadro con mapa y nombra solo la batería, el 7 nombra el cuartel y la posta (los tres quedan
+# nombrados 2 turnos después de ver el mapa: 7 - 6 + 1) y el 8 los repite por si un briefing más largo retrasara el primer cuadro con mapa. Lo esperado no está escrito a mano:
+# `esperado_identificacion` lo recalcula con los modos que informó el arnés, así que un briefing que cambie de largo no rompe la prueba (la rompe solo si ya ningún turno con mapa
+# recibe una nota que complete los tres nombres, o si tres teclas ya no alcanzan para salir del briefing).
 PROTOCOLO = [
     ({"tipo": "esperar", "s": 1}, True),
     ({"crudo": '{"tipo": "clic", "x": 64'}, False),
     ({"tipo": "clic", "x": -5, "y": 10, "boton": "izq"}, False),
     ({"tipo": "baila"}, False),
     ({"tipo": "tecla", "tecla": "Enter", "nota": "Leí el briefing: hay que tomar la batería, el cuartel y la posta. Todavía no veo el mapa."}, True),
-    ({"tipo": "tecla", "tecla": "Space", "nota": "Veo la apertura: una cámara que pasa por la batería."}, True),
-    ({"tipo": "esperar", "s": 2, "nota": "Ahora veo el cuartel en el centro y la posta a la derecha."}, True),
+    ({"tipo": "tecla", "tecla": "Enter", "nota": "Veo la apertura: una cámara que pasa por la batería."}, True),
+    ({"tipo": "tecla", "tecla": "Space", "nota": "Ahora veo el cuartel en el centro y la posta a la derecha."}, True),
+    ({"tipo": "esperar", "s": 2, "nota": "Se ven la batería, el cuartel y la posta, cada una con su luz."}, True),
 ]
 # Las mismas palabras (sin tildes) que usa el arnés para decir que la bitácora nombra un frente: este programa las repite aparte para no depender del código que prueba.
 FRENTES = {"bateria": ["bater", "santa barbara"], "cuartel": ["cuartel", "casa del cura"], "posta": ["posta", "polvor"]}
@@ -169,10 +171,10 @@ def main() -> int:
         aplicadas = [bool(t.get("aplicada")) for t in turnos]
         chk("aplicó solo lo válido (esperar, teclas) y rechazó el JSON roto, el clic fuera de la ventana y el tipo desconocido", aplicadas == esperado, "aplicadas=%s esperado=%s" % (aplicadas, esperado))
         tipos = [str((t.get("accion") or {}).get("tipo", "")) for t in turnos]
-        chk("registró el tipo de cada acción", tipos == ["esperar", "invalida", "clic", "baila", "tecla", "tecla", "esperar"], str(tipos))
+        chk("registró el tipo de cada acción", tipos == ["esperar", "invalida", "clic", "baila", "tecla", "tecla", "tecla", "esperar"], str(tipos))
         modos = [str(t.get("modo", "")) for t in turnos]
         chk("el primer turno es el briefing", bool(modos) and modos[0] == "briefing", str(modos[:2]))
-        chk("las teclas Enter y Space hicieron salir del briefing", len(modos) == n and modos[-1] in ("opening", "play"), str(modos))
+        chk("las teclas Enter, Enter y Space hicieron salir del briefing", len(modos) == n and modos[-1] in ("opening", "play"), str(modos))
         chk("cerró con respuestas.json", arnes.get("cierre") == "respuestas" and cerro_con_respuestas, str(arnes.get("cierre")))
         notas = {i: str(e["nota"]) for i, e in enumerate(guion, start=1) if e.get("nota")}
         esperado_id, esperado_mapa = esperado_identificacion(notas, modos)

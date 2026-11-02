@@ -478,6 +478,17 @@ func _test_shapes() -> void:
 		suite.check(diffs.is_empty(), "3.6 qa_state() del controlador (%s) tiene la forma del ejemplo%s" % ["cáscara" if ui_is_shell else "real", "" if diffs.is_empty() else ": " + str(diffs)])
 		suite.check(JSON.stringify(qa) != "", "3.5 qa_state() es serializable a JSON")
 		suite.check(int(qa.get("visible_controls", 99)) <= 5 and int(qa.get("text_chars", 9999)) <= 400, "3.5 el primer cuadro respeta ≤ 5 controles y ≤ 400 caracteres (%s controles, %s caracteres)" % [str(qa.get("visible_controls")), str(qa.get("text_chars"))])
+		if not ui_is_shell:
+			# las claves que leen las herramientas del QA (tools/hx_agent_play.gd y tools/hx_qa_tour.gd) y que el ejemplo de forma no pide a la cáscara: si la interfaz las renombra o les
+			# cambia el tipo, falla la compuerta rápida de quien las toca y no recién la completa
+			var bad_keys: Array = []
+			for k in ["mode", "dialog", "status"]:
+				if typeof(qa.get(k, null)) != TYPE_STRING:
+					bad_keys.append(k)
+			for k in ["attempt", "orders", "first_order_s", "visible_buttons", "text_chars_juego"]:
+				if not (typeof(qa.get(k, null)) in [TYPE_INT, TYPE_FLOAT]):
+					bad_keys.append(k)
+			suite.check(bad_keys.is_empty(), "3.5 qa_state() del controlador real trae, con su tipo, las claves que leen el arnés del agente y el recorrido de QA (mode, dialog, status, attempt, orders, first_order_s, visible_buttons, text_chars_juego)%s" % ["" if bad_keys.is_empty() else ": fallan " + str(bad_keys)])
 		game.hx.qa_set_time(100.0)
 		game.hx.qa_step(5.0)
 		suite.check(is_equal_approx(float(game.hx.qa_state().elapsed), 105.0), "3.5 qa_set_time y qa_step avanzan el reloj del juego (100 s + 5 s)")

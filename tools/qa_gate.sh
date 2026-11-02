@@ -524,13 +524,14 @@ step_ui_qa() {
     out="$LOGD/uiqa_$S"; mkdir -p "$out"
     run_godot 600 "$LOGD/uiqa_$S.log" --path "$SRC" --resolution "$S" --audio-driver Dummy --script tools/ui_qa.gd -- "--out=$out" "--size=$S"
     nums="$(report_numbers "$out/ui_qa_report.json")"
-    if [ "$nums" = "NOJSON" ]; then record "ui_qa_$S" FALLA "no escribió ui_qa_report.json (salida $RC)"; continue; fi
+    if [ "$nums" = "NOJSON" ]; then record "ui_qa_$S" FALLA "no escribió ui_qa_report.json (salida $RC; registro: $LOGD/uiqa_$S.log.falla)"; mv "$LOGD/uiqa_$S.log" "$LOGD/uiqa_$S.log.falla" 2>/dev/null; continue; fi   # la falla ya está informada: salida_limpia no la cuenta por segunda vez
     read -r checks fails cap real <<< "$nums"
     FIG["ui_qa_$S"]="$checks/$fails"
     if [ "$RC" -eq 0 ] && [ "$fails" = "0" ] && [ "$checks" -ge 254 ] && [ "$cap" = "$S" ] && [ "$real" = "true" ]; then
       record "ui_qa_$S" PASA "$checks comprobaciones, $fails fallas, captura $cap real, $(fmt_time $((SECONDS - started)))"
     else
-      record "ui_qa_$S" FALLA "$checks comprobaciones (piso 254), $fails fallas, captura $cap (pedida $S), resolución real: $real, salida $RC"
+      record "ui_qa_$S" FALLA "$checks comprobaciones (piso 254), $fails fallas, captura $cap (pedida $S), resolución real: $real, salida $RC (registro: $LOGD/uiqa_$S.log.falla)"
+      mv "$LOGD/uiqa_$S.log" "$LOGD/uiqa_$S.log.falla" 2>/dev/null
     fi
   done
 }
@@ -652,14 +653,15 @@ step_level_tools() {
       out="$LOGD/uiqa_hx_$S"; mkdir -p "$out"
       run_godot 600 "$LOGD/uiqa_hx_$S.log" --path "$SRC" --resolution "$S" --audio-driver Dummy --script tools/ui_qa_humahuaca.gd -- "--out=$out" "--size=$S"
       nums="$(report_numbers "$out/ui_qa_report.json")"
-      if [ "$nums" = "NOJSON" ]; then record "ui_qa_hx_$S" FALLA "no escribió ui_qa_report.json (salida $RC)"; continue; fi
+      if [ "$nums" = "NOJSON" ]; then record "ui_qa_hx_$S" FALLA "no escribió ui_qa_report.json (salida $RC; registro: $LOGD/uiqa_hx_$S.log.falla)"; mv "$LOGD/uiqa_hx_$S.log" "$LOGD/uiqa_hx_$S.log.falla" 2>/dev/null; continue; fi
       read -r checks fails _ _ <<< "$nums"
       # r1: completo a 1280x720 y chequeo de desborde en las otras dos; desde r2a, completo a las tres (el piso se aplica a las completas)
       if [ "$S" != 1280x720 ] && ! round_ge "$RONDA" r2a; then floor=1; fi
       if [ "$RC" -eq 0 ] && [ "$fails" = "0" ] && [ "$checks" -ge "$floor" ]; then
         record "ui_qa_hx_$S" PASA "$checks comprobaciones, $fails fallas (piso $floor)"
       else
-        record "ui_qa_hx_$S" FALLA "$checks comprobaciones (piso $floor), $fails fallas, salida $RC"
+        record "ui_qa_hx_$S" FALLA "$checks comprobaciones (piso $floor), $fails fallas, salida $RC (registro: $LOGD/uiqa_hx_$S.log.falla)"
+        mv "$LOGD/uiqa_hx_$S.log" "$LOGD/uiqa_hx_$S.log.falla" 2>/dev/null
       fi
     done
   fi

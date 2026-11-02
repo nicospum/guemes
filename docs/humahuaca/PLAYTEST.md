@@ -55,6 +55,17 @@ export APPDATA="$TEMP/ap_iso_<quien>"; rm -rf "$APPDATA"; mkdir -p "$APPDATA"
 | 2-nov-2026 | R1 | `15627bb` | 4 | 3,0 | con `--selftest` y esperas de 3 s: ningún parte en 150 turnos (a los 441 s de juego el arreo todavía iba al vado); con `--selftest=pasivo`: derrota por `amanecio` a los 390 s (turno 16) y, tras «Reintentar», dos derrotas por `interceptados` a los 582 s (el bot esperaba de a 12 s). El bot del recorrido, que avanza de a 1 s, gana a los 497 s | n/a | n/a | **Prueba del arnés, no del agente.** El arnés contestó solo con el botón de «siguiente paso» (con información que un agente no tiene): comprueba el lazo de punta a punta (`turno_NN.png`, `accion_NN.json`, `arnes.json` `hx_agente_v1`, reintento y cierres), no que el nivel se entienda |
 | — | — | — | — | — | — | — | — | **Todavía no hay una corrida del agente-jugador de verdad** (BACKLOG B-027). La hace el Jefe de QA con un subagente nuevo, sin acceso al código ni a `qa_state()`, con `tools/hx_agent_play.gd -- --turns-dir=<carpeta> --out=<arnes.json> --step-s=3 --max-turns=150` |
 
+## Lo que se ve en las capturas del arnés (lectura de quien lo escribió, no del agente; `70124a0`)
+
+Se miraron con `Read` los turnos 1 a 3, 26, 28, 30 y 31 de la repetición por archivos. Sirve para enterarse temprano de lo que un agente sin código va a ver; no reemplaza su corrida (B-027).
+
+- **Turno 1, briefing (página 1):** «Esta noche, con lluvia, tenés unas 150 personas casi sin armas y un amanecer por delante. Tomá la batería, el cuartel y la pólvora a la vez y sacá lo que puedas antes del refuerzo. Perder no es grave: volvés a intentar con lo que aprendiste.» Las tres ideas que pide J08 (tomar los tres frentes, sacar carga, antes del refuerzo o del alba) están dichas en tres frases llanas, con «Seguir leyendo» y «Empezar».
+- **Turno 2, página 2:** la carta del 26 de febrero marcada «Dramatización», la fecha discutida (1 o 2 de marzo) y «Qué es real y qué es diseño» (el relieve es dato actual; el refuerzo es un recurso del juego). Las etiquetas honestas ya están en el briefing.
+- **Turno 3, apertura:** una cámara baja sobre el pueblo con una cita de Arias («La mayor parte sin más armas que palos») y «Cualquier tecla salta la presentación».
+- **Primer cuadro:** cinco fichas con su anillo y su número, tres luces amarillas con su rótulo (batería, cuartel, posta), una sola línea de objetivo, un solo «Siguiente paso: Mandá a los reconocedores a mirar la batería.» con su botón «Reconocer [R]», el reloj «Falta el alba: 4:30» y el minimapa. A 1280 × 720 las cinco fichas y los tres objetivos quedan a la vista.
+- **Ataque (turnos 26 a 30, de 157 a 234 s):** la batería y la posta tomadas, el cuartel «Asaltado · Toma 12 % a 23 %»; el «Siguiente paso» dice «Esperá la toma de el cuartel.» (contracción sin hacer, B-036) mientras la partida de Portal se rompe bajo la torre, sin un aviso crítico a la vista (B-037).
+- **Turno 31, parte de derrota:** «A los 3:54 la partida de Portal quedó clavada frente al cuartel y se rompió bajo el fuego», un consejo («Atacá con cautela y mandá a Arias en apoyo»), tres datos y el tiempo (frentes 2 de 3, golpe 0 de 100, bajas 35 %, tiempo 3:54) y «Reintentar» como botón primario sin scroll. Al reintentar sigue el intento 2 desde la aproximación, sin briefing.
+
 ## Plantilla del mini-playtest humano (no se usa en este circuito)
 
 Se deja por si alguna vez aparece una persona. Son **10 minutos**, una persona, sin explicarle nada antes, y se anota:
