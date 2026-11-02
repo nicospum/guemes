@@ -1,5 +1,113 @@
 {
 	"contract": 1,
 	"map_version": 1,
-	"level_version": 1
+	"level_version": 1,
+	"features": {
+		"tapias": [
+			{"id": "tapia_acceso_oeste_1", "pts": [{"x": 196.0, "z": 540.0}, {"x": 196.0, "z": 470.0}], "height_m": 1.8, "thickness_m": 0.5, "layout": "AB", "tag": "diseno", "source": "Existencia: parte de Arias («tapial»). Posición y largo: diseño."},
+			{"id": "tapia_acceso_oeste_2", "pts": [{"x": 196.0, "z": 470.0}, {"x": 238.0, "z": 440.0}], "height_m": 1.8, "thickness_m": 0.5, "layout": "AB", "tag": "diseno", "source": "Existencia: parte de Arias («tapial»). Posición y largo: diseño."},
+			{"id": "tapia_acceso_este_1", "pts": [{"x": 300.0, "z": 520.0}, {"x": 300.0, "z": 470.0}], "height_m": 2.0, "thickness_m": 0.5, "layout": "AB", "tag": "diseno", "source": "Existencia: parte de Arias («tapial»). Posición y largo: diseño."},
+			{"id": "tapia_acceso_este_2", "pts": [{"x": 300.0, "z": 470.0}, {"x": 340.0, "z": 448.0}], "height_m": 2.0, "thickness_m": 0.5, "layout": "AB", "tag": "diseno", "source": "Existencia: parte de Arias («tapial»). Posición y largo: diseño."},
+			{"id": "tapia_cerro_sur", "pts": [{"x": 262.0, "z": 430.0}, {"x": 310.0, "z": 420.0}], "height_m": 1.8, "thickness_m": 0.5, "layout": "AB", "tag": "diseno", "source": "Existencia: parte de Arias («tapial»). Posición y largo: diseño."},
+			{"id": "tapia_gola_sur", "pts": [{"x": 358.0, "z": 356.0}, {"x": 358.0, "z": 372.0}], "height_m": 2.4, "thickness_m": 0.5, "layout": "AB", "tag": "diseno", "source": "Existencia: parte de Arias («tapial»). Posición, largo y altura: diseño."},
+			{"id": "tapia_calle_cuartel_n", "pts": [{"x": 344.0, "z": 376.0}, {"x": 404.0, "z": 376.0}], "height_m": 2.2, "thickness_m": 0.5, "layout": "AB", "tag": "diseno", "source": "Existencia: parte de Arias («tapial»). Planta del pueblo: diseño, no hay plano de 1817."},
+			{"id": "tapia_calle_cuartel_s", "pts": [{"x": 344.0, "z": 386.0}, {"x": 404.0, "z": 386.0}], "height_m": 2.2, "thickness_m": 0.5, "layout": "AB", "tag": "diseno", "source": "Existencia: parte de Arias («tapial»). Planta del pueblo: diseño, no hay plano de 1817."},
+			{"id": "tapia_plaza_sur_1", "pts": [{"x": 422.0, "z": 420.0}, {"x": 442.0, "z": 420.0}], "height_m": 2.0, "thickness_m": 0.5, "layout": "AB", "tag": "diseno", "source": "Existencia: parte de Arias («tapial»). Planta del pueblo: diseño, no hay plano de 1817."},
+			{"id": "tapia_plaza_sur_2", "pts": [{"x": 458.0, "z": 420.0}, {"x": 478.0, "z": 420.0}], "height_m": 2.0, "thickness_m": 0.5, "layout": "AB", "tag": "diseno", "source": "Existencia: parte de Arias («tapial»). Planta del pueblo: diseño, no hay plano de 1817."},
+			{"id": "tapia_posta_n", "pts": [{"x": 575.0, "z": 288.0}, {"x": 605.0, "z": 288.0}], "height_m": 2.4, "thickness_m": 0.6, "layout": "AB", "tag": "diseno", "source": "Muros de la casa de posta: existencia en el parte («casa de Posta»); planta y altura: diseño."},
+			{"id": "tapia_posta_e1", "pts": [{"x": 605.0, "z": 288.0}, {"x": 605.0, "z": 296.0}], "height_m": 2.4, "thickness_m": 0.6, "layout": "AB", "tag": "diseno", "source": "Muros de la casa de posta: existencia en el parte («casa de Posta»); planta y altura: diseño."},
+			{"id": "tapia_posta_e2", "pts": [{"x": 605.0, "z": 304.0}, {"x": 605.0, "z": 312.0}], "height_m": 2.4, "thickness_m": 0.6, "layout": "AB", "tag": "diseno", "source": "Muros de la casa de posta: existencia en el parte («casa de Posta»); planta y altura: diseño."},
+			{"id": "tapia_posta_s1", "pts": [{"x": 605.0, "z": 312.0}, {"x": 592.0, "z": 312.0}], "height_m": 2.4, "thickness_m": 0.6, "layout": "AB", "tag": "diseno", "source": "Muros de la casa de posta: existencia en el parte («casa de Posta»); planta y altura: diseño."},
+			{"id": "tapia_posta_s2", "pts": [{"x": 588.0, "z": 312.0}, {"x": 575.0, "z": 312.0}], "height_m": 2.4, "thickness_m": 0.6, "layout": "AB", "tag": "diseno", "source": "Muros de la casa de posta: existencia en el parte («casa de Posta»); planta y altura: diseño."},
+			{"id": "tapia_posta_w1", "pts": [{"x": 575.0, "z": 312.0}, {"x": 575.0, "z": 302.0}], "height_m": 2.4, "thickness_m": 0.6, "layout": "AB", "tag": "diseno", "source": "Muros de la casa de posta: existencia en el parte («casa de Posta»); planta y altura: diseño."},
+			{"id": "tapia_posta_w2", "pts": [{"x": 575.0, "z": 298.0}, {"x": 575.0, "z": 288.0}], "height_m": 2.4, "thickness_m": 0.6, "layout": "AB", "tag": "diseno", "source": "Muros de la casa de posta: existencia en el parte («casa de Posta»); planta y altura: diseño."}
+		],
+		"zanjas": [
+			{"id": "zanja_acceso", "pts": [{"x": 204.0, "z": 505.0}, {"x": 292.0, "z": 505.0}], "depth_m": 1.0, "width_m": 1.6, "layout": "AB", "tag": "diseno", "source": "Existencia: parte de Arias («zanjita»). Posición y medidas: diseño."},
+			{"id": "zanja_foso_bateria", "pts": [{"x": 292.0, "z": 335.0}, {"x": 292.0, "z": 365.0}], "depth_m": 2.0, "width_m": 2.0, "layout": "AB", "tag": "diseno", "source": "Foso de la batería: posición y medidas de diseño; el parte solo nombra la batería."},
+			{"id": "zanja_nucleo_oeste", "pts": [{"x": 330.0, "z": 400.0}, {"x": 330.0, "z": 445.0}], "depth_m": 0.8, "width_m": 1.2, "layout": "AB", "tag": "diseno", "source": "Existencia: parte de Arias («zanjita»). Posición y medidas: diseño."},
+			{"id": "zanja_posta_sur", "pts": [{"x": 540.0, "z": 340.0}, {"x": 645.0, "z": 340.0}], "depth_m": 1.0, "width_m": 1.6, "layout": "AB", "tag": "diseno", "source": "Existencia: parte de Arias («zanjita»). Posición y medidas: diseño."},
+			{"id": "zanja_este_1", "pts": [{"x": 660.0, "z": 255.0}, {"x": 675.0, "z": 330.0}], "depth_m": 1.2, "width_m": 2.0, "layout": "AB", "tag": "diseno", "source": "Existencia: parte de Arias («zanjita»). Posición y medidas: diseño."},
+			{"id": "zanja_este_2", "pts": [{"x": 640.0, "z": 380.0}, {"x": 700.0, "z": 400.0}], "depth_m": 1.0, "width_m": 1.6, "layout": "AB", "tag": "diseno", "source": "Existencia: parte de Arias («zanjita»). Posición y medidas: diseño."}
+		],
+		"acequias": [
+			{"id": "acequia_nucleo", "pts": [{"x": 400.0, "z": 440.0}, {"x": 520.0, "z": 440.0}], "width_m": 1.0, "layout": "AB", "tag": "diseno", "source": "Riego del núcleo: diseño; no hay plano de 1817."},
+			{"id": "acequia_este", "pts": [{"x": 610.0, "z": 360.0}, {"x": 690.0, "z": 350.0}, {"x": 720.0, "z": 300.0}], "width_m": 1.0, "layout": "AB", "tag": "diseno", "source": "Riego de las parcelas del este: diseño."}
+		],
+		"barricadas": [
+			{"id": "barricada_calle_oeste", "pts": [{"x": 342.0, "z": 377.0}, {"x": 342.0, "z": 385.0}], "layout": "AB", "tag": "diseno", "source": "Barricada de bocacalle: diseño; el Diario realista cuenta barricadas en enero."},
+			{"id": "barricada_sur", "pts": [{"x": 440.0, "z": 426.0}, {"x": 460.0, "z": 426.0}], "layout": "AB", "tag": "diseno", "source": "Barricada de bocacalle: diseño; el Diario realista cuenta barricadas en enero."}
+		],
+		"portillos": [
+			{"id": "portillo_cerro_sur", "tapia": "tapia_cerro_sur", "at": 0.5, "width_m": 3.0, "state": "abierto", "layout": "AB", "tag": "diseno", "source": "Portillos: diseño."},
+			{"id": "portillo_acceso_este", "tapia": "tapia_acceso_este_2", "at": 0.5, "width_m": 3.0, "state": "cerrado", "layout": "AB", "tag": "diseno", "source": "Portillos: diseño."}
+		],
+		"calles": [
+			{"id": "calle_cuartel", "pts": [{"x": 344.0, "z": 381.0}, {"x": 404.0, "z": 381.0}, {"x": 430.0, "z": 360.0}], "width_m": 8.0, "layout": "AB", "tag": "diseno", "source": "Planta del pueblo: diseño, no hay plano de 1817."},
+			{"id": "calle_plaza_templo", "pts": [{"x": 450.0, "z": 417.0}, {"x": 450.0, "z": 345.0}], "width_m": 8.0, "layout": "AB", "tag": "diseno", "source": "Planta del pueblo: diseño, no hay plano de 1817."},
+			{"id": "calle_posta", "pts": [{"x": 478.0, "z": 392.0}, {"x": 540.0, "z": 350.0}, {"x": 575.0, "z": 308.0}], "width_m": 8.0, "layout": "AB", "tag": "diseno", "source": "Planta del pueblo: diseño, no hay plano de 1817."},
+			{"id": "calle_oeste", "pts": [{"x": 340.0, "z": 430.0}, {"x": 344.0, "z": 381.0}], "width_m": 8.0, "layout": "AB", "tag": "diseno", "source": "Planta del pueblo: diseño, no hay plano de 1817."}
+		],
+		"manzanas": [
+			{"id": "manzana_suroeste", "poly": [{"x": 344.0, "z": 392.0}, {"x": 398.0, "z": 392.0}, {"x": 398.0, "z": 446.0}, {"x": 344.0, "z": 446.0}], "layout": "AB", "tag": "diseno", "source": "Manzanas de 54 × 54 m: diseño."},
+			{"id": "manzana_sur", "poly": [{"x": 490.0, "z": 400.0}, {"x": 544.0, "z": 400.0}, {"x": 544.0, "z": 454.0}, {"x": 490.0, "z": 454.0}], "layout": "AB", "tag": "diseno", "source": "Manzanas de 54 × 54 m: diseño."},
+			{"id": "manzana_norte_este", "poly": [{"x": 462.0, "z": 262.0}, {"x": 516.0, "z": 262.0}, {"x": 516.0, "z": 316.0}, {"x": 462.0, "z": 316.0}], "layout": "AB", "tag": "diseno", "source": "Manzanas de 54 × 54 m: diseño."},
+			{"id": "manzana_norte", "poly": [{"x": 396.0, "z": 262.0}, {"x": 450.0, "z": 262.0}, {"x": 450.0, "z": 316.0}, {"x": 396.0, "z": 316.0}], "layout": "AB", "tag": "diseno", "source": "Manzanas de 54 × 54 m: diseño."}
+		],
+		"patios": [],
+		"parcelas": [
+			{"id": "parcela_oeste", "kind": "irrigada", "poly": [{"x": 120.0, "z": 380.0}, {"x": 190.0, "z": 380.0}, {"x": 190.0, "z": 440.0}, {"x": 120.0, "z": 440.0}], "layout": "AB", "tag": "diseno", "source": "Parcelas con riego: diseño; el relieve sí es dato actual."},
+			{"id": "parcela_este_1", "kind": "irrigada", "poly": [{"x": 690.0, "z": 200.0}, {"x": 760.0, "z": 200.0}, {"x": 760.0, "z": 260.0}, {"x": 690.0, "z": 260.0}], "layout": "AB", "tag": "diseno", "source": "Parcelas con riego: diseño."},
+			{"id": "parcela_este_2", "kind": "irrigada", "poly": [{"x": 700.0, "z": 420.0}, {"x": 770.0, "z": 420.0}, {"x": 770.0, "z": 480.0}, {"x": 700.0, "z": 480.0}], "layout": "AB", "tag": "diseno", "source": "Parcelas con riego: diseño."}
+		],
+		"caminos": [
+			{"id": "camino_sur", "pts": [{"x": 540.0, "z": 650.0}, {"x": 528.0, "z": 590.0}, {"x": 500.0, "z": 520.0}, {"x": 470.0, "z": 455.0}, {"x": 450.0, "z": 417.0}], "width_m": 6.0, "layout": "AB", "tag": "diseno", "source": "Camino por donde llega el refuerzo: diseño; el refuerzo inmediato no ocurrió."},
+			{"id": "camino_acceso_so", "pts": [{"x": 150.0, "z": 560.0}, {"x": 205.0, "z": 552.0}, {"x": 240.0, "z": 520.0}, {"x": 262.0, "z": 486.0}, {"x": 270.0, "z": 450.0}, {"x": 300.0, "z": 440.0}, {"x": 344.0, "z": 420.0}, {"x": 420.0, "z": 410.0}], "width_m": 5.0, "layout": "AB", "tag": "diseno", "source": "Acceso del sudoeste: diseño."},
+			{"id": "camino_altura", "pts": [{"x": 230.0, "z": 480.0}, {"x": 250.0, "z": 432.0}, {"x": 270.0, "z": 395.0}, {"x": 300.0, "z": 368.0}, {"x": 318.0, "z": 350.0}], "width_m": 3.0, "layout": "AB", "tag": "diseno", "source": "Senda a la altura de la batería: diseño."},
+			{"id": "camino_vado", "pts": [{"x": 590.0, "z": 318.0}, {"x": 700.0, "z": 345.0}, {"x": 800.0, "z": 342.0}, {"x": 862.0, "z": 340.0}], "width_m": 5.0, "layout": "AB", "tag": "diseno", "source": "Camino al vado: diseño; el parte no dice por dónde salieron."}
+		],
+		"camino_cubierto": {"id": "camino_cubierto", "pts": [{"x": 405.0, "z": 338.0}, {"x": 345.0, "z": 350.0}], "width_m": 6.0, "wall_height_m": 1.8, "layout": "AB", "tag": "razonado", "source": "Diario realista: camino cubierto que protegiese la retirada. Trazado: diseño."},
+		"gola_bateria": {"id": "gola_bateria", "lado": "este", "tag": "diseno", "source": "La orientación de la gola no figura en el parte: diseño."}
+	},
+	"access": {
+		"spawns": {"rodriguez": "spawn_rodriguez", "portal": "spawn_portal", "arias": "spawn_arias", "reconocedores": "spawn_reconocedores", "arreo": "spawn_arreo"},
+		"zona_partida": "zona_partida",
+		"attack_posts": {
+			"bateria": [
+				{"x": 246.0, "z": 398.0, "layout": "AB", "approach": "frontal"},
+				{"x": 394.0, "z": 356.0, "layout": "AB", "approach": "gola"}
+			],
+			"cuartel": [
+				{"x": 350.0, "z": 381.0, "layout": "AB", "approach": "calle"},
+				{"x": 366.0, "z": 298.0, "layout": "AB", "approach": "patios"}
+			],
+			"posta": [
+				{"x": 516.0, "z": 340.0, "layout": "AB", "approach": "directa"},
+				{"x": 560.0, "z": 372.0, "layout": "AB", "approach": "distraccion"}
+			]
+		},
+		"exit": {"vado": "vado_este", "salida": "salida_este"},
+		"south_entry": "entrada_sur",
+		"patrol_routes": [
+			{"id": "patrulla_1", "pts": [{"x": 380.0, "z": 300.0}, {"x": 470.0, "z": 280.0}, {"x": 520.0, "z": 330.0}, {"x": 430.0, "z": 350.0}]},
+			{"id": "patrulla_2", "pts": [{"x": 360.0, "z": 440.0}, {"x": 440.0, "z": 460.0}, {"x": 520.0, "z": 430.0}, {"x": 440.0, "z": 405.0}]},
+			{"id": "patrulla_3", "pts": [{"x": 560.0, "z": 260.0}, {"x": 620.0, "z": 250.0}, {"x": 640.0, "z": 300.0}, {"x": 580.0, "z": 330.0}]},
+			{"id": "patrulla_4", "pts": [{"x": 300.0, "z": 330.0}, {"x": 330.0, "z": 300.0}, {"x": 350.0, "z": 340.0}, {"x": 320.0, "z": 372.0}]}
+		]
+	},
+	"zones": [
+		{"id": "toma_bateria", "kind": "toma", "landmark": "bateria", "objective": "bateria", "tag": "diseno", "source": "Posición de los objetivos: diseño; el parte nombra los tres."},
+		{"id": "toma_cuartel", "kind": "toma", "landmark": "cuartel", "objective": "cuartel", "tag": "diseno", "source": "Posición de los objetivos: diseño; el parte nombra los tres."},
+		{"id": "toma_posta", "kind": "toma", "landmark": "posta", "objective": "posta", "tag": "diseno", "source": "Posición de los objetivos: diseño; el parte nombra los tres."},
+		{"id": "mirador_bateria", "kind": "mirador", "poly": [{"x": 304.0, "z": 341.0}, {"x": 332.0, "z": 341.0}, {"x": 332.0, "z": 359.0}, {"x": 304.0, "z": 359.0}], "objective": "bateria", "tag": "diseno", "source": "Plataforma de 28 × 18 m: diseño."},
+		{"id": "polvorin_posta", "kind": "polvorin", "poly": [{"x": 598.0, "z": 289.5}, {"x": 604.0, "z": 289.5}, {"x": 604.0, "z": 294.5}, {"x": 598.0, "z": 294.5}], "objective": "posta", "tag": "diseno", "source": "Polvorín de 6 × 5 m en la posta: lugar de diseño; pólvora en la posta: inferencia."},
+		{"id": "parque_posta", "kind": "parque", "poly": [{"x": 577.0, "z": 300.0}, {"x": 589.0, "z": 300.0}, {"x": 589.0, "z": 309.0}, {"x": 577.0, "z": 309.0}], "objective": "posta", "tag": "diseno", "source": "Parque de artillería de la posta: diseño."},
+		{"id": "corral_posta", "kind": "corral", "poly": [{"x": 608.0, "z": 295.0}, {"x": 628.0, "z": 295.0}, {"x": 628.0, "z": 309.0}, {"x": 608.0, "z": 309.0}], "objective": "posta", "tag": "diseno", "source": "Corral de 20 × 14 m: diseño; las 16 mulas capturadas figuran en el parte."}
+	],
+	"lights": [
+		{"id": "luz_bateria", "kind": "brasero", "x": 314.0, "z": 347.0, "objective": "bateria", "r_m": 25.0, "tag": "diseno", "source": "Luz progresiva del dossier; brasero, lugar y alcance: diseño."},
+		{"id": "luz_cuartel", "kind": "ventana", "x": 412.0, "z": 331.0, "objective": "cuartel", "r_m": 22.0, "tag": "diseno", "source": "Luz progresiva del dossier; ventana de la casa del cura: diseño."},
+		{"id": "luz_posta", "kind": "candil", "x": 586.0, "z": 303.0, "objective": "posta", "r_m": 20.0, "tag": "diseno", "source": "Luz progresiva del dossier; candil de la posta: diseño."}
+	],
+	"layouts": ["A"]
 }

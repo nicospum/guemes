@@ -31,3 +31,15 @@ const EVENT_KINDS := ["objective", "briefing", "weather", "dawn", "noise", "dete
 	"capture", "tower", "support", "horses", "recon", "decoy", "messenger", "reinforcement_warning", "reinforcement",
 	"loot", "load", "destroy", "hide", "exit", "decision", "hint", "assist", "enemy_choice", "checkpoint",
 	"victory", "defeat", "info", "warning"]
+
+# --- Agregados de R1.0 (solo-agregar): los comparten el stub, las reglas reales, las políticas y las pruebas de reglas_historia ---
+const ACTOR_KINDS := ["group", "scout", "train", "global"]  # los cuatro tipos de actor de ACTIONS
+const UNIT_KINDS := ["partida", "reserva", "reconocedores", "arreo"]  # `kind` de cada agrupación (ficha de la vista)
+const ENV_PHASES := ["noche", "alba", "dia"]  # `environment().phase`
+const NOISE_STATES := ["silencio", "se_oye", "los_oyen"]  # el ruido que ve el jugador, sin números
+const ALERT_LEVELS := ["info", "aviso", "critica"]  # `hud_state().alertas[].nivel` (la capa de reglas no importa vocab_ui)
+const REINFORCEMENT_STATES := ["desconocido", "en_camino", "visible", "llego"]
+const ROUTE_RISKS := ["bajo", "medio", "alto", "desconocido"]  # `plan_route().risk`
+const ENEMY_KINDS := ["centinela", "guardia", "artillero", "fusilero", "torre", "mensajero", "refuerzo"]  # `render_state().enemies[].kind`
+const LIGHT_KINDS := ["brasero", "ventana", "candil", "fogata"]  # `render_state().lights[].kind`
+const POSTURES := ["a_fondo", "con_cautela"]  # `issue_order(..., "attack", ..., {"posture": ...})`
