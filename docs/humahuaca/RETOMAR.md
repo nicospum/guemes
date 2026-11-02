@@ -13,6 +13,21 @@ El control de calidad marca como bloqueantes dos cosas que no dependen del traba
 2. **Velocidad de la Justina.** La regla T06 pide 3,0 ms por cuadro. Hoy la PC del usuario da 3,1 a 5,1 ms, incluso con el juego original sin tocar. Propuesta: comparar contra el juego original medido en el mismo momento (tolerancia 1,15 ×).
 **Aprobadas por el usuario el 2026-11-02 y aplicadas (QA_NIVEL2.md v1.5, enmienda 5). Se puede relanzar el bucle.**
 
+## Plan de la próxima ronda de trabajo (pedido del usuario, 2026-11-02)
+
+El usuario quiere que la próxima ronda sea un salto de calidad, no solo corrección de hallazgos. Lo dijo así, en sus palabras: usar Blender, Unreal, Unity, «no sé cuál pero vamos a mejorar»; mejorar soldados, caballos, árboles, todo; mejorar el mapa; hacer conexiones MCP; buscar skills; mejorar la dinámica de juego; «y lo vamos a terminar»; imágenes épicas; dibujos de Güemes «cuando lo elijas»; «volverlo cheto cheto».
+
+Cómo se traduce (el lead lo ordena al retomar):
+
+1. **Arte de personajes y escenario.** Mejorar soldados, caballos, árboles, edificios y el mapa. **Cambia una regla anterior:** hasta ahora Blender NO estaba autorizado y el arte salía de un generador por código. Con este pedido, Blender (hay un MCP de Blender conectado en el entorno) pasa a ser una opción válida; falta que el usuario confirme cuál herramienta usar (Blender, Unity o Unreal). Recomendación del lead: Blender para modelar y exportar a Godot (menor costo y sin cambiar de motor); Unity o Unreal solo si el usuario quiere cambiar de motor, lo que implica rehacer el juego y debe decidirse antes de empezar. Descargar modelos o plugins sigue necesitando permiso explícito (nombre, origen, tamaño).
+2. **Conexiones MCP y skills.** Que el explorador de herramientas inventaríe los MCP disponibles (Blender, Figma, Canva, navegador, etc.) y las skills útiles (diseño, Unity, game-development) y proponga cuáles conectar. Las conexiones nuevas las autoriza el usuario.
+3. **Mapa y relieve.** Pasar al relieve real de Copernicus (ya bajado) y mejorar el aspecto del mapa. Antes que nada, la cámara más cerca.
+4. **Dinámica de juego.** Balance (hoy hasta el jugador torpe gana), ritmo, decisiones y claridad de las órdenes (R2b).
+5. **Imágenes épicas y dibujos de Güemes.** Capturas y piezas de arte para el menú, las pantallas de victoria y la presentación. Los retratos o dibujos de Güemes los elige el lead cuando llegue ese punto: tienen que ser ilustraciones propias hechas para el juego, sin copiar obras con derechos, y con etiqueta honesta de que son interpretaciones.
+6. **Terminarlo.** Cerrar R3 y R4 (EXE, README con tres escenarios, certificación). La diversión y la claridad mandan sobre la fidelidad histórica.
+
+Orden sugerido: cámara, decisión de herramientas, arte y mapa, dinámica, imágenes, cierre. El plan de rondas R2a a R4 del bucle sigue valiendo; este plan se suma a las pistas visual y ui_feel y puede requerir actualizar `docs/CONTRATO_HUMAHUACA.md` (nuevos formatos de modelos, créditos) antes de relanzar.
+
 ## Qué hay en main
 
 - El nivel II «Humahuaca: el depósito de la retaguardia» se juega de punta a punta desde el botón II del menú: noche de preparación, señal, ataque a la batería, el cuartel y la posta, extracción al alba, parte de victoria o de derrota, reintento, guardado y carga.
