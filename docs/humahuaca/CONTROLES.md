@@ -102,6 +102,10 @@ Dueña: `ui_feel`. La tabla sale de `data/humahuaca_ui.json` (`key_table`); `tes
 
 Al apuntar «Mover» aparecen tres botones de ritmo (*En silencio*, *Marcha*, *A la carrera*); con el clic derecho, **Alt** marcha en silencio y **Ctrl** a la carrera. **Mayús + clic** suma una parada (hasta 4 en «Mover» y 2 en «Reconocer»). La vista previa dice cuántos metros son, cuánto se tarda y el riesgo de que te vean, sin dar la orden. **Ctrl** con la tecla de «Atacar» ataca *a fondo* (más poder y más bajas); sin Ctrl, *con cautela*.
 
+## Avisos y notas al pie
+
+Una sola alerta a la vez, y solo si pide algo (lleva un botón) o es crítica; lo que apenas informa sale como nota breve abajo a la izquierda, una vez. La alerta aparece debajo de los frentes, al centro, y se **corre** a la derecha o a la izquierda si taparía una ficha o el rótulo de un frente (`HxHud.place_alert`, que recibe de la interfaz los rectángulos de las fichas). Mientras su lugar siga libre no salta de un lado al otro. Si el botón de la alerta repite el del «siguiente paso», se muestra una sola vez.
+
 ## Qué cuenta como «control» en el primer cuadro
 
 La rúbrica pide ≤ 5 controles accionables (C03). Se cuentan **grupos**: pausa y velocidades son uno; ayuda y menú, otro; el botón del siguiente paso, otro; y cada botón de la barra de acciones, uno más. Las fichas de agrupación y las tarjetas de frente se eligen con el mouse pero son información, no controles. `qa_state()` informa `visible_controls` (grupos) y `visible_buttons` (botones sueltos).

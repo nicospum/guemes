@@ -291,6 +291,19 @@ func qa_step(seconds: float) -> void:
 	_refresh_hud(true)
 
 
+## Solo QA: aprieta el botón del «siguiente paso» como lo haría un clic (lo usa la política «interfaz» de la herramienta de recorrido de reglas). Devuelve true si
+## había un botón visible y habilitado que apretar.
+func qa_press_next() -> bool:
+	if mode != "play" or not _playing() or hud == null:
+		return false
+	_refresh_hud(true)
+	var button: Button = hud.next_btn
+	if button == null or not button.is_visible_in_tree() or button.disabled:
+		return false
+	button.pressed.emit()
+	return true
+
+
 ## Recorrido de las 7 vistas canónicas (con y sin interfaz) y qa_report.json en main.qa_path (--qa=humahuaca).
 func qa_run() -> void:
 	var dir := str(main.qa_path) if main != null else ""

@@ -253,6 +253,40 @@ func ground_height(x: float, z: float) -> float:
 	return cam.ground_h(x, z) if cam != null else 17.0
 
 
+## Un punto del mundo (x, z) a las coordenadas locales de la interfaz (las del HUD y las de la capa de dibujo: la interfaz va escalada en ventanas chicas), o null si queda
+## detrás de la cámara. `lift` sube el punto sobre el suelo, en metros.
+func ui_point(p: Vector2, lift: float = 0.0) -> Variant:
+	var cam3 := camera3d()
+	if cam3 == null or not cam3.is_inside_tree():
+		return null
+	var v := Vector3(p.x, ground_height(p.x, p.y) + lift, p.y)
+	if cam3.is_position_behind(v):
+		return null
+	return cam3.unproject_position(v) / maxf(ui_scale, 0.01)
+
+
+## Lo que ningún aviso debe tapar, en coordenadas locales de la interfaz: cada ficha con su número encima y cada frente con su rótulo.
+func avoid_rects() -> Array:
+	var out: Array = []
+	if rules == null:
+		return out
+	var fig_h := 62.0 / maxf(screen_scale(), 0.05)
+	var rs: Variant = render_state_cached()
+	if rs is Dictionary:
+		for u in (rs as Dictionary).get("units", []):
+			var d := u as Dictionary
+			if str(d.get("stage", "")) == "exited":
+				continue
+			var base: Variant = ui_point(Vector2(float(d.get("x", 0.0)), float(d.get("z", 0.0))))
+			if base is Vector2:
+				out.append(Rect2((base as Vector2) + Vector2(-30.0, -fig_h - 20.0), Vector2(60.0, fig_h + 36.0)))
+	for fid in V.OBJECTIVES:
+		var fp: Variant = ui_point(landmark_pos(str(fid)), 9.0)
+		if fp is Vector2:
+			out.append(Rect2((fp as Vector2) + Vector2(-46.0, -22.0), Vector2(100.0, 72.0)))
+	return out
+
+
 ## El texto que cuentan las reglas sobre el nivel (briefing, notas), tal como está en humahuaca_rules.json: la fuente única del briefing.
 func _rules_texts() -> Dictionary:
 	if rules != null and rules.has_method("map_data"):

@@ -238,13 +238,17 @@ func _contrast_of(img: Image, logical_rect: Rect2) -> float:
 func _measure_contrast(img: Image, label: String) -> void:
 	var list: Array = []
 	var h: Variant = hx.hud
-	for c in [h.title_l, h.reloj_l, h.phase_l, h.objective_l, h.next_text_l, h.next_btn, h.motive_l]:
+	var candidates: Array = [h.title_l, h.reloj_l, h.phase_l, h.objective_l, h.next_text_l, h.next_btn, h.motive_l]
+	for id in h.front_cards:
+		candidates.append(h.front_cards[id].name)
+	for id in h.group_cards:
+		candidates.append(h.group_cards[id].name)
+	for c in candidates:
 		if (c as Control).is_visible_in_tree() and str((c as Control).get("text")) != "":
 			list.append(c)
-	for id in h.front_cards:
-		list.append(h.front_cards[id].name)
-	for id in h.group_cards:
-		list.append(h.group_cards[id].name)
+	if list.is_empty():
+		notes["contraste_" + label] = {"minimo": 0.0, "en": "", "textos": 0, "nota": "sin HUD a la vista en esta captura"}
+		return
 	var worst := 99.0
 	var worst_name := ""
 	for c in list:
@@ -258,15 +262,16 @@ func _measure_contrast(img: Image, label: String) -> void:
 	check(worst >= 4.5, "%s: el texto del HUD tiene contraste ≥ 4,5:1 medido sobre los píxeles (mínimo %.2f en %s)" % [label, worst, worst_name])
 
 
-func _follow_guide(max_s: float, step: float = 3.0) -> float:
+## Sigue el «siguiente paso» (aprieta su botón) de a un segundo de juego, como la política «interfaz» de la herramienta de recorrido de reglas, hasta que termine la
+## partida, se acaben `max_s` segundos o llegue la fase `until_phase` (si se pide). Devuelve los segundos de juego usados.
+func _follow_guide(max_s: float, until_phase: String = "") -> float:
 	var used := 0.0
-	while used < max_s and str(hx.qa_state().status) == "playing":
-		hx.refresh_hud_now()
-		var b: Button = hx.hud.next_btn
-		if b.visible and not b.disabled:
-			b.pressed.emit()
-		hx.qa_step(step)
-		used += step
+	while used < max_s and str(hx.rules.state.status) == "playing":
+		if until_phase != "" and str(hx.rules.state.phase) == until_phase:
+			break
+		hx.qa_press_next()
+		hx.qa_step(1.0)
+		used += 1.0
 	return used
 
 
@@ -294,6 +299,39 @@ func _check_overflow(label: String) -> void:
 	for id in V.GROUPS:
 		var card: Rect2 = hx.hud.card_rect(str(id))
 		check(_inside(card) and card.size.x >= 60.0, "%s: la ficha de %s entra en el dock (%s)" % [label, str(id), str(card)])
+
+
+## Qué tan cerca del borde del cuadro queda la ficha más pegada (porcentaje del ancho o del alto, el menor) y si alguna queda bajo el HUD.
+func _token_margins(rects: Dictionary) -> Dictionary:
+	var vp := _viewport_rect().size
+	var edge_min := 100.0
+	var covered: Array = []
+	for id in V.GROUPS:
+		var u: Dictionary = hx.rules.get_unit(str(id))
+		var s := _screen_of(float(u.x), float(u.z))
+		edge_min = minf(edge_min, 100.0 * minf(minf(s.x, vp.x - s.x) / vp.x, minf(s.y, vp.y - s.y) / vp.y))
+		for key in ["header", "fronts", "dock"]:
+			if (rects[key] as Rect2).has_point(s):
+				covered.append("%s bajo %s" % [str(id), key])
+	return {"borde_min_pct": snappedf(edge_min, 0.1), "tapadas": covered}
+
+
+## Si hay un aviso a la vista, queda dentro del cuadro y no tapa ninguna ficha (el cuerpo de cada una: unos 48 px de ancho y 60 px sobre su base).
+func _check_alert_free(label: String) -> void:
+	var a: Rect2 = hx.hud.rects().get("alerta", Rect2())
+	if a.size.x <= 0.0:
+		notes["aviso_" + label] = "sin aviso en esta captura"
+		return
+	var covered: Array = []
+	for id in V.GROUPS:
+		var u: Dictionary = hx.rules.get_unit(str(id))
+		if str(u.get("stage", "")) == "exited":
+			continue
+		var base := _screen_of(float(u.x), float(u.z))
+		if Rect2(base - Vector2(24.0, 60.0), Vector2(48.0, 70.0)).intersects(a):
+			covered.append(str(id))
+	notes["aviso_" + label] = {"rect": [snappedf(a.position.x, 0.1), snappedf(a.position.y, 0.1), snappedf(a.size.x, 0.1), snappedf(a.size.y, 0.1)], "tapa": covered}
+	check(_inside(a) and covered.is_empty(), "%s: el aviso queda dentro del cuadro y no tapa ninguna ficha (%s)" % [label, str(covered)])
 
 
 func _check_dialog_fit(label: String) -> void:
@@ -471,41 +509,41 @@ func _cycle_full() -> void:
 	await _click(_screen_of(200.0, 430.0), MOUSE_BUTTON_RIGHT)
 	await _frames(3)
 	check(int(hx.qa_state().orders) == 2, "Órdenes: el clic derecho manda a la partida elegida al punto del mapa")
+	# --- lo manual quedó probado: un intento limpio del mismo mundo y el resto lo lleva el «siguiente paso», como lo haría quien lo sigue ---
+	hx.retry("mismo_mundo")
+	await _frames(4)
 	# --- la aproximación con lluvia (≈ 1:30) ---
-	for id in ["rodriguez", "portal", "arias"]:
-		hx.orders.issue(str(id), "position")
-	hx.orders.issue("arreo", "move", hx.landmark_pos("posta") + Vector2(0.0, 30.0), {})
-	hx.qa_step(60.0)
+	_follow_guide(90.0, "ataque")
 	await _key(KEY_2)
 	await _frames(8)
 	var img2 := await _shot("hx-aproximacion-lluvia")
 	check(str(hx.qa_state().phase) == "aproximacion" and hx.hud.phase_l.text.find("Aproximación") >= 0, "Aproximación: la cabecera dice «Noche · Aproximación» (%s)" % hx.hud.phase_l.text)
 	check(float(hx.hud.dawn_bar.value) > 5.0, "Aproximación: la barra del alba avanzó (%.0f %%)" % float(hx.hud.dawn_bar.value))
 	_measure_contrast(img2, "aproximacion")
+	_check_alert_free("Aproximación")
 	# --- ataque: señal, tres frentes y la torre ---
-	var guard := 0
-	while guard < 90 and not bool(hx.rules.signal_info().can_give):
-		hx.qa_step(5.0)
-		guard += 1
+	var waited := 0.0
+	while waited < 400.0 and str(hx.rules.state.status) == "playing" and str(hx.qa_state().guide.action) != "give_signal":
+		hx.qa_press_next()
+		hx.qa_step(1.0)
+		waited += 1.0
 	hx.refresh_hud_now()
 	check(hx.hud.status_l.text.find("Señal") >= 0, "Señal: el HUD dice cómo está la señal («%s»)" % hx.hud.status_l.text)
 	await _key(KEY_F)
 	check(bool(hx.rules.state.alarm.signaled), "Señal: la tecla F da la señal")
-	hx.qa_step(20.0)
+	_follow_guide(20.0)
 	await _frames(8)
 	var img3 := await _shot("hx-hud")
 	check(str(hx.qa_state().phase) == "ataque" and hx.hud.chip_labels.golpe.panel.visible, "Ataque: la fase cambia y aparece el golpe en el dock (%s)" % hx.hud.chip_labels.golpe.label.text)
 	_check_overflow("Ataque")
 	_measure_contrast(img3, "ataque")
+	_check_alert_free("Ataque")
 	# --- extracción: el arreo carga y el reloj del refuerzo ---
-	var spent := 0
-	while spent < 240 and str(hx.qa_state().phase) != "extraccion" and str(hx.qa_state().status) == "playing":
-		_follow_guide(3.0, 3.0)
-		spent += 1
-	_follow_guide(24.0, 3.0)
+	_follow_guide(400.0, "extraccion")
+	_follow_guide(8.0)
 	await _frames(8)
 	var img4 := await _shot("hx-extraccion")
-	check(str(hx.qa_state().phase) == "extraccion" or str(hx.qa_state().status) != "playing", "Extracción: se llega a la fase de extracción (%s)" % str(hx.qa_state().phase))
+	check(str(hx.qa_state().phase) == "extraccion" and str(hx.qa_state().status) == "playing", "Extracción: seguir el siguiente paso llega a la fase de extracción sin perder (%s, %s)" % [str(hx.qa_state().phase), str(hx.qa_state().status)])
 	check(hx.hud.chip_labels.carga.panel.visible and hx.hud.chip_labels.golpe.panel.visible and hx.hud.chip_labels.refuerzo.panel.visible, "Extracción: aparecen la carga, el golpe y el reloj del refuerzo en el dock")
 	_check_overflow("Extracción")
 	_measure_contrast(img4, "extraccion")
@@ -596,6 +634,10 @@ func _cycle_overflow() -> void:
 	await _frames(10)
 	var img := await _shot("hx-inicio")
 	_check_overflow("Primer cuadro")
+	var margins := _token_margins(hx.hud.rects())
+	notes["borde_min_pct"] = margins.borde_min_pct
+	notes["fichas_bajo_hud"] = margins.tapadas
+	check((margins.tapadas as Array).is_empty() and float(margins.borde_min_pct) >= 3.0, "Primer cuadro: ninguna ficha bajo el HUD y todas a ≥ 3 %% del borde (mínimo %.1f %%; bajo el HUD: %s)" % [float(margins.borde_min_pct), str(margins.tapadas)])
 	notes["controles_t0"] = int(hx.qa_state().visible_controls)
 	notes["caracteres_t0"] = int(hx.qa_state().text_chars)
 	_measure_contrast(img, "inicio")

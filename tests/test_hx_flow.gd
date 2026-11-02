@@ -196,6 +196,7 @@ func _run() -> void:
 	await _test_camera()
 	await _test_reserved_keys()
 	await _test_actions_and_preview()
+	await _test_alert_placement()
 	await _test_dialogs()
 	await _test_first_decision()
 	await _test_full_cycle()
@@ -495,6 +496,40 @@ func _test_actions_and_preview() -> void:
 
 
 # ---------------------------------------------------------------------------------------------------------------------
+# El aviso no tapa fichas ni rótulos: se corre al primer lugar libre (centro, derecha, izquierda)
+
+func _blocker(r: Rect2) -> Rect2:
+	return Rect2(r.get_center() - Vector2(30.0, 45.0), Vector2(60.0, 90.0))  # lo que ocupa una ficha con su número
+
+
+func _test_alert_placement() -> void:
+	if not suite.check(await _start_level(), "aviso: el nivel arranca"):
+		return
+	hx.qa_set_initial_yaw(325.0)  # el rumbo del contrato (A-11): con el de los datos de hoy alguna ficha puede quedar detrás de la cámara
+	await _frames(3)
+	var h: Variant = hx.hud
+	var local := Rect2(Vector2.ZERO, h.root.size)  # el cuadro, en las coordenadas locales de la interfaz (las que usa place_alert)
+	var k := 1.0 / float(hx.ui_scale)
+	var fronts_global: Rect2 = h.rects().fronts
+	var fronts := Rect2(fronts_global.position * k, fronts_global.size * k)
+	var centro: Rect2 = h.place_alert([])
+	suite.check(_inside(centro, local) and centro.position.y >= fronts.end.y, "aviso: sin nada que tapar queda al centro, debajo de la cabecera y los frentes (%s)" % str(centro))
+	suite.check(absf(centro.get_center().x - local.size.x * 0.5) <= 1.0, "aviso: el lugar de siempre es el centro del cuadro")
+	var derecha: Rect2 = h.place_alert([_blocker(centro)])
+	suite.check(_inside(derecha, local) and not derecha.intersects(_blocker(centro)) and derecha.get_center().x > centro.get_center().x, "aviso: si el centro tapa una ficha pasa a la derecha sin salirse del cuadro (%s)" % str(derecha))
+	var izquierda: Rect2 = h.place_alert([_blocker(centro), _blocker(derecha)])
+	suite.check(_inside(izquierda, local) and not izquierda.intersects(_blocker(centro)) and not izquierda.intersects(_blocker(derecha)) and izquierda.get_center().x < centro.get_center().x, "aviso: si tampoco la derecha está libre pasa a la izquierda (%s)" % str(izquierda))
+	var ninguno: Rect2 = h.place_alert([_blocker(centro), _blocker(derecha), _blocker(izquierda)])
+	suite.check(_inside(ninguno, local), "aviso: aunque ningún lugar esté libre, el aviso queda dentro del cuadro")
+	var sigue: Rect2 = h.place_alert([_blocker(derecha)])
+	suite.check(not sigue.intersects(_blocker(derecha)), "aviso: sale del lugar tapado y no vuelve a uno ocupado")
+	h.place_alert([])
+	var avoid: Array = hx.avoid_rects()
+	suite.check(avoid.size() >= 8, "aviso: el controlador entrega un rectángulo por ficha y por frente (%d)" % avoid.size())
+	await _to_menu()
+
+
+# ---------------------------------------------------------------------------------------------------------------------
 # Ventanas: briefing, pausa, ayuda, diario, retirada con dos clics y decisión con reloj
 
 func _test_dialogs() -> void:
@@ -566,8 +601,9 @@ func _test_first_decision() -> void:
 # ---------------------------------------------------------------------------------------------------------------------
 # Ciclo completo por la interfaz: menú → briefing → apertura → bot que sigue el «siguiente paso» → parte → reintento
 
-## Sigue el «siguiente paso» (aprieta su botón) y deja correr el reloj, hasta que termine la partida o se acabe `max_s`. Devuelve los segundos usados.
-func _follow_guide(max_s: float, step: float = 3.0) -> float:
+## Sigue el «siguiente paso» (aprieta su botón) y deja correr el reloj de a un segundo (el paso con que deciden las políticas de reglas), hasta que termine la partida o se
+## acabe `max_s`. Devuelve los segundos usados.
+func _follow_guide(max_s: float, step: float = 1.0) -> float:
 	var used := 0.0
 	while used < max_s and str(hx.qa_state().status) == "playing":
 		hx.refresh_hud_now()

@@ -727,6 +727,8 @@ func _refresh_hud(_force_now: bool = false) -> void:
 		"pace": orders.pace if orders != null else "march", "pace_visible": orders != null and orders.aiming() and str(orders.aim.get("action", "")) != "support"}
 	if mode == "play" and selected.is_empty() and _playing() and order_count >= 1:
 		ctx["motive"] = motive if motive != "" else tx("hud.pick_hint", "")
+	if not alert.is_empty():
+		ctx["avoid"] = avoid_rects()  # el aviso se corre para no tapar fichas ni rótulos
 	hud.refresh(_hs, ctx)
 
 

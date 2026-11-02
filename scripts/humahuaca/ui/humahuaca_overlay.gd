@@ -45,12 +45,8 @@ func _cam() -> Camera3D:
 	return ui.call("camera3d") if ui != null else null
 
 
-func _world_to_screen(cam: Camera3D, p: Vector2, lift: float = 0.0) -> Variant:
-	var h := float(ui.call("ground_height", p.x, p.y))
-	var v := Vector3(p.x, h + lift, p.y)
-	if cam.is_position_behind(v):
-		return null
-	return cam.unproject_position(v) / maxf(float(ui.get("ui_scale")), 0.01)  # del cuadro a las coordenadas locales de la interfaz (que va escalada en ventanas chicas)
+func _world_to_screen(_cam_unused: Camera3D, p: Vector2, lift: float = 0.0) -> Variant:
+	return ui.call("ui_point", p, lift)  # del mundo a las coordenadas locales de la interfaz (que va escalada en ventanas chicas)
 
 
 func _risk_color(risk: String) -> Color:

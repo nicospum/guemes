@@ -12,6 +12,8 @@ extends RefCounted
 const Kit = preload("res://scripts/humahuaca/ui/humahuaca_ui_kit.gd")
 const U = preload("res://scripts/humahuaca/ui/vocab_ui.gd")
 const V = preload("res://scripts/humahuaca/humahuaca_vocab.gd")
+## Los lugares del aviso, en el orden en que se prueban: debajo de los frentes al centro, a la derecha o a la izquierda. Queda en el primero que no tape una ficha.
+const ALERT_SLOTS := ["centro", "derecha", "izquierda"]
 
 var root: Control
 var texts: Dictionary = {}
@@ -63,6 +65,7 @@ var warn_l: Label
 var _action_sig := ""
 var _action_buttons: Dictionary = {}
 var _alert_data: Dictionary = {}
+var _alert_slot := "centro"
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -343,7 +346,7 @@ func _build_alert() -> void:
 	alert_panel = Kit.panel(root, Kit.WARN_BG, Kit.WARN_BORDER, 14.0, 8.0, 8)
 	alert_panel.name = "HxAlert"
 	var top := m + _num(["header_h"], 46.0) + gap + _vec("fronts_card", Vector2(212.0, 56.0)).y + gap
-	_anchor(alert_panel, 0.5, 0.0, 0.5, 0.0, -w * 0.5, top, w * 0.5, top + 80.0)
+	_anchor(alert_panel, 0.0, 0.0, 0.0, 0.0, 0.0, top, w, top + 1.0)  # el lugar lo elige place_alert; la altura la da el contenido
 	alert_panel.grow_vertical = Control.GROW_DIRECTION_END
 	var col := Kit.vbox(alert_panel, 3)
 	alert_title_l = Kit.label(col, "", int(_num(["font", "body"], 15.0)) + 1, Kit.WARN_TEXT, true)
@@ -623,6 +626,52 @@ func _refresh_alert(ctx: Dictionary) -> void:
 	alert_btn.text = button
 	var left := float(a.get("vence_s", 0.0))
 	alert_count_l.text = Kit.mmss(left) if left > 0.0 else ""
+	place_alert(ctx.get("avoid", []) as Array if ctx.get("avoid", []) is Array else [])
+
+
+## El rectángulo del aviso en un lugar, en coordenadas locales del HUD. `w` y `h` son su ancho y su alto.
+func _alert_slot_rect(slot: String, w: float, h: float) -> Rect2:
+	var m := _num(["margin"], 12.0)
+	var gap := _num(["gap"], 8.0)
+	var top := m + _num(["header_h"], 46.0) + gap + _vec("fronts_card", Vector2(212.0, 56.0)).y + gap
+	var rs := root.size
+	match slot:
+		"derecha":
+			return Rect2(Vector2(rs.x - m - w, top), Vector2(w, h))
+		"izquierda":
+			return Rect2(Vector2(m, top), Vector2(w, h))
+	return Rect2(Vector2((rs.x - w) * 0.5, top), Vector2(w, h))
+
+
+## El aviso no tapa fichas ni rótulos: queda en el primer lugar libre (`avoid` trae lo que no se debe tapar) y, mientras ese lugar siga libre, no se mueve (así no salta de un
+## lado al otro cuando las fichas se mueven). Si todos los lugares tapan algo, toma el que menos tapa. Devuelve el rectángulo elegido (coordenadas locales del HUD).
+func place_alert(avoid: Array) -> Rect2:
+	var w := minf(_num(["alert_w"], 520.0), maxf(root.size.x - 2.0 * _num(["margin"], 12.0), 200.0))
+	var h := alert_panel.size.y if alert_panel.size.y > 24.0 else 96.0
+	var order: Array = [_alert_slot]
+	for slot in ALERT_SLOTS:
+		if slot != _alert_slot:
+			order.append(slot)
+	var best: String = _alert_slot
+	var least := INF
+	for slot in order:
+		var r := _alert_slot_rect(str(slot), w, h)
+		var covered := 0.0
+		for a in avoid:
+			var inter := r.intersection(a as Rect2)
+			covered += inter.size.x * inter.size.y
+		if covered < least - 0.5:
+			least = covered
+			best = str(slot)
+		if covered <= 0.0:
+			break
+	_alert_slot = best
+	var rect := _alert_slot_rect(best, w, h)
+	alert_panel.offset_left = rect.position.x
+	alert_panel.offset_right = rect.position.x + w
+	alert_panel.offset_top = rect.position.y
+	alert_panel.offset_bottom = rect.position.y + 1.0
+	return rect
 
 
 func _refresh_toast(ctx: Dictionary) -> void:
