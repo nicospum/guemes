@@ -1287,6 +1287,46 @@ func v10_jargon(rules: Variant, ui: Variant) -> Array:
 			v.append("V10 %s: es un texto entero en mayúsculas («%s»)" % [where, text.left(50)])
 	return v
 
+## V10 (contracciones): ninguna cadena visible de rules trae «de el» ni «a el» sin contraer, y ninguna plantilla antepone «de» o «a» al marcador {frente} (el juego lo llena con
+## `objectives.<id>.place`: «la batería», «el cuartel», «la posta») mientras algún lugar sea masculino: saldría «de el cuartel» en lugar de «del cuartel» (se vio en el primer
+## recorrido real: «Esperá la toma de el cuartel.»). `accepted` son excepciones fechadas como las de V11: {ruta de la cadena sin el nombre del archivo: ronda desde la que vuelve a fallar}.
+func v10_contractions(rules: Variant, round_now: String = "r1", accepted: Dictionary = {}) -> Array:
+	var v: Array = []
+	if not (rules is Dictionary):
+		return v
+	var masculine: Array = []
+	var objectives := _dict_of((rules as Dictionary).get("objectives", null))
+	for id in objectives:
+		var place := str(_dict_of(objectives[id]).get("place", ""))
+		if place.begins_with("el "):
+			masculine.append(place)
+	var strings: Array = []
+	for key in ["texts", "field_events", "outcome", "actions"]:
+		_visible_strings((rules as Dictionary).get(key, null), "humahuaca_rules.json " + key, strings)
+	var literal := RegEx.new()
+	literal.compile("(?i)(?<![\\p{L}])(de|a) el(?![\\p{L}])")
+	var holder := RegEx.new()
+	holder.compile("(?i)(?<![\\p{L}])(de|a) \\{frente\\}")
+	for item in strings:
+		var where: String = str(item[0]).trim_prefix("humahuaca_rules.json ")
+		var text: String = item[1]
+		var problem := ""
+		var m := literal.search(text)
+		if m != null:
+			problem = "«%s» sin contraer («%s»)" % [m.get_string(), text.left(50)]
+		else:
+			var h := holder.search(text)
+			if h != null and not masculine.is_empty():
+				var prep := h.get_string(1).to_lower()
+				var place := str(masculine[0])
+				problem = "antepone «%s» a {frente} y «%s» es masculino: sale «%s %s» y tiene que salir «%s %s»" % [prep, place, prep, place, "del" if prep == "de" else "al", place.trim_prefix("el ")]
+		if problem == "":
+			continue
+		if accepted.has(where) and not Fx.round_ge(round_now, str(accepted[where])):
+			continue
+		v.append("V10 %s: %s" % [where, problem])
+	return v
+
 ## V11: las causas de derrota (con sus marcadores de lugar y momento expandidos) 140 caracteres o menos, la página 1 del briefing 250 y las pistas de reintento 120.
 ## `accepted`: {ruta: ronda de vencimiento}, excepciones fechadas que dejan de valer en esa ronda (ADDENDA A-13).
 func v11_limits(rules: Variant, round_now: String = "r1", accepted: Dictionary = {}) -> Array:

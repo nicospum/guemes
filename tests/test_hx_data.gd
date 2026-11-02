@@ -17,6 +17,10 @@ const QA_PATH := "res://docs/QA_NIVEL2.md"
 ## Excepciones fechadas de V11 (ADDENDA A-13): una pista de reintento de 123 caracteres (el tope es 120) que entregó reglas_historia en R1. Vence en r2a: desde esa ronda la
 ## pista vuelve a fallar si sigue igual. Cada excepción es una ruta y la ronda en que deja de valer; ninguna sirve para relajar un tope en silencio.
 const V11_ACCEPTED := {"campaign.tips.dispersos[0]": "r2a"}
+## Excepciones fechadas de V10 (contracciones; BACKLOG B-033): cinco plantillas de reglas_historia anteponen «de» o «a» a {frente}, que el juego llena con `place` («el cuartel»), y
+## el jugador lee «Esperá la toma de el cuartel.». Vencen en r2a (el arreglo es de reglas_historia: un marcador que contraiga, como {deLugar} y {aLugar} de las causas). Misma regla
+## que V11: una ruta y la ronda en que deja de valer.
+const V10_ACCEPTED := {"texts.siguiente.attack": "r2a", "texts.siguiente.wait_attack": "r2a", "texts.eventos.apoyo": "r2a", "texts.eventos.detectado": "r2a", "texts.avisos_ruta.cerca": "r2a"}
 const FLOOR_BY_ROUND := {"r0": 40, "r1.0": 40, "r1": 40, "r2a": 60, "r2b": 60, "r3": 60, "r4": 60}
 
 const REPORT_PENDING_RULES := {
@@ -329,6 +333,9 @@ func _test_r1_rules() -> void:
 		_visible_strings((f.ui as Dictionary).get(key, null) if f.ui is Dictionary else null, key, seen)
 	suite.check(v10.is_empty(), "V10 ninguna de las %d cadenas visibles tiene jerga, snake_case ni mayúsculas enteras (%d violaciones)%s" % [seen.size(), v10.size(), _fmt_v(v10)])
 	suite.extra["v10_cadenas_visibles"] = seen.size()
+	var v10c := v10_contractions(f.rules, round_id, V10_ACCEPTED)
+	suite.check(v10c.is_empty(), "V10 ninguna cadena visible de reglas trae «de el» ni «a el» sin contraer, ni antepone «de» o «a» a un lugar masculino (%d violaciones)%s" % [v10c.size(), _fmt_v(v10c)])
+	suite.extra["v10_contracciones_excepciones_fechadas"] = V10_ACCEPTED
 	var v11 := v11_limits(f.rules, round_id, V11_ACCEPTED)
 	suite.check(v11.is_empty(), "V11 causas ≤ 140, página 1 del briefing ≤ 250 y pistas ≤ 120 caracteres (%d violaciones)%s" % [v11.size(), _fmt_v(v11)])
 	suite.extra["v11_excepciones_fechadas"] = V11_ACCEPTED
@@ -354,7 +361,7 @@ func _test_r1_rules() -> void:
 ## Sanidad por mutación de las reglas encendidas en r1: cada una ve lo que se le planta y deja pasar lo legal.
 func _mut_r1_rules() -> void:
 	var base := _files_copy()
-	var clean := v6_geometry(base.map, base.level).is_empty() and v10_jargon(base.rules, base.ui).is_empty() and v12_res_paths(base).is_empty() \
+	var clean := v6_geometry(base.map, base.level).is_empty() and v10_jargon(base.rules, base.ui).is_empty() and v10_contractions(base.rules, round_id, V10_ACCEPTED).is_empty() and v12_res_paths(base).is_empty() \
 		and v14_variants(base.rules, base.level, base.map).is_empty() and v15_views(base.visual).is_empty() and v16_clock_and_loot(base.rules, round_id).is_empty() \
 		and v21_single_source(base.map, base.level, base.rules).is_empty() and v22_camera_and_quality(base.visual, base.ui).is_empty()
 	if not clean:
@@ -386,6 +393,23 @@ func _mut_r1_rules() -> void:
 	suite.check(not v10_jargon(legal.rules, legal.ui).is_empty(), "sanidad: «sondeo» (palabra de la lista) se ve aunque la frase tenga «Los»")
 	legal.ui.texts["title"] = "II · Los de Humahuaca"
 	suite.check(v10_jargon(legal.rules, legal.ui).is_empty(), "sanidad: «Los» no dispara la sigla LOS (las siglas se buscan respetando mayúsculas)")
+	_flaw(base, "«de el cuartel» escrito a mano en un texto", func(f): f.rules.texts["objetivo"] = "Esperá la toma de el cuartel.", func(f): return v10_contractions(f.rules, round_id, {}))
+	_flaw(base, "una plantilla «de {frente}» con un lugar masculino", func(f): f.rules.texts.siguiente["plantada"] = "Esperá la toma de {frente}.", func(f): return v10_contractions(f.rules, round_id, {}))
+	_flaw(base, "una plantilla «a {frente}» con un lugar masculino", func(f): f.rules.texts.eventos["plantada"] = "Se acercaron a {frente}.", func(f): return v10_contractions(f.rules, round_id, {}))
+	var contracted := base.duplicate(true)
+	contracted.rules.texts["objetivo"] = "Esperá la toma del cuartel y mandá a Portal al cuartel."
+	suite.check(v10_contractions(contracted.rules, round_id, V10_ACCEPTED).is_empty(), "sanidad: «del cuartel» y «al cuartel» no son contracciones pendientes")
+	var feminine := base.duplicate(true)
+	for oid in feminine.rules.objectives:
+		feminine.rules.objectives[oid]["place"] = "la " + str(oid)
+	feminine.rules.texts.siguiente["plantada"] = "Esperá la toma de {frente}."
+	suite.check(v10_contractions(feminine.rules, round_id, {}).filter(func(m): return String(m).find("plantada") >= 0).is_empty(), "sanidad: «de {frente}» es legal cuando ningún lugar es masculino")
+	var dated10 := base.duplicate(true)
+	dated10.rules.texts.siguiente["plantada"] = "Esperá la toma de {frente}."
+	var accepted10 := {"texts.siguiente.plantada": "r2a"}
+	accepted10.merge(V10_ACCEPTED)
+	suite.check(v10_contractions(dated10.rules, "r1", accepted10).is_empty(), "sanidad: una excepción fechada de V10 deja pasar la plantilla hasta su ronda")
+	suite.check(not v10_contractions(dated10.rules, "r2a", accepted10).filter(func(m): return String(m).find("plantada") >= 0).is_empty(), "sanidad: la excepción fechada de V10 vence en su ronda y la plantilla vuelve a fallar")
 	# V11
 	_flaw(base, "una causa de 200 caracteres", func(f): f.rules.outcome.causes.plazo["texto"] = "x".repeat(200), func(f): return v11_limits(f.rules, round_id, {}))
 	_flaw(base, "la página 1 del briefing de 300 caracteres", func(f): f.rules.texts.briefing["pagina_1"] = "x".repeat(300), func(f): return v11_limits(f.rules, round_id, {}))

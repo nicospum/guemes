@@ -12,8 +12,15 @@ extends SceneTree
 ## --selftest: no hay agente; el arnés contesta solo con el botón de «siguiente paso» (con información que el agente no tiene) para probar el lazo de punta a punta; con
 ## --selftest=pasivo el primer intento no hace nada y el segundo sigue el «siguiente paso» (prueba el reintento). No es una corrida del agente-jugador.
 ## No usa semillas reservadas al QA: la semilla viene por --seed.
+## Archivos viejos: al arrancar borra de --turns-dir los turno_NN.png, accion_NN.json y respuestas.json de una corrida anterior (si no, el arnés contestaría con acciones viejas o
+## cerraría con unas respuestas viejas); la bitácora del agente no se toca. Lo informa como archivos_viejos_borrados.
+## objetivos_identificados_en_turnos (J08: «identifica los 3 objetivos en < 3 turnos»): el arnés no lee la mente del agente, así que lo mide con lo que el agente deja escrito en
+## bitacora.md (el QA le pide anotar qué ve antes de cada acción): cuenta los turnos desde el primer cuadro con mapa (apertura o juego) hasta que lo escrito DESDE ENTONCES nombra los tres
+## frentes (batería, cuartel y posta o pólvora); -1 si nunca los nombra o no hay bitácora. Los clics sobre los frentes (objetivos_tocados) quedan como dato aparte: tres frentes necesitan
+## tres clics, así que esa medida nunca puede dar menos de 3 turnos.
 
 const V = preload("res://scripts/humahuaca/humahuaca_vocab.gd")
+const FRONT_WORDS := {"bateria": ["bater", "santa barbara"], "cuartel": ["cuartel", "casa del cura"], "posta": ["posta", "polvor"]}  # palabras (sin tildes) con que el agente nombra cada frente
 
 var game: Node
 var hx: Node
@@ -34,6 +41,10 @@ var first_order_turn := -1
 var first_order_t := -1.0
 var touched := {}  # objetivo → primer turno en que el agente hizo clic sobre él (aproximación de «identificó los tres frentes»)
 var touched_turn := -1
+var map_first_turn := -1  # primer turno cuyo cuadro muestra el mapa (apertura o juego): desde ahí se cuenta la identificación de los tres frentes
+var bit_chars_at_map := 0  # largo de la bitácora al entregar ese cuadro: solo cuenta lo que el agente escribe después de verlo
+var ident_turn := -1  # turnos (desde el primer cuadro con mapa) hasta que la bitácora nombra los tres frentes; -1 si no los nombra
+var stale_removed := 0  # archivos de una corrida anterior que se borraron al arrancar
 var closing := ""
 var last_shot_size := Vector2i.ZERO
 var mouse_pos := Vector2.ZERO
@@ -165,6 +176,7 @@ func _key(spec: String) -> bool:
 func _run() -> void:
 	turns_abs = ProjectSettings.globalize_path(turns_dir)
 	DirAccess.make_dir_recursive_absolute(turns_abs)
+	stale_removed = _clear_stale()
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(out_path).get_base_dir())
 	game = (load("res://scenes/main.tscn") as PackedScene).instantiate()
 	root.add_child(game)
@@ -197,6 +209,9 @@ func _run() -> void:
 		turn += 1
 		await _frames(3)
 		var q: Dictionary = hx.qa_state()
+		if map_first_turn < 0 and str(q.get("mode", "")) in ["opening", "play"]:
+			map_first_turn = turn
+			bit_chars_at_map = _bitacora_text().length()  # antes de entregar el cuadro: cuenta lo que el agente escriba después de verlo
 		var png_ok := await _write_turn_png(turn)
 		if not png_ok:
 			closing = "sin_captura"
@@ -210,6 +225,7 @@ func _run() -> void:
 		if action.is_empty():
 			closing = "abandono"
 			break
+		_check_bitacora(turn)
 		var orders_before := int(q.get("orders", 0))
 		var elapsed_before := float(q.get("elapsed", 0.0))
 		var applied := await _apply(action, turn)
@@ -220,6 +236,7 @@ func _run() -> void:
 			first_order_t = snappedf(float(after.get("first_order_s", elapsed_before)) if float(after.get("first_order_s", -1.0)) >= 0.0 else elapsed_before, 0.1)
 		turns.append({"n": turn, "t_juego_s": snappedf(elapsed_before, 0.1), "accion": action, "orden_aceptada": accepted, "aplicada": applied, "modo": str(q.get("mode", "")), "dialogo": str(q.get("dialog", "")), "fase": str(q.get("phase", ""))})
 		await _advance(action)
+		(turns[turns.size() - 1] as Dictionary)["t_despues_s"] = snappedf(float(hx.qa_state().get("elapsed", 0.0)), 0.1)
 		_track_attempts(turn)
 		if turn % 10 == 0:
 			_write_arnes()
@@ -233,6 +250,52 @@ func _run() -> void:
 	print("HX_AGENT_PLAY " + JSON.stringify({"cierre": closing, "turnos": turns.size(), "primera_orden_turno": first_order_turn, "intentos": attempts.size()}))
 	await _frames(3)
 	quit(0)
+
+
+## Archivos de una corrida anterior en la misma carpeta: se borran antes del primer turno para que el arnés no conteste con acciones viejas ni cierre con respuestas viejas.
+## Solo los nombres que escriben el arnés (turno_NN.png) o el agente (accion_NN.json, respuestas.json); la bitácora del agente no se toca.
+func _clear_stale() -> int:
+	var removed := 0
+	for f in DirAccess.get_files_at(turns_abs):
+		var stale: bool = (f.begins_with("turno_") and (f.ends_with(".png") or f.ends_with(".tmp"))) or (f.begins_with("accion_") and f.ends_with(".json")) or f == "respuestas.json"
+		if stale:
+			DirAccess.remove_absolute(turns_abs.path_join(f))
+			removed += 1
+	return removed
+
+
+func _bitacora_text() -> String:
+	var path := turns_abs.path_join("bitacora.md")
+	if not FileAccess.file_exists(path):
+		return ""
+	return FileAccess.get_file_as_string(path)
+
+
+## Minúsculas y sin tildes, para buscar palabras sin depender de cómo las escriba el agente.
+func _fold(text: String) -> String:
+	var t := text.to_lower()
+	for pair in [["á", "a"], ["é", "e"], ["í", "i"], ["ó", "o"], ["ú", "u"], ["ü", "u"], ["ñ", "n"]]:
+		t = t.replace(str(pair[0]), str(pair[1]))
+	return t
+
+
+## ¿Nombra la bitácora, desde que el agente vio el mapa, los tres frentes? Se anota el primer turno en que lo hace, contado desde el primer cuadro con mapa.
+func _check_bitacora(turn: int) -> void:
+	if ident_turn >= 0 or map_first_turn < 0:
+		return
+	var full := _bitacora_text()
+	if full.length() <= bit_chars_at_map:
+		return
+	var text := _fold(full.substr(bit_chars_at_map))
+	for words in FRONT_WORDS.values():
+		var found := false
+		for w in words:
+			if text.find(str(w)) >= 0:
+				found = true
+				break
+		if not found:
+			return
+	ident_turn = turn - map_first_turn + 1
 
 
 func _write_turn_png(n: int) -> bool:
@@ -259,7 +322,8 @@ func _wait_action(n: int) -> Dictionary:
 				var text := f.get_as_text() if f != null else ""
 				if f != null:
 					f.close()
-				var parsed: Variant = JSON.parse_string(text)
+				var json := JSON.new()  # un archivo a medias es normal: con JSON.new().parse no se imprime «ERROR: Parse JSON failed» en el registro (parse_string sí lo imprime)
+				var parsed: Variant = json.data if json.parse(text) == OK else null
 				if parsed is Dictionary and (parsed as Dictionary).has("tipo"):
 					return parsed
 				await _real_wait(0.25)  # la escritura del agente puede estar a medias
@@ -370,9 +434,11 @@ func _write_arnes() -> void:
 	if OS.execute("git", ["-C", ProjectSettings.globalize_path("res://"), "rev-parse", "HEAD"], git_out) == 0 and git_out.size() > 0:
 		commit = str(git_out[0]).strip_edges()
 	var arnes := {"schema": "hx_agente_v1", "commit": commit, "seed": seed_arg, "step_s": step_s, "max_turns": max_turns, "turnos": turns, "primera_orden_turno": first_order_turn, "primera_orden_t_s": first_order_t,
-		"intentos": attempts, "lecturas_fuera_de_carpeta": 0, "lecturas_nota": "el arnés no audita las herramientas del agente: el Jefe de QA anota ahí cuántas lecturas hizo fuera de su carpeta",
-		"objetivos_identificados_en_turnos": touched_turn, "objetivos_identificados_criterio": "primer turno en que el agente hizo clic a menos de 70 px de cada uno de los tres frentes (aproximación del arnés; -1 si no los tocó todos)",
-		"objetivos_tocados": touched, "cierre": closing, "captura_px": [last_shot_size.x, last_shot_size.y], "selftest": selftest, "wait_s": wait_s}
+		"intentos": attempts, "lecturas_fuera_de_carpeta": 0, "lecturas_nota": "el arnés no puede ver qué lee el agente: el 0 es el valor por defecto y el Jefe de QA lo corrige después de auditar el registro de herramientas del agente (QA_NIVEL2 P6-e)",
+		"objetivos_identificados_en_turnos": ident_turn, "objetivos_identificados_criterio": "turnos contados desde el primer cuadro con mapa (apertura o juego; ver mapa_desde_turno) hasta que lo que el agente escribió en bitacora.md desde ese cuadro nombra los tres frentes (batería, cuartel y posta o pólvora); -1 si nunca los nombra o no hay bitácora",
+		"mapa_desde_turno": map_first_turn, "objetivos_tocados": touched, "objetivos_tocados_en_turnos": touched_turn,
+		"objetivos_tocados_criterio": "primer turno en que el agente hizo clic a menos de 70 px de cada uno de los tres frentes (dato aparte: tres frentes necesitan tres clics, así que nunca da menos de 3); -1 si no los tocó todos",
+		"archivos_viejos_borrados": stale_removed, "cierre": closing, "captura_px": [last_shot_size.x, last_shot_size.y], "selftest": selftest, "wait_s": wait_s}
 	_write_json(ProjectSettings.globalize_path(out_path), arnes)
 
 

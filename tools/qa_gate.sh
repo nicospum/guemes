@@ -9,7 +9,9 @@
 # (3) test_rules --skip-strategies (>= 818, sin fallas); (4) test_integration (>= 283, sin fallas); (5) test_hx_data y test_hx_smoke;
 # (6) la prueba propia de la pista (test_hx_terrain|rules|view|flow; obligatoria desde r1); más los entregables de R1.0 de la pista (r1.0),
 # la higiene de Git y la limpieza de los registros. La completa suma test_rules completo (>= 871), Jev (15), audio (17 con 1 falla aceptada),
-# las cuatro pruebas del nivel, ui_qa x3 (>= 254), justina_playthrough, --scenario y --qa de Humahuaca y benchmark.py (Justina y Norte <= 3 ms).
+# las cuatro pruebas del nivel, ui_qa x3 (>= 254), justina_playthrough, --scenario y --qa de Humahuaca y benchmark.py (Justina y Norte <= 3 ms). Desde r1 suma las herramientas
+# del nivel (herramientas_hx): ui_qa_humahuaca x3, humahuaca_playthrough, el recorrido de QA (hx_qa_tour), el arnés del agente-jugador con --selftest (hx_agent_play) y con un
+# agente de guion por archivos (hx_agent_protocolo y hx_agent_viejos) y la verificación por la escena real de visual (vis_flow).
 # La última línea es siempre «GATE <modo> ...: PASA|FALLA|PARCIAL | cifras». Sale con 0 (PASA), 1 (FALLA), 2 (uso o entorno) o 3 (PARCIAL).
 #
 # Variables opcionales:
@@ -677,15 +679,18 @@ try:
 except Exception:
     print("NOJSON"); sys.exit(0)
 png = [a for a in r.get("archivos", []) if a.endswith(".png")]
-print(len(png), len(r.get("failures", [])), len(r.get("views", {})), r.get("initial_frame", {}).get("fits"), r.get("templo_aabb_h_m"), r.get("frame_ms_mean"), (r.get("bot") or {}).get("status", "sin_bot"))
+brecha = r.get("brecha_decision_s") or {}
+print(len(png), len(r.get("failures", [])), len(r.get("views", {})), r.get("initial_frame", {}).get("fits"), r.get("templo_aabb_h_m"), r.get("frame_ms_mean"), (r.get("bot") or {}).get("status", "sin_bot"),
+      (r.get("jerga") or {}).get("aciertos", "?"), (r.get("desbordes_texto") or {}).get("controles", "?"), brecha.get("max", "?"), brecha.get("ataque_max", "?"), (r.get("gramatica") or {}).get("aciertos", "?"),
+      (r.get("escala") or {}).get("px_por_unidad_logica", "?"))
 EOF
 )"
     if [ "$nums" = "NOJSON" ]; then
       record hx_qa_tour FALLA "no escribió qa_report.json (salida $RC; registro: $LOGD/hx_tour.log)"
     else
-      read -r tpng tfails tviews tfits taabb tframe tbot <<< "$nums"
+      read -r tpng tfails tviews tfits taabb tframe tbot tjerga tdesb tgap tgapa tgram tesc <<< "$nums"
       if [ "$RC" -eq 0 ] && [ "$tfails" = "0" ] && [ "$tpng" -ge 23 ] && [ "$tviews" -ge 7 ] && [ "$tfits" = "True" ]; then
-        record hx_qa_tour PASA "$tpng capturas, 7 vistas, cuadro inicial con los tres objetivos y la partida, templo ${taabb} m, cuadro medio ${tframe} ms (indicativo), el bot ${tbot}"
+        record hx_qa_tour PASA "$tpng capturas, 7 vistas, cuadro inicial con los tres objetivos y la partida, templo ${taabb} m, cuadro medio ${tframe} ms (indicativo), el bot ${tbot}; texto del bot: jerga ${tjerga}, desbordes ${tdesb}, brecha sin siguiente paso ${tgap} s (ataque ${tgapa} s), contracciones sin hacer ${tgram} (informativo); posiciones en píxeles de la captura (x${tesc})"
       else
         record hx_qa_tour FALLA "salió con $RC; $tpng capturas (mínimo 23: 7 vistas con y sin interfaz, el primer cuadro, 3 de albedo, 4 de límite y la hoja de fichas), $tfails fallas, $tviews vistas, initial_frame.fits=$tfits"
       fi
@@ -719,6 +724,56 @@ EOF
     fi
   else
     record hx_agent_play FALLA "falta tools/hx_agent_play.gd (no evaluable = falla)"
+  fi
+  # el protocolo por archivos con un «agente» de guion (tools/hx_agent_guion.py): lo que --selftest no recorre porque el arnés contesta solo (esperar accion_NN.json, lectura a medias,
+  # JSON roto, clic fuera de la ventana, tipo desconocido, respuestas.json y los tres frentes nombrados en la bitácora). No juega: prueba que el arnés lee, aplica, mide y cierra.
+  # La corrida del agente de verdad (J08) la hace el Jefe de QA.
+  if [ -f "$SRC/tools/hx_agent_play.gd" ] && [ -f "$SRC/tools/hx_agent_guion.py" ]; then
+    local gpid grc gwaited gline gnums
+    out="$LOGD/hx_agent_protocolo"; mkdir -p "$out"
+    "$G" --path "$SRC" --resolution 1280x720 --audio-driver Dummy --disable-vsync --script tools/hx_agent_play.gd -- "--turns-dir=$out" "--out=$out/arnes.json" --step-s=2 --max-turns=40 --wait-s=60 > "$LOGD/hx_agent_protocolo.log" 2>&1 &
+    gpid=$!
+    py "$SRC/tools/hx_agent_guion.py" --turns-dir "$out" --arnes "$out/arnes.json" --timeout 90 --log "$out/guion.json" > "$LOGD/hx_agent_guion.log" 2>&1
+    grc=$?
+    gwaited=0
+    while kill -0 "$gpid" 2>/dev/null && [ "$gwaited" -lt 80 ]; do sleep 0.25; gwaited=$((gwaited + 1)); done   # el arnés sale solo después de escribir arnes.json
+    if kill -0 "$gpid" 2>/dev/null; then kill_tree "$gpid"; fi
+    wait "$gpid" 2>/dev/null
+    gline="$(json_last "$LOGD/hx_agent_guion.log")"
+    gnums="$(printf '%s' "$gline" | py -c 'import json,sys; d=json.load(sys.stdin); print(d["turnos"], d["comprobaciones"], d["duracion_s"])' 2>/dev/null)"
+    if [ "$grc" -eq 0 ] && [ -n "$gnums" ]; then
+      read -r gturns gchecks gsecs <<< "$gnums"
+      record hx_agent_protocolo PASA "el arnés atendió un agente de guion por archivos: $gturns turnos, $gchecks comprobaciones sin fallas (acción a medias, JSON roto, clic fuera de la ventana, tipo desconocido, respuestas.json y bitácora), ${gsecs} s"
+    else
+      record hx_agent_protocolo FALLA "el agente de guion salió con $grc; $(tr -d '\r' < "$LOGD/hx_agent_guion.log" | tail -n 3 | cut -c1-360 | tr '\n' ' ') (registros: $LOGD/hx_agent_protocolo.log y $out/guion.json)"
+    fi
+    # archivos de una corrida anterior en la carpeta de turnos: el arnés los borra al arrancar (no los consume), no toca la bitácora del agente y, sin acciones nuevas, abandona
+    out="$LOGD/hx_agent_viejos"; mkdir -p "$out"
+    printf '%s' '{"tipo":"esperar","s":1}' > "$out/accion_01.json"
+    printf '%s' '{"objetivo":"viejo"}' > "$out/respuestas.json"
+    printf '%s' 'no es un png' > "$out/turno_01.png"
+    printf '%s' 'la bitacora del agente no se toca' > "$out/bitacora.md"
+    run_godot 120 "$LOGD/hx_agent_viejos.log" --path "$SRC" --resolution 1280x720 --audio-driver Dummy --disable-vsync --script tools/hx_agent_play.gd -- "--turns-dir=$out" "--out=$out/arnes.json" --max-turns=5 --wait-s=4
+    gnums="$(py - "$out/arnes.json" "$out/bitacora.md" <<'EOF'
+import json, sys
+try:
+    a = json.load(open(sys.argv[1], encoding="utf-8"))
+    bit = open(sys.argv[2], encoding="utf-8").read()
+except Exception:
+    print("NOJSON"); sys.exit(0)
+print(a.get("cierre"), len(a.get("turnos", [])), a.get("archivos_viejos_borrados"), "intacta" if bit == "la bitacora del agente no se toca" else "tocada")
+EOF
+)"
+    if [ "$gnums" = "NOJSON" ]; then
+      record hx_agent_viejos FALLA "no escribió arnes.json (salida $RC; registro: $LOGD/hx_agent_viejos.log)"
+    else
+      read -r vclose vturns vstale vbit <<< "$gnums"
+      if [ "$RC" -eq 0 ] && [ "$vclose" = abandono ] && [ "$vturns" = 0 ] && [ "$vstale" = 3 ] && [ "$vbit" = intacta ]; then
+        record hx_agent_viejos PASA "con una acción, unas respuestas y una captura viejas en la carpeta: las borró (3), no tocó la bitácora y abandonó a los 4 s sin contestar con lo viejo"
+      else
+        record hx_agent_viejos FALLA "cierre $vclose (esperaba abandono), $vturns turnos (esperaba 0), $vstale archivos viejos borrados (esperaba 3), bitácora $vbit, salida $RC"
+      fi
+    fi
   fi
   # lo que solo se ve por la escena real (VP-13, B-024): fichas ≥ 48 px, el alba sin naranja saturado y los anillos de visibilidad sin cruces
   if [ -f "$SRC/tools/vis_humahuaca.sh" ]; then

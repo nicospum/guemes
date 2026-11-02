@@ -8,7 +8,12 @@ extends SceneTree
 ##   fichas al tamaño real de pantalla de 1280 × 720); scene_names.txt (nodos de la vista y rutas de recursos).
 ## A qa_report.json le suma: schema, size_px, scene_build_ms, frame_ms_mean y frame_ms_p95 (intervalos de pared de 120 cuadros: con vsync activado no son el
 ## presupuesto del benchmark; usar --disable-vsync), templo_aabb_h_m, token_px, views.<id>.horizon_y, capas, controles visibles, límites, calibración y, salvo
-## --no-bot, el arco de un bot que sigue el «siguiente paso» por la escena real (bot).
+## --no-bot, el arco de un bot que sigue el «siguiente paso» por la escena real (bot) y, medido sobre ese arco, jerga (palabras de la lista negra de humahuaca_ui.json en
+## todo el texto visible), desbordes_texto (controles con texto que salen del cuadro), brecha_decision_s (el mayor tiempo sin un «siguiente paso» que se pueda apretar) y
+## gramatica (contracciones sin hacer, como «de el cuartel»: se informan, no fallan la compuerta).
+## POSICIONES EN PÍXELES DE LA CAPTURA: la vista y el controlador las dan en píxeles lógicos (el cuadro de 1440 × 900 que escala la ventana: 1600 × 900 en 16:9) y qa_imagen.py
+## (V06) las usa como píxeles de la imagen; el recorrido convierte probes[].rect, views.<id>.horizon_y, initial_frame.targets y limites[].horizon_y y deja el valor original en
+## *_logico y la escala en `escala`.
 ## Imprime «HX_QA_TOUR {json}» y sale con 0 si no hubo fallas. No es una partida humana. No usa semillas reservadas al QA: la semilla viene por --seed.
 
 const V = preload("res://scripts/humahuaca/humahuaca_vocab.gd")
@@ -28,6 +33,7 @@ var checks := 0
 var failures: Array = []
 var files: Array = []
 var last_shot_size := Vector2i.ZERO
+var ui_json: Dictionary = {}
 
 
 func _initialize() -> void:
@@ -154,6 +160,7 @@ func _run() -> void:
 		return
 	var state0: Dictionary = hx.qa_state()
 	check(not bool(state0.get("shell", false)), "Nivel: el controlador es el real y no la cáscara")
+	ui_json = V.load_json(V.UI_PATH)
 	var camera: Camera3D = game.camera
 	var build_ms := int(game.scene_build_ms)
 	# 1) las 7 vistas canónicas con y sin interfaz y el qa_report.json del controlador (el mismo recorrido que `--qa=humahuaca`)
@@ -222,7 +229,8 @@ func _run() -> void:
 	report["capas"] = q.get("layers", {})
 	report["controles"] = {"visibles": int(q.get("visible_controls", 0)), "botones": int(q.get("visible_buttons", 0)), "caracteres": int(q.get("text_chars", 0)), "caracteres_juego": int(q.get("text_chars_juego", 0))}
 	if with_bot:
-		report["bot"] = _bot_arc()
+		report["bot"] = await _bot_arc(report)
+	_pixelize(report)
 	_write_report(report)
 	await _finish(report)
 
@@ -488,16 +496,34 @@ func _walk(n: Node, path: String, lines: Array, shaders: Dictionary, meshes: Dic
 
 
 # ---------------------------------------------------------------------------------------------------------------------
-# El arco de un bot que sigue el «siguiente paso» por la escena real (como la política «interfaz» de humahuaca_playthrough)
+# El arco de un bot que sigue el «siguiente paso» por la escena real (como la política «interfaz» de humahuaca_playthrough). Mientras juega mide el texto
+# visible en cada paso (jerga y contracciones sin hacer), los controles con texto que salen del cuadro cada 15 s (después de dibujar) y la brecha de decisión: el mayor tiempo sin
+# un «siguiente paso» que se pueda apretar.
 
-func _bot_arc() -> Dictionary:
+func _bot_arc(report: Dictionary) -> Dictionary:  # corrutina: espera cuadros para medir la geometría
 	hx.view.call("set_time_override", -1.0, -1.0)
 	hx.qa_set_time(0.0)
 	var used := 0.0
+	var last_press := 0.0
+	var gap_max := 0.0
+	var gap_attack_max := 0.0
+	var texts := {}
+	var overflow := {}
 	while used < 900.0 and str(hx.rules.state.status) == "playing":
-		hx.qa_press_next()
+		var phase := str(hx.rules.state.get("phase", ""))
+		if hx.qa_press_next():
+			gap_max = maxf(gap_max, used - last_press)
+			if phase == "ataque":
+				gap_attack_max = maxf(gap_attack_max, used - last_press)
+			last_press = used
 		hx.qa_step(1.0)
 		used += 1.0
+		_sample_texts(texts, overflow, false)  # el texto cambia en cada paso; la geometría de los contenedores solo vale después de dibujar
+		if int(used) % 15 == 0:
+			await _frames(3)
+			_sample_texts(texts, overflow, true)
+	await _frames(3)
+	_sample_texts(texts, overflow, true)
 	var st: Dictionary = hx.rules.state
 	var rep: Variant = hx.rules.call("campaign_report") if hx.rules.has_method("campaign_report") else {}
 	var q: Dictionary = hx.qa_state()
@@ -507,4 +533,137 @@ func _bot_arc() -> Dictionary:
 	if rep is Dictionary:
 		out["medal"] = str((rep as Dictionary).get("medal", ""))
 	check(str(out.status) != "playing", "Bot: el intento terminó (%s)" % str(out.status))
+	# lo medido sobre el texto y los controles que el bot tuvo a la vista
+	var jerga: Array = []
+	var gramatica: Array = []
+	var rx_contraction := RegEx.new()
+	rx_contraction.compile("(?i)(?<![\\p{L}])(de|a) el(?![\\p{L}])")  # «de el cuartel», «a el cuartel»: tendría que ser «del» y «al»
+	for t in texts.keys():
+		for hit in _jargon_hits(str(t)):
+			jerga.append({"termino": hit, "texto": str(t).left(80)})
+		var m := rx_contraction.search(str(t))
+		if m != null:
+			gramatica.append({"problema": "«%s» sin contraer" % m.get_string(), "texto": str(t).left(80)})
+	_write_texts(texts)
+	report["jerga"] = {"textos_distintos": texts.size(), "aciertos": jerga.size(), "detalle": jerga.slice(0, 8)}
+	var overflow_list: Array = []
+	for path in overflow.keys():
+		overflow_list.append({"control": str(path).get_file(), "ruta": str(path).trim_prefix("/root/PatriaGuemes/"), "texto": overflow[path].texto, "rect": overflow[path].rect, "cuadro": overflow[path].cuadro})
+	report["desbordes_texto"] = {"controles": overflow.size(), "detalle": overflow_list.slice(0, 8)}
+	report["brecha_decision_s"] = {"max": snappedf(gap_max, 0.1), "ataque_max": snappedf(gap_attack_max, 0.1), "definicion": "mayor tiempo de juego entre dos «siguiente paso» que se pudieron apretar (la política del bot)"}
+	report["gramatica"] = {"aciertos": gramatica.size(), "detalle": gramatica.slice(0, 8), "nota": "se informa y no falla la compuerta: lo decide el QA con los textos del juego"}
+	check(jerga.is_empty(), "Texto: sin palabras de la lista negra en lo que el bot tuvo a la vista (%d textos distintos; %s)" % [texts.size(), str(jerga.slice(0, 3))])
+	check(overflow.is_empty(), "Texto: ningún control con texto sale del cuadro durante el arco del bot (%s)" % str(overflow_list.slice(0, 3)))
 	return out
+
+
+## Todo el texto que se ve ahora (etiquetas, botones y textos con formato de la interfaz) y los controles con texto cuyo rectángulo sale del cuadro. Un control con opacidad
+## efectiva casi nula (un aviso que entra o sale con su animación) no se ve y no cuenta.
+func _sample_texts(texts: Dictionary, overflow: Dictionary, geometry: bool) -> void:
+	if not is_instance_valid(game) or game.get("ui") == null:
+		return
+	var vp := Rect2(Vector2.ZERO, root.get_visible_rect().size).grow(1.0)
+	for c in (game.ui as Node).find_children("*", "Control", true, false):
+		var ctl := c as Control
+		if not ctl.is_visible_in_tree() or _effective_alpha(ctl) < 0.05:
+			continue
+		var t := ""
+		if ctl is Label:
+			t = (ctl as Label).text
+		elif ctl is Button:
+			t = (ctl as Button).text
+		elif ctl is RichTextLabel:
+			t = (ctl as RichTextLabel).get_parsed_text()
+		if t == "":
+			continue
+		texts[t] = true
+		if not geometry:
+			continue
+		var r := ctl.get_global_rect()
+		if r.size.x > 1.0 and r.size.y > 1.0 and not vp.encloses(r):
+			var path := str(ctl.get_path())
+			if not overflow.has(path):
+				overflow[path] = {"texto": t.left(60), "rect": [snappedf(r.position.x, 0.1), snappedf(r.position.y, 0.1), snappedf(r.size.x, 0.1), snappedf(r.size.y, 0.1)], "cuadro": [vp.size.x, vp.size.y]}
+
+
+## Todo el texto distinto que el bot tuvo a la vista, uno por línea y ordenado (textos_visibles.txt): para auditar a ojo o con grep la jerga, las contracciones y los anacronismos.
+func _write_texts(texts: Dictionary) -> void:
+	var lines: Array = []
+	for t in texts.keys():
+		lines.append(str(t).replace("\n", " ⏎ "))
+	lines.sort()
+	var f := FileAccess.open(out_abs.path_join("textos_visibles.txt"), FileAccess.WRITE)
+	if f != null:
+		f.store_string("\n".join(PackedStringArray(lines)) + "\n")
+		f.close()
+		files.append("textos_visibles.txt")
+
+
+func _effective_alpha(item: CanvasItem) -> float:
+	var a := item.self_modulate.a
+	var n: Node = item
+	while n is CanvasItem:
+		a *= (n as CanvasItem).modulate.a
+		n = n.get_parent()
+	return a
+
+
+func _fold(text: String) -> String:
+	var out := text.to_lower()
+	var from := "áéíóúüñ"
+	var to := "aeiouun"
+	for i in range(from.length()):
+		out = out.replace(from[i], to[i])
+	return out
+
+
+## Las palabras de la lista negra de humahuaca_ui.json (siglas sensibles a mayúsculas, palabras sin distinguir mayúsculas ni tildes) y los identificadores en snake_case:
+## la misma regla que usa tools/ui_qa_humahuaca.gd.
+func _jargon_hits(text: String) -> Array:
+	var hits: Array = []
+	var folded := _fold(text)
+	for term in ui_json.get("jargon_blacklist", []):
+		var t := str(term)
+		var is_sigla := t.length() >= 2 and t == t.to_upper()
+		var rx := RegEx.new()
+		rx.compile("(?<![A-Za-z0-9_])" + (t if is_sigla else _fold(t)) + "(?![A-Za-z0-9_])")
+		if rx.search(text if is_sigla else folded) != null:
+			hits.append(t)
+	var snake := RegEx.new()
+	snake.compile("\\b[a-z]+(?:_[a-z0-9]+)+\\b")
+	if snake.search(text) != null:
+		hits.append("snake_case")
+	return hits
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Posiciones en píxeles de la captura (lo que lee qa_imagen.py): la vista y el controlador las dan en píxeles lógicos
+
+func _pixelize(report: Dictionary) -> void:
+	var vis := root.get_visible_rect().size
+	if vis.x <= 0.0 or last_shot_size.x <= 0:
+		return
+	var k := float(last_shot_size.x) / vis.x
+	report["escala"] = {"captura_px": [last_shot_size.x, last_shot_size.y], "logico_px": [vis.x, vis.y], "px_por_unidad_logica": snappedf(k, 0.0001), "unidad_de_posiciones": "píxeles de la captura"}
+	var shot := Rect2(0.0, 0.0, float(last_shot_size.x), float(last_shot_size.y))
+	var views: Dictionary = report.get("views", {}) if report.get("views", null) is Dictionary else {}
+	for id in views.keys():
+		var e: Dictionary = views[id]
+		if e.has("horizon_y"):
+			e["horizon_y_logico"] = e["horizon_y"]
+			e["horizon_y"] = snappedf(float(e["horizon_y"]) * k, 0.1)
+		for p in e.get("probes", []):
+			var rr: Array = p["rect"]
+			p["rect_logico"] = rr.duplicate()
+			var px := Rect2(float(rr[0]) * k, float(rr[1]) * k, float(rr[2]) * k, float(rr[3]) * k)
+			p["rect"] = [snappedf(px.position.x, 0.1), snappedf(px.position.y, 0.1), snappedf(px.size.x, 0.1), snappedf(px.size.y, 0.1)]
+			p["en_cuadro"] = px.intersects(shot)
+	var frame: Dictionary = report.get("initial_frame", {}) if report.get("initial_frame", null) is Dictionary else {}
+	for t in frame.get("targets", []):
+		t["x_logico"] = t["x"]
+		t["y_logico"] = t["y"]
+		t["x"] = snappedf(float(t["x"]) * k, 0.1)
+		t["y"] = snappedf(float(t["y"]) * k, 0.1)
+	for lim in report.get("limites", []):
+		lim["horizon_y_logico"] = lim["horizon_y"]
+		lim["horizon_y"] = snappedf(float(lim["horizon_y"]) * k, 0.1)

@@ -26,10 +26,32 @@ Se informa (no bloquea) cualquier racha de 4 turnos seguidos esperando sin nada 
 
 **Cuándo corre.** Informativa al cierre de R1 y de R2a (para enterarse temprano de que «no se entiende»), **aprobada** desde R2b y en la certificación del QA. La corre el integrador o compuertas y documentos con `tools/hx_agent_play.gd` (R1) y la registra abajo; como el agente tiene que ser un subagente nuevo sin acceso al código, quien escribió el arnés no puede serlo (B-027).
 
+## Cómo se corre el arnés (protocolo por archivos)
+
+```sh
+G="C:/Users/User/Desktop/spum/IA/Proyectos/MaravillaArgentina/guemes/patria-guemes/.tools/godot/Godot_v4.7.2-stable_win64_console.exe"
+export APPDATA="$TEMP/ap_iso_<quien>"; rm -rf "$APPDATA"; mkdir -p "$APPDATA"
+"$G" --path "<repo>" --resolution 1280x720 --audio-driver Dummy --script tools/hx_agent_play.gd -- --turns-dir=<carpeta> --out=<arnes.json> --seed=<N> --step-s=3 --max-turns=150 [--wait-s=120] [--selftest]
+```
+
+| Quién | Qué escribe en `<carpeta>` |
+|---|---|
+| El arnés (lado del juego) | `turno_NN.png`, de 1280 × 720, lo que ve quien juega (sin `qa_state()` ni código); lo escribe con otro nombre y lo renombra, así que el agente nunca lee una imagen a medias |
+| El agente | `accion_NN.json` (`{"tipo":"clic","x":..,"y":..,"boton":"izq"}`, `{"tipo":"tecla","tecla":"4"}` o `{"tipo":"esperar","s":3}`), `bitacora.md` (qué ve y qué prueba antes de cada acción) y, al terminar, `respuestas.json` |
+| El arnés, al cerrar | `--out` (`arnes.json`, esquema `hx_agente_v1`): `turnos[]` (con `t_juego_s` y `t_despues_s`), `primera_orden_turno` y `primera_orden_t_s`, `intentos[]`, `objetivos_identificados_en_turnos`, `cierre` y `archivos_viejos_borrados` |
+
+- **Cada turno pasa `--step-s` segundos de juego** (también si la acción es un clic o una tecla) y `esperar` pasa hasta 60. En el briefing no pasa tiempo y en la apertura pasa tiempo real. **Cuenta de tiempo:** 150 turnos de 3 s son 450 s de juego como máximo y una victoria del bot de interfaz dura de 496 a 551 s, así que un agente que solo espere de a 3 s no puede ganar dentro de los 150 turnos; tiene que esperar de a más o el QA tiene que subir `--step-s`.
+- **Archivos viejos.** Al arrancar el arnés borra de la carpeta los `turno_NN.png`, `accion_NN.json` y `respuestas.json` de una corrida anterior (antes los consumía: una acción vieja se aplicaba en el turno 1 y unas respuestas viejas cerraban la corrida) y no toca `bitacora.md`. Lo informa como `archivos_viejos_borrados`.
+- **Cierres** (`cierre`): `respuestas` (el agente escribió `respuestas.json`), `max_turnos`, `abandono` (el agente no contestó en `--wait-s`, 120 s por defecto), `sin_captura` y `sin_controlador`. Una acción mal escrita (JSON roto, tipo desconocido o clic fuera de la ventana) no se aplica, queda registrada con `aplicada: false` y el turno sigue: pasan los `--step-s` y se entrega el cuadro siguiente. Un archivo que llega a medias se vuelve a leer hasta 3 s.
+- **`objetivos_identificados_en_turnos` (J08: «identifica los 3 objetivos en < 3 turnos en `juego_noche`»).** El arnés no puede leer la mente del agente y los clics no sirven (tres frentes necesitan tres clics: nunca daría menos de 3), así que lo mide con la bitácora: cuenta los turnos desde el primer cuadro con mapa (la apertura o el juego; `mapa_desde_turno`) hasta que lo que el agente escribió **desde ese cuadro** nombra los tres frentes (batería o Santa Bárbara; cuartel o casa del cura; posta o pólvora). Lo escrito antes de ver el mapa (por ejemplo, lo que lee del briefing) no cuenta; -1 si nunca los nombra o no hay bitácora. Los clics sobre los frentes quedan aparte (`objetivos_tocados`, `objetivos_tocados_en_turnos`).
+- **`lecturas_fuera_de_carpeta`** vale 0 por defecto porque el arnés no puede ver qué lee el agente: lo corrige el Jefe de QA después de auditar el registro de herramientas del agente (P6-e).
+- **Pruebas del arnés** (la compuerta completa las corre desde `r1`): `--selftest` (el arnés contesta solo con el botón de «siguiente paso» y comprueba el lazo de punta a punta: primera orden en el turno 4 a los 3,0 s), `hx_agent_protocolo` (un agente de guion, `tools/hx_agent_guion.py`, que escribe cada acción por archivo, una de cada dos a medias, más un JSON roto, un clic fuera de la ventana y un tipo desconocido, anota su bitácora y cierra con `respuestas.json`) y `hx_agent_viejos` (archivos viejos y abandono). Ninguna es una corrida del agente-jugador.
+
 ## Registro de corridas del agente-jugador
 
 | Fecha | Ronda | Commit | Turnos hasta la primera orden | Segundos de juego hasta la primera orden | Parte alcanzado | ¿Entendió qué hacer? | ¿Cuándo se aburrió? | Veredicto |
 |---|---|---|---|---|---|---|---|---|
+| 2-nov-2026 | R1 | `70124a0` | 4 | 3,0 | con las 30 acciones del `--selftest` repetidas **por archivos** (agente de guion, `--step-s=3`): derrota `frente_roto` a los 234,8 s (turno 30), la misma que da el `--selftest` en la compuerta; con un clic en «Reintentar» (927, 492) sigue el intento 2 desde la aproximación, sin briefing | n/a (el guion escribió unas respuestas de prueba) | n/a | **Prueba del protocolo, no del agente.** El resultado por archivos es idéntico al del `--selftest` en las 30 acciones y los 30 tiempos de juego; `qa_agente.py` (anexo A7) lee el `arnes.json` y da 8 de 8 (con el reintento) y 7 de 8 (sin él, porque no reintentó): primera orden en el turno 4 (3,0 s), tres frentes identificados en 1 turno por la bitácora, 0 lecturas fuera de la carpeta |
 | 2-nov-2026 | R1 | `15627bb` | 4 | 3,0 | con `--selftest` y esperas de 3 s: ningún parte en 150 turnos (a los 441 s de juego el arreo todavía iba al vado); con `--selftest=pasivo`: derrota por `amanecio` a los 390 s (turno 16) y, tras «Reintentar», dos derrotas por `interceptados` a los 582 s (el bot esperaba de a 12 s). El bot del recorrido, que avanza de a 1 s, gana a los 497 s | n/a | n/a | **Prueba del arnés, no del agente.** El arnés contestó solo con el botón de «siguiente paso» (con información que un agente no tiene): comprueba el lazo de punta a punta (`turno_NN.png`, `accion_NN.json`, `arnes.json` `hx_agente_v1`, reintento y cierres), no que el nivel se entienda |
 | — | — | — | — | — | — | — | — | **Todavía no hay una corrida del agente-jugador de verdad** (BACKLOG B-027). La hace el Jefe de QA con un subagente nuevo, sin acceso al código ni a `qa_state()`, con `tools/hx_agent_play.gd -- --turns-dir=<carpeta> --out=<arnes.json> --step-s=3 --max-turns=150` |
 
