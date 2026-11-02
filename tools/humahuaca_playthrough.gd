@@ -49,6 +49,7 @@ var quiet := false
 var signal_from := 120.0
 var signal_to := 375.0
 var signal_step := 15.0
+var interfaz_unavailable := false  # el controlador no ofrece el botón del «siguiente paso»: la política `interfaz` se omite una sola vez
 var signal_force := -1.0  # --signal-at: fuerza el instante de la señal de quien juega con el plan del experto (por defecto, el de cada política)
 var games: Array = []
 var skipped: Array = []
@@ -179,6 +180,8 @@ func _finish(doc: Dictionary, code: int) -> void:
 
 func _run_policy(policy: String) -> void:
 	for sd in seeds:
+		if policy == "interfaz" and interfaz_unavailable:
+			return  # ya se anotó por qué no hay botón que pulsar: no se repite semilla por semilla
 		for rep in range(1, replicas + 1):
 			var progress: RefCounted = null
 			if attempts > 1 and progress_script != null:
@@ -365,6 +368,7 @@ func _play_scene(policy: String, sd: int, rep: int, att: int, progress: RefCount
 			var found := await _click_next_step(hx, rules)
 			mem["clicks"] = int(mem.get("clicks", 0)) + (1 if found else 0)
 			if not found and float(rules.state.elapsed) >= 10.0 and int(mem.get("clicks", 0)) == 0:
+				interfaz_unavailable = true
 				skipped.append({"policy": "interfaz", "reason": "el controlador de esta versión no tiene un botón del «siguiente paso» que se pueda pulsar (ni qa_press_next)"})
 				game.queue_free()
 				await process_frame
