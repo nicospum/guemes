@@ -101,3 +101,19 @@ No se distribuyen en los modelos banderas argentinas en 1806, nombres de Inferna
 ## Material de consulta excluido de los assets
 
 El paquete histórico del usuario, sus PDF y las imágenes conceptuales se preservaron en su ubicación de consulta y no se incorporan al ejecutable como recursos redistribuibles. La matriz histórica y sus enlaces están en `docs/historia/`. Las capturas de Civilization, cuando se disponga de ellas, serán evidencia de investigación de interacción y no recursos del juego.
+
+## Nivel 2 «Humahuaca»: arte procedural (R1, pista `visual`)
+
+El arte del nivel no usa ningún modelo importado ni nuevo: todo sale del generador `scripts/humahuaca/view/humahuaca_gen.gd` (ADDENDA A-01: Blender no está autorizado) y de shaders propios. **No se agregó ningún `.glb`, `.blend` ni textura** (la compuerta `higiene` lo verifica) y `assets/models/humahuaca/` y `assets/audio/humahuaca/` siguen vacíos. Los `.glb` de la Justina no se tocan ni se reutilizan en R1 (el caballo, la mula y las figuras son geometría propia con color de vértice).
+
+| Pieza | Archivo | Qué es | Procedencia |
+|---|---|---|---|
+| Generador de arte | `scripts/humahuaca/view/humahuaca_gen.gd` | Templo (nave de adobe encalado a dos aguas, caballete a 7 m, sin torres ni fachada), batería (losa con parapeto y tres piezas bajas), casa del cura, torre provisional, casas del núcleo, cañones, carretas, cercos, los tres arquetipos de figura (`poncho_sombrero`, `camisa_gorra`, `artillero`) más el realista retintado, jinete, mula, churqui, cardón, sauce, rocas y bultos | Propia; color por id de paleta |
+| Shader del suelo | `shaders/humahuaca_terrain.gdshader` | Un solo shader para la ventana de 4 m, el contexto de 30 m y el horizonte hasta ±8 km: pesos de capa por texturas, ruido a tres escalas, curvas de nivel sutiles, estratos, lluvia (×0,75) y modo de albedo | Propia |
+| Shader de edificios y vegetación | `shaders/humahuaca_props.gdshader` | Color de vértice de la paleta con desgaste al pie, tongadas del tapial y lluvia | Propia |
+| Shader del agua | `shaders/humahuaca_water.gdshader` | Agua turbia opaca con hebras que siguen la corriente | Propia |
+| Shader de lluvia | `shaders/humahuaca_rain.gdshader` | Rayas en el espacio de la cámara con un MultiMesh (0 / 700 / 1 400 según la calidad) | Propia |
+| Ruido | `shaders/humahuaca_noise.gdshaderinc` | Copia de `justina_noise.gdshaderinc` con las funciones renombradas (`hx_`) y funciones propias | Copia con procedencia en su encabezado |
+| Datos de arte | `data/humahuaca_visual.json` | Paleta de 24 HEX de la lámina 06, luces, materiales, constructores de cada hito, fichas, arquetipos, vistas canónicas y calidades | Propia; la paleta, del usuario |
+
+Los créditos y la procedencia de cada pieza están en `docs/humahuaca/CREDITOS_VISUAL.md`; la dirección de arte, las medidas y los pedidos, en `docs/humahuaca/VISUAL.md`. Las capturas de evidencia de R1 usan un relieve de prueba derivado de Copernicus GLO-30 **solo en la herramienta de captura** (nunca en el juego): su aviso está en `CREDITOS_VISUAL.md`.
