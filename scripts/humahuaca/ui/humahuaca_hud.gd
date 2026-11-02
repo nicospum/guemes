@@ -507,14 +507,14 @@ func _refresh_fronts(hs: Dictionary) -> void:
 		Kit.recolor_bar(c.take as ProgressBar, Kit.GOOD if taken else Kit.ROYAL)
 		(c.alert as ProgressBar).value = 100.0 * clampf(float(d.get("alerta", 0.0)), 0.0, 1.0)
 		(c.accent as ColorRect).color = Kit.GOOD if taken else Kit.ROYAL
-		var parts: Array = []
+		var parts: Array = []  # en orden de importancia: si no entran todas se sacan del final (la toma ya la dice la barra de arriba; la sorpresa, no)
 		var state := str(d.get("estado", "guardado"))
 		if state != "guardado":
 			parts.append(str(d.get("estado_txt", state)))
-		if float(d.get("toma_pct", 0.0)) > 0.0 and not taken:
-			parts.append(_t("hud.take", "Toma %d %%") % int(round(float(d.get("toma_pct", 0.0)))))
 		if float(d.get("sorpresa_s", 0.0)) > 0.0:
 			parts.append(_t("hud.surprise", "Sorpresa %s") % Kit.mmss(float(d.get("sorpresa_s", 0.0))))
+		if float(d.get("toma_pct", 0.0)) > 0.0 and not taken:
+			parts.append(_t("hud.take", "Toma %d %%") % int(round(float(d.get("toma_pct", 0.0)))))
 		var support: Variant = d.get("apoyo", [])
 		if support is Array and not (support as Array).is_empty():
 			var names: Array = []
