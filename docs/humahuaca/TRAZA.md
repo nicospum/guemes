@@ -1,6 +1,6 @@
 # Trazabilidad contrato → prueba (V20)
 
-Ronda vigente: r1.0
+Ronda vigente: r1
 
 Cada exigencia de las secciones 3 a 5 de `docs/CONTRATO_HUMAHUACA.md` tiene acá **una fila** con la prueba que la verifica. La prueba que cuenta es una función nombrada que existe: `test_hx_data::_test_v20_traceability` (regla V20 del contrato, 2.4) lee este archivo y falla si una fila apunta a una función que no existe, si el id de una fila se repite o si alguna subsección 3.x, 4.x o 5.x del contrato queda sin ninguna fila. Contar comprobaciones no es progreso: lo que cuenta es esta tabla.
 
