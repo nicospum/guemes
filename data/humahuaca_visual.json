@@ -26,5 +26,238 @@
 		{"id": "oro_laton", "name": "Oro / latón", "group": "simbolos", "hex": "#B99A50"},
 		{"id": "negro_textil", "name": "Negro textil", "group": "simbolos", "hex": "#383831"},
 		{"id": "grana_analogia", "name": "Grana como analogía", "group": "simbolos", "hex": "#843D40"}
-	]
+	],
+	"lights": {
+		"noche_lluvia": {
+			"time_of_day": 0.0,
+			"sun": {"elevation_deg": 42.0, "azimuth_deg": 305.0, "color": "azul_elegido", "gain": 2.2, "energy": 1.0, "shadows": false},
+			"ambient": {"color": "azul_elegido", "gain": 2.0, "energy": 1.35},
+			"sky": {"top": "azul_elegido", "top_gain": 0.35, "horizon": "azul_elegido", "horizon_gain": 0.7, "ground": "negro_textil", "ground_gain": 0.6},
+			"fog": {"color": "azul_elegido", "gain": 0.5, "density": 0.0005},
+			"exposure": 1.0,
+			"tag": "diseno",
+			"source": "luz fría hacia el azul elegido, noche cubierta con lluvia (diseño 11.2); valores de partida a calibrar"
+		},
+		"alba": {
+			"time_of_day": 0.5,
+			"sun": {"elevation_deg": 8.0, "azimuth_deg": 82.0, "color": "oro_laton", "gain": 1.2, "energy": 1.6, "shadows": true},
+			"ambient": {"color": "agua_turbia", "gain": 1.0, "energy": 0.42},
+			"sky": {"top": "azul_elegido", "top_gain": 1.2, "horizon": "paja", "horizon_gain": 1.05, "ground": "sedimento_humedo", "ground_gain": 0.7},
+			"fog": {"color": "paja", "gain": 0.9, "density": 0.00006},
+			"exposure": 1.0,
+			"tag": "diseno",
+			"source": "sol a 6° o 7°, cálido, sombras largas, niebla de valle (diseño 11.2); valores de partida a calibrar"
+		},
+		"dia": {
+			"time_of_day": 1.0,
+			"sun": {"elevation_deg": 36.0, "azimuth_deg": 68.0, "color": "blanco_textil", "gain": 1.0, "energy": 1.4, "shadows": true},
+			"ambient": {"color": "cal_envejecida", "gain": 1.0, "energy": 0.6},
+			"sky": {"top": "celeste_produccion", "top_gain": 0.95, "horizon": "cal_envejecida", "horizon_gain": 1.0, "ground": "suelo_seco", "ground_gain": 0.9},
+			"fog": {"color": "cal_envejecida", "gain": 0.95, "density": 0.00003},
+			"exposure": 1.0,
+			"tag": "diseno",
+			"source": "sol a 35° (diseño 11.2); valores de partida a calibrar"
+		}
+	},
+	"rain": {
+		"wet_darken": 0.75,
+		"wet_roughness": 0.5,
+		"fog_density_per_rain": 0.0002,
+		"streak_count": {"baja": 0, "media": 700, "alta": 1400},
+		"streak_length_m": 1.8,
+		"streak_alpha": 0.35,
+		"color": "agua_turbia",
+		"tag": "diseno",
+		"source": "el suelo se oscurece ×0,75 donde llueve (diseño 11.2); la lluvia de la noche y el alba es reconstrucción razonada"
+	},
+	"fog": {
+		"mode": "exponencial",
+		"sky_affect": 0.55,
+		"density_min": 0.00002,
+		"density_max": 0.002,
+		"tag": "diseno",
+		"source": "una sola niebla por escena; la visibilidad de juego la dibujan los anillos, no la niebla"
+	},
+	"materials": {
+		"terreno": {"color": "suelo_seco", "roughness": 0.96, "metallic": 0.0},
+		"adobe": {"color": "adobe", "roughness": 0.95, "metallic": 0.0},
+		"cal": {"color": "cal_envejecida", "roughness": 0.9, "metallic": 0.0},
+		"madera": {"color": "madera_oscura", "roughness": 0.85, "metallic": 0.0},
+		"paja": {"color": "paja", "roughness": 1.0, "metallic": 0.0},
+		"piedra": {"color": "piedra_gris", "roughness": 0.9, "metallic": 0.0},
+		"hierro": {"color": "hierro", "roughness": 0.55, "metallic": 0.6},
+		"cuero": {"color": "cuero", "roughness": 0.8, "metallic": 0.0},
+		"agua": {"color": "agua_turbia", "roughness": 0.3, "metallic": 0.0},
+		"contorno": {"color": "negro_textil", "grow_m": 0.1}
+	},
+	"props": {
+		"por_tipo": {
+			"objetivo": {"builder": "caja_con_techo", "color": "adobe", "roof_color": "paja", "default_height_m": 3.2},
+			"edificio": {"builder": "caja_con_techo", "color": "adobe", "roof_color": "paja", "default_height_m": 3.0},
+			"torre": {"builder": "torre", "color": "adobe", "trim_color": "madera_oscura", "roof_color": "paja", "default_height_m": 10.0},
+			"hito": {"builder": "caja_con_techo", "color": "adobe", "roof_color": "paja", "default_height_m": 1.8},
+			"plaza": {"builder": "plano", "color": "suelo_seco", "raise_m": 0.15, "gain": 1.1},
+			"refugio": {"builder": "plano", "color": "sedimento_humedo", "raise_m": 0.12},
+			"acceso": {"builder": "mojon", "color": "piedra_gris", "ring_color": "oro_laton"},
+			"salida": {"builder": "mojon", "color": "piedra_gris", "ring_color": "oro_laton"},
+			"entrada": {"builder": "mojon", "color": "piedra_gris", "ring_color": "borgona_hipotetica"},
+			"partida": {"builder": "plano", "color": "celeste_produccion", "raise_m": 0.1, "alpha": 0.1},
+			"cerro": {"builder": "ninguno"}
+		},
+		"por_id": {
+			"templo": {"builder": "templo_nave", "color": "cal_envejecida", "roof_color": "paja", "trim_color": "madera_oscura", "default_height_m": 7.0, "eave_ratio": 0.78, "tag": "sin_datos", "source": "nave simple de adobe encalado a dos aguas, sin torres ni fachada de 1880 (forma de 1817 sin datos)"},
+			"bateria": {"builder": "plataforma", "color": "piedra_gris", "iron_color": "hierro", "trim_color": "madera_oscura", "slab_m": 0.9, "pieces": 3, "tag": "diseno", "source": "plataforma de tierra con piezas de artillería; cota y orientación de la gola son diseño"},
+			"cuartel": {"builder": "caja_con_techo", "color": "cal_envejecida", "roof_color": "paja", "default_height_m": 3.6, "tag": "diseno", "source": "casa del cura: lugar razonado, planta de diseño"},
+			"posta": {"builder": "patio_muros", "color": "adobe", "roof_color": "paja", "wall_height_m": 2.4, "wall_thickness_m": 0.6, "tag": "diseno", "source": "patio de la posta con muros de 2,4 m: planta de diseño"},
+			"polvorin": {"builder": "caja_con_techo", "color": "adobe", "roof_color": "madera_oscura", "default_height_m": 2.6, "tag": "diseno", "source": "polvorín de la posta: lugar de diseño"},
+			"parque": {"builder": "caja", "color": "madera_oscura", "default_height_m": 1.2, "tag": "diseno", "source": "parque de artillería de la posta: lugar de diseño"},
+			"corral_posta": {"builder": "plano", "color": "sedimento_humedo", "raise_m": 0.12, "tag": "diseno", "source": "corral junto a la posta: lugar de diseño"}
+		},
+		"tapia": {"color": "adobe", "cap_color": "paja", "cap_m": 0.2},
+		"zanja": {"color": "sedimento_humedo", "raise_m": 0.08},
+		"camino": {"color": "suelo_seco", "gain": 1.12, "raise_m": 0.09},
+		"rio": {"color": "agua_turbia", "bed_color": "piedra_gris", "raise_m": 0.2}
+	},
+	"tokens": {
+		"rodriguez": {"shape": "jinete", "min_px": 60, "glyph": "1", "ring_color": "celeste_produccion", "ring_border_color": "blanco_textil", "body_color": "lana_parda", "accent_color": "azul_elegido", "tag": "diseno", "source": "silueta de producción: jinete con poncho y sombrero de ala ancha (diseño 11.2)"},
+		"portal": {"shape": "infante_fusil", "min_px": 60, "glyph": "2", "ring_color": "celeste_produccion", "ring_border_color": "blanco_textil", "body_color": "lino_crudo", "accent_color": "azul_elegido", "tag": "diseno", "source": "silueta de producción: infante de camisa y gorra con fusil (diseño 11.2)"},
+		"arias": {"shape": "infante_banderin", "min_px": 60, "glyph": "3", "ring_color": "celeste_produccion", "ring_border_color": "blanco_textil", "body_color": "azul_elegido", "accent_color": "celeste_produccion", "tag": "diseno", "source": "silueta de producción: infante con banderín de mando; el banderín es marcador de interfaz, no bandera"},
+		"reconocedores": {"shape": "agachados", "min_px": 60, "glyph": "4", "ring_color": "celeste_produccion", "ring_border_color": "blanco_textil", "body_color": "lana_parda", "accent_color": "verde_elegido", "tag": "diseno", "source": "silueta de producción: dos figuras agachadas con poncho (diseño 11.2)"},
+		"arreo": {"shape": "mula_cargada", "min_px": 60, "glyph": "5", "ring_color": "oro_laton", "ring_border_color": "negro_textil", "body_color": "lana_parda", "accent_color": "cuero", "tag": "diseno", "source": "silueta de producción: mula con aparejo y bultos; marcador neutral dorado (diseño 11.2)"}
+	},
+	"markers": {
+		"interfaz": true,
+		"nota": "Marcadores de interfaz (diseño): colores de bando, no banderas ni emblemas.",
+		"patriota": {"fill": "#7FAAC4", "border": "#EFE8D7", "fill_id": "celeste_produccion", "border_id": "blanco_textil", "shape": "anillo", "tag": "diseno", "source": "celeste de producción con borde blanco: marcador de interfaz del bando patriota"},
+		"realista": {"fill": "#983F36", "border": "#383831", "fill_id": "borgona_hipotetica", "border_id": "negro_textil", "shape": "anillo", "tag": "diseno", "source": "borgoña hipotética con borde negro: marcador de interfaz del bando realista"},
+		"neutral": {"fill": "#B99A50", "border": "#383831", "fill_id": "oro_laton", "border_id": "negro_textil", "shape": "anillo", "tag": "diseno", "source": "oro con borde negro: marcador neutral del arreo"}
+	},
+	"units": {
+		"archetypes": [
+			{"id": "poncho_sombrero", "para": ["jinetes", "arreo"], "silueta": "poncho largo y sombrero de ala ancha", "height_m": 1.75, "outer_color": "lana_parda", "inner_color": "lino_crudo", "hat_color": "madera_oscura", "accent_color": "azul_elegido"},
+			{"id": "camisa_gorra", "para": ["infantes"], "silueta": "camisa corta y gorra, fusil al hombro", "height_m": 1.72, "outer_color": "lino_crudo", "inner_color": "lino_crudo", "hat_color": "azul_elegido", "accent_color": "cuero"},
+			{"id": "artillero", "para": ["artilleros"], "silueta": "delantal de cuero y atacador largo", "height_m": 1.7, "outer_color": "cuero", "inner_color": "lana_natural", "hat_color": "lana_parda", "accent_color": "hierro"}
+		],
+		"realista_1817": {"silueta": "figura de royalist_1817 retintada, sin uniforme cerrado", "outer_color": "lana_natural", "accent_color": "borgona_hipotetica"},
+		"variants": [
+			{"camisa": "lino_crudo", "abrigo": "lana_parda", "sombrero": "madera_oscura", "acento": ""},
+			{"camisa": "lana_natural", "abrigo": "azul_elegido", "sombrero": "lana_parda", "acento": ""},
+			{"camisa": "lino_crudo", "abrigo": "lana_natural", "sombrero": "cuero", "acento": ""},
+			{"camisa": "lana_natural", "abrigo": "lana_parda", "sombrero": "azul_elegido", "acento": ""},
+			{"camisa": "lino_crudo", "abrigo": "verde_elegido", "sombrero": "madera_oscura", "acento": "rojo_reservado"},
+			{"camisa": "lana_natural", "abrigo": "lana_parda", "sombrero": "lana_parda", "acento": ""}
+		],
+		"accent_every": 6,
+		"accent_max_surface_pct": 15,
+		"tag": "diseno",
+		"source": "figuras sin uniformar; un acento rojo o verde cada seis; el color de bando lo da el marcador, no la ropa"
+	},
+	"canonical_views": [
+		{
+			"id": "acceso_so", "name": "Llegada nocturna por el sudoeste",
+			"target": {"x": 300.0, "z": 520.0}, "distance": 150.0, "pitch_deg": 22.0, "yaw_deg": 45.0, "time_of_day": 0.02, "rain": 0.9,
+			"must_show": [
+				"La ladera occidental a un lado, el núcleo (3 edificios o más) y el templo al fondo",
+				"El templo de nave con techo a dos aguas, sin torres de campanas ni fachada monumental",
+				"Lluvia visible y escena legible: suelo, edificios y 2 fichas o más pese a la noche",
+				"Sin monumento, escalinata, postes, tendidos ni álamos",
+				"La interfaz no tapa el núcleo"],
+			"tag": "diseno", "source": "diseño 11.3 y anexo B del QA (M01); borrador de R1.0"
+		},
+		{
+			"id": "desde_bateria", "name": "El pueblo desde la batería",
+			"target": {"x": 318.0, "z": 350.0}, "distance": 60.0, "pitch_deg": 18.0, "yaw_deg": 90.0, "time_of_day": 0.55, "rain": 0.2,
+			"must_show": [
+				"El pueblo por debajo, hacia el este",
+				"El río o el lecho claro al fondo",
+				"El parapeto de la batería y 1 pieza o más en primer plano",
+				"Luz de alba cálida con sombras largas",
+				"Sin torres de campanas de 1880"],
+			"tag": "diseno", "source": "diseño 11.3 y anexo B del QA (M03); borrador de R1.0"
+		},
+		{
+			"id": "patio_posta", "name": "El patio de la posta por la mañana",
+			"target": {"x": 590.0, "z": 300.0}, "distance": 45.0, "pitch_deg": 40.0, "yaw_deg": 315.0, "time_of_day": 0.8, "rain": 0.1,
+			"must_show": [
+				"Muros del patio de la posta con sus dos entradas",
+				"3 clases de objeto distinguibles o más: cargas, animales, polvorín o barriles",
+				"Solo colores de la paleta: adobe, madera y cuero",
+				"El polvorín al noreste del patio",
+				"Se ve cuánto se carga (chip o panel de carga)"],
+			"tag": "diseno", "source": "diseño 11.3 y anexo B del QA (M04); borrador de R1.0"
+		},
+		{
+			"id": "panorama_alto", "name": "Panorama alto del valle",
+			"target": {"x": 450.0, "z": 330.0}, "distance": 330.0, "pitch_deg": 28.0, "yaw_deg": 90.0, "time_of_day": 0.55, "rain": 0.15,
+			"must_show": [
+				"La secuencia ladera, núcleo, monte ribereño, lecho claro, llanura, cerros y horizonte",
+				"Sin torres de campanas ni monumento",
+				"Luz cálida y sombras largas",
+				"Sin huecos ni borde del mundo",
+				"Techos claros entre arbolado oscuro, como en la foto de 1923"],
+			"tag": "diseno", "source": "diseño 11.3 y anexo B del QA (M07); composición de la foto de 1923 como relación; borrador de R1.0"
+		},
+		{
+			"id": "grupos_en_accion", "name": "El asalto al cuartel con la torre",
+			"target": {"x": 418.0, "z": 335.0}, "distance": 90.0, "pitch_deg": 45.0, "yaw_deg": 0.0, "time_of_day": 0.55, "rain": 0.3,
+			"must_show": [
+				"La torre se identifica: volumen vertical con plataforma",
+				"Fuego o humo saliendo de la torre",
+				"3 fichas distinguibles o más",
+				"Líneas de fuego o marcas de impacto",
+				"Bajas o estado de las partidas a la vista"],
+			"tag": "diseno", "source": "diseño 11.3 y anexo B del QA (M05); borrador de R1.0"
+		},
+		{
+			"id": "juego_noche", "name": "Cámara de juego de noche",
+			"target": {"x": 350.0, "z": 470.0}, "distance": 470.0, "pitch_deg": 52.0, "yaw_deg": 35.0, "time_of_day": 0.0, "rain": 0.9,
+			"must_show": [
+				"3 puntos de luz o más: brasero de la batería, ventana del cuartel y candil de la posta",
+				"Los tres objetivos identificables sin leer texto",
+				"Relieve y núcleo visibles: no es casi solo noche",
+				"3 fichas o más distinguibles del suelo",
+				"La interfaz no tapa los objetivos"],
+			"tag": "diseno", "source": "diseño 11.3 y anexo B del QA (M13); es la cámara inicial; borrador de R1.0"
+		},
+		{
+			"id": "juego_alba", "name": "Cámara de juego al alba",
+			"target": {"x": 350.0, "z": 470.0}, "distance": 470.0, "pitch_deg": 52.0, "yaw_deg": 35.0, "time_of_day": 0.5, "rain": 0.42,
+			"must_show": [
+				"Sombras largas y luz cálida",
+				"Fichas en sus puestos y fogatas de la guardia",
+				"Los tres objetivos identificables",
+				"El núcleo se distingue del suelo por luz y trazo, no solo por color",
+				"Sin torres de campanas ni monumento"],
+			"tag": "diseno", "source": "diseño 11.3 y anexo B del QA (M14); la misma cámara que juego_noche; borrador de R1.0"
+		}
+	],
+	"initial_frame": {
+		"target": {"x": 350.0, "z": 470.0}, "distance": 470.0, "pitch_deg": 52.0, "yaw_deg": 35.0, "margin_pct": 5.0,
+		"must_include": ["bateria", "cuartel", "posta", "zona_partida"],
+		"tag": "diseno", "source": "diseño 11.3: cámara inicial; incluye los tres objetivos y la zona de partida"
+	},
+	"quality": {
+		"baja": {"frame_ms_mean_max": 2.5, "frame_ms_p95_max": 8.3, "build_ms_max": 1500, "terrain_step_m": 10.0, "shadows": false, "omni_lights_max": 0, "outlines": false, "enemy_min_px": 12, "fx_max": 12},
+		"media": {"frame_ms_mean_max": 4.0, "frame_ms_p95_max": 8.3, "build_ms_max": 1500, "terrain_step_m": 5.0, "shadows": true, "omni_lights_max": 4, "outlines": true, "enemy_min_px": 14, "fx_max": 24},
+		"alta": {"frame_ms_mean_max": 6.0, "frame_ms_p95_max": 8.3, "build_ms_max": 1500, "terrain_step_m": 5.0, "shadows": true, "omni_lights_max": 8, "outlines": true, "enemy_min_px": 14, "fx_max": 40}
+	},
+	"fx": {
+		"fogonazo": {"color": "oro_laton", "radius_m": 3.0, "life_s": 0.25, "rise_m": 1.5},
+		"humo": {"color": "piedra_gris", "radius_m": 6.0, "life_s": 2.2, "rise_m": 7.0},
+		"impacto": {"color": "sedimento_humedo", "radius_m": 3.5, "life_s": 0.5, "rise_m": 0.8},
+		"captura": {"color": "celeste_produccion", "radius_m": 12.0, "life_s": 1.2, "rise_m": 3.0},
+		"pisadas": {"color": "blanco_textil", "radius_m": 2.0, "life_s": 0.8, "rise_m": 0.2},
+		"explosion": {"color": "rojo_reservado", "radius_m": 9.0, "life_s": 0.9, "rise_m": 4.0},
+		"senal": {"color": "blanco_textil", "radius_m": 4.0, "life_s": 1.6, "rise_m": 12.0},
+		"estado": "borrador de R1.0: esferas que crecen y se desvanecen; los efectos finales llegan en R2a"
+	},
+	"content_ring": {
+		"inner_m": 0.0,
+		"outer_m": 400.0,
+		"seed": 1817,
+		"items": ["parcelas con tapias", "sauces de ribera", "ruinas de la capilla de Santa Bárbara", "rocas", "huellas de carreta"],
+		"estado": "borrador de R1.0: el anillo de contenido se reparte en R2a según pendiente y humedad",
+		"tag": "diseno",
+		"source": "diseño 3: anillo de contenido de 0 a 400 m fuera del núcleo"
+	}
 }
