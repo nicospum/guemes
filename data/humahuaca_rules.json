@@ -15,10 +15,12 @@
 	},
 	"environment": {
 		"segments": [
-			{"from_s": 0, "to_s": 210, "phase": "noche", "time_of_day": [0.0, 0.05], "rain": [0.9, 0.9], "visibility_m": [35, 35], "firearm_reliability": [0.55, 0.55]},
-			{"from_s": 210, "to_s": 270, "phase": "noche", "time_of_day": [0.05, 0.25], "rain": [0.8, 0.8], "visibility_m": [45, 45], "firearm_reliability": [0.55, 0.55]},
-			{"from_s": 270, "to_s": 330, "phase": "alba", "time_of_day": [0.25, 0.65], "rain": [0.5, 0.2], "visibility_m": [60, 140], "firearm_reliability": [0.9, 0.9]},
-			{"from_s": 330, "to_s": 420, "phase": "dia", "time_of_day": [0.65, 1.0], "rain": [0.1, 0.1], "visibility_m": [300, 600], "firearm_reliability": [0.9, 0.9]},
+			{"from_s": 0, "to_s": 210, "phase": "noche", "time_of_day": [0.0, 0.0], "rain": [0.9, 0.9], "visibility_m": [35, 35], "firearm_reliability": [0.55, 0.55]},
+			{"from_s": 210, "to_s": 240, "phase": "noche", "time_of_day": [0.0, 0.0], "rain": [0.8, 0.8], "visibility_m": [45, 45], "firearm_reliability": [0.55, 0.55]},
+			{"from_s": 240, "to_s": 270, "phase": "noche", "time_of_day": [0.0, 0.3333], "rain": [0.8, 0.8], "visibility_m": [45, 45], "firearm_reliability": [0.55, 0.55]},
+			{"from_s": 270, "to_s": 285, "phase": "alba", "time_of_day": [0.3333, 0.5], "rain": [0.5, 0.425], "visibility_m": [60, 80], "firearm_reliability": [0.9, 0.9]},
+			{"from_s": 285, "to_s": 330, "phase": "alba", "time_of_day": [0.5, 0.6667], "rain": [0.425, 0.2], "visibility_m": [80, 140], "firearm_reliability": [0.9, 0.9]},
+			{"from_s": 330, "to_s": 420, "phase": "dia", "time_of_day": [0.6667, 1.0], "rain": [0.1, 0.1], "visibility_m": [300, 600], "firearm_reliability": [0.9, 0.9]},
 			{"from_s": 420, "to_s": 100000, "phase": "dia", "time_of_day": [1.0, 1.0], "rain": [0.1, 0.1], "visibility_m": [600, 600], "firearm_reliability": [0.9, 0.9]}
 		],
 		"mud_start": 0.55,
@@ -26,7 +28,7 @@
 		"mud_dry_per_s": 0.01,
 		"mud_slow": 0.2,
 		"tag": "diseno",
-		"source": "Lluvia de la noche y del alba: reconstrucción razonada. time_of_day: 0 noche, 0,5 alba, 1 día (como la luz de la vista)."
+		"source": "Lluvia: reconstrucción razonada. time_of_day (luz): 0 hasta 4:00, 0,5 a las 4:45, 0,67 a las 5:30 y 1 a las 7:00."
 	},
 	"groups": {
 		"rodriguez": {"key": 1, "name": "Partida de Rodríguez", "short": "Rodríguez", "glyph": "R", "kind": "partida", "front": "bateria", "men": 48, "strength": 100.0, "armed": 0.25, "mounted": true, "horses": 16, "capacity_kg": 0, "pace": "march", "tag": "diseno", "tag_parts": {"funcion": "documentado", "reparto_y_armas": "diseno"}, "source": "Parte de Arias, 3-III-1817: quién y dónde. El reparto y las armas son diseño."},
