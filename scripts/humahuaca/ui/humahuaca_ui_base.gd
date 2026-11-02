@@ -89,6 +89,7 @@ var _rec: Dictionary = {}
 var _auto_start := true
 var _auto_resume := 0.0
 var _paused_before_dialog := true
+var _confirm_back := ""  # a dónde vuelve «No» de una confirmación: "" al menú de pausa (retirada) o "juego" (destruir sin que lo pida el siguiente paso)
 var _dialog_back := ""  # a qué ventana vuelve «Cerrar» en el diario y la ayuda: "pausa" si se abrieron desde el menú de pausa (si no, al juego; en el parte, siempre al parte)
 var _decision_left := 0.0
 var _decision_id := ""
@@ -510,8 +511,10 @@ func _build_ui() -> void:
 	_modal_layer.add_child(_subtitle)
 	_skip_hint = Label.new()
 	_skip_hint.name = "HxSkipHint"
-	_skip_hint.add_theme_font_size_override("font_size", 14)
-	_skip_hint.add_theme_color_override("font_color", Kit.MUTED)
+	_skip_hint.add_theme_font_size_override("font_size", 16)
+	_skip_hint.add_theme_color_override("font_color", Kit.PAPER)
+	_skip_hint.add_theme_color_override("font_outline_color", Color(0.02, 0.03, 0.02, 1.0))
+	_skip_hint.add_theme_constant_override("outline_size", 5)
 	_skip_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_skip_hint.anchor_left = 1.0
 	_skip_hint.anchor_right = 1.0

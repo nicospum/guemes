@@ -388,9 +388,11 @@ func _make_group_card(id: String, size: Vector2) -> void:
 	var tag_l := Kit.label(foot, "", int(_num(["font", "tiny"], 12.0)), Kit.PAPER)
 	tag_l.clip_text = false
 	tag_l.visible = false
+	tag_l.mouse_filter = Control.MOUSE_FILTER_PASS  # B-052: nadie entendía el triángulo ni los puntos; cada uno explica qué es al pasar el mouse
 	var noise_l := Kit.label(foot, "", int(_num(["font", "tiny"], 12.0)), Kit.MUTED)
 	noise_l.clip_text = false
 	noise_l.visible = false
+	noise_l.mouse_filter = Control.MOUSE_FILTER_PASS
 	group_cards[id] = {"panel": p, "name": name_l, "tag": tag_l, "noise": noise_l, "stage": stage_l, "force": bar_force, "tired": bar_tired, "key": key_l}
 
 
@@ -526,6 +528,7 @@ func _refresh_fronts(hs: Dictionary) -> void:
 		if (c.info as Label).text != " · ".join(PackedStringArray(parts)):
 			tip = " · ".join(PackedStringArray(parts)) + "
 " + tip  # lo que no entró en la tarjeta queda en el cartel
+		tip += "\n" + _t("hud.front_tip")
 		(c.panel as Control).tooltip_text = tip
 
 
@@ -546,7 +549,11 @@ func short_names() -> Dictionary:
 func _refresh_dock(hs: Dictionary, ctx: Dictionary) -> void:
 	var guide := _dict(ctx.get("guide"))
 	next_title_l.visible = not guide.is_empty() and str(guide.get("text", "")) != ""
-	next_text_l.text = str(guide.get("text", ""))
+	var next_text := str(guide.get("text", ""))
+	var why := str(guide.get("why", ""))
+	if why != "" and not bool(guide.get("enabled", true)):
+		next_text += " " + why  # B-052: el botón apagado no decía por qué; ahora la causa va junto al paso
+	next_text_l.text = next_text
 	var urgency := int(guide.get("urgencia", 0))
 	next_text_l.add_theme_color_override("font_color", Kit.WARN_TEXT if urgency >= 2 else Kit.PAPER)
 	var button_text := str(guide.get("button", ""))
@@ -694,6 +701,7 @@ func _refresh_groups(hs: Dictionary, ctx: Dictionary) -> void:
 		(c.noise as Control).tooltip_text = str(texts.get("hud", {}).get("noise", {}).get(noise, ""))
 		var tag_id := str(d.get("tag", "diseno"))
 		(c.tag as Label).text = Kit.tag_glyph(tags, tag_id)
+		(c.tag as Control).tooltip_text = "%s %s: %s" % [Kit.tag_glyph(tags, tag_id), str(Kit.tag_info(tags, tag_id).get("etiqueta", "")), str(Kit.tag_info(tags, tag_id).get("descripcion", ""))]
 		(c.tag as Label).add_theme_color_override("font_color", Kit.tag_color(tags, tag_id))
 		(c.tag as Label).visible = is_sel
 		var alive := bool(d.get("vivo", true))

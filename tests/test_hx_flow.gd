@@ -5,7 +5,8 @@ extends SceneTree
 ## controlador ofrece (qa_state, los nodos de su interfaz y la API de QA): ninguna prueba toca atributos privados de main.
 ##   _test_reserved_keys · _test_first_frame · _test_full_cycle · _test_expert_wins_passive_loses · _test_first_decision · _test_save_load · _test_cli_flags
 ## más la cámara (A-11), las acciones y su vista previa, las ventanas, el desborde a tres tamaños y la jerga; en el pase 3 de R1, el objetivo por fase y los textos cortados
-## (H-R1-10), los avisos de orden y de rechazo (B-046, B-052) y el chip de carga (B-053). El «experto» de R1 es el que sigue el
+## (H-R1-10), los avisos de orden y de rechazo (B-046, B-052), el chip de carga (B-053), la confirmación de destruir, el conteo de intentos y el paso apagado con su causa. `--only=<id>` corre una sola (ids: primer_cuadro, camara, teclas,
+## acciones, aviso, ventanas, hud_guiado, recortes, objetivo, avisos_orden, carga, avisos_pie, reintento, primera_decision, ciclo, experto_pasivo, guardado, banderas, desborde, textos, key_table). El «experto» de R1 es el que sigue el
 ## «siguiente paso» de las reglas hasta el final; la biblioteca de políticas (reglas_historia) corre por la escena real en humahuaca_playthrough.gd.
 
 const Fx = preload("res://tests/hx_fixtures.gd")
@@ -32,6 +33,7 @@ func _initialize() -> void:
 		quit(2)
 		return
 	Fx.clean_profile()
+	OS.set_low_processor_usage_mode_sleep_usec(300)  # sin ventana el motor dormía 6,9 ms en cada cuadro (más de la mitad de esta prueba era esperar cuadros): la prueba espera su propio trabajo
 	call_deferred("_run")
 
 
@@ -66,13 +68,17 @@ func _tap(code: int) -> void:
 	await process_frame
 
 
+## Mantiene apretada una tecla lo que durarían `frames` cuadros a 60 por segundo (≈ 16,7 ms cada uno): por tiempo y no por cantidad de cuadros, porque la prueba corre los cuadros
+## mucho más rápido que 60 por segundo y la cámara se mueve con el tiempo real.
 func _hold(code: int, frames: int) -> void:
 	var e := InputEventKey.new()
 	e.keycode = code
 	e.physical_keycode = code
 	e.pressed = true
 	root.push_input(e)
-	await _frames(frames)
+	var until := Time.get_ticks_msec() + int(float(frames) * 16.7)
+	while Time.get_ticks_msec() < until:
+		await process_frame
 	var r := InputEventKey.new()
 	r.keycode = code
 	r.physical_keycode = code
@@ -121,6 +127,14 @@ func _start_level(opts: Dictionary = {"skip_intro": true}) -> bool:
 func _to_menu() -> void:
 	game._menu()
 	await _frames(3)
+	hx = null
+
+
+## Deja el nivel sin pasar por el menú, que arma el fondo de la Justina (≈ 0,5 s cada vez, la mitad de lo que tardaba esta prueba): el próximo `_start_level` detiene el controlador anterior.
+## Solo las pruebas que necesitan el menú (el botón de Humahuaca) usan `_to_menu`.
+func _leave_level() -> void:
+	game._stop_humahuaca()
+	await _frames(2)
 	hx = null
 
 
@@ -216,7 +230,8 @@ func _run() -> void:
 			only = str(arg).trim_prefix("--only=")
 	var plan: Array = [["primer_cuadro", _test_first_frame], ["camara", _test_camera], ["teclas", _test_reserved_keys], ["acciones", _test_actions_and_preview],
 		["aviso", _test_alert_placement], ["ventanas", _test_dialogs], ["hud_guiado", _test_hud_guided_selection], ["recortes", _test_cut_probe_sanity],
-		["objetivo", _test_objective_by_phase], ["avisos_orden", _test_order_feedback], ["carga", _test_load_chip], ["primera_decision", _test_first_decision],
+		["objetivo", _test_objective_by_phase], ["avisos_orden", _test_order_feedback], ["carga", _test_load_chip], ["avisos_pie", _test_alert_dedupe_and_tips],
+		["reintento", _test_retry_counts], ["primera_decision", _test_first_decision],
 		["ciclo", _test_full_cycle], ["experto_pasivo", _test_expert_wins_passive_loses], ["guardado", _test_save_load], ["banderas", _test_cli_flags],
 		["desborde", _test_overflow_sizes], ["textos", _test_texts], ["key_table", _test_key_table]]
 	var ms_by_test := {}
@@ -290,7 +305,7 @@ func _test_first_frame() -> void:
 		suite.extra["borde_min_%dx%d" % [size.x, size.y]] = snappedf(edge_min, 0.1)
 		suite.check(not hx.hud.bar.visible and not hx.hud.notice_row.visible, "%dx%d: en el primer cuadro no hay barra de órdenes ni avisos de pie vacíos que ocupen lugar" % [size.x, size.y])
 	await _set_window(Vector2i(1280, 720))
-	await _to_menu()
+	await _leave_level()
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -352,7 +367,7 @@ func _test_camera() -> void:
 	var yaw0: float = hx.qa_state().camera.yaw_deg
 	await _hold(KEY_E, 10)
 	suite.check(absf(float(hx.qa_state().camera.yaw_deg) - yaw0) > 0.5, "cámara: E gira la guiñada")
-	await _to_menu()
+	await _leave_level()
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -408,6 +423,10 @@ func _test_reserved_keys() -> void:
 	suite.check(Vector2(float(tgt[0]), float(tgt[1])).distance_to(cuartel) < 1.5, "teclas: pulsar 2 otra vez centra la cámara en el cuartel (%s vs %s)" % [str(tgt), str(cuartel)])
 	await _key(KEY_5)
 	suite.check(hx.qa_state().selected == ["arreo"], "teclas: 5 elige el arreo")
+	await _key(KEY_5)
+	var arreo_u: Dictionary = hx.rules.get_unit("arreo")
+	var arreo_t: Array = hx.qa_state().camera.target
+	suite.check(Vector2(float(arreo_t[0]), float(arreo_t[1])).distance_to(Vector2(float(arreo_u.x), float(arreo_u.z))) < 1.5, "teclas: pulsar 5 otra vez centra la cámara en el arreo (%s vs %.0f, %.0f)" % [str(arreo_t), float(arreo_u.x), float(arreo_u.z)])
 	await _key(KEY_TAB)
 	suite.check(hx.qa_state().selected == ["rodriguez"], "teclas: Tab pasa a la agrupación siguiente (de la 5 a la 1)")
 	await _key(KEY_TAB, false, true)
@@ -430,13 +449,13 @@ func _test_reserved_keys() -> void:
 	var stage_before := str(hx.rules.get_unit("reconocedores").stage)
 	await _key(KEY_Z, true)
 	suite.check(str(hx.rules.get_unit("reconocedores").stage) == "idle" and stage_before != "idle", "teclas: Ctrl+Z deshace la última orden (%s → %s)" % [stage_before, str(hx.rules.get_unit("reconocedores").stage)])
-	await _to_menu()
+	await _leave_level()
 	# sin ninguna orden, Esc vuelve al menú
 	if await _start_level():
 		await _key(KEY_ESCAPE)
 		await _frames(3)
 		suite.check(game.mode == "menu" and game.hx == null, "teclas: sin órdenes dadas, Esc vuelve al menú y libera el controlador")
-	await _to_menu()
+	await _leave_level()
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -519,7 +538,7 @@ func _test_actions_and_preview() -> void:
 	suite.check(_issued_actions().has("support") or not str(hx.orders.last_error).is_empty(), "acciones: elegir el frente manda «Socorrer» (o dice por qué no)")
 	hx.orders.cancel_aim()
 	suite.check(not hx.orders.aiming(), "acciones: cancelar el modo apuntado lo deja sin orden en la mano")
-	await _to_menu()
+	await _leave_level()
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -553,7 +572,7 @@ func _test_alert_placement() -> void:
 	h.place_alert([])
 	var avoid: Array = hx.avoid_rects()
 	suite.check(avoid.size() >= 8, "aviso: el controlador entrega un rectángulo por ficha y por frente (%d)" % avoid.size())
-	await _to_menu()
+	await _leave_level()
 	# la alerta más alta (título, texto largo y botón) con la barra de órdenes en su peor caso (todas las acciones y los ritmos) y un aviso de pie: nada se pisa
 	for size in [Vector2i(1280, 720), Vector2i(1024, 640)]:
 		await _set_window(size)
@@ -585,7 +604,7 @@ func _test_alert_placement() -> void:
 		suite.check(alert_w <= maxf(float(hh.root.size.x) * 0.4, 360.0) + 1.0, "alerta y barra %dx%d: en ventanas chicas la alerta es más angosta (%d px de %d)" % [size.x, size.y, int(alert_w), int(hh.root.size.x)])
 		suite.check(hh.bar.visible and hh.alert_panel.is_visible_in_tree() and crossing.is_empty() and inside, "alerta y barra %dx%d: con la alerta más alta, la barra en su peor caso y un aviso de pie, ningún panel pisa a otro (%s)" % [size.x, size.y, str(crossing)])
 		hx.set_process(true)
-		await _to_menu()
+		await _leave_level()
 	await _set_window(Vector2i(1280, 720))
 
 
@@ -651,7 +670,7 @@ func _test_dialogs() -> void:
 	hx.dialogs.update_decision(7.2)
 	suite.check(hx.dialogs._decision_count.text.find("8") >= 0, "ventanas: la decisión muestra el reloj («%s»)" % hx.dialogs._decision_count.text)
 	hx.dialogs.close()
-	await _to_menu()
+	await _leave_level()
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -744,7 +763,7 @@ func _test_hud_guided_selection() -> void:
 		var bars := 0
 		var steps := 0
 		var cuts: Dictionary = {}
-		while steps < 110 and str(hx.qa_state().status) == "playing" and str(hx.qa_state().dialog) == "":
+		while steps < 90 and str(hx.qa_state().status) == "playing" and str(hx.qa_state().dialog) == "":
 			hx.qa_press_next()
 			await _tap(KEY_1 + (steps % 5))  # el jugador va eligiendo fichas con las teclas 1 a 5: cada elección cambia la barra de órdenes
 			hx.qa_step(5.0)
@@ -775,7 +794,7 @@ func _test_hud_guided_selection() -> void:
 		suite.check(width_min >= 250.0, "HUD guiado %dx%d: el «siguiente paso» nunca queda en una columna angosta (mínimo %d px)" % [size.x, size.y, int(width_min)])
 		suite.check(cuts.is_empty(), "HUD guiado %dx%d: ningún texto queda cortado en %d pasos (H-R1-10; %d distintos: %s)" % [size.x, size.y, steps, cuts.size(), str(cuts.values().slice(0, 2))])
 		suite.extra["hud_guiado_%dx%d" % [size.x, size.y]] = {"pasos": steps, "cruces": crossings, "lineas_siguiente_max": lines_max, "ancho_siguiente_min_px": int(width_min), "pasos_con_aviso": toasts, "pasos_con_barra": bars}
-		await _to_menu()
+		await _leave_level()
 	await _set_window(Vector2i(1280, 720))
 
 
@@ -844,7 +863,7 @@ func _test_objective_by_phase() -> void:
 			hx.hud.texts["objective"]["source"] = "rules"  # con «rules» manda lo que digan las reglas (cuando den la frase de cada fase, BACKLOG B-048)
 			hx.refresh_hud_now()
 			suite.check(hx.hud.objective_l.text == str(hx.rules.hud_state().objetivo), "objetivo: con la fuente «rules» el HUD pinta lo que dice hud_state().objetivo (%s)" % hx.hud.objective_l.text)
-		await _to_menu()
+		await _leave_level()
 	for size in sizes:
 		var key := "%dx%d" % [size.x, size.y]
 		suite.check((cut_texts[key] as Array).is_empty(), "objetivo %s: en las cuatro fases ningún texto del HUD queda cortado (%s)" % [key, str(cut_texts[key])])
@@ -894,34 +913,116 @@ func _test_order_feedback() -> void:
 	suite.check(glossary.find("Golpe: cuánto valor") >= 0 and glossary.find("Desvelo:") >= 0, "ayuda: explica «Golpe» y «Desvelo», que nadie entendía (B-052)")
 	hx.dialogs.close()
 	suite.check(["golpe", "carga", "refuerzo"].all(func(id): return str(hx.hud.chip_labels[id].panel.tooltip_text) != "") and hx.hud.status_l.tooltip_text != "", "ayuda: los chips y la línea de la señal traen su cartel explicativo")
-	await _to_menu()
+	await _leave_level()
 
 
 # ---------------------------------------------------------------------------------------------------------------------
-# B-053 (b): el arreo carga desde el ataque y el chip de carga se ve apenas empieza
+# B-053 (b): el arreo carga desde el ataque y el chip de carga se ve apenas empieza; y mientras carga, destruir a mano se pregunta
 
 func _test_load_chip() -> void:
 	if not suite.check(await _start_level({"skip_intro": true, "seed": 7, "phase": "ataque"}), "chip de carga: el nivel arranca en el ataque"):
 		return
 	var seen_in_attack := false
-	var hidden_in_attack := true
 	var steps := 0
-	while steps < 140 and str(hx.qa_state().status) == "playing" and str(hx.qa_state().phase) == "ataque":
+	while steps < 140 and not seen_in_attack and str(hx.qa_state().status) == "playing" and str(hx.qa_state().phase) == "ataque":
 		_follow_guide(1.0)
 		steps += 1
 		hx.refresh_hud_now()
 		if str(hx.qa_state().phase) != "ataque":
 			break
-		var load_chip: Dictionary = {}
 		for c in hx.rules.hud_state().chips:
-			if str(c.id) == "carga":
-				load_chip = c
-		if not load_chip.is_empty() and float(load_chip.valor) > 0.0:
-			seen_in_attack = true
-			hidden_in_attack = hidden_in_attack and not bool(hx.hud.chip_labels.carga.panel.visible)
-	suite.check(seen_in_attack, "chip de carga: el arreo empieza a cargar mientras todavía es el ataque (%d s)" % steps)
-	suite.check(seen_in_attack and not hidden_in_attack, "chip de carga: apenas el arreo carga, el chip «Carga» se ve en el ataque (no recién en la extracción)")
-	await _to_menu()
+			if str(c.id) == "carga" and float(c.valor) > 0.0:
+				seen_in_attack = true
+	suite.check(seen_in_attack, "chip de carga: el arreo empieza a cargar mientras todavía es el ataque (a los %d s)" % steps)
+	await _frames(3)
+	hx.refresh_hud_now()
+	suite.check(seen_in_attack and bool(hx.hud.chip_labels.carga.panel.visible), "chip de carga: apenas el arreo carga, el chip «Carga» se ve en el ataque (no recién en la extracción): %s" % str(hx.hud.chip_labels.carga.label.text))
+	await _destroy_confirm_checks()
+	await _leave_level()
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Destruir a mano se pregunta (lo vio el agente-jugador: un X por costumbre quemó la carga sin avisar); si lo pide el siguiente paso, no
+
+## Corre con el arreo junto a la carga y el siguiente paso pidiendo otra cosa (esperar a que cargue).
+func _destroy_confirm_checks() -> void:
+	if not suite.check(bool(hx.orders.availability("arreo", "destroy").get("ok", false)) and str(hx.qa_state().guide.action) != "destroy", "destruir: con el arreo junto a la carga se puede destruir y el siguiente paso no lo pide (%s)" % str(hx.qa_state().guide.action)):
+		return
+	await _key(KEY_5)
+	var before := _issued_actions().size()
+	await _key(KEY_X)
+	suite.check(str(hx.qa_state().dialog) == "confirmar" and _find_button("Sí, destruir", game) != null and _find_button("No, esperar", game) != null, "destruir: apretar X sin que el siguiente paso lo pida abre la pregunta (%s)" % str(hx.qa_state().dialog))
+	suite.check(_issued_actions().size() == before, "destruir: mientras se pregunta no se da ninguna orden")
+	await _key(KEY_ESCAPE)
+	suite.check(str(hx.qa_state().dialog) == "" and game.mode == "hx" and _issued_actions().size() == before, "destruir: Esc es «No»: cierra la pregunta, no abre el menú de pausa y no destruye nada")
+	await _key(KEY_X)
+	_find_button("No, esperar", game).pressed.emit()
+	await _frames(2)
+	suite.check(str(hx.qa_state().dialog) == "" and _issued_actions().size() == before and not _issued_actions().has("destroy"), "destruir: «No, esperar» vuelve al juego sin destruir")
+	await _key(KEY_X)
+	_find_button("Sí, destruir", game).pressed.emit()
+	await _frames(2)
+	suite.check(str(hx.qa_state().dialog) == "" and _issued_actions().has("destroy"), "destruir: «Sí, destruir» da la orden")
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# La extracción sin carga: el paso «salir» queda apagado y dice por qué; el aviso de pie no repite el título de la alerta que ya está a la vista (el refuerzo salía dos veces)
+
+func _test_alert_dedupe_and_tips() -> void:
+	if not suite.check(await _start_level({"skip_intro": true, "seed": 7, "phase": "extraccion"}), "avisos de pie: el nivel arranca en la extracción"):
+		return
+	hx.qa_step(40.0)  # nadie cargó: el siguiente paso pide salir, pero el arreo no lleva carga
+	hx.refresh_hud_now()
+	await _frames(3)  # las filas se acomodan un cuadro después de cambiar un texto: antes de medir cortes hay que dejarlas
+	var g: Dictionary = hx.guide
+	suite.check(str(g.get("action", "")) == "leave" and hx.hud.next_btn.visible and hx.hud.next_btn.disabled, "paso apagado: sin carga el paso «salir» queda con su botón apagado (%s)" % str(g.get("action", "")))
+	suite.check(str(g.get("why", "")) != "" and hx.hud.next_text_l.text.find(str(g.get("why", ""))) >= 0, "paso apagado: el paso dice por qué («%s»)" % hx.hud.next_text_l.text)
+	suite.check(hx.hud.next_text_l.get_line_count() <= 2 and Kit.cut_labels(game.ui).is_empty(), "paso apagado: la causa entra en las dos líneas del paso y no corta nada (%d líneas; %s)" % [hx.hud.next_text_l.get_line_count(), str(Kit.cut_labels(game.ui))])
+	var steps := 0
+	while steps < 600 and str(hx.rules.hud_state().refuerzo.estado) != "visible" and str(hx.qa_state().status) == "playing":
+		hx.qa_step(1.0)
+		steps += 1
+	hx.refresh_hud_now()
+	await _frames(2)
+	hx.refresh_hud_now()
+	var alert_title: String = hx.hud.alert_title_l.text
+	suite.check(hx.hud.alert_panel.visible and alert_title.find("refuerzo") >= 0, "avisos de pie: llega la alerta del refuerzo (%s, a los %d s)" % [alert_title, steps])
+	suite.check(str(hx.qa_state().toast) == alert_title and not hx.hud.toast_panel.visible, "avisos de pie: la nota de pie con el mismo título no se dibuja mientras la alerta está a la vista (nota: «%s»)" % str(hx.qa_state().toast))
+	# la etiqueta de fuente y el ruido se explican solos
+	await _key(KEY_4)
+	hx.refresh_hud_now()
+	var card: Dictionary = hx.hud.group_cards.reconocedores
+	suite.check((card.tag as Label).visible and str((card.tag as Label).tooltip_text).find("Diseño") >= 0 and (card.tag as Label).mouse_filter == Control.MOUSE_FILTER_PASS, "etiquetas: el triángulo de la ficha elegida explica qué es al pasar el mouse (%s)" % str((card.tag as Label).tooltip_text).left(60))
+	suite.check(str((card.noise as Label).tooltip_text) != "" and (card.noise as Label).mouse_filter == Control.MOUSE_FILTER_PASS, "etiquetas: los puntos del ruido también (%s)" % str((card.noise as Label).tooltip_text))
+	suite.check(str(hx.hud.front_cards.bateria.panel.tooltip_text).find("Barra naranja") >= 0, "etiquetas: la tarjeta del frente explica la barra naranja de la alerta de la guardia")
+	await _leave_level()
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Un reintento desde un punto de control cuenta un solo intento (el agente-jugador vio «Intento 3» tras reintentar una vez)
+
+func _test_retry_counts() -> void:
+	if not suite.check(await _start_level({"skip_intro": true, "seed": 7}), "reintento: el nivel arranca"):
+		return
+	for id in ["rodriguez", "portal", "arias"]:
+		hx.orders.issue(id, "position")
+	var steps := 0
+	while steps < 60 and not hx.progress.has_checkpoint("posiciones"):
+		hx.qa_step(5.0)
+		steps += 1
+	suite.check(hx.progress.has_checkpoint("posiciones"), "reintento: con las tres partidas en su puesto queda el punto de control «posiciones» (a los %d s)" % (steps * 5))
+	hx.qa_step(600.0)  # sin dar la señal amanece y se pierde: el parte ofrece reintentar desde las posiciones
+	suite.check(str(hx.qa_state().status) == "defeat", "reintento: sin la señal se pierde (%s)" % str(hx.qa_state().status))
+	var before := int(hx.progress.attempts)
+	hx.retry("posiciones")
+	await _frames(2)
+	suite.check(int(hx.progress.attempts) == before + 1, "reintento: «Reintentar desde las posiciones» cuenta un solo intento (de %d a %d)" % [before, int(hx.progress.attempts)])
+	suite.check(str(hx.qa_state().mode) == "play" and float(hx.qa_state().elapsed) > 60.0 and str(hx.qa_state().status) == "playing", "reintento: y deja la partida jugable en el instante guardado (%.0f s)" % float(hx.qa_state().elapsed))
+	var mid := int(hx.progress.attempts)
+	hx.retry("mismo_mundo")
+	await _frames(2)
+	suite.check(int(hx.progress.attempts) == mid + 1, "reintento: «Reintentar» (mismo mundo) también cuenta uno solo (de %d a %d)" % [mid, int(hx.progress.attempts)])
+	await _leave_level()
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -937,7 +1038,7 @@ func _test_first_decision() -> void:
 	suite.check(int(q.orders) == 1 and first >= 0.0 and first < 60.0, "primera decisión: la primera orden sale al apretar el botón del siguiente paso, a los %.1f s de juego (< 60 s)" % first)
 	suite.check(float(q.first_order_s) >= 0.0 and float(q.first_order_s) < float(ui_json.get("hud_limits", {}).get("first_decision_max_s", 60.0)), "primera decisión: el controlador la registra (first_order_s = %.1f)" % float(q.first_order_s))
 	suite.check(not bool(q.paused), "primera decisión: el reloj arranca con esa orden")
-	await _to_menu()
+	await _leave_level()
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -1021,7 +1122,7 @@ func _test_full_cycle() -> void:
 	await _frames(2)
 	suite.check(int(hx.qa_state().seed) == seed_before and str(hx.qa_state().mode) == "play" and float(hx.qa_state().elapsed) == 0.0, "ciclo: reintentar tras la derrota mantiene el mismo mundo y vuelve a 0:00")
 	suite.check(float(hx.retry_ms) >= 0.0 and float(hx.retry_ms) <= 3000.0, "ciclo: reintento medido por el controlador ≤ 3 s (%d ms)" % int(hx.retry_ms))
-	await _to_menu()
+	await _leave_level()
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -1035,14 +1136,14 @@ func _test_expert_wins_passive_loses() -> void:
 	suite.check(won, "experto: el que sigue el siguiente paso gana por la escena real (%s a los %.0f s de juego)" % [str(hx.qa_state().status), float(hx.qa_state().elapsed)])
 	suite.check(float(hx.qa_state().elapsed) >= 300.0 and float(hx.qa_state().elapsed) <= 840.0, "experto: la partida dura lo que debe (%.0f s, plazo 840 s)" % float(hx.qa_state().elapsed))
 	suite.extra["experto"] = {"fuente": "siguiente_paso", "estado": str(hx.qa_state().status), "segundos": snappedf(float(hx.qa_state().elapsed), 0.1), "ordenes": int(hx.qa_state().orders)}
-	await _to_menu()
+	await _leave_level()
 	if not suite.check(await _start_level(), "experto y pasivo: el nivel vuelve a arrancar"):
 		return
 	hx.qa_step(500.0)
 	var rep: Dictionary = hx.rules.campaign_report()
 	suite.check(str(hx.qa_state().status) == "defeat" and str(rep.cause_id) == "amanecio", "pasivo: el que no ordena nada pierde por «amanecio» por la escena real (%s)" % str(rep.get("cause_id", "")))
 	suite.extra["pasivo"] = {"estado": str(hx.qa_state().status), "causa": str(rep.get("cause_id", "")), "segundos": snappedf(float(hx.qa_state().elapsed), 0.1)}
-	await _to_menu()
+	await _leave_level()
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -1068,14 +1169,14 @@ func _test_save_load() -> void:
 	suite.check(str(hx.qa_state().motive) == "", "guardado: F9 no deja en pantalla el motivo de una orden rechazada antes («%s»)" % str(hx.qa_state().motive))
 	suite.check(str(hx.qa_state().toast).find("recuperada") >= 0, "guardado: F9 avisa que la partida se recuperó («%s»)" % str(hx.qa_state().toast))
 	# «Continuar» desde el menú abre Humahuaca con lo guardado
-	await _to_menu()
+	await _leave_level()
 	game._load_game("humahuaca")
 	await _frames(4)
 	hx = game.hx
 	suite.check(game.mode == "hx" and is_instance_valid(hx) and is_equal_approx(float(hx.qa_state().elapsed), elapsed_saved), "guardado: «Continuar» abre el nivel con la partida guardada (%.1f s)" % float(hx.qa_state().elapsed))
 	suite.check(str(hx.qa_state().mode) == "play" and bool(hx.qa_state().paused), "guardado: al continuar se juega, en pausa, sin repetir el briefing")
 	# un guardado dañado termina en un mensaje claro y en el briefing, sin error ni cuelgue
-	await _to_menu()
+	await _leave_level()
 	var f := FileAccess.open(str(game._save_path("humahuaca")), FileAccess.WRITE)
 	f.store_string("esto no es json {")
 	f.close()
@@ -1085,7 +1186,7 @@ func _test_save_load() -> void:
 	suite.check(game.mode == "hx" and is_instance_valid(hx) and str(hx.qa_state().dialog) == "briefing", "guardado: un guardado dañado termina en el briefing, no en un error")
 	suite.check(hx.hud.warn_l.text.find("guardada") >= 0, "guardado: y dice por qué («%s»)" % hx.hud.warn_l.text)
 	# un guardado de otro escenario se rechaza con motivo
-	await _to_menu()
+	await _leave_level()
 	var g2 := FileAccess.open(str(game._save_path("humahuaca")), FileAccess.WRITE)
 	g2.store_string(JSON.stringify({"scenario": "justine", "schema_version": 1}))
 	g2.close()
@@ -1096,7 +1197,7 @@ func _test_save_load() -> void:
 	suite.check(hx.hud.warn_l.text.find("otro escenario") >= 0 and hx.hud.warn_l.text.find(".)") < 0 and hx.hud.warn_l.text.find("..") < 0 and hx.hud.warn_l.text.find("(") < 0, "guardado: el aviso dice el motivo sin punto doble ni paréntesis (B-046 a): «%s»" % hx.hud.warn_l.text)
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(str(game._save_path("humahuaca"))))
 	game.settings.last_save = last_before
-	await _to_menu()
+	await _leave_level()
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -1115,7 +1216,7 @@ func _test_opts_flags() -> void:
 		suite.check(false, "banderas: el nivel arranca con semilla, fase y presentación por opts")
 		return
 	suite.check(int(hx.qa_state().seed) == 29 and str(hx.qa_state().phase) == "ataque" and str(hx.qa_state().mode) == "play", "banderas: opts fija la semilla 29, la fase «ataque» y salta el briefing")
-	await _to_menu()
+	await _leave_level()
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -1164,7 +1265,7 @@ func _test_overflow_sizes() -> void:
 		await _frames(3)
 		var panel: Control = hx.dialogs.panel
 		suite.check(panel != null and _inside(Kit.rect_of(panel), vp) and not hx.dialogs.scroll_used, "desborde %dx%d: el parte de derrota entra entero y sin scroll (%s)" % [size.x, size.y, str(Kit.rect_of(panel)) if panel != null else "sin parte"])
-		await _to_menu()
+		await _leave_level()
 	await _set_window(Vector2i(1280, 720))
 
 

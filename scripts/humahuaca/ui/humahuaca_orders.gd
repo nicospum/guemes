@@ -197,7 +197,22 @@ func press(action: String) -> bool:
 	if U.AIM_ACTIONS.has(action):
 		begin_aim(action)
 		return true
+	if action == "destroy" and needs_destroy_confirmation():
+		ui.call("ask_destroy")
+		return true
 	return issue_selected(action, Vector2.ZERO, {})
+
+
+## ¿Hay que preguntar antes de destruir? Sí cuando alguna de las agrupaciones elegidas puede destruir ahora y el siguiente paso no lo está pidiendo. Si no puede (no hay
+## carga a mano) no se pregunta: se dice por qué como con cualquier otra acción.
+func needs_destroy_confirmation() -> bool:
+	var g: Variant = ui.guide
+	if g is Dictionary and str((g as Dictionary).get("action", "")) == "destroy":
+		return false
+	for id in V.GROUPS:
+		if (ui.selected as Array).has(id) and bool(availability(str(id), "destroy").get("ok", false)):
+			return true
+	return false
 
 
 ## La misma orden a cada agrupación elegida a la que le corresponde. Si ninguna puede, se muestra el motivo de la primera.

@@ -58,6 +58,7 @@
 				"carga": "Carga: lo que llevan las mulas, contra lo que aguantan.",
 				"refuerzo": "Refuerzo: tropa realista que llega desde el sur. Antes de eso tenés que cruzar el vado con la carga."
 			},
+			"front_tip": "Barra de arriba: cuánto del frente tomaste. Barra naranja: qué tan alerta está la guardia.",
 			"status_tip": "Oscuridad: de noche se apunta peor y cuesta coordinar. Desvelo: la guardia se va despertando y la sorpresa vale menos."
 		},
 		"actions": {
@@ -152,7 +153,7 @@
 			"buttons": {
 				"start": "Empezar",
 				"next": "Seguir leyendo",
-				"skip": "Saltar",
+				"skip": "Saltar la presentación",
 				"back": "Volver"
 			}
 		},
@@ -167,6 +168,9 @@
 			"retreat_ask": "¿Ordenar la retirada general? El golpe termina como derrota y volvés a intentar con lo aprendido.",
 			"retreat_yes": "Sí, retirarse",
 			"retreat_no": "No, seguir",
+			"destroy_ask": "Destruir no se deshace, y quemar la pólvora adelanta al refuerzo. ¿Destruir igual?",
+			"destroy_yes": "Sí, destruir",
+			"destroy_no": "No, esperar",
 			"menu": "Volver al menú"
 		},
 		"help": {
@@ -247,8 +251,8 @@
 		{"id": "group_1", "keys": ["1"], "show": "1", "label": "Partida de Rodríguez (otra vez: centra la cámara en la batería)", "group": "seleccion"},
 		{"id": "group_2", "keys": ["2"], "show": "2", "label": "Partida de Portal (otra vez: centra la cámara en el cuartel)", "group": "seleccion"},
 		{"id": "group_3", "keys": ["3"], "show": "3", "label": "División de Arias (otra vez: centra la cámara en la posta)", "group": "seleccion"},
-		{"id": "group_4", "keys": ["4"], "show": "4", "label": "Reconocedores", "group": "seleccion"},
-		{"id": "group_5", "keys": ["5"], "show": "5", "label": "Arreo", "group": "seleccion"},
+		{"id": "group_4", "keys": ["4"], "show": "4", "label": "Reconocedores (otra vez: centra la cámara en ellos)", "group": "seleccion"},
+		{"id": "group_5", "keys": ["5"], "show": "5", "label": "Arreo (otra vez: centra la cámara en él)", "group": "seleccion"},
 		{"id": "cycle", "keys": ["Tab"], "show": "Tab", "label": "Pasa a la agrupación siguiente (Mayús: la anterior)", "group": "seleccion"},
 		{"id": "undo", "keys": ["Ctrl+Z"], "show": "Ctrl+Z", "label": "Deshace la última orden", "group": "seleccion"},
 		{"id": "cam_pan", "keys": ["W", "A", "S", "D", "Up", "Left", "Down", "Right"], "show": "W A S D o flechas", "label": "Mueve la cámara (Mayús: más rápido)", "group": "camara"},

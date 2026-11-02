@@ -750,6 +750,21 @@ func _cycle_full() -> void:
 	check(hx.hud.chip_labels.carga.panel.visible and hx.hud.chip_labels.golpe.panel.visible and hx.hud.chip_labels.refuerzo.panel.visible, "Extracción: aparecen la carga, el golpe y el reloj del refuerzo en el dock")
 	_check_overflow("Extracción")
 	_measure_contrast(img4, "extraccion")
+	# --- destruir a mano se pregunta (un X por costumbre quemó la carga de un agente-jugador sin avisar); si cabe, se ve la pregunta ---
+	await _key(KEY_5)
+	if hx.orders.needs_destroy_confirmation():
+		var destroyed_before: int = hx.qa_state().issued.filter(func(i): return str(i.action) == "destroy").size()
+		await _key(KEY_X)
+		await _frames(3)
+		check(str(hx.qa_state().dialog) == "confirmar" and _button("Sí, destruir") != null and _button("No, esperar") != null, "Destruir: apretar X a mano pregunta antes de quemar la carga (%s)" % str(hx.qa_state().dialog))
+		await _shot("hx-destruir")
+		_check_dialog_fit("Destruir")
+		_check_text_cuts("Destruir")
+		await _key(KEY_ESCAPE)
+		await _frames(3)
+		check(str(hx.qa_state().dialog) == "" and hx.qa_state().issued.filter(func(i): return str(i.action) == "destroy").size() == destroyed_before, "Destruir: Esc es «No»: no se destruyó nada")
+	else:
+		notes["destruir"] = "no se pudo armar: el arreo no estaba junto a la carga en este cuadro"
 	await _phase_sweep("%dx%d" % [root.size.x, root.size.y])  # H-R1-10: las fases, el objetivo y los recortes
 	# --- derrota por pasividad: parte, consejo, tres datos, reintento ≤ 3 s con el mismo mundo ---
 	await _cycle_defeat_and_victory()
