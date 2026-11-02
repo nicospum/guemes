@@ -398,9 +398,14 @@ func _all_taken() -> bool:
 # ---------------------------------------------------------------------------------------------------------------------
 # Ambiente
 
+## La curva sale de rules.environment.segments (la misma que leerá la clase real). `time_of_day` pasa por las cinco muestras de VP-01 (ADDENDA A-07):
+## 0 a los 0 y 240 s, 0,5 a los 285 s, 0,67 a los 330 s y 1 a los 420 s (`day_full_s`). Una partida pasiva termina a los 390 s por `amanecio` y su reloj
+## se detiene ahí: para medir la muestra de 420 s hay que fijar `state.elapsed` o tener la señal dada. Antes de new_game vale lo que vale el instante 0.
 func environment() -> Dictionary:
 	if state.is_empty():
-		return {"phase": "noche", "time_of_day": 0.03, "rain": 0.9, "visibility_m": 35.0, "mud": 0.55, "firearm_reliability": 0.55}
+		if not _rules.is_empty() and (_rules.get("environment", {}) as Dictionary).has("segments"):
+			return _env_at(0.0)
+		return {"phase": "noche", "time_of_day": 0.0, "rain": 0.9, "visibility_m": 35.0, "mud": 0.55, "firearm_reliability": 0.55}
 	return _env_at(float(state.elapsed))
 
 func _env_at(t: float) -> Dictionary:
