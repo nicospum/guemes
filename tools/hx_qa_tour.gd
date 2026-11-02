@@ -304,7 +304,7 @@ func _limits() -> Array:
 		"o": {"target": Vector2(bounds.position.x, 325.0), "yaw": 270.0}}
 	for key in ["n", "s", "e", "o"]:
 		var p: Dictionary = poses[key]
-		await _pose(p.target, 160.0, 28.0, float(p.yaw))
+		await _pose(p.target, 160.0, 14.0, float(p.yaw))  # poca inclinación: el horizonte entra en el cuadro y se ve si hay huecos o borde del mundo
 		await _shot("limite_" + key)
 		var camera: Camera3D = game.camera
 		out.append({"borde": key, "target": [(p.target as Vector2).x, (p.target as Vector2).y], "yaw_deg": float(p.yaw), "horizon_y": _horizon_y(camera), "cam_y": snappedf(camera.global_position.y, 0.1)})

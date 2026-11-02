@@ -684,10 +684,10 @@ EOF
       record hx_qa_tour FALLA "no escribió qa_report.json (salida $RC; registro: $LOGD/hx_tour.log)"
     else
       read -r tpng tfails tviews tfits taabb tframe tbot <<< "$nums"
-      if [ "$RC" -eq 0 ] && [ "$tfails" = "0" ] && [ "$tpng" -ge 24 ] && [ "$tviews" -ge 7 ] && [ "$tfits" = "True" ]; then
+      if [ "$RC" -eq 0 ] && [ "$tfails" = "0" ] && [ "$tpng" -ge 23 ] && [ "$tviews" -ge 7 ] && [ "$tfits" = "True" ]; then
         record hx_qa_tour PASA "$tpng capturas, 7 vistas, cuadro inicial con los tres objetivos y la partida, templo ${taabb} m, cuadro medio ${tframe} ms (indicativo), el bot ${tbot}"
       else
-        record hx_qa_tour FALLA "salió con $RC; $tpng capturas (mínimo 24), $tfails fallas, $tviews vistas, initial_frame.fits=$tfits"
+        record hx_qa_tour FALLA "salió con $RC; $tpng capturas (mínimo 23: 7 vistas con y sin interfaz, el primer cuadro, 3 de albedo, 4 de límite y la hoja de fichas), $tfails fallas, $tviews vistas, initial_frame.fits=$tfits"
       fi
     fi
   else
