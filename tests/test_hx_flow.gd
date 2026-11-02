@@ -598,6 +598,8 @@ func _test_alert_placement() -> void:
 		var crossing := _hud_crossings()
 		var vp2 := Rect2(Vector2.ZERO, root.get_visible_rect().size)
 		var inside := _inside(Kit.rect_of(hh.alert_panel), vp2) and _inside(Kit.rect_of(hh.bar), vp2) and _inside(Kit.rect_of(hh.dock), vp2)
+		var alert_w: float = float(hh.alert_panel.offset_right) - float(hh.alert_panel.offset_left)
+		suite.check(alert_w <= maxf(float(hh.root.size.x) * 0.4, 360.0) + 1.0, "alerta y barra %dx%d: en ventanas chicas la alerta es más angosta (%d px de %d)" % [size.x, size.y, int(alert_w), int(hh.root.size.x)])
 		suite.check(hh.bar.visible and hh.alert_panel.is_visible_in_tree() and crossing.is_empty() and inside, "alerta y barra %dx%d: con la alerta más alta, la barra en su peor caso y un aviso de pie, ningún panel pisa a otro (%s)" % [size.x, size.y, str(crossing)])
 		hx.set_process(true)
 		await _to_menu()

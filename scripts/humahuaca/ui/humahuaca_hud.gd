@@ -690,6 +690,7 @@ func _alert_slot_rect(slot: String, w: float, h: float) -> Rect2:
 ## lado al otro cuando las fichas se mueven). Si todos los lugares tapan algo, toma el que menos tapa. Devuelve el rectángulo elegido (coordenadas locales del HUD).
 func place_alert(avoid: Array) -> Rect2:
 	var w := minf(_num(["alert_w"], 520.0), maxf(root.size.x - 2.0 * _num(["margin"], 12.0), 200.0))
+	w = minf(w, maxf(root.size.x * _num(["alert_w_max_pct"], 0.4), 360.0))  # en ventanas chicas el aviso es más angosto: así entra entre las fichas sin taparlas
 	var h := alert_panel.size.y if alert_panel.size.y > 24.0 else 96.0
 	var order: Array = [_alert_slot]
 	for slot in ALERT_SLOTS:
