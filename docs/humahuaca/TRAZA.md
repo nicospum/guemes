@@ -166,7 +166,7 @@ Lo escribe «compuertas y documentos» al cerrar cada ronda y dice **qué corri�
 | `herramientas_hx` | N/A: `ui_qa_humahuaca`, `humahuaca_playthrough` y `hx_qa_tour` se exigen desde `r1` | TR-119, TR-172 y TR-173, sin verificar |
 | `salida_limpia` | PASA: ningún `SCRIPT ERROR`, `SHADER ERROR`, `Parse Error`, `ERROR:` ni fuga en los registros; 0 `WARNING` | TR-193 |
 
-La línea final de la compuerta dice `FALLA (1 pasos)` y el único paso que falla es `higiene`, por las dos etiquetas ajenas: ningún paso atribuible a una pista o al integrador falló. La compuerta rápida sobre el árbol con los cambios de esta ronda (`quick integrador`, 1 min 26 s) da lo mismo: rules 818/0, integración 283/0, `hx_data` 296/0, `hx_smoke` 146/0 y solo `higiene` en FALLA.
+La línea final de la compuerta dice `FALLA (1 pasos)` y el único paso que falla es `higiene`, por las dos etiquetas ajenas: ningún paso atribuible a una pista o al integrador falló. La compuerta rápida sobre el commit con los cambios de esta ronda (`quick integrador`, corrida dos veces, la última de 1 min 40 s) da lo mismo: rules 818/0, integración 283/0, `hx_data` 296/0, `hx_smoke` 146/0 y solo `higiene` en FALLA.
 
 **Capturas reales de la compuerta.** Las dos que escribe `--qa=humahuaca` (el menú de tres botones y el primer cuadro del nivel, ambas a 1280 × 720) se miraron una por una; las 123 de `ui_qa` (41 por resolución) tienen el tamaño pedido y ninguna es negra ni uniforme (se midió el desvío de la luminancia), y se miró la de la Justina a 1280 × 720.
 
