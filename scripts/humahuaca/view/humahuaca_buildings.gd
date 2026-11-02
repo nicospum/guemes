@@ -1,0 +1,539 @@
+extends RefCounted
+## Edificios, rasgos y vegetación de la vista del nivel «humahuaca» (pista visual): un nodo por hito con su huella, el templo, la batería, la casa del cura, la posta
+## y la torre que arma el generador procedural (humahuaca_gen.gd); las tapias, zanjas, caminos y barricadas que salen de `terrain.features(...)` (el nivel no inventa
+## entradas propias: la posta se dibuja con sus tapias reales); el núcleo de casas sobre las manzanas del diseño de nivel; y el anillo de contenido (churqui,
+## cardón, sauce y rocas) repartido según pendiente y cercanía al río. Todo con el material de props (color de vértice de la paleta) y en pocas mallas fusionadas.
+## No toca el estado de las reglas: solo lee el terreno.
+
+const V = preload("res://scripts/humahuaca/humahuaca_vocab.gd")
+const Gen = preload("res://scripts/humahuaca/view/humahuaca_gen.gd")
+
+const BURY_M := 0.3
+
+var gfx
+var gen
+var landmarks: Array = []
+var lm_by_id: Dictionary = {}
+var lm_nodes: Dictionary = {}
+var house_count := 0
+var triangle_count := 0
+var content_counts: Dictionary = {}
+var extra_trees: Array = []  ## árboles de patio (sauces chicos) que deja el núcleo; los planta build_vegetation
+
+var _terrain: RefCounted = null
+
+
+func setup(gfx_ref, terrain_ref: RefCounted) -> void:
+	gfx = gfx_ref
+	_terrain = terrain_ref
+	gen = Gen.new(gfx.palette)
+
+
+func prop_spec(id: String, type_name: String) -> Dictionary:
+	var props: Dictionary = gfx.data.get("props", {})
+	var by_id: Dictionary = props.get("por_id", {})
+	if by_id.has(id):
+		return by_id[id]
+	return (props.get("por_tipo", {}) as Dictionary).get(type_name, {"builder": "caja_con_techo", "color": "adobe", "default_height_m": 2.0})
+
+
+## {center, w, d, r, yaw}: la huella de un hito en el plano (un polígono se reduce a su caja envolvente, sin giro).
+func footprint(lm: Dictionary) -> Dictionary:
+	var fp: Variant = lm.get("footprint", {})
+	var out := {"center": Vector2(float(lm.get("x", 0.0)), float(lm.get("z", 0.0))), "w": 6.0, "d": 6.0, "r": 0.0, "yaw": float(lm.get("yaw_deg", 0.0))}
+	if not (fp is Dictionary):
+		return out
+	if fp.has("poly"):
+		var poly: PackedVector2Array = gfx.pts(fp.poly)
+		if poly.size() >= 3:
+			var lo := poly[0]
+			var hi := poly[0]
+			for p in poly:
+				lo = Vector2(minf(lo.x, p.x), minf(lo.y, p.y))
+				hi = Vector2(maxf(hi.x, p.x), maxf(hi.y, p.y))
+			out.center = (lo + hi) * 0.5
+			out.w = maxf(hi.x - lo.x, 1.0)
+			out.d = maxf(hi.y - lo.y, 1.0)
+			out.yaw = 0.0
+	elif fp.has("w"):
+		out.w = maxf(float(fp.w), 0.5)
+		out.d = maxf(float(fp.get("d", fp.w)), 0.5)
+	elif fp.has("r"):
+		out.r = maxf(float(fp.r), 0.5)
+		out.w = float(out.r) * 2.0
+		out.d = float(out.r) * 2.0
+	return out
+
+
+## Las cuatro esquinas de la huella en el mundo (x, z), con el giro aplicado.
+func footprint_corners(fp: Dictionary) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	var c: Vector2 = fp.center
+	var yaw := deg_to_rad(float(fp.yaw))
+	for k in [Vector2(-1, -1), Vector2(1, -1), Vector2(1, 1), Vector2(-1, 1)]:
+		var lx: float = k.x * float(fp.w) * 0.5
+		var lz: float = k.y * float(fp.d) * 0.5
+		out.append(c + Vector2(lx * cos(yaw) - lz * sin(yaw), lx * sin(yaw) + lz * cos(yaw)))
+	return out
+
+
+func _mesh_node(parent: Node, name_: String, mesh: ArrayMesh, shadow: bool = true) -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	mi.name = name_
+	mi.mesh = mesh
+	mi.material_override = gfx.props_mat
+	if not shadow:
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(mi)
+	var n := 0
+	for s in range(mesh.get_surface_count()):
+		var arrays := mesh.surface_get_arrays(s)
+		n += (arrays[Mesh.ARRAY_INDEX] as PackedInt32Array).size() / 3
+	triangle_count += n
+	return mi
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Hitos
+
+func build_landmarks(root: Node3D) -> void:
+	var list: Variant = _terrain.call("landmarks", {}) if _terrain != null and _terrain.has_method("landmarks") else []
+	if not (list is Array):
+		return
+	for lm in list:
+		if lm is Dictionary and lm.has("id") and lm.has("x") and lm.has("z"):
+			landmarks.append(lm)
+			lm_by_id[str(lm.id)] = lm
+			_build_landmark(root, lm)
+
+
+func _build_landmark(root: Node3D, lm: Dictionary) -> void:
+	var id := str(lm.id)
+	var spec := prop_spec(id, str(lm.get("type", "hito")))
+	var builder := str(spec.get("builder", "caja_con_techo"))
+	if builder == "ninguno":
+		return
+	var fp := footprint(lm)
+	var ground: float = gfx.h(float(fp.center.x), float(fp.center.y))
+	for p in footprint_corners(fp):
+		ground = minf(ground, gfx.h(p.x, p.y))
+	var node := Node3D.new()
+	node.name = "hito_" + id
+	node.position = Vector3(fp.center.x, ground, fp.center.y)
+	node.rotation.y = -deg_to_rad(float(fp.yaw))
+	root.add_child(node)
+	lm_nodes[id] = node
+	var hgt := float(lm.get("height_m", 0.0))
+	if hgt <= 0.0:
+		hgt = float(spec.get("default_height_m", 2.0))
+	var w := float(fp.w)
+	var d := float(fp.d)
+	var color_id := str(spec.get("color", "adobe"))
+	if builder in ["caja_con_techo", "templo_nave", "casa_cura", "torre", "plataforma", "patio_posta", "patio_muros", "polvorin"]:  # la huella: una mancha oscura de tierra bajo el edificio
+		var pad := 9.0 if builder == "templo_nave" else 4.0  # el templo, más grande: es el hito que tiene que leerse a 470 m
+		gfx.patch(node, w + pad, d + pad, 0.0, 0.07, gfx.mat("sedimento_humedo", 0.95, 0.78)).name = "huella"
+	var mb = gen.builder()
+	match builder:
+		"templo_nave":  # nave simple encalada a dos aguas: sin torres, sin fachada de 1880, caballete en 7 m
+			gen.add_temple(mb, {"w": w, "d": d, "ridge_m": minf(hgt, 7.0), "eave_ratio": float(spec.get("eave_ratio", 0.78)), "color": color_id,
+				"roof_color": str(spec.get("roof_color", "paja")), "trim_color": str(spec.get("trim_color", "madera_oscura"))})
+			_mesh_node(node, "templo", mb.build())
+		"casa_cura":
+			gen.add_cura_house(mb, w, d, maxf(hgt, 3.0))
+			_mesh_node(node, "casa", mb.build())
+		"plataforma":  # la batería: losa de tierra con parapeto y piezas bajas (nunca un fuste)
+			gen.add_battery(mb, w, d, clampf(hgt, 1.0, 2.0), int(spec.get("pieces", 3)), float(spec.get("slab_m", 0.9)))
+			_mesh_node(node, "bateria", mb.build())
+		"torre":
+			gen.add_tower(mb, w, d, hgt)
+			_mesh_node(node, "torre", mb.build())
+		"patio_posta", "patio_muros":  # el patio por dentro; los muros son las tapias del terreno (terrain.features("tapia")), no una entrada inventada acá
+			_build_posta(node, mb, w, d)
+		"polvorin":
+			gen.add_house(mb, w, d, hgt, 1, 1.0, 0.0, "madera_oscura")
+			_mesh_node(node, "polvorin", mb.build())
+		"parque":
+			gen.add_parque(mb, w, d)
+			_mesh_node(node, "parque", mb.build())
+		"corral":
+			gen.add_fence_ring(mb, w, d, hgt)
+			_mesh_node(node, "corral", mb.build(), false)
+			gfx.patch(node, w, d, 0.0, 0.1, gfx.mat("sedimento_humedo", 0.95, 0.85))
+		"plano":
+			var alpha := float(spec.get("alpha", 1.0))
+			gfx.patch(node, w, d, float(fp.r), float(spec.get("raise_m", 0.12)), gfx.flat_mat(color_id, alpha) if alpha < 1.0 else gfx.mat(color_id, 0.95, float(spec.get("gain", 1.0))))
+			if bool(spec.get("outline", false)) and str(lm.get("type", "")) == "partida" and float(fp.r) <= 0.0:  # el contorno de la zona de partida (un borde fino y tenue)
+				var rect := PackedVector2Array([Vector2(-w * 0.5, -d * 0.5), Vector2(w * 0.5, -d * 0.5), Vector2(w * 0.5, d * 0.5), Vector2(-w * 0.5, d * 0.5)])
+				var world_pts := PackedVector2Array()
+				for q in rect:
+					world_pts.append(Vector2(node.position.x, node.position.z) + q)
+				gfx.strip(root, world_pts, 1.6, 0.3, gfx.flat_mat(color_id, 0.55), true, false, "borde_" + id)
+		"mojon":  # un mojón de piedra con un anillo de color que sigue el relieve (acceso, salida, entrada)
+			gfx.inst(node, gfx.cyl_mesh(0.4, 1.2, 2.0, 8), Vector3(0.0, 0.8, 0.0), gfx.mat(color_id), Vector3.ZERO, true)
+			gfx.strip(root, gfx.circle(Vector2(node.position.x, node.position.z), maxf(float(fp.r), 4.0)), 1.6, 0.25, gfx.flat_mat(str(spec.get("ring_color", "oro_laton")), 0.9), true)
+		_:  # un edificio genérico de adobe con su techo
+			gen.add_house(mb, w, d, maxf(hgt, 1.2), 1 if str(lm.get("type", "")) != "objetivo" else 0, 1.0, 0.25)
+			_mesh_node(node, "casa", mb.build())
+
+
+## El patio de la posta: tierra apisonada, la casa de posta contra el muro norte, carretas y bultos. Sin muros propios.
+func _build_posta(node: Node3D, mb, w: float, d: float) -> void:
+	gfx.patch(node, w - 1.0, d - 1.0, 0.0, 0.1, gfx.mat("suelo_seco", 0.95, 1.07)).name = "patio"
+	var house_w := w * 0.62
+	mb.push()
+	mb.move(Vector3(-w * 0.5 + house_w * 0.5 + 1.8, 0.0, -d * 0.5 + 3.4))
+	gen.add_house(mb, house_w, 4.6, 3.0, 1, 1.0, 0.2)
+	mb.pop()
+	mb.push()
+	mb.move(Vector3(w * 0.5 - 7.0, 0.0, d * 0.5 - 6.5))
+	mb.turn_y(20.0)
+	gen.add_cart(mb, true)
+	mb.pop()
+	mb.push()
+	mb.move(Vector3(-2.0, 0.0, d * 0.5 - 4.0))
+	mb.turn_y(-35.0)
+	gen.add_cart(mb, false)
+	mb.pop()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 1817
+	var kinds := ["barril", "cajon", "saco", "bulto"]
+	for k in range(14):  # las cargas apiladas junto al muro este y al sur de la casa
+		var kind: String = kinds[k % 4]
+		var mesh: ArrayMesh = gen.prop(kind, k)
+		var at := Vector3(w * 0.5 - 2.6 + rng.randf() * 1.5, 0.0, -d * 0.5 + 5.5 + float(k) * 0.9 + rng.randf() * 0.4)
+		if at.z > d * 0.5 - 4.0:
+			at = Vector3(-w * 0.5 + 3.0 + rng.randf() * 4.0, 0.0, d * 0.5 - 3.0 - rng.randf() * 2.0)
+		var mi := MeshInstance3D.new()
+		mi.mesh = mesh
+		mi.material_override = gfx.props_mat
+		mi.position = at
+		mi.rotation.y = rng.randf() * TAU
+		node.add_child(mi)
+	_mesh_node(node, "posta", mb.build())
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Rasgos del nivel: tapias, barricadas, zanjas, acequias, caminos y calles (salen de terrain.features)
+
+## Un muro entre `a` y `b` en tramos de ≤ 8 m que siguen el relieve: dos caras, el remate de paja y, si se pide, las cabeceras.
+func _wall_run(mb, a: Vector2, b: Vector2, height: float, thick: float, color: Color, cap: Color, cap_h: float, ends: bool) -> void:
+	var parts := maxi(1, int(ceil(a.distance_to(b) / 8.0)))
+	var dir := (b - a).normalized()
+	var n := Vector2(-dir.y, dir.x) * thick * 0.5
+	for k in range(parts):
+		var p0 := a.lerp(b, float(k) / float(parts))
+		var p1 := a.lerp(b, float(k + 1) / float(parts))
+		var y0: float = gfx.h(p0.x, p0.y)
+		var y1: float = gfx.h(p1.x, p1.y)
+		var low := color.darkened(0.2)
+		var base0 := y0 - 0.35
+		var base1 := y1 - 0.35
+		var top0 := y0 + height
+		var top1 := y1 + height
+		var q00 := Vector3(p0.x + n.x, base0, p0.y + n.y)
+		var q01 := Vector3(p1.x + n.x, base1, p1.y + n.y)
+		var r00 := Vector3(p0.x - n.x, base0, p0.y - n.y)
+		var r01 := Vector3(p1.x - n.x, base1, p1.y - n.y)
+		mb.quad_g(q01, q00, q00 + Vector3(0.0, top0 - base0, 0.0), q01 + Vector3(0.0, top1 - base1, 0.0), low, color)
+		mb.quad_g(r00, r01, r01 + Vector3(0.0, top1 - base1, 0.0), r00 + Vector3(0.0, top0 - base0, 0.0), low, color)
+		var cn := Vector2(-dir.y, dir.x) * (thick * 0.5 + 0.1)
+		var t0a := Vector3(p0.x + cn.x, top0, p0.y + cn.y)
+		var t0b := Vector3(p0.x - cn.x, top0, p0.y - cn.y)
+		var t1a := Vector3(p1.x + cn.x, top1, p1.y + cn.y)
+		var t1b := Vector3(p1.x - cn.x, top1, p1.y - cn.y)
+		mb.quad(t0b, t1b, t1a, t0a, cap)  # remate de paja
+		mb.quad_g(t1a, t0a, t0a + Vector3(0.0, cap_h, 0.0), t1a + Vector3(0.0, cap_h, 0.0), cap.darkened(0.2), cap)
+		mb.quad_g(t0b, t1b, t1b + Vector3(0.0, cap_h, 0.0), t0b + Vector3(0.0, cap_h, 0.0), cap.darkened(0.2), cap)
+		mb.quad(t0a + Vector3(0.0, cap_h, 0.0), t1a + Vector3(0.0, cap_h, 0.0), t1b + Vector3(0.0, cap_h, 0.0), t0b + Vector3(0.0, cap_h, 0.0), cap.lightened(0.05))
+		if ends and k == 0:
+			mb.quad_g(q00, r00, r00 + Vector3(0.0, top0 - base0, 0.0), q00 + Vector3(0.0, top0 - base0, 0.0), low, color)
+		if ends and k == parts - 1:
+			mb.quad_g(r01, q01, q01 + Vector3(0.0, top1 - base1, 0.0), r01 + Vector3(0.0, top1 - base1, 0.0), low, color)
+
+
+func build_features(root: Node3D) -> void:
+	if _terrain == null or not _terrain.has_method("features"):
+		return
+	var props: Dictionary = gfx.data.get("props", {})
+	var tapia: Dictionary = props.get("tapia", {})
+	var wall = gen.builder()
+	var wall_color: Color = gfx.pc(str(tapia.get("color", "adobe")))
+	var cap_color: Color = gfx.pc(str(tapia.get("cap_color", "paja")))
+	var cap_h := float(tapia.get("cap_m", 0.2))
+	var walls := 0
+	for f in _terrain.call("features", "tapia"):
+		if f is Dictionary:
+			var line: PackedVector2Array = gfx.pts(f.get("pts", []))
+			for k in range(line.size() - 1):
+				_wall_run(wall, line[k], line[k + 1], float(f.get("height_m", 2.0)), float(f.get("thickness_m", 0.5)), wall_color, cap_color, cap_h, k == 0 or k == line.size() - 2)
+				walls += 1
+	for f in _terrain.call("features", "barricada"):
+		if f is Dictionary:
+			var line: PackedVector2Array = gfx.pts(f.get("pts", []))
+			for k in range(line.size() - 1):
+				_wall_run(wall, line[k], line[k + 1], 1.4, 0.9, gfx.pc("madera_oscura"), gfx.pc("madera_oscura", 1.2), 0.12, true)
+				walls += 1
+	var cubierto: Variant = _terrain.call("features", "camino_cubierto")
+	if cubierto is Array:
+		for f in cubierto:
+			if f is Dictionary:
+				var line: PackedVector2Array = gfx.pts(f.get("pts", []))
+				var half := float(f.get("width_m", 6.0)) * 0.5
+				for k in range(line.size() - 1):
+					var dir := (line[k + 1] - line[k]).normalized()
+					var off := Vector2(-dir.y, dir.x) * half
+					_wall_run(wall, line[k] + off, line[k + 1] + off, float(f.get("wall_height_m", 1.8)), 0.5, wall_color, cap_color, cap_h, true)
+					_wall_run(wall, line[k] - off, line[k + 1] - off, float(f.get("wall_height_m", 1.8)), 0.5, wall_color, cap_color, cap_h, true)
+					walls += 2
+	content_counts["tapias"] = walls
+	if walls > 0:
+		_mesh_node(root, "tapias", wall.build())
+	var spec_z: Dictionary = props.get("zanja", {})
+	var ditches := 0
+	for kind in ["zanja", "acequia"]:
+		for f in _terrain.call("features", kind):
+			if not (f is Dictionary):
+				continue
+			var line: PackedVector2Array = gfx.pts(f.get("pts", []))
+			var width := maxf(float(f.get("width_m", 1.6)), 1.0)
+			gfx.strip(root, line, width + 1.8, float(spec_z.get("raise_m", 0.08)) - 0.02, gfx.mat("suelo_seco", 0.95, 1.12))
+			gfx.strip(root, line, width, float(spec_z.get("raise_m", 0.08)) + 0.04, gfx.mat(str(spec_z.get("color", "sedimento_humedo")), 0.8, 0.62))
+			ditches += 1
+	content_counts["zanjas"] = ditches
+	var roads := 0
+	var spec_c: Dictionary = props.get("camino", {})
+	for kind in ["camino", "calle"]:
+		for f in _terrain.call("features", kind):
+			if f is Dictionary:
+				var line: PackedVector2Array = gfx.pts(f.get("pts", []))
+				gfx.strip(root, line, maxf(float(f.get("width_m", 5.0)), 2.0), float(spec_c.get("raise_m", 0.09)), gfx.mat(str(spec_c.get("color", "suelo_seco")), 0.95, float(spec_c.get("gain", 1.12))))
+				roads += 1
+	content_counts["caminos"] = roads
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Núcleo de casas sobre las manzanas del diseño de nivel (planta ▲: diseño, no hay plano de 1817)
+
+func _in_landmark(p: Vector2, margin: float) -> bool:
+	for lm in landmarks:
+		var type_name := str(lm.get("type", ""))
+		if not (type_name in ["objetivo", "edificio", "torre", "hito"]):
+			continue
+		var fp := footprint(lm)
+		var corners := footprint_corners(fp)
+		var lo := corners[0]
+		var hi := corners[0]
+		for c in corners:
+			lo = Vector2(minf(lo.x, c.x), minf(lo.y, c.y))
+			hi = Vector2(maxf(hi.x, c.x), maxf(hi.y, c.y))
+		if p.x > lo.x - margin and p.x < hi.x + margin and p.y > lo.y - margin and p.y < hi.y + margin:
+			return true
+	return false
+
+
+func _signed_area(poly: PackedVector2Array) -> float:
+	var s := 0.0
+	for k in range(poly.size()):
+		var a := poly[k]
+		var b := poly[(k + 1) % poly.size()]
+		s += a.x * b.y - b.x * a.y
+	return s * 0.5
+
+
+func build_nucleo(root: Node3D) -> void:
+	if _terrain == null or not _terrain.has_method("features"):
+		return
+	var blocks: Variant = _terrain.call("features", "manzana")
+	if not (blocks is Array):
+		return
+	var mb = gen.builder()
+	var count := 0
+	var max_houses := int(gfx.qcfg.get("houses_max", 120))
+	for block in blocks:
+		if not (block is Dictionary):
+			continue
+		var poly: PackedVector2Array = gfx.pts(block.get("poly", []))
+		if poly.size() < 3:
+			continue
+		var rng := RandomNumberGenerator.new()
+		rng.seed = hash(str(block.get("id", "manzana"))) & 0x7fffffff
+		var orient := 1.0 if _signed_area(poly) > 0.0 else -1.0
+		for e in range(poly.size()):
+			var a := poly[e]
+			var b := poly[(e + 1) % poly.size()]
+			var length := a.distance_to(b)
+			if length < 10.0:
+				continue
+			var dir := (b - a) / length
+			var inward := Vector2(-dir.y, dir.x) * orient * -1.0
+			var t := 1.2 + rng.randf() * 1.6
+			while t < length - 7.0 and count < max_houses:
+				var hw := rng.randf_range(6.5, 12.5)
+				var hd := rng.randf_range(5.0, 8.5)
+				var hh := rng.randf_range(2.7, 3.6)
+				if t + hw > length - 1.0:
+					break
+				if rng.randf() < 0.14:  # un zaguán o un patio sin casa
+					t += rng.randf_range(4.0, 7.0)
+					continue
+				var center := a + dir * (t + hw * 0.5) + inward * (hd * 0.5 + 1.3)
+				t += hw + rng.randf_range(0.2, 1.1)
+				if _in_landmark(center, 4.0):
+					continue
+				var yaw := atan2(inward.x, inward.y)
+				mb.push()
+				mb.xf = Transform3D(Basis(Vector3.UP, yaw), Vector3(center.x, gfx.h(center.x, center.y), center.y))
+				gen.add_house(mb, hw, hd, hh, rng.randi() % 3, -1.0, rng.randf())
+				mb.pop()
+				count += 1
+		count = _inner_fill(mb, poly, rng, count, max_houses)
+	house_count = count
+	content_counts["casas"] = count
+	if count > 0:
+		_mesh_node(root, "casas_del_nucleo", mb.build())
+
+
+
+## La distancia de un punto al borde de un polígono.
+func _edge_distance(q: Vector2, poly: PackedVector2Array) -> float:
+	var best := 1.0e9
+	for k in range(poly.size()):
+		best = minf(best, Geometry2D.get_closest_point_to_segment(q, poly[k], poly[(k + 1) % poly.size()]).distance_to(q))
+	return best
+
+
+## El interior de una manzana: galpones y corrales chicos de adobe y un árbol de patio acá y allá, sobre una grilla de 9 m (el diseño de nivel solo da el borde de la manzana).
+func _inner_fill(mb, poly: PackedVector2Array, rng: RandomNumberGenerator, count: int, max_houses: int) -> int:
+	var lo := poly[0]
+	var hi := poly[0]
+	for q in poly:
+		lo = Vector2(minf(lo.x, q.x), minf(lo.y, q.y))
+		hi = Vector2(maxf(hi.x, q.x), maxf(hi.y, q.y))
+	var gx := lo.x + 5.0
+	while gx < hi.x:
+		var gz := lo.y + 5.0
+		while gz < hi.y:
+			var q := Vector2(gx + rng.randf_range(-2.0, 2.0), gz + rng.randf_range(-2.0, 2.0))
+			if Geometry2D.is_point_in_polygon(q, poly) and _edge_distance(q, poly) > 12.5 and count < max_houses:
+				var roll := rng.randf()
+				if roll < 0.4:
+					mb.push()
+					mb.xf = Transform3D(Basis(Vector3.UP, rng.randf_range(-0.2, 0.2)), Vector3(q.x, gfx.h(q.x, q.y), q.y))
+					gen.add_house(mb, rng.randf_range(3.6, 6.0), rng.randf_range(3.2, 4.8), rng.randf_range(2.1, 2.7), 1 + rng.randi() % 2, 1.0, rng.randf())
+					mb.pop()
+					count += 1
+				elif roll < 0.62:
+					extra_trees.append(q)
+			gz += 9.0
+		gx += 9.0
+	return count
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Anillo de contenido: churqui, cardón, sauce y rocas repartidos según la pendiente y el río (semilla fija)
+
+func _multimesh(parent: Node3D, name_: String, mesh: Mesh, xforms: Array, shadow: bool) -> void:
+	if xforms.is_empty():
+		return
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.mesh = mesh
+	mm.instance_count = xforms.size()
+	for i in range(xforms.size()):
+		mm.set_instance_transform(i, xforms[i])
+	var mi := MultiMeshInstance3D.new()
+	mi.name = name_
+	mi.multimesh = mm
+	mi.material_override = gfx.props_mat
+	if not shadow:
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(mi)
+	for s in range(mesh.get_surface_count()):
+		triangle_count += ((mesh.surface_get_arrays(s)[Mesh.ARRAY_INDEX] as PackedInt32Array).size() / 3) * xforms.size()
+
+
+func _free_spot(p: Vector2, allow_slope: bool) -> bool:
+	var cls: String = gfx.surface_at(p.x, p.y)
+	if cls in ["camino", "patio", "zanja", "agua", "muro"]:
+		return false
+	return not _in_landmark(p, 6.0)
+
+
+func build_vegetation(root: Node3D, river_line: PackedVector2Array) -> void:
+	var ring: Dictionary = gfx.data.get("content_ring", {})
+	var rng := RandomNumberGenerator.new()
+	rng.seed = int(ring.get("seed", 1817))
+	var factor := float(gfx.qcfg.get("vegetation_factor", 1.0))
+	var bushes: Array = []
+	var cacti: Array = []
+	var rocks: Array = []
+	var willows: Array = []
+	var win: Rect2 = gfx.win
+	var reach := 260.0  # el anillo sigue unos metros fuera de la ventana: el contexto cercano no queda pelado
+	var area := Rect2(win.position - Vector2(reach, reach), win.size + Vector2(reach, reach) * 2.0)
+	for k in range(int(3000.0 * factor)):  # churqui: matas de 3 a 6 m por todo el campo (más densas en las laderas y en el oeste): ninguna parte del suelo queda lisa
+		var p := area.position + Vector2(rng.randf() * area.size.x, rng.randf() * area.size.y)
+		var slope: float = gfx.slope_at(p.x, p.y)
+		if rng.randf() > 0.42 + 0.58 * gfx.churqui_k(p.x, p.y, slope) or not _free_spot(p, true):
+			continue
+		var s := 1.3 + rng.randf() * 1.3
+		bushes.append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s * (0.7 + rng.randf() * 0.5), s)), Vector3(p.x, gfx.h(p.x, p.y) - 0.1, p.y)))
+	for k in range(int(260.0 * factor)):  # cardones: solo en las laderas más altas del oeste
+		var p := area.position + Vector2(rng.randf() * area.size.x * 0.55, rng.randf() * area.size.y)
+		if gfx.slope_at(p.x, p.y) < 0.045 or rng.randf() > 0.5 or not _free_spot(p, true):
+			continue
+		var s := 0.8 + rng.randf() * 0.5
+		cacti.append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s, s)), Vector3(p.x, gfx.h(p.x, p.y) - 0.1, p.y)))
+	for k in range(int(1100.0 * factor)):  # rocas: tendidas por el campo y juntas en las pendientes
+		var p := area.position + Vector2(rng.randf() * area.size.x, rng.randf() * area.size.y)
+		var slope: float = gfx.slope_at(p.x, p.y)
+		if rng.randf() > clampf(slope * 6.0 + 0.3, 0.0, 0.8) or not _free_spot(p, true):
+			continue
+		var s := 1.2 + rng.randf() * 1.4
+		rocks.append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s * (0.6 + rng.randf() * 0.5), s)), Vector3(p.x, gfx.h(p.x, p.y) - 0.15, p.y)))
+	# sauces: el monte ribereño, a 26 – 64 m del eje del río (la foto de 1923: línea continua de arbolado oscuro delante del lecho claro)
+	var samples := line_samples(river_line, 22.0 / maxf(factor, 0.3))
+	for k in range(samples.size()):
+		if rng.randf() < 0.18:
+			continue
+		var at: Vector2 = samples[k]
+		var nrm := Vector2(1.0, 0.0)
+		if k + 1 < samples.size():
+			var tan_v: Vector2 = ((samples[k + 1] as Vector2) - at).normalized()
+			nrm = Vector2(-tan_v.y, tan_v.x)
+		var side := 1.0 if rng.randf() < 0.5 else -1.0
+		var p := at + nrm * side * (26.0 + rng.randf() * 38.0)
+		if win.grow(reach).has_point(p) and _free_spot(p, false):
+			var s := 0.85 + rng.randf() * 0.45
+			willows.append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s, s)), Vector3(p.x, gfx.h(p.x, p.y) - 0.1, p.y)))
+	for q in extra_trees:  # sauces chicos de los patios de las manzanas
+		var p2: Vector2 = q
+		var s2 := 0.45 + rng.randf() * 0.3
+		willows.append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s2, s2, s2)), Vector3(p2.x, gfx.h(p2.x, p2.y) - 0.1, p2.y)))
+	var variants := 3
+	for v in range(variants):  # tres variantes de cada especie para que no se repita la silueta
+		_multimesh(root, "arbustos_%d" % v, gen.bush(100 + v), bushes.filter(func(t): return int(abs(t.origin.x * 7.0 + t.origin.z * 3.0)) % variants == v), false)
+		_multimesh(root, "rocas_%d" % v, gen.rock(200 + v), rocks.filter(func(t): return int(abs(t.origin.x * 5.0 + t.origin.z * 11.0)) % variants == v), false)
+	_multimesh(root, "cardones", gen.cactus(300), cacti, true)
+	_multimesh(root, "sauces", gen.willow(400), willows, true)
+	content_counts["arbustos"] = bushes.size()
+	content_counts["cardones"] = cacti.size()
+	content_counts["rocas"] = rocks.size()
+	content_counts["sauces"] = willows.size()
+
+
+func line_samples(line: PackedVector2Array, step: float) -> Array:
+	var out: Array = []
+	if line.size() < 2:
+		return out
+	var carry := 0.0
+	out.append(line[0])
+	for k in range(line.size() - 1):
+		var a := line[k]
+		var b := line[k + 1]
+		var length := a.distance_to(b)
+		var t := step - carry
+		while t <= length:
+			out.append(a.lerp(b, t / length))
+			t += step
+		carry = length - (t - step)
+	return out

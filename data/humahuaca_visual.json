@@ -65,6 +65,7 @@
 		"fog_density_per_rain": 0.0002,
 		"streak_count": {"baja": 0, "media": 700, "alta": 1400},
 		"streak_length_m": 1.8,
+		"streak_px": 22.0,
 		"streak_alpha": 0.35,
 		"color": "agua_turbia",
 		"tag": "diseno",
@@ -83,7 +84,7 @@
 		"source": "una sola niebla por escena; la visibilidad de juego la dibujan los anillos, no la niebla"
 	},
 	"materials": {
-		"terreno": {"color": "suelo_seco", "roughness": 0.96, "metallic": 0.0},
+		"terreno": {"color": "suelo_seco", "roughness": 0.96, "metallic": 0.0, "contour_m": 5.0, "contour_alpha": 0.09},
 		"adobe": {"color": "adobe", "roughness": 0.95, "metallic": 0.0},
 		"cal": {"color": "cal_envejecida", "roughness": 0.9, "metallic": 0.0},
 		"madera": {"color": "madera_oscura", "roughness": 0.85, "metallic": 0.0},
@@ -105,17 +106,17 @@
 			"acceso": {"builder": "mojon", "color": "piedra_gris", "ring_color": "oro_laton"},
 			"salida": {"builder": "mojon", "color": "piedra_gris", "ring_color": "oro_laton"},
 			"entrada": {"builder": "mojon", "color": "piedra_gris", "ring_color": "borgona_hipotetica"},
-			"partida": {"builder": "plano", "color": "celeste_produccion", "raise_m": 0.1, "alpha": 0.1},
+			"partida": {"builder": "plano", "color": "celeste_produccion", "raise_m": 0.1, "alpha": 0.045, "outline": true},
 			"cerro": {"builder": "ninguno"}
 		},
 		"por_id": {
 			"templo": {"builder": "templo_nave", "color": "cal_envejecida", "roof_color": "paja", "trim_color": "madera_oscura", "default_height_m": 7.0, "eave_ratio": 0.78, "tag": "sin_datos", "source": "nave simple de adobe encalado a dos aguas, sin torres ni fachada de 1880 (forma de 1817 sin datos)"},
 			"bateria": {"builder": "plataforma", "color": "piedra_gris", "iron_color": "hierro", "trim_color": "madera_oscura", "slab_m": 0.9, "pieces": 3, "tag": "diseno", "source": "plataforma de tierra con piezas de artillería; cota y orientación de la gola son diseño"},
-			"cuartel": {"builder": "caja_con_techo", "color": "cal_envejecida", "roof_color": "paja", "default_height_m": 3.6, "tag": "diseno", "source": "casa del cura: lugar razonado, planta de diseño"},
-			"posta": {"builder": "patio_muros", "color": "adobe", "roof_color": "paja", "wall_height_m": 2.4, "wall_thickness_m": 0.6, "tag": "diseno", "source": "patio de la posta con muros de 2,4 m: planta de diseño"},
-			"polvorin": {"builder": "caja_con_techo", "color": "adobe", "roof_color": "madera_oscura", "default_height_m": 2.6, "tag": "diseno", "source": "polvorín de la posta: lugar de diseño"},
-			"parque": {"builder": "caja", "color": "madera_oscura", "default_height_m": 1.2, "tag": "diseno", "source": "parque de artillería de la posta: lugar de diseño"},
-			"corral_posta": {"builder": "plano", "color": "sedimento_humedo", "raise_m": 0.12, "tag": "diseno", "source": "corral junto a la posta: lugar de diseño"}
+			"cuartel": {"builder": "casa_cura", "color": "cal_envejecida", "roof_color": "paja", "default_height_m": 3.6, "tag": "diseno", "source": "casa del cura: lugar razonado, planta de diseño"},
+			"posta": {"builder": "patio_posta", "color": "adobe", "roof_color": "paja", "tag": "diseno", "source": "patio de la posta: planta de diseño; los muros de 2,4 m son las tapias del terreno (terrain.features)"},
+			"polvorin": {"builder": "polvorin", "color": "adobe", "roof_color": "madera_oscura", "default_height_m": 2.6, "tag": "diseno", "source": "polvorín de la posta: lugar de diseño"},
+			"parque": {"builder": "parque", "color": "madera_oscura", "default_height_m": 1.2, "tag": "diseno", "source": "parque de artillería de la posta: lugar de diseño"},
+			"corral_posta": {"builder": "corral", "color": "sedimento_humedo", "default_height_m": 1.2, "raise_m": 0.12, "tag": "diseno", "source": "corral junto a la posta: lugar de diseño"}
 		},
 		"tapia": {"color": "adobe", "cap_color": "paja", "cap_m": 0.2},
 		"zanja": {"color": "sedimento_humedo", "raise_m": 0.08},
@@ -123,11 +124,11 @@
 		"rio": {"color": "agua_turbia", "bed_color": "piedra_gris", "raise_m": 0.2}
 	},
 	"tokens": {
-		"rodriguez": {"shape": "jinete", "min_px": 60, "glyph": "1", "ring_color": "celeste_produccion", "ring_border_color": "blanco_textil", "body_color": "lana_parda", "accent_color": "azul_elegido", "tag": "diseno", "source": "silueta de producción: jinete con poncho y sombrero de ala ancha (diseño 11.2)"},
-		"portal": {"shape": "infante_fusil", "min_px": 60, "glyph": "2", "ring_color": "celeste_produccion", "ring_border_color": "blanco_textil", "body_color": "lino_crudo", "accent_color": "azul_elegido", "tag": "diseno", "source": "silueta de producción: infante de camisa y gorra con fusil (diseño 11.2)"},
-		"arias": {"shape": "infante_banderin", "min_px": 60, "glyph": "3", "ring_color": "celeste_produccion", "ring_border_color": "blanco_textil", "body_color": "azul_elegido", "accent_color": "celeste_produccion", "tag": "diseno", "source": "silueta de producción: infante con banderín de mando; el banderín es marcador de interfaz, no bandera"},
-		"reconocedores": {"shape": "agachados", "min_px": 60, "glyph": "4", "ring_color": "celeste_produccion", "ring_border_color": "blanco_textil", "body_color": "lana_parda", "accent_color": "verde_elegido", "tag": "diseno", "source": "silueta de producción: dos figuras agachadas con poncho (diseño 11.2)"},
-		"arreo": {"shape": "mula_cargada", "min_px": 60, "glyph": "5", "ring_color": "oro_laton", "ring_border_color": "negro_textil", "body_color": "lana_parda", "accent_color": "cuero", "tag": "diseno", "source": "silueta de producción: mula con aparejo y bultos; marcador neutral dorado (diseño 11.2)"}
+		"rodriguez": {"shape": "jinete", "min_px": 58, "glyph": "1", "ring_color": "celeste_produccion", "ring_border_color": "blanco_textil", "body_color": "lana_parda", "accent_color": "azul_elegido", "tag": "diseno", "source": "silueta de producción: jinete con poncho y sombrero de ala ancha (diseño 11.2)"},
+		"portal": {"shape": "infante_fusil", "min_px": 56, "glyph": "2", "ring_color": "celeste_produccion", "ring_border_color": "blanco_textil", "body_color": "lino_crudo", "accent_color": "azul_elegido", "tag": "diseno", "source": "silueta de producción: infante de camisa y gorra con fusil (diseño 11.2)"},
+		"arias": {"shape": "infante_banderin", "min_px": 56, "glyph": "3", "ring_color": "celeste_produccion", "ring_border_color": "blanco_textil", "body_color": "lana_natural", "accent_color": "azul_elegido", "tag": "diseno", "source": "silueta de producción: infante con banderín de mando; el banderín es marcador de interfaz, no bandera"},
+		"reconocedores": {"shape": "agachados", "min_px": 48, "glyph": "4", "ring_color": "celeste_produccion", "ring_border_color": "blanco_textil", "body_color": "lana_parda", "accent_color": "verde_elegido", "tag": "diseno", "source": "silueta de producción: dos figuras agachadas con poncho (diseño 11.2)"},
+		"arreo": {"shape": "mula_cargada", "min_px": 56, "glyph": "5", "ring_color": "oro_laton", "ring_border_color": "negro_textil", "body_color": "lana_parda", "accent_color": "cuero", "tag": "diseno", "source": "silueta de producción: mula con aparejo y bultos; marcador neutral dorado (diseño 11.2)"}
 	},
 	"markers": {
 		"interfaz": true,
@@ -139,10 +140,10 @@
 	"units": {
 		"archetypes": [
 			{"id": "poncho_sombrero", "para": ["jinetes", "arreo"], "silueta": "poncho largo y sombrero de ala ancha", "height_m": 1.75, "outer_color": "lana_parda", "inner_color": "lino_crudo", "hat_color": "madera_oscura", "accent_color": "azul_elegido"},
-			{"id": "camisa_gorra", "para": ["infantes"], "silueta": "camisa corta y gorra, fusil al hombro", "height_m": 1.72, "outer_color": "lino_crudo", "inner_color": "lino_crudo", "hat_color": "azul_elegido", "accent_color": "cuero"},
-			{"id": "artillero", "para": ["artilleros"], "silueta": "delantal de cuero y atacador largo", "height_m": 1.7, "outer_color": "cuero", "inner_color": "lana_natural", "hat_color": "lana_parda", "accent_color": "hierro"}
+			{"id": "camisa_gorra", "para": ["infantes"], "silueta": "camisa corta y gorra, fusil al hombro", "height_m": 1.72, "outer_color": "lino_crudo", "inner_color": "lino_crudo", "hat_color": "lana_natural", "accent_color": "azul_elegido"},
+			{"id": "artillero", "para": ["artilleros"], "silueta": "delantal de cuero y atacador largo", "height_m": 1.7, "outer_color": "madera_oscura", "inner_color": "lana_natural", "hat_color": "lana_parda", "accent_color": "hierro"}
 		],
-		"realista_1817": {"silueta": "figura de royalist_1817 retintada, sin uniforme cerrado", "outer_color": "lana_natural", "accent_color": "borgona_hipotetica"},
+		"realista_1817": {"silueta": "camisa y gorra retintadas (royalist_1817), sin uniforme cerrado y con una banda de acento", "outer_color": "lana_parda", "inner_color": "lino_crudo", "hat_color": "lana_parda", "accent_color": "borgona_hipotetica"},
 		"variants": [
 			{"camisa": "lino_crudo", "abrigo": "lana_parda", "sombrero": "madera_oscura", "acento": ""},
 			{"camisa": "lana_natural", "abrigo": "azul_elegido", "sombrero": "lana_parda", "acento": ""},
@@ -214,36 +215,36 @@
 		},
 		{
 			"id": "juego_noche", "name": "Cámara de juego de noche",
-			"target": {"x": 350.0, "z": 470.0}, "distance": 470.0, "pitch_deg": 52.0, "yaw_deg": 35.0, "time_of_day": 0.0, "rain": 0.9,
+			"target": {"x": 350.0, "z": 470.0}, "distance": 470.0, "pitch_deg": 52.0, "yaw_deg": 325.0, "time_of_day": 0.0, "rain": 0.9,
 			"must_show": [
 				"3 puntos de luz o más: brasero de la batería, ventana del cuartel y candil de la posta",
 				"Los tres objetivos identificables sin leer texto",
 				"Relieve y núcleo visibles: no es casi solo noche",
 				"3 fichas o más distinguibles del suelo",
 				"La interfaz no tapa los objetivos"],
-			"tag": "diseno", "source": "diseño 11.3 y anexo B del QA (M13); es la cámara inicial; borrador de R1.0"
+			"tag": "diseno", "source": "diseño 11.3 y anexo B del QA (M13); es la cámara inicial, rumbo 325° desde R1 (A-11)"
 		},
 		{
 			"id": "juego_alba", "name": "Cámara de juego al alba",
-			"target": {"x": 350.0, "z": 470.0}, "distance": 470.0, "pitch_deg": 52.0, "yaw_deg": 35.0, "time_of_day": 0.5, "rain": 0.42,
+			"target": {"x": 350.0, "z": 470.0}, "distance": 470.0, "pitch_deg": 52.0, "yaw_deg": 325.0, "time_of_day": 0.5, "rain": 0.42,
 			"must_show": [
 				"Sombras largas y luz cálida",
 				"Fichas en sus puestos y fogatas de la guardia",
 				"Los tres objetivos identificables",
 				"El núcleo se distingue del suelo por luz y trazo, no solo por color",
 				"Sin torres de campanas ni monumento"],
-			"tag": "diseno", "source": "diseño 11.3 y anexo B del QA (M14); la misma cámara que juego_noche; borrador de R1.0"
+			"tag": "diseno", "source": "diseño 11.3 y anexo B del QA (M14); la misma cámara que juego_noche (rumbo 325°, A-11)"
 		}
 	],
 	"initial_frame": {
-		"target": {"x": 350.0, "z": 470.0}, "distance": 470.0, "pitch_deg": 52.0, "yaw_deg": 35.0, "margin_pct": 5.0,
-		"must_include": ["bateria", "cuartel", "posta", "zona_partida"],
-		"tag": "diseno", "source": "diseño 11.3: cámara inicial; incluye los tres objetivos y la zona de partida"
+		"target": {"x": 350.0, "z": 470.0}, "distance": 470.0, "pitch_deg": 52.0, "yaw_deg": 325.0, "margin_pct": 5.0,
+		"must_include": ["bateria", "cuartel", "posta", "zona_partida", "spawn_rodriguez", "spawn_portal", "spawn_arias", "spawn_reconocedores", "spawn_arreo"],
+		"tag": "diseno", "source": "diseño 11.3 y A-11: cámara inicial, rumbo 325° (mira al noroeste); incluye los tres objetivos y las cinco partidas"
 	},
 	"quality": {
-		"baja": {"frame_ms_mean_max": 2.5, "frame_ms_p95_max": 8.3, "build_ms_max": 1500, "terrain_step_m": 10.0, "shadows": false, "omni_lights_max": 0, "outlines": false, "enemy_min_px": 12, "fx_max": 12},
-		"media": {"frame_ms_mean_max": 4.0, "frame_ms_p95_max": 8.3, "build_ms_max": 1500, "terrain_step_m": 5.0, "shadows": true, "omni_lights_max": 4, "outlines": true, "enemy_min_px": 14, "fx_max": 24},
-		"alta": {"frame_ms_mean_max": 6.0, "frame_ms_p95_max": 8.3, "build_ms_max": 1500, "terrain_step_m": 5.0, "shadows": true, "omni_lights_max": 8, "outlines": true, "enemy_min_px": 14, "fx_max": 40}
+		"baja": {"frame_ms_mean_max": 2.5, "frame_ms_p95_max": 8.3, "build_ms_max": 1500, "terrain_step_m": 10.0, "window_step": 2, "context_step": 2, "shader_detail": 0.6, "houses_max": 60, "vegetation_factor": 0.35, "shadows": false, "omni_lights_max": 0, "outlines": false, "enemy_min_px": 12, "fx_max": 12},
+		"media": {"frame_ms_mean_max": 4.0, "frame_ms_p95_max": 8.3, "build_ms_max": 1500, "terrain_step_m": 5.0, "window_step": 1, "context_step": 1, "shader_detail": 1.0, "houses_max": 120, "vegetation_factor": 1.0, "shadows": true, "omni_lights_max": 4, "outlines": true, "enemy_min_px": 14, "fx_max": 24},
+		"alta": {"frame_ms_mean_max": 6.0, "frame_ms_p95_max": 8.3, "build_ms_max": 1500, "terrain_step_m": 5.0, "window_step": 1, "context_step": 1, "shader_detail": 1.0, "houses_max": 160, "vegetation_factor": 1.4, "shadows": true, "omni_lights_max": 8, "outlines": true, "enemy_min_px": 14, "fx_max": 40}
 	},
 	"fx": {
 		"fogonazo": {"color": "oro_laton", "radius_m": 3.0, "life_s": 0.25, "rise_m": 1.5},
