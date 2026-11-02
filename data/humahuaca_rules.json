@@ -49,12 +49,16 @@
 		"messenger": {"leaves_after_alarm_s": 40},
 		"posta_officer": {"survives_s": 15, "reinforces_cuartel": 8},
 		"alert": {"alertado_at": 0.5, "alarma_at": 1.0, "alarm_delay_s": 6, "detect_gain_per_s": 0.02, "alarm_gain_per_s": 0.01},
+		"armed_share": 0.8,
 		"tag": "diseno",
 		"source": "Guarnición de 100 a 135 hombres según los partes de ambos bandos; el reparto es diseño."
 	},
 	"combat": {
 		"attack_range_m": 150,
 		"mirador_range_m": 180,
+		"front_pick_m": 60,
+		"reliability_ref": 0.9,
+		"cost_minutes_div": 6,
 		"surprise_bonus_max": 0.8,
 		"posture": {"a_fondo": {"power": 1.4, "casualties": 1.6}, "con_cautela": {"power": 0.8, "casualties": 0.7}},
 		"capture_k": 3.4,
@@ -79,12 +83,20 @@
 			"gallop": {"speed": 8.5, "noise": 0.9, "fatigue_per_s": 0.1, "mounted": true}
 		},
 		"rain_noise_mult": 0.8,
+		"noise_attacking": 0.8,
+		"noise_loading": 0.3,
+		"rest_fatigue_per_s": 0.01,
+		"blocked_speed_mult": 0.5,
+		"plan_sample_m": 8,
+		"mud_speed_below": 0.8,
+		"risk_medium_from": 0.2,
+		"risk_high_from": 0.5,
 		"detection": {"noise_mult": 2.0, "tower_height_mult": 1.5},
 		"noise_states": {"se_oye_from": 0.2, "los_oyen_from": 0.5},
 		"dark_cost": {"aim_min": 0.4, "assault_min": 0.8, "range_dark_m": 25, "recon_dark_m": 25, "ramp_from_m": 35, "ramp_to_m": 100, "coordination_below_m": 60, "coordination_min_dist_m": 150, "messenger_speed_mps": 3.2},
 		"dawn_drift": {"per_s_factor": 0.004, "reference_visibility_m": 60},
 		"light_reveal_m": 60,
-		"recon": {"duration_s": 2, "radius_m": 40, "radius_dark_m": 25, "dark_below_m": 100, "lit_radius_m": 60, "risk_base": 0.1, "risk_per_noise": 0.5, "risk_per_alert": 0.3},
+		"recon": {"duration_s": 2, "radius_m": 40, "radius_dark_m": 25, "dark_below_m": 100, "lit_radius_m": 60, "risk_base": 0.1, "risk_per_noise": 0.5, "risk_per_alert": 0.3, "alert_when_seen": 0.15, "more_until_dawn_s": 30},
 		"tag": "diseno",
 		"source": "Ritmos, ruido y oscuridad: diseño; la lluvia de la noche es reconstrucción razonada."
 	},
@@ -95,6 +107,9 @@
 		"dead_angle_m": 12,
 		"arm_delay_s": {"descuidada": 12, "atenta": 0},
 		"damage_per_volley_pct": 2.0,
+		"jitter": 0.5,
+		"eye_m": 10.0,
+		"cross_gap_s": 3.0,
 		"damage_mult": {"calle_abierta": 2.0, "tapia": 0.5, "corriendo": 0.3},
 		"hito": {"casa_cura": "torre_casa_cura", "templo": "torre_templo"},
 		"responses": [
@@ -139,6 +154,7 @@
 		"capacity": {"own_mules": 6, "kg_per_mule": 100, "corral_mules": {"completo": 16, "desbandado": 10}},
 		"treatments": {"entregar": 1.0, "destruir": 0.35, "ocultar": 0.7, "abandonar": 0.0},
 		"powder_wet_mult": 0.2,
+		"light_max_kg": 450,
 		"tag": "diseno",
 		"source": "Tratamientos y valores del botín: diseño."
 	},
@@ -148,7 +164,12 @@
 		"load_radius_m": 30,
 		"destroy_radius_m": 30,
 		"ford_mult": 0.5,
+		"ford_radius_m": 25,
 		"mule_pace": "march",
+		"mule_speed_mult": 0.85,
+		"exit_margin_s": 25,
+		"load_margin": 15,
+		"bring_radius_m": 60,
 		"tag": "diseno",
 		"source": "Ritmo de carga y de la columna: diseño."
 	},
@@ -181,14 +202,14 @@
 	"outcome": {
 		"victory": {"golpe_min": 45, "strength_min_pct": 20, "titulo": "Se cumplió el golpe", "por_que": "Tomaron los tres frentes y sacaron la carga por el vado antes de que llegara el refuerzo."},
 		"causes": {
-			"amanecio": {"titulo": "Amaneció y nadie había atacado", "texto": "A los {t} salió el sol y ninguna partida había dado el golpe: la guarnición los vio venir.", "consejo": "Dá la señal antes del alba, aunque falte una partida: esperar a todos cuesta más que atacar con dos."},
-			"descubiertos": {"titulo": "Los descubrieron antes de la señal", "texto": "A los {t} la guardia de {lugar} dio la alarma antes de la señal y los tres frentes se defendieron alertas.", "consejo": "Andá en silencio y reconocé por tramos: correr bajo la lluvia se oye de lejos."},
+			"amanecio": {"titulo": "Amaneció y nadie había atacado", "texto": "A los {t} amaneció con las partidas cerca {deLugar} y sin señal dada: la guarnición los vio venir.", "consejo": "Dá la señal antes del alba, aunque falte una partida: esperar a todos cuesta más que atacar con dos."},
+			"descubiertos": {"titulo": "Los descubrieron antes de la señal", "texto": "A los {t} la guardia {deLugar} dio la alarma antes de la señal y los frentes se defendieron alertas.", "consejo": "Andá en silencio y reconocé por tramos: correr bajo la lluvia se oye de lejos."},
 			"frente_roto": {"titulo": "Una partida se rompió", "texto": "A los {t} {grupo} quedó clavada frente a {lugar} y se rompió bajo el fuego.", "consejo": "Atacá con cautela y mandá a Arias en apoyo: un frente solo, bajo la torre, no se sostiene."},
-			"sin_carga": {"titulo": "Tomaron el depósito, pero casi sin carga", "texto": "A los {t} salió la columna con menos de la mitad del golpe: faltaron mulas, tiempo o decisión.", "consejo": "Elegí qué cargar: lo más valioso por peso va primero; lo pesado, destruilo."},
-			"interceptados": {"titulo": "El refuerzo alcanzó a la columna", "texto": "A los {t} el refuerzo cayó sobre la columna cerca del vado y la carga se perdió.", "consejo": "Mirá el reloj del refuerzo y salí antes: una carga menos es mejor que ninguna."},
-			"dispersos": {"titulo": "Las partidas se dispersaron", "texto": "A los {t} las tres partidas quedaron con menos de la quinta parte de su fuerza y se dispersaron.", "consejo": "Cuidá la fuerza: apoyá a la partida que sufre y no la dejes sola frente a la torre."},
-			"plazo": {"titulo": "Se acabó el plazo", "texto": "A los {t} se cumplió el plazo y el depósito quedó sin vaciar.", "consejo": "Cargá y salí en cuanto caiga el depósito: cada minuto de espera acerca al refuerzo."},
-			"retirada": {"titulo": "Retirada general", "texto": "A los {t} diste la retirada general: el golpe quedó a medias.", "consejo": "Si salió mal, probá otro reparto: los reconocedores muestran dónde está más floja la guardia."}
+			"sin_carga": {"titulo": "Tomaron el depósito, pero casi sin carga", "texto": "A los {t} la columna cruzó {lugar} con menos de la mitad del golpe: faltaron mulas, tiempo o decisión.", "consejo": "Elegí qué cargar: lo más valioso por peso va primero; lo pesado, destruilo."},
+			"interceptados": {"titulo": "El refuerzo alcanzó a la columna", "texto": "A los {t} el refuerzo cayó sobre la columna cerca {deLugar} y la carga se perdió.", "consejo": "Mirá el reloj del refuerzo y salí antes: una carga menos es mejor que ninguna."},
+			"dispersos": {"titulo": "Las partidas se dispersaron", "texto": "A los {t} las tres partidas quedaron con menos de la quinta parte de su fuerza cerca {deLugar} y se dispersaron.", "consejo": "Cuidá la fuerza: apoyá a la partida que sufre y no la dejes sola frente a la torre."},
+			"plazo": {"titulo": "Se acabó el plazo", "texto": "A los {t} se cumplió el plazo con la columna cerca {deLugar} y el depósito sin vaciar.", "consejo": "Cargá y salí en cuanto caiga el depósito: cada minuto de espera acerca al refuerzo."},
+			"retirada": {"titulo": "Retirada general", "texto": "A los {t} diste la retirada general cerca {deLugar}: el golpe quedó a medias.", "consejo": "Si salió mal, probá otro reparto: los reconocedores muestran dónde está más floja la guardia."}
 		},
 		"medals": {
 			"bronce": {"label": "Medalla de bronce", "golpe_min": 0},
@@ -208,6 +229,28 @@
 			"mundo_nuevo": "Mundo nuevo"
 		},
 		"next_label": "Ver la campaña completa: Sostener el norte",
+		"marks": {"anotado": "Anotado"},
+		"diary": {
+			"descubiertos": "Te vieron cerca {deLugar} y la guardia dio la alarma antes de la señal.",
+			"frente_roto": "Una partida se rompió frente a {lugar}.",
+			"interceptados": "El refuerzo llegó a los {t}, cerca {deLugar}.",
+			"amanecio": "Amaneció a los {t} sin que nadie diera la señal.",
+			"sin_carga": "La columna salió a los {t} con apenas {golpe} de 100 de golpe.",
+			"dispersos": "Las partidas quedaron sin fuerza a los {t}.",
+			"plazo": "A los {t} se cumplió el plazo con la carga sin sacar.",
+			"retirada": "Diste la retirada general a los {t}.",
+			"victoria": "Ganaste a los {t} con {golpe} de 100 de golpe."
+		},
+		"tips": {
+			"amanecio": ["Con la luz la guardia se desvela: dá la señal cuando las tres partidas estén en su puesto, alrededor del alba.", "Si una partida no llega, atacá con las otras dos antes de que amanezca del todo."],
+			"descubiertos": ["Andá en silencio y evitá pasar a menos de 60 m de los centinelas: correr bajo la lluvia se oye de lejos.", "Rodeá por detrás de las tapias: la guardia no ve lo que una tapia le tapa."],
+			"frente_roto": ["Mandá a Arias a socorrer a la partida que sufre antes de que se rompa.", "Atacá con cautela el cuartel: la torre castiga más a quien corre por la calle abierta."],
+			"sin_carga": ["Cargá primero lo que más puntos da por kilo: pólvora, fusiles y plata; lo pesado, destruilo.", "Empezá a cargar apenas caiga la posta, sin esperar al último frente."],
+			"interceptados": ["Mirá el reloj del refuerzo y salí por el vado con lo que tengas: una carga menos es mejor que ninguna.", "Quemar la pólvora adelanta el refuerzo: destruí otra cosa si el reloj aprieta."],
+			"dispersos": ["Cuidá la fuerza: no mandes a la misma partida contra la torre dos veces seguidas.", "Alterná el ataque a fondo con el ataque con cautela según cuánto aguante cada partida."],
+			"plazo": ["Salí en cuanto cargues lo que entra: cada minuto de espera acerca al refuerzo.", "Tené las mulas en la posta antes de la señal y cargá mientras se toma el último frente."],
+			"retirada": ["Probá otro reparto: los reconocedores muestran dónde está más floja la guardia."]
+		},
 		"lines": {
 			"victoria": "{medalla} · golpe {golpe} de 100 · bajas {bajas} %",
 			"derrota": "Intento {n} · derrotas seguidas: {racha}",
@@ -234,6 +277,8 @@
 		"nota_relieve": {"texto": "El relieve es dato actual del terreno, no una restitución del suelo de 1817.", "tag": "razonado", "source": "Relieve actual remuestreado; no hay planos del suelo de 1817."},
 		"mercy": {"sin_ayudas": "Sin ayudas", "con_ayudas": "Con ayudas"},
 		"una_partida": "una partida",
+		"lugares": {"radio_m": 140, "campo": "el campo", "hitos": {"bateria": "la batería", "cuartel": "el cuartel", "posta": "la posta", "plaza": "la plaza", "templo": "el templo", "vado_este": "el vado", "zona_partida": "la zona de partida", "entrada_sur": "el camino del sur"}},
+		"lugares_fijos": {"vado": "el vado"},
 		"aclaracion_tiempo": {"texto": "En la realidad la marcha duró unas 26 horas y el fuego desde la torre, hora y media; el juego los reduce a minutos.", "tag": "diseno", "source": "Compresión del tiempo declarada: diseño."},
 		"fases": {"briefing": "Preparación", "aproximacion": "Aproximación", "ataque": "Ataque", "extraccion": "Extracción", "epilogo": "Epílogo"},
 		"momentos": {"noche": "Noche", "alba": "Alba", "dia": "Mañana"},
@@ -323,6 +368,7 @@
 			"partida_terminada": "La partida terminó.",
 			"sin_accion": "No existe esa acción.",
 			"paradas": "Son demasiadas paradas: hasta 4.",
+			"sin_paso": "No hay camino hasta ese punto.",
 			"ya_cargada": "Esa carga ya no está a mano.",
 			"sin_ayuda": "Esa ayuda llega en una versión posterior del nivel.",
 			"sin_decision": "No hay ninguna decisión pendiente.",
