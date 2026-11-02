@@ -10,7 +10,7 @@ Registro de las pruebas de juego del nivel. Lo lleva «compuertas y documentos»
 
 ## El agente-jugador (lo que reemplaza al humano)
 
-Un agente **sin acceso al código, a `qa_state()` ni a las reglas** juega por la interfaz real: ve una captura de 1280 × 720, decide, y el arnés inyecta la entrada como hace `ui_qa` (el juego queda en pausa entre turnos y avanza unos segundos de juego por turno). El arnés **no** le muestra ni el estado ni el código; solo la captura y el resultado de su última orden.
+Un agente **sin acceso al código, a `qa_state()` ni a las reglas** juega por la interfaz real: ve una captura de 1280 × 720, decide, y el arnés inyecta la entrada como hace `ui_qa` (el juego queda en pausa entre turnos y avanza unos segundos de juego por turno). El arnés **no** le muestra ni el estado ni el código: solo la captura de cada turno.
 
 | Qué se mide | Aprobación (J08 de la rúbrica) |
 |---|---|
