@@ -150,7 +150,7 @@ Se probó que las pruebas **ven** lo que cuidan: sin la corrección con la proye
 
 `tools/vis_humahuaca.gd` con ventana: 44 comprobaciones en las capturas de juego (7 vistas, albedo, minimapa y efectos), 29 a 1024 × 640, 26 por la escena real y 10 del render héroe; **0 fallas** en todas.
 
-**Compuerta rápida** (`bash tools/qa_gate.sh quick visual`): importación, protegidos (40 intactos), compartidos, propiedad (todos los archivos cambiados son de `visual`), `rules` 818/0, `integracion` 283/0, `hx_data` 289/0, `hx_smoke` 148/0, `hx_view` pasa y `salida_limpia` (ningún `SCRIPT ERROR`, `SHADER ERROR`, `Parse Error` ni fuga). **Falla solo `higiene`**: las etiquetas `v0.2.0-alpha` y `v0.3.0-alpha` que no son de esta rama (B-017: la decisión es del usuario).
+**Compuerta rápida** (`bash tools/qa_gate.sh quick visual`, 1 min 48 s, sobre `main` en 35ef6ff): importación, protegidos (40 intactos), compartidos, propiedad (todos los archivos cambiados son de `visual`), `rules` 818/0, `integracion` 283/0, `hx_data` 289/0, `hx_smoke` 148/0 (3 pendientes de rondas futuras), `hx_view` 257/0 y `salida_limpia` (ningún `SCRIPT ERROR`, `SHADER ERROR`, `Parse Error` ni fuga). **Falla solo `higiene`**: las etiquetas `v0.2.0-alpha` y `v0.3.0-alpha` que no son de esta rama (B-017: la decisión es del usuario).
 
 ## 7. Pedidos a las otras pistas (id, firma, motivo y prueba de aceptación)
 
