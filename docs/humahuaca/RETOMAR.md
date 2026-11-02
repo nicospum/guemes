@@ -15,6 +15,10 @@ El control de calidad marca como bloqueantes dos cosas que no dependen del traba
 
 ## Plan de la próxima ronda de trabajo (pedido del usuario, 2026-11-02)
 
+**Dirección de arte (pedido del usuario, 2026-11-02):** «retomá esta estética más épica y linda; la de ahora no dice mucho». Seis mockups de referencia y su lectura en `docs/referencias/humahuaca/estetica/` (LEEME.md). Resumen: oscuro y dramático, relieve dorado con cielos de atardecer, acentos dorado + violeta, rojo solo enemigo, títulos con serifa, mapa protagonista, retratos y escenas pintadas, paneles con citas y documentos, pantalla de misión a pantalla completa con tres decisiones. Aplica al menú, al briefing, al HUD y a los partes de los tres niveles.
+
+**Nube (2026-11-02):** la rama `humahuaca-r1` (333a657) está subida a GitHub; `main` de GitHub sigue en 72077c8. Se pidió una sesión en la nube «Humahuaca: balance del nivel 2» que trabaja en la rama `hx-balance-nube` (balance J03/J05/J07) y la sube a GitHub al terminar. Al retomar: `git fetch origin` y revisar esa rama antes de mezclarla.
+
 **DECIDIDO por el usuario el 2026-11-02: Blender para modelar y exportar a Godot.** Se queda el motor Godot; no se pasa a Unity ni a Unreal. Falta solo pedir permiso para lo que haya que descargar (modelos, plugins), con nombre, origen y tamaño.
 
 El usuario quiere que la próxima ronda sea un salto de calidad, no solo corrección de hallazgos. Lo dijo así, en sus palabras: usar Blender, Unreal, Unity, «no sé cuál pero vamos a mejorar»; mejorar soldados, caballos, árboles, todo; mejorar el mapa; hacer conexiones MCP; buscar skills; mejorar la dinámica de juego; «y lo vamos a terminar»; imágenes épicas; dibujos de Güemes «cuando lo elijas»; «volverlo cheto cheto».
