@@ -89,6 +89,7 @@ var _rec: Dictionary = {}
 var _auto_start := true
 var _auto_resume := 0.0
 var _paused_before_dialog := true
+var _dialog_back := ""  # a qué ventana vuelve «Cerrar» en el diario y la ayuda: "pausa" si se abrieron desde el menú de pausa (si no, al juego; en el parte, siempre al parte)
 var _decision_left := 0.0
 var _decision_id := ""
 var _keys_down: Dictionary = {}
@@ -287,7 +288,8 @@ func avoid_rects() -> Array:
 	return out
 
 
-## El texto que cuentan las reglas sobre el nivel (briefing, notas), tal como está en humahuaca_rules.json: la fuente única del briefing.
+## El texto que cuentan las reglas sobre el nivel (briefing, objetivo, notas), tal como está en humahuaca_rules.json: la FUENTE ÚNICA del briefing. La interfaz no guarda
+## copias de esas frases (antes tenía dos de respaldo): si las reglas no las traen, la tarjeta sale sin ellas y la línea roja dice qué capa falta.
 func _rules_texts() -> Dictionary:
 	if rules != null and rules.has_method("map_data"):
 		var md: Variant = rules.call("map_data")
@@ -306,8 +308,6 @@ func briefing_data() -> Dictionary:
 		for line in str((b as Dictionary).get("pagina_1", "")).split("\n"):
 			if line.strip_edges() != "":
 				lines.append(line.strip_edges())
-	if lines.is_empty():
-		lines.append(tx("briefing.page1.fallback", tx("objective", "")))
 	var mundo := ""
 	var hs_now: Variant = rules.call("hud_state") if rules != null else {}
 	var w: Variant = (hs_now as Dictionary).get("mundo", {}) if hs_now is Dictionary else {}
@@ -729,8 +729,10 @@ func initial_frame() -> Dictionary:
 
 ## El cuadro inicial tal como lo muestra la interfaz: el de la vista, encuadrado en el área que dejan libre la cabecera y el dock. La vista dice qué debe
 ## entrar (los tres objetivos y la zona de partida) y la interfaz se asegura de que las cinco partidas y los tres objetivos queden dentro del cuadro, a
-## `margin_pct` del borde, con la ficha (y su rótulo) por debajo de la cabecera y por encima del dock: si no entran se abre la distancia de a 4 %, y la
-## escena se corre hacia abajo lo que haga falta (correr el objetivo hacia adelante por el suelo baja la escena en la pantalla).
+## `side_pct` del borde, con la ficha (y su rótulo) por debajo de la cabecera y por encima del dock y de la barra de órdenes: si no entran se abre la distancia de a
+## 4 %, y la escena se corre hacia abajo lo que haga falta (correr el objetivo hacia adelante por el suelo baja la escena en la pantalla). Ese corrimiento cambia un poco
+## la perspectiva y puede acercar una ficha al borde (en 16:10 el arreo quedaba a 5 % del borde con el 6 % pedido), así que después de correr se vuelve a medir: si el
+## margen lateral ya no se cumple, se abre un paso más (BACKLOG B-015).
 func initial_pose(yaw_override: float = -1.0) -> Dictionary:
 	var f := initial_frame()
 	if yaw_override >= 0.0:
@@ -749,7 +751,7 @@ func initial_pose(yaw_override: float = -1.0) -> Dictionary:
 		return f
 	var margin_px := float(layout_num(["margin"], 12.0))
 	var top := margin_px + layout_num(["header_h"], 46.0) + float(cfg.get("above_head_px", 78.0))
-	var bottom_gap := margin_px + layout_num(["dock_h"], 164.0) + float(cfg.get("below_px", 10.0))
+	var bottom_gap := margin_px + layout_num(["dock_h"], 132.0) + float(cfg.get("below_px", 10.0))
 	var side := float(cfg.get("side_pct", 5.0)) * 0.01
 	var logical := main.get_viewport().get_visible_rect().size
 	var local_h := logical.y / ui_scale
@@ -761,38 +763,52 @@ func initial_pose(yaw_override: float = -1.0) -> Dictionary:
 	var yaw := deg_to_rad(float(f.yaw_deg))
 	var forward := Vector2(sin(yaw), -cos(yaw))
 	var pitch_sin := maxf(sin(deg_to_rad(float(f.pitch_deg))), 0.2)
-	var target: Vector2 = f.target
 	var out := f.duplicate()
+	var last_target: Vector2 = f.target
 	for step in range(int(cfg.get("max_steps", 40))):
-		cam.set_frame(target, dist, float(f.pitch_deg), float(f.yaw_deg))
-		cam.apply(cam3)
-		var lo_y := 1.0e9
-		var hi_y := -1.0e9
-		var x_ok := true
-		for p in points:
-			var v := Vector3(p.x, ground_height(p.x, p.y), p.y)
-			if cam3.is_position_behind(v):
-				x_ok = false
-				continue
-			var sp: Vector2 = cam3.unproject_position(v) / ui_scale
-			lo_y = minf(lo_y, sp.y)
-			hi_y = maxf(hi_y, sp.y)
-			if sp.x < local_w * side or sp.x > local_w * (1.0 - side):
-				x_ok = false
-		var span := hi_y - lo_y
-		if x_ok and span <= band_bottom - band_top:
-			# centrar los puntos en la franja libre: lo que falta (o sobra) arriba se corre con el objetivo
-			var want_lo := band_top + ((band_bottom - band_top) - span) * 0.5
-			var shift_px := want_lo - lo_y  # > 0 baja la escena
+		var target: Vector2 = f.target
+		var fits := false
+		for refine in range(4):  # centrar de a poco: el corrimiento por el suelo no es exactamente vertical en pantalla
+			cam.set_frame(target, dist, float(f.pitch_deg), float(f.yaw_deg))
+			cam.apply(cam3)
+			target = cam.target
+			var m := _measure_points(points, cam3, local_w, side)
+			if not bool(m.x_ok) or float(m.span) > band_bottom - band_top:
+				break
+			var want_lo := band_top + ((band_bottom - band_top) - float(m.span)) * 0.5
+			var shift_px := want_lo - float(m.lo)  # > 0 baja la escena
+			if absf(shift_px) <= 1.0:
+				fits = true
+				break
 			var mpp := 2.0 * dist * tan(deg_to_rad(float(cam3.fov)) * 0.5) / maxf(logical.y, 1.0)
 			target = target + forward * (shift_px * ui_scale * mpp / pitch_sin)
+		last_target = target
+		if fits:
 			out["target"] = target
 			out["dist"] = dist
 			return out
 		dist = minf(dist * 1.04, cam.max_dist())
-	out["target"] = target
+	out["target"] = last_target
 	out["dist"] = dist
 	return out
+
+
+## Qué tan arriba y abajo quedan los puntos del mundo en la pantalla (coordenadas locales de la interfaz) y si todos están a `side` del borde de los costados.
+func _measure_points(points: Array, cam3: Camera3D, local_w: float, side: float) -> Dictionary:
+	var lo_y := 1.0e9
+	var hi_y := -1.0e9
+	var x_ok := true
+	for p in points:
+		var v := Vector3(p.x, ground_height(p.x, p.y), p.y)
+		if cam3.is_position_behind(v):
+			x_ok = false
+			continue
+		var sp: Vector2 = cam3.unproject_position(v) / ui_scale
+		lo_y = minf(lo_y, sp.y)
+		hi_y = maxf(hi_y, sp.y)
+		if sp.x < local_w * side or sp.x > local_w * (1.0 - side):
+			x_ok = false
+	return {"lo": lo_y, "hi": hi_y, "span": hi_y - lo_y, "x_ok": x_ok}
 
 
 ## Ubica main.camera (VP-07: el rumbo es el de la mirada). Se llama ANTES de view.update_state (VP-08).

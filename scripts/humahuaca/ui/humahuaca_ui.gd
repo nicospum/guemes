@@ -100,6 +100,8 @@ func _process(delta: float) -> void:
 		_end_delay -= delta
 		if _end_delay <= 0.0:
 			_show_report()
+	elif mode == "ended" and _ended and dialogs != null and not dialogs.is_open():
+		_show_report()  # red de seguridad (H-R1-2): una partida terminada nunca queda sin ventana ni controles; la salida es siempre el parte
 	apply_camera()
 	if is_instance_valid(view) and view.has_method("update_state"):
 		view.call("update_state", delta)

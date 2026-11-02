@@ -3,9 +3,12 @@ extends RefCounted
 ## los textos de humahuaca_ui.json; no recalcula reglas. Qué dibuja:
 ##   · arriba: título, indicador permanente «TIEMPO REAL · ▶ ×1» / «‖ EN PAUSA» con pausa y velocidades, fase, reloj y barra del alba, ayuda y menú;
 ##     debajo, a la derecha, las tres tarjetas de frente (batería, cuartel y pólvora);
-##   · abajo (el dock): una sola línea de objetivo, UN «siguiente paso» con su botón, la barra de acciones de la selección, una línea de motivo de
-##     alto fijo (para que los botones no se muevan bajo el cursor) y las cinco fichas de agrupación (teclas 1 a 5);
-##   · una alerta a la vez, un aviso a la vez y la línea roja de las capas que corren en su versión mínima.
+##   · abajo, UNA columna (HxBottom) que crece hacia arriba y en la que nada se pisa (H-R1-7): los avisos de pie (un aviso a la vez y la línea roja de las capas que
+##     corren en su versión mínima), la barra de órdenes y el dock. La barra (HxBar) solo existe mientras hay algo que decir o hacer con la selección: las acciones
+##     (fluyen a una segunda línea si no entran), los ritmos al apuntar, la línea de motivo de alto fijo (para que los botones no se muevan bajo el cursor) y el estado
+##     de la señal y la torre. El dock tiene tres filas de alto fijo: el objetivo (una línea) con los chips, UN «siguiente paso» con su botón (en su propia fila y de
+##     dos líneas como máximo) y las cinco fichas de agrupación (teclas 1 a 5);
+##   · una alerta a la vez, debajo de la cabecera y los frentes.
 ## Los paneles NO van sobre los laterales: las fichas de la zona de partida quedan contra el borde izquierdo del cuadro inicial (BACKLOG B-021).
 ## Los controles que no son botones (fichas y tarjetas) se eligen con el mouse pero no cuentan como «controles accionables» del primer cuadro.
 
@@ -36,6 +39,10 @@ var btn_menu: Button
 var fronts_box: HBoxContainer
 var front_cards: Dictionary = {}
 
+var bottom: VBoxContainer
+var notice_row: HBoxContainer
+var bar: PanelContainer
+var motive_row: HBoxContainer
 var dock: PanelContainer
 var objective_l: Label
 var chips_box: HBoxContainer
@@ -44,7 +51,7 @@ var next_title_l: Label
 var next_text_l: Label
 var next_btn: Button
 var suggest_btn: Button
-var actions_box: HBoxContainer
+var actions_box: HFlowContainer
 var pace_box: HBoxContainer
 var pace_btns: Dictionary = {}
 var motive_l: Label
@@ -122,10 +129,8 @@ func build(parent: Control, texts_in: Dictionary, layout_in: Dictionary, tags_in
 	parent.add_child(root)
 	_build_header()
 	_build_fronts()
-	_build_dock(minimap_w)
+	_build_bottom(minimap_w)
 	_build_alert()
-	_build_toast()
-	_build_warn(minimap_w)
 
 
 func _build_header() -> void:
@@ -229,53 +234,51 @@ func _build_fronts() -> void:
 		front_cards[id] = {"panel": p, "accent": accent, "name": name_l, "guard": guard_l, "take": take_bar, "alert": alert_bar, "info": info_l}
 
 
-func _build_dock(minimap_w: float) -> void:
+## La columna de abajo: los avisos de pie arriba, la barra de órdenes en el medio y el dock debajo. Crece hacia arriba y no deja que nada se pise: ni la barra ni el dock
+## quedan debajo de un aviso (H-R1-7). Lo que cambia de alto (aviso y barra) está siempre encima de lo que no: el dock no se mueve.
+func _build_bottom(minimap_w: float) -> void:
 	var m := _num(["margin"], 12.0)
-	var fs := int(_num(["font", "body"], 15.0))
+	bottom = Kit.vbox(root, int(_num(["notice_gap"], 4.0)))
+	bottom.name = "HxBottom"
+	_anchor(bottom, 0.0, 1.0, 1.0, 1.0, m, -(m + 1.0), -(minimap_w + 2.0 * m), -m)
+	bottom.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	notice_row = Kit.hbox(bottom, 8)
+	notice_row.name = "HxNotices"
+	notice_row.visible = false
+	_build_toast(notice_row)
+	_build_warn(notice_row)
+	_build_bar(bottom)
+	_build_dock(bottom)
+
+
+## La barra de órdenes: la línea de motivo con el estado de la señal (arriba, solo mientras hay algo que decir) y, debajo, las acciones de la selección con los ritmos de
+## marcha al apuntar. Como la columna crece hacia arriba, lo que aparece o desaparece arriba no mueve los botones: no se mueven bajo el cursor.
+func _build_bar(parent: Control) -> void:
 	var small := int(_num(["font", "small"], 13.0))
-	dock = Kit.panel(root, Kit.PANEL_BG, Kit.PANEL_BORDER, 12.0, 6.0)
-	dock.name = "HxDock"
-	var dock_h := _num(["dock_h"], 164.0)
-	_anchor(dock, 0.0, 1.0, 1.0, 1.0, m, -(dock_h + m), -(minimap_w + 2.0 * m), -m)
-	dock.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	var col := Kit.vbox(dock, 3)
-	# fila A: objetivo y chips
-	var row_a := Kit.hbox(col, 10)
-	objective_l = Kit.label(row_a, "", small, Kit.MUTED, true)
-	objective_l.name = "HxObjective"
-	objective_l.custom_minimum_size = Vector2(80.0, 18.0)
-	chips_box = Kit.hbox(row_a, 6)
-	chips_box.size_flags_horizontal = Control.SIZE_SHRINK_END
-	for id in ["golpe", "carga", "refuerzo"]:
-		var chip := Kit.panel(chips_box, Color(0.16, 0.19, 0.12, 1.0), Kit.PANEL_BORDER, 6.0, 1.0, 4)
-		var l := Kit.label(chip, "", int(_num(["font", "tiny"], 12.0)), Kit.PAPER)
-		l.clip_text = false
-		chip.visible = false
-		chip_labels[id] = {"panel": chip, "label": l}
-	# fila B: siguiente paso y acciones
-	var row_b := Kit.hbox(col, 10)
-	row_b.custom_minimum_size.y = 36.0
-	var guide := Kit.hbox(row_b, 8)
-	guide.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	guide.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	next_title_l = Kit.label(guide, _t("hud.next_title", "Siguiente paso"), small, Kit.GOLD)
-	next_title_l.name = "HxNextTitle"
-	next_title_l.autowrap_mode = TextServer.AUTOWRAP_OFF
-	next_text_l = Kit.label(guide, "", fs, Kit.PAPER, true)
-	next_text_l.name = "HxNextText"
-	next_text_l.custom_minimum_size = Vector2(60.0, 20.0)
-	next_btn = Kit.button(guide, "", fs, "primary", "accion:siguiente")
-	next_btn.name = "HxNextButton"
-	next_btn.pressed.connect(func(): _fire("next"))
-	next_btn.visible = false
-	suggest_btn = Kit.button(guide, _t("time.suggest_button", "Acelerar ×2"), small, "normal", "tiempo")
-	suggest_btn.name = "HxSuggest"
-	suggest_btn.pressed.connect(func(): _fire("speed", 1))
-	suggest_btn.visible = false
-	actions_box = Kit.hbox(row_b, 6)
+	bar = Kit.panel(parent, Kit.PANEL_BG, Kit.PANEL_BORDER, 12.0, 4.0)
+	bar.name = "HxBar"
+	bar.visible = false
+	var col := Kit.vbox(bar, 2)
+	motive_row = Kit.hbox(col, 10)
+	motive_row.name = "HxMotiveRow"
+	motive_row.custom_minimum_size.y = 18.0
+	motive_row.visible = false
+	motive_l = Kit.label(motive_row, "", small, Kit.GOLD, true)  # si el motivo y el estado de la señal no entran juntos, el motivo sigue en otra línea (hacia arriba): nunca ensancha la columna
+	motive_l.name = "HxMotive"
+	motive_l.custom_minimum_size = Vector2(280.0, 18.0)  # con menos ancho el primer cuadro de una frase larga saldría muy alto
+	motive_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	status_l = Kit.label(motive_row, "", int(_num(["font", "tiny"], 12.0)), Kit.MUTED, false, HORIZONTAL_ALIGNMENT_RIGHT)
+	status_l.name = "HxStatus"
+	status_l.size_flags_horizontal = Control.SIZE_SHRINK_END
+	status_l.clip_text = false
+	actions_box = HFlowContainer.new()
 	actions_box.name = "HxActions"
-	actions_box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	pace_box = Kit.hbox(row_b, 4)
+	actions_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	actions_box.add_theme_constant_override("h_separation", 6)
+	actions_box.add_theme_constant_override("v_separation", 3)
+	actions_box.custom_minimum_size.y = _num(["actions_h"], 32.0)
+	col.add_child(actions_box)
+	pace_box = Kit.hbox(actions_box, 4)
 	pace_box.name = "HxPace"
 	pace_box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	pace_box.visible = false
@@ -287,17 +290,55 @@ func _build_dock(minimap_w: float) -> void:
 		pb.custom_minimum_size = Vector2(0.0, 28.0)
 		pb.pressed.connect(func(): _fire("pace", pid))
 		pace_btns[pid] = pb
-	# fila C: motivo / vista previa (alto fijo) y estado de la señal
-	var row_c := Kit.hbox(col, 10)
-	row_c.custom_minimum_size.y = 18.0
-	motive_l = Kit.label(row_c, "", small, Kit.GOLD)
-	motive_l.name = "HxMotive"
-	motive_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	status_l = Kit.label(row_c, "", int(_num(["font", "tiny"], 12.0)), Kit.MUTED, false, HORIZONTAL_ALIGNMENT_RIGHT)
-	status_l.name = "HxStatus"
-	status_l.size_flags_horizontal = Control.SIZE_SHRINK_END
-	status_l.clip_text = false
-	# fila D: las cinco agrupaciones
+
+
+func _build_dock(parent: Control) -> void:
+	var fs := int(_num(["font", "body"], 15.0))
+	var small := int(_num(["font", "small"], 13.0))
+	dock = Kit.panel(parent, Kit.PANEL_BG, Kit.PANEL_BORDER, 12.0, 5.0)
+	dock.name = "HxDock"
+	dock.custom_minimum_size.y = _num(["dock_h"], 136.0)
+	var col := Kit.vbox(dock, 3)
+	# fila A: objetivo y chips
+	var row_a := Kit.hbox(col, 10)
+	objective_l = Kit.trimmed(Kit.label(row_a, "", small, Kit.MUTED))  # una sola línea siempre: si los chips de la extracción le quitan lugar se recorta con «…» (la frase entera, en el cartel) y el panel no cambia de alto según la fase
+	objective_l.name = "HxObjective"
+	objective_l.custom_minimum_size = Vector2(80.0, 18.0)
+	objective_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	objective_l.mouse_filter = Control.MOUSE_FILTER_PASS
+	chips_box = Kit.hbox(row_a, 6)
+	chips_box.size_flags_horizontal = Control.SIZE_SHRINK_END
+	for id in ["golpe", "carga", "refuerzo"]:
+		var chip := Kit.panel(chips_box, Color(0.16, 0.19, 0.12, 1.0), Kit.PANEL_BORDER, 6.0, 1.0, 4)
+		var l := Kit.label(chip, "", int(_num(["font", "tiny"], 12.0)), Kit.PAPER)
+		l.clip_text = false
+		chip.visible = false
+		chip_labels[id] = {"panel": chip, "label": l}
+	# fila B: el «siguiente paso» en su propia fila, a todo el ancho del dock y de dos líneas como máximo (H-R1-7: antes compartía la fila con las acciones y quedaba en
+	# una columna de 60 px)
+	var row_b := Kit.hbox(col, 10)
+	row_b.name = "HxNextRow"
+	row_b.custom_minimum_size.y = _num(["next_h"], 40.0)
+	next_title_l = Kit.label(row_b, _t("hud.next_title", "Siguiente paso"), small, Kit.GOLD)
+	next_title_l.name = "HxNextTitle"
+	next_title_l.autowrap_mode = TextServer.AUTOWRAP_OFF
+	next_title_l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	next_text_l = Kit.label(row_b, "", fs, Kit.PAPER, true)
+	next_text_l.name = "HxNextText"
+	next_text_l.custom_minimum_size = Vector2(_num(["next_min_w"], 300.0), _num(["next_h"], 40.0) - 2.0)  # 300 px alcanzan para 72 caracteres en dos líneas
+	next_text_l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	next_text_l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	next_btn = Kit.button(row_b, "", fs, "primary", "accion:siguiente")
+	next_btn.name = "HxNextButton"
+	next_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	next_btn.pressed.connect(func(): _fire("next"))
+	next_btn.visible = false
+	suggest_btn = Kit.button(row_b, _t("time.suggest_button", "Acelerar ×2"), small, "normal", "tiempo")
+	suggest_btn.name = "HxSuggest"
+	suggest_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	suggest_btn.pressed.connect(func(): _fire("speed", 1))
+	suggest_btn.visible = false
+	# fila C: las cinco agrupaciones
 	cards_box = Kit.hbox(col, 6)
 	cards_box.name = "HxCards"
 	var gc := _vec("group_card", Vector2(142.0, 58.0))
@@ -360,28 +401,23 @@ func _build_alert() -> void:
 	alert_panel.visible = false
 
 
-func _build_toast() -> void:
-	var m := _num(["margin"], 12.0)
-	var w := _num(["toast_w"], 440.0)
-	toast_panel = Kit.panel(root, Kit.PANEL_BG, Kit.GOLD, 12.0, 5.0, 6)
+func _build_toast(parent: Control) -> void:
+	toast_panel = Kit.panel(parent, Kit.PANEL_BG, Kit.GOLD, 12.0, 5.0, 6)
 	toast_panel.name = "HxToast"
 	toast_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var bottom := -(_num(["dock_h"], 164.0) + 2.0 * m + 4.0)
-	_anchor(toast_panel, 0.0, 1.0, 0.0, 1.0, m, bottom - 34.0, m + w, bottom)
-	toast_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	toast_panel.custom_minimum_size.x = _num(["toast_w"], 440.0)
+	toast_panel.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	toast_panel.size_flags_vertical = Control.SIZE_SHRINK_END
 	toast_l = Kit.label(toast_panel, "", int(_num(["font", "body"], 15.0)), Kit.PAPER, true)
 	toast_panel.visible = false
 
 
-func _build_warn(minimap_w_now: float = 260.0) -> void:
-	var m := _num(["margin"], 12.0)
-	warn_panel = Kit.panel(root, Kit.WARN_BG, Kit.WARN_BORDER, 12.0, 4.0, 6)
+func _build_warn(parent: Control) -> void:
+	warn_panel = Kit.panel(parent, Kit.WARN_BG, Kit.WARN_BORDER, 12.0, 4.0, 6)
 	warn_panel.name = "HxWarn"
 	warn_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var bottom := -(_num(["dock_h"], 164.0) + 2.0 * m + 4.0)
-	var left := m + _num(["toast_w"], 440.0) + 16.0
-	_anchor(warn_panel, 0.0, 1.0, 1.0, 1.0, left, bottom - 28.0, -(minimap_w_now + 3.0 * m), bottom)
-	warn_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	warn_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	warn_panel.size_flags_vertical = Control.SIZE_SHRINK_END
 	warn_l = Kit.label(warn_panel, "", int(_num(["font", "small"], 13.0)), Kit.WARN_TEXT, true)
 	warn_panel.visible = false
 
@@ -491,7 +527,8 @@ func short_names() -> Dictionary:
 
 func _refresh_dock(hs: Dictionary, ctx: Dictionary) -> void:
 	var goal := str(hs.get("objetivo", ""))
-	objective_l.text = goal if goal != "" else _t("objective", "")
+	objective_l.text = goal  # la frase la dicen las reglas (hud_state().objetivo): la interfaz no guarda otra copia
+	objective_l.tooltip_text = goal
 	var guide := _dict(ctx.get("guide"))
 	next_title_l.visible = not guide.is_empty() and str(guide.get("text", "")) != ""
 	next_text_l.text = str(guide.get("text", ""))
@@ -526,6 +563,9 @@ func _refresh_dock(hs: Dictionary, ctx: Dictionary) -> void:
 	status_l.text = str(ctx.get("status", ""))
 	var pace_on := bool(ctx.get("pace_visible", false))
 	pace_box.visible = pace_on
+	actions_box.visible = pace_on or not _action_buttons.is_empty()
+	motive_row.visible = motive_l.text != "" or status_l.text != ""
+	bar.visible = actions_box.visible or motive_row.visible  # sin nada que decir ni hacer no ocupa lugar: el primer cuadro queda limpio
 	if pace_on:
 		var cur := str(ctx.get("pace", "march"))
 		for pid in pace_btns:
@@ -541,6 +581,8 @@ func _refresh_actions(ctx: Dictionary) -> void:
 		return
 	_action_sig = sig
 	for child in actions_box.get_children():
+		if child == pace_box:
+			continue  # los ritmos son fijos: solo se muestran u ocultan al apuntar
 		actions_box.remove_child(child)
 		child.queue_free()
 	_action_buttons = {}
@@ -556,6 +598,7 @@ func _refresh_actions(ctx: Dictionary) -> void:
 		b.mouse_entered.connect(func(): _fire("hover_action", act))
 		b.mouse_exited.connect(func(): _fire("hover_action", ""))
 		_action_buttons[act] = b
+	actions_box.move_child(pace_box, actions_box.get_child_count() - 1)
 
 
 func _refresh_groups(hs: Dictionary, ctx: Dictionary) -> void:
@@ -647,6 +690,7 @@ func _alert_slot_rect(slot: String, w: float, h: float) -> Rect2:
 ## lado al otro cuando las fichas se mueven). Si todos los lugares tapan algo, toma el que menos tapa. Devuelve el rectángulo elegido (coordenadas locales del HUD).
 func place_alert(avoid: Array) -> Rect2:
 	var w := minf(_num(["alert_w"], 520.0), maxf(root.size.x - 2.0 * _num(["margin"], 12.0), 200.0))
+	w = minf(w, maxf(root.size.x * _num(["alert_w_max_pct"], 0.4), 360.0))  # en ventanas chicas el aviso es más angosto: así entra entre las fichas sin taparlas
 	var h := alert_panel.size.y if alert_panel.size.y > 24.0 else 96.0
 	var order: Array = [_alert_slot]
 	for slot in ALERT_SLOTS:
@@ -682,12 +726,19 @@ func _refresh_toast(ctx: Dictionary) -> void:
 		var level := str(t.get("level", "info"))
 		var border := Kit.GOLD if level != "info" else Kit.PANEL_BORDER
 		toast_panel.add_theme_stylebox_override("panel", Kit.style(Kit.PANEL_BG, border, 1, 6, 12.0, 5.0))
+	_sync_notices()
+
+
+## La fila de avisos de pie solo existe mientras hay un aviso o la línea roja: así no deja un hueco entre el mapa y el dock.
+func _sync_notices() -> void:
+	notice_row.visible = toast_panel.visible or warn_panel.visible
 
 
 func _refresh_warn(ctx: Dictionary) -> void:
 	var text := str(ctx.get("warn", ""))
 	warn_l.text = text
 	warn_panel.visible = text != ""
+	_sync_notices()
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -724,6 +775,7 @@ func rects() -> Dictionary:
 		break
 	out["accion_1"] = first_action
 	out["dock"] = Kit.rect_of(dock)
+	out["barra"] = Kit.rect_of(bar) if bar.is_visible_in_tree() else Rect2()
 	out["header"] = Kit.rect_of(header)
 	out["fronts"] = Kit.rect_of(fronts_box)
 	out["cards"] = Kit.rect_of(cards_box)
@@ -733,10 +785,14 @@ func rects() -> Dictionary:
 ## Todos los paneles grandes del HUD (para comprobar que ninguno sale del cuadro y que no se pisan).
 func panels() -> Dictionary:
 	var out := {"header": header, "fronts": fronts_box, "dock": dock}
+	if bar.is_visible_in_tree():
+		out["bar"] = bar
 	if alert_panel.is_visible_in_tree():
 		out["alert"] = alert_panel
 	if toast_panel.is_visible_in_tree():
 		out["toast"] = toast_panel
+	if warn_panel.is_visible_in_tree():
+		out["warn"] = warn_panel
 	return out
 
 

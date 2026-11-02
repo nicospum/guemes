@@ -6,7 +6,6 @@
 		"title_long": "Humahuaca: el depósito de la retaguardia",
 		"clock_running": "Tiempo real · ▶ ×%d",
 		"clock_paused": "‖ En pausa",
-		"objective": "Tomá la batería, el cuartel y la pólvora a la vez, y sacá lo que puedas antes del refuerzo.",
 		"phase_names": {
 			"briefing": "Preparación",
 			"aproximacion": "Aproximación",
@@ -113,8 +112,7 @@
 		"briefing": {
 			"page1": {
 				"title": "Humahuaca, 1817",
-				"today": "Hoy: %s",
-				"fallback": "Tomá la batería, el cuartel y la pólvora a la vez, y sacá lo que puedas antes del refuerzo."
+				"today": "Hoy: %s"
 			},
 			"page2": {
 				"title": "La carta del 26 de febrero",
@@ -323,7 +321,7 @@
 		"pan_fast_mult": 3.0,
 		"edge_px": 6,
 		"edge_speed": 0.7,
-		"initial_fit": {"above_head_px": 78, "below_px": 10, "side_pct": 6.0, "max_steps": 40},
+		"initial_fit": {"above_head_px": 78, "below_px": 46, "side_pct": 6.0, "max_steps": 40},
 		"yaw_deg_s": 70,
 		"pitch_deg_s": 40,
 		"zoom_step": 0.86,
@@ -362,7 +360,11 @@
 		"gap": 8,
 		"header_h": 46,
 		"fronts_card": [212, 56],
-		"dock_h": 164,
+		"dock_h": 136,
+		"next_h": 42,
+		"next_min_w": 300,
+		"actions_h": 32,
+		"notice_gap": 4,
 		"group_card": [142, 58],
 		"toast_w": 440,
 		"alert_w": 520,
