@@ -3,9 +3,13 @@ extends SceneTree
 ## (los stubs de las otras pistas si existen; si no, unas copias mínimas de este archivo), recorre las 7 vistas canónicas, mide `initial_frame` en cuatro
 ## resoluciones, prueba el picking y guarda JPEG de ≤ 300 KB más metrics_visual.json. No toca el repositorio: escribe solo en --out.
 ##
-##   godot --path <repo> --resolution 1280x720 --audio-driver Dummy --script tools/vis_humahuaca.gd -- --out=<carpeta> [--view=stub|real] [--fakes]
+##   godot --path <repo> --resolution 1280x720 --audio-driver Dummy --script tools/vis_humahuaca.gd -- --out=<carpeta> [--view=stub|real] [--fakes] [--relief=<carpeta>]
 ##         [--quality=baja|media|alta] [--views=a,b,c] [--extras] [--index-base=N] [--bench] [--bench-tod=0.5 --bench-rain=0.4] [--tag=r1] [--hide=Grupo1,Grupo2]
-##         [--scenes=aproximacion,ataque,extraccion] [--no-views] [--cam=ui] [--flow=aproximacion,extraccion@321,ataque@300/cam=418;335;110;45;35]
+##         [--scenes=aproximacion,ataque,extraccion] [--no-views] [--cam=ui] [--flow=aproximacion,extraccion@321,ataque@300/cam=418;335;110;45;35] [--hero]
+## `--view` elige la vista (por defecto la REAL si existe view/humahuaca_view.gd; `--view=stub` fuerza el stub). `--relief=<carpeta>` le da a la vista un relieve de verdad
+## (humahuaca_dem.json de 91 × 66 a 10 m y humahuaca_fondo.json de 121 × 91 a 30 m, el DEM de Copernicus GLO-30 que preparó el explorador, FUERA del repositorio) sobre el
+## terreno de respaldo: hasta que llegue la clase real de relieve_mapa, sin eso el suelo es un plano de +17 m. `--hero` suma el render héroe: el templo de cerca, la hoja de
+## los tres arquetipos y el realista en color y en escala de grises a 48 px (mide el contraste de luminosidad L* entre pares).
 ## Con APPDATA aislado (export APPDATA="$TEMP/ap_iso_<pista>"). Los nombres de archivo son NN_<vista>_<tag>.jpg.
 ## `--scenes` arma las reglas (stub_rules) en esa fase y captura la cámara inicial con la luz y la lluvia que dan las reglas (sin override): es el cuadro
 ## que ve el jugador, no una vista canónica. De cada captura del cuadro de juego se informan la saturación del suelo, la parte de píxeles de «naranja
@@ -13,16 +17,25 @@ extends SceneTree
 ## del stub de reglas se pisa a 321 s, el alba con la extracción en marcha). `--flow` hace lo mismo pero por la escena real (main.tscn + el controlador de
 ## ui_feel, con su interfaz y su cámara): es lo que ve el jugador y lo que captura el integrador.
 
+const V = preload("res://scripts/humahuaca/humahuaca_vocab.gd")
+const Gfx = preload("res://scripts/humahuaca/view/humahuaca_gfx.gd")
+const Gen = preload("res://scripts/humahuaca/view/humahuaca_gen.gd")
 const STUB_VIEW := "res://scripts/humahuaca/stubs/stub_view.gd"
 const REAL_VIEW := "res://scripts/humahuaca/view/humahuaca_view.gd"
 const STUB_RULES := "res://scripts/humahuaca/stubs/stub_rules.gd"
 const VIEW_IDS := ["acceso_so", "desde_bateria", "patio_posta", "panorama_alto", "grupos_en_accion", "juego_noche", "juego_alba"]
 const SIZES := [Vector2i(1024, 640), Vector2i(1280, 720), Vector2i(1920, 1080), Vector2i(2560, 1440)]
+## La fase de las reglas con que se arma cada vista canónica (qué fichas, luces, torre y defensores hay en escena).
+const VIEW_PHASE := {"acceso_so": "aproximacion", "desde_bateria": "ataque", "patio_posta": "extraccion", "panorama_alto": "aproximacion", "grupos_en_accion": "ataque",
+	"juego_noche": "aproximacion", "juego_alba": "ataque@300"}
 const JPEG_QUALITY := 0.82
 const JPEG_MAX_BYTES := 300 * 1024
 
 var out_dir := ""
-var which := "stub"
+var which := "auto"
+var relief_dir := ""
+var hero := false
+var dress := true
 var quality := "media"
 var tag := "r1"
 var use_fakes := false
@@ -52,6 +65,12 @@ func _initialize() -> void:
 			out_dir = a.trim_prefix("--out=")
 		elif a.begins_with("--view="):
 			which = a.trim_prefix("--view=")
+		elif a.begins_with("--relief="):
+			relief_dir = a.trim_prefix("--relief=")
+		elif a == "--hero":
+			hero = true
+		elif a == "--no-dress":
+			dress = false
 		elif a.begins_with("--quality="):
 			quality = a.trim_prefix("--quality=")
 		elif a.begins_with("--tag="):
@@ -103,6 +122,9 @@ func _frames(n: int) -> void:
 
 func _run() -> void:
 	await _frames(2)
+	if hero:
+		await _run_hero()
+		return
 	if flow.size() > 0:
 		await _run_flow()
 		return
@@ -114,7 +136,7 @@ func _run() -> void:
 	cam.far = 9000.0
 	root.add_child(cam)
 	cam.current = true
-	var view_path := REAL_VIEW if which == "real" and ResourceLoader.exists(REAL_VIEW) else STUB_VIEW
+	var view_path := REAL_VIEW if which != "stub" and ResourceLoader.exists(REAL_VIEW) else STUB_VIEW
 	report["view_script"] = view_path
 	view = (load(view_path) as GDScript).new()
 	root.add_child(view)
@@ -162,6 +184,8 @@ func _cam_xf(target: Vector3, distance: float, pitch_deg: float, yaw_deg: float)
 
 
 func _capture_view(index: int, id: String) -> void:
+	rules = _make_rules(str(VIEW_PHASE.get(id, "aproximacion")))
+	view.build(rules, quality)
 	var v: Dictionary = view.canonical_view(id)
 	_check(not v.is_empty() and (v.must_show as Array).size() == 5, "canonical_view(%s) devuelve la vista con 5 must_show" % id)
 	if v.is_empty():
@@ -245,9 +269,12 @@ func _capture_scene(index: int, scene_name: String) -> void:
 
 ## Pisa el reloj del stub de reglas (solo para capturar, p. ej. el alba con la extracción en marcha) y marca el estado como cambiado.
 func _set_clock(r: RefCounted, seconds: float) -> void:
-	var state: Variant = r.get("state")
+	var inner: Variant = r.get("base")
+	var target: RefCounted = inner if inner is RefCounted else r
+	var state: Variant = target.get("state")
 	if state is Dictionary and (state as Dictionary).has("elapsed"):
 		state["elapsed"] = seconds
+		state["render_state_version_bump"] = true
 		state["render_version"] = int(state.get("render_version", 0)) + 1
 
 
@@ -581,7 +608,7 @@ func _token_heights() -> void:
 		var inside := Rect2(Vector2.ZERO, root.get_visible_rect().size).has_point(base_px)  # con los datos reales alguna partida cae fuera del cuadro inicial
 		token_px[id] = {"en_pantalla": inside, "alto": snappedf(absf(base_px.y - top_px.y) * screen_scale, 0.1), "escala": snappedf(node.scale.y, 0.01), "cima_m": snappedf(top - node.global_position.y, 0.01),
 			"distancia_m": snappedf(cam.global_position.distance_to(node.global_position), 0.1)}
-		_check(not inside or float(token_px[id].alto) >= 40.0, "la ficha de %s mide %.1f px reales de alto con el cuadro inicial (el stub llega a ≈ 42 en el borde inferior; la vista real debe dar ≥ 48)" % [id, float(token_px[id].alto)])
+		_check(not inside or float(token_px[id].alto) >= (48.0 if str(report.get("view_script", "")).ends_with("humahuaca_view.gd") else 40.0), "la ficha de %s mide %.1f px reales de alto con el cuadro inicial (V03 pide ≥ 48; el stub llega a ≈ 42 en el borde inferior)" % [id, float(token_px[id].alto)])
 	report["token_px"] = token_px
 	report["screen_scale"] = snappedf(screen_scale, 0.001)
 
@@ -629,6 +656,269 @@ func _finish() -> void:
 	quit(0 if fail_count == 0 else 1)
 
 
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Render héroe (cierre de R1): el templo de cerca, los arquetipos de figura en fila y su lectura en escala de grises a 48 px
+
+func _studio(parent: Node3D, sun_el: float, sun_az: float, warm: bool) -> void:
+	var env := Environment.new()
+	env.background_mode = Environment.BG_COLOR
+	env.background_color = Color(0.62, 0.66, 0.68)
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	env.ambient_light_color = Color(0.74, 0.8, 0.9)
+	env.ambient_light_energy = 0.6
+	env.tonemap_mode = Environment.TONE_MAPPER_ACES
+	var we := WorldEnvironment.new()
+	we.environment = env
+	parent.add_child(we)
+	var sun := DirectionalLight3D.new()
+	var el := deg_to_rad(sun_el)
+	var az := deg_to_rad(sun_az)
+	sun.transform = Transform3D(Basis.looking_at(-Vector3(sin(az) * cos(el), sin(el), -cos(az) * cos(el)), Vector3.UP), Vector3.ZERO)
+	sun.light_color = Color(1.0, 0.94, 0.84) if warm else Color(1.0, 1.0, 1.0)
+	sun.light_energy = 1.5
+	sun.shadow_enabled = true
+	sun.directional_shadow_max_distance = 120.0
+	parent.add_child(sun)
+	var ground := MeshInstance3D.new()
+	var plane := PlaneMesh.new()
+	plane.size = Vector2(400.0, 400.0)
+	ground.mesh = plane
+	var gm := StandardMaterial3D.new()
+	gm.albedo_color = Color("B99A72")
+	gm.roughness = 0.95
+	ground.material_override = gm
+	parent.add_child(ground)
+
+
+## La variante de ropa por defecto de un arquetipo (units.archetypes o units.realista_1817 del JSON).
+func _arch_variant(gen, visual: Dictionary, id: String) -> Dictionary:
+	var units: Dictionary = visual.get("units", {})
+	if id == "realista_1817":
+		return gen.archetype_variant(units.get("realista_1817", {}))
+	for a in units.get("archetypes", []):
+		if str(a.get("id", "")) == id:
+			return gen.archetype_variant(a)
+	return {}
+
+
+func _hero_cam(target: Vector3, distance: float, pitch_deg: float, yaw_deg: float, fov: float = 34.0) -> Camera3D:
+	var c := Camera3D.new()
+	c.fov = fov
+	c.far = 3000.0
+	root.add_child(c)
+	c.current = true
+	var yaw := deg_to_rad(yaw_deg)
+	var pitch := deg_to_rad(pitch_deg)
+	var look := Vector3(sin(yaw) * cos(pitch), -sin(pitch), -cos(yaw) * cos(pitch))
+	c.transform = Transform3D(Basis.looking_at(look, Vector3.UP), target - look * distance)
+	return c
+
+
+func _figure_node(parent: Node3D, gfx, parts: Dictionary, pos: Vector3, yaw_deg: float = 0.0) -> Node3D:
+	var holder := Node3D.new()
+	holder.position = pos
+	holder.rotation_degrees.y = yaw_deg
+	parent.add_child(holder)
+	for key in parts:
+		gfx.part_node(holder, str(key), parts[key], gfx.vertex_mat(), true)
+	return holder
+
+
+func _run_hero() -> void:
+	var visual: Dictionary = V.load_json(V.VISUAL_PATH)
+	var gfx = Gfx.new()
+	gfx.setup(visual, quality, null, Vector2(900.0, 650.0))
+	var gen = Gen.new(gfx.palette)
+	var spec: Dictionary = (visual.get("props", {}) as Dictionary).get("por_id", {}).get("templo", {})
+	var hero_report := {}
+	var index := index_base
+	# 1) el templo: nave de adobe encalado a dos aguas, sin torres ni fachada de 1880
+	var studio := Node3D.new()
+	root.add_child(studio)
+	_studio(studio, 24.0, 118.0, true)
+	var mb = gen.builder()
+	gen.add_temple(mb, {"w": 22.0, "d": 8.0, "ridge_m": 7.0, "eave_ratio": float(spec.get("eave_ratio", 0.78)), "color": str(spec.get("color", "cal_envejecida")),
+		"roof_color": str(spec.get("roof_color", "paja")), "trim_color": str(spec.get("trim_color", "madera_oscura"))})
+	var temple_mesh: ArrayMesh = mb.build()
+	var temple := MeshInstance3D.new()
+	temple.mesh = temple_mesh
+	temple.material_override = gfx.props_mat
+	studio.add_child(temple)
+	var cam1 := _hero_cam(Vector3(2.0, 3.0, 3.0), 36.0, 14.0, 332.0)
+	await _frames(6)
+	await RenderingServer.frame_post_draw
+	index += 1
+	_save_shot(index, "heroe_templo", root.get_texture().get_image())
+	var top_m: float = gen.mesh_top(temple_mesh)
+	hero_report["templo"] = {"altura_max_m": snappedf(top_m, 0.01), "triangulos": (temple_mesh.surface_get_arrays(0)[Mesh.ARRAY_INDEX] as PackedInt32Array).size() / 3, "caballete_m": 7.0, "sin_torres": top_m <= 7.01}
+	_check(top_m <= 7.01, "héroe: ningún vértice del templo pasa del caballete de 7 m (%.2f m)" % top_m)
+	cam1.queue_free()
+	studio.queue_free()
+	await _frames(2)
+	# 2) los arquetipos y los animales, en fila y de cerca
+	studio = Node3D.new()
+	root.add_child(studio)
+	_studio(studio, 26.0, 130.0, true)
+	var variants: Array = (visual.get("units", {}) as Dictionary).get("variants", [])
+	var arch_ids := ["poncho_sombrero", "camisa_gorra", "artillero", "realista_1817"]
+	var x := -7.5
+	for k in range(arch_ids.size()):
+		_figure_node(studio, gfx, gen.figure(arch_ids[k], _arch_variant(gen, visual, arch_ids[k]), "de_pie", 0.022), Vector3(x, 0.0, 0.0), 188.0)
+		x += 2.2
+	x += 0.8
+	_figure_node(studio, gfx, gen.rider({"camisa": "lino_crudo", "abrigo": "lana_parda", "sombrero": "madera_oscura", "acento": ""}, 0.04), Vector3(x + 1.0, 0.0, 0.0), 150.0)
+	_figure_node(studio, gfx, gen.mule(0.04), Vector3(x + 4.6, 0.0, 0.2), 125.0)
+	var cam2 := _hero_cam(Vector3(-0.2, 1.2, 0.0), 23.0, 8.0, 0.0, 30.0)
+	await _frames(6)
+	await RenderingServer.frame_post_draw
+	index += 1
+	_save_shot(index, "heroe_arquetipos", root.get_texture().get_image())
+	cam2.queue_free()
+	studio.queue_free()
+	await _frames(2)
+	# 3) los mismos, en escala de grises a 48 px de alto: silueta rellena y diferencia de luminosidad L* entre pares
+	var sheet: Dictionary = await _grayscale_sheet(gfx, gen, variants, visual)
+	index += 1
+	_save_shot(index, "heroe_grises_48px", sheet.image)
+	hero_report["grises"] = sheet.metrics
+	for pair in sheet.metrics.pares_arquetipos:
+		_check(float(pair.delta_L) >= 15.0, "héroe: %s y %s se distinguen en grises a 48 px (ΔL* %.1f; piso 15)" % [pair.a, pair.b, float(pair.delta_L)])
+	report["heroe"] = hero_report
+	report["checks_total"] = report.checks.size()
+	report["fallas"] = fail_count
+	var file := FileAccess.open(out_dir.path_join("metrics_visual.json"), FileAccess.WRITE)
+	file.store_string(JSON.stringify(report, "\t"))
+	file.close()
+	print("VIS_HUMAHUACA " + JSON.stringify({"hero": true, "fallas": fail_count, "out": out_dir}))
+	quit(0 if fail_count == 0 else 1)
+
+
+## L* de CIELAB (0 a 100) de un color sRGB.
+func _lstar(c: Color) -> float:
+	var l := c.srgb_to_linear()
+	var y := 0.2126 * l.r + 0.7152 * l.g + 0.0722 * l.b
+	var f := pow(y, 1.0 / 3.0) if y > 0.008856 else 7.787 * y + 16.0 / 116.0
+	return 116.0 * f - 16.0
+
+
+## Cada figura (los 4 arquetipos y las 5 siluetas de las fichas) se dibuja sin luz sobre un fondo transparente, se baja a 48 px de alto y se mide: la parte del cuadro que
+## ocupa la silueta, su L* medio (el color de la ropa en grises) y la diferencia de L* entre cada par de arquetipos. Devuelve {image, metrics}.
+func _grayscale_sheet(gfx, gen, variants: Array, _visual: Dictionary) -> Dictionary:
+	var names: Array = ["poncho_sombrero", "camisa_gorra", "artillero", "realista_1817", "ficha_jinete", "ficha_infante_fusil", "ficha_infante_banderin", "ficha_agachados", "ficha_mula_cargada"]
+	var cells: Array = []
+	gfx.set_albedo(true)  # sin luz: el color de la paleta tal cual (es lo que se compara)
+	for k in range(names.size()):
+		var nm: String = names[k]
+		var parts: Dictionary
+		if nm.begins_with("ficha_"):
+			match nm.trim_prefix("ficha_"):
+				"jinete":
+					parts = gen.rider({"camisa": "lino_crudo", "abrigo": "lana_parda", "sombrero": "madera_oscura", "acento": ""}, 0.04)
+				"mula_cargada":
+					parts = gen.mule(0.04)
+				"agachados":
+					parts = gen.figure("poncho_sombrero", gen.variant_for(1, variants), "agachado", 0.04)
+				"infante_banderin":
+					parts = gen.figure("camisa_gorra", {"camisa": "lana_natural", "abrigo": "lana_parda", "sombrero": "azul_elegido", "acento": ""}, "de_pie", 0.04)
+				_:
+					parts = gen.figure("camisa_gorra", gen.variant_for(0, variants), "de_pie", 0.04)
+		else:
+			parts = gen.figure(nm, _arch_variant(gen, _visual, nm), "de_pie", 0.022)
+		var sv := SubViewport.new()
+		sv.size = Vector2i(384, 384)
+		sv.transparent_bg = true
+		sv.own_world_3d = true
+		sv.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+		root.add_child(sv)
+		var env := Environment.new()
+		env.background_mode = Environment.BG_CLEAR_COLOR
+		env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+		env.ambient_light_color = Color.WHITE
+		env.tonemap_mode = Environment.TONE_MAPPER_LINEAR
+		var we := WorldEnvironment.new()
+		we.environment = env
+		sv.add_child(we)
+		var holder := Node3D.new()
+		holder.rotation_degrees.y = 35.0  # de tres cuartos: ni de frente ni de espaldas
+		sv.add_child(holder)
+		var lo := Vector3(1.0e9, 1.0e9, 1.0e9)
+		var hi := Vector3(-1.0e9, -1.0e9, -1.0e9)
+		for key in parts:
+			var mi: MeshInstance3D = gfx.part_node(holder, str(key), parts[key], gfx.vertex_mat(), false)
+			var box: AABB = mi.mesh.get_aabb()
+			lo = Vector3(minf(lo.x, box.position.x), minf(lo.y, box.position.y), minf(lo.z, box.position.z))
+			hi = Vector3(maxf(hi.x, box.end.x), maxf(hi.y, box.end.y), maxf(hi.z, box.end.z))
+		var cam := Camera3D.new()
+		cam.projection = Camera3D.PROJECTION_ORTHOGONAL
+		cam.size = (hi.y - lo.y) * 1.12
+		cam.near = 0.05
+		cam.far = 100.0
+		sv.add_child(cam)
+		cam.transform = Transform3D(Basis.IDENTITY, Vector3((lo.x + hi.x) * 0.5, (lo.y + hi.y) * 0.5, 30.0))
+		cam.current = true
+		cells.append({"name": nm, "sv": sv})
+	await _frames(4)
+	await RenderingServer.frame_post_draw
+	var metrics := {"alto_px": 48, "figuras": {}, "pares_arquetipos": []}
+	var sheet := Image.create(48 * 9 + 20 * 10, 48 + 40, false, Image.FORMAT_RGBA8)
+	sheet.fill(Color(0.466, 0.466, 0.466))  # un gris medio (L* ≈ 50)
+	var cell_l: Dictionary = {}
+	for k in range(cells.size()):
+		var cell: Dictionary = cells[k]
+		var img: Image = (cell.sv as SubViewport).get_texture().get_image()
+		var fig_px := int(round(384.0 / 1.12))  # el alto de la figura en la imagen de 384 px (la cámara deja 12 % de aire)
+		var scale_f := 48.0 / float(fig_px)
+		var side := maxi(int(round(384.0 * scale_f)), 1)
+		img.resize(side, side, Image.INTERPOLATE_BILINEAR)
+		var sum_l := 0.0
+		var covered := 0
+		for y in range(img.get_height()):
+			for xx in range(img.get_width()):
+				var px := img.get_pixel(xx, y)
+				if px.a > 0.5:
+					covered += 1
+					sum_l += _lstar(Color(px.r, px.g, px.b))
+		var mean_l := sum_l / float(maxi(covered, 1))
+		cell_l[cell.name] = mean_l
+		var bounds := _alpha_bounds(img)
+		metrics.figuras[cell.name] = {"L_media": snappedf(mean_l, 0.1), "alto_px": bounds.size.y, "ancho_px": bounds.size.x,
+			"relleno_pct": snappedf(100.0 * float(covered) / float(maxi(bounds.size.x * bounds.size.y, 1)), 0.1)}
+		sheet.blend_rect(_to_gray(img), Rect2i(0, 0, img.get_width(), img.get_height()), Vector2i(10 + k * 68, 6))
+		(cell.sv as SubViewport).queue_free()
+	var pairs: Array = []
+	for i in range(4):
+		for j in range(i + 1, 4):
+			pairs.append({"a": names[i], "b": names[j], "delta_L": snappedf(absf(float(cell_l[names[i]]) - float(cell_l[names[j]])), 0.1)})
+	metrics.pares_arquetipos = pairs
+	gfx.set_albedo(false)
+	return {"image": sheet, "metrics": metrics}
+
+
+func _alpha_bounds(img: Image) -> Rect2i:
+	var lo := Vector2i(img.get_width(), img.get_height())
+	var hi := Vector2i(-1, -1)
+	for y in range(img.get_height()):
+		for x in range(img.get_width()):
+			if img.get_pixel(x, y).a > 0.5:
+				lo = Vector2i(mini(lo.x, x), mini(lo.y, y))
+				hi = Vector2i(maxi(hi.x, x), maxi(hi.y, y))
+	return Rect2i(lo, hi - lo + Vector2i.ONE) if hi.x >= 0 else Rect2i()
+
+
+## La silueta en grises: el L* de cada píxel mostrado como gris perceptual (lo que se vería en escala de grises).
+func _to_gray(img: Image) -> Image:
+	var out := img.duplicate() as Image
+	for y in range(out.get_height()):
+		for x in range(out.get_width()):
+			var c := out.get_pixel(x, y)
+			if c.a > 0.0:
+				var g := _lstar(Color(c.r, c.g, c.b)) / 100.0
+				var v := Color(g, g, g, c.a).linear_to_srgb()
+				out.set_pixel(x, y, Color(v.r, v.g, v.b, c.a))
+	return out
+
+
 # ---------------------------------------------------------------------------------------------------------------------
 # Reglas y terreno: los stubs de las otras pistas si existen; si no, unas copias mínimas
 
@@ -639,16 +929,167 @@ func _make_rules(spec: String = "aproximacion") -> RefCounted:
 		var script := load(STUB_RULES) as GDScript
 		if script != null and script.can_instantiate():
 			var r: RefCounted = script.new()
-			r.new_game(1817, 1, {"skip_intro": true, "phase": phase})
+			var opts := {"skip_intro": true, "phase": phase}
+			if relief_dir != "":
+				var relief := ReliefTerrain.new()
+				if relief.load_relief(relief_dir):
+					opts["terrain"] = relief
+					report["relieve"] = "DEM de Copernicus GLO-30 (explorador) sobre el terreno de respaldo, solo para esta captura"
+			r.new_game(1817, 1, opts)
 			if parts.size() > 1:
 				_set_clock(r, float(parts[1]))
 			report["rules_source"] = STUB_RULES
+			if dress:  # el stub de reglas no trae defensores, torre ni fogatas (los da la clase real): se los suma solo para la captura
+				return DressedRules.new(r, phase)
 			return r
 	report["rules_source"] = "copias mínimas de tools/vis_humahuaca.gd"
 	var fake := FakeRules.new()
 	if phase == "extraccion" or phase == "ataque":
 		fake.set_scene("alba")
 	return fake
+
+
+
+## Terreno de respaldo con RELIEVE DE VERDAD solo para las capturas (hasta que llegue la clase real de relieve_mapa): la ventana de 10 m y el contexto de 30 m del DEM de
+## Copernicus que preparó el explorador (humahuaca_dem.json y humahuaca_fondo.json, en m s. n. m., FUERA del repositorio), el domo de 12 m de la batería con su plataforma,
+## las dos quebraditas y el cauce tallado. Hereda del stub (hitos, rasgos, superficies y río) y solo cambia las alturas. No entra al juego.
+class ReliefTerrain extends "res://scripts/humahuaca/stubs/stub_terrain.gd":
+	const WIN_NX := 91
+	const WIN_NZ := 66
+	const CTX_NX_ := 121
+	const CTX_NZ_ := 91
+	var win_dem := PackedFloat32Array()
+	var ctx_dem := PackedFloat32Array()
+	var _rf: Dictionary = {}
+	var _cf2: Dictionary = {}
+	var _river_line := PackedVector2Array()
+
+	func load_relief(dir: String) -> bool:
+		var a: Variant = JSON.parse_string(FileAccess.get_file_as_string(dir.path_join("humahuaca_dem.json")))
+		var b: Variant = JSON.parse_string(FileAccess.get_file_as_string(dir.path_join("humahuaca_fondo.json")))
+		if not (a is Dictionary) or not (b is Dictionary):
+			return false
+		var za: Array = a.z
+		var zb: Array = b.z
+		win_dem.resize(za.size())
+		ctx_dem.resize(zb.size())
+		for k in range(za.size()):
+			win_dem[k] = float(za[k]) - 2940.0
+		for k in range(zb.size()):
+			ctx_dem[k] = float(zb[k]) - 2940.0
+		# el DEM es de SUPERFICIE (techos y árboles de hoy): se lo suaviza con un promedio de 7 × 7 celdas (≈ 30 m), como pide el contrato 2.1
+		var smooth := PackedFloat32Array()
+		smooth.resize(win_dem.size())
+		for j in range(WIN_NZ):
+			for i in range(WIN_NX):
+				var sum := 0.0
+				var n := 0
+				for dj in range(-3, 4):
+					for di in range(-3, 4):
+						var ii := clampi(i + di, 0, WIN_NX - 1)
+						var jj := clampi(j + dj, 0, WIN_NZ - 1)
+						sum += win_dem[jj * WIN_NX + ii]
+						n += 1
+				smooth[j * WIN_NX + i] = sum / float(n)
+		win_dem = smooth
+		var river_dict: Dictionary = river()
+		for p in river_dict.get("pts", []):
+			_river_line.append(Vector2(float(p.x), float(p.z)))
+		return true
+
+	func _bilinear(arr: PackedFloat32Array, nx_: int, nz_: int, ox: float, oz: float, cell: float, x: float, z: float) -> float:
+		var fx := clampf((x - ox) / cell, 0.0, float(nx_ - 1) - 0.0001)
+		var fz := clampf((z - oz) / cell, 0.0, float(nz_ - 1) - 0.0001)
+		var i := int(fx)
+		var j := int(fz)
+		var tx := fx - float(i)
+		var tz := fz - float(j)
+		var a := lerpf(arr[j * nx_ + i], arr[j * nx_ + i + 1], tx)
+		var b := lerpf(arr[(j + 1) * nx_ + i], arr[(j + 1) * nx_ + i + 1], tx)
+		return lerpf(a, b, tz)
+
+	func _design(x: float, z: float, base: float) -> float:
+		var h := base
+		var d := Vector2(x - 305.0, z - 345.0).length()
+		h += 13.0 * exp(-pow(d / 44.0, 2.0))  # el domo de la batería (12 m de prominencia sobre su anillo; diseño)
+		var box := Vector2(maxf(absf(x - 318.0) - 14.0, 0.0), maxf(absf(z - 350.0) - 9.0, 0.0)).length()  # plataforma de 28 × 18 m, plana
+		var plateau := 13.0 * exp(-pow(Vector2(318.0 - 305.0, 350.0 - 345.0).length() / 44.0, 2.0)) + _bilinear(win_dem, WIN_NX, WIN_NZ, 0.0, 0.0, 10.0, 318.0, 350.0)
+		h = lerpf(plateau, h, smoothstep(0.0, 10.0, box))
+		h -= 2.5 * exp(-pow((x - 282.0) / 22.0, 2.0) - pow((z - 298.0) / 6.0, 2.0)) + 2.5 * exp(-pow((x - 288.0) / 22.0, 2.0) - pow((z - 402.0) / 6.0, 2.0))
+		var best := 1.0e9
+		for k in range(_river_line.size() - 1):
+			best = minf(best, Geometry2D.get_closest_point_to_segment(Vector2(x, z), _river_line[k], _river_line[k + 1]).distance_to(Vector2(x, z)))
+		h -= 3.2 * exp(-pow(best / 17.0, 2.0))
+		return h
+
+	func height_at(x: float, z: float) -> float:
+		var ctx_h := _bilinear(ctx_dem, CTX_NX_, CTX_NZ_, -1350.0, -1025.0, 30.0, x, z)
+		var out := maxf(maxf(-x, x - 900.0), maxf(-z, z - 650.0))
+		var inside := 1.0 - smoothstep(0.0, 60.0, out)
+		if inside <= 0.0:
+			return ctx_h
+		var win_h := _bilinear(win_dem, WIN_NX, WIN_NZ, 0.0, 0.0, 10.0, clampf(x, 0.0, 900.0), clampf(z, 0.0, 650.0))
+		return lerpf(ctx_h, _design(x, z, win_h), inside)
+
+	func height_dem_only(x: float, z: float) -> float:
+		return _bilinear(win_dem, WIN_NX, WIN_NZ, 0.0, 0.0, 10.0, clampf(x, 0.0, 900.0), clampf(z, 0.0, 650.0))
+
+	func heightfield() -> Dictionary:
+		if _rf.is_empty():
+			var h := PackedFloat32Array()
+			h.resize(nx * nz)
+			for j in range(nz):
+				for i in range(nx):
+					h[j * nx + i] = height_at(float(i) * cell_m, float(j) * cell_m)
+			_rf = {"nx": nx, "nz": nz, "cell": cell_m, "origin_x": 0.0, "origin_z": 0.0, "h": h}
+		return _rf
+
+	func context_field() -> Dictionary:
+		if _cf2.is_empty():
+			_cf2 = {"nx": CTX_NX_, "nz": CTX_NZ_, "cell": 30.0, "origin_x": -1350.0, "origin_z": -1025.0, "h": ctx_dem}
+		return _cf2
+
+
+
+## Las reglas de respaldo «vestidas» solo para las capturas: el stub no trae defensores, torre, fogatas ni líneas de fuego (los entrega la clase real de reglas_historia),
+## así que se los suma a `render_state()` con las formas del contrato 3.2.3: centinelas y guardias en los tres objetivos, artilleros en la batería, la torre con su volea
+## y las fogatas de la guardia al alba. No cambia nada de las reglas y no entra al juego.
+class DressedRules extends RefCounted:
+	var base: RefCounted
+	var phase := "aproximacion"
+
+	func _init(b: RefCounted, phase_id: String = "aproximacion") -> void:
+		base = b
+		phase = phase_id
+
+	func terrain() -> RefCounted:
+		return base.terrain()
+
+	func map_size() -> Vector2:
+		return base.map_size()
+
+	func environment() -> Dictionary:
+		return base.environment()
+
+	func render_state() -> Dictionary:
+		var st: Dictionary = base.render_state().duplicate(true)
+		var alba: bool = float((st.get("env", {}) as Dictionary).get("time_of_day", 0.0)) >= 0.3
+		var enemies: Array = []
+		for e in [["c_bat", "centinela", 311.0, 344.0], ["a_bat1", "artillero", 309.5, 345.8], ["a_bat2", "artillero", 309.5, 350.0], ["a_bat3", "artillero", 309.5, 354.2],
+				["c_cuartel", "centinela", 426.0, 330.0], ["g_cuartel1", "guardia", 405.0, 344.0], ["g_cuartel2", "guardia", 414.0, 345.0], ["g_cuartel3", "fusilero", 424.0, 345.0],
+				["c_posta", "centinela", 584.0, 311.0], ["g_posta1", "guardia", 598.0, 300.0], ["g_posta2", "guardia", 580.0, 296.0]]:
+			enemies.append({"id": e[0], "kind": e[1], "x": e[2], "z": e[3], "alert": 0.1 if not alba else 0.7, "firing": alba and e[0] == "a_bat2"})
+		st["enemies"] = enemies
+		if phase != "aproximacion" or alba:
+			st["tower"] = {"x": 426.0, "z": 326.0, "next_volley_in_s": 3.0, "period_s": 7.5, "dead_angle_m": 12.0, "firing": alba}
+		if alba:
+			var lights: Array = (st.get("lights", []) as Array).duplicate()
+			lights.append({"id": "fogata_1", "kind": "fogata", "x": 330.0, "z": 330.0, "r_m": 16.0})
+			lights.append({"id": "fogata_2", "kind": "fogata", "x": 560.0, "z": 318.0, "r_m": 16.0})
+			st["lights"] = lights
+			st["fire_lines"] = [{"from": {"x": 426.0, "z": 326.0}, "to": {"x": 350.0, "z": 381.0}, "kind": "torre"}]
+		st["version"] = int(st.get("version", 0)) + 1000
+		return st
 
 
 class FakeTerrain extends RefCounted:
