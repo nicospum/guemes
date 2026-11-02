@@ -14,6 +14,14 @@ extends SceneTree
 ## POSICIONES EN PÍXELES DE LA CAPTURA: la vista y el controlador las dan en píxeles lógicos (el cuadro de 1440 × 900 que escala la ventana: 1600 × 900 en 16:9) y qa_imagen.py
 ## (V06) las usa como píxeles de la imagen; el recorrido convierte probes[].rect, views.<id>.horizon_y, initial_frame.targets y limites[].horizon_y y deja el valor original en
 ## *_logico y la escala en `escala`.
+## VISTAS EN ACCIÓN (BACKLOG B-041; anexo B del QA, M04 y M05): qa_run() saca las 7 vistas con el juego en t = 0, o sea sin la torre disparando ni el arreo cargando, y el QA pide
+## «alba, lluvia floja, torre disparando» (M05) y «se ve cuánto se carga» (M04). Durante el arco del bot el recorrido vuelve a sacar esas dos cámaras canónicas (con su luz y su lluvia)
+## en el momento que el QA pide: accion_grupos_en_accion_torre_dispara.png (la torre dispara y hay tres agrupaciones cerca de la vista, o ya lleva 90 s disparando) y
+## accion_patio_posta_arreo_cargado.png (el primer paso de la extracción: el chip de carga solo se muestra en esa fase y el arreo todavía está en el patio), cada una con interfaz y sin
+## ella (..._sin_ui.png). Si el encuadre canónico no reúne las tres fichas que pide M05, abre la distancia de a 20 % hasta que entren y saca también esa, sin interfaz
+## (..._amplia_sin_ui.png; `distancia_con_fichas_m` en el informe). No se llaman vista_*: así no entran en los comodines de las herramientas del QA (vista_*_sin_ui.png) ni
+## reemplazan a las del recorrido canónico. qa_report.json suma `en_accion` (por vista: si se sacó, el segundo de juego, la fase, cuántas agrupaciones estaban cerca, cuántas fichas
+## entran en el cuadro y el chip de carga) y `frame_ms_ataque` (intervalo de cuadro en pleno ataque, con lluvia, fichas, fogonazos y la interfaz: indicativo, no es el benchmark).
 ## Imprime «HX_QA_TOUR {json}» y sale con 0 si no hubo fallas. No es una partida humana. No usa semillas reservadas al QA: la semilla viene por --seed.
 
 const V = preload("res://scripts/humahuaca/humahuaca_vocab.gd")
@@ -21,6 +29,13 @@ const VV = preload("res://scripts/humahuaca/view/vocab_view.gd")
 const SHEET_BG := Color(1.0, 0.0, 1.0)  # fondo liso de la hoja de fichas: ningún color de la paleta se le parece
 const SHEET_CELL := 160
 const DIFF_MIN := 0.08  # suma de diferencias por canal (0 a 3) a partir de la cual un píxel es de la ficha
+const ACTION_VIEWS := {
+	"grupos_en_accion": {"sufijo": "torre_dispara", "momento": "la torre dispara y al menos tres agrupaciones están a 100 m o menos del punto al que mira la vista, o la torre ya lleva 90 s disparando (M05: alba, lluvia floja, torre disparando)"},
+	"patio_posta": {"sufijo": "arreo_cargado", "momento": "el primer paso de la extracción, con el arreo cargado todavía en el patio (M04: se ve cuánto se carga; el chip de carga solo se muestra en la extracción)"}}
+const ACTION_NEAR_M := 100.0  # una agrupación «está en la vista» si queda a esta distancia o menos del punto al que mira la cámara canónica
+const ACTION_GROUPS_MIN := 3  # M05 pide al menos tres fichas distinguibles
+const ACTION_FIRING_FALLBACK_S := 90.0  # si la torre dispara tanto tiempo sin que se junten tres agrupaciones, la vista se saca igual (el informe dice cuántas había)
+const ATTACK_FRAMES := 90  # cuadros que se miden en pleno ataque
 
 var game: Node
 var hx: Node
@@ -34,6 +49,9 @@ var failures: Array = []
 var files: Array = []
 var last_shot_size := Vector2i.ZERO
 var ui_json: Dictionary = {}
+var action_info: Dictionary = {}  # id de vista → lo que se sacó «en acción» durante el arco del bot
+var attack_frames: Dictionary = {}  # intervalo de cuadro en pleno ataque
+var firing_since := -1.0  # segundo de juego en que la torre empezó a disparar (−1: todavía no)
 
 
 func _initialize() -> void:
@@ -519,11 +537,22 @@ func _bot_arc(report: Dictionary) -> Dictionary:  # corrutina: espera cuadros pa
 		hx.qa_step(1.0)
 		used += 1.0
 		_sample_texts(texts, overflow, false)  # el texto cambia en cada paso; la geometría de los contenedores solo vale después de dibujar
+		var due := _action_due()
+		if due != "":
+			await _shoot_action(due)
+			if due == "grupos_en_accion":
+				attack_frames = await _measure_attack_frames()
 		if int(used) % 15 == 0:
 			await _frames(3)
 			_sample_texts(texts, overflow, true)
 	await _frames(3)
 	_sample_texts(texts, overflow, true)
+	for id in ACTION_VIEWS.keys():
+		if not action_info.has(id):
+			action_info[id] = {"capturada": false, "momento": str(ACTION_VIEWS[id].momento), "motivo": "el bot no llegó a ese momento durante su arco"}
+		check(bool((action_info[id] as Dictionary).get("capturada", false)), "En acción: %s se sacó durante el arco del bot (%s)" % [id, str(ACTION_VIEWS[id].momento)])
+	report["en_accion"] = action_info
+	report["frame_ms_ataque"] = attack_frames
 	var st: Dictionary = hx.rules.state
 	var rep: Variant = hx.rules.call("campaign_report") if hx.rules.has_method("campaign_report") else {}
 	var q: Dictionary = hx.qa_state()
@@ -555,6 +584,119 @@ func _bot_arc(report: Dictionary) -> Dictionary:  # corrutina: espera cuadros pa
 	check(jerga.is_empty(), "Texto: sin palabras de la lista negra en lo que el bot tuvo a la vista (%d textos distintos; %s)" % [texts.size(), str(jerga.slice(0, 3))])
 	check(overflow.is_empty(), "Texto: ningún control con texto sale del cuadro durante el arco del bot (%s)" % str(overflow_list.slice(0, 3)))
 	return out
+
+
+## ¿Hay que sacar ahora alguna vista «en acción»? Devuelve su id o «». Se mira después de cada paso del bot (el juego avanza de a 1 s).
+## grupos_en_accion: con la torre disparando (`render_state().tower.firing`) y al menos tres agrupaciones cerca del punto al que mira la vista; si pasan 90 s de fuego sin juntarlas, igual.
+## patio_posta: en el primer paso de la extracción, porque el chip de carga solo se muestra en esa fase y el arreo todavía está en el patio.
+func _action_due() -> String:
+	var st: Dictionary = hx.rules.state
+	var now := float(st.get("elapsed", 0.0))
+	if not action_info.has("grupos_en_accion"):
+		var rs: Variant = hx.rules.render_state()
+		var tower: Variant = (rs as Dictionary).get("tower", {}) if rs is Dictionary else {}
+		if tower is Dictionary and bool((tower as Dictionary).get("firing", false)):
+			if firing_since < 0.0:
+				firing_since = now
+			if _groups_near(_view_target("grupos_en_accion")) >= ACTION_GROUPS_MIN or now - firing_since >= ACTION_FIRING_FALLBACK_S:
+				return "grupos_en_accion"
+	if not action_info.has("patio_posta") and str(st.get("phase", "")) == "extraccion":
+		return "patio_posta"
+	return ""
+
+
+## El punto del suelo al que mira la cámara canónica de la vista.
+func _view_target(id: String) -> Vector2:
+	var cv: Dictionary = hx.view.call("canonical_view", id)
+	if cv.is_empty():
+		return Vector2(-9999.0, -9999.0)
+	var t3: Vector3 = cv.target
+	return Vector2(t3.x, t3.z)
+
+
+## Cuántas de las cinco agrupaciones quedan a ACTION_NEAR_M o menos de `target`.
+func _groups_near(target: Vector2) -> int:
+	var n := 0
+	for g in V.GROUPS:
+		var u: Dictionary = hx.rules.get_unit(str(g))
+		if not u.is_empty() and Vector2(float(u.x), float(u.z)).distance_to(target) <= ACTION_NEAR_M:
+			n += 1
+	return n
+
+
+## Saca la cámara canónica de `id` con su luz y su lluvia, con el juego tal como está (en pausa), con la interfaz y sin ella, y deja todo como estaba.
+func _shoot_action(id: String) -> void:
+	var spec: Dictionary = ACTION_VIEWS[id]
+	var st: Dictionary = hx.rules.state
+	var info := {"capturada": false, "momento": str(spec.momento), "t_juego_s": snappedf(float(st.get("elapsed", 0.0)), 0.1), "fase": str(st.get("phase", ""))}
+	action_info[id] = info
+	var cv: Dictionary = hx.view.call("canonical_view", id)
+	if cv.is_empty():
+		info["motivo"] = "la vista no tiene vista canónica"
+		return
+	var t3: Vector3 = cv.target
+	info["agrupaciones_cerca"] = _groups_near(Vector2(t3.x, t3.z))
+	var hs: Variant = hx.rules.hud_state()
+	if hs is Dictionary:
+		for chip in (hs as Dictionary).get("chips", []):
+			if chip is Dictionary and str(chip.get("id", "")) == "carga":
+				info["chip_carga"] = str(chip.get("txt", ""))
+	hx.qa_set_camera(Vector2(t3.x, t3.z), float(cv.distance), float(cv.pitch_deg), float(cv.yaw_deg))
+	hx.view.call("set_time_override", float(cv.time_of_day), float(cv.rain))
+	await _frames(4)
+	await _shot("accion_%s_%s" % [id, str(spec.sufijo)])
+	info["fichas_en_cuadro"] = _tokens_in_frame(game.camera)
+	hx.qa_set_ui_visible(false)
+	await _frames(2)
+	await _shot("accion_%s_%s_sin_ui" % [id, str(spec.sufijo)])
+	# si el encuadre canónico no reúne las fichas que pide el QA (M05: al menos tres), se busca a qué distancia entran y se saca también esa (sin interfaz): le dice a `visual` cuánto abrir la vista
+	if int(info.fichas_en_cuadro) < ACTION_GROUPS_MIN and int(info.agrupaciones_cerca) >= ACTION_GROUPS_MIN:
+		var dist := float(cv.distance)
+		for i in range(10):
+			dist *= 1.2
+			hx.qa_set_camera(Vector2(t3.x, t3.z), dist, float(cv.pitch_deg), float(cv.yaw_deg))
+			if _tokens_in_frame(game.camera) >= ACTION_GROUPS_MIN:
+				info["distancia_con_fichas_m"] = snappedf(dist, 1.0)
+				await _frames(4)
+				await _shot("accion_%s_%s_amplia_sin_ui" % [id, str(spec.sufijo)])
+				break
+	hx.qa_set_ui_visible(true)
+	hx.view.call("set_time_override", -1.0, -1.0)
+	hx.reset_camera()
+	await _frames(3)
+	info["capturada"] = true
+
+
+## Cuántas fichas tienen el centro de su rectángulo (píxeles lógicos) dentro del cuadro, sin contar el 5 % de cada borde: M05 pide al menos tres a la vista.
+func _tokens_in_frame(camera: Camera3D) -> int:
+	var size := root.get_visible_rect().size
+	var inner := Rect2(Vector2.ZERO, size).grow(-minf(size.x, size.y) * 0.05)
+	var n := 0
+	for p in hx.view.call("probes", camera):
+		if str((p as Dictionary).get("kind", "")) != "ficha":
+			continue
+		var rr: Array = (p as Dictionary).rect
+		if inner.has_point(Rect2(float(rr[0]), float(rr[1]), float(rr[2]), float(rr[3])).get_center()):
+			n += 1
+	return n
+
+
+## Intervalo de cuadro en pleno ataque (lluvia, fichas, fogonazos y la interfaz) con la cámara inicial: indicativo, no es el benchmark.
+func _measure_attack_frames() -> Dictionary:
+	await _frames(20)
+	var samples: Array = []
+	for i in range(ATTACK_FRAMES):
+		var before := Time.get_ticks_usec()
+		await process_frame
+		samples.append((Time.get_ticks_usec() - before) / 1000.0)
+	samples.sort()
+	var total := 0.0
+	for s in samples:
+		total += float(s)
+	var st: Dictionary = hx.rules.state
+	return {"mean": snappedf(total / samples.size(), 0.01), "p95": snappedf(float(samples[int(samples.size() * 0.95)]), 0.01), "cuadros": samples.size(), "fase": str(st.get("phase", "")),
+		"t_juego_s": snappedf(float(st.get("elapsed", 0.0)), 0.1),
+		"nota": "intervalos de pared de %d cuadros con el juego en pausa en pleno ataque (lluvia, fichas, fogonazos y la interfaz) y la cámara inicial; con vsync activado no son el presupuesto del benchmark" % samples.size()}
 
 
 ## Todo el texto que se ve ahora (etiquetas, botones y textos con formato de la interfaz) y los controles con texto cuyo rectángulo sale del cuadro. Un control con opacidad

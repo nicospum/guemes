@@ -5,10 +5,13 @@ El arnés (hx_agent_play.gd) es el lado del juego: escribe turno_NN.png, espera 
 con el máximo de turnos o con «abandono». El --selftest del arnés contesta solo y NO recorre la espera de archivos; este programa sí: hace de agente, con un guion
 fijo que no depende de la disposición de la interfaz (solo teclas, esperas y entradas inválidas a propósito), y comprueba lo que el arnés escribe.
 
-Uso: python -I hx_agent_guion.py --turns-dir <carpeta> --arnes <arnes.json> [--guion protocolo|<guion.json>] [--timeout 120] [--log <log.json>]
+Uso: python -I hx_agent_guion.py --turns-dir <carpeta> --arnes <arnes.json> [--guion protocolo|repetir:<arnes.json>|<guion.json>] [--timeout 120] [--log <log.json>]
   --guion protocolo   el guion de la compuerta (8 turnos: espera, JSON roto, clic fuera de la ventana, tipo desconocido, tres teclas y una espera) y después respuestas.json
+  --guion repetir:<arnes.json>   repite, una por turno y por el protocolo de archivos, las acciones de un arnes.json de referencia (el del --selftest), sin respuestas.json (la corrida
+                      cierra sola con --max-turns), y compara la partida con la de referencia turno a turno: acción, si se aplicó, si fue una orden aceptada, modo, diálogo, fase, tiempo de
+                      juego antes y después, primera orden y desenlace de cada intento (TR-217: el protocolo por archivos no cambia la partida)
   --guion <archivo>   una lista JSON de entradas: {"tipo": "clic"|"tecla"|"esperar", ...}, {"crudo": "<texto sin tocar>"} u {"omitir": true} (no contesta: el arnés abandona)
-Sale con 0 si cada comprobación del guion «protocolo» pasa (o, con otro guion, si no hubo errores de entrega) y con 1 si falla alguna. Imprime «HX_AGENT_GUION {json}».
+Sale con 0 si cada comprobación del guion «protocolo» o «repetir» pasa (o, con otro guion, si no hubo errores de entrega) y con 1 si falla alguna. Imprime «HX_AGENT_GUION {json}».
 """
 import argparse
 import json
@@ -64,6 +67,30 @@ def esperado_identificacion(notas: dict, modos: list):
     return -1, primero
 
 
+CAMPOS_TURNO = ("accion", "aplicada", "orden_aceptada", "modo", "dialogo", "fase", "t_juego_s", "t_despues_s")
+
+
+def comparar(ref: dict, nuevo: dict) -> list:
+    """Diferencias entre la partida de referencia (el arnes.json del --selftest) y la repetida por archivos, en texto; vacía si es la misma partida turno a turno."""
+    dif = []
+    rt, nt = ref.get("turnos", []), nuevo.get("turnos", [])
+    if len(nt) != len(rt):
+        dif.append("la repetición tuvo %d turnos y la referencia %d" % (len(nt), len(rt)))
+    for i in range(min(len(rt), len(nt))):
+        for campo in CAMPOS_TURNO:
+            if rt[i].get(campo) != nt[i].get(campo):
+                dif.append("turno %d: %s es %r y la referencia %r" % (i + 1, campo, nt[i].get(campo), rt[i].get(campo)))
+                break
+    for campo in ("primera_orden_turno", "primera_orden_t_s", "cierre"):
+        if ref.get(campo) != nuevo.get(campo):
+            dif.append("%s es %r y la referencia %r" % (campo, nuevo.get(campo), ref.get(campo)))
+    def intento(x):
+        return (x.get("n"), x.get("resultado"), x.get("cause_id"), x.get("t_juego_s"), x.get("turnos"))
+    if [intento(x) for x in ref.get("intentos", [])] != [intento(x) for x in nuevo.get("intentos", [])]:
+        dif.append("los intentos difieren: %s y la referencia %s" % ([intento(x) for x in nuevo.get("intentos", [])], [intento(x) for x in ref.get("intentos", [])]))
+    return dif
+
+
 def png_size(path: Path):
     try:
         with open(path, "rb") as f:
@@ -106,9 +133,14 @@ def main() -> int:
     turns = Path(a.turns_dir)
     turns.mkdir(parents=True, exist_ok=True)
     protocolo = a.guion == "protocolo"
+    referencia = None
     if protocolo:
         guion = [dict(e) for e, _ in PROTOCOLO]
         esperado = [ok for _, ok in PROTOCOLO]
+    elif a.guion.startswith("repetir:"):
+        referencia = json.loads(Path(a.guion.split(":", 1)[1]).read_text(encoding="utf-8"))
+        guion = [dict(t["accion"]) for t in referencia.get("turnos", [])]  # la acción exacta que aplicó el arnés en cada turno de la referencia
+        esperado = []
     else:
         guion = json.loads(Path(a.guion).read_text(encoding="utf-8"))
         esperado = []
@@ -137,7 +169,7 @@ def main() -> int:
         # la mitad de los turnos se escribe a medias, para probar el reintento de lectura del arnés
         write_action(turns / ("accion_%02d.json" % i), entry, partial=(i % 2 == 0 and "crudo" not in entry))
     cerro_con_respuestas = False
-    if guion and not guion[-1].get("omitir") and len(filas) == len(guion):
+    if guion and referencia is None and not guion[-1].get("omitir") and len(filas) == len(guion):
         time.sleep(1.5)  # el arnés lee la acción del último turno antes de ver respuestas.json
         (turns / "respuestas.json").write_text(json.dumps(RESPUESTAS, ensure_ascii=False, indent=1), encoding="utf-8")
         cerro_con_respuestas = True
@@ -182,6 +214,11 @@ def main() -> int:
         chk("la bitácora identifica los tres frentes en %s turno(s) contados desde el primer cuadro con mapa (turno %s); lo escrito antes de ver el mapa no cuenta" % (esperado_id, esperado_mapa),
             arnes.get("objetivos_identificados_en_turnos") == esperado_id and arnes.get("mapa_desde_turno") == esperado_mapa,
             "informado=%s mapa_desde_turno=%s" % (arnes.get("objetivos_identificados_en_turnos"), arnes.get("mapa_desde_turno")))
+    if referencia is not None:
+        chk("el arnés escribió arnes.json con el esquema hx_agente_v1", arnes.get("schema") == "hx_agente_v1", str(arnes.get("schema")))
+        chk("atendió los %d turnos de la referencia y cerró sin respuestas.json" % len(guion), len(arnes.get("turnos", [])) == len(guion) and not (turns / "respuestas.json").exists(), "turnos=%d cierre=%s" % (len(arnes.get("turnos", [])), arnes.get("cierre")))
+        difs = comparar(referencia, arnes)
+        chk("la partida por archivos es la del --selftest, turno a turno (%d turnos, %d campos por turno, la primera orden y los intentos)" % (len(guion), len(CAMPOS_TURNO)), not difs, "; ".join(difs[:3]))
     log = {"turnos": filas, "errores": errores, "comprobaciones": comprobaciones, "cierre": arnes.get("cierre"), "duracion_s": round(time.time() - t0, 1)}
     if a.log:
         Path(a.log).write_text(json.dumps(log, ensure_ascii=False, indent=1), encoding="utf-8")

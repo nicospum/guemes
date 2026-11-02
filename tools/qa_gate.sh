@@ -10,8 +10,9 @@
 # (6) la prueba propia de la pista (test_hx_terrain|rules|view|flow; obligatoria desde r1); más los entregables de R1.0 de la pista (r1.0),
 # la higiene de Git y la limpieza de los registros. La completa suma test_rules completo (>= 871), Jev (15), audio (17 con 1 falla aceptada),
 # las cuatro pruebas del nivel, ui_qa x3 (>= 254), justina_playthrough, --scenario y --qa de Humahuaca y benchmark.py (Justina y Norte <= 3 ms). Desde r1 suma las herramientas
-# del nivel (herramientas_hx): ui_qa_humahuaca x3, humahuaca_playthrough, el recorrido de QA (hx_qa_tour), el arnés del agente-jugador con --selftest (hx_agent_play) y con un
-# agente de guion por archivos (hx_agent_protocolo y hx_agent_viejos) y la verificación por la escena real de visual (vis_flow).
+# del nivel (herramientas_hx): ui_qa_humahuaca x3, humahuaca_playthrough (por reglas, y por la escena real: humahuaca_escena, el criterio de cierre de R1), el recorrido de QA
+# (hx_qa_tour, con las vistas en acción), el arnés del agente-jugador con --selftest (hx_agent_play) y con un agente de guion por archivos (hx_agent_partida: la partida del
+# --selftest repetida por archivos; hx_agent_protocolo y hx_agent_viejos) y la verificación por la escena real de visual (vis_flow).
 # La última línea es siempre «GATE <modo> ...: PASA|FALLA|PARCIAL | cifras». Sale con 0 (PASA), 1 (FALLA), 2 (uso o entorno) o 3 (PARCIAL).
 #
 # Variables opcionales:
@@ -668,6 +669,34 @@ step_level_tools() {
   if [ -f "$SRC/tools/humahuaca_playthrough.gd" ]; then
     run_godot 900 "$LOGD/hx_playthrough.log" --headless --path "$SRC" --script tools/humahuaca_playthrough.gd -- --level=rules --policies=experto,pasivo "--out=$LOGD/hx_playthrough.json"
     if [ "$RC" -eq 0 ]; then record humahuaca_playthrough PASA "sale con 0: el experto gana y el pasivo pierde"; else record humahuaca_playthrough FALLA "salió con $RC (registro: $LOGD/hx_playthrough.log)"; fi
+    # el criterio de cierre de R1 (CONTRATO 8.2): «el experto gana y el pasivo pierde por la escena real». El mismo recorrido, pero por main.tscn con el controlador real y ventana
+    # (semillas de calibración 3, 5 y 7). La política «interfaz» aprieta el botón del «siguiente paso»: se informa cuántas gana y no decide el paso.
+    local escena_started=$SECONDS
+    out="$LOGD/hx_escena"; mkdir -p "$out"
+    run_godot 600 "$LOGD/hx_escena.log" --path "$SRC" --resolution 1280x720 --audio-driver Dummy --disable-vsync --script tools/humahuaca_playthrough.gd -- --level=scene --policies=experto,pasivo,interfaz --seeds=3,5,7 "--out=$out/hx_escena.json" --quiet
+    nums="$(py - "$out/hx_escena.json" <<'EOF'
+import json, sys
+try:
+    r = json.load(open(sys.argv[1], encoding="utf-8"))
+except Exception:
+    print("NOJSON"); sys.exit(0)
+g = r.get("games", [])
+def n(policy, status=None, cause=None):
+    return sum(1 for x in g if x.get("policy") == policy and (status is None or x.get("status") == status) and (cause is None or x.get("cause_id") == cause))
+print(n("experto", "victory"), n("experto"), n("pasivo", "victory"), n("pasivo"), n("pasivo", "defeat", "amanecio"), n("interfaz", "victory"), n("interfaz"),
+      sum(int(x.get("exceptions", 0) or 0) for x in g), r.get("level"))
+EOF
+)"
+    if [ "$nums" = "NOJSON" ]; then
+      record humahuaca_escena FALLA "no escribió su informe (salida $RC; registro: $LOGD/hx_escena.log)"
+    else
+      read -r ewin etot pwin ptot pdawn iwin itot eexc elevel <<< "$nums"
+      if [ "$RC" -eq 0 ] && [ "$elevel" = scene ] && [ "$etot" -ge 3 ] && [ "$ewin" = "$etot" ] && [ "$ptot" -ge 3 ] && [ "$pwin" = 0 ] && [ "$pdawn" = "$ptot" ] && [ "$eexc" = 0 ]; then
+        record humahuaca_escena PASA "por la escena real el experto gana $ewin de $etot, el pasivo pierde $ptot de $ptot (todos por amanecio) y el bot de interfaz gana $iwin de $itot, sin excepciones, $(fmt_time $((SECONDS - escena_started)))"
+      else
+        record humahuaca_escena FALLA "salió con $RC; nivel $elevel; experto gana $ewin de $etot (pide todas, mínimo 3), pasivo gana $pwin de $ptot (pide 0; por amanecio $pdawn), interfaz $iwin de $itot, excepciones $eexc (registro: $LOGD/hx_escena.log)"
+      fi
+    fi
   fi
   # el recorrido de QA por la escena real (Q2): las 7 vistas con y sin interfaz, la calibración de albedo, los límites de cámara, la hoja de fichas, los nombres de la escena
   # y qa_report.json. Con --disable-vsync, porque frame_ms_mean solo vale sin sincronía vertical.
@@ -684,17 +713,18 @@ png = [a for a in r.get("archivos", []) if a.endswith(".png")]
 brecha = r.get("brecha_decision_s") or {}
 print(len(png), len(r.get("failures", [])), len(r.get("views", {})), r.get("initial_frame", {}).get("fits"), r.get("templo_aabb_h_m"), r.get("frame_ms_mean"), (r.get("bot") or {}).get("status", "sin_bot"),
       (r.get("jerga") or {}).get("aciertos", "?"), (r.get("desbordes_texto") or {}).get("controles", "?"), brecha.get("max", "?"), brecha.get("ataque_max", "?"), (r.get("gramatica") or {}).get("aciertos", "?"),
-      (r.get("escala") or {}).get("px_por_unidad_logica", "?"))
+      (r.get("escala") or {}).get("px_por_unidad_logica", "?"),
+      sum(1 for v in (r.get("en_accion") or {}).values() if isinstance(v, dict) and v.get("capturada")), (r.get("frame_ms_ataque") or {}).get("mean", "?"))
 EOF
 )"
     if [ "$nums" = "NOJSON" ]; then
       record hx_qa_tour FALLA "no escribió qa_report.json (salida $RC; registro: $LOGD/hx_tour.log)"
     else
-      read -r tpng tfails tviews tfits taabb tframe tbot tjerga tdesb tgap tgapa tgram tesc <<< "$nums"
-      if [ "$RC" -eq 0 ] && [ "$tfails" = "0" ] && [ "$tpng" -ge 23 ] && [ "$tviews" -ge 7 ] && [ "$tfits" = "True" ]; then
-        record hx_qa_tour PASA "$tpng capturas, 7 vistas, cuadro inicial con los tres objetivos y la partida, templo ${taabb} m, cuadro medio ${tframe} ms (indicativo), el bot ${tbot}; texto del bot: jerga ${tjerga}, desbordes ${tdesb}, brecha sin siguiente paso ${tgap} s (ataque ${tgapa} s), contracciones sin hacer ${tgram} (informativo); posiciones en píxeles de la captura (x${tesc})"
+      read -r tpng tfails tviews tfits taabb tframe tbot tjerga tdesb tgap tgapa tgram tesc tacc tatk <<< "$nums"
+      if [ "$RC" -eq 0 ] && [ "$tfails" = "0" ] && [ "$tpng" -ge 27 ] && [ "$tviews" -ge 7 ] && [ "$tfits" = "True" ] && [ "$tacc" = "2" ]; then
+        record hx_qa_tour PASA "$tpng capturas, 7 vistas, cuadro inicial con los tres objetivos y la partida, templo ${taabb} m, cuadro medio ${tframe} ms (indicativo) y ${tatk} ms en pleno ataque, el bot ${tbot}, vistas en acción ${tacc} de 2 (torre disparando y arreo cargando); texto del bot: jerga ${tjerga}, desbordes ${tdesb}, brecha sin siguiente paso ${tgap} s (ataque ${tgapa} s), contracciones sin hacer ${tgram} (informativo); posiciones en píxeles de la captura (x${tesc})"
       else
-        record hx_qa_tour FALLA "salió con $RC; $tpng capturas (mínimo 23: 7 vistas con y sin interfaz, el primer cuadro, 3 de albedo, 4 de límite y la hoja de fichas), $tfails fallas, $tviews vistas, initial_frame.fits=$tfits"
+        record hx_qa_tour FALLA "salió con $RC; $tpng capturas (mínimo 27: 7 vistas con y sin interfaz, el primer cuadro, 3 de albedo, 4 de límite, la hoja de fichas y las 4 de las vistas en acción), $tfails fallas, $tviews vistas, initial_frame.fits=$tfits, vistas en acción $tacc de 2"
       fi
     fi
   else
@@ -727,6 +757,33 @@ EOF
   else
     record hx_agent_play FALLA "falta tools/hx_agent_play.gd (no evaluable = falla)"
   fi
+  # una partida por turnos con un guion (TR-217): las acciones que el arnés aplicó en el --selftest las repite un agente de guion por el protocolo de archivos (espera cada turno_NN.png,
+  # escribe accion_NN.json, la mitad a medias) y el arnés tiene que dar la misma partida turno a turno: acción, tiempo de juego, órdenes aceptadas, fase, modo, primera orden y desenlace.
+  # No juega: prueba que el protocolo por archivos no cambia la partida. La corrida del agente de verdad (J08) la hace el Jefe de QA.
+  if [ -f "$SRC/tools/hx_agent_play.gd" ] && [ -f "$SRC/tools/hx_agent_guion.py" ]; then
+    local ppid prc pwaited pline pnums pturns pchecks psecs pstarted=$SECONDS
+    out="$LOGD/hx_agent_partida"; mkdir -p "$out"
+    if [ ! -f "$LOGD/hx_agent/arnes.json" ]; then
+      record hx_agent_partida FALLA "no hay arnes.json del --selftest con qué comparar (no evaluable = falla)"
+    else
+      "$G" --path "$SRC" --resolution 1280x720 --audio-driver Dummy --disable-vsync --script tools/hx_agent_play.gd -- "--turns-dir=$out" "--out=$out/arnes.json" --step-s=3 --max-turns=30 --wait-s=60 > "$LOGD/hx_agent_partida.log" 2>&1 &
+      ppid=$!
+      py "$SRC/tools/hx_agent_guion.py" --turns-dir "$out" --arnes "$out/arnes.json" --guion "repetir:$LOGD/hx_agent/arnes.json" --timeout 120 --log "$out/guion.json" > "$LOGD/hx_agent_partida_guion.log" 2>&1
+      prc=$?
+      pwaited=0
+      while kill -0 "$ppid" 2>/dev/null && [ "$pwaited" -lt 80 ]; do sleep 0.25; pwaited=$((pwaited + 1)); done   # el arnés sale solo después de escribir arnes.json
+      if kill -0 "$ppid" 2>/dev/null; then kill_tree "$ppid"; fi
+      wait "$ppid" 2>/dev/null
+      pline="$(json_last "$LOGD/hx_agent_partida_guion.log")"
+      pnums="$(printf '%s' "$pline" | py -c 'import json,sys; d=json.load(sys.stdin); print(d["turnos"], d["comprobaciones"], d["duracion_s"])' 2>/dev/null)"
+      if [ "$prc" -eq 0 ] && [ -n "$pnums" ]; then
+        read -r pturns pchecks psecs <<< "$pnums"
+        record hx_agent_partida PASA "la partida del --selftest repetida por archivos da lo mismo turno a turno: $pturns turnos, $pchecks comprobaciones (acción, aplicada, orden aceptada, modo, diálogo, fase y tiempo de juego, primera orden e intentos), ${psecs} s; $(fmt_time $((SECONDS - pstarted)))"
+      else
+        record hx_agent_partida FALLA "el agente de guion salió con $prc; $(tr -d '\r' < "$LOGD/hx_agent_partida_guion.log" | tail -n 3 | cut -c1-420 | tr '\n' ' ') (registros: $LOGD/hx_agent_partida.log y $out/guion.json)"
+      fi
+    fi
+  fi
   # el protocolo por archivos con un «agente» de guion (tools/hx_agent_guion.py): lo que --selftest no recorre porque el arnés contesta solo (esperar accion_NN.json, lectura a medias,
   # JSON roto, clic fuera de la ventana, tipo desconocido, respuestas.json y los tres frentes nombrados en la bitácora). No juega: prueba que el arnés lee, aplica, mide y cierra.
   # La corrida del agente de verdad (J08) la hace el Jefe de QA.
@@ -756,24 +813,28 @@ EOF
     printf '%s' 'no es un png' > "$out/turno_01.png"
     printf '%s' 'la bitacora del agente no se toca' > "$out/bitacora.md"
     run_godot 120 "$LOGD/hx_agent_viejos.log" --path "$SRC" --resolution 1280x720 --audio-driver Dummy --disable-vsync --script tools/hx_agent_play.gd -- "--turns-dir=$out" "--out=$out/arnes.json" --max-turns=5 --wait-s=4
-    gnums="$(py - "$out/arnes.json" "$out/bitacora.md" <<'EOF'
+    gnums="$(py - "$out/arnes.json" "$out/bitacora.md" "$out/fin.json" <<'EOF'
 import json, sys
 try:
     a = json.load(open(sys.argv[1], encoding="utf-8"))
     bit = open(sys.argv[2], encoding="utf-8").read()
 except Exception:
     print("NOJSON"); sys.exit(0)
-print(a.get("cierre"), len(a.get("turnos", [])), a.get("archivos_viejos_borrados"), "intacta" if bit == "la bitacora del agente no se toca" else "tocada")
+try:
+    fin = json.load(open(sys.argv[3], encoding="utf-8")).get("cierre", "sin_cierre")
+except Exception:
+    fin = "sin_fin"
+print(a.get("cierre"), len(a.get("turnos", [])), a.get("archivos_viejos_borrados"), "intacta" if bit == "la bitacora del agente no se toca" else "tocada", fin)
 EOF
 )"
     if [ "$gnums" = "NOJSON" ]; then
       record hx_agent_viejos FALLA "no escribió arnes.json (salida $RC; registro: $LOGD/hx_agent_viejos.log)"
     else
-      read -r vclose vturns vstale vbit <<< "$gnums"
-      if [ "$RC" -eq 0 ] && [ "$vclose" = abandono ] && [ "$vturns" = 0 ] && [ "$vstale" = 3 ] && [ "$vbit" = intacta ]; then
-        record hx_agent_viejos PASA "con una acción, unas respuestas y una captura viejas en la carpeta: las borró (3), no tocó la bitácora y abandonó a los 4 s sin contestar con lo viejo"
+      read -r vclose vturns vstale vbit vfin <<< "$gnums"
+      if [ "$RC" -eq 0 ] && [ "$vclose" = abandono ] && [ "$vturns" = 0 ] && [ "$vstale" = 3 ] && [ "$vbit" = intacta ] && [ "$vfin" = abandono ]; then
+        record hx_agent_viejos PASA "con una acción, unas respuestas y una captura viejas en la carpeta: las borró (3), no tocó la bitácora, abandonó a los 4 s sin contestar con lo viejo y dejó fin.json con el cierre (abandono)"
       else
-        record hx_agent_viejos FALLA "cierre $vclose (esperaba abandono), $vturns turnos (esperaba 0), $vstale archivos viejos borrados (esperaba 3), bitácora $vbit, salida $RC"
+        record hx_agent_viejos FALLA "cierre $vclose (esperaba abandono), $vturns turnos (esperaba 0), $vstale archivos viejos borrados (esperaba 3), bitácora $vbit, fin.json $vfin (esperaba abandono), salida $RC"
       fi
     fi
   fi

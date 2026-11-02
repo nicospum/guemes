@@ -12,8 +12,10 @@ extends SceneTree
 ## --selftest: no hay agente; el arnés contesta solo con el botón de «siguiente paso» (con información que el agente no tiene) para probar el lazo de punta a punta; con
 ## --selftest=pasivo el primer intento no hace nada y el segundo sigue el «siguiente paso» (prueba el reintento). No es una corrida del agente-jugador.
 ## No usa semillas reservadas al QA: la semilla viene por --seed.
-## Archivos viejos: al arrancar borra de --turns-dir los turno_NN.png, accion_NN.json y respuestas.json de una corrida anterior (si no, el arnés contestaría con acciones viejas o
+## Archivos viejos: al arrancar borra de --turns-dir los turno_NN.png, accion_NN.json, respuestas.json y fin.json de una corrida anterior (si no, el arnés contestaría con acciones viejas o
 ## cerraría con unas respuestas viejas); la bitácora del agente no se toca. Lo informa como archivos_viejos_borrados.
+## fin.json: al cerrar, por cualquier razón (respuestas, max_turnos, abandono, sin_captura o sin_controlador), el arnés deja en la carpeta de turnos {"cierre", "turnos"}: un agente que espera
+## el turno siguiente se entera de que la corrida terminó (con max_turnos o abandono no aparece otra captura). No trae nada del estado del juego.
 ## objetivos_identificados_en_turnos (J08: «identifica los 3 objetivos en < 3 turnos»): el arnés no lee la mente del agente, así que lo mide con lo que el agente deja escrito en
 ## bitacora.md (el QA le pide anotar qué ve antes de cada acción): cuenta los turnos desde el primer cuadro con mapa (apertura o juego) hasta que lo escrito DESDE ENTONCES nombra los tres
 ## frentes (batería, cuartel y posta o pólvora); -1 si nunca los nombra o no hay bitácora. Los clics sobre los frentes (objetivos_tocados) quedan como dato aparte: tres frentes necesitan
@@ -200,6 +202,7 @@ func _run() -> void:
 	if not is_instance_valid(hx) or not hx.has_method("qa_state") or bool(hx.qa_state().get("shell", false)):
 		closing = "sin_controlador"
 		_write_arnes()
+		_write_fin()
 		await _frames(3)
 		quit(2)
 		return
@@ -247,17 +250,18 @@ func _run() -> void:
 		closing = "max_turnos"
 	_close_open_attempt(turn)
 	_write_arnes()
+	_write_fin()
 	print("HX_AGENT_PLAY " + JSON.stringify({"cierre": closing, "turnos": turns.size(), "primera_orden_turno": first_order_turn, "intentos": attempts.size()}))
 	await _frames(3)
 	quit(0)
 
 
 ## Archivos de una corrida anterior en la misma carpeta: se borran antes del primer turno para que el arnés no conteste con acciones viejas ni cierre con respuestas viejas.
-## Solo los nombres que escriben el arnés (turno_NN.png) o el agente (accion_NN.json, respuestas.json); la bitácora del agente no se toca.
+## Solo los nombres que escriben el arnés (turno_NN.png, fin.json) o el agente (accion_NN.json, respuestas.json); la bitácora del agente no se toca.
 func _clear_stale() -> int:
 	var removed := 0
 	for f in DirAccess.get_files_at(turns_abs):
-		var stale: bool = (f.begins_with("turno_") and (f.ends_with(".png") or f.ends_with(".tmp"))) or (f.begins_with("accion_") and f.ends_with(".json")) or f == "respuestas.json"
+		var stale: bool = (f.begins_with("turno_") and (f.ends_with(".png") or f.ends_with(".tmp"))) or (f.begins_with("accion_") and f.ends_with(".json")) or f == "respuestas.json" or f == "fin.json"
 		if stale:
 			DirAccess.remove_absolute(turns_abs.path_join(f))
 			removed += 1
@@ -426,6 +430,12 @@ func _write_json(path: String, data: Variant) -> void:
 	if f != null:
 		f.store_string(JSON.stringify(data, "\t"))
 		f.close()
+
+
+## Avisa del cierre en la carpeta de turnos: sin esto, un agente que espera el turno siguiente no sabría que la corrida terminó (con max_turnos o abandono no aparece otra captura).
+## Solo trae la razón del cierre y cuántos turnos hubo; nada del estado del juego.
+func _write_fin() -> void:
+	_write_json(turns_abs.path_join("fin.json"), {"cierre": closing, "turnos": turns.size()})
 
 
 func _write_arnes() -> void:
