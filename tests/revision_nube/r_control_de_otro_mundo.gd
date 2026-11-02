@@ -55,6 +55,9 @@ func _initialize() -> void:
 	if bool(res.get("ok", false)) and restored_seed == seed1:
 		failures.append("restore_checkpoint(\"salida\") devolvió al jugador a la partida del mundo anterior (semilla %d, fase %s)" % [restored_seed, str(rules2.state.get("phase", ""))])
 	prog.reset_all()
+	for leftover in [base + "_progress.json", base + "_checkpoint.json"]:  # reset_all reescribe el progreso: la prueba no deja nada en user://
+		if FileAccess.file_exists(leftover):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(leftover))
 	for f in failures:
 		printerr("FALLA: " + f)
 	print("revision_nube r_control_de_otro_mundo: %s" % ("FALLA" if not failures.is_empty() else "PASA"))

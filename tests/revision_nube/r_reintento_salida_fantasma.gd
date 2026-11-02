@@ -1,7 +1,7 @@
 extends SceneTree
 ## Revisión nube (hallazgo R-01): tras volver al control «posiciones», HumahuacaProgress sigue ofreciendo «Reintentar la salida» (retry_options
 ## lo da como disponible) aunque el archivo de controles ya no lo tiene: restore_checkpoint("salida") falla y la interfaz, en vez de avisar,
-## arranca una partida nueva desde cero (humahuaca_ui_play.gd, _on_retry → _new_attempt). Sale con 1 si el defecto sigue; con 0 si está arreglado.
+## arranca una partida nueva desde cero (humahuaca_ui_play.gd, retry() → _new_attempt). Sale con 1 si el defecto sigue; con 0 si está arreglado.
 ## Correr con perfil aislado:  godot --headless --path . --script tests/revision_nube/r_reintento_salida_fantasma.gd
 const Pol = preload("res://scripts/humahuaca/rules/humahuaca_policies.gd")
 
@@ -52,6 +52,9 @@ func _initialize() -> void:
 	if offered and not bool(res2.get("ok", false)):
 		failures.append("retry_options ofrece «salida» (available=true) pero restore_checkpoint(\"salida\") falla: %s" % str(res2.get("reason", "")))
 	prog.reset_all()
+	for leftover in [base + "_progress.json", base + "_checkpoint.json"]:  # reset_all reescribe el progreso: la prueba no deja nada en user://
+		if FileAccess.file_exists(leftover):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(leftover))
 	for f in failures:
 		printerr("FALLA: " + f)
 	print("revision_nube r_reintento_salida_fantasma: %s" % ("FALLA" if not failures.is_empty() else "PASA"))
