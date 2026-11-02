@@ -131,6 +131,7 @@ func _run() -> void:
 	await _test_return_menu_hook()
 	await _test_exit_to_norte()
 	await _test_input_order()
+	await _test_camera_owner()
 	await _test_campaign_json_unchanged()
 	await _test_shapes()
 	_test_api_conformance()
@@ -429,6 +430,25 @@ func _test_input_order() -> void:
 	suite.check(focus_button.has_focus(), "3.5 sin el hijo, main sí atiende Tab con _focus_hud (control de la prueba)")
 	focus_button.queue_free()
 	await _to_menu()
+
+## hook-10 (H-R1-1): mientras corre el nivel, main.gd no ubica la cámara. La ubica el controlador al final de su `_process`; si main la pisaba antes con la pose de la Justina (`_apply_camera`),
+## el `_process` de la vista y el `update_state` del controlador medían dos cámaras distintas por cuadro y el cuadro medio de `media` pasaba de 1,3 a 3,8 ms o más.
+func _test_camera_owner() -> void:
+	if not await _start_level_by_button():
+		suite.check(false, "4.1 el nivel arranca para probar quién ubica la cámara")
+		return
+	await _frames(3)
+	var sentinel := Vector3(123.0, 456.0, 789.0)
+	game.camera.position = sentinel
+	game._process(0.016)
+	suite.check(game.camera.position.is_equal_approx(sentinel), "4.1 hook-10: main.gd no mueve la cámara mientras corre el nivel (la ubica el controlador)")
+	if not ui_is_shell:
+		await _frames(2)
+		suite.check(not game.camera.position.is_equal_approx(sentinel), "4.1 el controlador sí ubica la cámara en su propio cuadro (control de la prueba)")
+	await _to_menu()
+	game.camera.position = sentinel
+	game._process(0.016)
+	suite.check(not game.camera.position.is_equal_approx(sentinel), "4.1 fuera del nivel main.gd sigue ubicando su cámara (control de la prueba)")
 
 # ---------------------------------------------------------------------------------------------------------------------
 # 3.3: campaign.json, save_justine.json y save_norte.json no cambian ni un byte

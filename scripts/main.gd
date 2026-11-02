@@ -730,6 +730,7 @@ func _clock(seconds:float)->String:
 
 func _process(delta):
  if not is_instance_valid(camera):return
+ if mode=="hx":return  # H8/hook-10: la cámara del nivel «humahuaca» es del controlador; _apply_camera() la pisaba cada cuadro con la pose de la Justina, entre el _process de la vista y el del controlador (H-R1-1)
  if qa_mode and mode=="play" and frame_samples.size()<240:frame_samples.append(delta*1000)
  if mode=="play" and not is_instance_valid(modal):_camera_keys(delta)
  _camera_goal_step(delta)
