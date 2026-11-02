@@ -763,6 +763,7 @@ func _test_hud_guided_selection() -> void:
 		var bars := 0
 		var steps := 0
 		var cuts: Dictionary = {}
+		var overlaps: Dictionary = {}
 		while steps < 90 and str(hx.qa_state().status) == "playing" and str(hx.qa_state().dialog) == "":
 			hx.qa_press_next()
 			await _tap(KEY_1 + (steps % 5))  # el jugador va eligiendo fichas con las teclas 1 a 5: cada elección cambia la barra de órdenes
@@ -783,6 +784,9 @@ func _test_hud_guided_selection() -> void:
 				toasts += 1
 			for cut in Kit.cut_labels(game.ui):
 				cuts[str(cut.text)] = cut
+			if steps % 3 == 0:  # la cuenta de solapes mira todas las parejas de textos: cada tres pasos alcanza para ver cualquier arreglo que se repita
+				for ov in Kit.text_overlaps(game.ui):
+					overlaps["%s/%s" % [str(ov.a), str(ov.b)]] = ov
 			var bar_node: Variant = hx.hud.get("bar")
 			if bar_node != null and (bar_node as Control).visible:
 				bars += 1
@@ -793,6 +797,7 @@ func _test_hud_guided_selection() -> void:
 		suite.check(lines_max <= 2, "HUD guiado %dx%d: el texto del «siguiente paso» ocupa %d líneas como máximo (límite: 2)" % [size.x, size.y, lines_max])
 		suite.check(width_min >= 250.0, "HUD guiado %dx%d: el «siguiente paso» nunca queda en una columna angosta (mínimo %d px)" % [size.x, size.y, int(width_min)])
 		suite.check(cuts.is_empty(), "HUD guiado %dx%d: ningún texto queda cortado en %d pasos (H-R1-10; %d distintos: %s)" % [size.x, size.y, steps, cuts.size(), str(cuts.values().slice(0, 2))])
+		suite.check(overlaps.is_empty(), "HUD guiado %dx%d: ningún texto pisa a otro en %d pasos (C01; %d distintos: %s)" % [size.x, size.y, steps, overlaps.size(), str(overlaps.values().slice(0, 2))])
 		suite.extra["hud_guiado_%dx%d" % [size.x, size.y]] = {"pasos": steps, "cruces": crossings, "lineas_siguiente_max": lines_max, "ancho_siguiente_min_px": int(width_min), "pasos_con_aviso": toasts, "pasos_con_barra": bars}
 		await _leave_level()
 	await _set_window(Vector2i(1280, 720))
@@ -858,6 +863,8 @@ func _test_objective_by_phase() -> void:
 			seen[key][phase] = str(hx.hud.objective_l.text)
 			for cut in Kit.cut_labels(game.ui):
 				(cut_texts[key] as Array).append("%s: %s (%s)" % [phase, str(cut.text), str(cut.why)])
+			for ov in Kit.text_overlaps(game.ui):
+				(cut_texts[key] as Array).append("%s: se pisan «%s» y «%s»" % [phase, str(ov.a), str(ov.b)])
 		if phase == "extraccion":
 			await _set_window(sizes[0])
 			hx.hud.texts["objective"]["source"] = "rules"  # con «rules» manda lo que digan las reglas (cuando den la frase de cada fase, BACKLOG B-048)
@@ -866,7 +873,7 @@ func _test_objective_by_phase() -> void:
 		await _leave_level()
 	for size in sizes:
 		var key := "%dx%d" % [size.x, size.y]
-		suite.check((cut_texts[key] as Array).is_empty(), "objetivo %s: en las cuatro fases ningún texto del HUD queda cortado (%s)" % [key, str(cut_texts[key])])
+		suite.check((cut_texts[key] as Array).is_empty(), "objetivo %s: en las cuatro fases ningún texto del HUD queda cortado ni pisado (%s)" % [key, str(cut_texts[key])])
 		var distinct := {}
 		for k in seen[key]:
 			distinct[str(seen[key][k])] = true

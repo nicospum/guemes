@@ -27,6 +27,7 @@ var shots: Array = []
 var contrast_min := 99.0
 var cuts_seen: Dictionary = {}  # momento → textos cortados (H-R1-10); vacío si ninguno se cortó
 var cuts_checked := 0
+var overlaps_seen: Dictionary = {}  # momento → textos que se pisan (C01); vacío si ninguno
 
 
 func _initialize() -> void:
@@ -120,6 +121,23 @@ func _click(pos: Vector2, button: int = MOUSE_BUTTON_LEFT, shift: bool = false) 
 
 func _click_control(c: Control) -> void:
 	await _click(Kit.rect_of(c).get_center())
+
+
+## Aprieta un botón y, si el estado que se espera no llegó, lo repite una vez y lo anota en notes.clics_repetidos: a veces la entrada inyectada se pierde cuando el puntero real
+## del SO está sobre la ventana (B-044) y una sola falla de este tipo tumbaba una decena de comprobaciones que dependen del clic. Si tras repetirlo sigue sin llegar, la
+## comprobación que sigue falla como siempre.
+func _click_expect(part: String, expect: Callable, frames: int) -> void:
+	var b := _button(part)
+	if b == null:
+		return
+	await _click_control(b)
+	await _frames(frames)
+	if not bool(expect.call()):
+		notes["clics_repetidos"] = int(notes.get("clics_repetidos", 0)) + 1
+		b = _button(part)
+		if b != null:
+			await _click_control(b)
+			await _frames(frames)
 
 
 func _button(part: String) -> Button:
@@ -313,6 +331,10 @@ func _check_text_cuts(label: String) -> void:
 	if not cuts.is_empty():
 		cuts_seen[label] = cuts
 	check(cuts.is_empty(), "%s: ningún texto queda cortado (%d: %s)" % [label, cuts.size(), str(cuts.slice(0, 3))])
+	var overlaps: Array = Kit.text_overlaps(game.ui)
+	if not overlaps.is_empty():
+		overlaps_seen[label] = overlaps
+	check(overlaps.is_empty(), "%s: ningún texto pisa a otro (%d: %s)" % [label, overlaps.size(), str(overlaps.slice(0, 3))])
 
 
 ## H-R1-10: el objetivo dice algo vigente en cada fase y entra entero. Arranca el nivel directo en cada fase (opts.phase) y mide la línea del objetivo y todos los textos.
@@ -434,6 +456,7 @@ func _probe_guided(label: String, steps: int) -> void:
 	var bar_steps := 0
 	var done := 0
 	var cut_set: Dictionary = {}
+	var overlap_set: Dictionary = {}
 	for i in range(steps):
 		if str(hx.qa_state().status) != "playing" or str(hx.qa_state().dialog) != "":
 			break
@@ -460,6 +483,8 @@ func _probe_guided(label: String, steps: int) -> void:
 			width_min = minf(width_min, hx.hud.next_text_l.size.x * hx.ui_scale)
 		for cut in Kit.cut_labels(game.ui):
 			cut_set[str(cut.text)] = cut
+		for ov in Kit.text_overlaps(game.ui):
+			overlap_set["%s/%s" % [str(ov.a), str(ov.b)]] = ov
 		if hx.hud.toast_panel.is_visible_in_tree():
 			toast_steps += 1
 		if hx.hud.bar.is_visible_in_tree():
@@ -472,6 +497,9 @@ func _probe_guided(label: String, steps: int) -> void:
 	if not cut_set.is_empty():
 		cuts_seen["guiada " + label] = cut_set.values()
 	check(cut_set.is_empty(), "Partida guiada %s: ningún texto queda cortado en %d pasos (%d distintos: %s)" % [label, done, cut_set.size(), str(cut_set.values().slice(0, 3))])
+	if not overlap_set.is_empty():
+		overlaps_seen["guiada " + label] = overlap_set.values()
+	check(overlap_set.is_empty(), "Partida guiada %s: ningún texto pisa a otro en %d pasos (%d distintos: %s)" % [label, done, overlap_set.size(), str(overlap_set.values().slice(0, 3))])
 	check(lines_max <= 2 and width_min >= 250.0, "Partida guiada %s: el «siguiente paso» ocupa %d líneas como máximo y nunca queda en una columna menor de 250 px (mínimo %d px)" % [label, lines_max, int(width_min)])
 	hx.reset_camera()  # tocar dos veces la misma tecla centra la cámara en un frente: el resto del recorrido sigue con el cuadro inicial
 
@@ -632,15 +660,13 @@ func _cycle_full() -> void:
 	check(texts1.find("Perder no es grave") >= 0 and texts1.find("Hoy:") >= 0, "Briefing 1: dice el objetivo, que perder no es grave y la variante del mundo")
 	check(_jargon_hits(texts1).is_empty(), "Briefing 1: sin jerga (%s)" % str(_jargon_hits(texts1)))
 	check(texts1.length() < 700, "Briefing 1: es corto (%d caracteres)" % texts1.length())
-	await _click_control(_button("Seguir leyendo"))
-	await _frames(3)
+	await _click_expect("Seguir leyendo", func(): return " ".join(PackedStringArray(_visible_texts())).find("Dramatización") >= 0, 3)
 	await _shot("hx-briefing-2")
 	_check_dialog_fit("Briefing 2")
 	var texts2 := " ".join(PackedStringArray(_visible_texts()))
 	check(texts2.find("Dramatización") >= 0 and texts2.find("restitución") >= 0 and texts2.find("no hubo refuerzo") >= 0, "Briefing 2: la carta es una dramatización y dice qué es real y qué es diseño")
 	check(_jargon_hits(texts2).is_empty(), "Briefing 2: sin jerga (%s)" % str(_jargon_hits(texts2)))
-	await _click_control(_button("Empezar"))
-	await _frames(40)
+	await _click_expect("Empezar", func(): return str(hx.qa_state().mode) == "opening", 40)
 	check(str(hx.qa_state().mode) == "opening", "Apertura: «Empezar» abre la presentación de cámara")
 	await _shot("hx-apertura")
 	check(not hx.hud.root.visible and hx._subtitle.visible and hx._subtitle.text.find("palos") >= 0, "Apertura: sin HUD y con la frase de Arias («%s»)" % hx._subtitle.text.left(60))
@@ -901,7 +927,7 @@ func _cycle_overflow() -> void:
 
 
 func _finish() -> void:
-	notes["recortes"] = {"revisiones": cuts_checked, "con_recortes": cuts_seen}
+	notes["recortes"] = {"revisiones": cuts_checked, "con_recortes": cuts_seen, "con_solapes": overlaps_seen}
 	var out := {"suite": "ui_qa_humahuaca", "checks": checks, "failures": failures, "ok": failures.is_empty(), "notes": notes, "capturas": shots}
 	notes["contraste_texto_min"] = snappedf(contrast_min, 0.01) if contrast_min < 99.0 else 0.0
 	var file := FileAccess.open(ProjectSettings.globalize_path(out_dir).path_join("ui_qa_report.json"), FileAccess.WRITE)

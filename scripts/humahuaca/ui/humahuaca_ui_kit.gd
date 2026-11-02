@@ -251,6 +251,75 @@ static func cut_labels(node: Node) -> Array:
 	return out
 
 
+## La caja que ocupa el texto de una hoja (etiqueta, botón o texto con formato), en píxeles del cuadro: el ancho del texto y no el del control, que puede ser más ancho.
+static func _text_box(c: Control, text: String) -> Rect2:
+	var r := rect_of(c)
+	if c is RichTextLabel:
+		return r
+	var fnt: Font = c.get_theme_font("font")
+	var fs: int = c.get_theme_font_size("font_size")
+	var wrap := c is Label and (c as Label).autowrap_mode != TextServer.AUTOWRAP_OFF
+	var sz: Vector2 = fnt.get_multiline_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, c.size.x if wrap else -1.0, fs)
+	var w_use := minf(sz.x, c.size.x)
+	var h_use := minf(sz.y, c.size.y)
+	var ha: int = HORIZONTAL_ALIGNMENT_LEFT
+	var va: int = VERTICAL_ALIGNMENT_TOP
+	if c is Label:
+		ha = (c as Label).horizontal_alignment
+		va = (c as Label).vertical_alignment
+	elif c is Button:
+		ha = (c as Button).alignment
+		va = VERTICAL_ALIGNMENT_CENTER
+	var off := Vector2.ZERO
+	if ha == HORIZONTAL_ALIGNMENT_CENTER:
+		off.x = (c.size.x - w_use) * 0.5
+	elif ha == HORIZONTAL_ALIGNMENT_RIGHT:
+		off.x = c.size.x - w_use
+	if va == VERTICAL_ALIGNMENT_CENTER:
+		off.y = (c.size.y - h_use) * 0.5
+	elif va == VERTICAL_ALIGNMENT_BOTTOM:
+		off.y = c.size.y - h_use
+	var sc := c.get_global_transform().get_scale()
+	return Rect2(r.position + off * sc, Vector2(w_use, h_use) * sc)
+
+
+## Textos que se pisan (C01): dos hojas de texto distintas, que no son una dentro de la otra, cuyas cajas de texto se cruzan en al menos el 10 % de la más chica. Es la medida de
+## solapes de la sonda del QA. Devuelve [{a, b, frac}].
+static func text_overlaps(node: Node) -> Array:
+	var out: Array = []
+	if node == null:
+		return out
+	var leaves: Array = []
+	for n in node.find_children("*", "Control", true, false):
+		var c := n as Control
+		if not c.is_visible_in_tree() or c.size.x < 1.0 or c.size.y < 1.0:
+			continue
+		var text := ""
+		if c is Label:
+			text = (c as Label).text
+		elif c is Button:
+			text = (c as Button).text
+		elif c is RichTextLabel:
+			text = (c as RichTextLabel).get_parsed_text()
+		if text.strip_edges() == "":
+			continue
+		var box := _text_box(c, text).grow(-0.5)
+		if box.size.x > 0.0 and box.size.y > 0.0:
+			leaves.append({"c": c, "t": text, "box": box})
+	for i in range(leaves.size()):
+		for j in range(i + 1, leaves.size()):
+			var a: Dictionary = leaves[i]
+			var b: Dictionary = leaves[j]
+			if (a.c as Control).is_ancestor_of(b.c as Control) or (b.c as Control).is_ancestor_of(a.c as Control):
+				continue
+			var inter: Rect2 = (a.box as Rect2).intersection(b.box as Rect2)
+			if inter.size.x > 1.0 and inter.size.y > 1.0:
+				var frac := (inter.size.x * inter.size.y) / minf((a.box as Rect2).size.x * (a.box as Rect2).size.y, (b.box as Rect2).size.x * (b.box as Rect2).size.y)
+				if frac >= 0.1:
+					out.append({"a": str(a.t).left(30), "b": str(b.t).left(30), "frac": snappedf(frac, 0.01)})
+	return out
+
+
 ## Los botones visibles bajo `node` y cuántos controles distintos son: los de un mismo grupo (meta «hx_group») cuentan como uno.
 static func controls_report(node: Node) -> Dictionary:
 	var groups := {}
