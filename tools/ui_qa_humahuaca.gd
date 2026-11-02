@@ -6,6 +6,8 @@ extends SceneTree
 ## reintento, victoria, pausa y ayuda); a otros tamaños corre el chequeo de DESBORDE (_check_overflow: ningún panel fuera del cuadro ni pisado, el último
 ## elemento del menú dentro, las ventanas enteras) salvo que se pida --full (desde R2a se exige completo a las tres resoluciones).
 ## Imprime «UI_QA {json}» y escribe ui_qa_report.json en --out junto con las capturas. No es una partida humana ni una prueba con teclado físico.
+## Pase 2 de R1: el parte vuelve del Diario (H-R1-2) y una partida guiada eligiendo fichas con las teclas 1 a 5 mide que ningún panel del HUD pise a otro y que el
+## «siguiente paso» entre en dos líneas (H-R1-7), en el recorrido completo y en el de desborde (1024 × 640, 1920 × 1080 y 2560 × 1440).
 
 const V = preload("res://scripts/humahuaca/humahuaca_vocab.gd")
 const Kit = preload("res://scripts/humahuaca/ui/humahuaca_ui_kit.gd")
@@ -23,7 +25,6 @@ var last_shot_size := Vector2i.ZERO
 var ui_json: Dictionary = {}
 var shots: Array = []
 var contrast_min := 99.0
-var seed_arg := -1
 
 
 func _initialize() -> void:
@@ -42,8 +43,6 @@ func _initialize() -> void:
 			allow_clip = true
 		elif arg == "--full":
 			force_full = true
-		elif arg.begins_with("--seed="):
-			seed_arg = int(arg.trim_prefix("--seed="))
 	if out_dir == "":
 		push_error("ui_qa_humahuaca: falta --out=<carpeta> (sin eso no se escribe en evidence/)")
 		quit(2)
@@ -280,25 +279,188 @@ func _follow_guide(max_s: float, until_phase: String = "") -> float:
 
 func _check_overflow(label: String) -> void:
 	var vp := _viewport_rect()
-	var rects: Dictionary = hx.hud.rects()
 	var visible_rects: Dictionary = {}
-	for key in ["header", "fronts", "dock"]:
-		var r: Rect2 = rects[key]
+	var panels: Dictionary = hx.hud.panels()  # cabecera, frentes, dock y, si están a la vista, la barra de órdenes, la alerta, el aviso de pie y la línea roja
+	for key in panels:
+		var r: Rect2 = Kit.rect_of(panels[key] as Control)
 		visible_rects[key] = r
 		check(_inside(r), "%s: %s dentro del cuadro %s (%s)" % [label, key, str(vp.size), str(r)])
 	var mm: Rect2 = Kit.rect_of(hx.minimap)
 	visible_rects["minimapa"] = mm
 	check(_inside(mm), "%s: el minimapa dentro del cuadro (%s)" % [label, str(mm)])
 	var keys: Array = visible_rects.keys()
-	var overlaps := 0
+	var overlaps: Array = []
 	for i in range(keys.size()):
 		for j in range(i + 1, keys.size()):
 			if (visible_rects[keys[i]] as Rect2).grow(-1.0).intersects((visible_rects[keys[j]] as Rect2).grow(-1.0)):
-				overlaps += 1
-	check(overlaps == 0, "%s: los paneles del HUD y el minimapa no se pisan (%d cruces)" % [label, overlaps])
+				overlaps.append("%s/%s" % [str(keys[i]), str(keys[j])])
+	check(overlaps.is_empty(), "%s: los paneles del HUD y el minimapa no se pisan (%d cruces: %s)" % [label, overlaps.size(), str(overlaps)])
+	if hx.hud.next_text_l.is_visible_in_tree():
+		check(hx.hud.next_text_l.get_line_count() <= 2, "%s: el texto del «siguiente paso» ocupa 2 líneas como máximo (%d)" % [label, hx.hud.next_text_l.get_line_count()])
 	for id in V.GROUPS:
 		var card: Rect2 = hx.hud.card_rect(str(id))
 		check(_inside(card) and card.size.x >= 60.0, "%s: la ficha de %s entra en el dock (%s)" % [label, str(id), str(card)])
+
+
+## El alto de cada ficha parada (de la base a la cima de sus piezas, sin los anillos), proyectado y en píxeles REALES de la captura: lo que mide V03. Antes salía de `probes()`,
+## cuyo rectángulo de ficha trae el tamaño pedido y no el dibujado, y se multiplicaba otra vez por la escala de la ventana (B-026).
+func _token_px() -> Array:
+	var out: Array = []
+	if not is_instance_valid(hx.view) or not "unit_nodes" in hx.view:
+		return out
+	var cam3: Camera3D = game.camera
+	var real := root.get_final_transform().get_scale().y
+	for id in V.GROUPS:
+		if not hx.view.unit_nodes.has(id):
+			continue
+		var node: Node3D = hx.view.unit_nodes[id]
+		var top := node.global_position.y
+		var lo_x := 1.0e9
+		var hi_x := -1.0e9
+		for mi in node.find_children("*", "MeshInstance3D", true, false):
+			if str(mi.name) in ["anillo", "borde", "seleccion"]:
+				continue
+			var mesh_node := mi as MeshInstance3D
+			var box: AABB = mesh_node.global_transform * mesh_node.get_aabb()
+			top = maxf(top, box.end.y)
+			for corner in range(8):
+				var q := cam3.unproject_position(box.get_endpoint(corner))
+				lo_x = minf(lo_x, q.x)
+				hi_x = maxf(hi_x, q.x)
+		var base_px := cam3.unproject_position(node.global_position)
+		var top_px := cam3.unproject_position(Vector3(node.global_position.x, top, node.global_position.z))
+		out.append({"id": str(id), "w": snappedf(maxf(hi_x - lo_x, 0.0) * real, 0.1), "h": snappedf(absf(base_px.y - top_px.y) * real, 0.1)})
+	return out
+
+
+## Un control como [x, y, ancho, alto] en PÍXELES DE LA CAPTURA (no del cuadro lógico del HUD, que una ventana de 1280 × 720 escala ×0,8): es lo que lee qa_imagen.py
+## (B-032). En los textos se ajusta el ancho al del texto, para que el rectángulo mida el texto y no el panel vacío que lo rodea.
+func _px_rect(c: Control) -> Array:
+	var r := Kit.rect_of(c)
+	var scale := root.get_final_transform().get_scale()
+	var win := Rect2(_to_window(r.position), r.size * scale)
+	if c is Label and (c as Label).text != "":
+		var l := c as Label
+		var fnt: Font = l.get_theme_font("font")
+		var fs: int = l.get_theme_font_size("font_size")
+		win.size.x = minf(win.size.x, (fnt.get_string_size(l.text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, fs).x + 4.0) * scale.x)
+	elif c is Button:
+		win = win.grow(-6.0 * scale.x)
+	return [int(win.position.x), int(win.position.y), maxi(int(win.size.x), 1), maxi(int(win.size.y), 1)]
+
+
+## Las seis posiciones de Q3 (titulo, objetivo, siguiente, frente_bateria, alerta, accion_1), todas con área: si no hay alerta a la vista se usa el aviso de pie, la línea de
+## motivo o la fase, y `alerta_es` dice cuál. La tarjeta del frente se mide por su nombre (texto), no por la tarjeta entera con sus barras.
+func _capture_rects() -> Dictionary:
+	var h: Variant = hx.hud
+	var alert_src: Control = h.phase_l
+	var alert_is := "fase"
+	if h.alert_panel.is_visible_in_tree():
+		alert_src = h.alert_title_l
+		alert_is = "alerta"
+	elif h.toast_panel.is_visible_in_tree():
+		alert_src = h.toast_l
+		alert_is = "aviso_de_pie"
+	elif h.bar.is_visible_in_tree() and h.motive_l.text != "":
+		alert_src = h.motive_l
+		alert_is = "motivo"
+	var action_src: Control = h.next_btn
+	for act in h._action_buttons:
+		action_src = h._action_buttons[act]
+		break
+	notes["alerta_es"] = alert_is
+	return {"titulo": _px_rect(h.title_l), "objetivo": _px_rect(h.objective_l), "siguiente": _px_rect(h.next_text_l), "frente_bateria": _px_rect(h.front_cards["bateria"].name),
+		"alerta": _px_rect(alert_src), "accion_1": _px_rect(action_src)}
+
+
+## Lleva la partida guiada hasta la primera descarga (la señal) y 20 s más, como pide Q3 para «hx-hud». Devuelve false si la señal nunca estuvo lista.
+func _reach_first_volley() -> bool:
+	var waited := 0.0
+	while waited < 400.0 and str(hx.rules.state.status) == "playing" and str(hx.qa_state().guide.action) != "give_signal":
+		hx.qa_press_next()
+		hx.qa_step(1.0)
+		waited += 1.0
+	hx.refresh_hud_now()
+	return str(hx.qa_state().guide.action) == "give_signal"
+
+
+## H-R1-7: una partida guiada por el «siguiente paso» en la que el jugador va eligiendo fichas con las teclas 1 a 5 (cada elección cambia la barra de órdenes) y a la que
+## llegan avisos: en cada paso se mide que ningún panel del HUD pise a otro ni salga del cuadro y que el «siguiente paso» no quede en una columna angosta ni pase de 2 líneas.
+func _probe_guided(label: String, steps: int) -> void:
+	var vp := _viewport_rect()
+	var crossings: Dictionary = {}
+	var outside := 0
+	var lines_max := 0
+	var width_min := 1.0e9
+	var toast_steps := 0
+	var bar_steps := 0
+	var done := 0
+	for i in range(steps):
+		if str(hx.qa_state().status) != "playing" or str(hx.qa_state().dialog) != "":
+			break
+		hx.qa_press_next()
+		await _key(KEY_1 + (i % 5))
+		hx.qa_step(3.0)
+		await _frames(2)
+		done += 1
+		var rects: Dictionary = {}
+		var panels: Dictionary = hx.hud.panels()
+		for key in panels:
+			rects[key] = Kit.rect_of(panels[key] as Control)
+			if not _inside(rects[key]):
+				outside += 1
+		rects["minimapa"] = Kit.rect_of(hx.minimap)
+		var keys: Array = rects.keys()
+		for a in range(keys.size()):
+			for b in range(a + 1, keys.size()):
+				if (rects[keys[a]] as Rect2).grow(-1.0).intersects((rects[keys[b]] as Rect2).grow(-1.0)):
+					var k := "%s/%s" % [str(keys[a]), str(keys[b])]
+					crossings[k] = int(crossings.get(k, 0)) + 1
+		if hx.hud.next_text_l.is_visible_in_tree():
+			lines_max = maxi(lines_max, hx.hud.next_text_l.get_line_count())
+			width_min = minf(width_min, hx.hud.next_text_l.size.x * hx.ui_scale)
+		if hx.hud.toast_panel.is_visible_in_tree():
+			toast_steps += 1
+		if hx.hud.bar.is_visible_in_tree():
+			bar_steps += 1
+	notes["hud_guiado_" + label] = {"pasos": done, "cruces": crossings, "paneles_fuera": outside, "lineas_siguiente_max": lines_max, "ancho_siguiente_min_px": int(width_min), "pasos_con_aviso": toast_steps, "pasos_con_barra": bar_steps}
+	check(done >= 40 and toast_steps > 0 and bar_steps > 0, "Partida guiada %s: %d pasos con fichas elegidas, con avisos (%d pasos) y barra de órdenes (%d pasos) a la vista" % [label, done, toast_steps, bar_steps])
+	check(crossings.is_empty(), "Partida guiada %s: ningún panel del HUD pisa a otro en %d pasos (%s)" % [label, done, str(crossings)])
+	check(outside == 0, "Partida guiada %s: ningún panel del HUD sale del cuadro (%d veces)" % [label, outside])
+	check(lines_max <= 2 and width_min >= 250.0, "Partida guiada %s: el «siguiente paso» ocupa %d líneas como máximo y nunca queda en una columna menor de 250 px (mínimo %d px)" % [label, lines_max, int(width_min)])
+	hx.reset_camera()  # tocar dos veces la misma tecla centra la cámara en un frente: el resto del recorrido sigue con el cuadro inicial
+
+
+## H-R1-2: del parte se abre el Diario y «Cerrar» (o Esc) vuelve al parte con su botón principal a la vista: la pantalla nunca queda sin salida.
+func _diary_roundtrip(label: String, shot_name: String = "") -> void:
+	var diary := _button("Diario")
+	if not check(diary != null, "%s: el parte ofrece el botón «Diario»" % label):
+		return
+	await _click_control(diary)
+	await _frames(4)
+	if str(hx.qa_state().dialog) == "parte":  # a veces la entrada inyectada no llega (B-044: la ventana pierde la entrada real): se repite una vez y se anota, no se esconde
+		notes["clics_repetidos"] = int(notes.get("clics_repetidos", 0)) + 1
+		await _click_control(diary)
+		await _frames(4)
+	check(str(hx.qa_state().dialog) == "diario" and _button("Cerrar") != null, "%s: el clic en «Diario» abre el diario con su botón «Cerrar»" % label)
+	if shot_name != "":
+		await _shot(shot_name)
+	if _button("Cerrar") == null:
+		return
+	await _click_control(_button("Cerrar"))
+	await _frames(4)
+	var again := game.find_child("HxRetry", true, false) as Button
+	var back_by_click: bool = str(hx.qa_state().dialog) == "parte" and again != null and again.is_visible_in_tree() and _inside(Kit.rect_of(again))
+	check(back_by_click, "%s: «Cerrar» vuelve al parte con «%s» a la vista" % [label, again.text if again != null else "—"])
+	if _button("Diario") != null:
+		await _click_control(_button("Diario"))
+		await _frames(3)
+		await _key(KEY_ESCAPE)
+		await _frames(3)
+	again = game.find_child("HxRetry", true, false) as Button
+	var back_by_esc: bool = str(hx.qa_state().dialog) == "parte" and again != null and again.is_visible_in_tree() and _inside(Kit.rect_of(again))
+	check(back_by_esc, "%s: Esc en el diario también vuelve al parte con su botón principal a la vista" % label)
+	notes["parte_diario_vuelve_" + label.to_lower().replace(" ", "_")] = back_by_click and back_by_esc
 
 
 ## Qué tan cerca del borde del cuadro queda la ficha más pegada (porcentaje del ancho o del alto, el menor) y si alguna queda bajo el HUD.
@@ -455,11 +617,7 @@ func _cycle_full() -> void:
 			hits.append("%s en «%s»" % [str(h), str(t).left(30)])
 	notes["jerga_hits_t0"] = hits.size()
 	var rects: Dictionary = hx.hud.rects()
-	var rect_notes := {}
-	for key in ["titulo", "objetivo", "siguiente", "frente_bateria", "alerta", "accion_1"]:
-		var r: Rect2 = rects.get(key, Rect2())
-		rect_notes[key] = [snappedf(r.position.x, 0.1), snappedf(r.position.y, 0.1), snappedf(r.size.x, 0.1), snappedf(r.size.y, 0.1)]
-	notes["rects"] = rect_notes
+	notes["rects_inicio"] = _capture_rects()  # en píxeles de la captura; las de «hx-hud» (las que usa V05) quedan en notes.rects
 	check(int(q.visible_controls) <= 5, "Primer cuadro: ≤ 5 controles accionables (%d)" % int(q.visible_controls))
 	check(int(q.text_chars_juego) <= 400, "Primer cuadro: ≤ 400 caracteres de texto de juego (%d; con el aviso de capas en su versión mínima, %d)" % [int(q.text_chars_juego), int(q.text_chars)])
 	check(hits.is_empty(), "Primer cuadro: 0 términos de la lista negra (%s)" % str(hits))
@@ -467,14 +625,11 @@ func _cycle_full() -> void:
 	check(hx.hud.next_text_l.text != "" and hx.hud.next_btn.visible and hx.hud.objective_l.text != "", "Primer cuadro: una línea de objetivo y un solo «siguiente paso» con su botón")
 	_check_overflow("Primer cuadro")
 	_measure_contrast(img, "inicio")
-	var token_px: Array = []
-	if is_instance_valid(hx.view) and hx.view.has_method("probes"):
-		var scale := root.get_final_transform().get_scale().y
-		for p in hx.view.probes(game.camera):
-			if str((p as Dictionary).get("kind", "")) == "ficha":
-				var rr: Array = (p as Dictionary).rect
-				token_px.append({"id": str(p.id), "w": snappedf(float(rr[2]) * scale, 0.1), "h": snappedf(float(rr[3]) * scale, 0.1)})
+	var token_px := _token_px()
 	notes["token_px"] = token_px
+	if root.size.y == 720:  # V03: cada ficha de pie mide 48 px reales o más con el zoom por defecto a 1280 × 720
+		var low: Array = token_px.filter(func(t): return float(t.h) < 48.0)
+		check(token_px.size() == V.GROUPS.size() and low.is_empty(), "Primer cuadro: las cinco fichas miden 48 px reales de alto o más (%s)" % str(token_px.map(func(t): return "%s %.1f" % [str(t.id), float(t.h)])))
 	# ninguna ficha queda bajo el HUD y todas a ≥ 5 % del borde (con el rumbo que fija el contrato)
 	var covered: Array = []
 	var edge_min := 100.0
@@ -512,6 +667,10 @@ func _cycle_full() -> void:
 	# --- lo manual quedó probado: un intento limpio del mismo mundo y el resto lo lleva el «siguiente paso», como lo haría quien lo sigue ---
 	hx.retry("mismo_mundo")
 	await _frames(4)
+	# --- H-R1-7: una partida guiada eligiendo fichas con las teclas 1 a 5, con avisos y barra de órdenes a la vista: ningún panel pisa a otro ---
+	await _probe_guided("%dx%d" % [root.size.x, root.size.y], 60)
+	hx.retry("mismo_mundo")
+	await _frames(4)
 	# --- la aproximación con lluvia (≈ 1:30) ---
 	_follow_guide(90.0, "ataque")
 	await _key(KEY_2)
@@ -522,18 +681,14 @@ func _cycle_full() -> void:
 	_measure_contrast(img2, "aproximacion")
 	_check_alert_free("Aproximación")
 	# --- ataque: señal, tres frentes y la torre ---
-	var waited := 0.0
-	while waited < 400.0 and str(hx.rules.state.status) == "playing" and str(hx.qa_state().guide.action) != "give_signal":
-		hx.qa_press_next()
-		hx.qa_step(1.0)
-		waited += 1.0
-	hx.refresh_hud_now()
+	_reach_first_volley()
 	check(hx.hud.status_l.text.find("Señal") >= 0, "Señal: el HUD dice cómo está la señal («%s»)" % hx.hud.status_l.text)
 	await _key(KEY_F)
 	check(bool(hx.rules.state.alarm.signaled), "Señal: la tecla F da la señal")
 	_follow_guide(20.0)
 	await _frames(8)
 	var img3 := await _shot("hx-hud")
+	notes["rects"] = _capture_rects()  # V05 las aplica a «hx-hud.png»: en píxeles de esa captura y todas con área
 	check(str(hx.qa_state().phase) == "ataque" and hx.hud.chip_labels.golpe.panel.visible, "Ataque: la fase cambia y aparece el golpe en el dock (%s)" % hx.hud.chip_labels.golpe.label.text)
 	_check_overflow("Ataque")
 	_measure_contrast(img3, "ataque")
@@ -562,6 +717,7 @@ func _cycle_defeat_and_victory() -> void:
 	check(str(d.status) == "defeat" and str(d.dialog) == "parte", "Derrota: sin órdenes se pierde y aparece el parte (%s)" % str(d.status))
 	await _shot("hx-derrota")
 	_check_dialog_fit("Parte de derrota")
+	await _diary_roundtrip("Derrota", "hx-diario")  # H-R1-2
 	var cause := game.find_child("HxCause", true, false) as Label
 	check(cause != null and cause.text.length() > 0 and cause.text.length() <= 140, "Derrota: la causa tiene ≤ 140 caracteres (%d)" % (cause.text.length() if cause != null else -1))
 	check(cause != null and cause.text.find(":") >= 0 and cause.text.to_lower().find("a los") >= 0, "Derrota: la causa trae momento («a los m:ss») y lugar o grupo («%s»)" % (cause.text if cause != null else ""))
@@ -584,6 +740,7 @@ func _cycle_defeat_and_victory() -> void:
 	check(str(w.status) == "victory" and str(w.dialog) == "parte", "Victoria: seguir el siguiente paso llega al parte de victoria (%s a los %.0f s)" % [str(w.status), float(w.elapsed)])
 	await _shot("hx-victoria")
 	_check_dialog_fit("Parte de victoria")
+	await _diary_roundtrip("Victoria")  # H-R1-2
 	var vt := " ".join(PackedStringArray(_visible_texts()))
 	check(vt.find("Medalla") >= 0, "Victoria: el parte muestra la medalla con su motivo")
 	check(vt.find("3 de marzo") >= 0 and vt.find("9 al 16 de marzo") >= 0 and vt.find("6 de julio") >= 0, "Victoria: el epílogo está fechado")
@@ -637,10 +794,28 @@ func _cycle_overflow() -> void:
 	var margins := _token_margins(hx.hud.rects())
 	notes["borde_min_pct"] = margins.borde_min_pct
 	notes["fichas_bajo_hud"] = margins.tapadas
-	check((margins.tapadas as Array).is_empty() and float(margins.borde_min_pct) >= 3.0, "Primer cuadro: ninguna ficha bajo el HUD y todas a ≥ 3 %% del borde (mínimo %.1f %%; bajo el HUD: %s)" % [float(margins.borde_min_pct), str(margins.tapadas)])
+	check((margins.tapadas as Array).is_empty() and float(margins.borde_min_pct) >= 5.5, "Primer cuadro: ninguna ficha bajo el HUD y todas a ≥ 5,5 %% del borde, con su anillo entero a la vista (mínimo %.1f %%; bajo el HUD: %s)" % [float(margins.borde_min_pct), str(margins.tapadas)])
 	notes["controles_t0"] = int(hx.qa_state().visible_controls)
 	notes["caracteres_t0"] = int(hx.qa_state().text_chars)
+	notes["rects_inicio"] = _capture_rects()
 	_measure_contrast(img, "inicio")
+	# H-R1-7: una partida guiada eligiendo fichas con las teclas 1 a 5, con avisos y barra de órdenes a la vista
+	await _probe_guided("%dx%d" % [root.size.x, root.size.y], 60)
+	hx.retry("mismo_mundo")
+	await _frames(4)
+	# «hx-hud» como en el recorrido completo (la primera descarga y 20 s más), para que V05 tenga captura y posiciones a cualquier resolución
+	_follow_guide(90.0, "ataque")
+	if _reach_first_volley():
+		await _key(KEY_F)
+	_follow_guide(20.0)
+	await _frames(8)
+	var img_hud := await _shot("hx-hud")
+	notes["rects"] = _capture_rects()
+	_check_overflow("Ataque")
+	_measure_contrast(img_hud, "ataque")
+	# lo que sigue es lo de siempre: una partida nueva, orden, pausa, ayuda y derrota
+	hx.retry("mismo_mundo")
+	await _frames(4)
 	hx.orders.issue("reconocedores", "recon", hx.landmark_pos("bateria"), {})
 	hx.qa_step(40.0)
 	await _key(KEY_ESCAPE)
@@ -655,6 +830,7 @@ func _cycle_overflow() -> void:
 	await _frames(8)
 	await _shot("hx-derrota")
 	_check_dialog_fit("Parte de derrota")
+	await _diary_roundtrip("Derrota")  # H-R1-2
 	var retry_button := game.find_child("HxRetry", true, false) as Button
 	check(retry_button != null and _inside(Kit.rect_of(retry_button)) and not hx.dialogs.scroll_used, "Desborde: «Reintentar» a la vista sin scroll")
 

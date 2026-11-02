@@ -54,6 +54,17 @@ func _key(code: int, ctrl: bool = false, shift: bool = false) -> void:
 		await process_frame
 
 
+## Una pulsación entera (apretar y soltar) en un solo cuadro.
+func _tap(code: int) -> void:
+	for pressed in [true, false]:
+		var e := InputEventKey.new()
+		e.keycode = code
+		e.physical_keycode = code
+		e.pressed = pressed
+		root.push_input(e)
+	await process_frame
+
+
 func _hold(code: int, frames: int) -> void:
 	var e := InputEventKey.new()
 	e.keycode = code
@@ -172,6 +183,10 @@ func _inside(r: Rect2, bounds: Rect2) -> bool:
 	return r.position.x >= bounds.position.x - 0.5 and r.position.y >= bounds.position.y - 0.5 and r.end.x <= bounds.end.x + 0.5 and r.end.y <= bounds.end.y + 0.5
 
 
+func _want(only: String, id: String) -> bool:
+	return only == "" or only == id
+
+
 func _set_window(size: Vector2i) -> void:
 	root.size = size
 	await _frames(6)
@@ -192,20 +207,48 @@ func _run() -> void:
 	game.settings.auto_pause = false
 	if is_instance_valid(game.audio_manager):
 		game.audio_manager.set_muted(true)
-	await _test_first_frame()
-	await _test_camera()
-	await _test_reserved_keys()
-	await _test_actions_and_preview()
-	await _test_alert_placement()
-	await _test_dialogs()
-	await _test_first_decision()
-	await _test_full_cycle()
-	await _test_expert_wins_passive_loses()
-	await _test_save_load()
-	_test_cli_flags()
-	await _test_overflow_sizes()
-	await _test_texts()
-	_test_key_table()
+	await _set_window(Vector2i(1280, 720))  # el tamaño de partida de todas las pruebas: así `--only=<id>` no depende de lo que dejó la anterior
+	# `--only=<id>` corre una sola prueba (para reproducir un hallazgo); sin él corren todas y valen el piso y el tiempo
+	var only := ""
+	for arg in OS.get_cmdline_user_args():
+		if str(arg).begins_with("--only="):
+			only = str(arg).trim_prefix("--only=")
+	if _want(only, "primer_cuadro"):
+		await _test_first_frame()
+	if _want(only, "camara"):
+		await _test_camera()
+	if _want(only, "teclas"):
+		await _test_reserved_keys()
+	if _want(only, "acciones"):
+		await _test_actions_and_preview()
+	if _want(only, "aviso"):
+		await _test_alert_placement()
+	if _want(only, "ventanas"):
+		await _test_dialogs()
+	if _want(only, "hud_guiado"):
+		await _test_hud_guided_selection()
+	if _want(only, "primera_decision"):
+		await _test_first_decision()
+	if _want(only, "ciclo"):
+		await _test_full_cycle()
+	if _want(only, "experto_pasivo"):
+		await _test_expert_wins_passive_loses()
+	if _want(only, "guardado"):
+		await _test_save_load()
+	if _want(only, "banderas"):
+		_test_cli_flags()
+	if _want(only, "desborde"):
+		await _test_overflow_sizes()
+	if _want(only, "textos"):
+		await _test_texts()
+	if _want(only, "key_table"):
+		_test_key_table()
+	if only != "":
+		if is_instance_valid(game):
+			game.queue_free()
+		await process_frame
+		suite.finish(self)
+		return
 	suite.check(suite.elapsed_ms() < 60000, "test_hx_flow corre en menos de 60 s (CONTRATO 5.1): %d ms" % suite.elapsed_ms())
 	suite.require_floor(FLOOR)
 	if is_instance_valid(game):
@@ -260,8 +303,9 @@ func _test_first_frame() -> void:
 				if (hx.hud.rects()[key] as Rect2).has_point(s):
 					covered.append("%s bajo %s" % [str(id), key])
 		suite.check(covered.is_empty(), "%dx%d: ninguna ficha queda bajo el HUD%s: %s" % [size.x, size.y, note, str(covered)])
-		suite.check(edge_min >= (5.0 if size.x >= 1280 else 0.5), "%dx%d: las cinco partidas quedan a ≥ %s %% del borde (mínimo %.1f %%)" % [size.x, size.y, "5" if size.x >= 1280 else "0,5", edge_min])
+		suite.check(edge_min >= 5.5, "%dx%d: las cinco partidas quedan a ≥ 5,5 %% del borde, con su anillo entero a la vista: el arreo no toca el borde (mínimo %.1f %%; B-015)" % [size.x, size.y, edge_min])
 		suite.extra["borde_min_%dx%d" % [size.x, size.y]] = snappedf(edge_min, 0.1)
+		suite.check(not hx.hud.bar.visible and not hx.hud.notice_row.visible, "%dx%d: en el primer cuadro no hay barra de órdenes ni avisos de pie vacíos que ocupen lugar" % [size.x, size.y])
 	await _set_window(Vector2i(1280, 720))
 	await _to_menu()
 
@@ -563,14 +607,26 @@ func _test_dialogs() -> void:
 	_find_button("No, seguir", game).pressed.emit()
 	await _frames(2)
 	suite.check(str(hx.qa_state().dialog) == "pausa" and str(hx.qa_state().status) == "playing", "ventanas: «No, seguir» vuelve al menú de pausa sin retirarse")
+	(game.find_child("HxPause_retreat", true, false) as Button).pressed.emit()
+	await _frames(2)
+	await _key(KEY_ESCAPE)
+	suite.check(str(hx.qa_state().dialog) == "pausa" and str(hx.qa_state().status) == "playing" and bool(hx.qa_state().paused), "ventanas: Esc sobre la pregunta de la retirada es «No»: vuelve al menú de pausa y el reloj sigue frenado")
 	(game.find_child("HxPause_help", true, false) as Button).pressed.emit()
 	await _frames(2)
 	suite.check(str(hx.qa_state().dialog) == "ayuda", "ventanas: «Cómo se juega» abre la ayuda")
 	var help_text := " ".join(PackedStringArray(_visible_texts()))
 	suite.check(help_text.find("Teclas") >= 0 and help_text.find("Documentado") >= 0 and help_text.find("Sin datos suficientes") >= 0, "ventanas: la ayuda trae las teclas y las cinco etiquetas")
 	await _key(KEY_ESCAPE)
-	(game.find_child("HxPause_diary", true, false) as Button).pressed.emit() if game.find_child("HxPause_diary", true, false) != null else null
+	# H-R1-2: la ayuda y el diario abiertos desde el menú de pausa vuelven a ese menú (el reloj sigue frenado), no al juego
+	suite.check(str(hx.qa_state().dialog) == "pausa" and bool(hx.qa_state().paused), "ventanas: Esc en la ayuda vuelve al menú de pausa y el reloj sigue frenado (%s)" % str(hx.qa_state().dialog))
+	(game.find_child("HxPause_diary", true, false) as Button).pressed.emit()
+	await _frames(2)
+	suite.check(str(hx.qa_state().dialog) == "diario" and _find_button("Cerrar", game) != null, "ventanas: el menú de pausa abre el diario con su botón «Cerrar»")
+	_find_button("Cerrar", game).pressed.emit()
+	await _frames(2)
+	suite.check(str(hx.qa_state().dialog) == "pausa" and bool(hx.qa_state().paused), "ventanas: «Cerrar» en el diario vuelve al menú de pausa (%s)" % str(hx.qa_state().dialog))
 	await _key(KEY_ESCAPE)
+	suite.check(str(hx.qa_state().dialog) == "", "ventanas: Esc en el menú de pausa lo cierra")
 	# decisión con reloj: se arma desde lo que devuelvan las reglas y se resuelve sola a los 25 s
 	var dec := {"id": "informante", "titulo": "Un informante quiere hablar", "texto": "Un vecino dice que la guardia se duerme.", "opciones": [{"id": "creer", "label": "Creerle", "costo_txt": "Pierde la ruta"}, {"id": "ignorar", "label": "Seguir con el plan", "costo_txt": "Sin costo"}], "vence_s": 25.0}
 	hx.open_decision(dec)
@@ -580,6 +636,127 @@ func _test_dialogs() -> void:
 	suite.check(hx.dialogs._decision_count.text.find("8") >= 0, "ventanas: la decisión muestra el reloj («%s»)" % hx.dialogs._decision_count.text)
 	hx.dialogs.close()
 	await _to_menu()
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# H-R1-2: del parte se abre el Diario y se vuelve al parte; con la partida terminada nunca queda una pantalla sin controles ni salida
+
+func _enabled_buttons() -> Array:
+	var out: Array = []
+	for b in game.find_children("*", "Button", true, false):
+		if (b as Button).is_visible_in_tree() and not (b as Button).disabled:
+			out.append(str((b as Button).text).replace("\n", " / "))
+	return out
+
+
+## El parte está en pantalla con su botón principal («Reintentar» o «Jugar de nuevo») a la vista y entero dentro del cuadro.
+func _report_intact(label: String) -> void:
+	var retry := game.find_child("HxRetry", true, false) as Button
+	var vp := Rect2(Vector2.ZERO, root.get_visible_rect().size)
+	var seen: bool = retry != null and retry.is_visible_in_tree() and not retry.disabled and _inside(Kit.rect_of(retry), vp)
+	suite.check(str(hx.qa_state().dialog) == "parte" and seen, "%s: vuelve el parte con «%s» a la vista (ventana «%s»)" % [label, retry.text if retry != null else "—", str(hx.qa_state().dialog)])
+
+
+## Con el parte a la vista (derrota o victoria): abre el Diario y vuelve por clic, por Esc, por Enter y por Espacio; Esc, F1 y F9 no lo sacan de ahí; y si algo cierra la
+## ventana por fuera, la partida terminada recupera su parte. Deja el parte a la vista.
+func _navigate_report(kind: String) -> void:
+	suite.check(_find_button("Diario", game) != null, "parte (%s): ofrece el botón «Diario»" % kind)
+	await _click_at(Kit.rect_of(_find_button("Diario", game)).get_center())
+	await _frames(3)
+	suite.check(str(hx.qa_state().dialog) == "diario" and _find_button("Cerrar", game) != null, "parte (%s): el clic en «Diario» abre el diario con su botón «Cerrar»" % kind)
+	await _click_at(Kit.rect_of(_find_button("Cerrar", game)).get_center())
+	await _frames(3)
+	_report_intact("parte (%s): clic en Diario y en Cerrar" % kind)
+	await _click_at(Kit.rect_of(_find_button("Diario", game)).get_center())
+	await _frames(2)
+	await _key(KEY_ESCAPE)
+	await _frames(2)
+	_report_intact("parte (%s): Diario y Esc" % kind)
+	for code in [KEY_ENTER, KEY_SPACE]:  # en el diario, Enter y Espacio son «Cerrar» (el botón principal)
+		await _click_at(Kit.rect_of(_find_button("Diario", game)).get_center())
+		await _frames(2)
+		await _key(code)
+		await _frames(2)
+		_report_intact("parte (%s): Diario y %s" % [kind, "Enter" if code == KEY_ENTER else "Espacio"])
+	for code in [KEY_ESCAPE, KEY_F1, KEY_F9]:
+		await _key(code)
+		await _frames(2)
+	_report_intact("parte (%s): tras Esc, F1 y F9" % kind)
+	suite.check(_enabled_buttons().size() >= 3, "parte (%s): siempre hay botones con los que seguir (%s)" % [kind, str(_enabled_buttons())])
+	if _find_button("Mundo nuevo", game) != null:  # solo el parte de derrota: pide confirmación y «Esc» vuelve al parte
+		await _click_at(Kit.rect_of(_find_button("Mundo nuevo", game)).get_center())
+		await _frames(2)
+		suite.check(str(hx.qa_state().dialog) == "confirmar", "parte (%s): «Mundo nuevo» pide confirmación" % kind)
+		await _key(KEY_ESCAPE)
+		await _frames(2)
+		_report_intact("parte (%s): Mundo nuevo y Esc" % kind)
+	hx.dialogs.close()
+	await _frames(3)
+	_report_intact("parte (%s): si la ventana se cierra por fuera" % kind)
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# H-R1-7: con fichas elegidas y avisos en pantalla, ningún panel del HUD pisa a otro y el «siguiente paso» entra en dos líneas
+
+func _hud_crossings() -> Array:
+	var out: Array = []
+	var rects := {}
+	var panels: Dictionary = hx.hud.panels()
+	for key in panels:
+		rects[key] = Kit.rect_of(panels[key] as Control)
+	rects["minimapa"] = Kit.rect_of(hx.minimap)
+	var keys := rects.keys()
+	for i in range(keys.size()):
+		for j in range(i + 1, keys.size()):
+			var inter := (rects[keys[i]] as Rect2).intersection(rects[keys[j]] as Rect2)
+			if inter.size.x > 1.0 and inter.size.y > 1.0 and inter.size.x * inter.size.y > 4.0:
+				out.append("%s/%s %d px²" % [str(keys[i]), str(keys[j]), int(inter.size.x * inter.size.y)])
+	return out
+
+
+func _test_hud_guided_selection() -> void:
+	for size in [Vector2i(1280, 720), Vector2i(1024, 640)]:
+		await _set_window(size)
+		if not suite.check(await _start_level({"skip_intro": true, "seed": 7}), "HUD guiado %dx%d: el nivel arranca" % [size.x, size.y]):
+			continue
+		var vp := Rect2(Vector2.ZERO, root.get_visible_rect().size)
+		var crossings: Dictionary = {}
+		var outside := 0
+		var lines_max := 0
+		var width_min := 1.0e9
+		var toasts := 0
+		var bars := 0
+		var steps := 0
+		while steps < 110 and str(hx.qa_state().status) == "playing" and str(hx.qa_state().dialog) == "":
+			hx.qa_press_next()
+			await _tap(KEY_1 + (steps % 5))  # el jugador va eligiendo fichas con las teclas 1 a 5: cada elección cambia la barra de órdenes
+			hx.qa_step(5.0)
+			await _frames(1)
+			steps += 1
+			for c in _hud_crossings():
+				var k := str(c).split(" ")[0]
+				crossings[k] = int(crossings.get(k, 0)) + 1
+			var panels: Dictionary = hx.hud.panels()
+			for key in panels:
+				if not _inside(Kit.rect_of(panels[key] as Control), vp):
+					outside += 1
+			if hx.hud.next_text_l.is_visible_in_tree():
+				lines_max = maxi(lines_max, hx.hud.next_text_l.get_line_count())
+				width_min = minf(width_min, hx.hud.next_text_l.size.x * hx.ui_scale)
+			if hx.hud.toast_panel.visible:
+				toasts += 1
+			var bar_node: Variant = hx.hud.get("bar")
+			if bar_node != null and (bar_node as Control).visible:
+				bars += 1
+		suite.check(steps >= 80, "HUD guiado %dx%d: la partida guiada corrió %d pasos con fichas elegidas" % [size.x, size.y, steps])
+		suite.check(toasts > 0 and bars > 0, "HUD guiado %dx%d: hubo avisos de pie (%d pasos) y barra de órdenes (%d pasos) a la vista" % [size.x, size.y, toasts, bars])
+		suite.check(crossings.is_empty(), "HUD guiado %dx%d: 0 pares de paneles del HUD con intersección (%s)" % [size.x, size.y, str(crossings)])
+		suite.check(outside == 0, "HUD guiado %dx%d: ningún panel del HUD sale del cuadro (%d veces)" % [size.x, size.y, outside])
+		suite.check(lines_max <= 2, "HUD guiado %dx%d: el texto del «siguiente paso» ocupa %d líneas como máximo (límite: 2)" % [size.x, size.y, lines_max])
+		suite.check(width_min >= 250.0, "HUD guiado %dx%d: el «siguiente paso» nunca queda en una columna angosta (mínimo %d px)" % [size.x, size.y, int(width_min)])
+		suite.extra["hud_guiado_%dx%d" % [size.x, size.y]] = {"pasos": steps, "cruces": crossings, "lineas_siguiente_max": lines_max, "ancho_siguiente_min_px": int(width_min), "pasos_con_aviso": toasts, "pasos_con_barra": bars}
+		await _to_menu()
+	await _set_window(Vector2i(1280, 720))
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -648,6 +825,8 @@ func _test_full_cycle() -> void:
 	var vp := Rect2(Vector2.ZERO, root.get_visible_rect().size)
 	suite.check(retry_button != null and _inside(Kit.rect_of(retry_button), vp) and not hx.dialogs.scroll_used, "ciclo: el botón principal del parte está a la vista, sin scroll (%s)" % str(Kit.rect_of(retry_button) if retry_button != null else "no existe"))
 	suite.check(_inside(Kit.rect_of(hx.dialogs.panel), vp), "ciclo: el parte entra entero en el cuadro (%s en %s)" % [str(Kit.rect_of(hx.dialogs.panel)), str(vp.size)])
+	await _navigate_report("victoria" if victory else "derrota")  # H-R1-2
+	retry_button = game.find_child("HxRetry", true, false) as Button
 	# reintentar: mismo mundo, y rápido
 	var t0 := Time.get_ticks_msec()
 	retry_button.pressed.emit()
@@ -668,6 +847,8 @@ func _test_full_cycle() -> void:
 	suite.check(facts != null and facts.get_child_count() >= 3, "ciclo: el parte de derrota muestra al menos tres datos (%d)" % (facts.get_child_count() if facts != null else 0))
 	var retry2 := game.find_child("HxRetry", true, false) as Button
 	suite.check(retry2 != null and _inside(Kit.rect_of(retry2), vp) and not hx.dialogs.scroll_used and _inside(Kit.rect_of(hx.dialogs.panel), vp), "ciclo: «Reintentar» queda a la vista y sin scroll en el parte de derrota")
+	await _navigate_report("derrota por pasividad")  # H-R1-2
+	retry2 = game.find_child("HxRetry", true, false) as Button
 	var defeat_text := " ".join(PackedStringArray(_visible_texts()))
 	suite.check(defeat_text.find("campaña") < 0 and _jargon_hits(defeat_text).is_empty(), "ciclo: la derrota no ofrece ir al Norte y no usa jerga (%s)" % str(_jargon_hits(defeat_text)))
 	var seed_before := int(hx.qa_state().seed)

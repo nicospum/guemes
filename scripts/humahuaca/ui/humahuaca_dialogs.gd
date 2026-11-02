@@ -246,7 +246,10 @@ func show_diary(entries: Array) -> void:
 	else:
 		var scroll := ScrollContainer.new()
 		scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-		scroll.custom_minimum_size = Vector2(0.0, minf(layer.size.y - 240.0, 360.0))
+		var want_h := 12.0  # el alto sigue al contenido (≈ 20 px por línea de 68 caracteres) hasta un tope: con pocas entradas no queda un cuadro vacío
+		for e in entries:
+			want_h += 6.0 + 20.0 * ceilf(float(str((e as Dictionary).get("text", e)).length() + 2) / 68.0) if e is Dictionary else 6.0 + 20.0 * ceilf(float(str(e).length() + 2) / 68.0)
+		scroll.custom_minimum_size = Vector2(0.0, clampf(want_h, 48.0, minf(layer.size.y - 240.0, 360.0)))
 		b.add_child(scroll)
 		scroll_used = true
 		var body := Kit.vbox(scroll, 6)

@@ -864,8 +864,14 @@ func open_pause_menu() -> void:
 	_paused_before_dialog = paused
 	paused = true
 	_auto_resume = 0.0
-	dialogs.show_pause(_playing() and rules != null, FileAccess.file_exists(str(main._save_path(V.SCENARIO))))
+	_dialog_back = ""
+	_show_pause_window()
 	_refresh_hud(true)
+
+
+## El menú de pausa, sin tocar si el reloj corría antes de abrirlo (_paused_before_dialog): lo usan «Cerrar» del diario y de la ayuda y «No, seguir».
+func _show_pause_window() -> void:
+	dialogs.show_pause(_playing() and rules != null, FileAccess.file_exists(str(main._save_path(V.SCENARIO))))
 
 
 func open_help() -> void:
@@ -878,15 +884,27 @@ func open_help() -> void:
 		return
 	_paused_before_dialog = paused
 	paused = true
+	_dialog_back = ""
 	dialogs.show_help()
 	_refresh_hud(true)
 
 
+## Cierra la ventana abierta y vuelve a donde estaba el jugador (H-R1-2): con la partida terminada, al parte (nunca queda una pantalla sin controles); si el diario o la
+## ayuda se abrieron desde el menú de pausa, a ese menú (el reloj sigue frenado); si no, al juego con el reloj como estaba antes de abrir la ventana.
 func _close_dialog() -> void:
 	if dialogs == null or not dialogs.is_open():
 		return
 	var id := dialogs.current
+	var back := _dialog_back
+	_dialog_back = ""
 	dialogs.close()
+	if mode == "ended":
+		_show_report()
+		return
+	if mode == "play" and ((back == "pausa" and id in ["ayuda", "diario"]) or id == "confirmar"):  # la retirada se confirma desde el menú de pausa: Esc es «No»
+		_show_pause_window()
+		_refresh_hud(true)
+		return
 	if id in ["pausa", "ayuda", "diario", "confirmar"] and mode == "play":
 		paused = _paused_before_dialog
 	_refresh_hud(true)
@@ -904,14 +922,16 @@ func _on_dialog(kind: String, arg: Variant) -> void:
 			_close_dialog()
 		"pause_save":
 			save_game()
-			dialogs.show_pause(_playing(), FileAccess.file_exists(str(main._save_path(V.SCENARIO))))
+			_show_pause_window()
 		"pause_load":
 			load_game()
 		"pause_help":
+			_dialog_back = "pausa" if mode == "play" else ""
 			dialogs.close()
 			dialogs.show_help()
-		"pause_diary":
+		"pause_diary":  # lo disparan el menú de pausa y los dos partes: «Cerrar» vuelve a donde se abrió (H-R1-2)
 			var entries: Array = progress.call("diary_entries") if progress != null and progress.has_method("diary_entries") else []
+			_dialog_back = "pausa" if mode == "play" else ""
 			dialogs.show_diary(entries)
 		"pause_retreat":
 			dialogs.show_confirm(tx("pause.retreat_ask", ""), tx("pause.retreat_yes", ""), tx("pause.retreat_no", ""), "retreat_yes", true)
@@ -920,7 +940,8 @@ func _on_dialog(kind: String, arg: Variant) -> void:
 			if mode == "ended":
 				_show_report()
 			else:
-				open_pause_menu()
+				_show_pause_window()  # sigue en pausa: el reloj no cambia por cancelar la retirada
+				_refresh_hud(true)
 		"retreat_yes":
 			dialogs.close()
 			paused = false
