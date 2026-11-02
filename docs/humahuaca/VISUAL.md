@@ -11,7 +11,7 @@ Documento de la pista `visual` (CONTRATO 1.2). Dice **qué hay hoy** (R1.0: stub
 | `scripts/humahuaca/stubs/stub_view.gd` | El **stub de la vista** (CONTRATO 3.4 y 7). `Node3D` con la firma completa. Congelado desde el merge: se corrige solo por addendum. No depende del código real de la pista (solo importa `humahuaca_vocab.gd` y `view/vocab_view.gd`) |
 | `scripts/humahuaca/view/vocab_view.gd` | Vocabulario de la capa. Conserva los ids de 3.0 y **suma** (solo-agregar): `LIGHT_KINDS`, `ENEMY_KINDS`, `TOKEN_SHAPES`, `PROBE_KINDS`, `BANDS`, `TIME_OF_DAY` y `FRAME_MARGIN_PCT` |
 | `data/humahuaca_visual.json` | La paleta de **24 HEX** de la lámina 06, las **7 vistas** con su `must_show` (borrador de 5 rasgos cada una), `initial_frame`, las tres luces, lluvia, niebla, materiales, `props`, `tokens`, `markers`, `units`, `quality`, `fx` y `content_ring` (estos dos últimos, borradores) |
-| `tests/test_hx_view.gd` | 84 comprobaciones sobre el stub y los datos (TR-091 a TR-099 de `TRAZA.md`, más capas, efectos y degradación). La compuerta la exige recién desde R1, pero ya corre |
+| `tests/test_hx_view.gd` | 86 comprobaciones sobre el stub y los datos (TR-091 a TR-099 de `TRAZA.md`, más capas, efectos y degradación). La compuerta la exige recién desde R1, pero ya corre |
 | `tools/vis_humahuaca.gd` | Recorrido de capturas **reales** (con ventana) y `metrics_visual.json`; incluye unas copias mínimas del terreno y de las reglas (`FakeTerrain`, `FakeRules`) para correr sin las otras pistas |
 
 No hay shaders propios, ni modelos, ni audio todavía: el stub dibuja con `StandardMaterial3D` y primitivas para que arranque aunque falle el arte real (CONTRATO 7).
