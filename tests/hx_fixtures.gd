@@ -16,6 +16,9 @@ const TRAZA_PATH := "res://docs/humahuaca/TRAZA.md"
 const FORMA_DIR := "res://docs/humahuaca/forma/"
 const FORMA_NAMES := ["hud_state", "render_state", "campaign_report", "plan_route", "qa_state"]
 const LAYERS := ["terrain", "rules", "progress", "view", "ui"]
+## Las capas que el controlador real arma con respaldo y se reemplazan con start(opts.force_stub) (los ids de vocab_ui.LAYER_IDS). La interfaz no está:
+## se reemplaza instanciando la cáscara (stubs/stub_ui.gd) en lugar del controlador.
+const SWAPPABLE := ["terrain", "rules", "progress", "view"]
 const STUB_PATHS := {
 	"terrain": "res://scripts/humahuaca/stubs/stub_terrain.gd",
 	"rules": "res://scripts/humahuaca/stubs/stub_rules.gd",
@@ -352,6 +355,31 @@ static func view_stub(rules: RefCounted, quality: String = "media") -> Node3D:
 static func ui_shell() -> Node:
 	var script := load_script(STUB_PATHS.ui)
 	return script.new() if script != null else null
+
+## Compara las capas efectivas de una corrida con UNA capa forzada contra las de una corrida sin forzar nada. Las dos son {id de capa: "real" | "minimo" |
+## "falta"} (la clave `layers` de qa_state() del controlador). La capa forzada tiene que correr en su versión mínima y ninguna otra puede haber cambiado.
+## Devuelve los problemas en español (vacío = bien). Sin ninguna clase real, la corrida normal ya es toda «minimo» y forzar una capa no cambia nada:
+## eso no es un problema de esta comparación, lo informa test_hx_smoke en `degradadas`.
+static func forced_layer_problems(baseline: Dictionary, observed: Dictionary, forced: String) -> Array:
+	var problems: Array = []
+	var got := str(observed.get(forced, "(sin dato)"))
+	if got != "minimo":
+		problems.append("la capa forzada «%s» corre como «%s» y no como «minimo»" % [forced, got])
+	for id in baseline:
+		var now := str(observed.get(id, "(sin dato)"))
+		if str(id) != forced and now != str(baseline[id]):
+			problems.append("la capa «%s» cambió sin que se la forzara: era «%s» y ahora es «%s»" % [str(id), str(baseline[id]), now])
+	return problems
+
+## ¿Difieren dos mapas de capas efectivas? (no importa el orden de las claves)
+static func layers_differ(a: Dictionary, b: Dictionary) -> bool:
+	for id in a:
+		if str(a[id]) != str(b.get(id, "(sin dato)")):
+			return true
+	for id in b:
+		if not a.has(id):
+			return true
+	return false
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Perfil aislado

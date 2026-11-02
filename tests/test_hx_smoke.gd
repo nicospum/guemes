@@ -11,10 +11,12 @@ extends SceneTree
 ##   - el chequeo «el último elemento del menú ≤ alto del viewport» (ui_qa lo corre en las tres resoluciones);
 ##   - la forma de qa_state() contra docs/humahuaca/forma/qa_state.json y el propio comparador de formas;
 ##   - los nombres de la API del contrato de cada capa que ya existe (la cáscara de la interfaz hoy).
-## Lo que todavía NO se puede evaluar porque lo escriben las pistas en R1.0 (los cuatro stubs) y R1 (las clases reales) queda en `pending`
-## del informe y pasa a ser falla desde la ronda r1 («no evaluable = falla»): las cinco corridas degradadas, la salida de cada stub contra los
-## ejemplos de forma y la API de cada stub. Interfaz que esta prueba espera de start(main, opts): opts.skip_intro y opts.force_stub, con los ids de
-## capa «terrain», «rules», «progress» y «view» (la capa «ui» se reemplaza por la cáscara instanciándola directamente).
+## Desde R1.0 existen los cuatro stubs, así que corren las cinco corridas degradadas (una capa reemplazada por su stub, de a una, con la capa efectiva
+## comprobada contra qa_state().layers), la salida de cada stub contra los ejemplos de forma y la API de cada stub. Lo que todavía NO se puede evaluar
+## porque lo escribe cada pista en R1 (las cuatro clases reales) queda en `pending` del informe y pasa a ser falla desde la ronda r1 («no evaluable =
+## falla»). Mientras no exista ninguna clase real, forzar un stub no cambia nada: el informe lo dice en `degradadas.clases_reales_presentes`.
+## Interfaz que esta prueba espera de start(main, opts): opts.skip_intro y opts.force_stub, con los ids de capa «terrain», «rules», «progress» y «view»
+## (la capa «ui» se reemplaza por la cáscara instanciándola directamente); y de qa_state() del controlador real: la clave `layers` (BACKLOG B-020).
 ##
 ## Borra archivos de perfil: se niega a correr sin APPDATA aislado (export APPDATA="$TEMP/ap_iso_<pista>").
 
@@ -132,6 +134,7 @@ func _run() -> void:
 	await _test_campaign_json_unchanged()
 	await _test_shapes()
 	_test_api_conformance()
+	_test_forced_layer_comparator()
 	await _test_degraded_runs()
 	## El objetivo del contrato es < 30 s (hoy ≈ 15 s). Falla recién a los 90 s: con cuatro pistas corriendo su compuerta a la vez la PC va más lenta.
 	suite.check(suite.elapsed_ms() < 90000, "test_hx_smoke corre en poco tiempo (objetivo < 30 s, CONTRATO 5.1; falla a los 90 s): %d ms" % suite.elapsed_ms())
@@ -310,6 +313,16 @@ func _test_roundtrip_x3() -> void:
 	suite.check(orphans_ok, "Performance.OBJECT_ORPHAN_NODE_COUNT = 0 después de cada vuelta")
 	suite.check(int(after_justina[2].nodes) <= int(after_justina[1].nodes) + 2, "la cantidad de nodos no crece entre la 2.ª y la 3.ª vuelta (%d → %d)" % [int(after_justina[1].nodes), int(after_justina[2].nodes)])
 	suite.extra["roundtrip_nodos"] = [int(base.nodes), int(after_justina[2].nodes)]
+	var level_nodes: Array = []
+	var justina_nodes: Array = []
+	var max_orphans := int(base.orphans)
+	for snap in after_level:
+		level_nodes.append(int(snap.nodes))
+		max_orphans = maxi(max_orphans, int(snap.orphans))
+	for snap in after_justina:
+		justina_nodes.append(int(snap.nodes))
+		max_orphans = maxi(max_orphans, int(snap.orphans))
+	suite.extra["roundtrip"] = {"vueltas": 3, "claves_de_estado_global": keys, "nodos_base": int(base.nodes), "nodos_tras_nivel": level_nodes, "nodos_tras_justina": justina_nodes, "huerfanos_max": max_orphans}
 
 # ---------------------------------------------------------------------------------------------------------------------
 # H5: «Continuar» abre el escenario guardado
@@ -528,6 +541,7 @@ func _test_degraded_runs() -> void:
 		_start_with_controller(shell, {"skip_intro": true})
 		await _frames(3)
 		suite.check(game.mode == "hx" and game.hx == shell, "7 corrida degradada «ui»: el nivel arranca con la cáscara instanciada sola")
+		suite.check(bool(shell.qa_state().get("shell", false)), "7 corrida degradada «ui»: lo que corre es la cáscara (qa_state().shell) y no el controlador real")
 		var t0 := float(shell.qa_state().elapsed)
 		shell.qa_step(4.0)
 		suite.check(float(shell.qa_state().elapsed) >= t0 + 4.0 - 0.001, "7 corrida degradada «ui»: el reloj avanza con qa_step")
@@ -535,7 +549,24 @@ func _test_degraded_runs() -> void:
 		await _frames(4)
 		suite.check(game.mode == "menu" and game.hx == null, "7 corrida degradada «ui»: Esc vuelve al menú y libera la cáscara")
 	# terreno, reglas, vista y progreso: hace falta el stub de la capa Y el controlador real (que sabe reemplazarla con opts.force_stub)
-	for layer in ["terrain", "rules", "progress", "view"]:
+	var real_present: Array = []
+	for layer in Fx.SWAPPABLE:
+		if Fx.load_script(Fx.REAL_PATHS[layer]) != null:
+			real_present.append(layer)
+	# La corrida normal (sin reemplazos) es la referencia: las capas que el controlador dice haber armado cuando nadie fuerza nada.
+	var baseline := {}
+	var runs := {}
+	if not ui_is_shell:
+		game._start_humahuaca({"skip_intro": true})
+		await _frames(4)
+		if suite.check(game.mode == "hx" and is_instance_valid(game.hx), "7 corrida normal (sin reemplazos): el nivel arranca con lo que haya de cada capa"):
+			baseline = _controller_layers()
+		_key(KEY_ESCAPE)
+		await _frames(4)
+		suite.check(game.mode == "menu" and game.hx == null, "7 corrida normal: vuelve al menú")
+		if baseline.is_empty():
+			suite.pend("degradadas-capas", "qa_state() del controlador no informa las capas efectivas (clave layers): no se puede comprobar que cada corrida reemplace solo la suya (BACKLOG B-020)", "r1")
+	for layer in Fx.SWAPPABLE:
 		if not Fx.has_stub(layer):
 			suite.pend("degradada-" + layer, "stubs/stub_%s.gd todavía no existe: no se puede correr el nivel con la capa «%s» reemplazada por su stub" % [layer, layer], "r1")
 			continue
@@ -550,6 +581,39 @@ func _test_degraded_runs() -> void:
 			game.hx.qa_step(5.0)
 			await _frames(2)
 			suite.check(float(game.hx.qa_state().elapsed) > e0, "7 corrida degradada «%s»: el nivel avanza" % layer)
+			var seen := _controller_layers()
+			if not baseline.is_empty() and not seen.is_empty():
+				var problems := Fx.forced_layer_problems(baseline, seen, layer)
+				suite.check(problems.is_empty(), "7 corrida degradada «%s»: solo esa capa corre en su versión mínima (capas: %s)%s" % [layer, JSON.stringify(seen), "" if problems.is_empty() else "; " + "; ".join(PackedStringArray(problems))])
+				runs[layer] = {"capas": seen, "difiere_de_la_corrida_normal": Fx.layers_differ(seen, baseline)}
+				if real_present.has(layer):
+					suite.check(str(baseline.get(layer, "")) == "real" and bool(runs[layer].difiere_de_la_corrida_normal), "7 corrida degradada «%s»: la clase real existe, la corrida normal la usa y forzar su stub sí cambia la corrida" % layer)
 		_key(KEY_ESCAPE)
 		await _frames(4)
 		suite.check(game.mode == "menu" and game.hx == null, "7 corrida degradada «%s»: vuelve al menú" % layer)
+	var with_effect: Array = []
+	for layer in runs:
+		if bool(runs[layer].difiere_de_la_corrida_normal):
+			with_effect.append(layer)
+	var note := "con clases reales, cada corrida por capa tiene que diferir de la normal en la capa forzada"
+	if real_present.is_empty():
+		note = "ninguna clase real existe todavía: forzar un stub no cambia nada y las corridas por capa son iguales a la normal (BACKLOG B-014)"
+	suite.extra["degradadas"] = {"corrida_normal": baseline, "clases_reales_presentes": real_present, "corridas": runs, "con_efecto": with_effect, "nota": note}
+
+## Las capas que el controlador real dice haber armado (qa_state().layers: id → «real» | «minimo» | «falta»); {} si no las informa (la cáscara no lo hace).
+func _controller_layers() -> Dictionary:
+	if not is_instance_valid(game.hx):
+		return {}
+	var layers: Variant = game.hx.qa_state().get("layers", null)
+	return (layers as Dictionary).duplicate() if layers is Dictionary else {}
+
+## Sanidad de las corridas degradadas (una prueba que nunca falla no protege nada): el comparador de capas efectivas ve lo que tiene que ver.
+func _test_forced_layer_comparator() -> void:
+	var real := {"terrain": "real", "rules": "real", "progress": "real", "view": "real"}
+	var rules_swapped := {"terrain": "real", "rules": "minimo", "progress": "real", "view": "real"}
+	suite.check(Fx.forced_layer_problems(real, rules_swapped, "rules").is_empty() and Fx.layers_differ(real, rules_swapped), "7 el comparador de capas acepta una corrida donde solo la capa forzada pasó a su versión mínima")
+	suite.check(not Fx.forced_layer_problems(real, real, "rules").is_empty(), "7 el comparador de capas ve una capa forzada que siguió siendo la real")
+	suite.check(not Fx.forced_layer_problems(real, {"terrain": "minimo", "rules": "minimo", "progress": "real", "view": "real"}, "rules").is_empty(), "7 el comparador de capas ve otra capa que pasó a su versión mínima sin que se la forzara")
+	suite.check(not Fx.forced_layer_problems(real, {"terrain": "real", "rules": "falta", "progress": "real", "view": "real"}, "rules").is_empty(), "7 el comparador de capas ve una capa forzada que no arrancó (falta)")
+	var minimal := {"terrain": "minimo", "rules": "minimo", "progress": "minimo", "view": "minimo"}
+	suite.check(Fx.forced_layer_problems(minimal, minimal, "view").is_empty() and not Fx.layers_differ(minimal, minimal), "7 sin clases reales forzar un stub no cambia nada, y el comparador lo dice (la corrida no difiere de la normal)")

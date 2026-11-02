@@ -435,7 +435,7 @@ step_stages() {
   skipped etapa && return
   if ! round_ge "$RONDA" r1.0; then record etapa N/A "los stubs de las pistas se exigen desde r1.0 (ronda vigente: $RONDA)"; return; fi
   local want=() missing="" f
-  if [ "$MODE" = full ] || round_ge "$RONDA" r1; then
+  if [ "$MODE" = full ] || [ "$PISTA" = integrador ] || round_ge "$RONDA" r1; then   # el integrador (rápida o completa) exige los cuatro stubs
     want=(scripts/humahuaca/stubs/stub_terrain.gd scripts/humahuaca/stubs/stub_rules.gd scripts/humahuaca/stubs/stub_progress.gd scripts/humahuaca/stubs/stub_view.gd)
   else
     case "$PISTA" in
