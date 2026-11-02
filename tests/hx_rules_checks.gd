@@ -6,12 +6,58 @@ extends RefCounted
 
 const V = preload("res://scripts/humahuaca/humahuaca_vocab.gd")
 const R = preload("res://scripts/humahuaca/rules/vocab_rules.gd")
+const D = preload("res://scripts/humahuaca/rules/humahuaca_data.gd")
+const Schema = preload("res://scripts/humahuaca/rules/humahuaca_rules_schema.gd")
 const CHECKPOINT_PATH := "user://hx_rules_test_checkpoint.json"
+const PROGRESS_FILE := "user://hx_rules_test_hostile_progress.json"
+const FUZZ_KINDS := ["null", "str", "arr", "dict", "neg", "huge", "bool", "del"]  # las ocho clases de mutación del revisor técnico de R1 (fuzz_guardado_simple)
 
 var t: Object
+var _lcg_state := 1  # el azar de las pruebas es propio (un congruencial): la misma corrida da lo mismo
 
 func _init(test: Object) -> void:
 	t = test
+
+## Cuenta lo que el motor imprime mientras corre una comprobación. Un SCRIPT ERROR no tira la prueba que lo causó: la función se corta, el programa sigue y solo queda en el
+## registro, donde lo lee el QA (T05). Con este contador la prueba lo ve ella misma, en proceso. `script_errors` son los de tipo script; `errors`, los de cualquier otro tipo de error.
+class ErrorCounter extends Logger:
+	var script_errors := 0
+	var errors := 0
+	var last := ""
+
+	func _log_error(function: String, file: String, line: int, code: String, rationale: String, _editor_notify: bool, error_type: int, _script_backtraces: Array) -> void:
+		if error_type == 2 or error_type == 3:
+			script_errors += 1
+		elif error_type == 0:
+			errors += 1
+		last = "%s %s:%d %s %s" % [function, file.get_file(), line, code, rationale]
+
+	func _log_message(_message: String, _error: bool) -> void:
+		pass
+
+func _counter_start() -> ErrorCounter:
+	var c := ErrorCounter.new()
+	OS.add_logger(c)
+	return c
+
+func _counter_stop(c: ErrorCounter) -> void:
+	OS.remove_logger(c)
+
+func _lcg_seed(seed_value: int) -> void:
+	_lcg_state = maxi(1, absi(seed_value) % 2147483646)
+
+func _lcg() -> float:
+	_lcg_state = (_lcg_state * 48271) % 2147483647
+	return float(_lcg_state) / 2147483647.0
+
+func _lcg_range(low: float, high: float) -> float:
+	return low + (high - low) * _lcg()
+
+func _lcg_pick(options: Array) -> Variant:
+	return options[int(_lcg() * float(options.size())) % options.size()]
+
+func _heavy() -> bool:
+	return str(t.suite.extra.get("modo", "rapido")) == "completo"
 
 ## ¿Algún muestreo de la ruta cae en un muro? (cada 2 m)
 func path_hits_wall(r: RefCounted, path: Array) -> bool:
@@ -372,3 +418,664 @@ func lure_alarm(r: RefCounted, actor: String, fid: String) -> bool:
 			flip = not flip
 		r.call("tick", 1.0)
 	return (r.state.alarm.pre_signal as Array).has(fid)
+
+# ---------------------------------------------------------------------------------------------------------------------
+# H-R1-5: una parada fuera del mapa no deja una ruta fuera del mapa ni un guardado que no se pueda volver a abrir
+
+func _map_size() -> Vector2:
+	return Vector2(float(t.map.size_m.x), float(t.map.size_m.z))
+
+func _units_path_inside_map(r: RefCounted, sz: Vector2) -> bool:
+	for u in r.state.units:
+		for p in u.path:
+			if float(p.x) < 0.0 or float(p.x) > sz.x or float(p.z) < 0.0 or float(p.z) > sz.y:
+				return false
+	return true
+
+func _test_waypoints_outside_map() -> void:
+	if not t.real_only():
+		return
+	var sz := _map_size()
+	var want := str(t.cfg.texts.errores.parada_fuera)
+	var outside: Array = [Vector2(-60.0, 300.0), Vector2(sz.x + 60.0, 300.0), Vector2(450.0, -60.0), Vector2(450.0, sz.y + 60.0), Vector2(5000.0, 5000.0), Vector2(-0.5, 325.0),
+		Vector2(sz.x + 0.5, 325.0), Vector2(300.0, sz.y + 0.01)]
+	var counter := _counter_start()
+	var wrong: Array = []
+	var preview_wrong: Array = []
+	var touched: Array = []
+	var invalid: Array = []
+	var cases := 0
+	for pair in [["rodriguez", "move"], ["portal", "move"], ["arias", "move"], ["reconocedores", "move"], ["arreo", "move"], ["reconocedores", "recon"], ["portal", "position"], ["arias", "support"]]:
+		var r = t.new_rules(1817, {"skip_intro": true})
+		var u: Dictionary = t.unit_of(r, pair[0])
+		var dest := Vector2(float(u.x) + 30.0, float(u.z) - 30.0)
+		var before: String = t.snap_hash(r)
+		for stop in outside:
+			for stops in [[stop], [Vector2(300.0, 500.0), stop], [stop, Vector2(300.0, 500.0), Vector2(310.0, 510.0)]]:
+				cases += 1
+				var res: Dictionary = t.order(r, pair[0], pair[1], dest, {"waypoints": stops})
+				if bool(res.get("ok", true)) or str(res.get("reason", "")) != want:
+					wrong.append("%s %s %s: «%s»" % [pair[0], pair[1], str(stops), str(res.get("reason", ""))])
+				var pre: Dictionary = t._dict(r.call("plan_route", pair[0], dest, {"waypoints": stops}))
+				if bool(pre.get("ok", true)) or str(pre.get("reason", "")) != want:
+					preview_wrong.append("%s %s: «%s»" % [pair[0], str(stops), str(pre.get("reason", ""))])
+		if t.snap_hash(r) != before:
+			touched.append(str(pair))
+		if not bool(t._dict(r.call("validate_snapshot", r.call("snapshot"))).ok):
+			invalid.append(str(pair))
+	t.ck(wrong.is_empty(), "H-R1-5: %d órdenes con una parada fuera del mapa (cuatro lados, lejos y a medio metro del borde) se rechazan con «%s»; mal: %s" % [cases, want, str(wrong.slice(0, 3))])
+	t.ck(preview_wrong.is_empty(), "...y la vista previa (plan_route) dice lo mismo: mal %s" % str(preview_wrong.slice(0, 3)))
+	t.ck(touched.is_empty() and invalid.is_empty(), "...sin tocar el estado y con el estado siempre válido (tocaron: %s; inválidos: %s)" % [str(touched), str(invalid)])
+	# las paradas sobre el borde y adentro se aceptan, el trayecto queda dentro del mapa y el guardado se puede volver a abrir
+	var good = t.new_rules(1817, {"skip_intro": true})
+	var gu: Dictionary = t.unit_of(good, "portal")
+	var inside_stops: Array = [Vector2(0.0, 560.0), Vector2(120.0, sz.y), Vector2(300.0, 500.0)]
+	var accepted: Dictionary = t.order(good, "portal", "move", Vector2(float(gu.x) + 40.0, float(gu.z) - 20.0), {"waypoints": inside_stops})
+	t.ck(bool(accepted.get("ok", false)), "tres paradas, una sobre el borde oeste y otra sobre el sur, se aceptan: %s" % str(accepted.get("reason", "")))
+	var pts_ok := _units_path_inside_map(good, sz)
+	t.ck(pts_ok and bool(t._dict(good.call("validate_snapshot", good.call("snapshot"))).ok), "...el trayecto queda dentro del mapa y el estado es válido")
+	t.ck(good.call("save_game", t.SAVE_PATH) == OK and bool(t._dict(t.new_rules(1817, {"skip_intro": true}).call("load_game", t.SAVE_PATH)).get("ok", false)), "...y F5 y F9 funcionan: el guardado se vuelve a abrir")
+	good.call("tick", 30.0)
+	t.ck(bool(t._dict(good.call("validate_snapshot", good.call("snapshot"))).ok), "...y sigue válido 30 s después")
+	# las órdenes que no recorren paradas (sostener, cancelar) no se rechazan por una parada que no usan
+	var hold: Dictionary = t.order(good, "arias", "hold", Vector2.ZERO, {"waypoints": [Vector2(-60.0, 300.0)]})
+	t.ck(bool(hold.get("ok", false)), "«sostener» con una parada afuera del mapa no se rechaza: no usa paradas (%s)" % str(hold.get("reason", "")))
+	# más de cuatro paradas: la orden y la vista previa dicen lo mismo
+	var five: Array = [Vector2(100.0, 500.0), Vector2(110.0, 500.0), Vector2(120.0, 500.0), Vector2(130.0, 500.0), Vector2(140.0, 500.0)]
+	var many: Dictionary = t.order(good, "arias", "move", Vector2(300.0, 560.0), {"waypoints": five})
+	var many_preview: Dictionary = t._dict(good.call("plan_route", "arias", Vector2(300.0, 560.0), {"waypoints": five}))
+	var many_text := str(t.cfg.texts.errores.paradas)
+	t.ck(not bool(many.get("ok", true)) and str(many.get("reason", "")) == many_text and not bool(many_preview.get("ok", true)) and str(many_preview.get("reason", "")) == many_text, "cinco paradas se rechazan igual en la orden y en la vista previa: «%s»" % str(many.get("reason", "")))
+	# la red de seguridad: aunque alguien le pida a la ruta un punto de afuera, la ruta no sale del mapa
+	var net = t.new_rules(1817, {"skip_intro": true})
+	var route: Dictionary = net.call("_route", Vector2(70.0, 470.0), [Vector2(-60.0, 300.0), Vector2(sz.x + 60.0, 700.0)], Vector2(500.0, 400.0))
+	var net_ok := bool(route.ok)
+	for p in route.pts:
+		if (p as Vector2).x < 0.0 or (p as Vector2).x > sz.x or (p as Vector2).y < 0.0 or (p as Vector2).y > sz.y:
+			net_ok = false
+	t.ck(net_ok, "la ruta recorta cualquier punto que pida afuera del mapa: ningún punto de la ruta sale de %s" % str(sz))
+	# y si un defecto dejara el estado en un punto que no se puede volver a abrir, F5 no escribe nada: ni «Partida guardada» ni un archivo que F9 rechace
+	var broken = t.new_rules(1817, {"skip_intro": true})
+	broken.call("save_game", t.SAVE_PATH)
+	var kept := FileAccess.get_file_as_string(t.SAVE_PATH)
+	broken.state.units[0].path = [{"x": -60.0, "z": 300.0}]
+	var refused: Variant = broken.call("save_game", t.SAVE_PATH)
+	t.ck(refused != OK and FileAccess.get_file_as_string(t.SAVE_PATH) == kept and not FileAccess.file_exists(t.SAVE_PATH + ".tmp"), "save_game se niega a guardar un estado que validate_snapshot rechazaría (devuelve un error y no toca el archivo anterior)")
+	_counter_stop(counter)
+	t.ck(counter.script_errors == 0 and counter.errors == 0, "...sin errores de script (%d) ni de otro tipo (%d) del motor: %s" % [counter.script_errors, counter.errors, counter.last])
+
+# ---------------------------------------------------------------------------------------------------------------------
+# H-R1-6: un guardado con un dato de otro tipo se rechaza con motivo; nunca revienta al cargar ni al jugar
+
+func _json_kind(v: Variant) -> String:
+	if v == null:
+		return "null"
+	if v is bool:
+		return "bool"
+	if v is int or v is float:
+		return "num"
+	if v is String:
+		return "str"
+	if v is Array:
+		return "arr"
+	if v is Dictionary:
+		return "dict"
+	return "otro"
+
+## Todos los nodos (hojas y contenedores) de un guardado. Con `sample` de cada arreglo se miran solo los tres primeros elementos y el último: los arreglos del guardado son
+## homogéneos (el esquema les pide a todos los elementos lo mismo), así que el cuarto registro del diario de a bordo no enseña nada que no enseñe el primero.
+func _nodes(v: Variant, path: Array, out: Array, sample: bool = false) -> void:
+	out.append(path)
+	if v is Dictionary:
+		for k in v:
+			_nodes(v[k], path + [k], out, sample)
+	elif v is Array:
+		var n := (v as Array).size()
+		for i in range(n):
+			if sample and i >= 3 and i != n - 1:
+				continue
+			_nodes(v[i], path + [i], out, sample)
+
+func _node_at(d: Variant, path: Array) -> Variant:
+	var cur: Variant = d
+	for k in path:
+		cur = cur[k]
+	return cur
+
+func _node_put(d: Variant, path: Array, val: Variant) -> void:
+	var cur: Variant = d
+	for i in range(path.size() - 1):
+		cur = cur[path[i]]
+	cur[path[path.size() - 1]] = val
+
+func _node_drop(d: Variant, path: Array) -> void:
+	var cur: Variant = d
+	for i in range(path.size() - 1):
+		cur = cur[path[i]]
+	var last: Variant = path[path.size() - 1]
+	if cur is Dictionary:
+		(cur as Dictionary).erase(last)
+	else:
+		(cur as Array).remove_at(int(last))
+
+## Devuelve al nodo lo que _node_drop le sacó (un arreglo vuelve a su lugar; una clave de objeto, al final).
+func _node_restore(d: Variant, path: Array, old: Variant) -> void:
+	var cur: Variant = d
+	for i in range(path.size() - 1):
+		cur = cur[path[i]]
+	var last: Variant = path[path.size() - 1]
+	if cur is Dictionary:
+		(cur as Dictionary)[last] = old
+	else:
+		(cur as Array).insert(int(last), old)
+
+func _node_pattern(path: Array) -> String:
+	var parts: Array = []
+	for k in path:
+		parts.append("*" if k is int else str(k))
+	return ".".join(PackedStringArray(parts))
+
+func _fuzz_value(kind: String, old: Variant) -> Variant:
+	match kind:
+		"null":
+			return null
+		"str":
+			return "texto"
+		"arr":
+			return [1, 2, 3]
+		"dict":
+			return {}
+		"neg":
+			return -1
+		"huge":
+			return 1e300
+		"bool":
+			return (not old) if old is bool else true
+	return null
+
+## Los estados de partida sobre los que se muta: cada uno tiene contenido distinto (órdenes en marcha, trabajo, torre disparando, carga, un final).
+func _fuzz_bases() -> Array:
+	var out: Array = []
+	var attack = t.new_rules(1817, {"skip_intro": true, "phase": "ataque"})
+	attack.call("advance_to", float(attack.state.elapsed) + 45.0)
+	out.append(["ataque_45s", attack.call("snapshot")])
+	var loading = t.new_rules(1817, {"skip_intro": true})
+	var mem := {}
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	var found := false
+	var guard := 0
+	while str(loading.state.status) == "playing" and guard < 900 and not found:
+		guard += 1
+		t.pol.call("step", loading, "experto", mem, rng)
+		if str(loading.state.phase) == "extraccion":
+			for u in loading.state.units:
+				if str(u.stage) == "loading" and not (u.work as Dictionary).is_empty():
+					found = true
+	out.append(["extraccion_cargando", loading.call("snapshot")])
+	if _heavy():
+		var approach = t.new_rules(1817, {"skip_intro": true})
+		var mem_a := {}
+		for i in range(70):
+			t.pol.call("step", approach, "experto", mem_a, rng)
+		out.append(["aproximacion_70s", approach.call("snapshot")])
+		var won = t.new_rules(1817, {"skip_intro": true})
+		t.pol.call("play", won, "experto", {})
+		out.append(["fin_victoria", won.call("snapshot")])
+		var lost = t.new_rules(1817, {"skip_intro": true})
+		t.pol.call("play", lost, "pasivo", {})
+		out.append(["fin_derrota", lost.call("snapshot")])
+		var late = t.new_rules(1817, {"skip_intro": true, "phase": "extraccion"})
+		late.call("advance_to", float(late.state.elapsed) + 20.0)
+		out.append(["extraccion_20s", late.call("snapshot")])
+	return out
+
+## La mutación de tipo sobre CADA nodo (hoja o contenedor) de varios guardados, con las ocho clases del revisor técnico. Exige: (1) todo rechazo trae motivo; (2) ninguna mutación que
+## cambia el tipo de un dato se acepta; (3) nada revienta (SCRIPT ERROR) al validar, ni al jugar lo aceptado, ni al consultar el estado; (4) lo aceptado sigue siendo válido al jugarlo.
+func _test_save_type_fuzz() -> void:
+	if not t.real_only() or t.pol == null:
+		return
+	var play_s := 120 if _heavy() else 20
+	var counter := _counter_start()
+	var judge = t.new_rules(1817, {"skip_intro": true})
+	var tally := {"bases": 0, "nodos": 0, "intentos": 0, "rechazadas": 0, "aceptadas": 0, "aceptadas_jugadas": 0, "cambio_de_tipo_aceptado": 0, "sin_motivo": 0}
+	var type_slips: Array = []
+	var breaks: Array = []
+	var invalid_after: Array = []
+	var played := {}
+	for pair in _fuzz_bases():
+		var snap: Dictionary = pair[1]
+		var base: Dictionary = JSON.parse_string(JSON.stringify(snap, "", true, true))  # como llega de un archivo: los números son decimales
+		if not bool(t._dict(judge.call("validate_snapshot", base)).ok):
+			breaks.append("la base %s no pasa validate_snapshot: %s" % [pair[0], str(judge.call("validate_snapshot", base))])
+			continue
+		tally.bases += 1
+		var nodes: Array = []
+		_nodes(base, [], nodes, not _heavy())
+		tally.nodos += nodes.size()
+		for path in nodes:
+			if (path as Array).is_empty():
+				continue
+			var old: Variant = _node_at(base, path)
+			var pat := _node_pattern(path)
+			for kind in FUZZ_KINDS:
+				var d: Dictionary = base  # se muta en el lugar y se restaura: copiar el guardado entero 12 000 veces costaba la mitad del tiempo
+				var new_value: Variant = _fuzz_value(str(kind), old)
+				if kind == "del":
+					_node_drop(d, path)
+				else:
+					_node_put(d, path, new_value)
+				tally.intentos += 1
+				var res: Dictionary = t._dict(judge.call("validate_snapshot", d))
+				var accepted_copy: Dictionary = {}
+				if bool(res.get("ok", false)):
+					accepted_copy = d.duplicate(true)
+				if kind == "del":
+					_node_restore(d, path, old)
+				else:
+					_node_put(d, path, old)
+				if accepted_copy.is_empty():
+					tally.rechazadas += 1
+					if str(res.get("reason", "")).strip_edges() == "":
+						tally.sin_motivo += 1
+					continue
+				tally.aceptadas += 1
+				if kind != "del" and _json_kind(old) != _json_kind(new_value):
+					tally.cambio_de_tipo_aceptado += 1
+					type_slips.append("%s: %s <- %s" % [pair[0], pat, kind])
+				var tag := "%s: %s <- %s" % [pair[0], pat, kind]
+				var once := tag if _heavy() else "%s <- %s" % [pat, kind]  # en la compuerta rápida alcanza con jugar cada clase de mutación aceptada una vez
+				if played.has(once):
+					continue
+				played[once] = true
+				var rl = t.rules_script.new()
+				var back: Dictionary = t._dict(rl.call("restore_snapshot", accepted_copy))
+				if not bool(back.get("ok", false)):
+					breaks.append("restore_snapshot rechaza lo que validate_snapshot aceptó: " + tag)
+					continue
+				tally.aceptadas_jugadas += 1
+				var mem := {}
+				var rng := RandomNumberGenerator.new()
+				rng.seed = 12345
+				var before_errors := counter.script_errors
+				for s in range(play_s):
+					if str(rl.state.status) != "playing":
+						break
+					t.pol.call("step", rl, "experto", mem, rng)
+				rl.call("hud_state")
+				rl.call("render_state")
+				rl.call("campaign_report")
+				if counter.script_errors != before_errors:
+					breaks.append("%s revienta al jugarlo: %s" % [tag, counter.last])
+				if not bool(t._dict(rl.call("validate_snapshot", rl.call("snapshot"))).ok):
+					invalid_after.append(tag)
+	_counter_stop(counter)
+	t.suite.extra["guardado_fuzz"] = {"bases": tally.bases, "nodos": tally.nodos, "mutaciones": tally.intentos, "rechazadas": tally.rechazadas, "aceptadas": tally.aceptadas,
+		"aceptadas_jugadas": tally.aceptadas_jugadas, "segundos_jugados_cada_una": play_s, "script_errors": counter.script_errors}
+	t.ck(tally.bases >= (6 if _heavy() else 2) and tally.intentos >= (30000 if _heavy() else 5000), "H-R1-6: el fuzz de tipos prueba %d mutaciones sobre %d nodos de %d guardados (ocho clases por nodo)" % [tally.intentos, tally.nodos, tally.bases])
+	t.ck(tally.sin_motivo == 0, "...todo rechazo trae un motivo escrito (%d sin motivo de %d rechazos)" % [tally.sin_motivo, tally.rechazadas])
+	t.ck(tally.cambio_de_tipo_aceptado == 0, "...ninguna mutación que cambia el tipo de un dato se acepta (se colaron %d: %s)" % [tally.cambio_de_tipo_aceptado, str(type_slips.slice(0, 4))])
+	t.ck(float(tally.rechazadas) / maxf(float(tally.intentos), 1.0) >= 0.9, "...el esquema rechaza al menos el 90 %% de las mutaciones (rechazó %.1f %%)" % (100.0 * float(tally.rechazadas) / maxf(float(tally.intentos), 1.0)))
+	t.ck(breaks.is_empty() and counter.script_errors == 0, "...0 errores de script al validar, y al jugar %d s lo aceptado (%d guardados): %s" % [play_s, tally.aceptadas_jugadas, str(breaks.slice(0, 3))])
+	t.ck(invalid_after.is_empty(), "...y lo aceptado sigue siendo un estado válido después de jugarlo (inválidos: %s)" % str(invalid_after.slice(0, 3)))
+	t.ck(counter.errors == 0, "...y el motor no imprimió ningún otro error durante el fuzz (%d)" % counter.errors)
+
+## Los casos concretos de H-R1-6 (los del QA y los de su revisión técnica) y sus parientes: cada uno se rechaza con motivo, con la ruta técnica del dato, sin errores de
+## script y sin tocar la partida en curso; además, load_game devuelve un resultado (antes devolvía nada y reventaba).
+func _schema_cases() -> Array:
+	return [
+		["escenario: lista", func(d): d.scenario = [1, 2, 3]], ["escenario: número", func(d): d.scenario = 7], ["escenario: nulo", func(d): d.scenario = null],
+		["escenario: objeto", func(d): d.scenario = {}], ["map_id de otro mapa", func(d): d.map_id = "norte"], ["game_id numérico", func(d): d.game_id = 5],
+		["reason nulo", func(d): d.reason = null], ["resistencia texto", func(d): d.resistencia = "si"], ["previous_game_id numérico", func(d): d.previous_game_id = 5],
+		["rumbo nulo", func(d): d.units[0].yaw_deg = null], ["rumbo texto", func(d): d.units[0].yaw_deg = "norte"], ["rumbo lista", func(d): d.units[0].yaw_deg = []],
+		["postura numérica", func(d): d.units[0].order = {"action": "attack", "front": "bateria", "posture": 7}],
+		["postura inventada", func(d): d.units[0].order = {"action": "attack", "front": "bateria", "posture": "texto"}],
+		["orden con un frente inventado", func(d): d.units[0].order = {"action": "attack", "front": "luna"}],
+		["torre activa como texto", func(d): d.objectives.cuartel.tower.active = "x"], ["torre armada como lista", func(d): d.objectives.cuartel.tower.armed = []],
+		["descargas nulas", func(d): d.objectives.cuartel.tower.volleys_left = null], ["próxima descarga texto", func(d): d.objectives.cuartel.tower.next_volley_at = "x"],
+		["lote sin frente", func(d): d.loot.items[0].front = null], ["lote de un frente inventado", func(d): d.loot.items[0].front = "luna"],
+		["lote de una clase sin reglas (ganado)", func(d): d.loot.items[0].kind = "ganado"], ["lote con clase numérica", func(d): d.loot.items[0].kind = 3],
+		["lote con cantidad texto", func(d): d.loot.items[0].qty = "x"], ["lote con x nula", func(d): d.loot.items[0].x = null], ["lote con estado inventado", func(d): d.loot.items[0].state = "roto"],
+		["lote sin su frente (falta la clave)", func(d): d.loot.items[0].erase("front")],
+		["detecciones nulas", func(d): d.stats.detections = null], ["bajas como lista", func(d): d.stats.losses = []], ["ritmo como lista", func(d): d.stats.pacing = []],
+		["primera decisión nula", func(d): d.stats.pacing.first_decision_s = null], ["fuerzas iniciales como lista", func(d): d.stats.start_strength = []],
+		["fuerza inicial de Arias como texto", func(d): d.stats.start_strength.arias = "x"], ["falta la fuerza inicial de Arias", func(d): d.stats.start_strength.erase("arias")],
+		["trabajo como lista", func(d): d.units[2].work = []], ["trabajo sin tiempo", func(d): d.units[2].work = {"kind": "load"}],
+		["carga sin decir cuál", func(d): d.units[2].work = {"kind": "load", "remaining_s": 5.0}], ["trabajo de una clase inventada", func(d): d.units[2].work = {"kind": "volar", "remaining_s": 5.0}],
+		["trayecto con x texto", func(d): d.units[0].path = [{"x": "a", "z": 1.0}]], ["trayecto como texto", func(d): d.units[0].path = "x"], ["falta el trabajo de una agrupación", func(d): d.units[0].erase("work")],
+		["mensajero inventado", func(d): d.alarm.messenger = "paloma"], ["señal numérica", func(d): d.alarm.signaled = 1], ["alarma previa a un frente inventado", func(d): d.alarm.pre_signal = ["luna"]],
+		["lo conocido como texto", func(d): d.world.known = "x"], ["rumores numéricos", func(d): d.world.rumors = 5], ["plata como texto", func(d): d.world.loot_traits.plata = "si"],
+		["registro con texto numérico", func(d): d.log = [{"text": 5}]], ["registro de una clase inventada", func(d): d.log[0].kind = "inventado"], ["órdenes numéricas", func(d): d.orders = [1]],
+		["líneas de fuego vacías", func(d): d.fire_lines = [{}]], ["desenlace como lista", func(d): d.outcome = []], ["lo reconocido como texto", func(d): d.recon.fronts = "x"],
+		["ayudas numéricas", func(d): d.assists = [1]], ["marcas con x texto", func(d): d.diary_marks = [{"key": "a", "kind": "b", "text": "c", "x": "a", "z": 1.0, "confirmed": false}]],
+		["ritmo previo nulo", func(d): d.pacing_last = null], ["reloj enorme", func(d): d.elapsed = 1e300], ["x de una agrupación texto", func(d): d.units[0].x = "a"], ["rng en cero", func(d): d.rng_state = 0],
+		["semilla con decimales", func(d): d.seed = 1.5], ["intento cero", func(d): d.attempt = 0], ["guarnición mayor que su máximo", func(d): d.objectives.bateria.garrison = float(d.objectives.bateria.garrison_max) + 5.0],
+		["torre que dispara sin estar armada", func(d): d.objectives.cuartel.tower.armed = false; d.objectives.cuartel.tower.active = true],
+		["desenlace vacío con la partida terminada", func(d): d.status = "defeat"; d.reason = "plazo"; d.phase = "epilogo"]]
+
+func _test_save_schema_cases() -> void:
+	if not t.real_only():
+		return
+	var counter := _counter_start()
+	var r = t.new_rules(1817, {"phase": "ataque"})
+	r.call("advance_to", float(r.state.elapsed) + 45.0)
+	var good: Dictionary = r.call("snapshot")
+	var cases := _schema_cases()
+	var before: String = t.snap_hash(r)
+	var accepted: Array = []
+	var no_reason: Array = []
+	var no_path: Array = []
+	var jargon: Array = []
+	var snake := RegEx.new()
+	snake.compile("[a-z]+_[a-z]+")
+	var semantic_only := ["carga sin decir cuál", "guarnición mayor que su máximo", "torre que dispara sin estar armada", "desenlace vacío con la partida terminada"]
+	for c in cases:
+		var d: Dictionary = good.duplicate(true)
+		c[1].call(d)
+		var res: Dictionary = t._dict(r.call("validate_snapshot", d))
+		if bool(res.get("ok", true)):
+			accepted.append(c[0])
+			continue
+		var why := str(res.get("reason", ""))
+		if why.strip_edges() == "":
+			no_reason.append(c[0])
+		if snake.search(why) != null:
+			jargon.append("%s: «%s»" % [c[0], why])
+		if str(res.get("path", "")) == "" and not semantic_only.has(c[0]) and str(c[0]).find("escenario") < 0:
+			no_path.append(c[0])
+	t.ck(accepted.is_empty(), "H-R1-6: ninguno de los %d guardados con un dato de otro tipo o de otra forma se acepta (se coló: %s)" % [cases.size(), str(accepted)])
+	t.ck(no_reason.is_empty() and jargon.is_empty(), "...todos con un motivo escrito y sin nombres de campo en el texto (sin motivo: %s; con jerga: %s)" % [str(no_reason), str(jargon.slice(0, 2))])
+	t.ck(no_path.is_empty(), "...y los de tipo o de forma traen la ruta técnica del dato (sin ruta: %s)" % str(no_path))
+	t.ck(counter.script_errors == 0, "...sin ningún SCRIPT ERROR al validarlos (%d): %s" % [counter.script_errors, counter.last])
+	t.ck(t.snap_hash(r) == before, "...y la partida en curso queda intacta")
+	# el motivo nombra la sección con palabras comunes
+	var d_units: Dictionary = good.duplicate(true)
+	d_units.units[0].yaw_deg = null
+	var d_loot: Dictionary = good.duplicate(true)
+	d_loot.loot.items[0].front = null
+	var d_gone: Dictionary = good.duplicate(true)
+	d_gone.alarm.erase("level")
+	var why_units := str(t._dict(r.call("validate_snapshot", d_units)).get("reason", ""))
+	var why_loot := str(t._dict(r.call("validate_snapshot", d_loot)).get("reason", ""))
+	var why_gone := str(t._dict(r.call("validate_snapshot", d_gone)).get("reason", ""))
+	t.ck(why_units.find("las agrupaciones") >= 0 and why_loot.find("el botín") >= 0 and why_gone.find("la alarma") >= 0 and why_gone.find("incompleto") >= 0, "...el motivo nombra la sección dañada con palabras comunes: «%s», «%s» y «%s»" % [why_units, why_loot, why_gone])
+	# load_game: el resultado existe y es un rechazo (antes la validación reventaba y load_game no devolvía nada)
+	var file_names: Array = ["escenario: lista", "escenario: número", "escenario: nulo", "escenario: objeto", "rumbo nulo", "torre activa como texto", "postura numérica",
+		"lote sin frente", "lote de una clase sin reglas (ganado)", "trayecto con x texto"]
+	var file_cases: Array = []
+	for i in range(cases.size()):
+		if file_names.has(cases[i][0]):
+			file_cases.append(i)
+	t.ck(file_cases.size() == file_names.size(), "los %d casos que se prueban por archivo existen en la lista" % file_names.size())
+	var load_bad: Array = []
+	for i in file_cases:
+		var dd: Dictionary = good.duplicate(true)
+		cases[i][1].call(dd)
+		t._cleanup_files()
+		var f := FileAccess.open(t.SAVE_PATH, FileAccess.WRITE)
+		f.store_string(JSON.stringify(dd))
+		f.close()
+		var loaded: Variant = r.call("load_game", t.SAVE_PATH)
+		if not (loaded is Dictionary) or not (loaded as Dictionary).has("ok") or bool((loaded as Dictionary).ok) or str((loaded as Dictionary).get("reason", "")) == "" or t.snap_hash(r) != before:
+			load_bad.append(str(cases[i][0]))
+	t.ck(load_bad.is_empty(), "load_game de un guardado con datos de otro tipo (%d archivos) devuelve {ok: false, motivo} y no toca la partida: mal %s" % [file_cases.size(), str(load_bad)])
+	_counter_stop(counter)
+	t.ck(counter.script_errors == 0 and counter.errors == 0, "...en total 0 errores del motor (script %d, otros %d): %s" % [counter.script_errors, counter.errors, counter.last])
+	# un guardado de la Justina o del Norte sigue diciendo de qué escenario es, aunque no tenga la forma de este nivel
+	var foreign: Dictionary = {"scenario": "justine", "state": {}}
+	t.ck(String(t._dict(r.call("validate_snapshot", foreign)).get("reason", "")).find("otro escenario") >= 0, "un guardado de la Justina sin la forma de este nivel dice «otro escenario» y no «dañado»")
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Lo válido nunca se rechaza: partidas enteras con todas las políticas, validadas cada pocos segundos, y la cobertura de claves del esquema
+
+func _collect_paths(v: Variant, path: String, seen: Dictionary) -> void:
+	if v is Dictionary:
+		for k in v:
+			var p: String = str(k) if path == "" else path + "." + str(k)
+			seen[p] = true
+			_collect_paths(v[k], p, seen)
+	elif v is Array:
+		for it in v:
+			_collect_paths(it, path, seen)
+
+func _test_valid_states_everywhere() -> void:
+	if not t.real_only() or t.pol == null:
+		return
+	var counter := _counter_start()
+	var seeds: Array = [3, 7, 13]
+	var policies: Array = ["experto", "obediente", "aleatorio", "pasivo"]
+	if _heavy():  # las ocho semillas de calibración y ocho de la compuerta, con las siete políticas que juegan
+		seeds = [3, 5, 7, 11, 13, 17, 19, 23, 29, 37, 47, 61, 73, 107, 131, 157]
+		policies = ["experto", "obediente", "torpe", "aleatorio", "pasivo", "pausa_reanuda", "barrido_senal"]
+	var seen := {}
+	var checks := 0
+	var failures: Array = []
+	var games := 0
+	for sd in seeds:
+		for policy in policies:
+			var r = t.new_rules(int(sd), {"skip_intro": true})
+			var mem := {}
+			var rng := RandomNumberGenerator.new()
+			rng.seed = int(sd) * 31 + 7
+			var guard := 0
+			var next_check := 0.0
+			while str(r.state.status) == "playing" and float(r.state.elapsed) < 845.0 and guard < 4000:
+				guard += 1
+				t.pol.call("step", r, policy, mem, rng)
+				if float(r.state.elapsed) >= next_check:
+					next_check += 5.0
+					checks += 1
+					var res: Dictionary = t._dict(r.call("validate_snapshot", r.state))
+					if not bool(res.get("ok", false)):
+						failures.append("semilla %d %s a los %.0f s: %s (%s)" % [int(sd), policy, float(r.state.elapsed), str(res.get("reason", "")), str(res.get("path", ""))])
+					if checks % 12 == 0:
+						_collect_paths(r.state, "", seen)
+			checks += 1
+			if not bool(t._dict(r.call("validate_snapshot", r.call("snapshot"))).ok):
+				failures.append("semilla %d %s al final" % [int(sd), policy])
+			_collect_paths(r.state, "", seen)
+			games += 1
+	_counter_stop(counter)
+	var known := {}
+	for p in Schema.known_paths(_map_size()):
+		known[p] = true
+	var uncovered: Array = []
+	for p in seen:
+		if not known.has(p):
+			uncovered.append(p)
+	uncovered.sort()
+	var never: Array = []
+	for p in known:
+		if not seen.has(p):
+			never.append(p)
+	never.sort()
+	t.suite.extra["esquema"] = {"claves_del_esquema": known.size(), "claves_vistas_en_partidas": seen.size(), "claves_sin_esquema": uncovered, "claves_opcionales_no_vistas": never, "estados_validados": checks}
+	t.ck(failures.is_empty(), "el esquema aprueba los %d estados de %d partidas jugadas por %d políticas, uno cada 5 s y el final (falsos rechazos: %s)" % [checks, games, policies.size(), str(failures.slice(0, 3))])
+	t.ck(uncovered.is_empty(), "toda clave que el estado llega a tener figura en el esquema (sin esquema: %s)" % str(uncovered))
+	t.ck(known.size() > 100 and float(never.size()) < 0.25 * float(known.size()), "...y las partidas pasan por la gran mayoría de las claves del esquema (%d de %d; sin ver: %s)" % [known.size() - never.size(), known.size(), str(never.slice(0, 6))])
+	t.ck(counter.script_errors == 0, "...sin errores de script jugando esas partidas (%d)" % counter.script_errors)
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Órdenes con basura: ninguna deja el estado inválido ni rompe nada (el pariente de H-R1-5)
+
+func _rand_point(sz: Vector2) -> Vector2:
+	match int(_lcg() * 5.0):
+		0:
+			return Vector2(_lcg_range(0.0, sz.x), _lcg_range(0.0, sz.y))
+		1:
+			return Vector2(float(_lcg_pick([0.0, sz.x])), _lcg_range(0.0, sz.y)) if _lcg() < 0.5 else Vector2(_lcg_range(0.0, sz.x), float(_lcg_pick([0.0, sz.y])))
+		2:
+			return Vector2(_lcg_range(-200.0, sz.x + 200.0), _lcg_range(-200.0, sz.y + 200.0))
+		3:
+			return Vector2.ZERO
+	return t.hito(str(_lcg_pick(["posta", "vado_este", "salida_este", "bateria", "cuartel", "polvorin", "corral_posta", "entrada_sur"])))
+
+func _test_order_fuzz() -> void:
+	if not t.real_only():
+		return
+	var sz := _map_size()
+	var counter := _counter_start()
+	var actors: Array = V.GROUPS.duplicate()
+	actors.append("nadie")
+	var actions: Array = ["move", "position", "attack", "support", "recon", "load", "destroy", "leave", "hold", "cancel", "give_signal", "hackear", "retreat", "bring", "move", "move", "recon"]
+	var phases: Array = ["aproximacion", "ataque", "extraccion"]
+	var games := 9 if _heavy() else 3
+	var per_game := 140 if _heavy() else 70
+	var orders := 0
+	var accepted_orders := 0
+	var malformed: Array = []
+	var invalid: Array = []
+	var outside_paths := 0
+	for g in range(games):
+		_lcg_seed(101 + 2 * g)
+		var r = t.new_rules(101 + 2 * g, {"skip_intro": true, "phase": phases[g % phases.size()]})
+		for i in range(per_game):
+			if str(r.state.status) != "playing":
+				break
+			var actor := str(_lcg_pick(actors))
+			var action := str(_lcg_pick(actions))
+			var opts := {}
+			if _lcg() < 0.5:
+				var stops: Array = []
+				for k in range(int(_lcg() * 7.0)):
+					stops.append(_rand_point(sz))
+				opts["waypoints"] = stops
+			if _lcg() < 0.2:
+				opts["waypoints"] = _lcg_pick(["basura", 5, null, [{"x": 1, "z": 2}, "x", null], {}])
+			if _lcg() < 0.3:
+				opts["pace"] = _lcg_pick(R.PACES + ["volando", "", 3])
+			if _lcg() < 0.3:
+				opts["posture"] = _lcg_pick(R.POSTURES + ["x", 7, null])
+			if _lcg() < 0.3:
+				opts["front"] = _lcg_pick(V.OBJECTIVES + ["x", "", 4])
+			if _lcg() < 0.3:
+				var ids: Array = ["x", "", 5]
+				for it in r.state.loot.items:
+					ids.append(str(it.id))
+				opts["item"] = _lcg_pick(ids)
+			if _lcg() < 0.2:
+				opts["approach"] = _lcg_pick(["frontal", "gola", "calle", "x", 3])
+			if _lcg() < 0.1:
+				opts["qty"] = _lcg_pick([-1, 0, 5, 1000000000, "x"])
+			var res: Variant = r.call("issue_order", actor, action, _rand_point(sz), opts)
+			orders += 1
+			if not (res is Dictionary) or not (res as Dictionary).has("ok") or not ((res as Dictionary).ok is bool) or (not bool((res as Dictionary).ok) and str((res as Dictionary).get("reason", "")) == ""):
+				malformed.append("%s %s %s -> %s" % [actor, action, str(opts).left(60), str(res).left(60)])
+			elif bool((res as Dictionary).ok):
+				accepted_orders += 1
+			if _lcg() < 0.15:
+				r.call("plan_route", actor, _rand_point(sz), opts)
+				r.call("plan_recon", actor, [_rand_point(sz), _rand_point(sz)], opts)
+			if _lcg() < 0.07:
+				r.call("undo_last")
+			var check: Dictionary = t._dict(r.call("validate_snapshot", r.call("snapshot")))
+			if not bool(check.get("ok", false)):
+				invalid.append("%s %s %s -> %s (%s)" % [actor, action, str(opts).left(80), str(check.get("reason", "")), str(check.get("path", ""))])
+			if not _units_path_inside_map(r, sz):
+				outside_paths += 1
+			if _lcg() < 0.5:
+				r.call("tick", _lcg_range(0.5, 6.0))
+				r.call("hud_state")
+				r.call("render_state")
+	_counter_stop(counter)
+	t.suite.extra["fuzz_de_ordenes"] = {"partidas": games, "ordenes": orders, "aceptadas": accepted_orders, "estados_invalidos": invalid.size()}
+	t.ck(orders >= (600 if _heavy() else 150), "H-R1-5: %d órdenes con basura (paradas dentro y fuera del mapa, opciones de otro tipo, acciones inexistentes) sobre %d partidas, %d aceptadas" % [orders, games, accepted_orders])
+	t.ck(malformed.is_empty(), "...cada orden devuelve {ok, motivo} (mal: %s)" % str(malformed.slice(0, 3)))
+	t.ck(invalid.is_empty() and outside_paths == 0, "...y después de cada una validate_snapshot(snapshot()) da ok y ningún trayecto sale del mapa (inválidos: %s; fuera: %d)" % [str(invalid.slice(0, 2)), outside_paths])
+	t.ck(counter.script_errors == 0 and counter.errors == 0, "...sin errores del motor (script %d, otros %d): %s" % [counter.script_errors, counter.errors, counter.last])
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Los archivos de progreso y de puntos de control dañados nunca bloquean ni revientan
+
+func _write_text(path: String, text: String) -> void:
+	var f := FileAccess.open(path, FileAccess.WRITE)
+	f.store_string(text)
+	f.close()
+
+func _test_progress_files_hostile() -> void:
+	if not t.real_only():
+		return
+	var counter := _counter_start()
+	var entry := {"attempt": 1, "kind": "amanecio", "text": "Amaneció.", "x": 318.0, "z": 350.0, "tag": "diseno"}
+	var base := {"version": 1, "attempts": 2, "defeats_in_row": 1, "best_medal": "", "won": false, "best_golpe": 0.0, "world_index": 0, "tutorial_seen": false, "diary": [entry]}
+	var variants: Array = [
+		["diario con x nula", func(d): d.diary[0].x = null], ["diario con x texto", func(d): d.diary[0].x = "abc"], ["diario con z lista", func(d): d.diary[0].z = []],
+		["diario con x fuera del mapa", func(d): d.diary[0].x = 1e9], ["diario sin texto", func(d): d.diary[0].erase("text")], ["diario con texto numérico", func(d): d.diary[0].text = 5],
+		["diario con intento lista", func(d): d.diary[0].attempt = [1]], ["diario con etiqueta numérica", func(d): d.diary[0].tag = 5], ["diario como texto", func(d): d.diary = "x"],
+		["diario con un elemento nulo", func(d): d.diary = [null]], ["intentos nulos", func(d): d.attempts = null], ["mejor golpe lista", func(d): d.best_golpe = []],
+		["medalla inventada", func(d): d.best_medal = "platino"], ["ganó como texto", func(d): d.won = "si"]]
+	var bad: Array = []
+	for v in variants:
+		var d: Dictionary = base.duplicate(true)
+		v[1].call(d)
+		_write_text(PROGRESS_FILE, JSON.stringify(d))
+		var p = t.progress_script.new(PROGRESS_FILE, CHECKPOINT_PATH)
+		var ok: bool = p.call("load_progress")
+		if ok or str(p.load_note) == "" or int(p.attempts) != 0 or not (p.call("diary_marks") is Array):
+			bad.append(str(v[0]))
+	t.ck(bad.is_empty(), "un progreso con un dato de otro tipo (%d variantes) se descarta con una nota y se empieza de cero, sin bloquear: mal %s" % [variants.size(), str(bad)])
+	_write_text(PROGRESS_FILE, JSON.stringify(base))
+	var sane = t.progress_script.new(PROGRESS_FILE, CHECKPOINT_PATH)
+	var loaded: bool = sane.call("load_progress")
+	var marks: Array = sane.call("diary_marks")
+	t.ck(loaded and int(sane.attempts) == 2 and marks.size() == 1 and float(marks[0].x) == 318.0, "...y el mismo progreso sano se lee y arma su marca del diario")
+	# puntos de control
+	var snap_ok: Dictionary = t.new_rules(1817, {"skip_intro": true}).call("snapshot")
+	var cp_variants: Array = [
+		["tiempo nulo", {"version": 1, "points": {"posiciones": {"time": null, "state": snap_ok}}}], ["tiempo lista", {"version": 1, "points": {"posiciones": {"time": [1], "state": snap_ok}}}],
+		["punto como texto", {"version": 1, "points": {"posiciones": "x"}}], ["puntos como lista", {"version": 1, "points": []}], ["versión lista", {"version": [1], "points": {}}],
+		["versión nula", {"version": null, "points": {"posiciones": {"time": 5.0, "state": snap_ok}}}], ["estado lista", {"version": 1, "points": {"posiciones": {"time": 5.0, "state": []}}}],
+		["estado de otro tipo de datos", {"version": 1, "points": {"posiciones": {"time": 5.0, "state": {"scenario": [1, 2]}}}}], ["raíz lista", [1, 2, 3]]]
+	var cp_bad: Array = []
+	for c in cp_variants:
+		_write_text(CHECKPOINT_PATH, JSON.stringify(c[1]))
+		var q = t.progress_script.new(PROGRESS_FILE, CHECKPOINT_PATH)
+		var rr = t.new_rules(1817, {"skip_intro": true})
+		var before: String = t.snap_hash(rr)
+		var back: Dictionary = t._dict(q.call("restore_checkpoint", rr, "posiciones"))
+		if bool(back.get("ok", false)) or str(back.get("reason", "")) == "" or t.snap_hash(rr) != before:
+			cp_bad.append(str(c[0]))
+	t.ck(cp_bad.is_empty(), "un archivo de puntos de control dañado (%d variantes) no revienta al abrirlo ni al restaurar: se rechaza con motivo y deja la partida como estaba; mal %s" % [cp_variants.size(), str(cp_bad)])
+	for p in [PROGRESS_FILE, PROGRESS_FILE + ".tmp", CHECKPOINT_PATH]:
+		if FileAccess.file_exists(p):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(p))
+	_counter_stop(counter)
+	t.ck(counter.script_errors == 0 and counter.errors == 0, "...sin errores del motor (script %d, otros %d): %s" % [counter.script_errors, counter.errors, counter.last])
+
+# ---------------------------------------------------------------------------------------------------------------------
+# B-036: nunca «de el» ni «a el» en lo que el jugador lee
+
+func _test_contractions() -> void:
+	if not t.real_only():
+		return
+	var rx := RegEx.new()
+	rx.compile("(?i)(?<![\\p{L}])(de|a) el(?![\\p{L}])")
+	var bad: Array = []
+	var texts := 0
+	for path in ["siguiente.attack", "siguiente.wait_attack", "siguiente.recon", "eventos.apoyo", "eventos.detectado", "avisos_ruta.cerca"]:
+		for fid in V.OBJECTIVES:
+			var place := str(t.cfg.objectives[fid].place)
+			var out := D.ts(path, {"frente": place, "grupo": "Portal", "socorrido": "Arias", "m": 60})
+			texts += 1
+			if rx.search(out) != null or out.find("{") >= 0:
+				bad.append("%s con «%s»: «%s»" % [path, place, out])
+	t.ck(bad.is_empty(), "%d textos de las plantillas con preposición, para los tres lugares, no traen «de el», «a el» ni marcas sin llenar: %s" % [texts, str(bad.slice(0, 2))])
+	t.ck(D.ts("siguiente.wait_attack", {"frente": "el cuartel"}) == "Esperá la toma del cuartel." and D.ts("eventos.detectado", {"frente": "la batería"}) == "Los reconocedores se acercaron demasiado a la batería.", "«el cuartel» sale contraído («del cuartel») y «la batería» queda con su «a la»")
+	# los textos de una partida entera
+	var seen_texts: Array = []
+	var r = t.new_rules(1817, {"skip_intro": true})
+	var mem := {}
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 5
+	var guard := 0
+	while str(r.state.status) == "playing" and guard < 900:
+		guard += 1
+		t.pol.call("step", r, "obediente", mem, rng)
+		seen_texts.append(str(t._dict(t._dict(r.call("hud_state")).get("siguiente", {})).get("texto", "")))
+	for e in r.state.log:
+		seen_texts.append(str(e.text))
+	var dirty: Array = []
+	for text in seen_texts:
+		if rx.search(String(text)) != null:
+			dirty.append(String(text))
+	t.ck(dirty.is_empty() and seen_texts.size() > 100, "ninguno de los %d «siguiente paso» y avisos de una partida entera trae «de el» ni «a el»: %s" % [seen_texts.size(), str(dirty.slice(0, 2))])

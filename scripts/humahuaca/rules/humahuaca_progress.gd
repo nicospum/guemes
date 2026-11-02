@@ -96,9 +96,26 @@ func _valid(v: Variant) -> bool:
 		if not (d.diary is Array) or (d.diary as Array).size() > int(_campaign.get("diary_max_entries", 40)):
 			return false
 		for e in d.diary:
-			if not (e is Dictionary) or not (e.get("text") is String) or not (e.get("kind") is String):
+			if not _valid_entry(e):
 				return false
 	return d.best_medal is String and R.MEDALS.has(d.best_medal) and d.won is bool and d.tutorial_seen is bool
+
+## Una entrada del diario tal como la lee diary_marks(): intento, clase, texto y lugar (x y z en el mapa, o -1 si no tiene). Un tipo equivocado descarta el archivo entero
+## (con nota): leerlo así reventaría en `float(null)` al armar las marcas del intento siguiente.
+func _valid_entry(e: Variant) -> bool:
+	if not (e is Dictionary):
+		return false
+	var entry: Dictionary = e
+	if not (entry.get("text") is String) or not (entry.get("kind") is String) or (entry.text as String).length() > 400 or (entry.kind as String).length() > 40:
+		return false
+	var sz := D.map_size()
+	for pair in [["x", sz.x], ["z", sz.y]]:
+		var v: Variant = entry.get(pair[0])
+		if not ((v is float or v is int) and is_finite(float(v)) and float(v) >= -1.0 and float(v) <= float(pair[1])):
+			return false
+	if entry.has("attempt") and not ((entry.attempt is float or entry.attempt is int) and is_finite(float(entry.attempt)) and float(entry.attempt) >= 0.0 and float(entry.attempt) <= 1000000.0):
+		return false
+	return not entry.has("tag") or entry.tag is String
 
 func save_progress() -> bool:
 	var data := {"version": PROGRESS_VERSION, "attempts": attempts, "defeats_in_row": defeats_in_row, "best_medal": best_medal, "won": won, "best_golpe": best_golpe,
@@ -259,11 +276,11 @@ func _read_checkpoint_index() -> void:
 	if parser.parse(FileAccess.get_file_as_string(_checkpoint_path)) != OK or not (parser.data is Dictionary):
 		return
 	var d: Dictionary = parser.data
-	if not d.has("version") or int(d.version) != CHECKPOINT_VERSION or not (d.get("points", null) is Dictionary):
+	if not (d.get("version", null) is float or d.get("version", null) is int) or int(d.version) != CHECKPOINT_VERSION or not (d.get("points", null) is Dictionary):
 		return
 	for kind in d.points:
 		var p: Variant = d.points[kind]
-		if p is Dictionary and R.RETRY.has(str(kind)) and (p as Dictionary).has("time") and (p as Dictionary).get("state", null) is Dictionary:
+		if p is Dictionary and R.RETRY.has(str(kind)) and (p.get("time", null) is float or p.get("time", null) is int) and is_finite(float(p.time)) and p.get("state", null) is Dictionary:
 			_cp[str(kind)] = {"time": float(p.time), "game_id": str((p.state as Dictionary).get("game_id", ""))}
 
 func _write_checkpoint(kind: String, rules: RefCounted) -> void:
@@ -316,7 +333,7 @@ func restore_checkpoint(rules: RefCounted, kind: String) -> Dictionary:
 	if parser.parse(FileAccess.get_file_as_string(_checkpoint_path)) != OK or not (parser.data is Dictionary):
 		return {"ok": false, "reason": _line("sin_control")}
 	var points: Variant = (parser.data as Dictionary).get("points", {})
-	if not (points is Dictionary) or not (points as Dictionary).has(kind) or not ((points[kind] as Dictionary).get("state", null) is Dictionary):
+	if not (points is Dictionary) or not (points as Dictionary).has(kind) or not (points[kind] is Dictionary) or not ((points[kind] as Dictionary).get("state", null) is Dictionary):
 		return {"ok": false, "reason": _line("sin_control")}
 	var res: Dictionary = rules.call("restore_snapshot", (points[kind] as Dictionary).state)
 	if not bool(res.get("ok", false)):

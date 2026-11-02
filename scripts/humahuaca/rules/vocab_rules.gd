@@ -43,3 +43,8 @@ const ROUTE_RISKS := ["bajo", "medio", "alto", "desconocido"]  # `plan_route().r
 const ENEMY_KINDS := ["centinela", "guardia", "artillero", "fusilero", "torre", "mensajero", "refuerzo"]  # `render_state().enemies[].kind`
 const LIGHT_KINDS := ["brasero", "ventana", "candil", "fogata"]  # `render_state().lights[].kind`
 const POSTURES := ["a_fondo", "con_cautela"]  # `issue_order(..., "attack", ..., {"posture": ...})`
+
+# --- Agregados de R1 (pase 2, solo-agregar): los comparten el esquema del guardado, las reglas y las pruebas ---
+const WORK_KINDS := ["recon", "load", "destroy"]  # `units[].work.kind`: lo que una agrupación está haciendo con las manos
+const MESSENGER_STATES := ["none", "sent", "stopped", "escaped"]  # `alarm.messenger` (CONTRATO 3.2.1)
+const LOG_MAX := 400  # tope de `state.log` (CONTRATO 3.2.1)

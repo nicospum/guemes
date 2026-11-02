@@ -247,7 +247,7 @@
 			"frente_roto": ["Mirá la fuerza de cada partida en su tarjeta: si se acerca a la mitad, pedí apoyo antes de que se rompa.", "Acercate al cuartel con una tapia de por medio: la torre castiga el doble a quien cruza por la calle abierta."],
 			"sin_carga": ["Empezá a cargar apenas caiga la posta, sin esperar al último frente.", "Traé el arreo cerca de la posta antes de la señal: así las mulas cargan mientras todavía se pelea."],
 			"interceptados": ["Quemar la pólvora adelanta el refuerzo: destruí otra cosa si el reloj aprieta.", "Cuando aparece la polvareda al sur queda un minuto: cruzá el vado sin cargar nada más."],
-			"dispersos": ["Entrá con las tres partidas a la vez: la sorpresa dura 45 segundos y cuanto más juntas entran, más rápido caen los frentes.", "Alterná el ataque a fondo con el ataque con cautela según cuánto aguante cada partida."],
+			"dispersos": ["Entrá con las tres partidas a la vez: la sorpresa dura 45 segundos y, cuanto más juntas, más rápido caen los frentes.", "Alterná el ataque a fondo con el ataque con cautela según cuánto aguante cada partida."],
 			"plazo": ["Después del último frente el reloj corre: cargá y mandá la columna al vado sin esperar a tenerlo todo guardado.", "Decidí qué dejar: con las mulas y los 600 kg propios no entra todo, y destruir lo que sobra lleva menos que cargarlo."],
 			"retirada": ["Con «Reintentar desde las posiciones» te ahorrás la marcha y probás otra hora para la señal."]
 		},
@@ -297,12 +297,12 @@
 			"position": "Llevá a {grupo} a su puesto de ataque.",
 			"bring": "Traé el arreo hasta la posta.",
 			"signal": "Dá la señal: las partidas en su puesto atacan los tres frentes a la vez.",
-			"attack": "Mandá a {grupo} al ataque de {frente}.",
+			"attack": "Mandá a {grupo} al ataque {deFrente}.",
 			"support": "{grupo} ya terminó su frente: mandalo a socorrer a {socorrido}.",
 			"wait_group": "Esperá: {grupo} todavía no llegó a su puesto.",
 			"wait_light": "Todo listo: esperá la luz del alba para dar la señal.",
 			"wait_load": "El arreo está cargando: esperá.",
-			"wait_attack": "Esperá la toma de {frente}.",
+			"wait_attack": "Esperá la toma {deFrente}.",
 			"load": "Cargá {carga} en el arreo.",
 			"destroy": "Destruí lo que no entra en las mulas: {carga}.",
 			"bring_load": "Llevá el arreo hasta {donde}.",
@@ -334,8 +334,8 @@
 			"refuerzo_visto": "Polvareda al sur: viene el refuerzo.",
 			"refuerzo_llego": "El refuerzo llegó.",
 			"parte_deshacer": "Orden deshecha.",
-			"apoyo": "{grupo} acude en apoyo de {frente}.",
-			"detectado": "Los reconocedores se acercaron demasiado a {frente}.",
+			"apoyo": "{grupo} acude en apoyo {deFrente}.",
+			"detectado": "Los reconocedores se acercaron demasiado {aFrente}.",
 			"guardado": "Partida recuperada."
 		},
 		"chips": {
@@ -369,6 +369,7 @@
 			"partida_terminada": "La partida terminó.",
 			"sin_accion": "No existe esa acción.",
 			"paradas": "Son demasiadas paradas: hasta 4.",
+			"parada_fuera": "Una de las paradas queda fuera del mapa.",
 			"sin_paso": "No hay camino hasta ese punto.",
 			"ya_cargada": "Esa carga ya no está a mano.",
 			"sin_ayuda": "Esa ayuda llega en una versión posterior del nivel.",
@@ -377,8 +378,15 @@
 		},
 		"avisos_ruta": {
 			"alba": "Llegás con la luz del alba: la guardia puede verte.",
-			"cerca": "Pasás cerca de {frente}: te pueden ver a unos {m} m.",
+			"cerca": "Pasás cerca {deFrente}: te pueden ver a unos {m} m.",
 			"sin_paso": "No hay camino hasta ese punto."
+		},
+		"guardado": {
+			"danado": "El guardado está dañado: hay un dato que no es válido en {seccion}.",
+			"falta": "El guardado está incompleto: falta un dato en {seccion}.",
+			"secciones": {"": "los datos generales", "world": "el mundo", "alarm": "la alarma", "objectives": "los frentes", "units": "las agrupaciones", "loot": "el botín", "recon": "lo reconocido",
+				"stats": "las estadísticas", "log": "el registro", "orders": "las órdenes", "pacing_last": "el ritmo de la partida", "fire_lines": "el fuego", "outcome": "el desenlace",
+				"assists": "las ayudas", "diary_marks": "las marcas del diario"}
 		}
 	},
 	"epilogue": {

@@ -26,7 +26,7 @@ const SCENARIO := "humahuaca"
 const SAVE_VERSION := 1
 const STEP := 0.25
 const MAX_DT := 60.0
-const LOG_MAX := 400
+const LOG_MAX := R.LOG_MAX
 const TERRAIN_REAL := "res://scripts/humahuaca/terrain/humahuaca_terrain.gd"
 const TERRAIN_STUB := "res://scripts/humahuaca/stubs/stub_terrain.gd"
 const FLAT_HEIGHT_M := 17.0  # el plano del terreno de respaldo (cota del templo sobre el cero local)
@@ -1150,6 +1150,11 @@ func _in_map(p: Vector2) -> bool:
 	var sz := map_size()
 	return p.x >= 0.0 and p.y >= 0.0 and p.x <= sz.x and p.y <= sz.y
 
+## `p` sin salirse del mapa: la ruta nunca tiene un punto afuera aunque alguien le pida un destino o una parada que lo esté (las órdenes ya los rechazan; esto es la red).
+func _clamp_to_map(p: Vector2) -> Vector2:
+	var sz := map_size()
+	return Vector2(clampf(p.x, 0.0, sz.x), clampf(p.y, 0.0, sz.y))
+
 ## La ruta de `from` a `to` pasando por `stops`: puntos de mundo sin el de partida. {"ok": false} si algún tramo no tiene camino. Sin grilla de navegación, va en línea recta.
 func _route(from: Vector2, stops: Array, to: Vector2) -> Dictionary:
 	var pts: Array = []
@@ -1157,7 +1162,8 @@ func _route(from: Vector2, stops: Array, to: Vector2) -> Dictionary:
 	var targets: Array = stops.duplicate()
 	targets.append(to)
 	var n := nav()
-	for tgt in targets:
+	for raw in targets:
+		var tgt := _clamp_to_map(raw)
 		if n == null:
 			pts.append(tgt)
 			cur = tgt
@@ -1166,10 +1172,11 @@ func _route(from: Vector2, stops: Array, to: Vector2) -> Dictionary:
 		if seg.is_empty():
 			return {"ok": false, "pts": []}
 		for k in range(1, seg.size()):
-			if not pts.is_empty() and (pts[pts.size() - 1] as Vector2).distance_to(seg[k]) < 3.0:
-				pts[pts.size() - 1] = seg[k]  # dos puntos a menos de 3 m son uno solo (el vado y la celda de la grilla que lo contiene)
+			var q := _clamp_to_map(seg[k])
+			if not pts.is_empty() and (pts[pts.size() - 1] as Vector2).distance_to(q) < 3.0:
+				pts[pts.size() - 1] = q  # dos puntos a menos de 3 m son uno solo (el vado y la celda de la grilla que lo contiene)
 			else:
-				pts.append(seg[k])
+				pts.append(q)
 		cur = tgt
 	return {"ok": true, "pts": pts}
 
@@ -1201,6 +1208,9 @@ func _check(actor_id: String, action: String, target: Vector2, opts: Dictionary)
 	var ctx := {"ok": true, "reason": "", "unit": u, "pace": pace, "dest": Vector2.ZERO, "front": "", "item": {}, "waypoints": _waypoints(opts), "route": []}
 	if (ctx.waypoints as Array).size() > 4:
 		return _no("paradas")
+	for stop in (ctx.waypoints if ["move", "position", "support", "recon", "leave"].has(action) else []):  # solo las órdenes de marcha recorren paradas
+		if not _in_map(stop):  # H-R1-5: una parada fuera del mapa dejaba una ruta fuera del mapa y un guardado que no se podía volver a abrir
+			return _no("parada_fuera")
 	match action:
 		"move", "recon":
 			if target == Vector2.ZERO:
@@ -1498,7 +1508,11 @@ func route_atlas(front: String = "") -> Array:
 func snapshot() -> Dictionary:
 	return state.duplicate(true)
 
+## Nunca escribe un guardado que después no se pueda abrir: si el estado en curso no pasa validate_snapshot (un defecto de las reglas, no del jugador), devuelve
+## ERR_INVALID_DATA y deja intacto el archivo anterior. La interfaz lo cuenta como «no se pudo guardar» en vez de decir «Partida guardada» y fallar en F9 (H-R1-5).
 func save_game(path: String) -> Error:
+	if not state.is_empty() and not bool(validate_snapshot(state).ok):
+		return ERR_INVALID_DATA
 	return Save.write(path, state)
 
 func load_game(path: String) -> Dictionary:

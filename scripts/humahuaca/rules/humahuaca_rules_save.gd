@@ -10,6 +10,7 @@ extends RefCounted
 
 const V = preload("res://scripts/humahuaca/humahuaca_vocab.gd")
 const R = preload("res://scripts/humahuaca/rules/vocab_rules.gd")
+const Schema = preload("res://scripts/humahuaca/rules/humahuaca_rules_schema.gd")
 
 const SCENARIO := "humahuaca"
 const SAVE_VERSION := 1
@@ -68,10 +69,16 @@ static func fix_ints(d: Dictionary) -> void:
 	for k in ["detections", "support_events", "horses_lost", "powder_wet", "charges_total", "charges_in_gap"]:
 		if d.stats.has(k) and d.stats[k] is float:
 			d.stats[k] = int(d.stats[k])
+	var pace_stats: Variant = d.stats.get("pacing", null)
+	if pace_stats is Dictionary and (pace_stats as Dictionary).get("visible_actions_t0", null) is float:
+		pace_stats.visible_actions_t0 = int(pace_stats.visible_actions_t0)
+	for o in d.get("orders", []):
+		if o.get("round", null) is float:
+			o.round = int(o.round)
 	var last: Variant = d.get("pacing_last", null)
 	if last is Dictionary and (last as Dictionary).get("events", null) is float:
 		last.events = int(last.events)
-	for fid in d.get("objectives", {}):
+	for fid in V.OBJECTIVES:  # los tres frentes del vocabulario, no cualquier clave que el archivo traiga de más
 		var o: Dictionary = d.objectives[fid]
 		if o.get("custody", null) is float:
 			o.custody = int(o.custody)
@@ -88,48 +95,32 @@ static func fix_ints(d: Dictionary) -> void:
 		if e.get("round", null) is float:
 			e.round = int(e.round)
 
-## Valida un estado completo. `map_version` es el del JSON de reglas y `size` el tamaño del mapa (900 × 650). Devuelve {"ok", "reason"}.
+## Valida un estado completo, sin tocar nada. `map_version` es el del JSON de reglas y `size` el tamaño del mapa (900 × 650). Devuelve {"ok", "reason"} (y, si falla el esquema,
+## también "path": la ruta técnica del dato que no cumple). El orden importa: primero de qué escenario es (un guardado de la Justina o del Norte tiene otra forma y no tiene
+## sentido mirarle el resto), después las versiones, después el esquema estricto (tipo y rango de CADA dato que el juego lee: humahuaca_rules_schema.gd) y al final las coherencias
+## entre datos. Hasta que el esquema no aprueba, nada se asigna con tipo: un valor de otro tipo en una variable tipada es un error de script, no un rechazo.
 static func validate(v: Variant, map_version: float, size: Vector2) -> Dictionary:
 	if not (v is Dictionary):
 		return _bad("El guardado no contiene un estado válido.")
 	var d: Dictionary = v
-	if d.has("scenario") and d.scenario != SCENARIO:
-		return _bad("Este guardado es de otro escenario.")
-	for key in ["schema_version", "game_id", "state_version", "scenario", "map_id", "map_version", "contract", "seed", "rng_state", "attempt", "elapsed", "accumulator",
-			"status", "reason", "phase", "world", "alarm", "objectives", "units", "loot", "stats", "log", "orders", "fire_lines", "outcome", "pacing_last", "recon",
-			"render_version", "smoke_used", "smoke_adv", "mercy_level", "assists", "diary_marks"]:
+	if d.has("scenario"):
+		if not (d.scenario is String):
+			return _bad("El guardado está dañado: no dice de qué escenario es.")
+		if d.scenario != SCENARIO:
+			return _bad("Este guardado es de otro escenario.")
+	for key in ["schema_version", "contract", "map_version"]:
 		if not d.has(key):
-			return _bad("Guardado incompleto: falta %s." % key)
+			return _bad(Schema.reason("falta"))
 	if not _num_in(d.schema_version, SAVE_VERSION, SAVE_VERSION):
 		return _bad("Versión de guardado incompatible; se necesita la versión %d." % SAVE_VERSION)
 	if not _num_in(d.contract, V.CONTRACT, V.CONTRACT):
 		return _bad("El guardado es de otro contrato de datos.")
 	if not _num_in(d.map_version, map_version, map_version):
 		return _bad("El guardado es de otra versión del mapa y no se puede cargar.")
-	if not (d.status is String) or not R.STATUS.has(d.status) or not (d.phase is String) or not R.PHASES.has(d.phase) or not (d.game_id is String) or not (d.reason is String):
-		return _bad("Resultado o fase inválidos en el guardado.")
-	if not _num_in(d.state_version, 1, 1000000000) or not _num_in(d.seed, -2147483647, 2147483647) or not _num_in(d.attempt, 1, 1000000):
-		return _bad("Identidad o versión de estado inválidas.")
-	if not _num_in(d.elapsed, 0, 86400) or not _num_in(d.accumulator, 0, 60) or not _num_in(d.rng_state, 1, 2147483646):
-		return _bad("Los tiempos o la semilla del guardado son inválidos.")
-	if not (d.world is Dictionary) or not (d.alarm is Dictionary) or not (d.objectives is Dictionary) or not (d.units is Array) or not (d.loot is Dictionary) or not (d.stats is Dictionary) or not (d.log is Array):
-		return _bad("Faltan secciones del guardado o tienen un formato inválido.")
-	for e in d.log:
-		if not (e is Dictionary) or not (e.get("text") is String) or not (e.get("kind") is String) or not _num_in(e.get("time"), 0, 86400):
-			return _bad("Registro de acontecimientos corrupto.")
-	if not (d.orders is Array) or not (d.fire_lines is Array) or not (d.outcome is Dictionary) or not (d.recon is Dictionary) or not (d.assists is Array) or not (d.diary_marks is Array):
-		return _bad("Faltan secciones internas del guardado o tienen un formato inválido.")
-	if not _num_in(d.render_version, 1, 1000000000) or not _num_in(d.smoke_used, 0, 1000) or not _num_in(d.smoke_adv, 0, 1000) or not _num_in(d.mercy_level, 0, 3):
-		return _bad("Contadores internos del guardado inválidos.")
-	var last: Variant = d.pacing_last
-	if not (last is Dictionary) or not _num_in(last.get("events"), 0, 100000000) or not _num_in(last.get("gap_start"), 0, 86400) or not _num_in(last.get("attack_gap_start"), -1, 86400) or not _num_in(last.get("offer"), -1, 86400):
-		return _bad("El ritmo de la partida guardada es inválido.")
-	if not (d.stats.get("pacing") is Dictionary):
-		return _bad("Las estadísticas del guardado están incompletas.")
-	var check_world := _validate_world(d)
-	if not bool(check_world.ok):
-		return check_world
-	var check_units := _validate_units(d, size)
+	var shape := Schema.check(d, size)
+	if not bool(shape.ok):
+		return {"ok": false, "reason": str(shape.reason), "path": str(shape.path)}
+	var check_units := _validate_units(d)
 	if not bool(check_units.ok):
 		return check_units
 	var check_state := _validate_world_state(d)
@@ -137,100 +128,40 @@ static func validate(v: Variant, map_version: float, size: Vector2) -> Dictionar
 		return check_state
 	return {"ok": true, "reason": "Guardado válido."}
 
-static func _validate_world(d: Dictionary) -> Dictionary:
-	for dim in R.VARIANTS:
-		if not d.world.has(dim) or not (R.VARIANTS[dim] as Array).has(d.world[dim]):
-			return _bad("La variante «%s» del mundo es inválida." % dim)
-	var traits: Variant = d.world.get("loot_traits", null)
-	if not (traits is Dictionary):
-		return _bad("Los rasgos del botín son inválidos.")
-	for k in R.WORLD_TRAITS:
-		if not traits.has(k) or not (R.WORLD_TRAITS[k] as Array).has(traits[k]):
-			return _bad("El rasgo del botín «%s» es inválido." % k)
-	if not (d.world.get("known", []) is Array) or not (d.world.get("rumors", []) is Array):
-		return _bad("Lo que el mundo ya reveló está corrupto.")
-	return {"ok": true, "reason": ""}
-
-static func _validate_units(d: Dictionary, size: Vector2) -> Dictionary:
+## Las coherencias de las agrupaciones (los tipos y rangos ya los aprobó el esquema): las cinco, sin repetir, y que lo que hacen tenga con qué hacerlo.
+static func _validate_units(d: Dictionary) -> Dictionary:
 	if d.units.size() != V.GROUPS.size():
 		return _bad("El guardado debe traer las %d agrupaciones." % V.GROUPS.size())
 	var seen: Array = []
-	var all_actions: Array = []
-	for kind in R.ACTIONS:
-		for a in R.ACTIONS[kind]:
-			all_actions.append(a)
 	for u in d.units:
-		if not (u is Dictionary):
-			return _bad("Agrupación corrupta.")
-		for key in ["id", "name", "kind", "x", "z", "strength", "fatigue", "morale", "armed", "men", "mounted", "pace", "stage", "order", "path", "noise", "detected", "custody", "horses", "carry_kg", "capacity_kg", "tag"]:
-			if not u.has(key):
-				return _bad("Agrupación incompleta: falta %s." % key)
-		if not (u.id is String) or not V.GROUPS.has(u.id) or seen.has(u.id):
-			return _bad("Identificadores de agrupación inválidos.")
+		if seen.has(u.id):
+			return _bad("Identificadores de agrupación repetidos.")
 		seen.append(u.id)
-		if not _num_in(u.x, 0, size.x) or not _num_in(u.z, 0, size.y):
-			return _bad("Agrupación fuera del mapa.")
-		for key in ["strength", "fatigue", "morale"]:
-			if not _num_in(u[key], 0, 100):
-				return _bad("Recursos de agrupación inválidos.")
-		if not _num_in(u.armed, 0, 1) or not _num_in(u.noise, 0, 1) or not _num_in(u.men, 0, 1000) or not _num_in(u.custody, 0, 1000) or not _num_in(u.horses, 0, 1000) or not _num_in(u.carry_kg, 0, 100000) or not _num_in(u.capacity_kg, 0, 100000):
-			return _bad("Cifras de agrupación inválidas.")
-		if not (u.stage is String) or not R.STAGES.has(u.stage) or not (u.pace is String) or not R.PACES.has(u.pace) or not (u.mounted is bool) or not (u.detected is bool):
-			return _bad("Etapa o ritmo inválidos.")
-		if not (u.kind is String) or not R.UNIT_KINDS.has(u.kind) or not (u.tag is String) or not V.TAGS.has(u.tag):
-			return _bad("Tipo o etiqueta de agrupación inválidos.")
-		if not (u.order is Dictionary) or not (u.path is Array):
-			return _bad("Orden o trayecto corrupto.")
-		if not (u.order as Dictionary).is_empty() and (not ((u.order as Dictionary).get("action") is String) or not all_actions.has((u.order as Dictionary).get("action"))):
-			return _bad("Orden inválida.")
-		for p in u.path:
-			if not (p is Dictionary) or not _num_in(p.get("x"), 0, size.x) or not _num_in(p.get("z"), 0, size.y):
-				return _bad("Trayecto fuera del mapa.")
 		if u.stage == "moving" and ((u.path as Array).is_empty() or (u.order as Dictionary).is_empty()):
 			return _bad("Una agrupación en marcha necesita trayecto y orden.")
+		var work: Dictionary = u.work
+		if not work.is_empty() and work.kind != "recon" and not work.has("item"):
+			return _bad("Una agrupación ocupada con la carga no dice con cuál.")
 	return {"ok": true, "reason": ""}
 
+## Las coherencias del mundo, los frentes, la alarma, el botín y el desenlace (los tipos y rangos ya los aprobó el esquema).
 static func _validate_world_state(d: Dictionary) -> Dictionary:
 	var taken := 0
 	for fid in V.OBJECTIVES:
-		var o: Variant = d.objectives.get(fid, null)
-		if not (o is Dictionary):
-			return _bad("Falta el frente «%s» en el guardado." % fid)
-		if not (o.get("state") is String) or not R.FRONT_STATES.has(o.state) or not _num_in(o.get("toma"), 0, 100) or not _num_in(o.get("alert"), 0, 1) or not _num_in(o.get("garrison"), 0, 100000) or not _num_in(o.get("garrison_max"), 0, 100000):
-			return _bad("Estado del frente «%s» inválido." % fid)
-		if not _num_in(o.get("reconocido"), 0, 1) or not _num_in(o.get("surprise_until"), -1, 86400) or not _num_in(o.get("taken_at"), -1, 86400) or not (o.get("supporters") is Array):
-			return _bad("Datos del frente «%s» inválidos." % fid)
+		var o: Dictionary = d.objectives[fid]
+		if float(o.garrison) > float(o.garrison_max) + 1e-6:
+			return _bad("La guarnición del frente «%s» supera su máximo." % fid)
 		if o.state == "tomado":
 			taken += 1
-	var tw: Variant = d.objectives.cuartel.get("tower", null)
-	if not (tw is Dictionary) or not _num_in(tw.get("volleys_left"), 0, 1000) or not _num_in(tw.get("next_volley_at"), -1, 86400):
-		return _bad("La torre del guardado es inválida.")
+	var tw: Dictionary = d.objectives.cuartel.tower
+	if bool(tw.active) and not bool(tw.armed):
+		return _bad("La torre del guardado dispara sin estar armada.")
 	var al: Dictionary = d.alarm
-	if not _num_in(al.get("level"), 0, 1) or not _num_in(al.get("first_shot_at"), -1, 86400) or not _num_in(al.get("signal_at"), -1, 86400) or not _num_in(al.get("reinforcement_at"), -1, 86400):
-		return _bad("La alarma del guardado es inválida.")
-	if not (al.get("signaled") is bool) or not (al.get("reinforcement_arrived") is bool) or not (al.get("pre_signal", []) is Array):
-		return _bad("La alarma del guardado tiene campos inválidos.")
-	for fid in al.get("pre_signal", []):
-		if not V.OBJECTIVES.has(fid):
-			return _bad("La alarma del guardado nombra un frente que no existe.")
 	if float(al.first_shot_at) > float(d.elapsed):
 		return _bad("La primera descarga no puede ser posterior al reloj.")
 	if bool(al.signaled) != (float(al.signal_at) >= 0.0):
 		return _bad("La señal y su hora no coinciden.")
 	var l: Dictionary = d.loot
-	for key in ["items", "capacity_kg", "load_kg", "delivered_value", "destroyed_value", "hidden_value", "lost_value", "total_value"]:
-		if not l.has(key):
-			return _bad("El botín del guardado está incompleto.")
-	for key in ["capacity_kg", "load_kg", "delivered_value", "destroyed_value", "hidden_value", "lost_value", "total_value"]:
-		if not _num_in(l[key], 0, 1000000):
-			return _bad("Las cifras del botín son inválidas.")
-	if not (l.items is Array):
-		return _bad("El botín del guardado es inválido.")
-	for it in l.items:
-		if not (it is Dictionary) or not (it.get("kind") is String) or not R.LOOT_KINDS.has(it.kind) or not (it.get("state") is String) or not R.LOOT_STATES.has(it.state) or not _num_in(it.get("qty"), 0, 100000):
-			return _bad("Un lote del botín es inválido.")
-		if not (it.get("id") is String) or not _num_in(it.get("x"), 0, 100000) or not _num_in(it.get("z"), 0, 100000) or not _num_in(it.get("unit_kg"), 0, 100000) or not _num_in(it.get("unit_value"), 0, 1000):
-			return _bad("Un lote del botín tiene cifras inválidas.")
 	if absf(float(l.total_value) - 100.0) > 1e-6:
 		return _bad("El valor total del botín debe ser 100.")
 	if float(l.delivered_value) + float(l.destroyed_value) + float(l.hidden_value) + float(l.lost_value) > 100.0 + 1e-6:
@@ -245,8 +176,12 @@ static func _validate_world_state(d: Dictionary) -> Dictionary:
 		return _bad("La fase y el resultado no coinciden.")
 	if d.status == "defeat" and not R.CAUSES.has(d.reason):
 		return _bad("La causa de la derrota es inválida.")
+	if d.status == "victory" and d.reason != "victoria":
+		return _bad("La causa de la victoria es inválida.")
 	if d.status == "playing" and d.reason != "":
 		return _bad("Una partida en juego no tiene causa de cierre.")
+	if (d.status == "playing") != (d.outcome as Dictionary).is_empty():
+		return _bad("El desenlace del guardado no coincide con el resultado.")
 	if (d.phase == "briefing") and float(d.elapsed) > 0.0:
 		return _bad("La preparación no puede tener reloj corrido.")
 	if d.phase == "ataque" and not bool(al.signaled):

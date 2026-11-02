@@ -550,11 +550,19 @@ func plan_route(actor_id: String, target: Vector2, opts: Dictionary = {}) -> Dic
 	if not _in_map(target):
 		out.reason = _ts("errores.fuera_del_mapa")
 		return out
+	var stops: Array = _waypoints(opts)
+	if stops.size() > 4:  # la vista previa promete lo mismo que la orden: hasta 4 paradas y todas dentro del mapa
+		out.reason = _ts("errores.paradas")
+		return out
+	for stop in stops:
+		if not _in_map(stop):
+			out.reason = _ts("errores.parada_fuera")
+			return out
 	var pace := str(opts.get("pace", u.pace))
 	if not R.PACES.has(pace):
 		pace = str(u.pace)
 	var from := Vector2(float(u.x), float(u.z))
-	var route: Dictionary = _o()._route(from, _waypoints(opts), target)
+	var route: Dictionary = _o()._route(from, stops, target)
 	if not bool(route.ok):
 		out.reason = _ts("avisos_ruta.sin_paso")
 		return out
