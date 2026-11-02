@@ -501,20 +501,23 @@ func _test_visibility_rings() -> void:
 	var a_day := float(view.call("pool_alpha", 600.0))
 	suite.check(is_equal_approx(a_night, float(cfg.get("alpha", 0.55))) and a_dawn < a_night and a_dawn > 0.0 and a_day == 0.0, "I-R1.0-3 el anillo de visibilidad es tenue de noche (%.2f), más tenue al alba (%.2f) y no se dibuja con luz plena (%.2f)" % [a_night, a_dawn, a_day])
 	suite.check(float(cfg.get("alpha", 1.0)) <= 0.6 and float(cfg.get("width_px", 9.0)) <= 3.0, "I-R1.0-3 el anillo de visibilidad es tenue y fino por datos (opacidad %.2f, %.1f px)" % [float(cfg.get("alpha", 1.0)), float(cfg.get("width_px", 9.0))])
-	# 3) con el stub de reglas real: de noche hay anillos; con luz plena no; los de los objetivos siempre
-	for case in [["aproximacion", true], ["extraccion", false]]:
-		var rules_case := Fx.rules_stub(1817, 1, {"skip_intro": true, "phase": case[0]})
-		if rules_case == null:
-			continue
-		var probe := (load(Fx.STUB_PATHS.view) as GDScript).new() as Node3D
-		root.add_child(probe)
-		probe.build(rules_case, "media")
-		var rings := probe.get_node("Anillos")
+	# 3) lo que la vista ARMA a partir de un render_state propio (no depende del ambiente que dé el stub de las reglas): con poca visibilidad hay trazos, con luz plena no,
+	#    y los anillos de los objetivos siempre; los vértices de los trazos no entran en otro círculo más que el medio ancho de la cinta
+	var starts := [Vector2(92.5, 455.0), Vector2(140.0, 500.0), Vector2(190.0, 545.0), Vector2(230.0, 480.0), Vector2(70.0, 520.0)]  # las cinco partidas: con 35 m se cruzan tres pares
+	var objectives := [{"id": "bateria", "x": 318.0, "z": 350.0, "state": "guardado"}, {"id": "cuartel", "x": 418.0, "z": 335.0, "state": "alertado"}, {"id": "posta", "x": 590.0, "z": 300.0, "state": "guardado"}]
+	var probe := (load(Fx.STUB_PATHS.view) as GDScript).new() as Node3D
+	root.add_child(probe)
+	probe.build(rules, "media")
+	var rings := probe.get_node("Anillos")
+	for case in [[35.0, true], [128.0, true], [600.0, false]]:
+		var pools_now: Array = []
+		for at in starts:
+			pools_now.append({"x": at.x, "z": at.y, "r": case[0]})
+		probe.call("_sync_objectives", {"objectives": objectives, "visibility_pools": pools_now, "tower": {}})
 		var pool_nodes := rings.find_children("visibilidad_*", "MeshInstance3D", false, false).size()
 		var objective_nodes := rings.find_children("objetivo_*", "MeshInstance3D", false, false).size()
-		suite.check(objective_nodes == 3 and ((pool_nodes >= 1) == bool(case[1])), "I-R1.0-3 en «%s» hay %d trazo(s) de visibilidad y %d anillo(s) de objetivo (con luz plena no se dibuja ninguno de visibilidad)" % [case[0], pool_nodes, objective_nodes])
-		if bool(case[1]):  # lo que la vista ARMA (no solo lo que calcula): los vértices de los trazos no entran en otro círculo más que el medio ancho de la cinta
-			var pools_now: Array = (rules_case.call("render_state") as Dictionary).get("visibility_pools", [])
+		suite.check(objective_nodes == 3 and ((pool_nodes >= 1) == bool(case[1])), "I-R1.0-3 con %.0f m de visibilidad hay %d trazo(s) de visibilidad y %d anillo(s) de objetivo (con luz plena no se dibuja ninguno de visibilidad)" % [case[0], pool_nodes, objective_nodes])
+		if bool(case[1]):
 			var crossing := 0
 			for i in range(pools_now.size()):
 				for j in range(i + 1, pools_now.size()):
@@ -526,9 +529,9 @@ func _test_visibility_rings() -> void:
 				for vertex in (arrays[Mesh.ARRAY_VERTEX] as PackedVector3Array):
 					for q in pools_now:
 						worst = maxf(worst, float(q.r) - Vector2(vertex.x, vertex.z).distance_to(Vector2(float(q.x), float(q.z))))
-			suite.check(pool_nodes == (probe.call("_pool_arcs", pools_now) as Array).size() and worst <= 1.5, "I-R1.0-3 de noche la vista arma los trazos del contorno de la unión (%d trazos, %d pares de círculos se cruzan, el vértice que más entra en otro círculo entra %.2f m)" % [pool_nodes, crossing, worst])
-			suite.extra["noche_pares_de_anillos_que_se_cruzan"] = crossing
-		probe.free()
+			suite.check(pool_nodes == (probe.call("_pool_arcs", pools_now) as Array).size() and worst <= 1.5, "I-R1.0-3 con %.0f m la vista arma los trazos del contorno de la unión (%d trazos, %d pares de círculos se cruzan, el vértice que más entra en otro círculo entra %.2f m)" % [case[0], pool_nodes, crossing, worst])
+			suite.extra["anillos_%dm_pares_que_se_cruzan" % int(case[0])] = crossing
+	probe.free()
 
 
 # ---------------------------------------------------------------------------------------------------------------------
