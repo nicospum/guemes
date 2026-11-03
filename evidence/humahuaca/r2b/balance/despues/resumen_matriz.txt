@@ -1,0 +1,13 @@
+política/intento               n  gana   tasa wilson90      med vict  med derr  causas
+est_bateria_frontal/1         60    60 100.0% (0.957, 1)    11:40     -         {}
+est_bateria_gola/1            60    19  31.7% (0.228, 0.422) 10:25     3:24      {'descubiertos': 31, 'sin_carga': 10}
+est_cuartel_calle/1           60    60 100.0% (0.957, 1)    11:40     -         {}
+est_cuartel_patios/1          60    29  48.3% (0.38, 0.588) 11:40     3:40      {'descubiertos': 31}
+est_posta_directa/1           60    60 100.0% (0.957, 1)    11:40     -         {}
+ext_cargar_todo/1             60    10  16.7% (0.102, 0.26) 10:59     9:16      {'sin_carga': 50}
+ext_destruir_todo/1           60     0   0.0% (0, 0.043)    -         12:05     {'interceptados': 60}
+ext_ligera/1                  60    10  16.7% (0.102, 0.26) 10:59     9:16      {'sin_carga': 50}
+ext_mixta/1                   60    60 100.0% (0.957, 1)    11:40     -         {}
+ritmo (oferta, n=300): primera decisión peor 0 s · brecha máx peor 87 s · brecha ataque peor 18 s · incumplen 29
+variantes (semillas del experto): {}
+obediente por mundo: {}

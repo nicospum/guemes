@@ -57,12 +57,33 @@ Elige cada lote por puntos por recurso gastado (tiempo hasta tener que salir y k
 - `pending_choice()` devuelve {} en esta versión: la interfaz detiene el reloj de QA mientras hay una decisión pendiente y la resuelve con su reloj de pared, que sin ventana no corre. La decisión se ofrece como aviso con botón y `resolve_choice()` sigue siendo la forma de contestar (la acción `decide` de un aviso la llama).
 - El arranque rápido en la extracción (`phase_starts.extraccion`) pasa a 690 s: con la carga más lenta y el refuerzo más tarde, a los 420 s sobraba reloj y la prueba de la interfaz «sin carga el paso salir queda apagado» dejaba de tener sentido.
 
-## Resultados
+## Resultados (60 semillas del QA × 3 réplicas; detalle en `evidence/humahuaca/r2b/balance/despues.md`)
 
-Ver `evidence/humahuaca/r2b/balance/despues.md`. Lo que se alcanzó y lo que no, en palabras simples:
+| Medida | Antes (333a657) | Después (4dcabe9) | Diseño |
+|---|---|---|---|
+| Experto, 1.er intento | 100 % | 100 % | ≥ 90 % |
+| Obediente, 1.er intento | 100 % | **40,0 %** (Wilson 34–46) | 20–45 % |
+| Torpe, 1.er intento | 98,3 % | **31,7 %** (26–38) | 5–30 % |
+| Obediente gana en ≤ 5 intentos | 100 % | 100 % (todos al 2.º) | ≥ 85 % |
+| Ciegos (4) | sin medir | 0 % los cuatro | ≤ 10 % |
+| Victorias, mediana (experto + obediente) | 8:44 | **11:10** (95,8 % entre 10:00 y 14:00) | 11:00–13:00 |
+| Derrotas del 1.er intento, mediana | 8:55 (n = 3) | **1:10** (n = 231) | ≤ 8:00 |
+| Brecha máxima sin oferta (bots) | 102 s | **40 s** (ataque 18 s) | ≤ 45 s (≤ 20 s) |
+| Decisiones significativas por ramificación | 0 de 180 | 2 de 215 | una cada ≤ 45 s |
+| Determinismo | – | 180 de 180 iguales | iguales |
 
-- **J05 (obediente y torpe):** el obediente queda dentro de 20–45 %; el torpe queda cerca del obediente, por encima del 30 % que pide la rúbrica. El torpe del contrato solo se demora, ignora avisos no urgentes y atrasa la señal; en este nivel ninguna de esas tres cosas decide una partida, porque las derrotas las deciden el mundo (guardia atenta, refuerzo temprano) y no la velocidad de la mano. Hacerlo perder más exigiría inventarle otra torpeza (que no está en el contrato) o un mecanismo de tiempo justo que también castigaría al jugador humano.
-- **J07 (duración):** la mediana de las victorias cae entre 11:00 y 13:00 y las derrotas del primer intento son tempranas (mediana cerca de 1:10).
-- **J03 por ofertas:** brechas ≤ 45 s y ≤ 20 s en el ataque en las partidas medidas; el informante de los 0:40 tapa el hueco inicial y los repliegues escalonados el final de la marcha.
+Lo que se alcanzó y lo que no, en palabras simples:
+
+- **J05 (obediente y torpe):** el obediente queda dentro de 20–45 %. El torpe queda apenas por encima del 30 %: pierde donde pierde el obediente (guardia atenta, refuerzo temprano) y un poco más por sus demoras, pero no mucho más, porque en este nivel ninguna de sus tres torpezas del contrato (demorarse, ignorar avisos no urgentes, atrasar la señal) decide una partida por sí sola. Hacerlo perder más exigiría inventarle otra torpeza (que no está en el contrato) o un mecanismo de tiempo justo que también castigaría al jugador humano. El tercer intento del obediente no tiene muestra: todos ganan al segundo (la lección del diario alcanza).
+- **J07 (duración):** cumplido.
+- **J03 por ofertas:** cumplido en las 1 698 partidas de los bots; la estrategia `est_bateria_gola` deja 29 partidas con una brecha de 87 s (la gola se tuerce temprano) y la rúbrica las cuenta.
 - **J03 por ramificación:** no se alcanza. Una orden postergada 20 s casi nunca cambia el final en 10 puntos: el nivel tiene decisiones, pero sus consecuencias son graduales. Pedir una decisión de ese peso cada 45 s durante 12 minutos es otra clase de juego (más eventos con reloj y con castigo fuerte) y queda para la ronda siguiente, con diseño.
-- **J06:** quedan medibles los cuatro ciegos, cinco estrategias de frente (frontal, gola, calle, patios, directa) y cuatro recetas de extracción; las que piden distraer, voltear piezas u ocultar siguen omitidas porque esas acciones no existen todavía. La matriz corre y se publica; con cinco estrategias no llega a las ocho que pide la rúbrica.
+- **J04:** experto, ciegos y pasivos pasan; faltan las filas de la escena real, que no corre sin pantalla.
+- **J06:** quedan medibles los cuatro ciegos, cinco estrategias de frente (frontal, gola, calle, patios, directa) y cuatro recetas de extracción; las que piden distraer, voltear piezas u ocultar siguen omitidas porque esas acciones no existen todavía. La matriz corre y se publica; con cinco estrategias no llega a las ocho que pide la rúbrica, el enfoque por defecto del experto gana siempre (frontal, calle, directa: 100 %) y la gola nunca es la mejor. El barrido de la señal ahora tiene forma (16 a 37 puntos) con el máximo a las 5:00 y meseta, pero tiene un segundo pico a las 2:00 (la señal con una sola partida en su puesto).
+
+## Qué mirar al retomar con pantalla
+
+1. El aviso del informante y el de «Cargar ahora» en la interfaz real (texto, botón, pausa corta).
+2. Correr `--level=scene` con el experto y el obediente en 12 semillas (J04 y J05 de escena).
+3. El pico de las 2:00 del barrido: si se quiere la unimodalidad, que la señal con una sola partida cueste más (por ejemplo, que las partidas que llegan después de la señal ataquen sin bono).
+4. Darle a la gola una razón de ser (hoy pasa bajo la torre y por delante de la batería) y, con las acciones de R2a, sumar distracción, piezas y ocultar para completar la matriz.
