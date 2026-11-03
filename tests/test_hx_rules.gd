@@ -394,38 +394,7 @@ func _test_determinism() -> void:
 	ck(int(rng_a.state.state_version) > 1, "state_version sube con cada paso")
 
 func _test_world_from_seed() -> void:
-	var r := new_rules()
-	var first: Dictionary = _dict(r.call("world_from_seed", 1817))
-	var dims_ok := true
-	for dim in R.VARIANTS:
-		if not first.has(dim) or not (R.VARIANTS[dim] as Array).has(first[dim]):
-			dims_ok = false
-	ck(dims_ok, "world_from_seed trae las seis dimensiones con valores legales: %s" % str(first))
-	var traits: Dictionary = _dict(first.get("loot", {}))
-	var traits_ok := true
-	for k in R.WORLD_TRAITS:
-		if not traits.has(k) or not (R.WORLD_TRAITS[k] as Array).has(traits[k]):
-			traits_ok = false
-	ck(traits_ok, "...y los rasgos del botín del mundo (corral, plata, pólvora) legales: %s" % str(traits))
-	ck(same(first, _dict(r.call("world_from_seed", 1817))), "world_from_seed es determinista")
-	if not Fx.round_ge(round_id, "r2b"):
-		var all_same := true
-		for sd in [3, 5, 7, 11, 13, 17, 19, 23, 29, 31]:
-			if not same(first, _dict(r.call("world_from_seed", sd))):
-				all_same = false
-		ck(all_same, "en R1 el mundo es fijo: todas las semillas dan el mismo mundo")
-	var s: Dictionary = r.state
-	var from_state := true
-	for dim in R.VARIANTS:
-		if str(s.world[dim]) != str(first[dim]):
-			from_state = false
-	ck(from_state, "el mundo de la partida es el de world_from_seed")
-	var forced := new_rules(1817, {"variant": {"torre_en": "templo", "guardia": "atenta"}})
-	ck(str(forced.state.world.torre_en) == "templo" and str(forced.state.world.guardia) == "atenta", "opts.variant fuerza una dimensión legal")
-	var bad_variant := new_rules(1817, {"variant": {"torre_en": "marte"}})
-	ck(str(bad_variant.state.world.torre_en) != "marte", "opts.variant ignora un valor ilegal")
-	var traited := new_rules(1817, {"loot_traits": {"polvora": "humeda", "corral": "desbandado"}})
-	ck(str(traited.state.world.loot_traits.polvora) == "humeda" and str(traited.state.world.loot_traits.corral) == "desbandado", "opts.loot_traits fuerza rasgos legales del botín")
+	_run_check("_test_world_from_seed")
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Fases y reloj
@@ -1156,6 +1125,8 @@ func _test_loot_and_treatments() -> void:
 		ck(float(acc.state.loot.load_kg) == 0.0, "la carga del arreo queda en 0 al salir")
 	var wet := new_rules(1817, {"phase": "extraccion", "loot_traits": {"polvora": "humeda"}})
 	var dry := new_rules(1817, {"phase": "extraccion", "loot_traits": {"polvora": "seca"}})
+	wet.state.alarm.reinforcement_at = 99999.0  # el arranque rápido de la extracción tiene el reloj del refuerzo encima a propósito (lo usa la interfaz): acá se mide la pólvora, no el reloj
+	dry.state.alarm.reinforcement_at = 99999.0
 	var gp_wet := 0.0
 	var gp_dry := 0.0
 	for pair in [[wet, "wet"], [dry, "dry"]]:

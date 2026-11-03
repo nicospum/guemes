@@ -21,6 +21,7 @@ const Nav = preload("res://scripts/humahuaca/rules/humahuaca_nav.gd")
 const Info = preload("res://scripts/humahuaca/rules/humahuaca_rules_info.gd")
 const Save = preload("res://scripts/humahuaca/rules/humahuaca_rules_save.gd")
 const Setup = preload("res://scripts/humahuaca/rules/humahuaca_setup.gd")
+const Field = preload("res://scripts/humahuaca/rules/humahuaca_rules_field.gd")
 
 const SCENARIO := "humahuaca"
 const SAVE_VERSION := 1
@@ -40,6 +41,7 @@ var _terrain_tried := false
 var _nav: RefCounted = null
 var _events: Array = []
 var _info_inst: Info = null
+var _field_inst: Field = null
 var _env_key := -1.0
 var _env_val: Dictionary = {}
 
@@ -152,11 +154,25 @@ func terrain_height_at(x: float, z: float) -> float:
 		return float(t.call("height_at", x, z))
 	return FLAT_HEIGHT_M
 
-## En R1 el mundo es fijo (el de variants.fixed); desde R2b sorteará solo las dimensiones activas (ACTIVE_DIMS) con la semilla.
-func world_from_seed(_seed_value: int) -> Dictionary:
+## El mundo de una semilla: las dimensiones activas (variants.active, las ACTIVE_DIMS del vocabulario) se sortean con un congruencial propio de la semilla; las
+## inactivas quedan en variants.fixed. Determinista y sin azar de Godot. Las constantes de mezcla (variants.seed_mix) están elegidas para que las semillas de
+## calibración cubran cada valor ≥ 2 veces, cada mitad de la compuerta ≥ 3 y las 60 del QA ≥ 3, para que la semilla 1817 (el mundo guiado) dé el mundo fijo y la 7
+## (la de las pruebas de interfaz) una guardia descuidada.
+func world_from_seed(seed_value: int) -> Dictionary:
 	var variants: Dictionary = _rules.get("variants", {})
 	var world: Dictionary = (variants.get("fixed", {}) as Dictionary).duplicate(true)
 	world["loot"] = (variants.get("loot_fixed", {}) as Dictionary).duplicate(true)
+	var dims: Dictionary = variants.get("dimensions", {})
+	var mix: Dictionary = variants.get("seed_mix", {})
+	var h := (absi(seed_value) * int(mix.get("mult", 1735)) + int(mix.get("add", 7))) % 2147483647
+	for dim in variants.get("active", []):
+		if not dims.has(dim) or not R.VARIANTS.has(dim):
+			continue
+		var values: Array = dims[dim].values
+		h = (h * 48271 + 12345) % 2147483647
+		var pick: Variant = values[(h >> 8) % values.size()]
+		if (R.VARIANTS[dim] as Array).has(pick):
+			world[dim] = pick
 	return world
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -183,6 +199,7 @@ func new_game(seed_value: int = 1817, attempt: int = 1, opts: Dictionary = {}) -
 			"pacing": {"decision_gap_max_s": 0.0, "decision_gap_attack_max_s": 0.0, "first_decision_s": -1.0, "events_per_min": 0.0, "visible_actions_t0": 4},
 			"charges_total": 0, "charges_in_gap": 0},
 		"log": [], "orders": [], "pacing_last": {"offer": -1.0, "gap_start": 0.0, "attack_gap_start": -1.0, "events": 0}, "fire_lines": [], "outcome": {}, "render_version": 1,
+		"decision": {}, "decisions_done": [],
 		"smoke_used": 0, "smoke_adv": 0.0,
 		"mercy_level": clampi(int(opts.get("mercy_level", 0)), 0, 3),
 		"assists": (opts.get("assists", []) as Array).duplicate() if opts.get("assists", []) is Array else [],
@@ -267,6 +284,7 @@ func _step() -> void:
 	state.state_version = int(state.state_version) + 1
 	var t := float(state.elapsed)
 	_step_events(t)
+	_field()._step_decisions(t)
 	_step_alert(t)
 	_step_units(t)
 	_step_combat(t)
@@ -383,6 +401,22 @@ func _wet_rain() -> float:
 func _vis_mult_at(fid: String) -> float:
 	return float(_rules.stealth.detection.tower_height_mult) if fid == "bateria" or (fid == "cuartel" and bool(state.objectives.cuartel.tower.armed)) else 1.0
 
+## Lo que cambia con la guardia del mundo (enemy.guard.<descuidada|atenta>): cuánto ven los centinelas, cuánto dura la sorpresa y cuánto rinde contra el cuartel.
+func _guard_cfg() -> Dictionary:
+	var guard: Dictionary = (_rules.get("enemy", {}) as Dictionary).get("guard", {})
+	return guard.get(str(state.world.guardia), {}) if not state.is_empty() else {}
+
+func _detect_mult() -> float:
+	return float(_guard_cfg().get("detect_mult", 1.0))
+
+func _surprise_s() -> float:
+	return float(_guard_cfg().get("surprise_s", _rules.time.surprise_s))
+
+func _surprise_bonus_max(fid: String) -> float:
+	if fid == "cuartel" and _guard_cfg().has("cuartel_surprise_bonus"):
+		return float(_guard_cfg().cuartel_surprise_bonus)
+	return float(_rules.combat.surprise_bonus_max)
+
 func _sentinel_points(fid: String) -> Array:
 	var c := _hito_pos(str(_rules.objectives[fid].hito))
 	var out: Array = []
@@ -392,7 +426,7 @@ func _sentinel_points(fid: String) -> Array:
 
 ## ¿Alguno de los centinelas del frente ve a la agrupación? Cuenta la distancia (visibilidad × (1 + 2 × ruido), ×1,5 en altura) y que ningún muro tape la vista.
 func _sentinel_sees(fid: String, u: Dictionary, vis: float) -> bool:
-	var reach := vis * (1.0 + float(_rules.stealth.detection.noise_mult) * float(u.noise)) * _vis_mult_at(fid)
+	var reach := vis * (1.0 + float(_rules.stealth.detection.noise_mult) * float(u.noise)) * _vis_mult_at(fid) * _detect_mult()
 	var p := Vector2(float(u.x), float(u.z))
 	var t := terrain()
 	for s in _sentinel_points(fid):
@@ -418,7 +452,7 @@ func _step_alert(t: float) -> void:
 		if t >= float(_rules.time.alba_start_s):
 			a += drift_rate * STEP
 		if float(al.first_shot_at) >= 0.0:
-			a = maxf(a, clampf((t - float(al.first_shot_at)) / float(_rules.time.surprise_s), 0.0, 1.0))
+			a = maxf(a, clampf((t - float(al.first_shot_at)) / _surprise_s(), 0.0, 1.0))
 		var seen_now := false
 		for u in state.units:
 			if float(u.noise) <= 0.0 or str(u.stage) == "exited":
@@ -433,22 +467,16 @@ func _step_alert(t: float) -> void:
 		o.alert = a
 		top = maxf(top, a)
 		if a >= float(en.alarma_at) and (str(o.state) == "guardado" or str(o.state) == "alertado"):
-			o.state = "en_alarma"
-			_event("alarm", _ts("eventos.alarma", {"frente": str(_rules.objectives[fid].full_name)}), {"objective": fid, "strong": true})
-			_bump()
-			## Solo cuenta la alarma que saltó porque los vieron: el desvelo del alba también la levanta (a las 6:00 «está en alarma aunque nadie haya disparado») y esa es del reloj.
-			if seen_now and not bool(al.signaled) and not (al.pre_signal as Array).has(fid):
-				(al.pre_signal as Array).append(fid)
+			_raise_alarm(fid, o, seen_now, t)
 		elif a >= float(en.alertado_at) and str(o.state) == "guardado":
 			o.state = "alertado"
 			_bump()
 	al.level = top
+	_step_messenger(t)
+	_step_spread(t)
 	if not bool(al.signaled) and (al.pre_signal as Array).size() >= V.OBJECTIVES.size() and str(state.status) == "playing":
 		var last := str((al.pre_signal as Array)[(al.pre_signal as Array).size() - 1])
 		_finish("defeat", "descubiertos", {"frente": last})
-
-# ---------------------------------------------------------------------------------------------------------------------
-# Agrupaciones: ruido, marcha, trabajo
 
 func _noise_of(u: Dictionary, env: Dictionary) -> float:
 	var st := str(u.stage)
@@ -644,9 +672,11 @@ func _fire_signal(auto: bool) -> void:
 	al.signal_at = t
 	al.first_shot_at = t
 	al.reinforcement_at = t + float(_rules.reinforcement.delay_s[str(state.world.refuerzo)])
+	if str(al.messenger) == "escaped":
+		al.reinforcement_at = float(al.reinforcement_at) - float(_rules.reinforcement.get("messenger_advance_s", 0.0))
 	_set_phase("ataque")
 	for fid in V.OBJECTIVES:
-		state.objectives[fid].surprise_until = t + float(_rules.time.surprise_s)
+		state.objectives[fid].surprise_until = t + _surprise_s()
 	_event("signal", _ts("eventos.senal_temprana" if auto else "eventos.senal"), {"strong": true})
 	for u in state.units:
 		if str(u.stage) == "waiting_signal":
@@ -660,7 +690,7 @@ func _start_attack(u: Dictionary, front: String) -> void:
 		u.path = []
 		return
 	var posture := str(u.order.get("posture", "con_cautela"))
-	u.order = {"action": "attack", "front": front, "posture": posture}
+	u.order = {"action": "attack", "front": front, "posture": posture, "approach": str(u.order.get("approach", _approach_of(front, Vector2(float(u.x), float(u.z)))))}
 	u.stage = "attacking"
 	u.path = []
 	u.fatigue = minf(100.0, float(u.fatigue) + float(_rules.combat.fatigue_per_attack))
@@ -668,17 +698,12 @@ func _start_attack(u: Dictionary, front: String) -> void:
 		state.stats.charges_total = int(state.stats.charges_total) + 1
 		if _tower_in_gap():
 			state.stats.charges_in_gap = int(state.stats.charges_in_gap) + 1
+			var tw: Dictionary = state.objectives.cuartel.tower
+			if bool(tw.active):  # la carga que sale en el hueco llega al pie de la torre antes de la próxima descarga: esa descarga no la alcanza
+				u.tower_cover_until = float(tw.next_volley_at) + 0.1
 	if not bool(state.alarm.signaled):
 		_fire_signal(true)
 	_bump()
-
-## ¿La carga sobre el cuartel sale en el hueco de recarga de la torre (o con la torre callada)? Es la medida de la compuerta 11: el tiempo hasta la próxima descarga
-## alcanza para cruzar de la calle al pie de la torre antes de que dispare.
-func _tower_in_gap() -> bool:
-	var tw: Dictionary = state.objectives.cuartel.tower
-	if not bool(tw.active):
-		return true
-	return float(tw.next_volley_at) - float(state.elapsed) >= float(_rules.tower.cross_gap_s)
 
 func _start_support(u: Dictionary, front: String) -> void:
 	if not state.objectives.has(front) or str(state.objectives[front].state) == "tomado":
@@ -735,9 +760,11 @@ func _step_combat(_t: float) -> void:
 			cas += float(cb.posture[str(u.order.get("posture", "con_cautela"))].casualties)
 		cas /= float(attackers.size())
 		var defense := _defense_of(fid, o)
-		var surprise := 1.0 + float(cb.surprise_bonus_max) * (1.0 - float(o.alert))
+		var surprise := 1.0 + _surprise_bonus_max(fid) * (1.0 - float(o.alert))
 		o.toma = minf(100.0, float(o.toma) + float(cb.capture_k) * atk / defense * surprise * STEP)
 		o.garrison = float(o.garrison_max) * (1.0 - float(o.toma) / 100.0)
+		if bool(o.get("turned_out", false)):  # la guardia que salió entera y atrincherada tira mejor
+			cas *= float(_rules.enemy.alert.get("turnout_casualty_mult", 1.0))
 		var loss := float(cb.casualty_k) * defense / maxf(atk, 1.0) * cas * STEP
 		for u in attackers:
 			u.strength = maxf(0.0, float(u.strength) - loss)
@@ -783,64 +810,6 @@ func _capture(fid: String) -> void:
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Torre del cuartel (en R1 es un temporizador: 12 descargas de 7,5 s)
-
-func _tower_pos() -> Vector2:
-	return _hito_pos(str(_rules.tower.hito[str(state.world.torre_en)]))
-
-## Cuánto daño le toca a una agrupación en una descarga: 0 si está fuera del radio, a salvo en el ángulo muerto o tapada por la vista; ×2 en la calle abierta,
-## ×0,5 detrás de una tapia y ×0,3 si cruza corriendo. Quien asalta el cuartel baja por la calle bajo la torre aunque su puesto quede un poco más lejos.
-func _tower_hit_mult(u: Dictionary, tp: Vector2) -> float:
-	var tcfg: Dictionary = _rules.tower
-	var dm: Dictionary = tcfg.damage_mult
-	var up := Vector2(float(u.x), float(u.z))
-	var d := up.distance_to(tp)
-	var st := str(u.stage)
-	var storming := st == "attacking" and str(u.order.get("front", "")) == "cuartel"
-	if d <= float(tcfg.dead_angle_m) or (d > float(tcfg.radius_m) and not storming):
-		return 0.0
-	var t := terrain()
-	var seen := t == null or not t.has_method("los") or bool(t.call("los", tp, up, float(tcfg.eye_m), 1.6))
-	if not seen and not storming:
-		return 0.0
-	if storming:
-		return float(dm.calle_abierta) if str(u.order.get("posture", "")) == "a_fondo" else float(dm.tapia)
-	if st == "moving" and (str(u.pace) == "run" or str(u.pace) == "gallop" or str(u.pace) == "trot"):
-		return float(dm.corriendo)
-	if t != null and t.has_method("surface_at") and str(t.call("surface_at", up.x, up.y)) == "camino":
-		return float(dm.calle_abierta)
-	return 1.0
-
-func _step_tower(t: float) -> void:
-	var tw: Dictionary = state.objectives.cuartel.tower
-	var tcfg: Dictionary = _rules.tower
-	if not bool(tw.armed) and bool(state.alarm.signaled) and str(state.objectives.cuartel.state) != "tomado":
-		if t >= float(state.alarm.first_shot_at) + float(tcfg.arm_delay_s[str(state.world.guardia)]):
-			tw.armed = true
-			tw.active = true
-			tw.next_volley_at = t + float(tcfg.volley_period_s)
-			_event("tower", _ts("eventos.torre"), {"objective": "cuartel", "pos": _pt(_tower_pos().x, _tower_pos().y)})
-			_bump()
-	if not bool(tw.active):
-		return
-	if t + 1e-9 < float(tw.next_volley_at):
-		return
-	var tp := _tower_pos()
-	for u in state.units:
-		var st := str(u.stage)
-		if st == "exited" or st == "routed":
-			continue
-		var mult := _tower_hit_mult(u, tp)
-		if mult <= 0.0:
-			continue
-		var jitter := 1.0 + float(tcfg.jitter) * (_random() - 0.5)
-		u.strength = maxf(0.0, float(u.strength) - float(tcfg.damage_per_volley_pct) * mult * jitter)
-		(state.fire_lines as Array).append({"from": _pt(tp.x, tp.y), "to": _pt(float(u.x), float(u.z)), "kind": "torre", "until": t + 1.5})
-	tw.volleys_left = int(tw.volleys_left) - 1
-	tw.next_volley_at = t + float(tcfg.volley_period_s)
-	if int(tw.volleys_left) <= 0:
-		tw.active = false
-		_event("tower", _ts("eventos.torre_calla"), {"objective": "cuartel"})
-		_bump()
 
 func _step_fire_lines(t: float) -> void:
 	var keep: Array = []
@@ -968,122 +937,6 @@ func _finalize_loot() -> void:
 			it.carried_by = ""
 
 # ---------------------------------------------------------------------------------------------------------------------
-# Reconocimiento y botín
-
-func _recon_radius_for(fid: String) -> float:
-	var rc: Dictionary = _rules.stealth.recon
-	var base := float(rc.radius_m)
-	if float(environment().visibility_m) < float(rc.dark_below_m):
-		base = float(rc.radius_dark_m)
-	for lg in _level.lights:
-		if str(lg.get("objective", "")) == fid:
-			return maxf(base, float(rc.lit_radius_m))
-	return base
-
-func _complete_recon(u: Dictionary) -> void:
-	var rc: Dictionary = _rules.stealth.recon
-	for fid in V.OBJECTIVES:
-		var c := _hito_pos(str(_rules.objectives[fid].hito))
-		if D.dist(float(u.x), float(u.z), c.x, c.y) > _recon_radius_for(fid):
-			continue
-		var o: Dictionary = state.objectives[fid]
-		var first := float(o.reconocido) < 1.0
-		o.reconocido = 1.0
-		if not (state.recon.fronts as Array).has(fid):
-			(state.recon.fronts as Array).append(fid)
-		if first:
-			_event("recon", _ts("eventos.reconocido", {"texto": str(_rules.objectives[fid].reveal_text)}), {"objective": fid, "unit": str(u.id), "pos": _pt(c.x, c.y), "strong": true})
-		var risk := float(rc.risk_base) + float(rc.risk_per_noise) * float(_rules.stealth.pace.march.noise) + float(rc.risk_per_alert) * float(o.alert)
-		if _random() < risk:
-			u.detected = true
-			state.stats.detections = int(state.stats.detections) + 1
-			o.alert = minf(1.0, float(o.alert) + float(rc.alert_when_seen))
-			_event("detected", _ts("eventos.detectado", {"frente": str(_rules.objectives[fid].place)}), {"objective": fid, "unit": str(u.id)})
-	_bump()
-
-func _item(id: String) -> Dictionary:
-	for it in state.loot.items:
-		if str(it.id) == id:
-			return it
-	return {}
-
-func _item_kg(it: Dictionary) -> float:
-	return float(it.qty) * float(it.unit_kg)
-
-func _item_value(it: Dictionary) -> float:
-	return float(it.qty) * float(it.unit_value)
-
-## El lote en sitio de un frente ya tomado que más puntos da por kilo, que entre en `room_kg` (o -1 para cualquiera), cerca de `near` si se pide.
-func _best_item(room_kg: float, near: Variant = null, radius: float = -1.0, destroying: bool = false) -> Dictionary:
-	var best: Dictionary = {}
-	var best_density := -1.0
-	for it in state.loot.items:
-		if str(it.state) != "en_sitio" or str(state.objectives[str(it.front)].state) != "tomado":
-			continue
-		if room_kg >= 0.0 and _item_kg(it) > room_kg + 1e-6:
-			continue
-		if near is Vector2 and radius >= 0.0 and D.dist(float(it.x), float(it.z), (near as Vector2).x, (near as Vector2).y) > radius:
-			continue
-		var density := _item_value(it) / _item_kg(it)
-		if destroying:
-			density = _item_value(it) / float(_rules.loot.classes[str(it.kind)].destroy_s)  # lo que más valor quita por segundo
-		if density > best_density:
-			best_density = density
-			best = it
-	return best
-
-func _complete_load(u: Dictionary, item_id: String) -> void:
-	var it := _item(item_id)
-	if it.is_empty() or str(it.state) != "en_sitio":
-		return
-	it.state = "cargado"
-	it.carried_by = str(u.id)
-	u.carry_kg = float(u.carry_kg) + _item_kg(it)
-	state.loot.load_kg = float(state.loot.load_kg) + _item_kg(it)
-	_event("load", _ts("eventos.carga", {"carga": "%s (%d kg)" % [str(_rules.loot.classes[str(it.kind)].name).to_lower(), roundi(_item_kg(it))]}), {"unit": str(u.id)})
-
-func _complete_destroy(u: Dictionary, item_id: String) -> void:
-	var it := _item(item_id)
-	if it.is_empty() or str(it.state) != "en_sitio":
-		return
-	it.state = "destruido"
-	var kept := _item_value(it) * float(_rules.loot.treatments.destruir)
-	state.loot.destroyed_value = float(state.loot.destroyed_value) + kept
-	state.loot.lost_value = float(state.loot.lost_value) + _item_value(it) - kept  # lo que destruir no puntúa se pierde: al cierre entregado + destruido + oculto + perdido suman 100
-	_event("destroy", _ts("eventos.destruido", {"carga": str(_rules.loot.classes[str(it.kind)].name).to_lower()}), {"unit": str(u.id)})
-	if str(it.kind) == "polvora":
-		var sm: Dictionary = _rules.reinforcement.smoke_advance_s
-		var per := float(sm.first) if int(state.smoke_used) == 0 else float(sm.next)
-		var adv := minf(per, float(sm.cap) - float(state.smoke_adv))
-		if float(state.alarm.reinforcement_at) >= 0.0 and adv > 0.0:
-			state.alarm.reinforcement_at = float(state.alarm.reinforcement_at) - adv
-			state.smoke_adv = float(state.smoke_adv) + adv
-		state.smoke_used = int(state.smoke_used) + 1
-
-func _exit_unit(u: Dictionary) -> void:
-	var l: Dictionary = state.loot
-	var delivered := 0.0
-	var kg := 0.0
-	for it in l.items:
-		if str(it.state) == "cargado" and str(it.carried_by) == str(u.id):
-			var mult := float(_rules.loot.treatments.entregar)
-			if bool(it.get("wet", false)):
-				mult *= float(_rules.loot.powder_wet_mult)
-				state.stats.powder_wet = 1
-			delivered += _item_value(it) * mult
-			kg += _item_kg(it)
-			it.state = "entregado"
-			it.carried_by = ""
-	l.delivered_value = float(l.delivered_value) + delivered
-	l.load_kg = maxf(0.0, float(l.load_kg) - kg)
-	u.carry_kg = 0.0
-	u.stage = "exited"
-	u.order = {}
-	u.path = []
-	_event("exit", _ts("eventos.salio", {"kg": roundi(kg)}), {"unit": str(u.id), "strong": true})
-	_bump()
-
-# ---------------------------------------------------------------------------------------------------------------------
 # Órdenes
 
 func list_actions(actor_kind: String) -> Array:
@@ -1128,14 +981,29 @@ func _front_from(target: Vector2, opts: Dictionary, default_front: String) -> St
 			return best
 	return default_front
 
-## El puesto de ataque de un frente (level.access.attack_posts): el del enfoque pedido en opts.approach o, si no, el primero.
-func _attack_post(front: String, opts: Dictionary) -> Vector2:
+## El puesto de ataque de un frente (level.access.attack_posts): el del enfoque pedido en opts.approach; si no, el más cercano a `near` (el punto que marcó
+## el jugador o el «siguiente paso»: así el botón de la pista elige el enfoque sin opciones); si no, el primero.
+func _attack_post(front: String, opts: Dictionary, near: Vector2 = Vector2.ZERO) -> Vector2:
 	var posts: Array = _level.access.attack_posts[front]
 	var approach := str(opts.get("approach", ""))
 	for p in posts:
 		if approach != "" and str(p.get("approach", "")) == approach:
 			return Vector2(float(p.x), float(p.z))
+	if near != Vector2.ZERO:
+		var best := Vector2(float(posts[0].x), float(posts[0].z))
+		for p in posts:
+			var q := Vector2(float(p.x), float(p.z))
+			if q.distance_to(near) < best.distance_to(near):
+				best = q
+		return best
 	return Vector2(float(posts[0].x), float(posts[0].z))
+
+## El enfoque (calle, patios, gola…) del puesto de un frente en el que está `p`; "" si no está en ninguno (a menos de 25 m).
+func _approach_of(front: String, p: Vector2) -> String:
+	for post in _level.access.attack_posts[front]:
+		if Vector2(float(post.x), float(post.z)).distance_to(p) <= 25.0:
+			return str(post.get("approach", ""))
+	return ""
 
 func _waypoints(opts: Dictionary) -> Array:
 	var out: Array = []
@@ -1223,7 +1091,8 @@ func _check(actor_id: String, action: String, target: Vector2, opts: Dictionary)
 			if fp == "":
 				return _no("no_corresponde")
 			ctx.front = fp
-			ctx.dest = _attack_post(fp, opts)
+			ctx.dest = _attack_post(fp, opts, target)
+			ctx["approach"] = _approach_of(fp, ctx.dest)
 		"attack":
 			var fa := _front_from(target, opts, str(_rules.groups[u.id].front))
 			if fa == "" or not _is_combat(u):
@@ -1305,6 +1174,9 @@ func issue_order(actor_id: String, action: String, target: Vector2 = Vector2.ZER
 	if action == "give_signal":
 		var r := give_signal()
 		return {"ok": bool(r.ok), "reason": str(r.reason), "path": [], "plan": {}}
+	if action == "decide":  # el botón de un aviso con decisión: `actor_id` trae la opción elegida
+		var rd := resolve_choice(actor_id, false)
+		return {"ok": bool(rd.ok), "reason": str(rd.reason), "path": [], "plan": {}}
 	var c := _check(actor_id, action, target, opts)
 	if not bool(c.ok):
 		return {"ok": false, "reason": str(c.reason), "path": [], "plan": {}}
@@ -1334,7 +1206,7 @@ func _apply_order(c: Dictionary, action: String, opts: Dictionary) -> void:
 		"move":
 			_go(u, c.route, {"action": "move", "x": float(c.dest.x), "z": float(c.dest.y)})
 		"position":
-			_go(u, c.route, {"action": "position", "front": str(c.front), "posture": posture})
+			_go(u, c.route, {"action": "position", "front": str(c.front), "posture": posture, "approach": str(c.get("approach", ""))})
 		"attack":
 			u.order = {"posture": posture}
 			_start_attack(u, str(c.front))
@@ -1449,10 +1321,10 @@ func apply_assist(_kind: String) -> Dictionary:
 	return _no("sin_ayuda")
 
 func pending_choice() -> Dictionary:
-	return {}
+	return _field().pending_choice() if not state.is_empty() else {}
 
-func resolve_choice(_option_id: String, _by_timeout: bool = false) -> Dictionary:
-	return _no("sin_decision")
+func resolve_choice(option_id: String, by_timeout: bool = false) -> Dictionary:
+	return _field().resolve_choice(option_id, by_timeout) if not state.is_empty() else _no("partida_terminada")
 
 # Decisiones del mando realista (forma del Norte): en R1 solo la alternativa local, sin tabla. Jev queda fuera del MVP (D4).
 func enemy_observation() -> Dictionary:
@@ -1471,6 +1343,62 @@ func record_external_decision(decision: Dictionary) -> Dictionary:
 	if not enemy_choices().has(str(decision.get("choice", ""))):
 		return _no("opcion_ilegal")
 	return {"ok": true, "reason": ""}
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Alarma, torre, reconocimiento, botín y decisiones de campo (humahuaca_rules_field.gd)
+
+func _field() -> Field:
+	if _field_inst == null:
+		_field_inst = Field.new(self)
+	return _field_inst
+
+func _raise_alarm(fid: String, o: Dictionary, seen: bool, t: float) -> void:
+	_field()._raise_alarm(fid, o, seen, t)
+
+func _step_messenger(t: float) -> void:
+	_field()._step_messenger(t)
+
+func _step_spread(t: float) -> void:
+	_field()._step_spread(t)
+
+func _tower_in_gap() -> bool:
+	return _field()._tower_in_gap()
+
+func _tower_pos() -> Vector2:
+	return _field()._tower_pos()
+
+func _tower_hit_mult(u: Dictionary, tp: Vector2) -> float:
+	return _field()._tower_hit_mult(u, tp)
+
+func _step_tower(t: float) -> void:
+	_field()._step_tower(t)
+
+func _recon_radius_for(fid: String) -> float:
+	return _field()._recon_radius_for(fid)
+
+func _complete_recon(u: Dictionary) -> void:
+	_field()._complete_recon(u)
+
+func _item(id: String) -> Dictionary:
+	return _field()._item(id)
+
+func _item_kg(it: Dictionary) -> float:
+	return _field()._item_kg(it)
+
+func _item_value(it: Dictionary) -> float:
+	return _field()._item_value(it)
+
+func _best_item(room_kg: float, near: Variant = null, radius: float = -1.0, destroying: bool = false) -> Dictionary:
+	return _field()._best_item(room_kg, near, radius, destroying)
+
+func _complete_load(u: Dictionary, item_id: String) -> void:
+	_field()._complete_load(u, item_id)
+
+func _complete_destroy(u: Dictionary, item_id: String) -> void:
+	_field()._complete_destroy(u, item_id)
+
+func _exit_unit(u: Dictionary) -> void:
+	_field()._exit_unit(u)
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Consultas de solo lectura (humahuaca_rules_info.gd)

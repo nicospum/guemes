@@ -10,8 +10,8 @@
 		"deadline_s": 840,
 		"surprise_s": 45,
 		"checkpoint_positions_fallback_s": 210,
-		"signal_hint_s": 240,
-		"phase_starts": {"aproximacion": 0, "ataque": 285, "extraccion": 420}
+		"signal_hint_s": 255,
+		"phase_starts": {"aproximacion": 0, "ataque": 285, "extraccion": 640}
 	},
 	"environment": {
 		"segments": [
@@ -48,8 +48,12 @@
 		"south_road": {"men": 8, "messenger": 1},
 		"messenger": {"leaves_after_alarm_s": 40},
 		"posta_officer": {"survives_s": 15, "reinforces_cuartel": 8},
-		"alert": {"alertado_at": 0.5, "alarma_at": 1.0, "alarm_delay_s": 6, "detect_gain_per_s": 0.02, "alarm_gain_per_s": 0.01},
+		"alert": {"alertado_at": 0.5, "alarma_at": 1.0, "alarm_delay_s": 6, "detect_gain_per_s": 0.02, "alarm_gain_per_s": 0.01, "turnout_garrison_mult": 1.4, "turnout_casualty_mult": 1.8},
 		"armed_share": 0.8,
+		"guard": {
+			"descuidada": {"detect_mult": 0.8, "cuartel_surprise_bonus": 0.8, "recon_seen_alert": 0.15, "tag": "diseno", "source": "«Con algún poco más de descuido» (parte de Arias): ve menos y la sorpresa dura 45 s."},
+			"atenta": {"detect_mult": 1.25, "surprise_s": 25, "cuartel_surprise_bonus": 0.3, "recon_seen_alert": 1.0, "recon_seen_prob": 1.0, "spread_alarm_s": 30, "tag": "diseno", "source": "«El traidor avisó»: ve más, la sorpresa dura 25 s, el cuartel ya espera y la guardia que ve algo corre la voz."}
+		},
 		"tag": "diseno",
 		"source": "Guarnición de 100 a 135 hombres según los partes de ambos bandos; el reparto es diseño."
 	},
@@ -61,8 +65,8 @@
 		"cost_minutes_div": 6,
 		"surprise_bonus_max": 0.8,
 		"posture": {"a_fondo": {"power": 1.4, "casualties": 1.6}, "con_cautela": {"power": 0.8, "casualties": 0.7}},
-		"capture_k": 3.4,
-		"casualty_k": 0.09,
+		"capture_k": 1.8,
+		"casualty_k": 0.08,
 		"alarm_cover_mult": 1.25,
 		"taken_garrison_pct": 15,
 		"fatigue_per_attack": 20,
@@ -91,7 +95,7 @@
 		"mud_speed_below": 0.8,
 		"risk_medium_from": 0.2,
 		"risk_high_from": 0.5,
-		"detection": {"noise_mult": 2.0, "tower_height_mult": 1.5},
+		"detection": {"noise_mult": 1.5, "tower_height_mult": 1.25},
 		"noise_states": {"se_oye_from": 0.2, "los_oyen_from": 0.5},
 		"dark_cost": {"aim_min": 0.25, "assault_min": 0.7, "range_dark_m": 25, "recon_dark_m": 25, "ramp_from_m": 35, "ramp_to_m": 100, "coordination_below_m": 60, "coordination_min_dist_m": 150, "messenger_speed_mps": 3.2},
 		"dawn_drift": {"per_s_factor": 0.004, "reference_visibility_m": 60},
@@ -106,11 +110,12 @@
 		"radius_m": 90,
 		"dead_angle_m": 12,
 		"arm_delay_s": {"descuidada": 12, "atenta": 0},
-		"damage_per_volley_pct": 2.0,
+		"damage_per_volley_pct": 2.5,
 		"jitter": 0.5,
 		"eye_m": 10.0,
 		"cross_gap_s": 3.0,
 		"damage_mult": {"calle_abierta": 2.0, "tapia": 0.5, "corriendo": 0.3},
+		"approach_mult": {"calle": {"casa_cura": 1.25, "templo": 0.6}, "patios": {"casa_cura": 0.6, "templo": 1.0}},
 		"hito": {"casa_cura": "torre_casa_cura", "templo": "torre_templo"},
 		"responses": [
 			{"id": "rodear", "texto": "Rodear por patios y tapias: lento, pide portillos o reconocimiento.", "tag": "diseno", "source": "Respuestas a la torre: diseño."},
@@ -134,8 +139,8 @@
 		"decoy": {"name": "Hacer ruido", "who": ["scout"], "target": "punto", "round": "R2a", "shortcut": "d", "cost_text": "8 s a más de 120 m del frente", "tag": "diseno", "source": "Distracción de la guardia: diseño."},
 		"watch": {"name": "Vigilar el sur", "who": ["scout"], "target": "punto", "round": "R2a", "shortcut": "w", "cost_text": "Quedarse en un punto alto", "tag": "diseno", "source": "Vigía del camino sur: diseño."},
 		"bring": {"name": "Traer el arreo", "who": ["train"], "target": "ninguno", "round": "R2a", "shortcut": "t", "cost_text": "Viaje a paso de mula", "tag": "diseno", "source": "Traslado del arreo a la posta: diseño."},
-		"load": {"name": "Cargar", "who": ["train"], "target": "carga", "round": "R1", "shortcut": "l", "cost_text": "12 kg/s por equipo · hasta 3 equipos", "tag": "diseno", "tag_parts": {"hecho": "documentado", "pesos": "diseno"}, "source": "El parte cuenta lo capturado y lo que no se pudo llevar; los pesos son diseño."},
-		"destroy": {"name": "Destruir", "who": ["train", "group"], "target": "carga", "round": "R1", "shortcut": "x", "cost_text": "Quemar 20 s · clavar un cañón 10 s", "tag": "diseno", "tag_parts": {"municion": "documentado", "clavar_canones": "diseno"}, "source": "El parte cuenta la munición quemada o echada al río; clavar cañones es diseño."},
+		"load": {"name": "Cargar", "who": ["train"], "target": "carga", "round": "R1", "shortcut": "l", "cost_text": "7,5 kg/s por equipo · hasta 3 equipos", "tag": "diseno", "tag_parts": {"hecho": "documentado", "pesos": "diseno"}, "source": "El parte cuenta lo capturado y lo que no se pudo llevar; los pesos son diseño."},
+		"destroy": {"name": "Destruir", "who": ["train", "group"], "target": "carga", "round": "R1", "shortcut": "x", "cost_text": "Quemar 20 a 25 s · clavar un cañón 10 s", "tag": "diseno", "tag_parts": {"municion": "documentado", "clavar_canones": "diseno"}, "source": "El parte cuenta la munición quemada o echada al río; clavar cañones es diseño."},
 		"hide": {"name": "Ocultar", "who": ["train", "group"], "target": "carga", "round": "R2a", "shortcut": "o", "cost_text": "25 s por pieza · lejos del camino", "tag": "discutido", "source": "El Diario realista habla de piezas ocultas o enterradas."},
 		"leave": {"name": "Salir por el este", "who": ["train", "group"], "target": "ninguno", "round": "R1", "shortcut": "e", "cost_text": "Cruzar el vado a media velocidad", "tag": "diseno", "tag_parts": {"hecho": "documentado", "lugar": "diseno"}, "source": "El parte cuenta la salida con lo capturado; el rumbo es diseño."},
 		"drop": {"name": "Soltar la carga", "who": ["train"], "target": "ninguno", "round": "R2a", "shortcut": "j", "cost_text": "Sin costo", "tag": "diseno", "source": "Abandonar la carga para huir: diseño."},
@@ -148,7 +153,7 @@
 			"polvora": {"name": "Pólvora y municiones", "points": 30, "unit_kg": 100, "lots": [{"site": "polvorin", "front": "posta", "qty": 4, "count": 3}], "destroy_s": 20, "where": "Polvorín de la posta", "tag": "diseno", "tag_parts": {"existencia": "documentado", "cantidades": "diseno"}, "source": "El parte cuenta la munición capturada; cantidades y pesos son diseño."},
 			"canones": {"name": "Cañones", "points": 30, "unit_kg": 400, "lots": [{"site": "bateria", "front": "bateria", "qty": 1, "count": 3}, {"site": "parque", "front": "posta", "qty": 1, "count": 3}, {"site": "parque", "front": "posta", "qty": 1, "unit_kg": 200, "count": 1}], "destroy_s": 10, "where": "Batería y parque de la posta", "tag": "diseno", "tag_parts": {"existencia": "documentado", "septima_pieza": "discutido", "pesos": "diseno"}, "source": "Los partes dan 6 o 7 piezas; la séptima es versión discutida. Los pesos son diseño."},
 			"fusiles": {"name": "Fusiles", "points": 14, "unit_kg": 4, "lots": [{"site": "cuartel", "front": "cuartel", "qty": 25, "count": 4}], "destroy_s": 10, "where": "Armería del cuartel", "tag": "diseno", "tag_parts": {"existencia": "documentado", "cantidades": "diseno"}, "source": "El parte cuenta los fusiles capturados; cantidades y pesos son diseño."},
-			"viveres": {"name": "Víveres", "points": 14, "unit_kg": 100, "lots": [{"site": "posta", "front": "posta", "qty": 5, "count": 6}], "destroy_s": 15, "where": "Depósito de la posta", "tag": "diseno", "tag_parts": {"existencia": "documentado", "cantidades": "diseno"}, "source": "El parte cuenta harina y aguardiente; cantidades y pesos son diseño."},
+			"viveres": {"name": "Víveres", "points": 14, "unit_kg": 100, "lots": [{"site": "posta", "front": "posta", "qty": 3, "count": 6}], "destroy_s": 25, "where": "Depósito de la posta", "tag": "diseno", "tag_parts": {"existencia": "documentado", "cantidades": "diseno"}, "source": "El parte cuenta harina y aguardiente; cantidades y pesos son diseño."},
 			"plata": {"name": "Plata", "points": 12, "unit_kg": 100, "lots": [{"site": "cuartel", "front": "cuartel", "qty": 1, "count": 3}], "destroy_s": 10, "where": "Caja del cuartel", "tag": "diseno", "tag_parts": {"existencia": "discutido", "cantidades": "diseno"}, "source": "La plata es versión de oídas de Portal (Belgrano, 10-IV); cantidades: diseño."}
 		},
 		"capacity": {"own_mules": 6, "kg_per_mule": 100, "corral_mules": {"completo": 16, "desbandado": 10}},
@@ -159,7 +164,7 @@
 		"source": "Tratamientos y valores del botín: diseño."
 	},
 	"transport": {
-		"load_kg_per_s_per_team": 12,
+		"load_kg_per_s_per_team": 7.5,
 		"teams_max": 3,
 		"load_radius_m": 30,
 		"destroy_radius_m": 30,
@@ -174,10 +179,12 @@
 		"source": "Ritmo de carga y de la columna: diseño."
 	},
 	"reinforcement": {
-		"delay_s": {"temprano": 240, "normal": 300, "tardio": 360},
+		"delay_s": {"temprano": 420, "normal": 480, "tardio": 540},
+		"hint_plan": {"default": "normal", "tras_interceptados": "temprano"},
 		"warning_lead_s": 60,
+		"messenger_advance_s": 90,
 		"smoke_advance_s": {"first": 20, "next": 10, "cap": 40},
-		"band_initial_s": [90, 240],
+		"band_initial_s": [420, 540],
 		"tag": "diseno",
 		"source": "El refuerzo inmediato no ocurrió: los realistas se enteraron el 4 de marzo. Recurso de diseño."
 	},
@@ -191,10 +198,12 @@
 			"layout": {"values": ["A", "B"], "label": "disposición", "tag": "diseno", "source": "Dos disposiciones de tapias y zanjas: diseño."}
 		},
 		"active": ["guardia", "torre_en", "refuerzo"],
+		"seed_mix": {"mult": 1735, "add": 7},
 		"fixed": {"guardia": "descuidada", "torre_en": "casa_cura", "refugio": "sur", "lluvia": "copiosa", "refuerzo": "normal", "layout": "A"},
 		"loot_fixed": {"corral": "completo", "plata": true, "polvora": "seca"}
 	},
 	"field_events": {
+		"informante": {"at_s": 40, "vence_s": 25, "reliability": 0.75, "titulo": "Un vendedor de ganado trae dos versiones", "texto": "Anduvo entre los realistas y oyó dos cosas sobre la torre con tiradores. Una es cierta; la otra, no. ¿A cuál le creés? Portal entrará por donde la torre no barre.", "label": "Creer que la torre está en {lugar}", "costo_txt": "Si se equivoca, Portal cruza bajo el fuego", "tag": "diseno", "source": "Informante como el vendedor de ganado de enero (Diario realista); el contenido es diseño."},
 		"aviso_alba": {"at_s": 210, "texto": "Falta un minuto para las primeras luces: ¿ya están en sus puestos?", "tag": "diseno", "source": "Aviso del reloj del escenario: diseño."},
 		"alba": {"at_s": 270, "texto": "Llega la primera luz: la guardia ve más lejos y empieza a desvelarse.", "tag": "diseno", "source": "El alba del escenario: diseño; la hora real del parte no se traslada al reloj."},
 		"deposito_tomado": {"texto": "Cayó el depósito: ahora, a sacar la carga antes del refuerzo.", "tag": "diseno", "source": "Cierre del ataque: diseño."}
@@ -221,7 +230,7 @@
 	},
 	"campaign": {
 		"diary_max_entries": 40,
-		"world_seeds": [1817, 3, 5, 7, 11, 13, 17, 19, 23],
+		"world_seeds": [1817, 7, 11, 19, 23, 3, 5, 13, 17],
 		"retry": {
 			"posiciones": "Reintentar desde las posiciones",
 			"salida": "Reintentar la salida",
@@ -279,11 +288,12 @@
 		"una_partida": "una partida",
 		"lugares": {"radio_m": 140, "campo": "el campo", "hitos": {"bateria": "la batería", "cuartel": "el cuartel", "posta": "la posta", "plaza": "la plaza", "templo": "el templo", "vado_este": "el vado", "zona_partida": "la zona de partida", "entrada_sur": "el camino del sur"}},
 		"lugares_fijos": {"vado": "el vado"},
+		"torre_lugar": {"templo": "el templo", "casa_cura": "la casa del cura"},
 		"aclaracion_tiempo": {"texto": "En la realidad la marcha duró unas 26 horas y el fuego desde la torre, hora y media; el juego los reduce a minutos.", "tag": "diseno", "source": "Compresión del tiempo declarada: diseño."},
 		"fases": {"briefing": "Preparación", "aproximacion": "Aproximación", "ataque": "Ataque", "extraccion": "Extracción", "epilogo": "Epílogo"},
 		"momentos": {"noche": "Noche", "alba": "Alba", "dia": "Mañana"},
 		"reloj": {"falta_alba": "Falta el alba: {t}", "amanece": "Amanece en {t}", "ataque": "Desde la señal: {t}", "extraccion": "Plazo: {t}", "fin": "Terminó la partida"},
-		"mundo_linea": "Lluvia {lluvia} · guardia {guardia} · refuerzo {refuerzo}",
+		"mundo_linea": "Lluvia {lluvia} · guardia {guardia} · refuerzo: no se sabe hasta ver la polvareda",
 		"etapas": {"idle": "Esperando órdenes", "moving": "En marcha", "waiting_signal": "Esperando la señal", "attacking": "Atacando", "holding": "Sosteniendo lo tomado", "loading": "Cargando", "retreating": "Replegándose", "routed": "Quebrada", "dismounting": "Desmontando", "scouting": "Reconociendo", "exited": "Fuera del mapa"},
 		"estados_frente": {
 			"guardado": {"m": "Guardado", "f": "Guardada"},
@@ -295,6 +305,7 @@
 		"siguiente": {
 			"recon": "Mandá a los reconocedores a mirar {frente}.",
 			"position": "Llevá a {grupo} a su puesto de ataque.",
+			"position_enfoque": "Llevá a {grupo} a su puesto por {enfoque}.",
 			"bring": "Traé el arreo hasta la posta.",
 			"signal": "Dá la señal: las partidas en su puesto atacan los tres frentes a la vez.",
 			"attack": "Mandá a {grupo} al ataque {deFrente}.",
@@ -307,11 +318,17 @@
 			"destroy": "Destruí lo que no entra en las mulas: {carga}.",
 			"bring_load": "Llevá el arreo hasta {donde}.",
 			"leave": "Sacá la carga por el vado, al este.",
+			"ir_destruir": "Mientras la columna marcha, llevá a {grupo} hasta {carga} para destruirla.",
+			"repliegue": "La columna ya pasó la altura de {grupo}: replegalo por el vado antes de que llegue el refuerzo.",
+			"repliegue_scouts": "La columna ya cruza el vado: mandá a los reconocedores a la salida.",
+			"destruir_grupo": "Que {grupo} destruya {carga}: suma al golpe lo que no se pudo cargar.",
 			"wait_exit": "El arreo va camino al vado: esperá.",
 			"fin": "La partida terminó."
 		},
 		"alertas": {
 			"en_puesto": {"corto": "{grupo} ya está en su puesto.", "largo": "{grupo} espera la señal. Todavía faltan: {faltan}.", "boton": "Dar la señal"},
+			"todos_en_puesto": {"corto": "Las tres partidas están en su puesto.", "largo": "Podés dar la señal ya o esperar la primera luz: de noche se tira peor, pero la guardia duerme.", "boton": "Dar la señal"},
+			"torre_hueco": {"corto": "La torre recarga: es el momento de cruzar.", "largo": "Quien cargue ahora llega al pie de la torre antes de la próxima descarga (cuesta fatiga).", "boton": "Cargar ahora"},
 			"aviso_alba": {"corto": "Falta un minuto para las primeras luces.", "largo": "Con la luz la guardia ve más lejos y se desvela: pensá si es hora de dar la señal.", "boton": "Dar la señal"},
 			"amanece": {"corto": "Ya amanece: si nadie ataca, la guardia los ve.", "largo": "A los {t} se hace de día del todo. Dá la señal ahora, aunque falte una partida.", "boton": "Dar la señal"},
 			"torre": {"corto": "La torre del cuartel abrió fuego.", "largo": "Dispara cada {periodo} s a quien esté a menos de {radio} m. Al pie de la torre hay {angulo} m a salvo.", "boton": ""},
@@ -324,6 +341,9 @@
 			"senal_temprana": "Las primeras descargas rompen el silencio: el ataque ya empezó.",
 			"alba": "Llega la primera luz.",
 			"alarma": "{frente}: la guardia dio la alarma.",
+			"guardia_sale": "La guardia {deFrente} sale entera a los puestos y se atrinchera.",
+			"alarma_corre": "La guardia corrió la voz: los tres frentes están en alarma y esta noche no hay sorpresa.",
+			"mensajero": "Un jinete de la guardia escapó al galope hacia el sur: el refuerzo va a llegar antes.",
 			"tomado": "{frente} cayó en poder de las partidas.",
 			"torre": "La torre del cuartel abre fuego.",
 			"torre_calla": "La torre se quedó sin munición.",
@@ -336,7 +356,10 @@
 			"parte_deshacer": "Orden deshecha.",
 			"apoyo": "{grupo} acude en apoyo {deFrente}.",
 			"detectado": "Los reconocedores se acercaron demasiado {aFrente}.",
-			"guardado": "Partida recuperada."
+			"guardado": "Partida recuperada.",
+			"informante": "El informante habló: hay dos versiones sobre la torre.",
+			"decision_tomada": "Decidiste creer que la torre está en {lugar}: Portal entrará por {enfoque}.",
+			"decision_vencida": "Pasó el momento: se tomó por buena la primera versión ({lugar})."
 		},
 		"chips": {
 			"carga": "Carga {kg} de {cap} kg",
