@@ -519,9 +519,7 @@ func _hx_prewarm():
  hx_prewarm_done=true
  var veil_layer=CanvasLayer.new();veil_layer.layer=20;add_child(veil_layer)
  var veil=ColorRect.new();veil.color=INK;veil.mouse_filter=Control.MOUSE_FILTER_IGNORE;veil.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);veil_layer.add_child(veil)
- var vl=Label.new();vl.text="GÜEMES";vl.add_theme_color_override("font_color",Color(GOLD.r,GOLD.g,GOLD.b,0.55));vl.add_theme_font_size_override("font_size",40)
- if title_wide:vl.add_theme_font_override("font",title_wide)
- vl.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;vl.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;vl.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);vl.mouse_filter=Control.MOUSE_FILTER_IGNORE;veil.add_child(vl)
+ # Velo liso, sin texto: las pruebas del menú miden sus rótulos y un rótulo de pantalla completa las confundiría (test_hx_smoke 4.1).
  var pending=[]
  for path in HX_PREWARM_SHADERS:
   if ResourceLoader.exists(path) and ResourceLoader.load_threaded_request(path,"Shader")==OK:pending.append(path)
