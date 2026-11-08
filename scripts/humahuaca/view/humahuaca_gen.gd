@@ -542,7 +542,7 @@ func _skin() -> Color:
 	return pc("cuero", 1.25)
 
 
-func _fig_poncho_sombrero(v: Dictionary, crouched: bool) -> Dictionary:
+func _fig_poncho_sombrero(v: Dictionary, crouched: bool, lance: String = "vertical") -> Dictionary:
 	var poncho := MB.new()
 	var skin := MB.new()
 	var hat := MB.new()
@@ -561,9 +561,12 @@ func _fig_poncho_sombrero(v: Dictionary, crouched: bool) -> Dictionary:
 	hat.cyl(Vector3(0.0, 1.72 * k, 0.0), 0.56 * (0.82 if crouched else 1.0), 0.52 * (0.82 if crouched else 1.0), 0.05, 12, hat_c, hat_c.darkened(0.2))  # ala ancha
 	hat.cyl(Vector3(0.0, 1.74 * k, 0.0), 0.22, 0.17, 0.22, 10, hat_c.lightened(0.05), hat_c)  # copa
 	hat.box(Vector3(0.0, 1.78 * k, 0.0), Vector3(0.36, 0.05, 0.36), accent)  # cinta
-	if not crouched:  # una lanza corta en la mano de abajo del poncho
+	if not crouched and lance == "vertical":  # una lanza corta en la mano de abajo del poncho
 		gear.beam(Vector3(0.36, 0.1, -0.1), Vector3(0.42, 1.95, -0.1), 0.045, pc("madera_oscura"))
 		gear.cyl_between(Vector3(0.42, 1.95, -0.1), Vector3(0.43, 2.2, -0.1), 0.05, 0.0, 6, pc("hierro"))
+	elif not crouched and lance == "terciada":  # la lanza del jinete, terciada hacia adelante y abajo: se lee de lejos sin estirar la figura hacia arriba
+		gear.beam(Vector3(0.38, 1.25, 0.9), Vector3(0.46, 1.62, -1.9), 0.045, pc("madera_oscura", 1.15))
+		gear.cyl_between(Vector3(0.46, 1.62, -1.9), Vector3(0.47, 1.66, -2.25), 0.055, 0.0, 6, pc("hierro", 1.3))
 	return {"poncho": poncho, "piel": skin, "sombrero": hat, "equipo": gear}
 
 
@@ -608,13 +611,23 @@ func _fig_camisa_gorra(v: Dictionary, royalist: bool) -> Dictionary:
 	for sx in [-0.11, 0.11]:
 		cloth.box(Vector3(sx, 0.42, 0.0), Vector3(0.2, 0.84, 0.24), trousers, trousers.darkened(0.12))
 		gear.box(Vector3(sx, 0.07, -0.05), Vector3(0.19, 0.14, 0.32), pc("cuero").lightened(0.1))
-	cloth.box(Vector3(0.0, 1.12, 0.0), Vector3(0.58, 0.66, 0.32), shirt, shirt.darkened(0.08))  # camisa
+	cloth.frustum(Vector3(0.0, 0.8, 0.0), 0.46, 0.3, 0.62, 0.34, 0.64, shirt, shirt.darkened(0.12))  # camisa: más ancha de hombros que de cintura
+	cloth.ball(Vector3(0.0, 1.43, 0.0), 0.3, 0.07, 0.17, 8, 2, shirt.lightened(0.04))  # hombros
 	cloth.box(Vector3(0.0, 0.83, 0.0), Vector3(0.6, 0.1, 0.34), pc("lana_parda") if royalist else pc("cuero", 1.2))  # el cinto
-	if royalist:  # el realista lleva una banda cruzada de acento (≤ 15 % de la figura)
-		cloth.beam(Vector3(-0.22, 1.4, -0.15), Vector3(0.22, 0.92, -0.15), 0.07, accent, 0.03)
+	if royalist:  # el realista: correajes blancos cruzados y una banda de acento (≤ 15 % de la figura)
+		cloth.beam(Vector3(-0.24, 1.42, -0.18), Vector3(0.22, 0.88, -0.18), 0.06, pc("blanco_textil"), 0.02)
+		cloth.beam(Vector3(0.24, 1.42, -0.18), Vector3(-0.22, 0.88, -0.18), 0.06, pc("blanco_textil"), 0.02)
+		cloth.box(Vector3(0.0, 0.83, -0.02), Vector3(0.62, 0.09, 0.36), accent)
 	skin.ball(Vector3(0.0, 1.6, 0.0), 0.12, 0.14, 0.12, 8, 5, _skin())
-	cap.cyl(Vector3(0.0, 1.66, 0.0), 0.15, 0.16, 0.13, 10, cap_c, cap_c.darkened(0.1))  # gorra
-	cap.box(Vector3(0.0, 1.69, -0.17), Vector3(0.22, 0.03, 0.14), cap_c.darkened(0.2))  # visera
+	if royalist:  # chacó: cilindro alto que se abre arriba, visera y borla (diseño: el modelo de 1817 de cada cuerpo es sin datos)
+		var shako := pc("negro_textil", 1.1)
+		cap.cyl(Vector3(0.0, 1.64, 0.0), 0.14, 0.17, 0.3, 10, shako, shako.darkened(0.2), shako.lightened(0.08))
+		cap.box(Vector3(0.0, 1.66, -0.18), Vector3(0.24, 0.03, 0.14), shako.darkened(0.3))  # visera
+		cap.box(Vector3(0.0, 1.7, -0.155), Vector3(0.3, 0.05, 0.02), pc("oro_laton"))  # chapa
+		cap.ball(Vector3(0.0, 1.98, -0.08), 0.06, 0.06, 0.06, 6, 3, accent)  # borla
+	else:
+		cap.cyl(Vector3(0.0, 1.66, 0.0), 0.15, 0.16, 0.13, 10, cap_c, cap_c.darkened(0.1))  # gorra
+		cap.box(Vector3(0.0, 1.69, -0.17), Vector3(0.22, 0.03, 0.14), cap_c.darkened(0.2))  # visera
 	for sx in [-1.0, 1.0]:  # brazos: uno adelante y otro atrás del fusil
 		arms.beam(Vector3(sx * 0.27, 1.38, 0.0), Vector3(sx * 0.2, 0.98, -0.3), 0.11, shirt.darkened(0.06))
 	gear.box(Vector3(0.18, 0.86, 0.1), Vector3(0.2, 0.22, 0.12), pc("cuero"))  # cartuchera
@@ -658,11 +671,12 @@ func rider(variant: Dictionary, hull_w: float = 0.04) -> Dictionary:
 	var gear := MB.new()
 	var coat := pc("lana_parda").lerp(pc("cuero"), 0.4)
 	var dark := pc("madera_oscura")
-	for lx in [-0.2, 0.2]:  # patas
-		for lz in [-0.72, 0.7]:
-			animal.cyl(Vector3(lx, 0.0, lz), 0.07, 0.1, 0.95, 6, dark.lerp(coat, 0.3))
-			animal.box(Vector3(lx, 0.04, lz - 0.02), Vector3(0.14, 0.09, 0.18), dark.darkened(0.3))
-	animal.box(Vector3(0.0, 1.2, 0.0), Vector3(0.62, 0.62, 1.7), coat, coat.darkened(0.2))  # el cuerpo
+	for lx in [-0.19, 0.19]:  # patas: caña fina abajo y muslo grueso arriba, con la rodilla marcada
+		for lz in [-0.68, 0.66]:
+			animal.cyl(Vector3(lx, 0.0, lz), 0.055, 0.075, 0.55, 6, dark.lerp(coat, 0.25))
+			animal.cyl(Vector3(lx, 0.5, lz + (0.04 if lz > 0.0 else -0.02)), 0.08, 0.14, 0.62, 7, dark.lerp(coat, 0.55))
+			animal.box(Vector3(lx, 0.04, lz - 0.02), Vector3(0.13, 0.09, 0.17), dark.darkened(0.3))
+	animal.ball(Vector3(0.0, 1.2, 0.0), 0.34, 0.33, 0.86, 10, 6, coat, coat.darkened(0.22))  # el cuerpo, redondeado
 	animal.ball(Vector3(0.0, 1.2, -0.85), 0.31, 0.31, 0.26, 8, 4, coat)
 	animal.ball(Vector3(0.0, 1.18, 0.85), 0.31, 0.31, 0.27, 8, 4, coat.darkened(0.04))
 	animal.beam(Vector3(0.0, 1.4, -0.9), Vector3(0.0, 1.95, -1.25), 0.3, coat, 0.28)  # el cuello
@@ -675,7 +689,7 @@ func rider(variant: Dictionary, hull_w: float = 0.04) -> Dictionary:
 	gear.box(Vector3(0.0, 1.62, 0.05), Vector3(0.5, 0.12, 0.46), pc("cuero"))  # la montura
 	for sx in [-1.0, 1.0]:  # estribos
 		gear.beam(Vector3(sx * 0.36, 1.5, 0.05), Vector3(sx * 0.36, 1.05, 0.05), 0.04, pc("cuero"))
-	var man := _fig_poncho_sombrero(variant, false)
+	var man := _fig_poncho_sombrero(variant, false, "terciada")
 	var out := {}
 	out["animal"] = animal.build(hull_w)
 	out["equipo"] = gear.build(hull_w)
@@ -700,7 +714,7 @@ func mule(hull_w: float = 0.04) -> Dictionary:
 	for lx in [-0.17, 0.17]:
 		for lz in [-0.5, 0.5]:
 			animal.cyl(Vector3(lx, 0.0, lz), 0.05, 0.075, 0.82, 6, dark.lerp(coat, 0.35))
-	animal.box(Vector3(0.0, 1.0, 0.0), Vector3(0.52, 0.52, 1.4), coat, coat.darkened(0.2))
+	animal.ball(Vector3(0.0, 1.0, 0.0), 0.29, 0.28, 0.72, 10, 6, coat, coat.darkened(0.22))  # el cuerpo, redondeado
 	animal.ball(Vector3(0.0, 1.0, -0.7), 0.26, 0.27, 0.22, 8, 4, coat)
 	animal.ball(Vector3(0.0, 1.0, 0.7), 0.26, 0.27, 0.22, 8, 4, coat.darkened(0.05))
 	animal.beam(Vector3(0.0, 1.15, -0.75), Vector3(0.0, 1.6, -1.05), 0.24, coat, 0.22)

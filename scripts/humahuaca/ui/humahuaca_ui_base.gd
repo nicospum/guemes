@@ -280,7 +280,7 @@ func avoid_rects() -> Array:
 	var out: Array = []
 	if rules == null:
 		return out
-	var fig_h := 62.0 / maxf(screen_scale(), 0.05)
+	var fig_h := 85.0 / maxf(screen_scale(), 0.05)  # las fichas miden hasta 85 px reales desde la pista de arte (P2)
 	var rs: Variant = render_state_cached()
 	if rs is Dictionary:
 		for u in (rs as Dictionary).get("units", []):
@@ -289,7 +289,7 @@ func avoid_rects() -> Array:
 				continue
 			var base: Variant = ui_point(Vector2(float(d.get("x", 0.0)), float(d.get("z", 0.0))))
 			if base is Vector2:
-				out.append(Rect2((base as Vector2) + Vector2(-30.0, -fig_h - 20.0), Vector2(60.0, fig_h + 36.0)))
+				out.append(Rect2((base as Vector2) + Vector2(-36.0, -fig_h - 20.0), Vector2(72.0, fig_h + 36.0)))
 	for fid in V.OBJECTIVES:
 		var fp: Variant = ui_point(landmark_pos(str(fid)), 9.0)
 		if fp is Vector2:

@@ -149,6 +149,17 @@ func _build_landmark(root: Node3D, lm: Dictionary) -> void:
 		mi.mesh = gfx.model(model_key).mesh
 		mi.transform = gfx.model_fit(model_key, w, d, hgt if bool(spec.get("model_fit_height", true)) else -1.0, str(spec.get("model_fit", "")) == "uniforme")
 		node.add_child(mi)
+		if model_key == "capilla":  # la portada de la capilla con lumbre (velas): la capilla se reconoce de noche desde la distancia de juego
+			var box: AABB = gfx.model(model_key).aabb
+			var door := MeshInstance3D.new()
+			door.name = "portada_con_lumbre"
+			var dm := BoxMesh.new()
+			dm.size = Vector3(1.5, 2.3, 0.1)
+			door.mesh = dm
+			door.material_override = gfx.night_glow_mat()
+			door.transform = mi.transform * Transform3D(Basis.IDENTITY, Vector3(box.get_center().x, box.position.y + 1.3, box.position.z - 0.06))
+			door.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			node.add_child(door)
 		return
 	var mb = gen.builder()
 	match builder:
@@ -527,6 +538,8 @@ func _add_house(mb, w: float, d: float, h: float, style: int, door_z: float, ton
 	var o: Vector3 = mb.xf.origin
 	if posmod(int(o.x * 7.0 + o.z * 13.0), 20) < 9 and w >= 4.0:  # casi la mitad de las casas tiene lumbre en la puerta (aspecto de diseño, sin datos)
 		_lit.append(mb.xf * Transform3D(Basis.IDENTITY, Vector3(w * 0.18, 1.0, signf(door_z) * (d * 0.5 + 0.12))))
+		if w >= 6.0:  # y una ventanita con lumbre al otro lado de la puerta
+			_lit.append(mb.xf * Transform3D(Basis.from_scale(Vector3(0.4, 0.36, 1.0)), Vector3(-w * 0.26, 1.55, signf(door_z) * (d * 0.5 + 0.12))))
 	var key :="casa_adobe_grande" if w >= 9.5 and not gfx.model("casa_adobe_grande").is_empty() else "casa_adobe"
 	if gfx.model(key).is_empty():
 		gen.add_house(mb, w, d, h, style, door_z, tone)
@@ -587,7 +600,7 @@ func _multimesh(parent: Node3D, name_: String, mesh: Mesh, xforms: Array, shadow
 		mm.set_instance_transform(i, xforms[i])
 		if own_material:
 			var o: Vector3 = (xforms[i] as Transform3D).origin
-			var k := 0.74 + 0.16 * float(posmod(int(o.x * 3.0 + o.z * 5.0), 7)) / 6.0
+			var k := 0.86 + 0.14 * float(posmod(int(o.x * 3.0 + o.z * 5.0), 7)) / 6.0
 			mm.set_instance_color(i, Color(k, k * 0.97, k * 0.93, 1.0))
 	var mi := MultiMeshInstance3D.new()
 	mi.name = name_

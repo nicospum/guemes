@@ -15,7 +15,7 @@
 					{"landmark": "bateria", "margin_pct": 10},
 					{"landmark": "cuartel", "margin_pct": 10},
 					{"landmark": "posta", "margin_pct": 10},
-					{"units": true, "margin_pct": 3}
+					{"units": true, "margin_pct": 5.5}
 				],
 				"soft": []
 			},
@@ -73,10 +73,19 @@
 	},
 	"zoom_tilt": {
 		"enabled": true,
-		"far_m": 220,
-		"near_m": 50,
-		"near_pitch_deg": 24,
-		"nota": "Pista de arte (P2): al acercar con la rueda por debajo de far_m la cámara se va acostando hasta near_pitch_deg en near_m, para que de cerca se vean el horizonte y los cerros de la quebrada; al alejarse vuelve a la inclinación de juego (la inicial o la que eligió el jugador lejos). Inclinar a mano la desactiva hasta volver a alejarse."
+		"far_m": 460,
+		"near_m": 60,
+		"near_pitch_deg": 20,
+		"nota": "Pista de arte (P2): al acercar con la rueda por debajo de far_m la cámara se va acostando (curva cuadrática: unos 24° a 240 m) hasta near_pitch_deg en near_m, para que de cerca se vean el horizonte y los cerros de la quebrada; al alejarse vuelve a la inclinación de juego (la inicial o la que eligió el jugador lejos). Inclinar a mano la desactiva hasta volver a alejarse."
+	},
+	"approach": {
+		"enabled": true,
+		"dist_m": 240,
+		"wide_dist_m": 300,
+		"min_off_center_pct": 22,
+		"duration_s": 0.9,
+		"cooldown_s": 1.0,
+		"nota": "Ronda 2 de la pista de arte (P2): el encuadre inicial amplio orienta; al elegir una sola partida (tecla, clic en la ficha o en su tarjeta) la cámara se desliza hasta dist_m centrada en ella, con la inclinación de zoom_tilt para esa distancia (≈ 24°: horizonte y cerros). Solo si la ficha está a más de min_off_center_pct del centro (en % del lado menor) o la cámara está a más de wide_dist_m; nunca en la apertura, arrastrando o con el botón derecho apretado. Si ya está más cerca, solo recentra."
 	},
 	"follow": {
 		"enabled": true,
