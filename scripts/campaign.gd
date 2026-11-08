@@ -21,7 +21,8 @@ func _init(save_path: String = DEFAULT_PATH) -> void:
 
 static func fresh() -> Dictionary:
 	return {"version": VERSION, "world_seed": 0, "diary": [], "attempts": 0, "wins": 0, "defeats_in_row": 0, "defeats_total": 0,
-		"best_medal": "", "justina_won": false, "north_unlocked": false, "tutorial_seen": false, "last_cause": "", "worlds": 0, "checkpoint": {}, "best_score": 0, "objectives_done": []}
+		"best_medal": "", "justina_won": false, "north_unlocked": false, "tutorial_seen": false, "last_cause": "", "worlds": 0, "checkpoint": {}, "best_score": 0, "objectives_done": [],
+		"north_played": false, "north_won": false, "north_round": 0, "north_date": "", "north_reason": ""}
 
 # ---------------------------------------------------------------------------
 # Persistencia
@@ -90,7 +91,7 @@ static func _validate(v: Variant) -> Dictionary:
 		if not (n is float or n is int) or float(n) < 0.0 or float(n) > 1.0e9:
 			return {}
 		d[k] = int(n)
-	for k2 in ["justina_won", "north_unlocked", "tutorial_seen"]:
+	for k2 in ["justina_won", "north_unlocked", "tutorial_seen", "north_played", "north_won"]:
 		if not src.get(k2, false) is bool:
 			return {}
 		d[k2] = src.get(k2, false)
@@ -99,6 +100,10 @@ static func _validate(v: Variant) -> Dictionary:
 		return {}
 	d.best_medal = medal
 	d.last_cause = str(src.get("last_cause", ""))
+	var nr: Variant = src.get("north_round", 0)
+	d.north_round = clampi(int(nr), 0, 99) if (nr is float or nr is int) else 0
+	d.north_date = str(src.get("north_date", "")).substr(0, 80)
+	d.north_reason = str(src.get("north_reason", "")).substr(0, 400)
 	var cpv: Variant = src.get("checkpoint", {})
 	if cpv is Dictionary and (cpv as Dictionary).has_all(["world_seed", "t"]):
 		d.checkpoint = {"world_seed": int(cpv.world_seed), "t": float(cpv.t)}
@@ -267,7 +272,7 @@ func _victory_lines(rules: RefCounted, rep: Dictionary, was_first_win: bool) -> 
 		lines.append("Ya conocías el río: para cada medalla se pidió un poco menos de bajas (%d %% para la plata)." % roundi(float(med.silver.loss_pct_below) * k))
 	if int(rep.get("deck_choices", 0)) > 0:
 		lines.append("Decidiste %d situaciones en cubierta%s." % [int(rep.deck_choices) - int(rep.get("deck_defaults", 0)), "" if int(rep.get("deck_defaults", 0)) == 0 else " (%d se resolvieron solas)" % int(rep.deck_defaults)])
-	lines.append("Se desbloqueó el escenario 2: Sostener el Norte." if was_first_win else "Sostener el Norte sigue abierto.")
+	lines.append("Se abrió el nivel II: Humahuaca, 1817 (y el III, Sostener el norte)." if was_first_win else "Humahuaca y Sostener el norte siguen abiertos.")
 	return lines
 
 func _missing_gold(med: Dictionary, rep: Dictionary, assisted: bool, rules_on_own: bool = false, scale: float = 1.0) -> Array:
@@ -524,3 +529,17 @@ func retry_options() -> Array:
 
 func north_unlocked() -> bool:
 	return bool(data.north_unlocked)
+
+## Cierre del III (D-04): guarda cómo terminó la última campaña del norte para la pantalla final («En tu partida»). Una victoria no se pisa con
+## una derrota posterior: queda la mejor (ganada) y su ronda.
+func record_north(rules: RefCounted) -> Dictionary:
+	var st: Dictionary = rules.state
+	var won: bool = str(st.get("status", "")) == "victory"
+	if won or not bool(data.get("north_won", false)):
+		data.north_won = won
+		data.north_round = int(st.get("round", 0))
+		data.north_date = str(st.get("date", ""))
+		data.north_reason = str(st.get("reason", "")).substr(0, 400)
+	data.north_played = true
+	save_progress()
+	return {"won": won, "round": int(st.get("round", 0)), "date": str(st.get("date", "")), "reason": str(st.get("reason", ""))}
