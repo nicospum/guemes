@@ -31,6 +31,8 @@ const IMPLEMENTED := ["experto", "obediente", "torpe", "pasivo", "pausa_reanuda"
 const WITH_ADVANTAGE := ["experto", "barrido_senal"]
 const STEP_S := 1.0  # cada cuánto decide una política (segundos de juego)
 const PATH_DETOUR := 1.2  # cuánto más larga que la recta es la ruta real del arreo (A*, barro, vado): margen del plan de carga del experto
+const GROUP_DESTROY_REACH_M := 300.0  # hasta dónde va una partida libre a destruir lo que el plan de carga deja: de la batería o el cuartel a la posta, mientras la columna marcha al vado
+const PLAN_UNTAKEN_WAIT_S := 60.0  # el plan de carga reserva mulas para un frente que todavía no cayó solo si sobra este tiempo (lo que suele tardar en caer)
 const ATTACK_LOAD_TRAVEL_S := 40.0  # durante el ataque el arreo solo carga lotes a menos de este viaje (no cruza el pueblo bajo la torre por una pieza)
 const LCG_MOD := 2147483647
 
@@ -141,7 +143,7 @@ static func decide(policy: String, view: Dictionary, rng: RandomNumberGenerator)
 ## El plan de una política guionada (experto y sus variantes): {} si no es de las guionadas.
 static func _plan_for(policy: String) -> Dictionary:
 	var cfg := {"recon": ["bateria"], "approaches": {}, "signal_at_s": 285.0, "deadline_s": 372.0, "fronts": V.COMBAT_GROUPS.duplicate(), "arreo": true, "support": true,
-		"postures": {"bateria": "a_fondo", "cuartel": "con_cautela", "posta": "con_cautela"}, "extraction": "mixta"}
+		"postures": {"bateria": "a_fondo", "cuartel": "con_cautela", "posta": "con_cautela"}, "extraction": "mixta", "plan_load": true}
 	match policy:
 		"experto":
 			return cfg
@@ -279,7 +281,9 @@ static func _group_front(gid: String) -> String:
 static func _scripted(view: Dictionary, cfg: Dictionary) -> Array:
 	var phase := str(view.phase)
 	if phase == "extraccion":
-		return _extract(view, cfg, true)
+		var out := _extract(view, cfg, true)
+		out.append_array(_groups_destroy(view, cfg, out))
+		return out
 	if phase != "ataque":
 		return _approach(view, cfg)
 	var orders: Array = []
@@ -303,8 +307,9 @@ static func _scripted(view: Dictionary, cfg: Dictionary) -> Array:
 			if hardest != "":
 				mem["support_" + gid] = true
 				orders.append(_order(gid, "support", Vector2.ZERO, {"front": hardest, "posture": "con_cautela"}))
-	## el arreo no espera al último frente: carga ya lo de los frentes que cayeron
+	## el arreo no espera al último frente: carga ya lo de los frentes que cayeron; las partidas libres destruyen lo que el plan de carga deja
 	orders.append_array(_extract(view, cfg, false))
+	orders.append_array(_groups_destroy(view, cfg, orders))
 	return orders
 
 ## Antes de la señal: reconocer, llevar cada partida a su puesto, traer el arreo y dar la señal a su hora.
@@ -394,11 +399,14 @@ static func _extract(view: Dictionary, cfg: Dictionary, allow_leave: bool) -> Ar
 	## sus puntos: se carga primero el que más puntos da por recurso gastado (con tiempo de sobra manda el peso; con el reloj encima, la cercanía).
 	var time_budget := maxf(left - back_here, 1.0)
 	var kg_budget := maxf(capacity - load_kg, 1.0)
+	var plan := _load_plan(view, cfg)
 	var loads: Array = []
 	var kills: Array = []
 	for it in view.loot.items:
 		if str(it.state) != "en_sitio" or not _taken(view, str(it.front)):
 			continue
+		if not plan.is_empty() and not plan.has(str(it.id)):
+			continue  # fuera del plan de carga: las mulas se guardan para lo que más vale por kilo; lo destruyen las partidas libres (_groups_destroy)
 		var pos := Vector2(float(it.x), float(it.z))
 		var travel := here.distance_to(pos) / mule_speed * detour
 		var back := pos.distance_to(vado) / mule_speed * detour + exit_leg
@@ -414,6 +422,11 @@ static func _extract(view: Dictionary, cfg: Dictionary, allow_leave: bool) -> Ar
 		var dcost := travel + float(rules_cfg.loot.classes[str(it.kind)].destroy_s)
 		if recipe != "cargar_todo" and recipe != "ligera" and dcost + back <= left:
 			kills.append({"it": it, "score": value * float(rules_cfg.loot.treatments.destruir) / maxf(dcost + maxf(back - back_here, 0.0), 1.0)})
+	if loads.is_empty() and not plan.is_empty() and not bool(view.mem.get("plan_off", false)):
+		for it in view.loot.items:
+			if plan.has(str(it.id)) and str(it.state) == "en_sitio" and _taken(view, str(it.front)):
+				view.mem["plan_off"] = true  # lo que el plan reservaba ya no da: se carga lo que hay a mano (el plan de siempre)
+				return _extract(view, cfg, allow_leave)
 	var pick: Dictionary = {}
 	var action := ""
 	if not loads.is_empty():
@@ -429,7 +442,124 @@ static func _extract(view: Dictionary, cfg: Dictionary, allow_leave: bool) -> Ar
 		if here.distance_to(spot) > float(rules_cfg.transport.load_radius_m) - 2.0:
 			return [_order("arreo", "move", spot)]
 		return [_order("arreo", action, spot, {"item": str(pick.id)})]
-	return [_order("arreo", "leave")] if allow_leave else []
+	if allow_leave:
+		view.mem["arreo_left"] = true
+		return [_order("arreo", "leave")]
+	return []
+
+## El plan de carga del experto (receta mixta con `plan_load`): lo que más puntos da por kilo, hasta llenar las mulas que habrá (las propias más las del corral de la
+## posta, que el experto conoce). Lo ya cargado entra primero. Un lote entra si el reloj del refuerzo todavía da para ir a buscarlo desde la posta, cargarlo y
+## llegar al vado con el margen de salida. {id: true}; {} si la política no planifica (otras recetas, sin ventaja).
+static func _load_plan(view: Dictionary, cfg: Dictionary) -> Dictionary:
+	var secret := _secret(view)
+	if str(cfg.get("extraction", "")) != "mixta" or not bool(cfg.get("plan_load", false)) or secret.is_empty():
+		return {}
+	## el plan se decide dos veces y se sostiene (si cambiara con cada segundo, el arreo iría y vendría): cuando cae la posta y llegan las mulas, y cuando cae el
+	## depósito entero, con el reloj que queda. Si en algún momento ningún lote del plan da para ir a buscarlo, se abandona y el arreo carga lo que tiene a mano.
+	var mem: Dictionary = view.mem
+	var fighting := str(view.phase) != "extraccion"
+	var slot := "load_plan" if fighting else "load_plan_x"
+	if bool(mem.get("plan_off", false)):
+		return {}
+	if mem.has(slot):
+		var kept := {}
+		for it in view.loot.items:
+			if (mem[slot] as Dictionary).has(str(it.id)) and (str(it.state) == "en_sitio" or str(it.state) == "cargado"):
+				kept[str(it.id)] = true
+		return kept
+	if fighting and not _taken(view, "posta"):
+		return {}  # todavía no hay mulas del corral ni depósito: sin plan (el arreo espera en la posta)
+	var rules_cfg := D.rules()
+	var cap: Dictionary = rules_cfg.loot.capacity  # con la posta tomada llegan las mulas del corral (el experto sabe cuántas trae el mundo)
+	var corral := str(((secret.get("world", {}) as Dictionary).get("loot_traits", {}) as Dictionary).get("corral", "completo"))
+	var capacity := maxf(float(view.loot.capacity_kg), (float(cap.own_mules) + float((cap.corral_mules as Dictionary).get(corral, 0))) * float(cap.kg_per_mule))
+	var left := 1.0e9
+	if float(secret.alarm.reinforcement_at) >= 0.0:
+		left = float(secret.alarm.reinforcement_at) - float(view.t)
+	var mule_speed := float(rules_cfg.stealth.pace[str(rules_cfg.transport.mule_pace)].speed) * float(rules_cfg.transport.mule_speed_mult)
+	var vado := D.hito("vado_este")
+	var arreo := _unit_view(view, "arreo")
+	var here := Vector2(float(arreo.get("x", 0.0)), float(arreo.get("z", 0.0))) if not _taken(view, "posta") or arreo.is_empty() else Vector2(float(arreo.x), float(arreo.z))
+	if not _taken(view, "posta"):
+		here = D.hito("posta")  # hasta que cae la posta, el arreo carga ahí: el plan cuenta desde el depósito
+	var pending_kg := 0.0
+	var rate := float(rules_cfg.transport.load_kg_per_s_per_team) * float(rules_cfg.transport.teams_max)
+	var room := capacity
+	var plan := {}
+	var cands: Array = []
+	for it in view.loot.items:
+		if str(it.state) == "cargado":
+			plan[str(it.id)] = true
+			room -= _item_kg(it)
+		elif str(it.state) == "en_sitio":
+			cands.append(it)
+	cands.sort_custom(func(a, b):
+		var da := float(a.unit_value) / maxf(float(a.unit_kg), 0.001)
+		var db := float(b.unit_value) / maxf(float(b.unit_kg), 0.001)
+		return da > db + 1e-9 or (absf(da - db) <= 1e-9 and str(a.id) < str(b.id)))
+	for it in cands:
+		var kg := _item_kg(it)
+		if kg > room + 1e-6:
+			continue
+		var spot := Vector2(float(it.x), float(it.z))
+		## ir desde donde está el arreo, cargarlo (con lo que el plan ya tiene pendiente) y llegar al vado con el margen de salida
+		var trip := (here.distance_to(spot) + spot.distance_to(vado)) / mule_speed * PATH_DETOUR + (kg + pending_kg) / rate + float(rules_cfg.transport.exit_margin_s)
+		if not _taken(view, str(it.front)):
+			trip += PLAN_UNTAKEN_WAIT_S  # el frente todavía pelea: cuenta lo que puede tardar en caer
+		if trip > left:
+			continue
+		plan[str(it.id)] = true
+		room -= kg
+		pending_kg += kg
+	mem[slot] = plan.duplicate()
+	return plan
+
+## Las partidas libres (en su frente tomado o sosteniendo, sin otra orden en este paso) destruyen lo que el plan de carga deja: el lote fuera del plan más cercano, a
+## menos de GROUP_DESTROY_REACH_M (como la pista: su propio frente, no cruzar el pueblo). Lo que el plan lleva no lo tocan mientras el arreo no salió.
+static func _groups_destroy(view: Dictionary, cfg: Dictionary, already: Array) -> Array:
+	var plan := _load_plan(view, cfg)
+	if plan.is_empty():
+		return []
+	var busy := {}
+	for o in already:
+		busy[str(o.actor)] = true
+	var arreo_stage := str(_unit_view(view, "arreo").get("stage", ""))
+	var arreo_gone := str(view.phase) == "extraccion" and (arreo_stage == "exited" or (arreo_stage == "moving" and float(view.loot.load_kg) > 0.0 and _arreo_leaving(view)))
+	var radius := float(D.rules().transport.destroy_radius_m)
+	var picked := {}
+	var out: Array = []
+	for gid in V.COMBAT_GROUPS:
+		if busy.has(gid):
+			continue
+		var uv := _unit_view(view, gid)
+		var st := str(uv.get("stage", ""))
+		if st != "holding" and st != "idle":
+			continue
+		var here := Vector2(float(uv.x), float(uv.z))
+		var best: Dictionary = {}
+		var best_d := GROUP_DESTROY_REACH_M
+		for it in view.loot.items:
+			if str(it.state) != "en_sitio" or not _taken(view, str(it.front)) or picked.has(str(it.id)):
+				continue
+			if plan.has(str(it.id)) and not arreo_gone:
+				continue
+			var d := here.distance_to(Vector2(float(it.x), float(it.z)))
+			if d < best_d:
+				best_d = d
+				best = it
+		if best.is_empty():
+			continue
+		picked[str(best.id)] = true
+		var spot := Vector2(float(best.x), float(best.z))
+		if best_d > radius - 2.0:
+			out.append(_order(gid, "move", spot))
+		else:
+			out.append(_order(gid, "destroy", spot, {"item": str(best.id)}))
+	return out
+
+## ¿El arreo ya va hacia la salida? (su última orden fue «salir»)
+static func _arreo_leaving(view: Dictionary) -> bool:
+	return bool(view.mem.get("arreo_left", false))
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Una partida entera por la API pública (la comparten las pruebas y las herramientas)
@@ -490,7 +620,7 @@ static func record_of(rules: RefCounted, policy: String, mem: Dictionary) -> Dic
 			ap = str(D.level().access.attack_posts[fid][0].get("approach", "directo"))
 		opening.append(ap if ap != "" else "no_fue")
 	return {"policy": policy, "family": family(policy), "status": str(rep.status), "cause_id": str(rep.cause_id), "cause_text": str(rep.cause) if str(rep.status) == "defeat" else "",
-		"elapsed_s": float(rep.elapsed), "golpe": float(gp.entregado) + float(gp.destruido) + float(gp.oculto), "loss_pct": float(rep.loss_pct), "fronts_taken": taken,
+		"elapsed_s": float(rep.elapsed), "golpe": float(gp.entregado) + float(gp.destruido) + float(gp.oculto), "loss_pct": float(rep.loss_pct), "medal": str(rep.get("medal", "")), "fronts_taken": taken,
 		"opening": "|".join(PackedStringArray(opening)), "variant": rep.variant, "first_decision_s": float(pacing.first_decision_s),
 		"decision_gap_max_s": float(pacing.decision_gap_max_s), "decision_gap_attack_max_s": float(pacing.decision_gap_attack_max_s), "decision_metric": "oferta",
 		"max_critical_alerts": int(mem.get("max_critical", 0)), "exceptions": int(mem.get("exceptions", 0)) + (1 if timed_out else 0), "timeout": timed_out, "valid": valid}

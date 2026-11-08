@@ -21,6 +21,8 @@ var solid_cells := 0
 var _astar: AStarGrid2D = null
 var _solid := PackedByteArray()
 var _weight := PackedFloat32Array()
+var _variants: Dictionary = {}  # clave → grilla con rodeo (avoiding)
+const VARIANTS_MAX := 16
 
 ## La grilla del terreno `t` (con caché por terreno). null si el terreno no entrega nav_grid().
 static func for_terrain(t: RefCounted) -> RefCounted:
@@ -82,6 +84,39 @@ func _load(grid: Dictionary) -> bool:
 				_astar.fill_weight_scale_region(Rect2i(i, j, k - i, 1), w)
 			i = k
 	return true
+
+## La misma grilla con un costo extra (×`weight_mult`) en las celdas que caen dentro de algún círculo de `circles` ([{c: Vector2, r: float}]): la usan las rutas de
+## antes de la señal para rodear lo que vigilan los centinelas (no cambia la velocidad de nadie, solo por dónde va la ruta). Caché por `key` (lo arma quien pide: los
+## frentes y radios en juego), con un tope; sin círculos devuelve esta misma grilla. Determinista: depende solo de la grilla y de los círculos.
+func avoiding(key: String, circles: Array, weight_mult: float) -> RefCounted:
+	if circles.is_empty() or weight_mult <= 1.0 or _astar == null:
+		return self
+	if _variants.has(key):
+		return _variants[key]
+	if _variants.size() >= VARIANTS_MAX:
+		_variants.clear()
+	var w := _weight.duplicate()
+	var marked := PackedByteArray()
+	marked.resize(nx * nz)
+	for c in circles:
+		var ctr: Vector2 = c.c
+		var r := float(c.r)
+		var i0 := clampi(floori((ctr.x - r - origin.x) / cell), 0, nx - 1)
+		var i1 := clampi(ceili((ctr.x + r - origin.x) / cell), 0, nx - 1)
+		var j0 := clampi(floori((ctr.y - r - origin.y) / cell), 0, nz - 1)
+		var j1 := clampi(ceili((ctr.y + r - origin.y) / cell), 0, nz - 1)
+		for j in range(j0, j1 + 1):
+			for i in range(i0, i1 + 1):
+				var idx := j * nx + i
+				if marked[idx] != 0 or _solid[idx] != 0 or pos_of(Vector2i(i, j)).distance_to(ctr) > r:
+					continue
+				marked[idx] = 1
+				w[idx] = maxf(w[idx], 1.0) * weight_mult
+	var made: RefCounted = new()
+	if not made.call("_load", {"nx": nx, "nz": nz, "cell": cell, "origin_x": origin.x, "origin_z": origin.y, "solid": _solid, "weight": w}):
+		return self
+	_variants[key] = made
+	return made
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Celdas y puntos

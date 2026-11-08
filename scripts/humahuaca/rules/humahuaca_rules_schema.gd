@@ -99,7 +99,8 @@ static func _build(size: Vector2, kinds: Array) -> Dictionary:
 	var unit := _obj({"id": _enum(groups), "name": _str(), "kind": _enum(R.UNIT_KINDS), "x": x_m, "z": z_m, "yaw_deg": _num(-720.0, 720.0), "strength": pct, "fatigue": pct,
 		"morale": pct, "armed": unit_interval, "men": _int(0.0, 1000.0), "mounted": _bool(), "pace": _enum(R.PACES), "stage": _enum(R.STAGES), "order": order,
 		"path": _arr(pt, 400), "noise": unit_interval, "detected": _bool(), "custody": _int(0.0, 1000.0), "horses": _int(0.0, 1000.0), "carry_kg": _num(0.0, KG_MAX),
-		"capacity_kg": _num(0.0, KG_MAX), "tag": _enum(V.TAGS), "work": work}, {"tower_cover_until": secs_or_none})
+		"capacity_kg": _num(0.0, KG_MAX), "tag": _enum(V.TAGS), "work": work}, {"tower_cover_until": secs_or_none,
+		"spotted": _obj({"front": _enum(fronts), "until": secs, "x": x_m, "z": z_m})})
 	var front_req := {"state": _enum(R.FRONT_STATES), "toma": pct, "garrison": _num(0.0, KG_MAX), "garrison_max": _num(1.0, KG_MAX), "alert": unit_interval,
 		"surprise_until": secs_or_none, "reconocido": unit_interval, "held_by": _enum(groups_or_none), "custody": _int(0.0, 1000.0), "taken_at": secs_or_none,
 		"supporters": _arr(_enum(groups), 5)}
