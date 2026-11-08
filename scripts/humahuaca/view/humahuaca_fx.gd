@@ -10,7 +10,9 @@ extends RefCounted
 const V = preload("res://scripts/humahuaca/humahuaca_vocab.gd")
 const VV = preload("res://scripts/humahuaca/view/vocab_view.gd")
 
-const STATE_RING := {"guardado": "blanco_textil", "alertado": "oro_laton", "en_alarma": "rojo_reservado", "asaltado": "borgona_hipotetica", "tomado": "celeste_produccion"}
+## Anillo de cada frente según su estado, con la regla de color común (DIRECCION_DE_ARTE 2.1): objetivo oro que late (guardado y alertado, más rápido no: el estado lo
+## dice el panel), rojo de enemigo cuando la guardia da la alarma o se pelea, celeste aliado cuando es nuestro.
+const STATE_RING := {"guardado": "oro_laton", "alertado": "oro_laton", "en_alarma": "rojo_reservado", "asaltado": "rojo_reservado", "tomado": "celeste_produccion"}
 const LIGHT_HEIGHT := {"brasero": 1.4, "ventana": 2.6, "candil": 2.0, "fogata": 0.9}
 const RING_DEFAULTS := {"visibilidad": {"alpha": 0.55, "fade_from_m": 70.0, "fade_to_m": 180.0, "width_px": 2.0, "color": "celeste_produccion"},
 	"objetivo": {"alpha": 0.9, "width_px": 4.0}}
@@ -38,6 +40,8 @@ var _flames: Array = []
 var _pool_tex: GradientTexture2D = null
 var _halo_tex: GradientTexture2D = null
 var _time := 0.0
+var _fire := 1.0  ## peso de los fuegos según la hora (set_fire)
+var _pulse_mats: Array = []  ## [{mat, color, alpha, lo}]: los anillos de objetivo que laten (oro) o avisan (rojo)
 
 
 func setup(gfx_ref, units_ref, host_ref: Node) -> void:
@@ -126,7 +130,7 @@ func _halo_material(phase: float) -> StandardMaterial3D:
 	m.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
 	m.billboard_keep_scale = true
 	m.albedo_texture = _halo_tex
-	m.albedo_color = gfx.pc("oro_laton", 1.5)
+	m.albedo_color = Color(fire_color(), 0.7)
 	m.disable_fog = true
 	m.no_depth_test = true
 	m.render_priority = 8
@@ -143,7 +147,7 @@ func _pool_material() -> StandardMaterial3D:
 	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
 	m.albedo_texture = _pool_tex
-	m.albedo_color = gfx.pc("oro_laton", 1.3)
+	m.albedo_color = fire_color()
 	m.cull_mode = BaseMaterial3D.CULL_DISABLED
 	m.disable_fog = true
 	return m
@@ -165,7 +169,7 @@ func sync_lights(root: Node3D, state: Dictionary, layer_on: bool) -> void:
 		var ground: float = gfx.h(x, z)
 		var holder := Node3D.new()
 		holder.name = "luz_" + str(l.get("id", kind))
-		holder.position = Vector3(x, ground + float(LIGHT_HEIGHT.get(kind, 1.4)), z)
+		holder.position = Vector3(x, ground + light_height(kind), z)
 		root.add_child(holder)
 		light_nodes[str(l.get("id", kind))] = holder
 		_fixture(holder, kind, ground)
@@ -179,19 +183,61 @@ func sync_lights(root: Node3D, state: Dictionary, layer_on: bool) -> void:
 		var halo: MeshInstance3D = gfx.inst(holder, _halo_quad(), Vector3(0.0, 0.2, 0.0), _halo_material(float(idx) * 2.3), Vector3.ZERO, false)  # no baja de 30 px
 		halo.name = "resplandor"
 		units.register_scaled(halo, "light", 1.0, 30.0, r_m * 0.25)
-		var pool: MeshInstance3D = gfx.inst(holder, _halo_quad(), Vector3(0.0, -(float(LIGHT_HEIGHT.get(kind, 1.4))) + 0.18, 0.0), _pool_material(), Vector3(-90.0, 0.0, 0.0), false)
+		var pool: MeshInstance3D = gfx.inst(holder, _halo_quad(), Vector3(0.0, -(light_height(kind)) + 0.18, 0.0), _pool_material(), Vector3(-90.0, 0.0, 0.0), false)
 		pool.name = "mancha"
 		pool.scale = Vector3.ONE * r_m * 1.5
+		var omni: OmniLight3D = null
 		if omni_count < int(gfx.qcfg.get("omni_lights_max", 4)) and not gfx.albedo:
-			var omni := OmniLight3D.new()
-			omni.omni_range = r_m * 1.4
-			omni.light_energy = 2.6
-			omni.light_color = gfx.pc("oro_laton", 1.4)
+			# los fuegos ILUMINAN de verdad (DIRECCION_DE_ARTE B2): energía y alcance de `look.fires`, sin sombras (seis omnis sin sombra en Forward+ son baratos)
+			var fires := fire_cfg()
+			omni = OmniLight3D.new()
+			omni.name = "luz_real"
+			omni.omni_range = r_m * float(fires.get("range_k", 2.4))
+			omni.omni_attenuation = float(fires.get("attenuation", 1.4))
+			omni.light_energy = fire_energy() * _fire
+			omni.light_color = fire_color()
 			omni.shadow_enabled = false
+			omni.light_specular = 0.35
 			holder.add_child(omni)
 			omni_count += 1
+		_flames[_flames.size() - 1]["omni"] = omni
+		_flames[_flames.size() - 1]["pool"] = pool
+		_flames[_flames.size() - 1]["halo"] = halo
 		idx += 1
 	root.visible = layer_on and not gfx.albedo
+
+
+## `humahuaca_visual.json: look.fires`: color (id de paleta con mezcla), energía por calidad, alcance (× el radio de la luz) y parpadeo de los fuegos.
+## Altura de la llama sobre el suelo: la de la tabla, salvo el fogón de la pista P6 (brasas a 0,6 m; el brasero ya coincide en 1,4 m).
+func light_height(kind: String) -> float:
+	if kind == "fogata" and not gfx.model("fogon").is_empty():
+		return 0.6
+	return float(LIGHT_HEIGHT.get(kind, 1.4))
+
+
+func fire_cfg() -> Dictionary:
+	var look: Dictionary = gfx.data.get("look", {})
+	return look.get("fires", {}) if look.get("fires", null) is Dictionary else {}
+
+
+func fire_energy() -> float:
+	var e: Variant = fire_cfg().get("energy", {})
+	return float((e as Dictionary).get(gfx.quality, 6.0)) if e is Dictionary else 6.0
+
+
+func fire_color() -> Color:
+	var f := fire_cfg()
+	var base: Color = gfx.pc(str(f.get("color", "oro_laton")), float(f.get("gain", 1.3)))
+	if str(f.get("tint", "")) != "":
+		base = base.lerp(gfx.pc(str(f.tint), float(f.get("gain", 1.3))), clampf(float(f.get("tint_mix", 0.0)), 0.0, 1.0))
+	return base
+
+
+## Cuánto pesan los fuegos según la hora (1 de noche, menos al alba y de día: `lights.<hora>.fire`, mezclado por la vista). La llama y su resplandor siguen
+## marcando dónde está la guardia (son información), pero la luz que echan alrededor se apaga cuando el día la vuelve inútil.
+func set_fire(k: float) -> void:
+	_fire = clampf(k, 0.0, 1.5)
+	gfx.set_night_glow(_fire)
 
 
 func _make_quad() -> QuadMesh:
@@ -206,7 +252,15 @@ func _halo_quad() -> Mesh:
 
 ## La pieza que sostiene cada llama: el cesto de hierro del brasero, el candil colgado, los troncos de la fogata o el marco de la ventana.
 func _fixture(holder: Node3D, kind: String, ground: float) -> void:
-	var y_down := -(float(LIGHT_HEIGHT.get(kind, 1.4)))
+	var y_down := -(light_height(kind))
+	var model_key := str({"brasero": "brasero", "fogata": "fogon"}.get(kind, ""))
+	if model_key != "" and not gfx.model(model_key).is_empty():  # el brasero y el fogón de la pista P6 (escala 1, origen en el suelo); la llama sigue a la altura de LIGHT_HEIGHT
+		var mi := MeshInstance3D.new()
+		mi.name = "modelo_" + model_key
+		mi.mesh = gfx.model(model_key).mesh
+		mi.position = Vector3(0.0, y_down, 0.0)
+		holder.add_child(mi)
+		return
 	match kind:
 		"brasero":
 			gfx.inst(holder, gfx.cyl_mesh(0.42, 0.26, 0.3, 8), Vector3(0.0, -0.2, 0.0), gfx.mat("hierro", 0.55, 1.0, 0.6))
@@ -227,12 +281,28 @@ func _fixture(holder: Node3D, kind: String, ground: float) -> void:
 
 func animate_lights(delta: float) -> void:
 	_time += delta
+	var amp := float(fire_cfg().get("flicker", 0.12))
+	var energy := fire_energy() * _fire
 	for f in _flames:
 		if not is_instance_valid(f.node):
 			continue
 		var node: Node3D = f.node
-		var flick := 0.88 + 0.14 * sin(_time * 9.0 + float(f.phase)) + 0.07 * sin(_time * 23.0 + float(f.phase) * 2.0)
+		var wave := sin(_time * 9.0 + float(f.phase)) * 0.66 + sin(_time * 23.0 + float(f.phase) * 2.0) * 0.34
+		var flick := 0.95 + 0.12 * wave
 		node.scale = Vector3(flick, 0.9 + 0.3 * flick, flick)
+		var omni: Variant = f.get("omni", null)
+		if omni != null and is_instance_valid(omni):
+			(omni as OmniLight3D).light_energy = energy * (1.0 + amp * wave)
+			(omni as OmniLight3D).visible = energy > 0.05
+		var pool: Variant = f.get("pool", null)
+		if pool != null and is_instance_valid(pool):
+			(pool as GeometryInstance3D).transparency = clampf(1.0 - _fire * (0.92 + 0.08 * wave), 0.0, 0.85)
+	var pulse := 0.5 + 0.5 * sin(_time * 3.2)
+	for p in _pulse_mats:
+		var m: StandardMaterial3D = p.mat
+		var c: Color = p.color
+		var k := lerpf(float(p.lo), 1.0, pulse)
+		m.albedo_color = Color(c.r * lerpf(0.8, 1.15, pulse), c.g * lerpf(0.8, 1.15, pulse), c.b * lerpf(0.8, 1.15, pulse), float(p.alpha) * k)
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -334,9 +404,24 @@ func rebuild_rings(root: Node3D) -> void:
 		child.free()
 	var objective_cfg := ring_cfg("objetivo")
 	var objective_w := ring_width_m(float(objective_cfg.width_px))
+	_pulse_mats = []
 	for o in ring_state.objs:
-		var ring: MeshInstance3D = gfx.strip(root, gfx.circle(o.c, float(o.r)), objective_w, 0.5, gfx.flat_mat(str(o.color), float(objective_cfg.alpha)), true)
+		# regla de color (DIRECCION_DE_ARTE 2.1): el objetivo es ORO y late; en alarma o asaltado, rojo de enemigo; tomado, celeste aliado. Un filete de tinta debajo
+		# lo separa del suelo claro del alba y de la cal
+		var under: MeshInstance3D = gfx.strip(root, gfx.circle(o.c, float(o.r)), objective_w * 2.1, 0.45, gfx.flat_mat("negro_textil", 0.45), true)
+		under.name = "filete_" + str(o.id)
+		var color_id := str(o.color)
+		var gain := 1.1 if color_id == "oro_laton" else (1.2 if color_id == "rojo_reservado" else 1.1)
+		var mat := StandardMaterial3D.new()
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		mat.disable_fog = true
+		var col: Color = gfx.pc(color_id, gain)
+		mat.albedo_color = Color(col.r, col.g, col.b, float(objective_cfg.alpha))
+		var ring: MeshInstance3D = gfx.strip(root, gfx.circle(o.c, float(o.r)), objective_w, 0.5, mat, true)
 		ring.name = "objetivo_" + str(o.id)
+		if color_id in ["oro_laton", "rojo_reservado"]:
+			_pulse_mats.append({"mat": mat, "color": col, "alpha": float(objective_cfg.alpha), "lo": 0.55 if color_id == "oro_laton" else 0.35})
 	var pools: Array = ring_state.pools
 	var seen_m := 0.0
 	for p in pools:

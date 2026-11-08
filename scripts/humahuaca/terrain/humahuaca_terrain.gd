@@ -176,6 +176,8 @@ func game_to_lamina(p: Vector2) -> Vector2:
 ## Metros sobre el cero local. Continua en todo el plano: dentro de la ventana, bilineal sobre la malla de 4 m (la misma que dibuja la vista);
 ## afuera, el contexto con la mezcla de los 60 m exteriores.
 func height_at(x: float, z: float) -> float:
+	if is_nan(x) or is_nan(z):  # T-010: NaN no entra en ningún rango y terminaba en un índice negativo (11 SCRIPT ERROR); una coordenada NaN se lee como 0
+		return height_at(0.0 if is_nan(x) else x, 0.0 if is_nan(z) else z)
 	if x >= 0.0 and z >= 0.0 and x <= size_m.x and z <= size_m.y:
 		var fx := x * 0.25
 		var fz := z * 0.25
@@ -222,6 +224,8 @@ func elevation_advantage(a: Vector2, b: Vector2) -> float:
 
 ## Lectura de una malla de 4 m (la final, la del DEM o una alternativa) con la misma regla de la ventana y del contexto.
 func _hf_lookup(arr: PackedFloat32Array, x: float, z: float) -> float:
+	if is_nan(x) or is_nan(z):  # T-010, como height_at
+		return _hf_lookup(arr, 0.0 if is_nan(x) else x, 0.0 if is_nan(z) else z)
 	if x >= 0.0 and z >= 0.0 and x <= size_m.x and z <= size_m.y:
 		return Relief.bilerp(arr, nx, nz, cell_m, x, z)
 	return _outside(arr, x, z)
@@ -241,6 +245,8 @@ func _outside(arr: PackedFloat32Array, x: float, z: float) -> float:
 
 
 func _ctx_at(x: float, z: float) -> float:
+	if is_nan(x) or is_nan(z):  # T-010: clampf(NaN) sigue siendo NaN e int(NaN) da un índice negativo
+		return _ctx_at(0.0 if is_nan(x) else x, 0.0 if is_nan(z) else z)
 	var fx := clampf((x - _cox) / _ccell, 0.0, float(_cnx - 1))
 	var fz := clampf((z - _coz) / _ccell, 0.0, float(_cnz - 1))
 	var i := mini(int(fx), _cnx - 2)

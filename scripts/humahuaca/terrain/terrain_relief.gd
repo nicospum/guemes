@@ -86,6 +86,8 @@ static func _catmull_axis(n_src: int, src_cell: float, n_out: int, out_cell: flo
 
 ## Lectura bilineal de una malla de `cell` m con origen en (0, 0). Es EL interpolador de la altura: height_at lo repite en línea (una prueba las compara).
 static func bilerp(arr: PackedFloat32Array, nx: int, nz: int, cell: float, x: float, z: float) -> float:
+	if is_nan(x) or is_nan(z):  # T-010: clampf(NaN) sigue siendo NaN y el índice saldría negativo
+		return bilerp(arr, nx, nz, cell, 0.0 if is_nan(x) else x, 0.0 if is_nan(z) else z)
 	var fx := clampf(x / cell, 0.0, float(nx - 1))
 	var fz := clampf(z / cell, 0.0, float(nz - 1))
 	var i := mini(int(fx), nx - 2)

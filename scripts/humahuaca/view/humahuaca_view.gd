@@ -51,6 +51,7 @@ var _roots: Dictionary = {}
 var _env: Environment
 var _sky_mat: ProceduralSkyMaterial
 var _sun: DirectionalLight3D
+var _grade_tex: GradientTexture1D = null
 var _albedo := false
 var _override_tod := -1.0
 var _override_rain := 0.0
@@ -325,6 +326,10 @@ func _light_params(key: String) -> Dictionary:
 	var amb: Dictionary = l.get("ambient", {})
 	var sky: Dictionary = l.get("sky", {})
 	var fog: Dictionary = l.get("fog", {})
+	var grade: Dictionary = l.get("grade", {})
+	var sky_hor: Color = gfx.pc(str(sky.get("horizon", "cal_envejecida")), float(sky.get("horizon_gain", 1.0)))
+	if str(sky.get("horizon_tint", "")) != "":  # el horizonte puede mezclarse hacia otro id (la franja violácea de la noche, el rosado del alba)
+		sky_hor = sky_hor.lerp(gfx.pc(str(sky.horizon_tint), float(sky.get("horizon_gain", 1.0))), clampf(float(sky.get("horizon_tint_mix", 0.0)), 0.0, 1.0))
 	return {
 		"t": float(l.get("time_of_day", VV.TIME_OF_DAY.get(key, 0.0))),
 		"sun_el": float(sun.get("elevation_deg", 30.0)), "sun_az": float(sun.get("azimuth_deg", 90.0)),
@@ -332,10 +337,21 @@ func _light_params(key: String) -> Dictionary:
 		"sun_shadow": 1.0 if bool(sun.get("shadows", false)) else 0.0,
 		"amb_col": _tinted(amb, "cal_envejecida"), "amb_energy": float(amb.get("energy", 0.8)),
 		"sky_top": gfx.pc(str(sky.get("top", "azul_elegido")), float(sky.get("top_gain", 1.0))),
-		"sky_hor": gfx.pc(str(sky.get("horizon", "cal_envejecida")), float(sky.get("horizon_gain", 1.0))),
+		"sky_hor": sky_hor,
 		"sky_gnd": gfx.pc(str(sky.get("ground", "suelo_seco")), float(sky.get("ground_gain", 1.0))),
-		"fog_col": _tinted(fog, "cal_envejecida"), "fog_density": float(fog.get("density", 0.001)),
-		"exposure": float(l.get("exposure", 1.0))}
+		"fog_col": _tinted(fog, "cal_envejecida"), "fog_density": float(fog.get("density", 0.001)), "fog_depth_max": float(fog.get("depth_max", 0.6)),
+		"fog_aerial": float(fog.get("aerial", 0.0)), "fog_height": float(fog.get("height_m", 60.0)), "fog_height_density": float(fog.get("height_density", 0.0)),
+		"exposure": float(l.get("exposure", 1.0)),
+		"fire": float(l.get("fire", 1.0)),
+		"grade_contrast": float(grade.get("contrast", 1.0)), "grade_sat": float(grade.get("saturation", 1.0)),
+		"grade_lo": _rgb(grade.get("shadows", [0.0, 0.0, 0.0])), "grade_mid": _rgb(grade.get("mids", [0.5, 0.5, 0.5])), "grade_hi": _rgb(grade.get("highlights", [1.0, 1.0, 1.0]))}
+
+
+## Un color de la curva de corrección (tres números de 0 a 1: no es un color de la paleta sino un punto de la curva por canal, como en DIRECCION_DE_ARTE 2.4).
+static func _rgb(v: Variant) -> Color:
+	if v is Array and (v as Array).size() >= 3:
+		return Color(float(v[0]), float(v[1]), float(v[2]))
+	return Color(0.5, 0.5, 0.5)
 
 
 func _blend_params(a: Dictionary, b: Dictionary, k: float) -> Dictionary:
@@ -354,14 +370,23 @@ func _apply_environment() -> void:
 	_env_dirty = false
 	if _env == null or gfx == null:
 		return
-	var noche := _light_params("noche_lluvia")
-	var alba := _light_params("alba")
-	var dia := _light_params("dia")
-	var p: Dictionary
-	if _tod <= float(alba.t):
-		p = _blend_params(noche, alba, clampf((_tod - float(noche.t)) / maxf(float(alba.t) - float(noche.t), 0.001), 0.0, 1.0))
+	# las horas de `lights` ordenadas por su time_of_day (noche, madrugada, alba, día): la luz se mezcla entre las dos que rodean la hora de ahora. La madrugada (antes
+	# del alba) deja la tierra todavía oscura con el horizonte ya rosado, para que el cambio de luz del alba se sienta y no sea un fundido largo de la noche al día
+	var keys: Array = []
+	for key in (_data.get("lights", {}) as Dictionary):
+		if (_data.lights[key] as Dictionary).has("time_of_day"):
+			keys.append(_light_params(str(key)))
+	keys.sort_custom(func(a, b): return float(a.t) < float(b.t))
+	if keys.is_empty():
+		keys = [_light_params("noche_lluvia")]
+	var p: Dictionary = keys[0]
+	if _tod >= float(keys[keys.size() - 1].t):
+		p = keys[keys.size() - 1]
 	else:
-		p = _blend_params(alba, dia, clampf((_tod - float(alba.t)) / maxf(float(dia.t) - float(alba.t), 0.001), 0.0, 1.0))
+		for i in range(keys.size() - 1):
+			if _tod >= float(keys[i].t) and _tod <= float(keys[i + 1].t):
+				p = _blend_params(keys[i], keys[i + 1], clampf((_tod - float(keys[i].t)) / maxf(float(keys[i + 1].t) - float(keys[i].t), 0.001), 0.0, 1.0))
+				break
 	var rain_cfg: Dictionary = _data.get("rain", {})
 	var fog_cfg: Dictionary = _data.get("fog", {})
 	var elevation := deg_to_rad(float(p.sun_el))
@@ -383,18 +408,68 @@ func _apply_environment() -> void:
 		_env.fog_enabled = false
 		_env.tonemap_mode = Environment.TONE_MAPPER_LINEAR
 		_env.tonemap_exposure = 1.0
+		_env.glow_enabled = false
+		_env.ssao_enabled = false
+		_env.adjustment_enabled = false
 		_sun.light_energy = 0.0
 	else:
 		_env.background_mode = Environment.BG_SKY
 		_env.ambient_light_color = p.amb_col
 		_env.ambient_light_energy = float(p.amb_energy)
 		_env.fog_enabled = true
-		_env.fog_density = clampf(float(p.fog_density) + _rain * float(rain_cfg.get("fog_density_per_rain", 0.0006)), float(fog_cfg.get("density_min", 0.0003)), float(fog_cfg.get("density_max", 0.0045)))
+		if str(fog_cfg.get("mode", "exponencial")) == "profundidad":
+			# niebla por distancia (P2): casi limpia en el cuadro de juego y espesa hacia los cerros, que quedan como siluetas por capas en vez de desaparecer en una
+			# niebla exponencial pareja. `density` de cada hora queda para el modo exponencial (y el stub); acá manda `depth_max`, la niebla máxima (0 a 1) a `depth_end_m`
+			_env.fog_mode = Environment.FOG_MODE_DEPTH
+			_env.fog_depth_begin = float(fog_cfg.get("depth_begin_m", 120.0))
+			_env.fog_depth_end = float(fog_cfg.get("depth_end_m", 7000.0))
+			_env.fog_depth_curve = float(fog_cfg.get("depth_curve", 0.6))
+			_env.fog_density = clampf(float(p.fog_depth_max) + _rain * float(fog_cfg.get("depth_per_rain", 0.08)), 0.0, 0.97)
+		else:
+			_env.fog_mode = Environment.FOG_MODE_EXPONENTIAL
+			_env.fog_density = clampf(float(p.fog_density) + _rain * float(rain_cfg.get("fog_density_per_rain", 0.0006)), float(fog_cfg.get("density_min", 0.0003)), float(fog_cfg.get("density_max", 0.0045)))
 		_env.fog_light_color = p.fog_col
+		_env.fog_aerial_perspective = clampf(float(p.fog_aerial), 0.0, 1.0)
+		_env.fog_height = float(p.fog_height)
+		_env.fog_height_density = float(p.fog_height_density)
 		_env.tonemap_mode = Environment.TONE_MAPPER_ACES
 		_env.tonemap_exposure = float(p.exposure)
+		_apply_look(p)
 	gfx.set_rain(_rain)
 	fxm.set_rain(_rain, _albedo)
+	fxm.set_fire(float(p.fire))
+
+
+## Resplandor, oclusión y la corrección de color por hora (DIRECCION_DE_ARTE 2.3 y 2.4): curva por canal fría de noche (sombras violáceas, luces apenas cálidas) que se
+## entibia al alba. `humahuaca_visual.json: look` dice qué calidades llevan resplandor y oclusión; la curva y el contraste salen de `lights.<hora>.grade`, mezclados por hora.
+func _apply_look(p: Dictionary) -> void:
+	var look: Dictionary = _data.get("look", {})
+	var glow: Dictionary = look.get("glow", {})
+	var ssao: Dictionary = look.get("ssao", {})
+	_env.glow_enabled = (glow.get("qualities", ["media", "alta"]) as Array).has(_quality)
+	if _env.glow_enabled:
+		_env.glow_intensity = float(glow.get("intensity", 0.8))
+		_env.glow_bloom = float(glow.get("bloom", 0.05))
+		_env.glow_hdr_threshold = float(glow.get("threshold", 0.9))
+		_env.glow_blend_mode = Environment.GLOW_BLEND_MODE_SOFTLIGHT if str(glow.get("blend", "softlight")) == "softlight" else Environment.GLOW_BLEND_MODE_ADDITIVE
+	_env.ssao_enabled = (ssao.get("qualities", []) as Array).has(_quality)
+	if _env.ssao_enabled:
+		_env.ssao_intensity = float(ssao.get("intensity", 1.4))
+		_env.ssao_radius = float(ssao.get("radius", 2.0))
+	_env.adjustment_enabled = bool(look.get("grade", true))
+	if not _env.adjustment_enabled:
+		return
+	_env.adjustment_contrast = float(p.grade_contrast)
+	_env.adjustment_saturation = float(p.grade_sat)
+	_env.adjustment_brightness = 1.0
+	if _grade_tex == null:
+		var g := Gradient.new()
+		g.offsets = PackedFloat32Array([0.0, 0.5, 1.0])
+		_grade_tex = GradientTexture1D.new()
+		_grade_tex.width = 128
+		_grade_tex.gradient = g
+	_grade_tex.gradient.colors = PackedColorArray([p.grade_lo, p.grade_mid, p.grade_hi])
+	_env.adjustment_color_correction = _grade_tex
 
 
 func set_time_override(time_of_day: float, rain: float) -> void:

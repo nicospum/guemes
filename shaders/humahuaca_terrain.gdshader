@@ -89,12 +89,19 @@ void fragment(){
 	vec2 tq = hx_rot(p, 0.35) * vec2(0.014, 0.026);
 	float terrace = smoothstep(0.43, 0.55, hx_fbm2(tq + 4.0)) - smoothstep(0.60, 0.72, hx_fbm2(tq * 1.9 + 21.0));
 	float speck = smoothstep(0.46, 0.56, hx_fbm2(p * 0.085 + 13.0));
-	vec3 c_suelo = pal_suelo * (0.84 + 0.20 * big + 0.16 * mid) * (0.95 + 0.10 * fine) * (0.92 + 0.14 * terrace) * (0.94 + 0.10 * speck);
+	vec3 c_suelo = pal_suelo * (0.74 + 0.34 * big + 0.22 * mid) * (0.95 + 0.10 * fine) * (0.90 + 0.18 * terrace) * (0.94 + 0.10 * speck);
+	// manchones de tierra húmeda y pastos secos de decenas a cientos de metros (P2): el suelo deja de ser un plano lavado de un solo tono a la distancia de juego
+	float damp = smoothstep(0.52, 0.74, hx_fbm2(p * 0.0062 + 17.0));
+	float straw = smoothstep(0.58, 0.78, hx_fbm2(hx_rot(p, 0.8) * vec2(0.011, 0.02) + 41.0));
+	c_suelo = mix(c_suelo, pal_sedimento * (0.85 + 0.2 * mid), damp * 0.5);
+	c_suelo = mix(c_suelo, mix(pal_churqui, pal_lana, 0.35) * (0.8 + 0.25 * mid), straw * 0.32 * (1.0 - damp));
 	c_suelo = mix(c_suelo, pal_piedra * (0.95 + 0.25 * stone_tone), stones * 0.3);                   // piedritas sueltas sobre la grava
 	vec3 c_sed = pal_sedimento * (0.84 + 0.3 * mid) * (0.96 + 0.08 * fine);
 	float crack = smoothstep(0.10, 0.04, abs(hx_cells(p * 0.55) - 0.5)) * near_k;
 	c_sed *= 1.0 - 0.18 * crack;                                                                     // grietas de barro seco
-	vec3 c_piedra = pal_piedra * (0.78 + 0.3 * mid + 0.18 * fine) * (0.9 + 0.2 * hx_noise(p * 0.7));
+	// la piedra de las laderas de la quebrada es parda y rojiza, no gris neutro (con la luna fría el gris se leía como charcos azules): se la mezcla con el adobe y el sedimento
+	vec3 rock_tint = mix(pal_piedra, mix(pal_adobe, pal_sedimento, 0.5), 0.6 + 0.2 * big);
+	vec3 c_piedra = rock_tint * (0.78 + 0.3 * mid + 0.18 * fine) * (0.9 + 0.2 * hx_noise(p * 0.7));
 	float strata = hx_noise(vec2(p.x * 0.006 + p.y * 0.004, asl * 0.22));                           // estratos claros y horizontales de los cerros erosionados
 	float band = smoothstep(0.38, 0.62, fract(asl / 7.0 + strata * 0.9 + big * 0.5));
 	c_piedra = mix(c_piedra, mix(pal_adobe, pal_lana, 0.35) * (0.86 + 0.2 * mid), band * steep * 0.82);
@@ -120,7 +127,7 @@ void fragment(){
 	float line = 1.0 - smoothstep(0.0, line_w, dist_line);
 	float major = 1.0 - smoothstep(0.0, line_w, abs(fract(asl / 20.0 + 0.5) - 0.5) * 20.0);
 	c *= 1.0 - (line * contour_alpha + major * contour_alpha * 1.3) * mid_k * (1.0 - steep * 0.6);
-	c *= 1.0 - 0.12 * smoothstep(0.04, 0.35, slope);                                                 // la ladera se ve más oscura que el llano
+	c *= 1.0 - 0.22 * smoothstep(0.03, 0.30, slope);                                                 // la ladera se ve más oscura que el llano
 
 	// --- lluvia: el suelo se oscurece, se alisa y junta charcos chicos (solo de cerca: de lejos serían manchas de camuflaje) --------------------------------------
 	float puddle_n = hx_fbm2(p * 0.13 + 31.0);
@@ -145,6 +152,6 @@ void fragment(){
 	} else {
 		ALBEDO = c;
 		ROUGHNESS = mix(0.95, wet_rough + 0.12, wet) * mix(1.0, 0.45, puddle) * mix(1.0, 0.6, w_agua);
-		SPECULAR = mix(0.22, 0.34, wet) + 0.22 * puddle;
+		SPECULAR = mix(0.12, 0.2, wet) + 0.2 * puddle;
 	}
 }

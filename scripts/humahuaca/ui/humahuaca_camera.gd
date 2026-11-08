@@ -37,6 +37,7 @@ var ground_from_screen: Callable = Callable()
 var last_fit: Dictionary = {}
 ## La agrupación que la cámara sigue («» si ninguna): center_on con la posición de una ficha la elige; mover la cámara a mano la suelta.
 var follow_id := ""
+var _base_pitch := -1.0  ## la inclinación «de juego» a la que vuelve la cámara al alejarse (zoom_tilt)
 
 var opening_active := false
 var _op_frames: Array = []  # [{target: Vector2, dist, pitch_deg, yaw_deg, at: float}]
@@ -167,6 +168,7 @@ func rotate_view(yaw_dir: float, pitch_dir: float, delta: float) -> void:
 		yaw_deg = fposmod(yaw_deg + yaw_dir * num("yaw_deg_s", 70.0) * delta, 360.0)
 	if pitch_dir != 0.0:
 		pitch_deg = clampf(pitch_deg + pitch_dir * num("pitch_deg_s", 40.0) * delta, num("min_pitch_deg", 10.0), num("max_pitch_deg", 80.0))
+		_base_pitch = -1.0  # el jugador inclinó a mano: la rueda deja de acostar la cámara hasta que vuelva a estar lejos
 
 
 func _ground(cam: Camera3D, pos: Vector2) -> Variant:
@@ -178,12 +180,23 @@ func _ground(cam: Camera3D, pos: Vector2) -> Variant:
 ## Rueda del mouse: acerca (factor < 1) o aleja (factor > 1) manteniendo bajo el cursor el mismo punto del suelo. Si se sigue a una ficha, acerca o aleja sobre ella.
 func zoom_at(cam: Camera3D, mouse: Vector2, factor: float) -> void:
 	var before: Variant = _ground(cam, mouse) if follow_id == "" else null
+	var tilt: Dictionary = data.get("zoom_tilt", {}) if data.get("zoom_tilt", null) is Dictionary else {}
+	var far_m := float(tilt.get("far_m", 220.0))
+	if dist >= far_m:
+		_base_pitch = pitch_deg  # la inclinación que eligió el jugador (o la inicial) mientras está lejos
 	dist = clampf(dist * factor, min_dist(), max_dist())
+	if bool(tilt.get("enabled", false)) and _base_pitch > 0.0 and (dist < far_m or pitch_deg != _base_pitch):
+		# P2: al acercarse, la cámara se va acostando hacia el horizonte (los cerros de la quebrada y el cielo); al alejarse vuelve a la inclinación de juego
+		var k := smoothstep(float(tilt.get("near_m", 50.0)), far_m, dist)
+		pitch_deg = clampf(lerpf(float(tilt.get("near_pitch_deg", 24.0)), _base_pitch, k), num("min_pitch_deg", 10.0), num("max_pitch_deg", 80.0))
 	apply(cam)
 	if follow_id != "":
 		return
-	var after: Variant = _ground(cam, mouse)
-	if before is Vector2 and after is Vector2:
+	# el punto del suelo bajo el cursor se queda: con relieve y la cámara baja una sola corrección dejaba hasta 8 m de error, así que se corrige hasta tres veces
+	for _pass in range(3):
+		var after: Variant = _ground(cam, mouse)
+		if not (before is Vector2 and after is Vector2) or (before as Vector2).distance_to(after as Vector2) < 0.05:
+			break
 		target = clamp_target(target + ((before as Vector2) - (after as Vector2)))
 		apply(cam)
 
