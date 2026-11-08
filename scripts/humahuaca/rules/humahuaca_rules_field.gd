@@ -78,6 +78,27 @@ static func _pt(x: float, z: float) -> Dictionary:
 	return {"x": x, "z": z}
 
 # ---------------------------------------------------------------------------------------------------------------------
+# Rutas que rodean a los centinelas
+
+## La grilla con la que se arma una ruta ahora: antes de la señal, la que rodea a cada centinela de un frente en pie (stealth.route_avoid: un costo extra dentro de
+## su radio, ×1,25 en la altura de la batería y en la torre armada, y con el `detect_mult` de la guardia del mundo). Una ruta de aproximación no pasa por delante de
+## la guardia si hay otro camino; si el destino está adentro (reconocer, un puesto pegado), entra igual. Después de la señal, la grilla de siempre.
+func route_nav(n: RefCounted) -> RefCounted:
+	var cfg: Dictionary = (_rules.stealth as Dictionary).get("route_avoid", {})
+	if cfg.is_empty() or state.is_empty() or bool(state.alarm.signaled):
+		return n
+	var circles: Array = []
+	var key := ""
+	for fid in V.OBJECTIVES:
+		if str(state.objectives[fid].state) == "tomado":
+			continue
+		var r := snappedf(float(cfg.radius_m) * float(_o()._vis_mult_at(fid)) * _detect_mult(), 1.0)
+		key += "%s:%d|" % [fid, int(r)]
+		for p in _o()._sentinel_points(fid):
+			circles.append({"c": p, "r": r})
+	return n.call("avoiding", key, circles, float(cfg.weight_mult))
+
+# ---------------------------------------------------------------------------------------------------------------------
 # Alarma antes de la señal: la guardia que sale, el jinete y la voz que corre
 
 ## El frente pasa a «en alarma». Solo cuenta como alarma por haberlos visto (`seen`) la que saltó con una agrupación a la vista: el desvelo del alba también la
@@ -257,13 +278,45 @@ func _complete_recon(u: Dictionary) -> void:
 		var probe := {"x": float(u.x), "z": float(u.z), "noise": float(_rules.stealth.pace[str(u.pace)].noise)}
 		risk = maxf(risk, float(_guard_cfg().get("recon_seen_prob", 0.0)))  # la guardia atenta tiene centinelas adelantados: a quien se para a mirar lo ve siempre
 		if _sentinel_sees(fid, probe, float(environment().visibility_m)) or _random() < risk:
-			u.detected = true
-			state.stats.detections = int(state.stats.detections) + 1
-			o.alert = minf(1.0, float(o.alert) + float(_guard_cfg().get("recon_seen_alert", rc.alert_when_seen)))
-			_event("detected", _ts("eventos.detectado", {"frente": str(_rules.objectives[fid].place)}), {"objective": fid, "unit": str(u.id)})
-			if float(o.alert) >= float(_rules.enemy.alert.alarma_at) and (str(o.state) == "guardado" or str(o.state) == "alertado"):
-				_raise_alarm(fid, o, true, float(state.elapsed))
+			## la guardia que da la alarma cuando los ve (recon_seen_alert ≥ lo que falta) no la da de golpe: el centinela los vio y tarda `recon_warn_s` en estar
+			## seguro. Es la ventana del aviso (estilo Shadow Tactics / Desperados): si los reconocedores se retiran a tiempo, no hay alarma (_step_spotted).
+			var warn_s := float(_guard_cfg().get("recon_warn_s", 0.0))
+			var gain := float(_guard_cfg().get("recon_seen_alert", rc.alert_when_seen))
+			if warn_s > 0.0 and float(o.alert) + gain >= float(_rules.enemy.alert.alarma_at) and (u.get("spotted", {}) as Dictionary).is_empty():
+				u["spotted"] = {"front": fid, "until": float(state.elapsed) + warn_s, "x": float(u.x), "z": float(u.z)}
+				_event("warning", _ts("eventos.reconocedores_vistos", {"frente": str(_rules.objectives[fid].place), "s": roundi(warn_s)}), {"objective": fid, "unit": str(u.id), "strong": true})
+			else:
+				_spotted_detection(u, fid, gain)
 	_bump()
+
+## Los vieron de verdad: la alerta del frente sube (`gain`) y, si llega a la alarma, la guardia sale (con lo que trae antes de la señal: jinete, voz que corre).
+func _spotted_detection(u: Dictionary, fid: String, gain: float) -> void:
+	var o: Dictionary = state.objectives[fid]
+	u.detected = true
+	state.stats.detections = int(state.stats.detections) + 1
+	o.alert = minf(1.0, float(o.alert) + gain)
+	_event("detected", _ts("eventos.detectado", {"frente": str(_rules.objectives[fid].place)}), {"objective": fid, "unit": str(u.id)})
+	if float(o.alert) >= float(_rules.enemy.alert.alarma_at) and (str(o.state) == "guardado" or str(o.state) == "alertado"):
+		_raise_alarm(fid, o, true, float(state.elapsed))
+
+## La ventana del aviso de los reconocedores vistos: si se alejaron `recon_warn_escape_m` del lugar donde los vieron, se salvan (la alerta queda como estaba más
+## lo que sumó verlos irse); si se vence el plazo y siguen ahí, el centinela da la voz. El frente tomado o la señal dada terminan la ventana sin alarma.
+func _step_spotted(t: float) -> void:
+	for u in state.units:
+		var sp: Dictionary = u.get("spotted", {})
+		if sp.is_empty():
+			continue
+		var fid := str(sp.front)
+		var gone := D.dist(float(u.x), float(u.z), float(sp.x), float(sp.z)) >= float(_guard_cfg().get("recon_warn_escape_m", 8.0)) or str(u.stage) == "exited"
+		if gone or bool(state.alarm.signaled) or str(state.objectives[fid].state) == "tomado":
+			u.erase("spotted")
+			if gone:
+				_event("info", _ts("eventos.reconocedores_a_salvo", {"frente": str(_rules.objectives[fid].place)}), {"objective": fid, "unit": str(u.id)})
+			_bump()
+		elif t + 1e-9 >= float(sp.until):
+			u.erase("spotted")
+			_spotted_detection(u, fid, float(_guard_cfg().get("recon_seen_alert", _rules.stealth.recon.alert_when_seen)))
+			_bump()
 
 func _item(id: String) -> Dictionary:
 	for it in state.loot.items:
@@ -322,8 +375,14 @@ func _complete_destroy(u: Dictionary, item_id: String) -> void:
 		var per := float(sm.first) if int(state.smoke_used) == 0 else float(sm.next)
 		var adv := minf(per, float(sm.cap) - float(state.smoke_adv))
 		if float(state.alarm.reinforcement_at) >= 0.0 and adv > 0.0:
+			var lead := float(_rules.reinforcement.warning_lead_s)
+			var t := float(state.elapsed)
+			var warned_before := t >= float(state.alarm.reinforcement_at) - lead  # el aviso «Polvareda al sur» ya salió con el reloj viejo
 			state.alarm.reinforcement_at = float(state.alarm.reinforcement_at) - adv
 			state.smoke_adv = float(state.smoke_adv) + adv
+			if not warned_before and t >= float(state.alarm.reinforcement_at) - lead and not bool(state.alarm.reinforcement_arrived):
+				## el humo adelantó el refuerzo por encima del cruce del aviso: el aviso sale ahora, no se saltea (A-11)
+				_event("reinforcement_warning", _ts("eventos.refuerzo_visto"), {"strong": true})
 		state.smoke_used = int(state.smoke_used) + 1
 
 func _exit_unit(u: Dictionary) -> void:

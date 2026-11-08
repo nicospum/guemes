@@ -97,12 +97,33 @@ static func _fmt(template: String, vars: Dictionary) -> String:
 # El «siguiente paso»
 
 func _step_dict(key: String, vars: Dictionary, actor: String, action: String, target: Vector2, urgency: int) -> Dictionary:
-	var out := {"texto": _ts("siguiente." + key, vars), "actor": actor, "action": action, "urgencia": urgency}
+	var out := {"texto": _ts("siguiente." + key, vars), "actor": actor, "action": action, "urgencia": urgency, "id": key, "eta_s": _step_eta(key, actor)}
 	if target != Vector2.ZERO:
 		out["target"] = _pt(target.x, target.y)
 	else:
 		out["target"] = {}
 	return out
+
+## Cuánto falta (segundos de juego) para que cambie un paso de espera: la carga en curso, la marcha que falta por la ruta o la primera luz. -1 si no se sabe (la
+## toma de un frente depende del combate) o si el paso no es de espera. Lo usa la interfaz para decir «faltan N s» en vez de solo «Esperá».
+func _step_eta(key: String, actor: String) -> float:
+	var u := _unit(actor)
+	match key:
+		"wait_load":
+			return maxf(0.0, float((u.get("work", {}) as Dictionary).get("remaining_s", -1.0))) if not (u.get("work", {}) as Dictionary).is_empty() else -1.0
+		"wait_group", "wait_exit":
+			if u.is_empty() or (u.path as Array).is_empty():
+				return -1.0
+			var pos := Vector2(float(u.x), float(u.z))
+			var left := 0.0
+			for p in u.path:
+				var q := Vector2(float(p.x), float(p.z))
+				left += pos.distance_to(q)
+				pos = q
+			return left / maxf(float(_o()._unit_speed(u)), 0.1)
+		"wait_light":
+			return maxf(0.0, float(_rules.time.alba_start_s) - float(state.elapsed))
+	return -1.0
 
 const HINT_LOAD_TRAVEL_S := 45.0  # hasta cuántos segundos de viaje manda la pista al arreo por un lote (lo que queda lejos lo destruyen las partidas)
 const PLAN_DETOUR := 1.1  # la ruta real del arreo (A*, barro, vado) es más larga que la recta: el plan de carga cuenta con ese margen
@@ -263,8 +284,13 @@ func next_step() -> Dictionary:
 		return _step_dict("fin", {}, "reconocedores", "cancel", Vector2.ZERO, 0)
 	if not bool(state.alarm.signaled):
 		var recon_u := _unit("reconocedores")
+		var escape := spotted_escape(recon_u)
+		if not escape.is_empty():  # un centinela los vio: lo primero es sacarlos de ahí antes de que se venza el aviso (D-01)
+			return _step_dict("retirar_reconocedores", {"frente": str(_rules.objectives[str(escape.front)].place)}, "reconocedores", "move", escape.target, 2)
 		var scouts_busy := str(recon_u.stage) == "moving" or str(recon_u.stage) == "scouting"
-		var recon_safe := not _diary_has("descubiertos")  # lo que el diario enseñó: si ya los vieron una vez en este mundo, no se manda a nadie a mirar de cerca
+		## lo que el diario enseñó (si ya los vieron una vez en este mundo, no se manda a nadie a mirar de cerca) y lo que dice el briefing: con la guardia atenta, a
+		## quien se para a mirar de cerca lo ven; la pista no lo pide (la guía nunca lleva a perder, D-01). Quien quiera arriesgarse igual tiene el aviso para retirarse.
+		var recon_safe := not _diary_has("descubiertos") and str(state.world.guardia) != "atenta"
 		if float(state.objectives.bateria.reconocido) < 1.0 and not scouts_busy and recon_safe:
 			return _step_dict("recon", {"frente": str(_rules.objectives.bateria.place)}, "reconocedores", "recon", _hito_pos("bateria"), 1)
 		for g in V.COMBAT_GROUPS:
@@ -440,11 +466,32 @@ func _reinforcement_hud() -> Dictionary:
 			estado = "en_camino"
 	return {"estado": estado, "restante_s": rest, "banda": [lo, hi]}
 
+## Si un centinela vio a la agrupación `u` (la ventana del aviso): {front, until, target} con un punto de retirada que se aleja del frente lo suficiente para salvarse;
+## {} si nadie la vio.
+func spotted_escape(u: Dictionary) -> Dictionary:
+	var sp: Dictionary = u.get("spotted", {})
+	if sp.is_empty():
+		return {}
+	var c := _hito_pos(str(_rules.objectives[str(sp.front)].hito))
+	var p := Vector2(float(u.x), float(u.z))
+	var away := (p - c).normalized() if p.distance_to(c) > 0.5 else Vector2(0.0, 1.0)
+	var back := p + away * maxf(30.0, 3.0 * float(_o()._guard_cfg().get("recon_warn_escape_m", 8.0)))
+	var sz := _o().map_size() as Vector2
+	return {"front": str(sp.front), "until": float(sp.until), "target": Vector2(clampf(back.x, 0.0, sz.x), clampf(back.y, 0.0, sz.y))}
+
 func _hud_alerts(t: float) -> Array:
 	var out: Array = []
 	var tm: Dictionary = _rules.time
 	var signaled := bool(state.alarm.signaled)
 	var playing := str(state.status) == "playing"
+	var esc := spotted_escape(_unit("reconocedores")) if playing else {}
+	if not esc.is_empty() and _rules.texts.alertas.has("reconocedores_vistos"):
+		## el aviso de la detección (D-01): crítico, con pausa corta y la cuenta; el botón los retira (lo mismo que pide el «siguiente paso»)
+		var rv0: Dictionary = _rules.texts.alertas.reconocedores_vistos
+		var left_sp := maxf(0.0, float(esc.until) - t)
+		var place := D.with_contractions({"frente": str(_rules.objectives[str(esc.front)].place), "s": int(ceil(left_sp))})
+		out.append({"id": "reconocedores_vistos", "nivel": "critica", "corto": _fmt(str(rv0.corto), place), "largo": _fmt(str(rv0.largo), place), "boton": str(rv0.boton),
+			"accion": {"action": "move", "actor": "reconocedores"}, "pausa": true, "vence_s": left_sp})
 	if playing and not signaled:
 		var info := signal_info()
 		if not (info.in_position as Array).is_empty() and not (info.waiting as Array).is_empty() and t < float(tm.alba_start_s):
@@ -573,7 +620,8 @@ func render_state() -> Dictionary:
 	for u in state.units:
 		us.append({"id": str(u.id), "x": float(u.x), "z": float(u.z), "yaw_deg": float(u.yaw_deg), "kind": str(u.kind), "mounted": bool(u.mounted), "stage": str(u.stage),
 			"strength_pct": float(u.strength), "men_visible": clampi(roundi(float(u.men) / 4.0), 2, 14), "noise_state": _noise_state(u), "detected": bool(u.detected),
-			"carry_ratio": float(u.carry_kg) / maxf(float(u.capacity_kg), 1.0) if float(u.capacity_kg) > 0.0 else 0.0})
+			"carry_ratio": float(u.carry_kg) / maxf(float(u.capacity_kg), 1.0) if float(u.capacity_kg) > 0.0 else 0.0,
+			"spotted_s": maxf(0.0, float((u.get("spotted", {}) as Dictionary).get("until", t)) - t)})  # la cuenta del aviso de detección (0 si nadie la vio): la vista dibuja el anillo
 		if str(u.stage) != "exited":
 			pools.append({"x": float(u.x), "z": float(u.z), "r": float(env.visibility_m)})
 		if int(u.horses) > 0:

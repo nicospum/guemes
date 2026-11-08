@@ -130,11 +130,14 @@ func _test_sentinels_and_tower_sight() -> void:
 		return
 	var r = t.new_rules(1817, {"skip_intro": true})
 	var vis := 45.0
-	var behind_wall := {"x": 565.0, "z": 320.0, "noise": 0.5}
-	var in_the_open := {"x": 560.0, "z": 256.0, "noise": 0.5}  # en línea con el hueco de la puerta del patio
-	t.ck(not bool(r.call("_sentinel_sees", "posta", behind_wall, vis)), "el centinela de la posta no ve a quien está detrás de la tapia del patio (a %.0f m)" % Vector2(565.0, 320.0).distance_to(Vector2(576.0, 304.0)))
+	## el centinela está en la entrada, afuera de la puerta oeste de la posta (570, 300) desde T-007 (antes quedaba sobre la tapia oeste, D-2): los puntos de la prueba
+	## son los mismos casos con la geometría nueva (detrás de la tapia, a cielo abierto frente a la puerta y lejos en silencio)
+	var sentinel := Vector2(570.0, 300.0)
+	var behind_wall := {"x": 578.0, "z": 310.0, "noise": 0.5}  # adentro del recinto, detrás de la tapia oeste (tramo sur)
+	var in_the_open := {"x": 545.0, "z": 312.0, "noise": 0.5}  # frente a la puerta, del lado del pueblo
+	t.ck(not bool(r.call("_sentinel_sees", "posta", behind_wall, vis)), "el centinela de la posta no ve a quien está detrás de la tapia del patio (a %.0f m)" % Vector2(578.0, 310.0).distance_to(sentinel))
 	t.ck(bool(r.call("_sentinel_sees", "posta", in_the_open, vis)), "...y sí ve a quien hace el mismo ruido a cielo abierto, frente a la puerta")
-	t.ck(not bool(r.call("_sentinel_sees", "posta", {"x": 520.0, "z": 296.0, "noise": 0.1}, vis)), "en silencio y a más de 55 m no los ven")
+	t.ck(not bool(r.call("_sentinel_sees", "posta", {"x": 512.0, "z": 296.0, "noise": 0.1}, vis)), "en silencio y a más de 55 m no los ven")
 	# torre: ángulo muerto, alcance y calle abierta
 	var tp: Vector2 = r.call("_tower_pos")
 	var u_dead := {"x": tp.x + 4.0, "z": tp.y, "stage": "idle", "pace": "march", "order": {}}
@@ -355,6 +358,81 @@ func _test_policies_extremes() -> void:
 	t.pol.call("play", early, "barrido_senal", {"signal_s": 200.0})
 	t.pol.call("play", late, "barrido_senal", {"signal_s": 300.0})
 	t.ck(absf(float(early.state.alarm.signal_at) - 200.0) <= 1.0 and absf(float(late.state.alarm.signal_at) - 300.0) <= 1.0, "el barrido de la señal da la señal en el segundo pedido (%.0f s y %.0f s)" % [float(early.state.alarm.signal_at), float(late.state.alarm.signal_at)])
+
+## D-01 (BACKLOG): con la guardia atenta la guía no manda a reconocer de cerca y la detección avisa antes: el centinela que ve a los reconocedores tarda
+## `recon_warn_s` en dar la voz; si se retiran a tiempo (lo que piden el aviso y el «siguiente paso») no hay alarma; si se quedan, sí. Y el obediente no pierde
+## por «descubiertos» en las cuatro semillas de calibración con guardia atenta.
+func _test_recon_warning() -> void:
+	var g: Dictionary = t.cfg.enemy.guard.atenta
+	var sd := -1
+	for cand in [3, 5, 13, 17]:
+		var probe = t.new_rules(cand, {})
+		if str(probe.state.world.guardia) == "atenta":
+			sd = cand
+			break
+	t.ck(sd > 0 and float(g.get("recon_warn_s", 0.0)) > 0.0, "hay una semilla de calibración con guardia atenta y la guardia atenta avisa antes de dar la voz (recon_warn_s = %s)" % str(g.get("recon_warn_s", "")))
+	if sd < 0:
+		return
+	var r = t.new_rules(sd, {})
+	t.ck(str(t._dict(r.call("hud_state")).get("siguiente", {}).get("action", "")) != "recon", "con la guardia atenta el «siguiente paso» no pide reconocer de cerca")
+	t.order(r, "reconocedores", "recon", t.hito("bateria"))
+	var spotted: bool = t.run_until(r, func(): return not (t.unit_dict(r, "reconocedores").get("spotted", {}) as Dictionary).is_empty(), 200.0, 0.25)
+	var hud: Dictionary = t._dict(r.call("hud_state"))
+	var alert_ok := false
+	for a in hud.get("alertas", []):
+		if str(a.get("id", "")) == "reconocedores_vistos" and str(a.get("nivel", "")) == "critica" and float(a.get("vence_s", 0.0)) > 0.0:
+			alert_ok = true
+	var nxt: Dictionary = hud.get("siguiente", {})
+	t.ck(spotted and alert_ok and str(nxt.get("action", "")) == "move" and str(nxt.get("actor", "")) == "reconocedores" and str(r.state.objectives.bateria.state) != "en_alarma",
+		"reconocer de cerca con la guardia atenta no da la alarma de golpe: aviso crítico con cuenta y el «siguiente paso» pide retirarlos (%s)" % str(nxt.get("texto", "")))
+	var snap: Dictionary = r.call("snapshot")
+	## (a) se retiran a tiempo: lo que pide el «siguiente paso»
+	var tg: Dictionary = nxt.get("target", {})
+	t.order(r, "reconocedores", "move", Vector2(float(tg.get("x", 0.0)), float(tg.get("z", 0.0))))
+	t.run_to(r, float(r.state.elapsed) + float(g.recon_warn_s) + 3.0, 0.25)
+	t.ck(str(r.state.objectives.bateria.state) != "en_alarma" and (r.state.alarm.pre_signal as Array).is_empty() and (t.unit_dict(r, "reconocedores").get("spotted", {}) as Dictionary).is_empty(),
+		"si se retiran antes de que venza el aviso, la guardia no da la voz (batería: %s)" % str(r.state.objectives.bateria.state))
+	## (b) se quedan: vence el aviso y la guardia da la alarma, con la ventana de antes
+	var r2 = t.new_rules(sd, {})
+	t._dict(r2.call("restore_snapshot", snap))
+	t.run_to(r2, float(r2.state.elapsed) + float(g.recon_warn_s) + 1.0, 0.25)
+	t.ck(str(r2.state.objectives.bateria.state) == "en_alarma", "si se quedan donde los vieron, al vencer el aviso la batería da la alarma (%s)" % str(r2.state.objectives.bateria.state))
+	## el cierre de D-01: el obediente, que solo hace lo que dice el «siguiente paso», no pierde por «descubiertos» en los mundos de guardia atenta
+	var lost: Array = []
+	for cand in [3, 5, 13, 17]:
+		var ro = t.new_rules(cand, {})
+		var rec: Dictionary = t._dict(t.pol.call("play", ro, "obediente", {}))
+		if str(rec.cause_id) == "descubiertos":
+			lost.append(cand)
+	t.ck(lost.is_empty(), "D-01: el obediente no pierde por «descubiertos» en las semillas 3, 5, 13 y 17 (pierden así: %s)" % str(lost))
+
+## D-06 (BACKLOG): la medalla premia decidir. En el mundo de entrada (1817) el obediente gana con bronce y el experto, que decide qué cargar, saca al menos el mismo
+## golpe y una medalla mejor; plata y oro existen y se pueden alcanzar (el oro no pide más golpe del que el botín puede dar).
+func _test_medal_gradient() -> void:
+	var md: Dictionary = t.cfg.outcome.medals
+	var ro = t.new_rules(1817, {})
+	var ob: Dictionary = t._dict(t.pol.call("play", ro, "obediente", {}))
+	var rx = t.new_rules(1817, {})
+	var ex: Dictionary = t._dict(t.pol.call("play", rx, "experto", {}))
+	t.ck(str(ob.status) == "victory" and str(ob.get("medal", "")) == "bronce", "D-06: en 1817 el obediente gana con bronce (%s, golpe %.1f)" % [str(ob.get("medal", "")), float(ob.golpe)])
+	t.ck(str(ex.status) == "victory" and float(ex.golpe) >= float(ob.golpe) and R.MEDALS.find(str(ex.get("medal", ""))) > R.MEDALS.find("bronce"),
+		"D-06: el experto saca al menos el golpe del obediente y una medalla mejor (%s, golpe %.1f contra %.1f)" % [str(ex.get("medal", "")), float(ex.golpe), float(ob.golpe)])
+	## la cota del golpe: todo lo que entra en las mulas por puntos por kilo, más destruir el resto
+	var r0 = t.new_rules(1817, {})
+	var cap: Dictionary = t.cfg.loot.capacity
+	var room := (float(cap.own_mules) + float(cap.corral_mules.completo)) * float(cap.kg_per_mule)
+	var items: Array = (r0.state.loot.items as Array).duplicate(true)
+	items.sort_custom(func(a, b): return float(a.unit_value) / float(a.unit_kg) > float(b.unit_value) / float(b.unit_kg))
+	var top := 0.0
+	for it in items:
+		var kg := float(it.qty) * float(it.unit_kg)
+		var val := float(it.qty) * float(it.unit_value)
+		if kg <= room + 1e-6:
+			room -= kg
+			top += val
+		else:
+			top += val * float(t.cfg.loot.treatments.destruir)
+	t.ck(float(md.plata.golpe_min) < float(md.oro.golpe_min) and float(md.oro.golpe_min) <= top, "D-06: el oro pide un golpe alcanzable (%.0f ≤ cota %.1f) y más que la plata (%.0f)" % [float(md.oro.golpe_min), top, float(md.plata.golpe_min)])
 
 func _test_policies_blindness() -> void:
 	if t.pol == null:

@@ -120,6 +120,8 @@ func _initialize() -> void:
 	_test_progress_files_hostile()
 	_test_contractions()
 	_test_policies_extremes()
+	_run_check("_test_recon_warning")
+	_run_check("_test_medal_gradient")
 	_test_policies_blindness()
 	_test_performance()
 	_test_pending_for_r1()

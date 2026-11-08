@@ -68,6 +68,13 @@ static func make_loot(world: Dictionary) -> Dictionary:
 					"unit_value": float(cls.points) / float(total_lots) / float(qty), "state": "en_sitio", "x": site.x + 3.0 * float(n % 3),
 					"z": site.y + 3.0 * float(floori(float(n) / 3.0)), "where": str(cls.where), "front": str(lot.front), "carried_by": "", "spot": "", "safe": false,
 					"wet": kind == "polvora" and str(traits.get("polvora", "seca")) == "humeda"})
+	## si el mundo no trae una clase (plata = false), los lotes que hay se reparten los 100 puntos: el golpe, el umbral y las medallas siguen sobre 100 (A-10)
+	var sum := 0.0
+	for it in items:
+		sum += float(it.qty) * float(it.unit_value)
+	if sum > 0.0 and absf(sum - 100.0) > 1e-9:
+		for it in items:
+			it.unit_value = float(it.unit_value) * 100.0 / sum
 	var cap: Dictionary = D.rules().loot.capacity
 	return {"items": items, "capacity_kg": float(cap.own_mules) * float(cap.kg_per_mule), "load_kg": 0.0, "delivered_value": 0.0, "destroyed_value": 0.0,
 		"hidden_value": 0.0, "lost_value": 0.0, "total_value": 100.0}

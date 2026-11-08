@@ -760,6 +760,11 @@ func _cycle_full() -> void:
 				covered.append("%s bajo %s" % [str(id), key])
 	check(covered.is_empty(), "Primer cuadro: ninguna ficha queda bajo el HUD (%s)" % str(covered))
 	notes["borde_min_pct"] = snappedf(edge_min, 0.1)
+	# P-006 (ronda 2 de P2): las cinco partidas en el primer cuadro con su anillo entero, como en el chequeo de desborde
+	check(edge_min >= 5.5, "Primer cuadro: las cinco partidas a ≥ 5,5 %% del borde, con su anillo entero a la vista (mínimo %.1f %%)" % edge_min)
+	if root.size.y == 720:  # el pedido del usuario: ninguna ficha propia por debajo de 64 px reales con el zoom por defecto
+		var under64: Array = token_px.filter(func(t): return float(t.h) < 64.0)
+		check(token_px.size() == V.GROUPS.size() and under64.is_empty(), "Primer cuadro: las cinco fichas miden 64 px reales o más (%s)" % str(under64))
 	# --- seleccionar, apuntar con vista previa y dar la orden con el mouse ---
 	await _key(KEY_4)
 	await _frames(3)
@@ -964,6 +969,22 @@ func _cycle_overflow() -> void:
 	notes["caracteres_t0"] = int(hx.qa_state().text_chars)
 	notes["rects_inicio"] = _capture_rects()
 	_measure_contrast(img, "inicio")
+	# ronda 2 de P2: al elegir una partida lejos del centro, la cámara se acerca sola (≈ 240 m) y se acuesta hacia el horizonte
+	var d0 := float(hx.qa_state().camera.dist)
+	var pick := "rodriguez" if not (hx.qa_state().selected as Array).has("rodriguez") else "arreo"
+	await _key(KEY_1 if pick == "rodriguez" else KEY_5)
+	var t_wait := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - t_wait < 1400:
+		await process_frame
+	var cam_after: Dictionary = hx.qa_state().camera
+	var u_pick: Dictionary = hx.rules.get_unit(pick)
+	var gap := Vector2(float(cam_after.target[0]), float(cam_after.target[1])).distance_to(Vector2(float(u_pick.x), float(u_pick.z)))
+	notes["acercamiento"] = {"partida": pick, "desde_m": snappedf(d0, 0.1), "hasta_m": snappedf(float(cam_after.dist), 0.1), "inclinacion": snappedf(float(cam_after.pitch_deg), 0.1), "a_la_ficha_m": snappedf(gap, 0.1)}
+	check(float(cam_after.dist) >= 215.0 and float(cam_after.dist) <= 265.0 and float(cam_after.pitch_deg) <= 32.0 and gap <= 6.0, "Acercamiento: al elegir una partida la cámara llega sola a 220–260 m, acostada (≤ 32°) y centrada en ella (%s)" % str(notes.acercamiento))
+	await _shot("hx-acercamiento")
+	_check_overflow("Acercamiento")
+	hx.reset_camera()
+	await _frames(3)
 	# H-R1-7: una partida guiada eligiendo fichas con las teclas 1 a 5, con avisos y barra de órdenes a la vista
 	await _probe_guided("%dx%d" % [root.size.x, root.size.y], 60)
 	hx.retry("mismo_mundo")
