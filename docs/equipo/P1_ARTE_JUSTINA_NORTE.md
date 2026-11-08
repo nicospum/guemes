@@ -129,3 +129,89 @@ Todo está en `qa-equipo/p1/`. Antes y después salen del mismo encuadre, con pe
   - Sumar la orilla en primer plano del menú, que depende de la pose.
   - Un contorno o realce de las figuras del Norte en sombra, si el playtest lo pide.
   - Marcar más las curvas de nivel en el zoom cercano.
+
+---
+
+# Ronda 2 · lectura del lugar en la Justina y realce en el Norte
+
+Pedido del lead: la Justina «se lee como un mapa, no como un lugar». En el Norte, las figuras propias se perdían en los valles en sombra. Trabajo sobre `equipo/integracion` 3ea36d8.
+
+## Qué cambió
+
+**Barranca del Retiro** (`shaders/terrain_justina_r4.gdshader` y `world_view._barranca_j`)
+- **Por qué no se veía:** el shader buscaba la pared con umbrales de pendiente que la barranca real (17–30°, `slope` 0,04–0,13) nunca alcanzaba. Por eso la pared salía como arena lisa. Con umbrales nuevos de 0,012–0,045 aparecen:
+  - La pared más oscura (×0,84).
+  - Manchones de pasto y matorral pegados al talud.
+  - Canaletas de escurrimiento irregulares.
+  - Un filo claro de tosca arriba y una franja de sombra al pie.
+- **Talas y ombúes en el borde:** grupos de 1 a 3 árboles cada 8–18 m, con escala 1,25–2,3. Su sombra de la tarde cae por el talud hacia el río.
+- **Talud:** unas 300 matas, cortaderas y arbustos (densidad con ruido).
+- **Zonas libres:** no se planta sobre hitos, bajadas, obstáculos ni el arranque de los grupos (`_reserved_j`).
+
+**Caserío** (`world_view._meseta_town_j`)
+- Quintas sobre la meseta (x 22–62 m), al oeste de los hitos.
+- Cada una lleva 2–4 casas variadas (azotea, rancho o teja), una tapia de patio y 3–6 frutales. Dan escala humana.
+- Es reconstrucción estética: Vidal 1820 muestra caserío bajo y árboles sueltos.
+
+**Agua** (`shaders/water_rio_plata.gdshader`)
+- El agua **recibe sombras reales** (antes `shadows_disabled`).
+- **Sombra del casco reforzada:** el reflejo del cielo no se oscurece con la luz, así que se refuerza en el shader. La sombra cae del lado opuesto al sol, a unas dos mangas, y se escala con el casco.
+- **Estela de corriente aguas abajo:** una cola que se abre, con vetas de espuma que viajan. Se apaga con el río bajo.
+- Sigue siendo **agua turbia uniforme**. Lo medido ya se resalta: las franjas de sondeo verde, ámbar y rojo existían y no cambian. La lectura de la profundidad no revela el fondo.
+- La saturación del look «justina» baja a 0,95: la meseta ocre se iba a naranja en el plano oblicuo.
+
+**Buque**
+- Gallardetes largos en el tope de cada palo, en rojo realista (el buque es del bando enemigo).
+- El tope sale del vértice más alto de cada palo del GLB. Ondean por shader y siguen la escala del casco.
+- Se suman al pabellón mercante, que ya estaba.
+
+**Norte, realce de las figuras propias**
+- Cada figura propia (`rider_1817` reteñido) lleva un `material_overlay`: luz de borde celeste pálido `#A8CCE6` (fresnel ^2,2 × 0,62) más un piso mínimo de luz (0,035). Es aditivo y sin luz, así que se ve también en sombra. No vuelve al rojo.
+- El aro de aliado es más grueso (2,45–2,9 m), sin luz y se dibuja por encima del relieve (`no_depth_test`): en ladera ya no queda medio enterrado.
+- El elegido pasa a oro viejo.
+
+## Pruebas
+
+- `tests/test_integration.gd`: **283 comprobaciones, 0 fallas**.
+- `tests/test_rules.gd`: **871 comprobaciones, 0 fallas**.
+- Sin `SCRIPT ERROR` ni `SHADER ERROR` en las pruebas ni en las capturas.
+
+## Rendimiento
+
+Medido con `tools/bench_gpu.gd`: calidad media, 1440 × 900, sin V-Sync, 3 corridas. La base es la medición original de la ronda 1, antes de P1.
+
+| Escenario | Base | Ronda 1 | Ronda 2 | Ronda 2 / base |
+|---|---|---|---|---|
+| I · cuadro medio | 2,84 ms | 2,64 ms | 3,01 ms | 1,06× |
+| I · GPU (mediana) | 2,59 ms | 2,43 ms | 2,62 ms | 1,01× |
+| III · cuadro medio | 1,78 ms | 1,41 ms | 1,51 ms | 0,85× |
+| III · GPU (mediana) | 0,758 ms | 0,788 ms | 0,795 ms | 1,05× |
+
+- El I suma 10 llamadas de dibujo (389 → 402).
+- El III suma unas 100 por el pase de realce (255 → 357); el CPU de render pasa de 0,23 a 0,27 ms.
+- Los JSON están en `qa-equipo/p1/r2/bench_r2_*.json`.
+
+## Evidencia
+
+Todo está en `qa-equipo/p1/r2/`: antes = ronda 1 (3ea36d8); mismo encuadre, perfil nuevo, semilla 1806 y ratón neutralizado.
+- **Hojas:** `cmp_11_justina_inicio`, `cmp_12_justina_en_juego`, `cmp_13_justina_barranca` (oblicuo, sin interfaz), `cmp_14_justina_buque`, `cmp_30_norte_inicio`, `cmp_31_norte_cerca`.
+- **Recortes:** `zoom_justina_barranca_juego.png`, `zoom_norte_figuras.png`.
+- **Secuencia en movimiento:** `seq/despues_seq_00..17.png` y `seq/antes_seq_00..17.png`. Son 18 cuadros cada 0,5 s con los tres grupos en marcha. Tiras: `seq_despues_tira.png` y `seq_antes_tira.png`.
+- **Scripts:** `qa-equipo/p1/scripts/` (`p1_capturas_r2.gd`, `cap_r2.sh`, `hojas_r2.py`).
+
+## Crítica honesta
+
+- **Barranca en oblicuo (`cmp_13`):** es el cambio más grande. La barranca pasa a leerse como un escalón real, con filo, pared en sombra, pie oscuro y árboles cuyas sombras largas bajan al río. Las quintas dan escala.
+- **A la distancia de juego (`cmp_11`, cámara a unos 380 m):** la mejora existe pero es moderada. Se ve una franja de barranca más oscura con textura y algunos árboles. Al lado del HUD y de la cámara casi cenital, el lugar todavía pesa poco. Lo que más ayudaría es una cámara de juego algo más baja o inclinada, y eso es de P4.
+- **Buque:** los gallardetes y la estela se ven. La sombra del casco es sutil desde arriba, y desde la cámara oblicua la tapa el propio casco.
+  - Sigue la gran lente clara alrededor del casco: el bajo y la espuma del borde, ya existentes, escalados con el buque. Se lee como banco de arena y le resta presencia al barco. Es lo próximo a revisar.
+  - También quedan las manchas claras de espuma en primer plano del agua cercana.
+- **Norte:** las figuras ya no se pierden en sombra. De cerca el realce las deja algo plateadas, como estatuillas; a la distancia de juego se leen como fichas propias celestes, que es lo que pide la regla.
+- **Secuencia:** el agua, la estela y los gallardetes se animan. La marcha a ×2 vuelve sola a ×1: es el ticket P-004 de P4, no de esta pista.
+
+## Pendientes
+
+- **P1:**
+  - Achicar o rediseñar la lente del bajo alrededor del casco: que muestre «apoyado» sin tapar el barco.
+  - Quitar las manchas claras de espuma cercana.
+- **P4:** si se baja un poco la cámara de juego del I (por ejemplo inclinación de 48–50° en lugar de 55°), la barranca y los árboles ganan mucho. Hoy `pitch_deg_default` sale de `data/justina_map.json: camera`, que no es de esta pista.
