@@ -10,6 +10,7 @@ const V = preload("res://scripts/humahuaca/humahuaca_vocab.gd")
 const Gen = preload("res://scripts/humahuaca/view/humahuaca_gen.gd")
 
 const MAX_THINGS := 48
+const ALERT_SHADER := "res://shaders/humahuaca_alert_ring.gdshader"
 const MAX_STRETCH := 4.6
 const LOOT_COLOR := {"polvora": "madera_oscura", "canones": "hierro", "fusiles": "madera_oscura", "viveres": "lana_natural", "plata": "oro_laton"}
 ## Ganancia de los anillos de bando para llegar a la regla de color común (DIRECCION_DE_ARTE 2.1) sin sumar HEX a la paleta de 24: celeste aliado ≈ #8DB8D6,
@@ -64,6 +65,16 @@ func build_tokens(root_tokens: Node3D, root_labels: Node3D) -> void:
 		var selection: MeshInstance3D = gfx.flat_ring(root, ring_r + 1.1, 0.4, "oro_laton")
 		selection.name = "seleccion"
 		selection.visible = false
+		var alert := MeshInstance3D.new()  # el aviso de detección (pedido de P3): un aro ámbar que se vacía mientras corre la cuenta del centinela
+		alert.name = "aviso"
+		var quad := QuadMesh.new()
+		quad.size = Vector2.ONE * (ring_r + 2.1) * 2.0
+		alert.mesh = quad
+		alert.material_override = _alert_material()
+		alert.rotation_degrees = Vector3(-90.0, 0.0, 0.0)
+		alert.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		alert.visible = false
+		root_tokens.add_child(alert)  # al lado de la ficha, no dentro: no cuenta en su silueta ni en sus medidas
 		unit_nodes[id] = root
 		var label := Label3D.new()
 		label.name = "etiqueta_" + id
@@ -79,7 +90,7 @@ func build_tokens(root_tokens: Node3D, root_labels: Node3D) -> void:
 		label.visible = false
 		root_labels.add_child(label)
 		unit_labels[id] = label
-		tokens[id] = {"root": root, "base_h": base_h, "px": float(spec.get("min_px", 60)), "ring": ring, "ring_color": ring_color, "selection": selection}
+		tokens[id] = {"root": root, "base_h": base_h, "px": float(spec.get("min_px", 60)), "ring": ring, "ring_color": ring_color, "selection": selection, "alert": alert, "alert_max": 0.0}
 
 
 func _variant_of(spec: Dictionary, variants: Array, index: int, fallback_shirt: String) -> Dictionary:
@@ -258,11 +269,39 @@ func sync_poses(state: Dictionary) -> bool:
 		var x := float(u.get("x", 0.0))
 		var z := float(u.get("z", 0.0))
 		var yaw := -deg_to_rad(float(u.get("yaw_deg", 0.0)))
+		_sync_alert(str(u.id), float(u.get("spotted_s", 0.0)))
 		if absf(node.position.x - x) > 0.0005 or absf(node.position.z - z) > 0.0005 or absf(node.rotation.y - yaw) > 0.0005:
 			node.position = Vector3(x, gfx.rendered_h(x, z), z)  # el pie apoya en la malla que se dibuja (en `baja` la ventana tiene un vértice cada 8 m y se aparta hasta ≈ 0,25 m de `height_at`)
 			node.rotation.y = yaw
 			moved = true
 	return moved
+
+
+## El aro de detección de una ficha: visible mientras `spotted_s` > 0 (los segundos que faltan para que el centinela dé la voz) y lleno en la proporción que queda de la
+## cuenta (el máximo visto en este aviso es el total; las reglas usan 5 s). Ámbar y por encima de todo: es el telegrafiado del peligro (Shadow Tactics, pedido de diseño).
+func _sync_alert(id: String, spotted_s: float) -> void:
+	if not tokens.has(id):
+		return
+	var info: Dictionary = tokens[id]
+	var alert: MeshInstance3D = info.alert
+	if spotted_s <= 0.01:
+		if alert.visible:
+			alert.visible = false
+		info["alert_max"] = 0.0
+		return
+	info["alert_max"] = maxf(float(info.alert_max), maxf(spotted_s, 0.5))
+	alert.visible = true
+	alert.position = (info.root as Node3D).position + Vector3(0.0, 0.35 * (info.root as Node3D).scale.x, 0.0)
+	alert.scale = Vector3.ONE * (info.root as Node3D).scale.x
+	(alert.material_override as ShaderMaterial).set_shader_parameter("fill", clampf(spotted_s / float(info.alert_max), 0.0, 1.0))
+
+
+func _alert_material() -> ShaderMaterial:
+	var m := ShaderMaterial.new()  # uno por ficha: cada aro tiene su propia cuenta
+	m.shader = load(ALERT_SHADER) as Shader
+	m.set_shader_parameter("tint", gfx.pc("oro_laton", 1.05).lerp(gfx.pc("rojo_reservado", 1.05), 0.38))
+	m.render_priority = 9
+	return m
 
 
 ## Pose, visibilidad, rótulo y color del anillo de cada ficha (lo que cambia con la versión del estado).

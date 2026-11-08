@@ -239,3 +239,27 @@ Hubo otros agentes con Godot en paralelo, que meten ruido en las cifras. En el e
 2. **P4:** precalentar en el menú los materiales del II (token, terreno, agua, lumbre y GLB de P6), para que la primera construcción en frío no pase de 1 500 ms.
 3. **P6:** techos de torta un poco más cálidos o claros en el color por vértice. Con la luna fría se leen gris verdoso. Y, si hay tiempo, figuras propias (jinete con poncho pardo, infante, realista con chacó, baqueano, mula) con color por vértice, para reemplazar las procedurales por ruta como las casas.
 4. **QA:** `look` y `models` en `OWNER_KEYS.visual` (de la ronda 1, sigue pendiente).
+
+### 10. Después de mezclar P3 (`equipo/integracion` 35de1ea)
+
+- **`test_hx_flow`: 303 / 0 fallas.** Las 2 fallas del encuadre inicial a 1280 × 720 y 1024 × 640 (`soft_in` vacío) las arregla esta rama: cuando el preset exige las partidas como puntos duros, cuentan como incluidas (`tests/test_hx_flow.gd`).
+- **Puertas de la posta (T-007 completo).** Con la rasterización nueva de P3, la vista dibuja **4 huecos abiertos**, con jambas y umbral, y 5 cerrados, con tranquera. Antes eran 2 y 7.
+- **Revisión nube.** Pasan `revision_nube/d_puertas_posta`, `d_borde_sur` (el lado de la navegación lo arregló P3) y `d_nan_altura`.
+- **Aviso de detección, pedido de P3.**
+  - Nuevo `shaders/humahuaca_alert_ring.gdshader`. Con `render_state().units[].spotted_s` > 0, la vista dibuja alrededor de la ficha descubierta un **aro ámbar** (oro con 38 % de rojo) con filete de tinta. El aro se vacía en sentido horario mientras corre la cuenta: el máximo visto en el aviso es el total, y las reglas usan 5 s. El tramo vencido queda tenue y el aro late a 9 rad/s.
+  - Va al lado de la ficha, no dentro: no cambia su silueta ni sus medidas (TR-098). Usa un material por ficha y queda levantado del suelo para que el relieve no lo tape; la figura queda delante.
+  - Capturas en `qa-equipo/p2/r2/aviso_deteccion/aviso_0.0.png`, `aviso_1.8.png` y `aviso_3.6.png`: 100 %, 64 % y 28 % de la cuenta, con la cámara a 240 m. Las armó `qa-equipo/p2/scripts/exp_alert.gd`, que marca a los reconocedores como vistos.
+- **Pruebas tras la mezcla:**
+
+| Suite | Resultado |
+|---|---|
+| `test_hx_view` | 284 / 0 |
+| `test_hx_camera` | 51 / 0 |
+| `test_hx_terrain` | 167 / 0 |
+| `test_hx_smoke` | 158 / 0 |
+| `test_hx_flow` | 303 / 0 |
+| `test_hx_data` | 426 / 0 |
+| `ui_qa_humahuaca` | 174 / 89 / 89 / 89 checks, 0 fallas a 1280 × 720, 1920 × 1080, 2560 × 1440 y 1024 × 640 |
+
+  En ninguna corrida apareció un SCRIPT ERROR.
+- **Las hojas de `qa-equipo/p2/r2/` son de antes de mezclar P3.** La vista no cambió con esa mezcla salvo las puertas y el aviso.
