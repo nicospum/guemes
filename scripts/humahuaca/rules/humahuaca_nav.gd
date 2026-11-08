@@ -22,6 +22,8 @@ var _astar: AStarGrid2D = null
 var _solid := PackedByteArray()
 var _weight := PackedFloat32Array()
 var _variants: Dictionary = {}  # clave → grilla con rodeo (avoiding)
+var _imax := 0  # la última columna y fila de la región del mapa (las del terreno); cell_of no sale de ahí
+var _jmax := 0
 const VARIANTS_MAX := 16
 
 ## La grilla del terreno `t` (con caché por terreno). null si el terreno no entrega nav_grid().
@@ -40,7 +42,13 @@ static func for_terrain(t: RefCounted) -> RefCounted:
 static func build(t: RefCounted) -> RefCounted:
 	if t == null or not t.has_method("nav_grid"):
 		return null
-	var grid: Dictionary = t.call("nav_grid")
+	var grid: Dictionary = (t.call("nav_grid") as Dictionary).duplicate()
+	var size: Variant = t.get("size_m")
+	if size is Vector2 and float(grid.get("cell", 0.0)) > 0.0:
+		## la última fila y columna que el terreno usa (su `_node_index` sujeta a floori(tamaño / celda)): la grilla puede traer una más, sólida por estar
+		## fuera de la ventana, y un punto del borde (z = 650) caía ahí (D-5)
+		grid["imax"] = floori((size as Vector2).x / float(grid.cell))
+		grid["jmax"] = floori((size as Vector2).y / float(grid.cell))
 	var made: RefCounted = new()
 	if not made.call("_load", grid):
 		return null
@@ -49,6 +57,8 @@ static func build(t: RefCounted) -> RefCounted:
 func _load(grid: Dictionary) -> bool:
 	nx = int(grid.get("nx", 0))
 	nz = int(grid.get("nz", 0))
+	_imax = clampi(int(grid.get("imax", nx - 1)), 0, maxi(nx - 1, 0))
+	_jmax = clampi(int(grid.get("jmax", nz - 1)), 0, maxi(nz - 1, 0))
 	cell = float(grid.get("cell", 4.0))
 	origin = Vector2(float(grid.get("origin_x", 0.0)), float(grid.get("origin_z", 0.0)))
 	var solid: Variant = grid.get("solid", null)
@@ -113,7 +123,7 @@ func avoiding(key: String, circles: Array, weight_mult: float) -> RefCounted:
 				marked[idx] = 1
 				w[idx] = maxf(w[idx], 1.0) * weight_mult
 	var made: RefCounted = new()
-	if not made.call("_load", {"nx": nx, "nz": nz, "cell": cell, "origin_x": origin.x, "origin_z": origin.y, "solid": _solid, "weight": w}):
+	if not made.call("_load", {"nx": nx, "nz": nz, "cell": cell, "origin_x": origin.x, "origin_z": origin.y, "solid": _solid, "weight": w, "imax": _imax, "jmax": _jmax}):
 		return self
 	_variants[key] = made
 	return made
@@ -122,7 +132,7 @@ func avoiding(key: String, circles: Array, weight_mult: float) -> RefCounted:
 # Celdas y puntos
 
 func cell_of(p: Vector2) -> Vector2i:
-	return Vector2i(clampi(roundi((p.x - origin.x) / cell), 0, nx - 1), clampi(roundi((p.y - origin.y) / cell), 0, nz - 1))
+	return Vector2i(clampi(roundi((p.x - origin.x) / cell), 0, _imax), clampi(roundi((p.y - origin.y) / cell), 0, _jmax))
 
 func pos_of(c: Vector2i) -> Vector2:
 	return Vector2(origin.x + float(c.x) * cell, origin.y + float(c.y) * cell)
