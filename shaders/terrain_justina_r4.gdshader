@@ -62,14 +62,17 @@ void fragment(){
 	c *= 1.0 - 0.18 * smoothstep(0.30, 0.70, slope);   // escarpe: la pared de la barranca queda mas oscura que la meseta
 	// P1 ronda 2: la pared no es arena lisa. Manchones de pasto y matorral pegados al talud (verde oscuro y pardo), canaletas de
 	// escurrimiento verticales mas oscuras, un filo claro de tosca en el borde de arriba y una franja de sombra al pie.
-	float talud = smoothstep(0.06, 0.22, slope) * smoothstep(level_high + 1.2, level_high + 2.6, h);
+	// La barranca real tiene 17-30° (slope = 1 - n.y = 0,04-0,13); la meseta es plana y la playa baja ~1,5°: umbrales bajos.
+	float talud = smoothstep(0.012, 0.045, slope) * smoothstep(level_high + 1.0, level_high + 2.2, h);
+	c *= 1.0 - 0.16 * talud;
 	float tuft = smoothstep(0.42, 0.62, j_fbm2(p * vec2(0.11, 0.07) + 51.0)) * (0.6 + 0.4 * fine);
 	c = mix(c, mix(vec3(0.30, 0.31, 0.17), vec3(0.42, 0.37, 0.22), mid) * (0.85 + micro * 0.3), talud * tuft * 0.78);
-	float gully = smoothstep(0.62, 0.80, j_noise(vec2(p.y * 0.42, h * 0.08) + 17.0)) * talud;
-	c *= 1.0 - 0.22 * gully;
-	float lip = smoothstep(0.05, 0.16, slope) * (1.0 - smoothstep(0.18, 0.34, slope)) * smoothstep(level_high + 5.5, level_high + 7.5, h);
+	// Canaletas: irregulares (fbm torcido por otro ruido y cortadas en manchones), no rayas a paso fijo.
+	float gully = smoothstep(0.60, 0.78, j_fbm2(vec2(p.y * 0.19 + j_noise(p * 0.05) * 3.0, h * 0.06) + 17.0)) * smoothstep(0.35, 0.65, j_fbm2(p * 0.03 + 8.0)) * talud;
+	c *= 1.0 - 0.18 * gully;
+	float lip = smoothstep(0.006, 0.022, slope) * (1.0 - smoothstep(0.03, 0.06, slope)) * smoothstep(level_high + 5.5, level_high + 7.5, h);
 	c = mix(c, vec3(0.74, 0.64, 0.47), lip * 0.45);
-	float foot = smoothstep(0.04, 0.14, slope) * smoothstep(level_high + 0.3, level_high + 1.0, h) * (1.0 - smoothstep(level_high + 1.6, level_high + 3.4, h));
+	float foot = smoothstep(0.006, 0.025, slope) * smoothstep(level_high + 0.3, level_high + 1.0, h) * (1.0 - smoothstep(level_high + 1.6, level_high + 3.4, h));
 	c *= 1.0 - 0.26 * foot;
 
 	// Playa: arena con rizado alargado, grava y juncal arriba de la linea de agua alta.

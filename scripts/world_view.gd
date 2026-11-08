@@ -1706,7 +1706,7 @@ func _scenery_j():
 # matas y cortaderas en la pared, y quintas con tapia y frutales sobre la meseta del Retiro. Reconstrucción estética (Vidal 1820
 # muestra la barranca con pasto y árboles sueltos y caserío bajo); nada de esto toca reglas ni caminos de juego.
 ## true si (x,z) cae sobre un hito, una bajada, un obstáculo o el arranque de un grupo (margen m): ahí no se planta nada.
-func _reserved_j(x:float,z:float,m:float)->bool:
+func _reserved_j(x:float,z:float,m:float,skip_road:bool=false)->bool:
  var p=Vector2(x,z)
  for lm in M.get("landmarks",[]):
   var c=_lm_pos(lm)
@@ -1721,6 +1721,7 @@ func _reserved_j(x:float,z:float,m:float)->bool:
    "command":
     if p.distance_to(c)<9.0+m:return true
    "road":
+    if skip_road:continue
     var poly:Array=lm.get("polyline",[])
     for i in range(poly.size()-1):
      if Geometry2D.get_closest_point_to_segment(p,_pt(poly[i]),_pt(poly[i+1])).distance_to(p)<9.0+m:return true
@@ -1747,7 +1748,7 @@ func _barranca_j():
    for k in range(rng.randi_range(1,3)):
     var zz=z+rng.randf_range(-4.0,4.0)
     var x=_poly_x(crest,zz)-rng.randf_range(1.0,11.0)
-    if _reserved_j(x,zz,2.0):continue
+    if _reserved_j(x,zz,2.0,true):continue
     var s=rng.randf_range(1.25,2.3)
     if glb_tree:_inst_glb("tree_algarrobo",Transform3D(Basis.from_euler(Vector3(0,rng.randf()*TAU,0)).scaled_local(Vector3.ONE*s),Vector3(x,_h(x,zz)-0.15,zz)))
     else:_tree(Vector3(x,_h(x,zz),zz),s)
@@ -1761,12 +1762,12 @@ func _barranca_j():
    var zz=z2+rng.randf_range(-1.6,1.6)
    var x=lerpf(cx,tx,t)+rng.randf_range(-1.0,1.0)
    if terrain_noise.get_noise_2d(x*0.05,zz*0.05+21.0)<-0.12:continue
-   if _reserved_j(x,zz,0.0):continue
+   if _reserved_j(x,zz,0.0,true):continue
    var y=_h(x,zz)
    var kind=rng.randf()
    if kind<0.55:
-    var w=rng.randf_range(1.3,3.4);var hh=w*rng.randf_range(0.35,0.6)
-    var tone=Color("4c5030").lerp(Color("6e6b3e"),rng.randf()).lerp(Color("5e4f36"),rng.randf()*0.35)
+    var w=rng.randf_range(1.6,4.0);var hh=w*rng.randf_range(0.35,0.6)
+    var tone=Color("5c6236").lerp(Color("858049"),rng.randf()).lerp(Color("6a5a3c"),rng.randf()*0.3)
     _inst_r("sphere",Vector3(x,y+hh*0.25,zz),Vector3(w,hh,w*rng.randf_range(0.6,1.2)),rng.randf()*TAU,tone)
    elif kind<0.85:
     for st in range(8):
