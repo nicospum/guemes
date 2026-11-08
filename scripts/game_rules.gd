@@ -3520,6 +3520,57 @@ func _enemy_can_retreat() -> bool:
 		return false
 	return (float(state.enemy.supply) <= 22.0 and float(state.enemy.cohesion) <= 42.0 and float(state.enemy.communications) <= 45.0) or (float(state.enemy.cohesion) <= 22.0 and float(state.enemy.supply) <= 38.0)
 
+## D-05 · La victoria del norte, a la vista: cuánto falta para que el invasor tenga que retirarse. Es solo lectura (no cambia reglas ni cifras).
+## Mide lo mismo que _enemy_can_retreat(): los tres indicadores (o la crisis de cohesión), la presión acumulada y la ronda mínima.
+## `fraction` llega a 1 solo con la victoria; mientras se juega, como mucho 0,97 (aunque los umbrales estén cumplidos falta resolver la ronda).
+const NORTH_START := {"supply": 88.0, "cohesion": 88.0, "communications": 90.0}
+const NORTH_GOALS := {"supply": 22.0, "cohesion": 42.0, "communications": 45.0}
+func north_victory_progress() -> Dictionary:
+	if state.get("scenario", "") != "norte":
+		return {}
+	var e: Dictionary = state.enemy
+	var rows: Array = []
+	var labels := {"supply": "Abastecimiento", "cohesion": "Cohesión", "communications": "Comunicaciones"}
+	var path_a := 1.0
+	for k in ["supply", "cohesion", "communications"]:
+		var v := float(e[k])
+		var f := _toward(v, float(NORTH_START[k]), float(NORTH_GOALS[k]))
+		path_a = minf(path_a, f)
+		rows.append({"id": k, "label": labels[k], "value": v, "goal": float(NORTH_GOALS[k]), "ok": v <= float(NORTH_GOALS[k])})
+	var path_b := minf(_toward(float(e.cohesion), 88.0, 22.0), _toward(float(e.supply), 88.0, 38.0))  # crisis de cohesión: cohesión <= 22 y abastecimiento <= 38
+	var pressure := int(state.get("pressure_actions", 0))
+	var f_ind := maxf(path_a, path_b)
+	var fraction := minf(f_ind, minf(1.0, float(pressure) / float(RETREAT_MIN_PRESSURE)))
+	var won := str(state.get("status", "")) == "victory"
+	fraction = 1.0 if won else minf(fraction, 0.97)
+	return {"fraction": fraction, "indicators": f_ind, "rows": rows, "crisis_path": path_b > path_a, "pressure": pressure, "pressure_goal": RETREAT_MIN_PRESSURE,
+		"round": int(state.get("round", 1)), "round_min": RETREAT_MIN_ROUND, "round_ok": int(state.get("round", 1)) >= RETREAT_MIN_ROUND, "victory": won}
+
+func _toward(v: float, start: float, goal: float) -> float:
+	if start <= goal:
+		return 1.0
+	return clampf((start - v) / (start - goal), 0.0, 1.0)
+
+## D-09 · Primer minuto concreto en el norte: en las rondas 1 y 2, una orden recomendada que se puede preparar con un botón. Solo sugiere
+## órdenes legales en ese momento y de agrupaciones sin orden; si ninguna lo es, devuelve vacío (la guía general sigue).
+func north_next_step() -> Dictionary:
+	if state.get("scenario", "") != "norte" or state.get("status", "") != "playing" or int(state.round) > 2:
+		return {}
+	var plan: Array = [["arias", "scout", "quebrada", "Arias reconoce la Quebrada", "Reconocer antes de hostigar: el hostigamiento informado rinde más y pierde menos."],
+		["guemes", "protect", "lerma", "Güemes protege los víveres de Lerma", "Cuidar reservas y población sostiene la campaña mientras se prepara la presión."],
+		["zavala", "protect", "chicoana", "La partida del valle protege Chicoana", "Otra reserva a resguardo: el invasor busca víveres en sectores conocidos."]]
+	if int(state.round) == 2:
+		plan = [["arias", "raid", "quebrada", "Arias hostiga en la Quebrada", "Con el sector reconocido, el hostigamiento corta abastecimiento y comunicaciones y suma presión."],
+			["guemes", "scout", "jujuy", "Güemes reconoce Jujuy", "Reconocer Jujuy prepara los hostigamientos de las próximas rondas."],
+			["zavala", "protect", "chicoana", "La partida del valle protege Chicoana", "Las reservas propias bajan cada ronda: protegerlas compra tiempo."]]
+	for p in plan:
+		var u := get_unit(str(p[0]))
+		if u.is_empty() or not (u.order as Dictionary).is_empty():
+			continue
+		if legal_campaign_actions(str(p[0]), str(p[2])).has(str(p[1])):
+			return {"unit": str(p[0]), "action": str(p[1]), "sector": str(p[2]), "label": str(p[3]), "why": str(p[4])}
+	return {}
+
 func resolve_round(enemy_intent: String = "forage") -> Array:
 	_events = []
 	if state.get("scenario", "") != "norte" or state.get("status", "") != "playing":

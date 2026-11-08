@@ -55,6 +55,7 @@ func _run() -> void:
 	await _justina()
 	await _norte()
 	await _transiciones()
+	await _campana()
 	report.final_scenario = game.rules.state.scenario
 	report.final_status = game.rules.state.status
 	if is_instance_valid(game.audio_manager):
@@ -462,9 +463,9 @@ func _justina() -> void:
 	var won_run: bool = game.rules.state.status == "victory"
 	var ot := _modal_text()
 	if won_run:
-		check(ot.find("MEDALLA DE") >= 0 and ot.find("Ir a Sostener el Norte") >= 0 and bool(game.progress.justina_ganada), "R1: la victoria muestra medalla y el paso al Norte, y fija el progreso")
+		check(ot.find("MEDALLA DE") >= 0 and ot.find("Seguir: Humahuaca") >= 0 and bool(game.progress.justina_ganada), "R1/D-03: la victoria muestra medalla y el paso al nivel II (Humahuaca), y fija el progreso")
 	else:
-		check(ot.find("Probá esto") >= 0 and ot.find("Reintentar") >= 0 and ot.find("Ir a Sostener el Norte") < 0 and ot.find("campaña del norte") < 0, "R1: la derrota explica y ofrece reintentar, nunca el Norte")
+		check(ot.find("Probá esto") >= 0 and ot.find("Reintentar") >= 0 and ot.find("Seguir: Humahuaca") < 0 and ot.find("Sostener el norte") < 0 and ot.find("campaña del norte") < 0, "R1: la derrota explica y ofrece reintentar, nunca el nivel siguiente")
 	var rep: Dictionary = game.rules.campaign_report()
 	game._report_dialog(true)
 	var mt := _modal_text()
@@ -472,7 +473,7 @@ func _justina() -> void:
 	for g in rep.groups:
 		check(mt.find(str(g.name)) >= 0, "The report lists group " + str(g.name))
 	check(mt.find("Qué fue historia") >= 0 and mt.find("Tradición") >= 0 and mt.find("Documentado") >= 0, "The report ends with 'Qué fue historia' tagged lines")
-	check((_find_button("Ir a la campaña del norte") != null) == won_run, "The full report offers the second scenario after a win and only then")
+	check((_find_button("Seguir: Humahuaca") != null) == won_run, "The full report offers the next level (II, Humahuaca) after a win and only then")
 	_layout_checks("Justina parte")
 	game._outcome_dialog()
 	check(_press("Rejugar") if won_run else _press("Reintentar"), "Outcome provides a working restart")
@@ -658,6 +659,69 @@ func _transiciones() -> void:
 	check(is_equal_approx(game.get_window().content_scale_factor, 1.0), "T-003: tras la Justina el menú deja content_scale_factor en 1 (en juego era %.2f, en el menú %.2f)" % [cs_play, game.get_window().content_scale_factor])
 	root.size = old_size
 	await _frames(3)
+
+# ------------------------------------------------------------------ progresión I -> II -> III y cierre (P4: D-03, D-04, D-05, D-09, V-01)
+func _campana() -> void:
+	game.campaign.data.north_unlocked = false
+	game.campaign.data.justina_won = false
+	game._progress_sync()
+	game._menu()
+	await _frames(2)
+	var hxb := _find_button("HUMAHUACA")
+	var nb := _find_button("SOSTENER EL NORTE")
+	check(hxb != null and nb != null and hxb.clip_text and hxb.get_child_count() > 0 and hxb.get_theme_color("font_color").a == 0.0, "V-01: los niveles son tarjetas de capítulo (texto accesible oculto, rótulos propios)")
+	var t1 := _ui_text(_find_button("EL RÍO OFRECE"))
+	check(_ui_text(nb).find("CON CANDADO") >= 0 and (t1.find("EMPEZÁ ACÁ") >= 0 or t1.find("EN CURSO") >= 0), "V-01: la tarjeta dice el estado (I: empezá acá o en curso; III: con candado)")
+	game.campaign.data.north_unlocked = true
+	game.campaign.data.justina_won = true
+	game._progress_sync()
+	game._menu()
+	await _frames(2)
+	check(_ui_text(_find_button("HUMAHUACA")).find("RECOMENDADO AHORA") >= 0 and _ui_text(_find_button("SOSTENER EL NORTE")).find("RECOMENDADO") < 0, "D-03: tras ganar la Justina el menú recomienda el II, no el III")
+	# Victoria de la Justina: el botón principal lanza el nivel II
+	game.forced_seed = 1806
+	game._start_game("justine")
+	await _frames(2)
+	game._close_modal()
+	game.rules.state.status = "victory"
+	game.rules.state.reason = "Buque capturado"
+	game.rules.state.capture = 100.0
+	game.attempt_logged = false
+	game.beat_enabled = false
+	game.campaign.data.justina_won = false  # primera victoria: es la que anuncia el desbloqueo
+	game._outcome_dialog()
+	await _frames(2)
+	var vt := _modal_text()
+	check(vt.find("Seguir: Humahuaca") >= 0 and vt.find("Se abrió el nivel II") >= 0 and vt.find("escenario 2") < 0, "D-03: la victoria de la Justina anuncia el nivel II y no dice «escenario 2»")
+	check(_press("Seguir: Humahuaca"), "D-03: el botón principal de la victoria existe")
+	await _frames(3)
+	check(game.mode == "hx" and is_instance_valid(game.hx), "D-03: tras ganar la Justina el botón principal lleva al nivel II (Humahuaca)")
+	# II -> III: el controlador sale con «norte» y main arranca el III limpio
+	game.hx.exited.emit("norte")
+	await _frames(2)
+	check(game.mode == "play" and str(game.rules.state.scenario) == "norte" and game.hx == null and _world_envs().size() == 1, "D-03: la salida del II hacia el norte arranca el III sin restos del II")
+	# III: metas a la vista, paso concreto y sin «Jev» para un perfil sin clave
+	game._update_hud()
+	var et: String = str(game.enemy_label.text)
+	check(et.find("22 o menos") >= 0 and et.find("42 o menos") >= 0 and et.find("45 o menos") >= 0 and et.find("de 7") >= 0 and et.find("ronda 10") >= 0, "D-05: el panel del III muestra las tres metas, la presión «x de 7» y la ronda 10")
+	check(game.capture_bar.value < 1.0, "D-05: la barra de victoria arranca vacía (%.1f)" % game.capture_bar.value)
+	check(str(game.tutorial_label.text).begins_with("Siguiente paso · Arias reconoce la Quebrada") and game.next_btn != null and game.next_btn.visible, "D-09: en la ronda 1 la guía da una orden concreta y un botón para prepararla")
+	check(not game.jev_label.visible and _ui_text(game.ui).find("Jev") < 0, "D-09: sin clave configurada no aparece la palabra «Jev»")
+	check(_press("Preparar la orden sugerida") and str(game.rules.get_unit("arias").order.get("action", "")) == "scout", "D-09: «Preparar» deja la orden sugerida preparada en un clic")
+	# D-04: fin del III -> pantalla final con «En tu partida» y «En la historia»
+	game.rules.state.status = "victory"
+	game.rules.state.reason = "La presión volvió insostenible la invasión y forzó su retirada."
+	game._outcome_dialog()
+	await _frames(2)
+	var ft := _modal_text()
+	check(ft.find("EN TU PARTIDA") >= 0 and ft.find("EN LA HISTORIA") >= 0 and ft.find("La Justina · 1806") >= 0 and ft.find("Humahuaca · 1817") >= 0 and ft.find("Sostener el norte") >= 0, "D-04: la pantalla final muestra I, II y III frente a la historia")
+	check(ft.find("TRADICIÓN") >= 0 and ft.find("DOCUMENTADO") >= 0 and ft.find("DISEÑO") >= 0 and ft.find("tradición no probada") >= 0 and ft.find("no estuvo en el asalto") >= 0, "D-04: cada renglón histórico lleva su etiqueta y respeta las reglas de historia")
+	check(ft.find("Infernales") < 0 and ft.find("coronel mayor") < 0 and ft.find("general Güemes") < 0 and ft.find("según La Serna") < 0, "D-04: sin afirmaciones vedadas por las reglas de historia")
+	check(bool(game.campaign.data.north_won) and bool(game.campaign.data.north_played), "D-04: el resultado del III queda en el progreso")
+	check(Rect2(Vector2.ZERO, game.get_viewport().get_visible_rect().size).encloses((game.modal.get_child(1) as Control).get_global_rect()) and game.modal.find_children("*", "ScrollContainer", true, false).is_empty(), "D-04: la pantalla final entra sin scroll")
+	check(_press("Volver al menú"), "D-04: la pantalla final vuelve al menú")
+	await _frames(2)
+	check(game.mode == "menu" and _ui_text(_find_button("SOSTENER EL NORTE")).find("GANADA") >= 0, "D-04: tras la campaña el menú marca el III como ganado")
 
 # ------------------------------------------------------------------ utilidades
 func _frames(n: int) -> void:

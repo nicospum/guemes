@@ -308,7 +308,7 @@ func _defeat_screen_checks() -> void:
 	var all_txt := _modal_text_all()
 	check(game.rules.state.status == "defeat", "R1: el intento de prueba termino en derrota (%s)" % str(game.rules.state.status))
 	check(all_txt.find("Reintentar") >= 0 and all_txt.find("Probá esto") >= 0 and all_txt.find("LO APRENDIDO") >= 0, "R1: el parte de derrota tiene causa, consejo, reintentar y lo aprendido")
-	check(all_txt.find("campaña del norte") < 0 and all_txt.find("Ir a Sostener el Norte") < 0, "R1: la derrota nunca ofrece ir al Norte")
+	check(all_txt.find("campaña del norte") < 0 and all_txt.find("Seguir: Humahuaca") < 0, "R1: la derrota nunca ofrece el nivel siguiente")
 	var retry_b: Button = null
 	for b in _modal_buttons():
 		if str(b.text).begins_with("Reintentar"):
@@ -530,7 +530,7 @@ func _defeat_screen_checks() -> void:
 	game._outcome_dialog()
 	await _frames(8)
 	var vt := _modal_text_all()
-	check(vt.find("MEDALLA DE") >= 0 and vt.find("Se desbloqueó el escenario 2") >= 0 and vt.find("Ir a Sostener el Norte") >= 0, "R1: la victoria muestra medalla, desbloqueo y el paso al Norte")
+	check(vt.find("MEDALLA DE") >= 0 and vt.find("Se abrió el nivel II") >= 0 and vt.find("Seguir: Humahuaca") >= 0, "R1/D-03: la victoria muestra medalla, desbloqueo y el paso al nivel II")
 	check(bool(game.progress.justina_ganada), "R1: ganar fija justina_ganada en el progreso")
 	check(vt.find("Esta vez") >= 0 and vt.find("Tu mejor medalla") >= 0, "R2: la victoria separa la medalla de esta vez de la mejor")
 	await _shot("justina-victoria")
