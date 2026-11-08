@@ -52,6 +52,8 @@ var next_title_l: Label
 var next_text_l: Label
 var next_btn: Button
 var suggest_btn: Button
+var fast4_btn: Button
+var look_btn: Button
 var actions_box: HFlowContainer
 var pace_box: HBoxContainer
 var pace_btns: Dictionary = {}
@@ -377,6 +379,19 @@ func _build_dock(parent: Control) -> void:
 	suggest_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	suggest_btn.pressed.connect(func(): _fire("speed", 1))
 	suggest_btn.visible = false
+	fast4_btn = Kit.button(row_b, _t("time.wait_x4", "×4"), small, "normal", "tiempo")
+	fast4_btn.name = "HxFast4"
+	fast4_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	fast4_btn.tooltip_text = _t("time.speed_tip")
+	fast4_btn.pressed.connect(func(): _fire("speed", 2))
+	fast4_btn.visible = false
+	look_btn = Kit.button(row_b, _t("hud.wait.look", "Mirar"), small, "normal", "mirar")
+	look_btn.name = "HxLook"
+	look_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	look_btn.tooltip_text = _t("hud.wait.look_tip")
+	look_btn.pressed.connect(func(): _fire("look"))
+	look_btn.visible = false
+	row_b.move_child(look_btn, suggest_btn.get_index())
 	# fila C: las cinco agrupaciones
 	cards_box = Kit.hbox(col, 6)
 	cards_box.name = "HxCards"
@@ -584,6 +599,9 @@ func _refresh_dock(hs: Dictionary, ctx: Dictionary) -> void:
 	var why := str(guide.get("why", ""))
 	if why != "" and not bool(guide.get("enabled", true)):
 		next_text += " " + why  # B-052: el botón apagado no decía por qué; ahora la causa va junto al paso
+	var wait_extra := str(guide.get("wait_extra", ""))
+	if wait_extra != "":
+		next_text += " (" + wait_extra + ")"
 	next_text_l.text = next_text
 	var urgency := int(guide.get("urgencia", 0))
 	next_text_l.add_theme_color_override("font_color", Kit.WARN_TEXT if urgency >= 2 else Kit.PAPER)
@@ -591,7 +609,13 @@ func _refresh_dock(hs: Dictionary, ctx: Dictionary) -> void:
 	next_btn.visible = button_text != ""
 	next_btn.text = button_text
 	next_btn.disabled = not bool(guide.get("enabled", true))
-	suggest_btn.visible = bool(ctx.get("suggest_x2", false))
+	var wait_fast := bool(ctx.get("wait_fast", false))
+	var spd := float(ctx.get("speed", 1.0))
+	suggest_btn.visible = (bool(ctx.get("suggest_x2", false)) or wait_fast) and spd < 2.0
+	suggest_btn.text = _t("time.wait_x2", "×2") if wait_fast else _t("time.suggest_button", "Acelerar ×2")
+	fast4_btn.visible = wait_fast
+	var focus: Variant = guide.get("wait_focus", Vector2.ZERO)
+	look_btn.visible = bool(guide.get("wait", false)) and focus is Vector2 and focus != Vector2.ZERO
 	# chips: solo cuando ya importan (el golpe desde el ataque; la carga y el refuerzo en la extracción)
 	var phase := str(_dict(hs.get("fase")).get("id", ctx.get("phase", "briefing")))
 	var chips: Dictionary = {}

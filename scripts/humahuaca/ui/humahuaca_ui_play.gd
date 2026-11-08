@@ -600,6 +600,51 @@ func _compute_guide() -> void:
 		"button_visible": button != "", "enabled": enabled, "why": why, "arrow": actionable and bool(ui_data.get("onboarding", {}).get("arrow", true)) and mode == "play" and _playing()}
 	if mode != "play" or not _playing():
 		guide = {}
+	elif action == "hold":
+		var w := _wait_detail(actor)
+		guide["wait"] = true
+		guide["wait_extra"] = str(w.get("extra", ""))
+		guide["wait_focus"] = w.get("focus", Vector2.ZERO)
+
+
+## P-008 (playtest de línea de base: el 69 % del tiempo el siguiente paso decía «Esperá» sin botón): cuando hay que esperar, la interfaz dice qué se espera y cuánto
+## falta con lo que ya dan las reglas (los metros de ruta que le quedan a la agrupación, la toma del frente, la carga del arreo o el reloj del alba) y ofrece algo útil:
+## mirar lo que se espera (centra la cámara) y acelerar ×2 o ×4. No inventa una decisión que las reglas no tienen.
+func _wait_detail(actor: String) -> Dictionary:
+	var out := {"extra": "", "focus": Vector2.ZERO}
+	if rules == null or actor == "":
+		return out
+	var u: Variant = rules.call("get_unit", actor)
+	if not (u is Dictionary) or (u as Dictionary).is_empty():
+		return out
+	var ud := u as Dictionary
+	var pos := Vector2(float(ud.get("x", 0.0)), float(ud.get("z", 0.0)))
+	out["focus"] = pos
+	var stage := str(ud.get("stage", ""))
+	var phase := str(_hs.get("fase", {}).get("id", "")) if _hs.get("fase", {}) is Dictionary else ""
+	if stage in ["moving", "retreating", "scouting"]:
+		var left := 0.0
+		var prev := pos
+		for p in ud.get("path", []):
+			var q := Vector2(float((p as Dictionary).get("x", 0.0)), float((p as Dictionary).get("z", 0.0)))
+			left += prev.distance_to(q)
+			prev = q
+		if left >= 5.0:
+			out["extra"] = tx("hud.wait.distance", "faltan %d m") % int(round(left / 5.0) * 5.0)
+	elif stage == "loading":
+		for c in _hs.get("chips", []):
+			if str((c as Dictionary).get("id", "")) == "carga":
+				out["extra"] = str((c as Dictionary).get("txt", ""))
+	elif phase == "ataque":
+		var fid := str(group_fronts.get(actor, ""))
+		for f in _hs.get("frentes", []):
+			var fd := f as Dictionary
+			if str(fd.get("id", "")) == fid:
+				out["extra"] = tx("hud.wait.take", "%s: toma %d %%") % [str(fd.get("nombre", fid)), int(round(float(fd.get("toma_pct", 0.0))))]
+				out["focus"] = landmark_pos(fid)
+	elif stage == "waiting_signal":
+		out["extra"] = str(_hs.get("fase", {}).get("reloj", "")) if _hs.get("fase", {}) is Dictionary else ""
+	return out
 
 
 func _guide_opts(action: String, target: Vector2) -> Dictionary:
@@ -848,6 +893,7 @@ func _refresh_hud(_force_now: bool = false) -> void:
 	var ctx := {"paused": paused or mode != "play", "speed": speed, "phase": phase_id, "selected": selected, "guide": guide, "alert": alert,
 		"toast": _toast_for_hud(alert), "warn": _warn_text(), "motive": motive, "status": _status_line(), "suggest_x2": _suggest_x2,
 		"bar_items": orders.bar_items(_hs) if orders != null and mode == "play" else [], "idle_groups": _idle_groups(), "stages": _stages_by_group(),
+		"wait_fast": bool(guide.get("wait", false)) and speed < 4.0,
 		"pace": orders.pace if orders != null else "march", "pace_visible": orders != null and orders.aiming() and str(orders.aim.get("action", "")) != "support"}
 	if mode == "play" and selected.is_empty() and _playing() and order_count >= 1:
 		ctx["motive"] = motive if motive != "" else tx("hud.pick_hint", "")
@@ -862,6 +908,11 @@ func _on_hud(kind: String, arg: Variant) -> void:
 			toggle_pause()
 		"speed":
 			set_speed_index(int(arg))
+		"look":  # P-008: mirar lo que se espera
+			var at: Variant = guide.get("wait_focus", Vector2.ZERO)
+			if at is Vector2 and at != Vector2.ZERO and cam != null:
+				cam.center_on(at)
+				apply_camera()
 		"help":
 			open_help()
 		"menu":

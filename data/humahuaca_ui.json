@@ -20,7 +20,9 @@
 			"pause_tip": "Pausa o sigue el tiempo (Espacio)",
 			"speed_tip": "Velocidad del tiempo: ×1 es tiempo real (F2, F3 y F4)",
 			"suggest_x2": "Por ahora no pasa nada que te necesite: podés acelerar con ×2 (F3).",
-			"suggest_button": "Acelerar ×2"
+			"suggest_button": "Acelerar ×2",
+			"wait_x2": "×2",
+			"wait_x4": "×4"
 		},
 		"hud": {
 			"menu": "Menú",
@@ -51,7 +53,8 @@
 			"noise_dots": {"silencio": "●○○", "se_oye": "●●○", "los_oyen": "●●●"},
 			"strength": "Fuerza",
 			"fatigue": "Fatiga",
-			"custody": "Custodia %d",
+			"custody": "Custodia %d (gente que dejó cuidando lo tomado)",
+			"wait": {"distance": "faltan %d m", "take": "%s: toma %d %%", "look": "Mirar", "look_tip": "Centra la cámara en lo que estás esperando"},
 			"group_tip": "Clic para elegirla; un segundo clic centra la cámara. Teclas 1 a 5.",
 			"chip_tips": {
 				"golpe": "Golpe: cuánto valor sacaste, de 0 a 100. Cuenta lo que cruza el vado; lo que destruís vale menos y lo que se pierde, nada.",
