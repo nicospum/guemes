@@ -40,7 +40,7 @@
 	"objectives": {
 		"bateria": {"name": "Batería", "full_name": "Batería de Santa Bárbara", "gender": "f", "place": "la batería", "hito": "bateria", "group": "rodriguez", "garrison": 24, "cover": 1.6, "capture_radius_m": 22, "report_range": [18, 32], "sentinels": [{"dx": -8, "dz": -5}, {"dx": 6, "dz": 7}], "reveal_text": "2 centinelas · 24 artilleros · 3 cañones", "tag": "diseno", "tag_parts": {"objetivo": "documentado", "lugar_y_guarnicion": "diseno"}, "source": "Parte de Arias: batería de Santa Bárbara. Lugar y guarnición: diseño."},
 		"cuartel": {"name": "Cuartel", "full_name": "Cuartel de la casa del cura", "gender": "m", "place": "el cuartel", "hito": "cuartel", "group": "portal", "garrison": 66, "cover": 1.5, "capture_radius_m": 18, "report_range": [50, 85], "sentinels": [{"dx": -6, "dz": 6}], "reveal_text": "1 centinela en la puerta · 56 fusileros · torre con 10 tiradores", "tag": "diseno", "tag_parts": {"objetivo": "documentado", "lugar_y_guarnicion": "diseno"}, "source": "Parte de Arias: cuartel en la casa del cura. Lugar y guarnición: diseño."},
-		"posta": {"name": "Posta y pólvora", "full_name": "Casa de posta con el polvorín", "gender": "f", "place": "la posta", "hito": "posta", "group": "arias", "garrison": 22, "cover": 1.3, "capture_radius_m": 20, "report_range": [14, 30], "sentinels": [{"dx": -14, "dz": 4}], "reveal_text": "1 centinela en la entrada · 12 guardianes del polvorín · 10 de servicio", "tag": "diseno", "tag_parts": {"objetivo": "documentado", "polvora_en_la_posta": "razonado", "guarnicion": "diseno"}, "source": "Parte de Arias: casa de posta y pólvora. Lugar y guarnición: diseño."}
+		"posta": {"name": "Posta y pólvora", "full_name": "Casa de posta con el polvorín", "gender": "f", "place": "la posta", "hito": "posta", "group": "arias", "garrison": 22, "cover": 1.3, "capture_radius_m": 20, "report_range": [14, 30], "sentinels": [{"dx": -20, "dz": 0}], "reveal_text": "1 centinela en la entrada · 12 guardianes del polvorín · 10 de servicio", "tag": "diseno", "tag_parts": {"objetivo": "documentado", "polvora_en_la_posta": "razonado", "guarnicion": "diseno"}, "source": "Parte de Arias: casa de posta y pólvora. Lugar y guarnición: diseño."}
 	},
 	"enemy": {
 		"garrison_total": 130,
@@ -51,8 +51,8 @@
 		"alert": {"alertado_at": 0.5, "alarma_at": 1.0, "alarm_delay_s": 6, "detect_gain_per_s": 0.02, "alarm_gain_per_s": 0.01, "turnout_garrison_mult": 1.4, "turnout_casualty_mult": 1.8},
 		"armed_share": 0.8,
 		"guard": {
-			"descuidada": {"detect_mult": 0.8, "cuartel_surprise_bonus": 0.8, "recon_seen_alert": 0.15, "tag": "diseno", "source": "«Con algún poco más de descuido» (parte de Arias): ve menos y la sorpresa dura 45 s."},
-			"atenta": {"detect_mult": 1.25, "surprise_s": 25, "cuartel_surprise_bonus": 0.3, "recon_seen_alert": 1.0, "recon_seen_prob": 1.0, "spread_alarm_s": 30, "tag": "diseno", "source": "«El traidor avisó»: ve más, la sorpresa dura 25 s, el cuartel ya espera y la guardia que ve algo corre la voz."}
+			"descuidada": {"detect_mult": 0.8, "cuartel_surprise_bonus": 0.8, "recon_seen_alert": 0.15, "recon_warn_s": 5, "recon_warn_escape_m": 8, "tag": "diseno", "source": "«Con algún poco más de descuido» (parte de Arias): ve menos y la sorpresa dura 45 s."},
+			"atenta": {"detect_mult": 1.25, "surprise_s": 25, "cuartel_surprise_bonus": 0.3, "recon_seen_alert": 1.0, "recon_seen_prob": 1.0, "recon_warn_s": 5, "recon_warn_escape_m": 8, "spread_alarm_s": 30, "tag": "diseno", "source": "«El traidor avisó»: ve más, la sorpresa dura 25 s, el cuartel ya espera y la guardia que ve algo corre la voz."}
 		},
 		"tag": "diseno",
 		"source": "Guarnición de 100 a 135 hombres según los partes de ambos bandos; el reparto es diseño."
@@ -100,6 +100,7 @@
 		"dark_cost": {"aim_min": 0.25, "assault_min": 0.7, "range_dark_m": 25, "recon_dark_m": 25, "ramp_from_m": 35, "ramp_to_m": 100, "coordination_below_m": 60, "coordination_min_dist_m": 150, "messenger_speed_mps": 3.2},
 		"dawn_drift": {"per_s_factor": 0.004, "reference_visibility_m": 60},
 		"light_reveal_m": 60,
+		"route_avoid": {"radius_m": 55, "weight_mult": 6},
 		"recon": {"duration_s": 2, "radius_m": 40, "radius_dark_m": 25, "dark_below_m": 100, "lit_radius_m": 60, "risk_base": 0.1, "risk_per_noise": 0.5, "risk_per_alert": 0.3, "alert_when_seen": 0.15, "more_until_dawn_s": 30},
 		"tag": "diseno",
 		"source": "Ritmos, ruido y oscuridad: diseño; la lluvia de la noche es reconstrucción razonada."
@@ -211,7 +212,7 @@
 	"outcome": {
 		"victory": {"golpe_min": 45, "strength_min_pct": 20, "titulo": "Se cumplió el golpe", "por_que": "Tomaron los tres frentes y sacaron la carga por el vado antes de que llegara el refuerzo."},
 		"causes": {
-			"amanecio": {"titulo": "Amaneció y nadie había atacado", "texto": "A los {t} amaneció con las partidas cerca {deLugar} y sin señal dada: la guarnición los vio venir.", "consejo": "Dá la señal antes del alba, aunque falte una partida: esperar a todos cuesta más que atacar con dos."},
+			"amanecio": {"titulo": "Amaneció y nadie había atacado", "texto": "A los {t} amaneció con las partidas cerca {deLugar} y sin señal dada: la guarnición los vio venir.", "consejo": "Da la señal antes del alba, aunque falte una partida: esperar a todos cuesta más que atacar con dos."},
 			"descubiertos": {"titulo": "Los descubrieron antes de la señal", "texto": "A los {t} la guardia {deLugar} dio la alarma antes de la señal y los frentes se defendieron alertas.", "consejo": "Andá en silencio y reconocé por tramos: correr bajo la lluvia se oye de lejos."},
 			"frente_roto": {"titulo": "Una partida se rompió", "texto": "A los {t} {grupo} quedó clavada frente {aLugar} y se rompió bajo el fuego.", "consejo": "Atacá con cautela y mandá a Arias en apoyo: un frente solo, bajo la torre, no se sostiene."},
 			"sin_carga": {"titulo": "Tomaron el depósito, pero salieron con poca carga", "texto": "A los {t} la columna cruzó {lugar} con menos de la mitad del golpe: faltaron mulas, tiempo o decisión.", "consejo": "Elegí qué cargar: lo más valioso por peso va primero; lo pesado, destruilo."},
@@ -223,7 +224,7 @@
 		"medals": {
 			"bronce": {"label": "Medalla de bronce", "golpe_min": 0},
 			"plata": {"label": "Medalla de plata", "golpe_min": 65, "loss_max_pct": 45},
-			"oro": {"label": "Medalla de oro", "golpe_min": 80, "loss_max_pct": 35, "no_assists": true, "column_untouched": true}
+			"oro": {"label": "Medalla de oro", "golpe_min": 70, "loss_max_pct": 35, "no_assists": true, "column_untouched": true}
 		},
 		"no_medal_label": "Sin medalla",
 		"score": {"loss_weight": 0.5}
@@ -280,7 +281,7 @@
 		"briefing": {
 			"pagina_1": "Esta noche, con lluvia, tenés unas 150 personas casi sin armas y un amanecer por delante.\nTomá la batería, el cuartel y la pólvora a la vez y sacá lo que puedas antes del refuerzo.\nPerder no es grave: volvés a intentar con lo que aprendiste.",
 			"carta": {"texto": "Salta, 26 de febrero de 1817. Güemes le avisa a Arias de la gran victoria de San Martín en Chacabuco. Dramatización: la carta trae la noticia y no contiene ninguna orden; el golpe se preparaba desde febrero.", "tag": "diseno", "source": "Dramatización de la carta del 26-II-1817 (Güemes a Arias): la carta no trae órdenes."},
-			"nota_fecha": {"texto": "Fecha: 1 de marzo, según el itinerario de Arias; el 2, según La Serna y una inscripción del premio.", "tag": "discutido", "source": "Las fuentes discrepan en el día del ataque."}
+			"nota_fecha": {"texto": "Fecha: 1 de marzo, según el itinerario de Arias; el 2, en la versión de La Serna y en una inscripción del premio.", "tag": "discutido", "source": "Las fuentes discrepan en el día del ataque."}
 		},
 		"nota_refuerzo": {"texto": "El refuerzo es un recurso del juego para dar tensión a la extracción: en la realidad no hubo refuerzo inmediato.", "tag": "diseno", "source": "Los realistas se enteraron el 4 de marzo y salieron columnas el 5 y 6."},
 		"nota_relieve": {"texto": "El relieve es dato actual del terreno, no una restitución del suelo de 1817.", "tag": "razonado", "source": "Relieve actual remuestreado; no hay planos del suelo de 1817."},
@@ -307,7 +308,7 @@
 			"position": "Llevá a {grupo} a su puesto de ataque.",
 			"position_enfoque": "Llevá a {grupo} a su puesto por {enfoque}.",
 			"bring": "Traé el arreo hasta la posta.",
-			"signal": "Dá la señal: las partidas en su puesto atacan los tres frentes a la vez.",
+			"signal": "Da la señal: las partidas en su puesto atacan los tres frentes a la vez.",
 			"attack": "Mandá a {grupo} al ataque {deFrente}.",
 			"support": "{grupo} ya terminó su frente: mandalo a socorrer a {socorrido}.",
 			"wait_group": "Esperá: {grupo} todavía no llegó a su puesto.",
@@ -323,6 +324,7 @@
 			"repliegue_scouts": "La columna ya cruza el vado: mandá a los reconocedores a la salida.",
 			"destruir_grupo": "Que {grupo} destruya {carga}: suma al golpe lo que no se pudo cargar.",
 			"wait_exit": "El arreo va camino al vado: esperá.",
+			"retirar_reconocedores": "¡Los vio un centinela {deFrente}! Retirá ya a los reconocedores, antes de que dé la voz.",
 			"fin": "La partida terminó."
 		},
 		"alertas": {
@@ -330,9 +332,10 @@
 			"todos_en_puesto": {"corto": "Las tres partidas están en su puesto.", "largo": "Podés dar la señal ya o esperar la primera luz: de noche se tira peor, pero la guardia duerme.", "boton": "Dar la señal"},
 			"torre_hueco": {"corto": "La torre recarga: es el momento de cruzar.", "largo": "Quien cargue ahora llega al pie de la torre antes de la próxima descarga (cuesta fatiga).", "boton": "Cargar ahora"},
 			"aviso_alba": {"corto": "Falta un minuto para las primeras luces.", "largo": "Con la luz la guardia ve más lejos y se desvela: pensá si es hora de dar la señal.", "boton": "Dar la señal"},
-			"amanece": {"corto": "Ya amanece: si nadie ataca, la guardia los ve.", "largo": "A los {t} se hace de día del todo. Dá la señal ahora, aunque falte una partida.", "boton": "Dar la señal"},
+			"amanece": {"corto": "Ya amanece: si nadie ataca, la guardia los ve.", "largo": "A los {t} se hace de día del todo. Da la señal ahora, aunque falte una partida.", "boton": "Dar la señal"},
 			"torre": {"corto": "La torre del cuartel abrió fuego.", "largo": "Dispara cada {periodo} s a quien esté a menos de {radio} m. Al pie de la torre hay {angulo} m a salvo.", "boton": ""},
 			"deposito_tomado": {"corto": "Cayó el depósito: ahora, a sacar la carga.", "largo": "Tenés hasta que llegue el refuerzo desde el sur. Cargá lo más valioso y cruzá el vado.", "boton": "Cargar"},
+			"reconocedores_vistos": {"corto": "Un centinela vio a los reconocedores.", "largo": "Si en {s} segundos siguen ahí, la guardia {deFrente} da la voz. Retiralos ya.", "boton": "Retirarlos"},
 			"refuerzo_visto": {"corto": "Polvareda al sur: viene el refuerzo.", "largo": "Salí ya con lo que tengas o cargá un poco más.", "boton": "Salir por el este"}
 		},
 		"eventos": {
@@ -348,6 +351,8 @@
 			"torre": "La torre del cuartel abre fuego.",
 			"torre_calla": "La torre se quedó sin munición.",
 			"reconocido": "Reconocedores: {texto}.",
+			"reconocedores_vistos": "Un centinela {deFrente} vio a los reconocedores: tienen {s} segundos para retirarse antes de que dé la voz.",
+			"reconocedores_a_salvo": "Los reconocedores se retiraron a tiempo: la guardia {deFrente} no dio la voz.",
 			"carga": "El arreo cargó {carga}.",
 			"destruido": "Se destruyó {carga}.",
 			"salio": "El arreo salió por el este con {kg} kg de carga.",
@@ -418,7 +423,7 @@
 			{"fecha": "4 de marzo", "texto": "En Jujuy, La Serna sabe que la guarnición de Humahuaca «había caído en poder de los enemigos». No hubo refuerzo inmediato.", "tag": "documentado", "source": "Versión realista: Diario del Estado Mayor realista."},
 			{"fecha": "8 y 9 de marzo", "texto": "Juan Pablo Mariscal entra en Salta con el parte a las 22 h del 8: Güemes lo recibe y el 9 lo remite a Belgrano.", "tag": "documentado", "source": "Güemes a Belgrano, 9-III-1817."},
 			{"fecha": "13 de marzo", "texto": "Belgrano reenvía el parte formal desde Tucumán.", "tag": "documentado", "source": "Belgrano, 13-III-1817."},
-			{"fecha": "9 al 16 de marzo", "texto": "En la realidad: una columna realista entra en el pueblo vacío; según La Serna recupera seis piezas ocultas o enterradas cerca de San Andrés e inutiliza lo que no puede cargar «por falta de acémilas».", "tag": "discutido", "source": "Oficio de La Serna, 11-IV-1817: versión realista."},
+			{"fecha": "9 al 16 de marzo", "texto": "En la realidad: una columna realista entra en el pueblo vacío y, según las fuentes realistas, recupera seis piezas ocultas o enterradas cerca de San Andrés e inutiliza lo que no puede cargar «por falta de acémilas» (mulas de carga).", "tag": "discutido", "source": "Versión realista: Diario del Estado Mayor realista (S49) y Memorias de Camba (S50); no es el oficio de La Serna."},
 			{"fecha": "Abril", "texto": "Belgrano manda hacer medallas para los de Humahuaca; el premio se concede después del combate, no antes.", "tag": "documentado", "source": "Belgrano, 10-IV-1817."},
 			{"fecha": "6 de julio", "texto": "Un oficial realista cuenta «la sorpresa de Humahuaca» entre las causas de la retirada del ejército del rey: la retirada tuvo muchas causas.", "tag": "documentado", "source": "Versión realista de julio de 1817."},
 			{"fecha": "Marzo a mayo", "texto": "La resistencia continúa en toda la frontera. «Sostener el norte» cuenta esa campaña entera, vista desde Salta; Humahuaca es una de sus operaciones.", "tag": "documentado", "source": "Campaña de 1816-1817; Humahuaca es una de sus operaciones."}
