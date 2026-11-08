@@ -121,3 +121,121 @@ Todo entra en los topes (4,0 ms de cuadro y 1 500 ms de construcción). La const
 - La madrugada del ataque es la toma más lograda, aunque quizás un poco oscura para leer las casas: subir 0,05 el ambiente de `madrugada` es un ajuste fino posible.
 - El cuadro inicial ganó atmósfera y las cinco partidas, pero el pueblo es más chico que en el preset de la nube (sección 2).
 - Las figuras procedurales siguen siendo toscas de cerca. Tienen el tamaño y el color que piden los criterios; el modelado de las figuras queda para otra tanda.
+
+
+---
+
+## Ronda 2 (2026-11-08)
+
+Base: `equipo/integracion` (3a695b4, con 78fc37c y el arreglo de teclado del integrador). Las capturas de «antes» se tomaron sobre esa base, cuya vista es la de 78fc37c. Decisión del lead: el encuadre inicial amplio queda solo para orientar; en el juego, la cámara se acerca sola a la acción.
+
+### 1. La cámara se acerca a la partida elegida
+
+Está en `humahuaca_camera.gd` (`_watch_selection`, `_maybe_approach`, `_glide_step`) y en `data/humahuaca_camera.json: approach`.
+
+- **Cuándo se activa.** Cuando se elige **una sola** partida nueva. Da igual cómo: tecla 1–5, clic en la ficha o clic en la tarjeta, porque todo pasa por `view.selected_ids`. Así no hubo que tocar `humahuaca_ui_play.gd`.
+- **Qué hace.** La cámara se desliza en 0,9 s (suave al arrancar y al frenar) hasta **240 m**, centrada en la ficha, y se acuesta a **24,5°**. Si la ficha marcha mientras tanto, la sigue.
+- **Para que no maree:**
+  - solo se mueve si la ficha está a más del 22 % del centro (en % del lado menor) o si la cámara está a más de 300 m; si ya está más cerca, solo recentra sin alejarse;
+  - nunca se mueve durante la apertura, mientras se arrastra el mapa o con el botón derecho apretado;
+  - entre dos acercamientos pasa al menos 1 s;
+  - cualquier movimiento manual lo corta: teclas, borde de la pantalla, arrastre, rueda, giro, minimapa, Inicio o centrar.
+- **Segunda pulsación de la misma tecla.** En las teclas 4 y 5 activa el seguimiento, que ya existía (`center_on` → `follow_id`). En 1–3 centra en el frente, como diseñó P5; si se quiere seguimiento también ahí, hay que cambiar una línea de `humahuaca_ui_play.gd::select_group` (pedido abajo). Centrar no suma un acercamiento encima.
+- **`zoom_tilt` ahora usa una curva cuadrática.** Va de 20° a 60 m hasta la inclinación de juego (42°) a 460 m, y da 24,5° a 240 m. La rueda y el acercamiento usan la misma curva.
+- **Distancias finales:**
+  - inicio: **470 m** en 16:9 y **520 m** en 16:10. Las partidas pasan a 5,5 % del borde, para que el chequeo de ui_qa quede igual que antes;
+  - al elegir una partida: **240 m a 24,5°**, centrada a 0,0 m. Lo midió ui_qa en tres tamaños: de 470,5 m a 240 m a 1920 × 1080 y a 2560 × 1440, y de 519,8 m a 240 m a 1024 × 640;
+  - mínimo: 30 m a 20°;
+  - apertura: paradas a 24°, 24° y 22° (`humahuaca_ui.json: camera.opening`, a 150, 130 y 140 m).
+
+### 2. El pueblo de noche
+
+- La luna está a 52° de elevación y con energía 0,75 (antes 36° y 0,62): los techos de torta reciben luz.
+- Casi la mitad de las casas tienen lumbre en la puerta y, si miden 6 m o más de frente, también en una ventanita.
+- La capilla tiene la portada con lumbre.
+- El tono por casa de los modelos de P6 sube de 0,74–0,90 a 0,86–1,0.
+- La madrugada tiene ambiente y sol de 0,7 (antes 0,4 y 0,35), exposición 1,32 y medios de la curva en 0,5. Luminancia media a 240 m en la madrugada: 0,141 → **0,176**.
+- Cuartel, batería y posta se distinguen por el fuego, el anillo de oro que late y su volumen. La capilla se distingue por la cal, la espadaña y la lumbre.
+
+### 3. Figuras
+
+No usé los GLB de figuras del proyecto. `rider_1817` tiene poncho rojo, y la regla de color reserva el rojo al enemigo. `infantry` es un casaca roja británico de 1806. `royalist_1817` lleva casaca cerrada, contra `units.realista_1817`. Además vienen con texturas, así que perderían la luz propia y el borde de bando del shader de fichas. Mejoré la geometría procedural (`humahuaca_gen.gd`):
+
+- **Jinete:** caballo de cuerpo redondeado, con patas de caña y muslo con la rodilla marcada, y lanza **terciada** hacia adelante. Antes la lanza era un palo vertical que estiraba la figura hacia arriba.
+- **Infante propio:** torso de hombros anchos.
+- **Realista:** **chacó** con visera, chapa y borla, **correajes blancos cruzados** y faja de acento. El texto de `units.realista_1817.silueta` se actualizó; es diseño, porque el modelo de cada cuerpo en 1817 es sin datos.
+- **Mula:** cuerpo redondeado.
+- **Reconocedores:** la tacuara es más corta (2,58 m), para que las cinco siluetas sigan siendo distintas (TR-098, diferencia mínima 0,23).
+- **Tamaño en pantalla, sin cambios:** 65–85 px a 1280 × 720.
+
+### 4. Viñeta y HUD
+
+- **Viñeta:** ya estaba en el II (`Kit.vignette`, el mismo sombreador y la misma tinta que `main.gd`); solo cambió la fuerza de juego, de 0,32 a **0,30** (`humahuaca_ui.json: layout.vignette.play`), como la de P1/P4.
+- `avoid_rects` (`humahuaca_ui_base.gd`) y el rótulo de las fichas (`humahuaca_overlay.gd`) suponen **85 px**, antes 62.
+- **Quebrada:** las paredes suben antes y más: 820 m en 1,9 km.
+
+### 5. Pruebas
+
+Todo con Godot 4.7.2 y APPDATA aislado: las suites `test_hx_*` en headless y ui_qa con ventana real.
+
+| Suite | Resultado |
+|---|---|
+| `test_hx_view` | 284 / 0 fallas |
+| `test_hx_camera` | 51 / 0 |
+| `test_hx_terrain` | 167 / 0 |
+| `test_hx_smoke` | 158 / 0 |
+| `test_hx_flow` | 303 / 0 (antes de la ronda fallaban 2: el preset de partidas duras dejaba vacía la lista de incluidas; ahora las partidas duras cuentan como incluidas) |
+| `test_hx_data` | 426 / 0 |
+| `ui_qa_humahuaca` 1280 × 720 | 174 / 0 |
+| `ui_qa_humahuaca` 1920 × 1080 | 89 / 0 |
+| `ui_qa_humahuaca` 2560 × 1440 | 89 / 0 |
+| `ui_qa_humahuaca` 1024 × 640 | 89 / 0 (antes 1 falla en cada uno de los tres tamaños menores: el arreo quedaba a 3 % del borde) |
+
+Cambios en `tools/ui_qa_humahuaca.gd`:
+- el recorrido completo exige las cinco partidas a ≥ 5,5 % del borde y fichas de 64 px o más;
+- el chequeo de desborde mide el acercamiento: entre 220 y 260 m, a 32° o menos y a 6 m o menos de la ficha. Saca la captura `hx-acercamiento` y verifica que nada se desborde.
+
+### 6. Rendimiento (benchmark oficial, 1440 × 900)
+
+| Calidad | Cuadro medio | p95 | Construcción |
+|---|---|---|---|
+| media, 5 repeticiones | **1,70 ms** | 3,46 | media **1 245 ms**; 1 550 en la primera repetición y 1 144–1 193 en las otras cuatro |
+| alta, 3 repeticiones | 1,94 ms | 2,21 | 1 317 ms |
+
+La primera repetición de cada corrida arranca con la caché de sombreadores vacía (el APPDATA del benchmark es nuevo). Ya pasaba en la ronda 1 (1 481 y 1 776 ms) y viene de los sombreadores y variantes nuevas.
+
+Medido por partes en un proceso caliente:
+- construcción completa: 1 103 ms la primera vez y 315 ms la segunda;
+- la vista: 533 ms (terreno 146, hitos 69, núcleo y vegetación 122);
+- cargar y unir los nueve GLB: unos 17 ms en total.
+
+Hubo otros agentes con Godot en paralelo, que meten ruido en las cifras. En el estado estable queda bajo los 1 500 ms. **Una primera partida en una instalación nueva puede pasarse ≈ 50–270 ms del tope**, por la compilación de sombreadores. Si hace falta, el arreglo es precalentar los materiales en el menú (P4).
+
+### 7. Evidencia (`qa-equipo/p2/r2/`)
+
+- **Hojas antes/después:**
+  - `cmp_1_inicio.png`: inicio, encuadre amplio;
+  - `cmp_2_noche_ataque.png`: madrugada en el ataque;
+  - `cmp_3_alba_extraccion.png`: alba con la extracción;
+  - `cmp_6_pueblo_240m.png`: el pueblo de noche a 240 m;
+  - `cmp_8_pueblo_madrugada_240m.png`: el pueblo en la madrugada a 240 m;
+  - `cmp_7_partidas_240m.png`: las figuras a 240 m;
+  - `cmp_4_fichas_cerca.png`: primer plano de fichas.
+- **Secuencia de 20 cuadros jugando a ×2:** `secuencia_sel_despues/00–19.png`, con hoja `secuencia_sel_despues_hoja.png` y la de antes. Se eligen partidas con las teclas 1 (1 s), 4 (5 s), 4 otra vez para seguirla (9 s), 3 (13 s) y 5 (17 s). La cámara de cada cuadro está en `metricas_despues.json: secuencia_sel_camara`.
+- **Banco:** `bench_despues/` y `bench_despues2/`.
+- **Scripts:** `qa-equipo/p2/scripts/captura_p2.gd` (`--seqsel` y las tomas «cerca»), `sheets2.py` y `prof.gd`.
+
+### 8. Crítica honesta
+
+- **Lo más logrado es el acercamiento al elegir.** De orientarse a 470 m se pasa a 240 m acostado, con profundidad, el pueblo con lumbre al fondo y las fichas grandes.
+- **La madrugada ya se lee.** Antes era casi negra; ahora es violácea y cálida.
+- **El pueblo de noche a 240 m mejoró, pero sin salto.** Hay más lumbre y techos más claros, pero los techos de torta de P6 siguen grises verdosos con la luna.
+- **Las figuras mejoraron en silueta, pero siguen siendo low-poly.** A 240 m la diferencia es chica. Un salto de verdad pide figuras modeladas (P6) con la paleta y el borde de bando.
+- **Acercarse a Rodríguez, en el borde oeste, muestra llano vacío.** La quebrada aparece cuando la partida está cerca del pueblo o del río.
+
+### 9. Pedidos
+
+1. **Si se quiere seguimiento con la segunda pulsación de 1–3** (hoy centra en el frente, diseño de P5): en `scripts/humahuaca/ui/humahuaca_ui_play.gd::select_group` cambiar `center_on_front(...)` por `center_on_unit(id)` cuando `index < 3`, y dejar el frente para el clic en su panel. Afecta a `test_hx_camera` (centrar) y a CONTROLES.md.
+2. **P4:** precalentar en el menú los materiales del II (token, terreno, agua, lumbre y GLB de P6), para que la primera construcción en frío no pase de 1 500 ms.
+3. **P6:** techos de torta un poco más cálidos o claros en el color por vértice. Con la luna fría se leen gris verdoso. Y, si hay tiempo, figuras propias (jinete con poncho pardo, infante, realista con chacó, baqueano, mula) con color por vértice, para reemplazar las procedurales por ruta como las casas.
+4. **QA:** `look` y `models` en `OWNER_KEYS.visual` (de la ronda 1, sigue pendiente).
