@@ -1,0 +1,68 @@
+{
+	"contract": 1,
+	"nota": "Parámetros de la cámara del nivel «humahuaca» (dueña: ui_feel; pedido del usuario del 2-11-2026: «la cámara está demasiado lejos, se ve todo muy chico»). Los lee scripts/humahuaca/ui/humahuaca_camera.gd al arrancar: «camera» pisa las claves de la sección camera de humahuaca_ui.json; «initial_frame» decide el encuadre inicial (fit_initial: el preset activo dice qué puntos tienen que entrar y con qué margen al borde, en % del lado); «follow», el seguimiento de una ficha. Cifras por tamaño de ventana y criterio: docs/humahuaca/CAMARA.md; se miden en tests/test_hx_camera.gd.",
+	"camera": {
+		"min_distance_m": 30
+	},
+	"initial_frame": {
+		"preset": "pueblo_zona_al_borde",
+		"above_head_px": 78,
+		"below_px": 46,
+		"presets": {
+			"completo": {
+				"nota": "El encuadre de R1 (B-015, B-021): los tres objetivos, la zona de partida y las cinco partidas enteras, a 6 % del costado. Es el de las capturas de R1: todo chico (≈ 485 m en 16:9).",
+				"hard": [
+					{"landmark": "bateria", "margin_pct": 10},
+					{"landmark": "cuartel", "margin_pct": 10},
+					{"landmark": "posta", "margin_pct": 10},
+					{"landmark": "zona_partida", "margin_pct": 10},
+					{"units": true, "margin_pct": 6}
+				],
+				"soft": []
+			},
+			"v02_estricto": {
+				"nota": "Los tres objetivos y el centro de la zona de partida a 10 % o más del borde (la lectura estricta de V02, QA_NIVEL2 v1.5); las partidas entran si cuesta poco (hasta soft.max_distance_m). ≈ 422 m en 16:9: apenas un 13 % más cerca.",
+				"hard": [
+					{"landmark": "bateria", "margin_pct": 10},
+					{"landmark": "cuartel", "margin_pct": 10},
+					{"landmark": "posta", "margin_pct": 10},
+					{"landmark": "zona_partida", "margin_pct": 10}
+				],
+				"soft": {"units": true, "margin_pct": 2.5, "max_distance_m": 440}
+			},
+			"zona_al_borde": {
+				"nota": "Los tres objetivos a 10 % o más y el centro de la zona de partida a 5 % (lo que marca on_screen en el informe de QA, la letra de V02). ≈ 398 m en 16:9; las partidas del oeste quedan fuera o al borde.",
+				"hard": [
+					{"landmark": "bateria", "margin_pct": 10},
+					{"landmark": "cuartel", "margin_pct": 10},
+					{"landmark": "posta", "margin_pct": 10},
+					{"landmark": "zona_partida", "margin_pct": 5}
+				],
+				"soft": {"units": true, "margin_pct": 2.5, "max_distance_m": 440}
+			},
+			"pueblo_zona_al_borde": {
+				"nota": "El compromiso que pidió el usuario (prioridad: cercanía con los objetivos a la vista): centrado en el pueblo, los tres objetivos a 10 % o más del borde y la zona de partida al borde, anclada en los reconocedores (la partida que se usa primero, en la punta noreste de la zona) a 4 %. El centro de la zona queda fuera del cuadro (V02 lo pide a la vista: compromiso documentado en CAMARA.md); las demás partidas llegan solas al marchar y la cámara sigue a cada una con su tecla. ≈ 300 m en 16:9.",
+				"hard": [
+					{"landmark": "bateria", "margin_pct": 10},
+					{"landmark": "cuartel", "margin_pct": 10},
+					{"landmark": "posta", "margin_pct": 10},
+					{"landmark": "spawn_reconocedores", "margin_pct": 4}
+				],
+				"soft": {"units": true, "margin_pct": 2.5, "max_distance_m": 330}
+			},
+			"pueblo": {
+				"nota": "Solo el pueblo: los tres objetivos a 10 % o más del borde; la zona de partida y las partidas quedan fuera (rompe V02, que exige la zona a la vista). ≈ 215 m en 16:9: para probar con ventana real qué tan cerca se quiere jugar.",
+				"hard": [
+					{"landmark": "bateria", "margin_pct": 10},
+					{"landmark": "cuartel", "margin_pct": 10},
+					{"landmark": "posta", "margin_pct": 10}
+				],
+				"soft": {"landmarks": ["zona_partida"], "units": true, "margin_pct": 2.5, "max_distance_m": 300}
+			}
+		}
+	},
+	"follow": {
+		"enabled": true,
+		"nota": "Al centrar la cámara en una ficha (teclas 4 y 5 dos veces) la cámara la sigue mientras marcha; mover la cámara a mano (teclas, borde de la pantalla, arrastre, minimapa, Inicio) la suelta; la rueda acerca o aleja sin soltarla."
+	}
+}
