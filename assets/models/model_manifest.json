@@ -615,7 +615,7 @@
     ],
     "textures": 0,
     "vertex_colors": true,
-    "sha256": "136ce8fb8e777d656443f4008969ee564c9c4430907d16eb623d7859f998b2cf",
+    "sha256": "f43c6d09fdd355706d9bbe631a60d820968691948b0362df48ec64b206fd1fb2",
     "blender_bounds": {
       "min": [
         -3.05,
@@ -663,7 +663,7 @@
     ],
     "textures": 0,
     "vertex_colors": true,
-    "sha256": "346c2ab29308abf125b37440e1429f2b400ced34c70bfdc98cd60edb3d8cd80a",
+    "sha256": "ccd82bf156b8a7210169e51a02c0798e9aa986b95246d93e2db4329b8dd83985",
     "blender_bounds": {
       "min": [
         -5.05,
@@ -711,7 +711,7 @@
     ],
     "textures": 0,
     "vertex_colors": true,
-    "sha256": "61e35a3833ecb204e3cdd4230445d3212ededcf456278417f4442ca96f7c1a72",
+    "sha256": "7336eb83364f37cfb668a27674d177e0967f50c21a1dc761b01b8ef80d7c3f08",
     "blender_bounds": {
       "min": [
         -4.0410109561804575,
@@ -755,7 +755,7 @@
     ],
     "textures": 0,
     "vertex_colors": true,
-    "sha256": "66b90d41063a27694f9b3ddaa0de95c1ecf08156675af2c3eedee8f61b823fd1",
+    "sha256": "9b4a5183745a3bb6580234810d8f8d19de69dcada7601cf15ab12d0b192b8702",
     "blender_bounds": {
       "min": [
         -2.0,

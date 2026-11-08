@@ -263,3 +263,106 @@ Hubo otros agentes con Godot en paralelo, que meten ruido en las cifras. En el e
 
   En ninguna corrida apareció un SCRIPT ERROR.
 - **Las hojas de `qa-equipo/p2/r2/` son de antes de mezclar P3.** La vista no cambió con esa mezcla salvo las puertas y el aviso.
+
+
+---
+
+## Ronda 3 (2026-11-08): color de la quebrada, vegetación legible y bruma
+
+Base: `equipo/integracion` 63b336a. Las capturas de «antes» se tomaron sobre esa base. Todas las tomas son a 1280 × 720 y están en `qa-equipo/p2/r3/`.
+
+### 1. Color
+
+- **Suelo con calidez por hora.** Uniforme nuevo `warmth` en `humahuaca_terrain.gdshader`, que pone `gfx.set_warmth` desde `lights.<hora>.ground_warmth`: 1 de noche, 0,9 en la madrugada, 0,35 al alba y 0,1 de día. Con calidez llena, el suelo seco ×(1,07; 0,95; 0,80), el sedimento ×(1,06; 0,95; 0,84) y la piedra ×(1,08; 0,94; 0,80).
+  - La ladera lleva menos verde de churqui y el regadío ya no queda verde loro de noche.
+  - De día la luz ya da el ocre, así que no se suma: el alba no se lava de naranja.
+  - El render de albedo no cambia, porque la calidez va a 0 en ese modo.
+- **Curva de noche partida:** sombras frías [0,025; 0,03; 0,10], medios cálidos [0,5; 0,47; 0,45] y luces ámbar [1,0; 0,9; 0,74], con saturación 1,0. La luna sigue fría (celeste); la tierra y los adobes conservan el ocre.
+- **Techos de torta y adobe más cálidos.** `tools/hx_models_sin_blender.py` tiene una tabla nueva `WARMTH` por prefijo de material:
+
+  | Material | Factor lineal |
+  |---|---|
+  | Techo \| torta | (1,10; 0,84; 0,62) |
+  | Adobe | (1,07; 0,92; 0,76) |
+  | Tapial | (1,06; 0,90; 0,74) |
+  | Ramada \| cañizo | (1,04; 0,92; 0,74) |
+
+  Regeneré los nueve modelos. Solo cambian los cuatro que tienen esos materiales (`hx_casa_adobe`, `hx_casa_adobe_grande`, `hx_capilla` y `hx_tapia`) y el manifiesto. La geometría y los nombres son los mismos.
+- **Ámbar contra azul:** el fuego tiene 34 % de rojo (antes 22 %) y la lumbre de puertas y ventanas, 36 %.
+- **Color medio del mundo** (sin cabecera ni dock; `r3/color_medio.json`):
+
+  | Toma | Antes (RGB) | Después (RGB) |
+  |---|---|---|
+  | Pueblo de noche a 240 m | 80, 88, 87 (gris verdoso) | 90, 87, 71 (ocre) |
+  | Inicio | 80, 89, 89 | 91, 89, 79 |
+  | Madrugada a 240 m | 55, 47, 52 | 59, 48, 50 |
+  | Alba | 143, 118, 79 | 148, 120, 81 |
+
+### 2. Vegetación
+
+- **Matas:** 1 000 candidatas, antes 3 000. Son más chicas (0,9–1,8, antes 1,3–2,6) y de tonos de churqui seco y paja.
+- **Rocas:** la mitad y pardas.
+- **Nada a menos de 60 m de los objetivos.**
+- **Cardones:** son `tree_cardon.glb` en MultiMesh, solo en laderas y a más de 45 m de los objetivos. Si falta el archivo, el procedural.
+- **Algarrobos nuevos:** `tree_algarrobo.glb` en MultiMesh, dispersos en el llano, lejos de objetivos (75 m), caminos y río.
+- Los dos GLB del proyecto se nombran en `models` (`cardon` y `algarrobo`); cambiarlos es cambiar esa ruta.
+
+### 3. Profundidad
+
+- La niebla por distancia empieza antes y es más clara: de 60 a 3 000 m (antes 120 a 7 000), curva 0,7 y niebla máxima 0,8 de noche. El color es azul elegido ×1,45, más claro que el suelo.
+- A 240 m acostado, el tercio de arriba ya es una banda de bruma azulada con la silueta de la pared de la quebrada, más clara que el primer plano. Se ve en la secuencia de acercamiento, por ejemplo `r3/secuencia_acercamiento/14.png`.
+
+### 4. Pruebas y rendimiento
+
+| Suite | Resultado |
+|---|---|
+| `test_hx_view` | 284 / 0 fallas |
+| `test_hx_camera` | 51 / 0 |
+| `test_hx_terrain` | 167 / 0 |
+| `test_hx_smoke` | 158 / 0 |
+| `test_hx_flow` | 303 / 0 |
+| `test_hx_data` | 426 / 0 |
+| `ui_qa_humahuaca` 1280 × 720 / 1920 × 1080 / 2560 × 1440 / 1024 × 640 | 174 / 89 / 89 / 89, 0 fallas |
+
+No hubo SCRIPT ERROR. Las fichas siguen midiendo 65–85 px y el aro de detección no cambió.
+
+Benchmark oficial, 1440 × 900, 4 repeticiones:
+
+| Calidad | Cuadro medio | p95 | Construcción |
+|---|---|---|---|
+| media | 2,05 ms (antes 1,70) | 5,5 (tope 8,3) | 1 175–1 233 ms en caliente; 1 465 en la primera repetición, con la caché de sombreadores vacía |
+| alta | 2,25 ms | 3,5 | 1 186–1 228 ms |
+
+El cuadro sube por los cardones y algarrobos del proyecto, que tienen muchos triángulos y proyectan sombra. Sigue con mucho margen bajo el tope de 4 ms.
+
+### 5. Evidencia (`qa-equipo/p2/r3/`)
+
+- **Hojas antes/después:**
+  - `cmp_1_inicio.png`: inicio;
+  - `cmp_6_pueblo_240m.png`: el pueblo de noche a 240 m;
+  - `cmp_8_pueblo_madrugada_240m.png`: el pueblo en la madrugada;
+  - `cmp_7_partidas_240m.png`: las partidas a 240 m;
+  - `cmp_2_noche_ataque.png`: el ataque;
+  - `cmp_3_alba_extraccion.png`: el alba.
+- **Contra las referencias del usuario:** `cmp_referencias.png`, con los mockups 06 y 02 arriba y el pueblo de noche y de madrugada abajo.
+- **Color medio:** `color_medio.json`.
+- **Banco:** `bench_despues/`.
+
+### 6. Cuánto se acerca a los mockups (honesto)
+
+**Se acerca en paleta y en jerarquía:**
+- tierra ocre y parda en lugar de gris verdoso;
+- puntos cálidos de lumbre y fuego contra una noche azul;
+- objetivos en oro;
+- fondo con bruma que separa los planos;
+- menos ruido de manchas.
+
+**No se acerca en dramatismo del relieve.** Los mockups son vistas aéreas de cordillera con crestas iluminadas, sombras profundas y mucho contraste de valores. Nuestro valle de juego es casi llano: Copernicus da ±20 m en la ventana. Las paredes de la quebrada solo se leen de reojo en la banda de bruma, y a 240 m el cuadro sigue siendo sobre todo llano ocre con casas.
+
+**Mi estimación:** en color, atmósfera y legibilidad, un 60 %. En «épico» de composición, un 35–40 %. Para llegar falta:
+1. un relieve cercano con más carácter dentro del contexto (las laderas oeste y este, a 1–2 km);
+2. luz rasante de luna o alba que dibuje crestas;
+3. figuras modeladas;
+4. una cámara de presentación (apertura o partes) que muestre la quebrada entera con el pueblo pequeño abajo, como el mockup 06.
+
+**Pedido (P5/lead):** la apertura podría arrancar desde una vista de 1–2 km sobre la quebrada a 20°. La cámara y la luz ya lo permiten.

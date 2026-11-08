@@ -746,7 +746,7 @@ func bush(seed_value: int = 1) -> ArrayMesh:
 		var a := rng.randf() * TAU
 		var r := 0.15 + rng.randf() * 0.5
 		# tonos de churqui seco con algo de paja: antes salían casi negros y de noche el campo era un salpicado de manchas negras
-		var tone := green.lerp(pc("paja"), rng.randf() * 0.3).darkened(rng.randf() * 0.12)
+		var tone := green.lerp(pc("paja"), 0.25 + rng.randf() * 0.35).lerp(pc("adobe"), 0.12).darkened(rng.randf() * 0.1)
 		mb.ball(Vector3(cos(a) * r, 0.5 + rng.randf() * 0.5, sin(a) * r), 0.55 + rng.randf() * 0.35, 0.5 + rng.randf() * 0.45, 0.55 + rng.randf() * 0.35, 6, 3, tone.lightened(0.06), tone.darkened(0.25))
 	for k in range(2):  # ramas secas que asoman
 		var a2 := rng.randf() * TAU
@@ -796,7 +796,7 @@ func rock(seed_value: int = 1) -> ArrayMesh:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value
 	var mb := MB.new()
-	var stone := pc("piedra_gris").darkened(rng.randf() * 0.18)
+	var stone := pc("piedra_gris").lerp(pc("adobe"), 0.35).darkened(rng.randf() * 0.15)  # piedra parda de la quebrada
 	var pts: Array = []
 	for j in range(1, 3):
 		for k in range(6):
