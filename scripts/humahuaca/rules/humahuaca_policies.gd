@@ -445,7 +445,7 @@ static func _extract(view: Dictionary, cfg: Dictionary, allow_leave: bool) -> Ar
 		return [_order("arreo", action, spot, {"item": str(pick.id)})]
 	if allow_leave:
 		## la partida termina cuando la columna cruza el vado: con reloj de sobra, el arreo espera a que las partidas terminen de destruir lo que quedó
-		if bool(cfg.get("plan_load", false)) and left - back_here > LEAVE_SPARE_S:
+		if bool(cfg.get("plan_load", false)) and recipe == "mixta" and left - back_here > LEAVE_SPARE_S:
 			for it in view.loot.items:
 				if str(it.state) == "en_sitio" and _taken(view, str(it.front)):
 					return []
