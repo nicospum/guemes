@@ -41,6 +41,7 @@ var props_mat: ShaderMaterial
 var water_mat: ShaderMaterial
 var token_mats: Dictionary = {}  ## «aliado» y «enemigo»: el material de las figuras (shaders/humahuaca_token.gdshader)
 var _models: Dictionary = {}  ## modelos GLB ya cargados por clave (model())
+static var _model_cache: Dictionary = {}  ## ruta → {mesh, aabb}: la malla unida sobrevive entre construcciones del nivel
 var _glow_mat: StandardMaterial3D = null  ## la lumbre de las casas (night_glow_mat)
 var win := Rect2(0.0, 0.0, 900.0, 652.0)  ## la ventana de 4 m: de la primera a la última fila de la grilla
 var ctx := Rect2(-1350.0, -1025.0, 3600.0, 2700.0)  ## el contexto de 30 m
@@ -175,7 +176,9 @@ func model(key: String) -> Dictionary:
 	var path := str(cfg.get(key, ""))
 	if path != "" and not path.begins_with("res://"):  # el JSON guarda el nombre y la carpeta («dir»), así la validación de rutas no exige archivos que todavía no llegaron
 		path = "res://" + str(cfg.get("dir", "assets/models")).trim_suffix("/") + "/" + path
-	if bool(cfg.get("enabled", true)) and path != "" and ResourceLoader.exists(path):
+	if bool(cfg.get("enabled", true)) and _model_cache.has(path):  # ya unido en una construcción anterior (reintento, otra partida): no se vuelve a armar
+		out = _model_cache[path]
+	elif bool(cfg.get("enabled", true)) and path != "" and ResourceLoader.exists(path):
 		var scene: Variant = load(path)
 		if scene is PackedScene:
 			var inst_root: Node = (scene as PackedScene).instantiate()
@@ -211,6 +214,7 @@ func model(key: String) -> Dictionary:
 			inst_root.free()
 			if merged.get_surface_count() > 0:
 				out = {"mesh": merged, "aabb": merged.get_aabb(), "path": path}
+				_model_cache[path] = out
 	_models[key] = out
 	return out
 

@@ -133,7 +133,15 @@ func _build_landmark(root: Node3D, lm: Dictionary) -> void:
 	var color_id := str(spec.get("color", "adobe"))
 	if builder in ["caja_con_techo", "templo_nave", "casa_cura", "torre", "plataforma", "patio_posta", "patio_muros", "polvorin"]:  # la huella: una mancha oscura de tierra bajo el edificio
 		var pad := 9.0 if builder == "templo_nave" else 4.0  # el templo, más grande: es el hito que tiene que leerse a 470 m
-		gfx.patch(node, w + pad, d + pad, 0.0, 0.07, gfx.mat("sedimento_humedo", 0.95, 0.78)).name = "huella"
+		var hw := w
+		var hd := d
+		var mk := str(spec.get("model", ""))
+		if mk != "" and not gfx.model(mk).is_empty() and str(spec.get("model_fit", "")) == "uniforme":  # la huella sigue al modelo sin deformar (la capilla es más corta que la nave de diseño)
+			var mbox: AABB = gfx.model_fit(mk, w, d, -1.0, true) * (gfx.model(mk).aabb as AABB)
+			hw = mbox.size.x
+			hd = mbox.size.z
+			pad = 4.0
+		gfx.patch(node, hw + pad, hd + pad, 0.0, 0.07, gfx.mat("sedimento_humedo", 0.95, 0.78)).name = "huella"
 	var model_key := str(spec.get("model", ""))
 	if model_key != "" and not gfx.model(model_key).is_empty():  # un modelo GLB de la pista P6 (props.por_id.<id>.model): se lo estira a la huella y al alto del hito
 		var mi := MeshInstance3D.new()
