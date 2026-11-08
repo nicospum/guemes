@@ -2258,9 +2258,11 @@ def hx_pirca():
 def hx_pieza_artilleria():
     """Light field gun (a «de a 4»: 1.6 m tube) on a bracket-trail carriage with two spoked wheels.
     Muzzle to the front (+Y); the trail rests on the ground behind. Generic late-18th-century
-    field piece, not a specific Spanish model: «razonado», the plate-06 iron colour is used."""
+    field piece, not a specific Spanish model: «razonado». The tube is bronze (Spanish field pieces of
+    the period usually were), although plate 06 assigns «hierro» to cannons; fittings stay iron."""
     hx_begin()
-    iron = HxMat("Hierro | tubo y herrajes", hx_col("hierro"), "hx_hierro")
+    iron = HxMat("Hierro | herrajes", hx_col("hierro"), "hx_hierro")
+    bronze = HxMat("Bronce | tubo (la lámina dice hierro)", hx_mix("oro_laton", "verde_elegido", .3, .45), "hx_hierro")
     wood = HxMat("Madera | cureña", hx_col("madera_oscura"), "wood")
     wood2 = HxMat("Madera | ruedas", hx_col("madera_oscura", 1.12), "wood")
     sponge = HxMat("Lana | lanada del escobillon", hx_col("lana_parda"), "hx_paja")
@@ -2297,9 +2299,9 @@ def hx_pieza_artilleria():
     prof = [(-.17, 0), (-.165, .035), (-.13, .05), (-.10, .03), (-.06, .055), (-.02, .135), (0, .15), (.05, .15), (.07, .138),
             (.60, .126), (.62, .116), (1.02, .102), (1.04, .092), (1.47, .085), (1.51, .107), (1.57, .112), (1.60, .108),
             (1.60, .045), (1.45, .044), (1.45, 0)]
-    hx_lathe("Cañon | tubo", [(t - tr, r) for t, r in prof], iron, sides=16, axis="y", origin=(0, ty, tz),
+    hx_lathe("Cañon | tubo", [(t - tr, r) for t, r in prof], bronze, sides=16, axis="y", origin=(0, ty, tz),
              tilt=math.radians(2.5), pivot=(0, ty, tz))
-    segment("Cañon | muñones", (-.24, ty, tz), (.24, ty, tz), .048, .048, iron, sides=10)
+    segment("Cañon | muñones", (-.24, ty, tz), (.24, ty, tz), .048, .048, bronze, sides=10)
     # Rammer and sponge carried along the right cheek.
     segment("Cureña | atacador", (.31, -1.55, .50), (.31, .30, .93), .022, .022, wood2, sides=6)
     segment("Cureña | lanada", (.31, .30, .93), (.31, .52, .98), .055, .055, sponge, sides=8)
@@ -2378,7 +2380,7 @@ HX_NOTES = {
     "hx_tapia": "P6, Humahuaca 1817. Rammed-earth wall module 4.0 m long (X), 2.0 m high, 0.55-0.45 m thick, straw capping; square ends to repeat along X.",
     "hx_corral": "P6, Humahuaca 1817. Dry-stone (pirca) corral 10 x 10 m, 1.15 m high, pole gate on the front (Godot -Z). Design.",
     "hx_pirca": "P6, Humahuaca 1817. Straight 4.0 m module of pirca (dry stone), 1.15 m high, to repeat along X.",
-    "hx_pieza_artilleria": "P6, Humahuaca 1817. Light field gun (1.6 m tube, 'de a 4' size) on a bracket-trail carriage; muzzle to Godot -Z. Generic piece, reasoned reconstruction; iron colour from plate 06.",
+    "hx_pieza_artilleria": "P6, Humahuaca 1817. Light field gun (1.6 m tube, 'de a 4' size) on a bracket-trail carriage; muzzle to Godot -Z. Generic piece, reasoned reconstruction; bronze tube (plate 06 says 'hierro' for cannons: deliberate deviation), iron fittings.",
     "hx_brasero": "P6, Humahuaca 1817. Iron brazier on three legs with emissive embers; warm light anchor about 1.4 m above the origin (above the rim, so the bowl does not shade the ground).",
     "hx_fogon": "P6, Humahuaca 1817. Guard fire ring of stones with logs and emissive embers; warm light anchor about 0.6 m above the origin.",
 }
