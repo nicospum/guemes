@@ -342,7 +342,7 @@ func _light_params(key: String) -> Dictionary:
 		"fog_col": _tinted(fog, "cal_envejecida"), "fog_density": float(fog.get("density", 0.001)), "fog_depth_max": float(fog.get("depth_max", 0.6)),
 		"fog_aerial": float(fog.get("aerial", 0.0)), "fog_height": float(fog.get("height_m", 60.0)), "fog_height_density": float(fog.get("height_density", 0.0)),
 		"exposure": float(l.get("exposure", 1.0)),
-		"fire": float(l.get("fire", 1.0)),
+		"fire": float(l.get("fire", 1.0)), "ground_warmth": float(l.get("ground_warmth", 0.0)),
 		"grade_contrast": float(grade.get("contrast", 1.0)), "grade_sat": float(grade.get("saturation", 1.0)),
 		"grade_lo": _rgb(grade.get("shadows", [0.0, 0.0, 0.0])), "grade_mid": _rgb(grade.get("mids", [0.5, 0.5, 0.5])), "grade_hi": _rgb(grade.get("highlights", [1.0, 1.0, 1.0]))}
 
@@ -438,6 +438,7 @@ func _apply_environment() -> void:
 	gfx.set_rain(_rain)
 	fxm.set_rain(_rain, _albedo)
 	fxm.set_fire(float(p.fire))
+	gfx.set_warmth(0.0 if _albedo else float(p.ground_warmth))
 
 
 ## Resplandor, oclusión y la corrección de color por hora (DIRECCION_DE_ARTE 2.3 y 2.4): curva por canal fría de noche (sombras violáceas, luces apenas cálidas) que se

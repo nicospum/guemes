@@ -633,20 +633,21 @@ func build_vegetation(root: Node3D, river_line: PackedVector2Array) -> void:
 	var win: Rect2 = gfx.win
 	var reach := 260.0  # el anillo sigue unos metros fuera de la ventana: el contexto cercano no queda pelado
 	var area := Rect2(win.position - Vector2(reach, reach), win.size + Vector2(reach, reach) * 2.0)
-	for k in range(int(3000.0 * factor)):  # churqui: matas de 3 a 6 m por todo el campo (más densas en las laderas y en el oeste): ninguna parte del suelo queda lisa
+	var clear := _objective_spots()
+	for k in range(int(1000.0 * factor)):  # churqui: matas bajas (ronda 3: menos y más chicas; antes 3 000 manchas oscuras que se leían como ruido), más densas en las laderas
 		var p := area.position + Vector2(rng.randf() * area.size.x, rng.randf() * area.size.y)
 		var slope: float = gfx.slope_at(p.x, p.y)
-		if rng.randf() > 0.42 + 0.58 * gfx.churqui_k(p.x, p.y, slope) or not _free_spot(p, true):
+		if rng.randf() > 0.3 + 0.7 * gfx.churqui_k(p.x, p.y, slope) or not _free_spot(p, true) or _near_any(p, clear, 60.0):
 			continue
-		var s := 1.3 + rng.randf() * 1.3
+		var s := 0.9 + rng.randf() * 0.9
 		bushes.append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s * (0.7 + rng.randf() * 0.5), s)), Vector3(p.x, gfx.h(p.x, p.y) - 0.1, p.y)))
 	for k in range(int(260.0 * factor)):  # cardones: solo en las laderas más altas del oeste
 		var p := area.position + Vector2(rng.randf() * area.size.x * 0.55, rng.randf() * area.size.y)
-		if gfx.slope_at(p.x, p.y) < 0.045 or rng.randf() > 0.5 or not _free_spot(p, true):
+		if gfx.slope_at(p.x, p.y) < 0.045 or rng.randf() > 0.5 or not _free_spot(p, true) or _near_any(p, clear, 45.0):
 			continue
 		var s := 0.8 + rng.randf() * 0.5
 		cacti.append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s, s)), Vector3(p.x, gfx.h(p.x, p.y) - 0.1, p.y)))
-	for k in range(int(1100.0 * factor)):  # rocas: tendidas por el campo y juntas en las pendientes
+	for k in range(int(550.0 * factor)):  # rocas: tendidas por el campo y juntas en las pendientes (ronda 3: la mitad, eran puntos oscuros que ensuciaban el suelo)
 		var p := area.position + Vector2(rng.randf() * area.size.x, rng.randf() * area.size.y)
 		var slope: float = gfx.slope_at(p.x, p.y)
 		if rng.randf() > clampf(slope * 6.0 + 0.3, 0.0, 0.8) or not _free_spot(p, true):
@@ -683,12 +684,49 @@ func build_vegetation(root: Node3D, river_line: PackedVector2Array) -> void:
 	for v in range(variants):  # tres variantes de cada especie para que no se repita la silueta
 		_multimesh(root, "arbustos_%d" % v, gen.bush(100 + v), bushes.filter(func(t): return int(abs(t.origin.x * 7.0 + t.origin.z * 3.0)) % variants == v), false)
 		_multimesh(root, "rocas_%d" % v, gen.rock(200 + v), rocks.filter(func(t): return int(abs(t.origin.x * 5.0 + t.origin.z * 11.0)) % variants == v), false)
-	_multimesh(root, "cardones", gen.cactus(300), cacti, true)
+	var cardon: Dictionary = gfx.model("cardon")  # el cardón del proyecto (tree_cardon.glb, MultiMesh); si falta, el procedural
+	if cardon.is_empty():
+		_multimesh(root, "cardones", gen.cactus(300), cacti, true)
+	else:
+		var fixed: Array = []
+		for t in cacti:
+			fixed.append((t as Transform3D) * Transform3D(Basis.IDENTITY, Vector3(0.0, -(cardon.aabb as AABB).position.y, 0.0)))
+		_multimesh(root, "cardones", cardon.mesh, fixed, true, true)
+	# algarrobos dispersos en el llano (tree_algarrobo.glb): siluetas de copa ancha que se leen de lejos; lejos de los objetivos, los caminos y el río
+	var trees: Array = []
+	var algarrobo: Dictionary = gfx.model("algarrobo")
+	if not algarrobo.is_empty():
+		var arng := RandomNumberGenerator.new()
+		arng.seed = int(ring.get("seed", 1817)) + 7
+		for k in range(int(220.0 * factor)):
+			var p := area.position + Vector2(arng.randf() * area.size.x, arng.randf() * area.size.y)
+			if gfx.slope_at(p.x, p.y) > 0.06 or arng.randf() > 0.35 or not _free_spot(p, false) or _near_any(p, clear, 75.0):
+				continue
+			var s := 0.6 + arng.randf() * 0.45
+			trees.append(Transform3D(Basis(Vector3.UP, arng.randf() * TAU).scaled(Vector3(s, s * (0.85 + arng.randf() * 0.3), s)), Vector3(p.x, gfx.h(p.x, p.y) - 0.1, p.y)))
+		_multimesh(root, "algarrobos", algarrobo.mesh, trees, true, true)
+	content_counts["algarrobos"] = trees.size()
 	_multimesh(root, "sauces", gen.willow(400), willows, true)
 	content_counts["arbustos"] = bushes.size()
 	content_counts["cardones"] = cacti.size()
 	content_counts["rocas"] = rocks.size()
 	content_counts["sauces"] = willows.size()
+
+
+## Los objetivos (y sus luces): ahí la vegetación se aparta para no competir con las fichas ni con el anillo de oro.
+func _objective_spots() -> Array:
+	var out: Array = []
+	for id in ["bateria", "cuartel", "posta"]:
+		if lm_by_id.has(id):
+			out.append(Vector2(float(lm_by_id[id].x), float(lm_by_id[id].z)))
+	return out
+
+
+func _near_any(p: Vector2, spots: Array, r: float) -> bool:
+	for q in spots:
+		if p.distance_to(q as Vector2) < r:
+			return true
+	return false
 
 
 func line_samples(line: PackedVector2Array, step: float) -> Array:

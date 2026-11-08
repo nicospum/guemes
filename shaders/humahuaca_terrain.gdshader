@@ -23,6 +23,7 @@ uniform vec3 pal_adobe : source_color = vec3(0.769, 0.667, 0.510);
 uniform vec3 pal_lana : source_color = vec3(0.808, 0.761, 0.655);
 
 uniform float rain : hint_range(0.0, 1.0) = 0.0;
+uniform float warmth : hint_range(0.0, 1.0) = 0.0;  // ronda 3: cuánto se corre la tierra hacia ocre y siena (1 de noche, poco de día: lights.<hora>.ground_warmth)
 uniform float wet_darken = 0.75;
 uniform float wet_rough = 0.5;
 uniform float albedo_mode = 0.0;     // 1 = render de albedo para la métrica de paleta (QA): el color plano de la paleta, sin luz
@@ -95,22 +96,24 @@ void fragment(){
 	float straw = smoothstep(0.58, 0.78, hx_fbm2(hx_rot(p, 0.8) * vec2(0.011, 0.02) + 41.0));
 	c_suelo = mix(c_suelo, pal_sedimento * (0.85 + 0.2 * mid), damp * 0.5);
 	c_suelo = mix(c_suelo, mix(pal_churqui, pal_lana, 0.35) * (0.8 + 0.25 * mid), straw * 0.32 * (1.0 - damp));
+	vec3 warm_k = mix(vec3(1.0), vec3(1.07, 0.95, 0.80), warmth);  // la tierra de la quebrada es ocre y rojiza; con la luna fría el beige se leía gris verdoso
+	c_suelo *= warm_k;
 	c_suelo = mix(c_suelo, pal_piedra * (0.95 + 0.25 * stone_tone), stones * 0.3);                   // piedritas sueltas sobre la grava
-	vec3 c_sed = pal_sedimento * (0.84 + 0.3 * mid) * (0.96 + 0.08 * fine);
+	vec3 c_sed = pal_sedimento * mix(vec3(1.0), vec3(1.06, 0.95, 0.84), warmth) * (0.84 + 0.3 * mid) * (0.96 + 0.08 * fine);
 	float crack = smoothstep(0.10, 0.04, abs(hx_cells(p * 0.55) - 0.5)) * near_k;
 	c_sed *= 1.0 - 0.18 * crack;                                                                     // grietas de barro seco
 	// la piedra de las laderas de la quebrada es parda y rojiza, no gris neutro (con la luna fría el gris se leía como charcos azules): se la mezcla con el adobe y el sedimento
 	vec3 rock_tint = mix(pal_piedra, mix(pal_adobe, pal_sedimento, 0.5), 0.6 + 0.2 * big);
-	vec3 c_piedra = rock_tint * (0.78 + 0.3 * mid + 0.18 * fine) * (0.9 + 0.2 * hx_noise(p * 0.7));
+	vec3 c_piedra = rock_tint * mix(vec3(1.0), vec3(1.08, 0.94, 0.8), warmth) * (0.78 + 0.3 * mid + 0.18 * fine) * (0.9 + 0.2 * hx_noise(p * 0.7));
 	float strata = hx_noise(vec2(p.x * 0.006 + p.y * 0.004, asl * 0.22));                           // estratos claros y horizontales de los cerros erosionados
 	float band = smoothstep(0.38, 0.62, fract(asl / 7.0 + strata * 0.9 + big * 0.5));
 	c_piedra = mix(c_piedra, mix(pal_adobe, pal_lana, 0.35) * (0.86 + 0.2 * mid), band * steep * 0.82);
-	vec3 c_churqui = mix(pal_suelo * (0.78 + 0.2 * big), pal_churqui, 0.45);
+	vec3 c_churqui = mix(pal_suelo * mix(vec3(1.0), vec3(1.05, 0.94, 0.8), warmth) * (0.78 + 0.2 * big), pal_churqui, mix(0.4, 0.28, warmth));  // menos verde: la ladera es pardo ocre con matas
 	vec2 sp = p * 0.26 + 3.0;
 	float shrub_r = 0.14 + 0.34 * hx_hash(floor(sp) + 5.0);                                            // cada mata tiene su tamaño: no es un patrón de lunares
 	float shrub = smoothstep(shrub_r, shrub_r * 0.3, hx_cells(sp)) * (0.7 + 0.3 * hx_noise(p * 0.9)) * (1.0 - 0.65 * smoothstep(150.0, 900.0, vdist)) * smoothstep(0.30, 0.62, hx_fbm2(p * 0.018 + 9.0));
 	c_churqui = mix(c_churqui, pal_churqui * (0.66 + 0.16 * micro), shrub * (0.30 + 0.30 * mid));     // matas de arbusto sobre la ladera (más tenues cuanto más lejos)
-	vec3 c_irr = pal_irrigada * (0.80 + 0.28 * mid) * (0.94 + 0.12 * fine);
+	vec3 c_irr = mix(pal_irrigada, pal_sedimento, 0.25 * warmth) * (0.80 + 0.28 * mid) * (0.94 + 0.12 * fine);  // el regadío no queda verde loro de noche
 	float furrow = smoothstep(0.30, 0.5, abs(fract(hx_rot(p, 0.42).x * 0.42) - 0.5));
 	c_irr *= 1.0 - 0.16 * furrow * near_k;                                                           // surcos de las parcelas regadas
 	vec3 c_agua = pal_agua * (0.92 + 0.12 * fine);

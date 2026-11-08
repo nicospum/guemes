@@ -260,7 +260,7 @@ func night_glow_mat() -> StandardMaterial3D:
 	if _glow_mat == null:
 		_glow_mat = StandardMaterial3D.new()
 		_glow_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		var c := pc("oro_laton", 1.2).lerp(pc("rojo_reservado", 1.2), 0.25)
+		var c := pc("oro_laton", 1.25).lerp(pc("rojo_reservado", 1.25), 0.36)  # ámbar: el complementario del azul de la noche
 		_glow_mat.albedo_color = c
 		_glow_mat.emission_enabled = true
 		_glow_mat.emission = c
@@ -273,7 +273,13 @@ func set_night_glow(k: float) -> void:
 	if _glow_mat != null:
 		_glow_mat.emission_energy_multiplier = 9.0 * clampf(k, 0.0, 1.5)
 		_glow_mat.albedo_color.a = 1.0
-		_glow_mat.albedo_color = (pc("oro_laton", 1.2).lerp(pc("rojo_reservado", 1.2), 0.25)).darkened(clampf(1.0 - k, 0.0, 0.85))
+		_glow_mat.albedo_color = (pc("oro_laton", 1.25).lerp(pc("rojo_reservado", 1.25), 0.36)).darkened(clampf(1.0 - k, 0.0, 0.85))
+
+
+## Calidez del suelo según la hora (ronda 3): de noche la tierra conserva el ocre con la luna fría; de día la luz ya la da.
+func set_warmth(k: float) -> void:
+	if terrain_mat != null:
+		terrain_mat.set_shader_parameter("warmth", clampf(k, 0.0, 1.0))
 
 
 ## El material de las figuras de un bando («aliado» o «enemigo»).
