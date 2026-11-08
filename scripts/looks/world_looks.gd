@@ -146,7 +146,7 @@ static func _justina(env: Environment, sun: DirectionalLight3D, fx: bool) -> voi
 		env.glow_intensity = 0.6
 		env.glow_bloom = 0.0
 		env.glow_hdr_threshold = 0.95
-		_grade(env, 1.07, 1.0, true, true)
+		_grade(env, 1.08, 0.95, true, true)   # ronda 2: saturación 0,95 (la meseta ocre se iba a naranja en el oblicuo)
 
 ## C1 · Norte: relieve dorado sobre tinta. Sin cielo, niebla de profundidad oscura (world_view la ajusta a la distancia de cámara),
 ## sol rasante dorado (24°, rumbo -118°) y ambiente violáceo alto (0,8; la dirección pedía 0,6 y subirlo si una ficha se pierde en sombra: con 0,62 las figuras en ladera quedaban negras) para que ninguna ficha se pierda en una ladera en sombra.

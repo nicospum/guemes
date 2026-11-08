@@ -656,6 +656,10 @@ func _create_group(unit:Dictionary):
   var p=Vector3((i%2)*1.3-0.65,0,(i/2)*1.7-0.85)
   var fig=_model(file,p,figures)
   if file=="rider_1817":_recolor_poncho(fig,str(unit.id)=="guemes" and i==0)
+  if scenario=="norte":
+   # P1 ronda 2: realce de borde (luz de contorno celeste pálido + un piso mínimo de luz) para que las figuras propias no se pierdan
+   # en los valles en sombra. Un pase extra sin luz sobre 4 figuras por grupo: costo despreciable.
+   for mi in fig.find_children("*","MeshInstance3D",true,false):(mi as MeshInstance3D).material_overlay=_rim_mat()
   var ap=fig.find_children("*","AnimationPlayer",true,false)
   for player in ap:
    var list=player.get_animation_list()
@@ -664,10 +668,39 @@ func _create_group(unit:Dictionary):
      player.get_animation(anim).loop_mode=Animation.LOOP_LINEAR
      player.play(anim);player.seek(float(i)*0.14,true);player.pause();player.speed_scale=0.75;anims.append(player);break
  var ring=_ring(2.65,Looks.ORO_VIEJO,root)
+ if scenario=="norte":
+  # P1 ronda 2: aro de aliado más grueso, sin luz y dibujado por encima del relieve (en ladera ya no queda medio enterrado).
+  var tm=TorusMesh.new();tm.inner_radius=2.45;tm.outer_radius=2.9;tm.rings=40;tm.ring_segments=6
+  ring.mesh=tm;ring.position.y=0.3;ring.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
  selected_rings[str(unit.id)]=ring
  var label=_world_label(str(unit.name),Vector3(0,4.0,0),Color("e9d4aa"),30,root)
  unit_labels[str(unit.id)]=label
  unit_nodes[str(unit.id)]={"root":root,"figures":figures,"mounted":mounted,"anims":anims,"last":root.position}
+
+var rim_mat:ShaderMaterial=null
+func _rim_mat()->ShaderMaterial:
+ if rim_mat==null:
+  var sh=Shader.new()
+  sh.code="""shader_type spatial;
+render_mode unshaded, blend_add, depth_draw_never, cull_back, shadows_disabled, fog_disabled;
+uniform vec4 rim_color : source_color = vec4(0.66, 0.80, 0.90, 1.0);
+uniform float strength = 0.62;
+uniform float lift = 0.035;
+void fragment(){
+	float f = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 2.2);
+	ALBEDO = rim_color.rgb * (lift + f * strength);
+}"""
+  rim_mat=ShaderMaterial.new();rim_mat.shader=sh
+ return rim_mat
+
+func _ring_mat_n(c:Color)->StandardMaterial3D:
+ var key="ring_n"+c.to_html()
+ if ring_mat_cache.has(key):return ring_mat_cache[key]
+ var m=StandardMaterial3D.new();m.albedo_color=c;m.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
+ m.no_depth_test=true;m.render_priority=2;m.disable_fog=true
+ m.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA;m.albedo_color.a=0.92
+ ring_mat_cache[key]=m
+ return m
 
 ## Regla de color (P1, V-02): el poncho granate de rider_1817 se leía rojo a escala de juego (el rojo es del enemigo).
 ## Se reclasifica el color de vértice del GLB en carga (sin regenerar el modelo): poncho y faja → lana parda #705741 / ocre #8A7350.
@@ -765,7 +798,7 @@ func update_state(delta:float):
   if scenario=="norte":
    # Regla de color: aliado = aro celeste siempre visible; el elegido pasa a oro viejo.
    selected_rings[id].visible=true
-   var rm=_mat(Looks.ORO_VIEJO if (id==selected or selected=="all") else Looks.CELESTE,0.55,true)
+   var rm=_ring_mat_n(Looks.ORO_VIEJO if (id==selected or selected=="all") else Looks.CELESTE)
    if selected_rings[id].material_override!=rm:selected_rings[id].material_override=rm
   else:
    selected_rings[id].visible=id==selected or selected=="all"
@@ -1027,6 +1060,8 @@ func _build_justina():
  _landmarks_j()
  _ramp_paths_j()
  _scenery_j()
+ _barranca_j()
+ _meseta_town_j()
  _scale_bar_j()
  _obstacles_j()
  _ship_j()
@@ -1666,6 +1701,110 @@ func _scenery_j():
      _inst_glb("church_colonial",Transform3D(Basis.from_scale(Vector3.ONE*1.15),Vector3(x0,_far_h(x0,bz2),bz2)))
    bz2+=117.0
 
+# ---------------------------------------------------------------- barranca y caserío (P1, ronda 2)
+# Lectura del lugar a distancia de juego: talas y ombúes en el borde de la barranca (sombras largas de la tarde sobre el talud),
+# matas y cortaderas en la pared, y quintas con tapia y frutales sobre la meseta del Retiro. Reconstrucción estética (Vidal 1820
+# muestra la barranca con pasto y árboles sueltos y caserío bajo); nada de esto toca reglas ni caminos de juego.
+## true si (x,z) cae sobre un hito, una bajada, un obstáculo o el arranque de un grupo (margen m): ahí no se planta nada.
+func _reserved_j(x:float,z:float,m:float)->bool:
+ var p=Vector2(x,z)
+ for lm in M.get("landmarks",[]):
+  var c=_lm_pos(lm)
+  match str(lm.get("type","")):
+   "battery":
+    if absf(x-c.x)<float(lm.get("w",22.0))*0.5+m+3.0 and absf(z-c.y)<float(lm.get("d",14.0))*0.5+m+3.0:return true
+   "bullring":
+    var r=float(lm.get("radius_m",24.0))*0.5
+    if p.distance_to(c)<r*1.3+m or (x>c.x-r*1.7-m and x<c.x and absf(z-c.y)<r*1.3+m):return true
+   "camp":
+    if p.distance_to(c)<float(lm.get("radius_m",20.0))*1.2+m:return true
+   "command":
+    if p.distance_to(c)<9.0+m:return true
+   "road":
+    var poly:Array=lm.get("polyline",[])
+    for i in range(poly.size()-1):
+     if Geometry2D.get_closest_point_to_segment(p,_pt(poly[i]),_pt(poly[i+1])).distance_to(p)<9.0+m:return true
+ for r2 in M.get("barranca",{}).get("ramps",[]):
+  var vp:Array=r2.get("visual_path",{}).get("polyline",[])
+  for i in range(vp.size()-1):
+   if Geometry2D.get_closest_point_to_segment(p,_pt(vp[i]),_pt(vp[i+1])).distance_to(p)<6.0+m:return true
+ for o in M.get("obstacles",[]):
+  if absf(x-float(o.x))<float(o.w)*0.5+m and absf(z-float(o.z))<float(o.d)*0.5+m:return true
+ for g in M.get("groups",[]):
+  if p.distance_to(Vector2(float(g.x),float(g.z)))<14.0+m:return true
+ return false
+
+func _barranca_j():
+ var rng=RandomNumberGenerator.new();rng.seed=18061208
+ var barr=M.get("barranca",{})
+ var crest:Array=barr.get("crest",[]);var toe:Array=barr.get("toe",[])
+ if crest.is_empty() or toe.is_empty():return
+ var glb_tree=_glb_ok("tree_algarrobo")
+ # Talas y ombúes en el borde: grupos de 1 a 3, separados 8-18 m, apenas detrás del filo (su sombra cae por el talud hacia el río).
+ var z=3.0
+ while z<map_h-3.0:
+  if rng.randf()<0.66:
+   for k in range(rng.randi_range(1,3)):
+    var zz=z+rng.randf_range(-4.0,4.0)
+    var x=_poly_x(crest,zz)-rng.randf_range(1.0,11.0)
+    if _reserved_j(x,zz,2.0):continue
+    var s=rng.randf_range(1.25,2.3)
+    if glb_tree:_inst_glb("tree_algarrobo",Transform3D(Basis.from_euler(Vector3(0,rng.randf()*TAU,0)).scaled_local(Vector3.ONE*s),Vector3(x,_h(x,zz)-0.15,zz)))
+    else:_tree(Vector3(x,_h(x,zz),zz),s)
+  z+=rng.randf_range(8.0,18.0)
+ # Pared de la barranca: matas oscuras, cortaderas pajizas y algún arbusto; densidad con ruido (manchones, no alfombra).
+ var z2=1.5
+ while z2<map_h-1.5:
+  var cx=_poly_x(crest,z2);var tx=_poly_x(toe,z2)
+  for k in range(3):
+   var t=rng.randf_range(0.1,0.95)
+   var zz=z2+rng.randf_range(-1.6,1.6)
+   var x=lerpf(cx,tx,t)+rng.randf_range(-1.0,1.0)
+   if terrain_noise.get_noise_2d(x*0.05,zz*0.05+21.0)<-0.12:continue
+   if _reserved_j(x,zz,0.0):continue
+   var y=_h(x,zz)
+   var kind=rng.randf()
+   if kind<0.55:
+    var w=rng.randf_range(1.3,3.4);var hh=w*rng.randf_range(0.35,0.6)
+    var tone=Color("4c5030").lerp(Color("6e6b3e"),rng.randf()).lerp(Color("5e4f36"),rng.randf()*0.35)
+    _inst_r("sphere",Vector3(x,y+hh*0.25,zz),Vector3(w,hh,w*rng.randf_range(0.6,1.2)),rng.randf()*TAU,tone)
+   elif kind<0.85:
+    for st in range(8):
+     var sh=rng.randf_range(1.1,2.2)
+     var ox=x+rng.randf_range(-0.45,0.45);var oz=zz+rng.randf_range(-0.45,0.45)
+     _inst_r("cyl8",Vector3(ox,_h(ox,oz)+sh*0.5-0.05,oz),Vector3(0.06,sh,0.06),0.0,Color("a8975f").lerp(Color("cbbd8a"),rng.randf()),Vector3(rng.randf_range(-0.45,0.45),0,rng.randf_range(-0.45,0.45)))
+   elif glb_tree:
+    var s2=rng.randf_range(0.55,0.95)
+    _inst_glb("tree_algarrobo",Transform3D(Basis.from_euler(Vector3(0,rng.randf()*TAU,0)).scaled_local(Vector3.ONE*s2),Vector3(x,y-0.1,zz)))
+  z2+=rng.randf_range(2.4,4.2)
+
+## Quintas del Retiro sobre la meseta, al oeste de los hitos: casas bajas (azotea, rancho o teja), tapia y frutales. Dan escala humana.
+func _meseta_town_j():
+ var rng=RandomNumberGenerator.new();rng.seed=18060812
+ var glb_tree=_glb_ok("tree_algarrobo")
+ var zq=96.0
+ while zq<map_h-30.0:
+  var xq=rng.randf_range(22.0,62.0)
+  if not _reserved_j(xq,zq,22.0):
+   # 2-4 casas alineadas a la calle (frente al este), patio con tapia baja y 3-6 frutales detrás.
+   var nh=rng.randi_range(2,4)
+   for k in range(nh):
+    var hz=zq-12.0+float(k)*9.5
+    _house_at(xq+rng.randf_range(-1.0,1.0),hz,rng.randf_range(6.5,9.0),rng.randf_range(7.0,8.5),PI*0.5+rng.randf_range(-0.05,0.05))
+   var px0=xq-26.0;var px1=xq-6.0;var pz0=zq-16.0;var pz1=zq-16.0+float(nh)*9.5+4.0
+   for seg in [[px0,pz0,px1,pz0],[px0,pz1,px1,pz1],[px0,pz0,px0,pz1]]:
+    var a=Vector2(seg[0],seg[1]);var b=Vector2(seg[2],seg[3])
+    var n=maxi(1,int(ceil(a.distance_to(b)/4.0)))
+    for i in range(n):
+     var m0=a.lerp(b,(float(i)+0.5)/float(n));var ln=a.distance_to(b)/float(n)
+     var horiz=absf(b.x-a.x)>absf(b.y-a.y)
+     _inst_r("box",Vector3(m0.x,_h(m0.x,m0.y)+0.75,m0.y),Vector3(ln+0.05 if horiz else 0.45,1.6,0.45 if horiz else ln+0.05),0.0,Color("c8bb9c").darkened(rng.randf()*0.12))
+   if glb_tree:
+    for i in range(rng.randi_range(3,6)):
+     var fx=rng.randf_range(px0+3.0,px1-3.0);var fz=rng.randf_range(pz0+3.0,pz1-3.0)
+     _inst_glb("tree_algarrobo",Transform3D(Basis.from_euler(Vector3(0,rng.randf()*TAU,0)).scaled_local(Vector3.ONE*rng.randf_range(0.8,1.25)),Vector3(fx,_h(fx,fz)-0.1,fz)))
+  zq+=rng.randf_range(52.0,78.0)
+
 # ---------------------------------------------------------------- escala y referencias
 func _scale_bar_j():
  scale_root=Node3D.new();scale_root.name="Escala100m";add_child(scale_root)
@@ -1726,6 +1865,71 @@ func _ship_j():
  for i in range(13):
   var gz=-(-5.55+float(i)*0.925)
   ship_gun_pos.append(Vector3(-3.3*SHIP_SX,2.4*SHIP_SY,gz*SHIP_SZ))
+ _pennants_j()
+
+# P1 ronda 2: gallardetes largos en el tope de cada palo (rojo realista: el buque es del bando enemigo). Ondean con el viento del
+# sudeste. El tope sale de la malla del GLB (vértice más alto de cada palo); si no se encuentra, no se dibuja nada. Aspecto, no dato.
+var pennants:Array=[]
+func _pennants_j()->void:
+ if not is_instance_valid(ship):return
+ var tops:Dictionary={}
+ for mi in ship.find_children("*","MeshInstance3D",true,false):
+  if mi.mesh==null:continue
+  var xf:Transform3D=Transform3D.IDENTITY
+  var cur:Node=mi
+  while cur!=null and cur!=ship:
+   if cur is Node3D:xf=(cur as Node3D).transform*xf
+   cur=cur.get_parent()
+  for si in range(mi.mesh.get_surface_count()):
+   var v=mi.mesh.surface_get_arrays(si)[Mesh.ARRAY_VERTEX]
+   if not (v is PackedVector3Array):continue
+   for q in v:
+    var w:Vector3=xf*q
+    var key="proa" if w.z<-2.0 else "popa"
+    if not tops.has(key) or w.y>(tops[key] as Vector3).y:tops[key]=w
+ var st=SurfaceTool.new();st.begin(Mesh.PRIMITIVE_TRIANGLES)
+ # Cinta larga y angosta (5 m x 0,36 m en escala del modelo), quebrada en 10 tramos para que ondee.
+ for i in range(10):
+  var u0=float(i)/10.0;var u1=float(i+1)/10.0
+  var h0=0.18*(1.0-u0*0.8);var h1=0.18*(1.0-u1*0.8)
+  for q in [Vector3(u0*5.0,h0,0),Vector3(u1*5.0,h1,0),Vector3(u0*5.0,-h0,0),Vector3(u1*5.0,h1,0),Vector3(u1*5.0,-h1,0),Vector3(u0*5.0,-h0,0)]:
+   st.set_uv(Vector2(q.x/5.0,0.0));st.add_vertex(q)
+ st.generate_normals()
+ var mesh=st.commit()
+ var mat=ShaderMaterial.new();mat.shader=_pennant_shader()
+ mat.set_shader_parameter("tint",Looks.ROJO_REALISTA)
+ for key in tops:
+  var mi2=MeshInstance3D.new();mi2.name="Gallardete_"+key;mi2.mesh=mesh;mi2.material_override=mat
+  mi2.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+  add_child(mi2)
+  pennants.append({"node":mi2,"local":(tops[key] as Vector3)+Vector3(0,0.15,0)})
+ _update_pennants_j()
+
+var pennant_shader:Shader=null
+func _pennant_shader()->Shader:
+ if pennant_shader==null:
+  pennant_shader=Shader.new()
+  pennant_shader.code="""shader_type spatial;
+render_mode cull_disabled;
+uniform vec4 tint : source_color = vec4(0.72, 0.26, 0.23, 1.0);
+void vertex(){
+	float u = UV.x;
+	VERTEX.z += sin(TIME * 3.4 - u * 7.0) * 0.45 * u;
+	VERTEX.y += sin(TIME * 2.1 - u * 4.0) * 0.18 * u - 0.35 * u * u;
+}
+void fragment(){ ALBEDO = tint.rgb; ROUGHNESS = 0.9; }"""
+ return pennant_shader
+
+func _update_pennants_j()->void:
+ if pennants.is_empty() or not is_instance_valid(ship):return
+ var wind=Vector2(-0.62,-0.78)   # hacia donde vuela el paño (viento del sudeste)
+ var yaw=atan2(-wind.y,wind.x)
+ var k=ship.scale.y/SHIP_SY
+ for p in pennants:
+  var n:Node3D=p.node
+  n.position=ship.transform*(p.local as Vector3)   # buque y gallardetes son hijos directos del mundo
+  n.rotation=Vector3(0,yaw,0)
+  n.scale=Vector3.ONE*k*SHIP_SY*0.5
 
 
 # Ronda 3: el GLB trae una escalera rigida colgada del costado de babor (modelo sin regenerar: no hay Blender en esta PC).
@@ -2581,6 +2785,7 @@ func _update_ship_j(delta:float):
  ship.rotation.z=lerpf(0.045,deg_to_rad(float(heel[1])),gk);ship.rotation.x=lerpf(0.012,0.034,gk)
  ship.position.y=ship_y0-(float(gv.get("sink_m",0.6))+1.1+0.55*ship_far_k)*gk   # R7: +1,1 m: la quilla queda enterrada en el banco (antes se veia luz bajo el casco)
  _update_boarding_fx_j(delta)
+ _update_pennants_j()
  if is_instance_valid(ship_mud):
   ship_mud.visible=gk>0.02
   ship_mud.position.y=level_m+0.04
