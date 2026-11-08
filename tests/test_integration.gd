@@ -56,6 +56,7 @@ func _run() -> void:
 	await _norte()
 	await _transiciones()
 	await _campana()
+	await _norte_por_humahuaca()
 	report.final_scenario = game.rules.state.scenario
 	report.final_status = game.rules.state.status
 	if is_instance_valid(game.audio_manager):
@@ -683,6 +684,18 @@ func _campana() -> void:
 	game._start_game("justine")
 	await _frames(2)
 	game._close_modal()
+	# P-003: cerrar con Esc la ventana de una decisión no la deja oculta con el reloj corriendo
+	game.paused = false
+	game.rules.state.pending_choice = {"title": "Un mensajero", "options": [{"id": "a", "label": "Opción A"}]}
+	game._choice_dialog()
+	game._close_modal()
+	game._update_hud()
+	check(game.paused and game.alert_panel.visible and game.alert_btn.text == "Ver la decisión", "P-003: tras cerrar una decisión pendiente el reloj sigue detenido y un aviso la vuelve a abrir")
+	game._alert_click()
+	check(is_instance_valid(game.modal) and game.modal.has_meta("choice"), "P-003: «Ver la decisión» reabre la ventana")
+	game._close_modal()
+	game.rules.state.pending_choice = {}
+	game._update_hud()
 	game.rules.state.status = "victory"
 	game.rules.state.reason = "Buque capturado"
 	game.rules.state.capture = 100.0
@@ -708,6 +721,19 @@ func _campana() -> void:
 	check(str(game.tutorial_label.text).begins_with("Siguiente paso · Arias reconoce la Quebrada") and game.next_btn != null and game.next_btn.visible, "D-09: en la ronda 1 la guía da una orden concreta y un botón para prepararla")
 	check(not game.jev_label.visible and _ui_text(game.ui).find("Jev") < 0, "D-09: sin clave configurada no aparece la palabra «Jev»")
 	check(_press("Preparar la orden sugerida") and str(game.rules.get_unit("arias").order.get("action", "")) == "scout", "D-09: «Preparar» deja la orden sugerida preparada en un clic")
+	# P-001: pasar el mouse por una orden no mueve la bandeja (el clic cae donde se apuntó)
+	await _frames(2)
+	var r0: Rect2 = game.action_buttons["scout"].get_global_rect()
+	var rr0: Rect2 = game.round_button.get_global_rect()
+	game._show_campaign_reason("assault")
+	await _frames(2)
+	check(game.action_buttons["scout"].get_global_rect() == r0 and game.round_button.get_global_rect() == rr0, "P-001: la ayuda de una orden no cambia el alto de la bandeja (%s -> %s)" % [str(r0), str(game.action_buttons["scout"].get_global_rect())])
+	game._show_campaign_reason("")
+	var asec: String = str(game.rules.get_unit("arias").sector_id)
+	game.rules.get_sector(asec).known = true
+	game.rules.get_sector("humahuaca").known = true
+	var fake := {"id": "guemes", "strength": 100.0, "supply": 100.0, "fatigue": 0.0, "sector_id": "humahuaca"}
+	check(game.rules.campaign_order_reason("arias", "assault", asec).find("sector Humahuaca") >= 0 and str(game.rules._validate_campaign_order(fake, "assault", "humahuaca").reason).find("Arias") >= 0, "P-010: el bloqueo de «Operar en Humahuaca» dice qué falta (sector o agrupación)")
 	# D-04: fin del III -> pantalla final con «En tu partida» y «En la historia»
 	game.rules.state.status = "victory"
 	game.rules.state.reason = "La presión volvió insostenible la invasión y forzó su retirada."
@@ -722,6 +748,22 @@ func _campana() -> void:
 	check(_press("Volver al menú"), "D-04: la pantalla final vuelve al menú")
 	await _frames(2)
 	check(game.mode == "menu" and _ui_text(_find_button("SOSTENER EL NORTE")).find("GANADA") >= 0, "D-04: tras la campaña el menú marca el III como ganado")
+
+# P-007: ganar Humahuaca también abre el III (y queda en el progreso)
+func _norte_por_humahuaca() -> void:
+	game.campaign.data.north_unlocked = false
+	game.campaign.data.justina_won = false
+	game.campaign.save_progress()
+	game._progress_sync()
+	var f := FileAccess.open("user://humahuaca_progress.json", FileAccess.WRITE)
+	f.store_string(JSON.stringify({"version": 1, "attempts": 1, "defeats_in_row": 0, "best_medal": "bronce", "won": true, "best_golpe": 61.0, "world_index": 1, "tutorial_seen": true, "diary": []}))
+	f.close()
+	game._menu()
+	await _frames(2)
+	var nb := _find_button("SOSTENER EL NORTE")
+	check(nb != null and not nb.disabled and bool(game.campaign.data.north_unlocked), "P-007: ganar Humahuaca abre el III en el menú y en el progreso")
+	check(_ui_text(_find_button("HUMAHUACA")).find("GANADA") >= 0 and _ui_text(_find_button("EL RÍO OFRECE")).find("GANADA") < 0, "P-007: el menú no da por ganada la Justina por haber ganado Humahuaca")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://humahuaca_progress.json"))
 
 # ------------------------------------------------------------------ utilidades
 func _frames(n: int) -> void:

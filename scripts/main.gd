@@ -94,7 +94,7 @@ var scene_build_ms = 0
 var benchmark_mode = false
 var benchmark_quality = "media"
 # Aliado = celeste patriota en los tres niveles; la identidad de cada agrupación la da el glifo (◆ ▲ ● ◈), no el tono (adiós al amarillo, turquesa y rosa).
-const UNIT_COLORS = {"guemes":Color("8db8d6"),"arias":Color("8db8d6"),"zavala":Color("8db8d6"),"scout_1":Color("bcd3e2"),"scout_2":Color("bcd3e2")}
+const UNIT_COLORS = {"guemes":Color("8db8d6"),"arias":Color("8db8d6"),"zavala":Color("8db8d6"),"scout_1":Color("a9cbe2"),"scout_2":Color("a9cbe2")}  # los mismos que las fichas 3D de P1
 const UNIT_GLYPHS = {"guemes":"◆","arias":"▲","zavala":"●","scout_1":"◈","scout_2":"◈"}
 const STAGE_TEXT = {"ready":["○","A la espera"],"moving":["▶","En marcha"],"waiting_tide":["≈","Espera la bajante"],"dismounting":["▼","Desmonta"],"boarding":["■","Resuelve la captura"],"blocked":["✕","Ruta interrumpida"],"rally":["↺","Reagrupa"],"ordered":["◇","Orden preparada"],"routed":["✕","Dispersa"],"working":["…","Trabaja"],"stumbling":["!","Tropezó"],"idle":["○","Libre"],"probing":["◈","Sondea"],"marking":["◈","Marca el vado"],"lost":["✕","Perdido"]}
 # ---- Justina (contrato v1): estado de interfaz ----
@@ -423,6 +423,7 @@ func _fit_ui_scale():
 
 func _menu():
  _stop_humahuaca()
+ _sync_north_unlock()
  # T-003: el modo cambia ANTES de reponer la escala; si no, el size_changed que dispara corre _fit_ui_scale con mode=="play" (Justina) y la vuelve a 1,25.
  jev.invalidate();pending_round=false;mode="menu";paused=true;outcome_shown=false;shake=0.0;flash_alpha=0.0
  get_window().content_scale_factor=1.0
@@ -435,6 +436,8 @@ func _menu():
   # V-01 · Encuadre heroico del prototipo de arte (proto_arte.gd): bajo, desde la ribera, el buque a contraluz y el cielo en el tercio superior.
   var sp:Vector2=rules.ship_position()
   camera_target=Vector3(sp.x,0,sp.y)+Vector3(-60,18,-45);camera_distance=230;camera_pitch=0.16;camera_yaw=-1.25
+  var pose:Dictionary=world.call("menu_camera_pose") if is_instance_valid(world) and world.has_method("menu_camera_pose") else {}
+  if not pose.is_empty():camera_target=pose.target;camera_distance=float(pose.distance);camera_pitch=float(pose.pitch);camera_yaw=float(pose.yaw)
  menu_yaw0=camera_yaw;menu_clock=0.0
  if is_instance_valid(world) and world.has_method("set_look"):world.call("set_look","menu")  # P1: luz de atardecer, sin balizas ni anillo de fuego
  _set_vignette(0.52)
@@ -455,10 +458,10 @@ func _menu():
  var cd=campaign.data
  # I · estado
  var st1="EMPEZÁ ACÁ";var tone1="rec"
- if unlocked:st1="GANADA · "+(str(progress.mejor_medalla).to_upper() if not str(progress.mejor_medalla).is_empty() else "BRONCE");tone1="done"
- elif int(progress.intentos)>0:st1="EN CURSO · INTENTO %d" % (int(progress.intentos)+1);tone1="rec"
+ if bool(cd.get("justina_won",false)):st1="GANADA · "+(str(progress.mejor_medalla).to_upper() if not str(progress.mejor_medalla).is_empty() else "BRONCE");tone1="done"
+ elif int(progress.intentos)>0 and not bool(cd.get("justina_won",false)):st1="EN CURSO · INTENTO %d" % (int(progress.intentos)+1);tone1="rec"
  var a_text="I   ·   EL RÍO OFRECE UNA OPORTUNIDAD\nTomar la Justina  ·  Buenos Aires, 1806"
- if int(progress.intentos)>0 and not unlocked:a_text="I   ·   EL RÍO OFRECE UNA OPORTUNIDAD\nTomar la Justina  ·  intento %d, mismo río" % (int(progress.intentos)+1)
+ if int(progress.intentos)>0 and not bool(cd.get("justina_won",false)):a_text="I   ·   EL RÍO OFRECE UNA OPORTUNIDAD\nTomar la Justina  ·  intento %d, mismo río" % (int(progress.intentos)+1)
  var a=_chapter_card(box,a_text,"I","El río ofrece una oportunidad","Tomar la Justina · Buenos Aires","1806",st1,tone1,func():_start_game("justine"))
  a.tooltip_text="Tres grupos y dos exploradores. Tiempo real con pausa. El fondo del río es turbio: hay que reconocerlo."
  # II · siempre habilitado (D1c); recomendado tras la Justina
@@ -474,9 +477,9 @@ func _menu():
   st3="ABIERTO · MEJOR TRAS HUMAHUACA";tone3="open"
   if bool(cd.get("north_won",false)):st3="GANADA · RONDA %d" % int(cd.get("north_round",0));tone3="done"
   elif hx_won:st3="RECOMENDADO AHORA";tone3="rec"
- var b=_chapter_card(box,"III  ·   SOSTENER EL NORTE\n"+("La campaña entera, 1816–1817, vista desde Salta" if unlocked else "Ganá la Justina para abrirlo"),"III","Sostener el norte","La campaña entera, vista desde Salta" if unlocked else "Ganá la Justina para abrirlo","1816–17",st3,tone3,func():_start_game("norte"))
+ var b=_chapter_card(box,"III  ·   SOSTENER EL NORTE\n"+("La campaña entera, 1816–1817, vista desde Salta" if unlocked else "Ganá la Justina para abrirlo"),"III","Sostener el norte","La campaña entera, vista desde Salta" if unlocked else "Ganá la Justina o Humahuaca para abrirlo","1816–17",st3,tone3,func():_start_game("norte"))
  b.disabled=not unlocked
- b.tooltip_text="Campaña por rondas. Reconocimiento, víveres, hostigamiento y la operación de Arias en Humahuaca." if unlocked else "Se abre cuando tomes el buque Justina (aunque sea con medalla de bronce)."
+ b.tooltip_text="Campaña por rondas. Reconocimiento, víveres, hostigamiento y la operación de Arias en Humahuaca." if unlocked else "Se abre cuando tomes el buque Justina (aunque sea con medalla de bronce) o cuando ganes Humahuaca."
  _spacer(box,4)
  var options=_hbox(box,8)
  var continue_button=_button(options,"Continuar",func():_load_game(str(settings.last_save)),38)
@@ -502,6 +505,9 @@ func _ink_gradient(a0:float,a1:float,a2:float,vertical:bool=false)->GradientText
  return t
 
 func _set_vignette(strength:float):
+ # Si el mundo trae su propia viñeta por look (P1: world_view.set_look), se usa esa y esta queda apagada: nunca dos viñetas.
+ if is_instance_valid(world) and world.get("look_vignette_enabled")!=null and bool(world.get("look_vignette_enabled")):strength=0.0
+ if strength<=0.0 and not is_instance_valid(vignette_rect):return
  if not is_instance_valid(vignette_rect):
   var vl=CanvasLayer.new();vl.layer=0;vl.name="vineta";add_child(vl)  # debajo de la interfaz (capa 1), encima del 3D
   vignette_rect=ColorRect.new();vignette_rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);vignette_rect.mouse_filter=Control.MOUSE_FILTER_IGNORE
@@ -537,6 +543,12 @@ func _chapter_card(parent:Node,plain:String,roman:String,title:String,sub:String
  stl.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;stl.custom_minimum_size.x=118
  if heading_font:stl.add_theme_font_override("font",heading_font)
  return b
+
+# P-007 (decisión del lead): el III se abre al ganar la Justina O al ganar Humahuaca; queda en el progreso de campaign.json, así el menú y el
+# parte del II dicen lo mismo.
+func _sync_north_unlock():
+ if not bool(campaign.data.get("north_unlocked",false)) and bool(_hx_progress().get("won",false)):
+  campaign.data.north_unlocked=true;campaign.save_progress();_progress_sync()
 
 # Progreso del nivel II leído de su archivo (solo lectura: el nivel II es dueño de user://humahuaca_progress.json).
 func _hx_progress()->Dictionary:
@@ -606,7 +618,8 @@ func _stop_humahuaca():
  if is_instance_valid(camera):camera.current=true
 
 func _on_hx_exited(to:String):
- _stop_humahuaca()  # el controlador se libera antes de empezar otra cosa (el menú ya lo hace, pero el Norte no)
+ _stop_humahuaca()
+ _sync_north_unlock()  # el controlador se libera antes de empezar otra cosa (el menú ya lo hace, pero el Norte no)
  if to=="norte":_start_game("norte")
  else:_menu()
 
@@ -736,7 +749,7 @@ func _refresh_actions():
   next_btn.tooltip_text="Prepara la orden que sugiere la guía en las rondas 1 y 2 (se puede cambiar antes de resolver)."
   next_btn.visible=not rules.north_next_step().is_empty() and not pending_round
   reason_label=_label(action_box,"",12,MUTED);reason_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
-  reason_label.custom_minimum_size.y=50;reason_label.max_lines_visible=3;reason_label.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS  # P-001: alto fijo (3 renglones)
+  reason_label.custom_minimum_size.y=58;reason_label.max_lines_visible=3;reason_label.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS  # P-001: alto fijo (3 renglones)
   _show_campaign_reason("")
 
 func _prepare_next_step():
@@ -1302,9 +1315,9 @@ func _final_rows()->Array:
  var rows=[]
  var cd=campaign.data
  var j_text="No la jugaste."
- if bool(progress.justina_ganada):j_text="Tomaste el buque. Tu mejor medalla: [b]%s[/b] (%d %s)." % [str(progress.mejor_medalla).capitalize() if not str(progress.mejor_medalla).is_empty() else "bronce",int(progress.intentos),"intento" if int(progress.intentos)==1 else "intentos"]
+ if bool(campaign.data.get("justina_won",false)):j_text="Tomaste el buque. Tu mejor medalla: [b]%s[/b] (%d %s)." % [str(progress.mejor_medalla).capitalize() if not str(progress.mejor_medalla).is_empty() else "bronce",int(progress.intentos),"intento" if int(progress.intentos)==1 else "intentos"]
  elif int(progress.intentos)>0:j_text="Todavía no tomaste el buque (%d %s)." % [int(progress.intentos),"intento" if int(progress.intentos)==1 else "intentos"]
- rows.append({"roman":"I","title":"La Justina · 1806","text":j_text,"played":int(progress.intentos)>0 or bool(progress.justina_ganada),"go":"justine"})
+ rows.append({"roman":"I","title":"La Justina · 1806","text":j_text,"played":int(progress.intentos)>0 or bool(campaign.data.get("justina_won",false)),"go":"justine"})
  var hp=_hx_progress()
  var h_text="No lo jugaste."
  if bool(hp.get("won",false)):h_text="Golpe logrado%s; tu mejor golpe: [b]%d[/b] (%d %s)." % [(" con medalla de [b]"+str(hp.best_medal)+"[/b]") if not str(hp.get("best_medal","")).is_empty() else "",roundi(float(hp.get("best_golpe",0.0))),int(hp.get("attempts",0)),"intento" if int(hp.get("attempts",0))==1 else "intentos"]
@@ -2353,7 +2366,7 @@ func _update_alerts():
  alert_label.text=str(top.text)
  alert_panel.add_theme_stylebox_override("panel",_cm_style("alert"+str(top.level),Color(0.22,0.07,0.06,0.97) if str(top.level)=="crit" else Color(0.2,0.14,0.04,0.97),Color("b8433a") if str(top.level)=="crit" else Color("e0bf81"),2,9,6))
  alert_btn.visible=top.has("btn")
- if str(top.get("fn",""))=="repel" and not bool(_avail("repel").get("ok",false)):
+ if str(top.get("fn",""))=="repel" and _anyone_boarding() and not bool(_avail("repel").get("ok",false)):
   alert_label.text="⚔ ¡CONTRAATAQUE! No podés rechazarlo: %s Aguantá y reabastecé munición (J) para el próximo; este te cuesta fuerza y captura." % _friendly_reason("repel",str(_avail("repel").get("reason",""))).rstrip(".")+"."
   alert_btn.visible=false
  elif top.has("btn"):
@@ -4656,6 +4669,7 @@ func _learned_block(parent:Node,limit:int=5):
    if itx.begins_with("Hoy:") or itx.begins_with("Esta vez:") or shown>=limit:continue
    shown+=1;t+="• "+_learn_line(itx)+"\n"
   if items.size()>limit:t+="• …y %d más en el diario.\n" % (items.size()-limit)
+  if t.strip_edges().is_empty():t="[color=#a79f92]Esta vez no anotaste nada nuevo. Medir el agua con un explorador (Z) llena el diario.[/color]"  # P-014: el rótulo nunca queda vacío
   _rich(box,t.strip_edges(),16)
  var hint=_aprendido_hint() if int(progress.derrotas_seguidas)>=2 else ""
  if not hint.is_empty():_rich(box,"[color=#e8cc8a]Pista: [/color]"+_plain(hint),15)

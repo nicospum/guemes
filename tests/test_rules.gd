@@ -3558,6 +3558,13 @@ func _test_north_victory_bar() -> void:
 	var step: Dictionary = n.north_next_step()
 	check(not step.is_empty() and n.legal_campaign_actions(str(step.unit), str(step.sector)).has(str(step.action)), "D-09: en la ronda 1 hay una orden sugerida y es legal (%s)" % str(step.get("label", "")))
 	check(n.issue_campaign_order(str(step.unit), str(step.action), str(step.sector)).ok and n.north_next_step().get("unit", "") != str(step.unit), "D-09: prepararla funciona y la sugerencia pasa a otra agrupación")
+	var pas := Rules.new()
+	pas.new_game("norte", 77)
+	var guard_p := 0
+	while pas.state.status == "playing" and guard_p < 20:
+		guard_p += 1
+		pas.resolve_round(pas.enemy_fallback())
+	check(pas.state.status == "defeat" and (str(pas.state.reason).find("poblaciones") >= 0 or str(pas.state.reason).find("Llegó mayo") >= 0) and str(pas.state.reason).find("perdió sus agrupaciones") < 0, "P-009: la derrota pasiva dice su causa real, no «perdió sus agrupaciones» (%s)" % str(pas.state.reason).substr(0, 60))
 	report.results.append({"scenario": "norte", "strategy": "barra_victoria", "games": 120, "wins": wins, "full_at_win": full_at_win, "early_full": early_full})
 
 # ---------------------------------------------------------------------------
