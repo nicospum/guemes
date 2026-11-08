@@ -2,7 +2,7 @@
 
 ## Empezar sin clave
 
-Extraé la entrega y abrí `PatriaGuemes.exe`. Los dos escenarios utilizan reglas locales y se pueden completar sin cuenta TypeSafe. En La Serna, al resolver una ronda sin clave, el indicador informa **alternativa local**. No se inicia una compra, suscripción ni prueba paga.
+Extraé la entrega y abrí `PatriaGuemes.exe`. Los tres escenarios utilizan reglas locales y se pueden completar sin cuenta TypeSafe (el nivel II, Humahuaca, no usa Jev). En La Serna, al resolver una ronda sin clave, el indicador informa **alternativa local**. No se inicia una compra, suscripción ni prueba paga.
 
 ## Habilitar una clave existente
 

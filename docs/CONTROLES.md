@@ -1,6 +1,6 @@
 # Cómo jugar a Güemes
 
-Elegí **I · El río ofrece una oportunidad** (la Justina, en **tiempo real con pausa**) o **II · Sostener el norte** (la campaña contra La Serna, por rondas). Los dos se juegan sin conexión. La ayuda está en **F1** (o **?** en la Justina) durante la partida.
+Elegí **I · El río ofrece una oportunidad** (la Justina, en **tiempo real con pausa**), **II · Humahuaca: el depósito de la retaguardia** (el golpe de Arias de 1817, en tiempo real con pausa; corte vertical en desarrollo, recomendado tras la Justina) o **III · Sostener el norte** (la campaña contra La Serna, por rondas; se abre al ganar la Justina). Los tres se juegan sin conexión. La ayuda está en **F1** (o **?** en la Justina) durante la partida.
 
 > **Tus primeros 60 segundos en la Justina** (tiempo real con pausa; empieza en pausa)
 >
@@ -20,7 +20,7 @@ Hay dos modos de tiempo distintos, y cada pantalla lo dice:
 | La Justina | **Tiempo real.** El reloj corre solo (×1, ×2, ×4) y el río, el buque y los grupos se mueven mientras decidís. La **pausa** (Espacio) detiene todo y con el tiempo detenido se pueden seguir dando órdenes: es la forma recomendada de jugar (pausa activa). |
 | Sostener el norte | **Por rondas.** Preparás una orden por agrupación y resolvés la ronda con Espacio o **Resolver**. No hay reloj continuo. |
 
-Esta página tiene dos partes. La primera, «Cámara y órdenes del norte», vale para **II · Sostener el norte**; la de la Justina empieza en «Primera partida: tomar la Justina» y termina en su tabla única de teclas.
+Esta página tiene tres partes. La primera, «Cámara y órdenes del norte», vale para **III · Sostener el norte**; la de la Justina empieza en «Primera partida: tomar la Justina» y termina en su tabla única de teclas; la del nivel II, «Humahuaca: el depósito de la retaguardia», trae su tabla completa de teclas (la misma de `docs/humahuaca/CONTROLES.md`).
 
 ## Cámara y órdenes del norte
 
@@ -119,6 +119,65 @@ La presencia de Güemes en esta toma recrea una atribución tradicional, no una 
 Si un botón está deshabilitado, dejá el mouse sobre él (o enfocá otro con Tab): bajo la bandeja se lee el efecto de la orden y, si está bloqueada, el motivo. Para Hostigar y Operar en Humahuaca se añade una previsión de interfaz (favorable, pareja o desfavorable) con pérdidas esperadas; usa las mismas cuentas que las reglas y no ejecuta nada. Motivos posibles: sector lejano, falta de reconocimiento, ocupación, fatiga, suministros, reservas u otra condición. Las reglas se aplican también al movimiento con clic derecho.
 
 Esperar sin actuar no es una estrategia de victoria automática: el ejército invasor puede recuperar recursos y sostener su campaña. El equilibrio entre presión, información y conservación importa más que ocupar todos los nombres del mapa.
+
+## Nivel II · Humahuaca: el depósito de la retaguardia
+
+**Corte vertical en desarrollo** (rama `humahuaca-r1`): se juega entero, pero el arte es provisional y el QA del nivel no lo dio por presentable. Se juega en **tiempo real con pausa**: el indicador de arriba dice siempre «Tiempo real · ▶ ×1» o «‖ En pausa» y la velocidad nunca cambia sola. Todo se puede hacer con el mouse; las teclas son atajos. La tabla es la de `data/humahuaca_ui.json` (`key_table`), la misma que `docs/humahuaca/CONTROLES.md` (dueña: `ui_feel`), que además explica Esc, las fichas, los avisos y el ritmo de marcha.
+
+**Tu objetivo:** tomar la batería, el cuartel y la pólvora a la vez, y sacar lo que puedas por el vado del este antes del refuerzo. Mirá el **siguiente paso** (abajo): una sola cosa por vez, con su botón y su tecla. El reloj arranca con tu primera orden (o con Espacio).
+
+1. Elegí a los reconocedores (**4**) y mandalos a mirar la batería, el cuartel y la posta (**R** y un clic).
+2. Llevá cada partida a su puesto de ataque: elegila (**1**, **2** o **3**) y usá **P**.
+3. Da la señal (**F**) cuando haya partidas en sus puestos: atacar a oscuras cuesta, pero esperar la luz también.
+4. Atacá los tres frentes a la vez (**T**) y socorré (**C**) a la partida que más sufre.
+5. Con el depósito tomado, cargá el arreo (**5**, **L**); lo que no entre en las mulas, destruilo (**X**).
+6. Sacá la carga por el vado, al este (**V**), antes de que llegue el refuerzo.
+
+| Tecla o gesto | Qué hace |
+|---|---|
+| Espacio | Pausa o sigue el tiempo |
+| F2 | Tiempo real ×1 |
+| F3 | Doble velocidad ×2 |
+| F4 | Cuádruple velocidad ×4 |
+| + | Más velocidad |
+| − | Menos velocidad |
+| F1 | Cómo se juega |
+| Esc | Cancela lo que hacés o abre el menú de pausa |
+| F5 | Guarda la partida |
+| F9 | Recupera la partida guardada |
+| F11 | Pantalla completa |
+| 1 | Partida de Rodríguez (otra vez: centra la cámara en la batería) |
+| 2 | Partida de Portal (otra vez: centra la cámara en el cuartel) |
+| 3 | División de Arias (otra vez: centra la cámara en la posta) |
+| 4 | Reconocedores (otra vez: centra la cámara en ellos) |
+| 5 | Arreo (otra vez: centra la cámara en él) |
+| Tab | Pasa a la agrupación siguiente (Mayús: la anterior) |
+| Ctrl+Z | Deshace la última orden |
+| Clic o caja | Elige agrupaciones (Mayús suma, Ctrl alterna) |
+| W A S D o flechas | Mueve la cámara (Mayús: más rápido) |
+| Q y E | Gira la cámara |
+| RePág y AvPág | Inclina la cámara |
+| Inicio | Vuelve al cuadro inicial |
+| Rueda del mouse | Acerca y aleja hacia el cursor |
+| Botón del medio | Arrastra el mapa |
+| M | Agranda o achica el minimapa |
+| G | Mover (a un punto del mapa) |
+| P | A su puesto de ataque |
+| T | Atacar el frente (con Ctrl, a fondo) |
+| C | Socorrer a otra partida |
+| R | Reconocer un punto |
+| L | Cargar en el arreo |
+| X | Destruir lo que no se lleva (se pregunta antes, salvo que el siguiente paso lo pida) |
+| V | Salir por el vado, al este |
+| F | Dar la señal |
+| H | Sostener lo tomado |
+| Supr | Cancela la orden en curso |
+| Mayús + clic | Suma una parada a la ruta (hasta 4) |
+| Ctrl + clic | Marcha a la carrera |
+| Alt + clic | Marcha en silencio |
+| Clic derecho | Da la orden más lógica al punto o al frente |
+
+Cuatro atajos no son los que sugiere `humahuaca_rules.json` porque chocaban con la cámara o el minimapa (M agranda el minimapa; A, S y E mueven o giran la cámara): Mover es **G**, Atacar es **T**, Socorrer es **C** y Salir por el vado es **V**. Esc con una orden en la mano la cancela; con una ventana abierta, la cierra; antes de la primera orden vuelve al menú del juego; después abre el menú de pausa (seguir, guardar, cargar, ayuda, diario, retirada general, volver al menú). Cada ficha (teclas 1 a 5) muestra nombre, lo que está haciendo, **fuerza** y **fatiga**, y al elegirla su etiqueta de fuente (● documentado, ◇ razonado, ◆ discutido, ○ sin datos, ▲ diseño) y el ruido (●○○ en silencio, ●●○ se oye, ●●● los oyen). El parte final separa «en la realidad» de «en tu partida» y, tras una victoria, ofrece «Ver la campaña completa: Sostener el norte».
 
 ## Justina: tabla única de teclas
 

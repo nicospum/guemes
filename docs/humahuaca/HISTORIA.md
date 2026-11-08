@@ -43,11 +43,11 @@ Reglas que salen de ahí y que `test_hx_rules` y los textos obligatorios del QA 
 | Reducto con foso y camino cubierto hacia el pueblo | ◇ | S49 |
 | La batería está al oeste, a 12 m de prominencia; la gola mira al este | ▲ (los 12 m son del prototipo; la gola no tiene dato) | S54 |
 | Guarnición de unos 130 y 6 o 7 piezas | ● / ◆ | S46, S49 |
-| Munición quemada o echada al río; cañones sin llevar; luego recuperados | ● Arias y La Serna · ◆ «ocultos o enterrados» | S46, S49, S50 |
+| Munición quemada o echada al río; cañones sin llevar; luego recuperados | ● Arias (lo quemado y lo que no se llevó) · ◆ la recuperación posterior y «ocultos o enterrados», según el Diario y Camba | S46, S49, S50 |
 | Clavar los cañones, tirar los víveres, los tres escondites y su distancia al camino | ▲ (ninguna fuente lo dice) | |
 | Refuerzo realista inmediato por el camino del sur | ▲ (no ocurrió: se supo el 4 de marzo y las columnas salieron el 5 y el 6) | S49, S50 |
 | Parte: 3-III San Andrés, 8-III Salta (22 h), 13-III Tucumán | ● | S46 |
-| Seis piezas recuperadas por una columna realista entre el 9 y el 16 de marzo | ◆ versión realista | S49, S50 |
+| Seis piezas recuperadas por una columna realista entre el 9 y el 16 de marzo | ◆ versión realista: la cuentan el Diario del Estado Mayor (S49) y Camba (S50); el juego **no** la atribuye a La Serna (H03, 2-11-2026) | S49, S50 |
 | Medallas en abril; premio posterior al combate; dos banderas tomadas | ● | S51, S53 |
 | Planta del pueblo, posición del cuartel, la posta y la torre; vestuario de ambos bandos | ○ / ▲ | |
 
@@ -62,5 +62,7 @@ Epílogo fechado (cada línea con su etiqueta): 3 de marzo (el parte, ●), 4 de
 Monumento a los Héroes de la Independencia y escalinata; fachada y torres actuales del templo; cabildo actual como edificio de 1817; empedrado, postes, tendidos, alumbrado, álamos y eucaliptos; sol en la bandera (1818); cruz de Borgoña o bandera española actual para el trofeo; uniformes homogéneos; «todos Infernales»; Güemes entre los grupos del asalto o llamado «coronel mayor»; la chaqueta azul de húsar; San Martín dirigiendo; cierre como expulsión definitiva; tormenta durante todo el combate; la ruta final de Arias; el itinerario de García Camba (de una columna posterior) aplicado a Arias; cotas, alturas de tapias, caudal o vados presentados como medidos; el refuerzo realista presentado como hecho. `tools/qa_gate.sh` y el QA (H02) los buscan por patrón en las cadenas, los identificadores y los nombres de nodos y modelos.
 
 ## Qué falta cotejar (no bloquea; queda anotado)
+
+**H03 (corregido el 2-11-2026, rama `hx-docs-nube`).** El epílogo del 9 al 16 de marzo atribuía a La Serna la recuperación de las seis piezas y el detalle de San Andrés y las acémilas; eso lo cuentan el Diario del Estado Mayor realista (S49) y las Memorias de Camba (S50). `data/history.json` («Lo que contaron los realistas»), esta tabla, la matriz (sección J) y el diseño (11.5 y 12.2) ya lo dicen así. La línea del epílogo vive en `data/humahuaca_rules.json` (`epilogue.lines[4]`, pista `reglas_historia`): el texto de reemplazo está en `docs/humahuaca/TEXTOS_REVISION.md` y queda pendiente hasta que esa pista lo aplique. Dato sin cotejar en el repo (viene del banco de hechos `02_fuentes_primarias.md`, que no está en Git): que el oficio de La Serna del 11-IV-1817 solo diga «se ha logrado quitarles los seis cañones»; mientras no se coteje, el juego no cita ese oficio para este hecho.
 
 Todo lo documentado se leyó en **transcripción OCR** de Güemes documentado, Torata y Camba, no en facsímil. Quedan sin leer: Güemes documentado t. VII (la inscripción del premio con «2 de marzo») y t. VIII, la *Gazeta de Buenos Aires* original de marzo de 1817, Temple y Mata, y el dossier completo de 52 páginas, el paquete de 39 archivos, las láminas 01, 04 y 05 y la tabla de 23 elementos (no se recibieron: se trabaja con el resumen y lo que falta se rotula como diseño). Ningún texto del juego depende de esas fuentes ausentes.

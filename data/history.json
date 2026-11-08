@@ -398,9 +398,9 @@
         },
         {
           "title": "Lo que contaron los realistas",
-          "text": "El 4 de marzo La Serna supo en Jujuy que la guarnición de Humahuaca había caído. Entre el 9 y el 16 de marzo una columna realista recuperó seis cañones, vino, aguardiente, harina, azúcar y municiones de artillería que estaban ocultos o enterrados cerca de San Andrés, e inutilizó lo que no pudo cargar «por falta de acémilas». No hubo refuerzo inmediato.",
-          "kind": "versión realista (Camba, Diario, oficio de La Serna)",
-          "verification": "leído en transcripción OCR; «ocultos o enterrados» es versión discutida",
+          "text": "El 4 de marzo La Serna supo en Jujuy que la guarnición de Humahuaca había caído; no hubo refuerzo inmediato. Lo que pasó después lo cuentan las fuentes realistas: según el Diario del Estado Mayor realista y las Memorias de García Camba, entre el 9 y el 16 de marzo una columna recuperó seis cañones, vino, aguardiente, harina, azúcar y municiones de artillería que estaban ocultos o enterrados cerca de San Andrés, e inutilizó lo que no pudo cargar «por falta de acémilas» (mulas de carga).",
+          "kind": "versión realista: Diario del Estado Mayor realista (S49) y Memorias de García Camba (S50); el juego no atribuye este relato al oficio de La Serna",
+          "verification": "leído en transcripción OCR; «ocultos o enterrados» es versión discutida; corrección H03 (2-11-2026): antes se atribuía a La Serna lo que cuentan el Diario y Camba",
           "source_ids": [
             "S49",
             "S50"

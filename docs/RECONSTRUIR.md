@@ -112,6 +112,6 @@ Para rehacer modelos o audio consultá `ASSETS.md`. Esos pasos necesitan herrami
 
 ## Qué comprobar en el equipo de destino
 
-La construcción y la prueba de uso son comprobaciones diferentes. Después de exportar, abrí el binario, iniciá ambos escenarios, comprobá selección y cámara y realizá un guardado y continuación. El manual de juego está en `CONTROLES.md`. Las mediciones de FPS, memoria y duración deben indicar equipo, resolución y perfil gráfico; no se deducen de un build exitoso.
+La construcción y la prueba de uso son comprobaciones diferentes. Después de exportar, abrí el binario, iniciá los tres escenarios (I Justina, II Humahuaca, III Sostener el norte), comprobá selección y cámara y realizá un guardado y continuación. El manual de juego está en `CONTROLES.md`. Las mediciones de FPS, memoria y duración deben indicar equipo, resolución y perfil gráfico; no se deducen de un build exitoso.
 
 Referencia técnica: [documentación oficial de la línea de comandos de Godot](https://docs.godotengine.org/en/stable/tutorials/editor/command_line_tutorial.html), consultada para `--version`, `--import`, `--path`, `--headless` y `--export-release`.
