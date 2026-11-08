@@ -536,11 +536,11 @@ func _chapter_card(parent:Node,plain:String,roman:String,title:String,sub:String
  var tl=_label(col,title,17,MUTED if lock else PAPER);tl.mouse_filter=Control.MOUSE_FILTER_IGNORE;tl.clip_text=true;tl.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
  if heading_font:tl.add_theme_font_override("font",heading_font)
  var sl=_label(col,sub,13,MUTED);sl.mouse_filter=Control.MOUSE_FILTER_IGNORE;sl.clip_text=true;sl.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
- var right=VBoxContainer.new();right.mouse_filter=Control.MOUSE_FILTER_IGNORE;right.alignment=BoxContainer.ALIGNMENT_CENTER;right.custom_minimum_size.x=118;row.add_child(right)
+ var right=VBoxContainer.new();right.mouse_filter=Control.MOUSE_FILTER_IGNORE;right.alignment=BoxContainer.ALIGNMENT_CENTER;right.custom_minimum_size.x=160;row.add_child(right)
  var yl=_label(right,year,15,MUTED if lock else GOLD,true);yl.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;yl.mouse_filter=Control.MOUSE_FILTER_IGNORE
  var stc={"done":GREEN,"rec":GOLD_LIGHT,"open":MUTED,"lock":Color("8a8076")}.get(tone,MUTED)
  var stl=_label(right,("" if lock else ("✓ " if tone=="done" else ("★ " if rec else "")))+state,10,stc);stl.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;stl.mouse_filter=Control.MOUSE_FILTER_IGNORE
- stl.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;stl.custom_minimum_size.x=118
+ stl.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;stl.custom_minimum_size.x=160
  if heading_font:stl.add_theme_font_override("font",heading_font)
  return b
 
@@ -1146,7 +1146,7 @@ func _open_modal(title:String,width=800,height=600,full:bool=false,tone:String="
   frame.draw.connect(func():_draw_document_frame(frame,accent))
   var center=CenterContainer.new();center.mouse_filter=Control.MOUSE_FILTER_IGNORE;panel_f.add_child(center)
   var col=VBoxContainer.new();col.custom_minimum_size.x=width;col.add_theme_constant_override("separation",12);center.add_child(col)
-  var header_f=_hbox(col);var label_f=_label(header_f,title.to_upper() if tone!="" else title,40 if vs.y>=860.0 else 32,PAPER if tone=="defeat" else GOLD,true);label_f.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+  var header_f=_hbox(col);var label_f=_label(header_f,title.to_upper() if tone!="" else title,(40 if title.length()<=26 else 28) if vs.y>=860.0 else (32 if title.length()<=26 else 24),PAPER if tone=="defeat" else GOLD,true);label_f.size_flags_horizontal=Control.SIZE_EXPAND_FILL
   label_f.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
   var close_f=_button(header_f,"Cerrar · Esc",_close_modal,32);close_f.size_flags_vertical=Control.SIZE_SHRINK_CENTER
   var rule=ColorRect.new();rule.color=Color(accent.r,accent.g,accent.b,0.55);rule.custom_minimum_size.y=1;col.add_child(rule)
