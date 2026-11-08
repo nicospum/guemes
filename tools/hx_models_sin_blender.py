@@ -41,13 +41,32 @@ SMOOTH_DEG = {"hx_pirca": 12.0, "stone": 25.0}
 SMOOTH_DEFAULT = 50.0
 
 
+# Calidez por material (pista P2, ronda 3): la tierra de la quebrada es ocre y rojiza. Con la luna fría, la torta de barro y el adobe tal como salen de la paleta
+# se leían gris verdoso; se los corre hacia siena (factor lineal por canal, por prefijo del nombre del material). La geometría y los nombres no cambian.
+WARMTH = {
+    "Techo | torta": (1.10, 0.84, 0.62),
+    "Adobe |": (1.07, 0.92, 0.76),
+    "Tapial |": (1.06, 0.90, 0.74),
+    "Ramada | cañizo": (1.04, 0.92, 0.74),
+}
+
+
+def _warm(mat):
+    col = np.array(mat.color if mat else (.5, .5, .5), float)
+    name = getattr(mat, "name", "") if mat else ""
+    for prefix, k in WARMTH.items():
+        if name.startswith(prefix):
+            return np.minimum(col * np.array(k, float), 1.0)
+    return col
+
+
 class O:
     def __init__(self, name, v, f, mat):
         self.name, self.mat = name, mat
         self.v = np.asarray(v, float)
         self.f = [tuple(x) for x in f]
         self.kind = mat.kind if mat else "anchor"
-        self.col = np.tile(np.array(mat.color if mat else (.5, .5, .5), float), (len(self.v), 1))
+        self.col = np.tile(_warm(mat), (len(self.v), 1))
         OBJS.append(self)
 
 
