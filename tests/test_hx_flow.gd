@@ -232,7 +232,7 @@ func _run() -> void:
 	var plan: Array = [["primer_cuadro", _test_first_frame], ["camara", _test_camera], ["teclas", _test_reserved_keys], ["vista_previa", _test_preview_catches_up], ["acciones", _test_actions_and_preview],
 		["aviso", _test_alert_placement], ["ventanas", _test_dialogs], ["hud_guiado", _test_hud_guided_selection], ["recortes", _test_cut_probe_sanity],
 		["objetivo", _test_objective_by_phase], ["avisos_orden", _test_order_feedback], ["carga", _test_load_chip], ["avisos_pie", _test_alert_dedupe_and_tips],
-		["reintento", _test_retry_counts], ["primera_decision", _test_first_decision],
+		["reintento", _test_retry_counts], ["reintento_sin_control", _test_retry_refusal], ["deshacer", _test_undo], ["sugerir_x2", _test_suggest_x2], ["primera_decision", _test_first_decision],
 		["ciclo", _test_full_cycle], ["experto_pasivo", _test_expert_wins_passive_loses], ["guardado", _test_save_load], ["banderas", _test_cli_flags],
 		["desborde", _test_overflow_sizes], ["textos", _test_texts], ["key_table", _test_key_table]]
 	var ms_by_test := {}
@@ -1069,6 +1069,108 @@ func _test_retry_counts() -> void:
 	await _leave_level()
 
 
+## T-005 (mitad interfaz): el parte no ofrece un punto de control que no se puede restaurar (aquí, uno de otro mundo: la semilla del archivo no es la de la partida) y,
+## si igual se lo pide, se queda en el parte diciendo por qué en vez de empezar de cero en silencio.
+func _test_retry_refusal() -> void:
+	if not suite.check(await _start_level({"skip_intro": true, "seed": 7}), "reintento sin control: el nivel arranca"):
+		return
+	for id in ["rodriguez", "portal", "arias"]:
+		hx.orders.issue(id, "position")
+	var steps := 0
+	while steps < 60 and not hx.progress.has_checkpoint("posiciones"):
+		hx.qa_step(5.0)
+		steps += 1
+	var path := str(hx._checkpoint_path)
+	var parser := JSON.new()
+	var ok_cp: bool = hx.progress.has_checkpoint("posiciones") and FileAccess.file_exists(path) and parser.parse(FileAccess.get_file_as_string(path)) == OK
+	suite.check(ok_cp, "reintento sin control: queda el punto de control «posiciones» en %s" % path)
+	if ok_cp:
+		var d: Dictionary = parser.data
+		((d.points as Dictionary).posiciones.state as Dictionary)["seed"] = 999  # un control de otro mundo (revisión R-02)
+		var f := FileAccess.open(path, FileAccess.WRITE)
+		f.store_string(JSON.stringify(d))
+		f.close()
+	hx.qa_step(600.0)
+	await _frames(3)
+	suite.check(str(hx.qa_state().dialog) == "parte", "reintento sin control: se pierde y aparece el parte")
+	var offered := false
+	for o in hx.usable_retry_options():
+		if str(o.id) == "posiciones" and bool(o.available):
+			offered = true
+	suite.check(not offered and game.find_child("HxRetry_posiciones", true, false) == null, "reintento sin control: el parte no ofrece «Reintentar desde las posiciones» con un control de otro mundo")
+	hx.retry("posiciones")
+	await _frames(2)
+	var note := game.find_child("HxReportNotice", true, false) as Label
+	suite.check(str(hx.qa_state().dialog) == "parte" and str(hx.qa_state().mode) == "ended" and note != null and note.text.find("punto de control") >= 0, "reintento sin control: pedirlo igual deja el parte a la vista y dice por qué («%s»)" % (note.text if note != null else "—"))
+	await _leave_level()
+
+
+## T-008: Ctrl+Z deshace solo la última orden propia y solo si deja a la agrupación como estaba. Tras la señal no deshace la orden de otra agrupación; una orden que
+## pisó otra etapa (sostener tras atacar) no se deshace a «esperando órdenes».
+func _test_undo() -> void:
+	if not suite.check(await _start_level({"skip_intro": true, "seed": 7}), "deshacer: el nivel arranca"):
+		return
+	hx.orders.issue("rodriguez", "position")
+	var steps := 0
+	while steps < 80 and str(hx.rules.call("get_unit", "rodriguez").stage) != "waiting_signal":
+		hx.qa_step(5.0)
+		steps += 1
+	suite.check(str(hx.rules.call("get_unit", "rodriguez").stage) == "waiting_signal", "deshacer: Rodríguez llega a su puesto y espera la señal")
+	hx.orders.issue("portal", "move", Vector2(300.0, 450.0))
+	var portal_before := str(hx.rules.call("get_unit", "portal").stage)
+	await _key(KEY_Z, true)
+	suite.check(portal_before == "moving" and str(hx.rules.call("get_unit", "portal").stage) == "idle" and str(hx.rules.call("get_unit", "rodriguez").stage) == "waiting_signal", "deshacer: Ctrl+Z deshace la última orden (Portal deja de marchar) y no toca a Rodríguez (%s → %s)" % [portal_before, str(hx.rules.call("get_unit", "portal").stage)])
+	var sig: Dictionary = hx.orders.issue("", "give_signal")
+	if bool(sig.get("ok", false)):
+		var rod_after := str(hx.rules.call("get_unit", "rodriguez").stage)
+		await _key(KEY_Z, true)
+		suite.check(str(hx.rules.call("get_unit", "rodriguez").stage) == rod_after and hx._motive_text == hx.tx("actions.undo_signal"), "deshacer: tras la señal, Ctrl+Z no deshace la orden de otra agrupación y dice por qué («%s»)" % hx._motive_text)
+		var hold: Dictionary = hx.orders.issue("rodriguez", "hold")
+		if bool(hold.get("ok", false)):
+			await _key(KEY_Z, true)
+			suite.check(str(hx.rules.call("get_unit", "rodriguez").stage) != "idle" and hx._motive_text == hx.tx("actions.undo_lost"), "deshacer: una orden que pisó otra etapa no se deshace a «esperando órdenes» («%s»)" % hx._motive_text)
+		else:
+			suite.extra["deshacer_sostener"] = "las reglas no aceptaron «sostener»: %s" % str(hold.get("reason", ""))
+	else:
+		suite.extra["deshacer_senal"] = "no se pudo dar la señal: %s" % str(sig.get("reason", ""))
+	await _leave_level()
+
+
+## D-11: en una marcha sin novedades (×1, sin alerta, sin ventana, sin una orden pedida y con alguien en marcha) se sugiere ×2 con un aviso discreto; cualquier
+## novedad, una orden pedida o cambiar la velocidad lo apaga. La velocidad nunca cambia sola.
+func _test_suggest_x2() -> void:
+	if not suite.check(await _start_level({"skip_intro": true, "seed": 7}), "sugerir ×2: el nivel arranca"):
+		return
+	hx.orders.issue("reconocedores", "recon", Vector2(450.0, 325.0))
+	hx.qa_step(2.0)
+	# lo que sigue corre sin cuadros de por medio: el reloj del controlador no se mete
+	hx.mode = "play"
+	hx.paused = false
+	hx.speed = 1.0
+	hx.guide = {"action": "hold", "text": "Esperá.", "button_visible": false}
+	hx.hud._alert_data = {}
+	hx._last_alarm_real = -999.0
+	hx._suggest_toast_real = -999.0
+	hx._calm_s = 0.0
+	hx._calm_tick(9.0)
+	suite.check(bool(hx._suggest_x2) and str(hx._toast_cur.get("text", "")) == hx.tx("time.suggest_x2") and hx.speed == 1.0, "sugerir ×2: en una marcha sin novedades aparece la sugerencia, como aviso de pie y sin cambiar la velocidad (%s)" % str(hx._toast_cur.get("text", "")))
+	hx.guide = {"action": "position", "text": "Mandá a Rodríguez a su puesto.", "button_visible": true, "enabled": true}
+	hx._calm_tick(0.1)
+	suite.check(not bool(hx._suggest_x2), "sugerir ×2: si el siguiente paso pide una orden, no se sugiere")
+	hx.guide = {"action": "hold", "text": "Esperá.", "button_visible": false}
+	hx._calm_tick(9.0)
+	hx._last_alarm_real = hx._clock_real()
+	hx._calm_tick(0.1)
+	suite.check(not bool(hx._suggest_x2), "sugerir ×2: una novedad importante apaga la sugerencia")
+	hx._last_alarm_real = -999.0
+	hx._calm_tick(9.0)
+	hx.set_speed_index(1)
+	hx._calm_tick(0.1)
+	suite.check(not bool(hx._suggest_x2) and hx.speed == 2.0, "sugerir ×2: al acelerar la sugerencia se va")
+	hx.paused = true
+	await _leave_level()
+
+
 # ---------------------------------------------------------------------------------------------------------------------
 # Primera decisión en menos de 60 s de juego (TR-117)
 
@@ -1139,10 +1241,20 @@ func _test_full_cycle() -> void:
 	var all_text := " ".join(PackedStringArray(_visible_texts()))
 	var victory := str(q.status) == "victory"
 	if victory:
-		suite.check(all_text.find("Medalla") >= 0 and all_text.find("3 de marzo") >= 0 and all_text.find("9 al 16 de marzo") >= 0 and all_text.find("6 de julio") >= 0, "ciclo: el parte de victoria trae la medalla y el epílogo fechado")
+		# D-08: plegada, la línea de tiempo muestra la primera fecha y la que contrasta tu partida con la realidad; el resto se despliega con un botón
+		suite.check(all_text.find("Medalla") >= 0 and all_text.find("3 de marzo") >= 0 and all_text.find("9 al 16 de marzo") >= 0 and all_text.find("6 de julio") < 0, "ciclo: el parte de victoria trae la medalla y la línea de tiempo plegada (primera fecha y «9 al 16 de marzo»)")
 		suite.check(all_text.find("En la realidad") >= 0 and all_text.find("En tu partida") >= 0 and all_text.find("26 horas") >= 0, "ciclo: el parte contrasta «en la realidad» con «en tu partida» y aclara el tiempo comprimido")
-		suite.check(_find_button("Ver la campaña completa: Sostener el norte", game) != null and _find_button("Jugar de nuevo", game) != null, "ciclo: el parte ofrece «Ver la campaña completa: Sostener el norte» y «Jugar de nuevo»")
-		suite.check(all_text.find("Güemes lo recibe") >= 0 and all_text.find("expulsión definitiva") < 0, "ciclo: Güemes recibe el parte y no se habla de expulsión definitiva")
+		var next_b := game.find_child("HxNext", true, false) as Button
+		suite.check(next_b != null and next_b == hx.dialogs.primary and next_b.text.find("Sostener el norte") >= 0 and _find_button("Jugar de nuevo", game) != null, "ciclo: el botón principal del parte de victoria es seguir al capítulo III («%s») y también ofrece «Jugar de nuevo»" % (next_b.text if next_b != null else "—"))
+		var tl := game.find_child("HxTimelineToggle", true, false) as Button
+		suite.check(tl != null, "ciclo: el parte de victoria ofrece desplegar la línea de tiempo")
+		if tl != null:
+			tl.pressed.emit()
+			await _frames(2)
+			var open_text := " ".join(PackedStringArray(_visible_texts()))
+			suite.check(open_text.find("6 de julio") >= 0 and open_text.find("Güemes lo recibe") >= 0 and open_text.find("expulsión definitiva") < 0, "ciclo: desplegada, la línea de tiempo trae todas las fechas; Güemes recibe el parte y no se habla de expulsión definitiva")
+			(game.find_child("HxTimelineToggle", true, false) as Button).pressed.emit()
+			await _frames(2)
 	else:
 		suite.check(_find_button("Reintentar", game) != null, "ciclo: el parte de derrota ofrece reintentar")
 	var retry_button := game.find_child("HxRetry", true, false) as Button

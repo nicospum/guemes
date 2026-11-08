@@ -113,6 +113,8 @@ var _calm_s := 0.0
 var _idle_first_s := 0.0  # segundos reales con el nivel en pausa y sin ninguna orden dada (onboarding.first_order_hint_s)
 var _idle_first_done := false
 var _suggest_x2 := false
+var _suggest_toast_real := -999.0  # cuándo se avisó por última vez «podés acelerar con ×2» (reloj real)
+var _last_alarm_real := -999.0  # cuándo llegó el último aviso importante de las reglas (reloj real)
 var _saved_by_player := false
 var _alert_seen: Dictionary = {}
 var _info_alert_seen: Dictionary = {}
@@ -120,6 +122,10 @@ var _subtitle: Label = null
 var _skip_hint: Label = null
 var _modal_layer: Control = null
 var _size_cb: Callable = Callable()
+var _load_reason := ""  # el motivo de la última carga fallida, como fragmento de frase (para el aviso de F9 en plena partida)
+var _world_seen := -1  # el mundo del progreso (world_seed) cuando se fijó _seed: si cambia (victoria o «Mundo nuevo»), el reintento toma el mundo nuevo
+var _checkpoint_path := ""  # el archivo de los puntos de control que usa el progreso (normal o de QA)
+var _backdrop: Control = null  # el fondo de pantalla completa del briefing y de los partes (tinta y viñeta fuerte)
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -418,6 +424,7 @@ func _make_progress(layer_script: Script) -> RefCounted:
 	if bool(_opts.get("qa", false)) or bool(main.qa_mode):
 		progress_path = "user://qa_humahuaca_progress.json"
 		checkpoint_path = "user://qa_humahuaca_checkpoint.json"
+	_checkpoint_path = checkpoint_path
 	var made: Variant = layer_script.new(progress_path, checkpoint_path)
 	if not (made is RefCounted):
 		return null
@@ -487,6 +494,8 @@ func _build_ui() -> void:
 	overlay.ui = self
 	hud.root.add_child(overlay)
 	hud.root.move_child(overlay, 0)
+	if hud.vignette != null:
+		hud.root.move_child(hud.vignette, 0)  # la viñeta va debajo de todo, también de las rutas y los rótulos sobre el mundo
 	minimap = Minimap.new()
 	hud.root.add_child(minimap)
 	minimap.setup(self, ui_data.get("minimap", {}), font())
@@ -614,6 +623,7 @@ func _find_group_fronts() -> void:
 
 
 func _pick_seed() -> int:
+	_world_seen = _progress_world()
 	if _opts.has("seed"):
 		return int(_opts.seed)
 	if _cli.has("seed"):
@@ -685,7 +695,18 @@ func rules_error(key: String) -> String:
 	return str((e as Dictionary).get(key, "")) if e is Dictionary else ""
 
 
+func _progress_world() -> int:
+	if progress != null and progress.has_method("world_seed"):
+		var w: Variant = progress.call("world_seed")
+		if typeof(w) == TYPE_INT or typeof(w) == TYPE_FLOAT:
+			return int(w)
+	return -1
+
+
 ## «Continuar» y F9 llegan con opts.load. Si el guardado falta, está dañado o las reglas lo rechazan, se explica y se empieza de cero.
+## Revisión B-2: un guardado de una partida ya terminada (estado victoria o derrota) se rechaza con su motivo y la partida que había queda como estaba.
+## Revisión B-3 y E-8: tras una carga buena, la semilla del controlador es la del guardado (así «Empezar de nuevo (mismo mundo)» repite ese mundo) y el contador de
+## órdenes cuenta las del guardado (Esc ya no sale al menú sin preguntar como si no hubiera nada que perder).
 func _try_load_save() -> bool:
 	var reason := ""
 	var path := str(main._save_path(V.SCENARIO))
@@ -699,14 +720,27 @@ func _try_load_save() -> bool:
 		if not (parsed is Dictionary) or (parsed as Dictionary).is_empty():
 			reason = tx("load.reasons.broken", "")
 		else:
+			var before: Dictionary = (rules.call("snapshot") as Dictionary) if rules.has_method("snapshot") and not _rules_state().is_empty() else {}
 			var result: Variant = rules.call("load_game", path)
 			if result is Dictionary and bool(result.get("ok", false)):
-				_ended = false
-				return true
-			reason = str(result.get("reason", "")) if result is Dictionary else ""
+				if str(_rules_state().get("status", "playing")) != "playing":
+					reason = tx("load.reasons.finished", "esa partida ya había terminado")
+					if not before.is_empty() and rules.has_method("restore_snapshot"):
+						rules.call("restore_snapshot", before)
+				else:
+					_ended = false
+					var st := _rules_state()
+					_seed = int(st.get("seed", _seed))
+					_world_seen = _progress_world()
+					order_count = (st.get("orders", []) as Array).size() if st.get("orders", []) is Array else 0
+					_load_reason = ""
+					return true
+			else:
+				reason = str(result.get("reason", "")) if result is Dictionary else ""
 			if reason.strip_edges() == "":
 				reason = tx("load.reasons.broken", "")
-	_notice = tx("load.failed", "%s") % _reason_fragment(reason)
+	_load_reason = _reason_fragment(reason)
+	_notice = tx("load.failed", "%s") % _load_reason
 	return false
 
 

@@ -56,6 +56,7 @@ func _initialize() -> void:
 	_test_norte_persistence()
 	_test_external_stale()
 	_test_north_pacing()
+	_test_north_victory_bar()
 	_test_norte_snapshot_coherence()
 	_test_salta_occupation_date()
 	_test_history_humahuaca_marked()
@@ -1966,7 +1967,7 @@ func _test_round2_fun() -> void:
 	g3._finish("victory", "ok", "capturado")
 	var res3: Dictionary = cp.record_result(g3)
 	check(res3.won and str(res3.medal_label).begins_with("Medalla de ") and "Tu mejor:" in str(res3.record_line), "La victoria trae la medalla de ESTA partida y el récord por separado")
-	check(res3.lines.back().begins_with("Se desbloqueó el escenario 2"), "La victoria dice qué se desbloquea")
+	check(res3.lines.back().begins_with("Se abrió el nivel II: Humahuaca"), "La victoria dice qué se desbloquea (D-03: el II, Humahuaca, no el III)")
 	# «Desde el cruce»: punto de control automático y reanudación
 	var cp2 := CampaignProgress.new("user://test-campaign-cp.json")
 	cp2.checkpoint_path = "user://test-cp-state.json"
@@ -3514,6 +3515,57 @@ func _test_north_pacing() -> void:
 	check(earliest >= Rules.RETREAT_MIN_ROUND, "Three groups raiding in rounds 3-4 cannot win before round %d (earliest: %d)" % [Rules.RETREAT_MIN_ROUND, earliest])
 	report.results.append({"scenario": "norte", "strategy": "stress_raids_rounds_3_4", "games": games, "wins": wins, "earliest_victory_round": earliest})
 
+
+## P4 · D-05 y D-09: la barra de victoria del norte se llena en la ronda en que se gana (nunca antes) y la orden sugerida de las rondas 1-2 es legal.
+func _test_north_victory_bar() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 515151
+	var wins := 0
+	var early_full := 0
+	var full_at_win := 0
+	var rounds_seen := 0
+	for g in range(120):
+		var r := Rules.new()
+		r.new_game("norte", 3000 + g)
+		var acts := ["raid", "raid", "raid", "scout", "protect", "rest", "move"]
+		var secs := ["jujuy", "salta", "quebrada", "lerma", "humahuaca"]
+		var guard := 0
+		while r.state.status == "playing" and guard < 20:
+			guard += 1
+			var pr: Dictionary = r.north_victory_progress()
+			rounds_seen += 1
+			if float(pr.fraction) >= 1.0:
+				early_full += 1
+			for id in ["guemes", "arias", "zavala"]:
+				for tries in range(6):
+					var a: String = acts[rng.randi() % acts.size()]
+					var sc: String = secs[rng.randi() % secs.size()]
+					if a in ["rest", "protect"]:
+						sc = r.get_unit(id).sector_id
+					if r.issue_campaign_order(id, a, sc).ok:
+						break
+			r.resolve_round(r.enemy_fallback())
+		if r.state.status == "victory":
+			wins += 1
+			if float(r.north_victory_progress().fraction) >= 1.0:
+				full_at_win += 1
+	check(rounds_seen > 0 and early_full == 0, "D-05: mientras se juega la barra de victoria del norte nunca está llena (%d de %d rondas)" % [early_full, rounds_seen])
+	check(wins > 0 and full_at_win == wins, "D-05: la barra llega a lleno en la ronda en que se gana (%d de %d victorias)" % [full_at_win, wins])
+	var n := Rules.new()
+	n.new_game("norte", 1817)
+	var pr0: Dictionary = n.north_victory_progress()
+	check(pr0.rows.size() == 3 and int(pr0.pressure_goal) == Rules.RETREAT_MIN_PRESSURE and int(pr0.round_min) == Rules.RETREAT_MIN_ROUND and float(pr0.fraction) == 0.0, "D-05: la barra expone los tres umbrales, la presión «x de 7» y la ronda mínima, y arranca en 0")
+	var step: Dictionary = n.north_next_step()
+	check(not step.is_empty() and n.legal_campaign_actions(str(step.unit), str(step.sector)).has(str(step.action)), "D-09: en la ronda 1 hay una orden sugerida y es legal (%s)" % str(step.get("label", "")))
+	check(n.issue_campaign_order(str(step.unit), str(step.action), str(step.sector)).ok and n.north_next_step().get("unit", "") != str(step.unit), "D-09: prepararla funciona y la sugerencia pasa a otra agrupación")
+	var pas := Rules.new()
+	pas.new_game("norte", 77)
+	var guard_p := 0
+	while pas.state.status == "playing" and guard_p < 20:
+		guard_p += 1
+		pas.resolve_round(pas.enemy_fallback())
+	check(pas.state.status == "defeat" and (str(pas.state.reason).find("poblaciones") >= 0 or str(pas.state.reason).find("Llegó mayo") >= 0) and str(pas.state.reason).find("perdió sus agrupaciones") < 0, "P-009: la derrota pasiva dice su causa real, no «perdió sus agrupaciones» (%s)" % str(pas.state.reason).substr(0, 60))
+	report.results.append({"scenario": "norte", "strategy": "barra_victoria", "games": 120, "wins": wins, "full_at_win": full_at_win, "early_full": early_full})
 
 # ---------------------------------------------------------------------------
 # Ocupacion de Salta: el 15/4/1817 cae en la ronda 10 (12-22 abr)

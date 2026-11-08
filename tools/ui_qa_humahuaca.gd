@@ -50,7 +50,7 @@ func _initialize() -> void:
 		push_error("ui_qa_humahuaca: falta --out=<carpeta> (sin eso no se escribe en evidence/)")
 		quit(2)
 		return
-	for stale in ["settings.cfg", "campaign.json", "justina_progress.json", "humahuaca_progress.json", "humahuaca_checkpoint.json", "save_humahuaca.json", "qa_humahuaca_progress.json"]:
+	for stale in ["settings.cfg", "campaign.json", "justina_progress.json", "humahuaca_progress.json", "humahuaca_checkpoint.json", "save_humahuaca.json", "qa_humahuaca_progress.json", "qa_humahuaca_checkpoint.json", "qa_save_humahuaca.json"]:
 		if FileAccess.file_exists("user://" + stale):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path("user://" + stale))
 	call_deferred("_run")
@@ -146,6 +146,34 @@ func _button(part: String) -> Button:
 		if b is Button and part in b.text and b.is_visible_in_tree():
 			return b
 	return null
+
+
+## Qué fracción del cuadro tapan los paneles del HUD y el minimapa (V-06: «el mapa es el protagonista»). Cuenta píxeles de una grilla de 8 px, sin contar dos veces lo que
+## se superpone. Es una nota, no una falla: la meta de la dirección de arte (≤ 25 % a 1440 × 900) se informa con su cifra.
+func _hud_coverage(label: String) -> void:
+	if hx == null or hx.hud == null:
+		return
+	var vp := _viewport_rect()
+	var rects: Array = []
+	for k in hx.hud.panels():
+		rects.append(Kit.rect_of(hx.hud.panels()[k] as Control))
+	if hx.minimap != null and hx.minimap.is_visible_in_tree():
+		rects.append(Kit.rect_of(hx.minimap))
+	var total := 0
+	var covered := 0
+	var step := 8.0
+	var y := vp.position.y + step * 0.5
+	while y < vp.end.y:
+		var x := vp.position.x + step * 0.5
+		while x < vp.end.x:
+			total += 1
+			for r in rects:
+				if (r as Rect2).has_point(Vector2(x, y)):
+					covered += 1
+					break
+			x += step
+		y += step
+	notes["hud_tapa_" + label] = snappedf(100.0 * float(covered) / maxf(float(total), 1.0), 0.1)
 
 
 func _viewport_rect() -> Rect2:
@@ -272,7 +300,10 @@ func _measure_contrast(img: Image, label: String) -> void:
 	var worst := 99.0
 	var worst_name := ""
 	for c in list:
-		var ratio := _contrast_of(img, Kit.rect_of(c as Control))
+		var rr := Kit.rect_of(c as Control)
+		if c is Button:  # un botón lleno (el principal es oro con letra de tinta): el fondo es su relleno, no lo que queda afuera del filete; se mide adentro del borde
+			rr = rr.grow(-3.0 * root.get_final_transform().get_scale().x)
+		var ratio := _contrast_of(img, rr)
 		if ratio > 0.0 and ratio < worst:
 			worst = ratio
 			worst_name = str((c as Control).name)
@@ -660,7 +691,18 @@ func _cycle_full() -> void:
 	var texts1 := " ".join(PackedStringArray(_visible_texts()))
 	check(texts1.find("Perder no es grave") >= 0 and texts1.find("Hoy:") >= 0, "Briefing 1: dice el objetivo, que perder no es grave y la variante del mundo")
 	check(_jargon_hits(texts1).is_empty(), "Briefing 1: sin jerga (%s)" % str(_jargon_hits(texts1)))
-	check(texts1.length() < 700, "Briefing 1: es corto (%d caracteres)" % texts1.length())
+	# V-06: el briefing pasó de una tarjeta de 760 px a la pantalla completa del modelo 05 (situación, objetivo, tus fuerzas, enemigo, esta noche, cronología y una cita
+	# con fuente), con los mismos datos que ya daba el juego ordenados en bloques que se leen de un vistazo. El tope de la tarjeta (700) pasa a 850 para la pantalla entera
+	# y se suma uno más estricto para lo que hay que leer sí o sí antes de jugar: la situación, el objetivo y «perder no es grave» (≤ 300).
+	check(texts1.length() < 850, "Briefing 1: es corto (%d caracteres en toda la pantalla)" % texts1.length())
+	var must := 0
+	for nm in ["HxBriefSituation", "HxBriefLose"]:
+		var l := game.find_child(nm, true, false) as Label
+		must += l.text.length() if l != null else 0
+	var objc := game.find_child("HxBriefObjective", true, false)
+	must += Kit.text_chars(objc) if objc != null else 0
+	notes["briefing_caracteres"] = {"pantalla": texts1.length(), "lectura_obligatoria": must}
+	check(must > 0 and must <= 300, "Briefing 1: lo que hay que leer antes de jugar (situación, objetivo y «perder no es grave») es corto (%d caracteres)" % must)
 	await _click_expect("Seguir leyendo", func(): return " ".join(PackedStringArray(_visible_texts())).find("Dramatización") >= 0, 3)
 	await _shot("hx-briefing-2")
 	_check_dialog_fit("Briefing 2")
@@ -680,6 +722,7 @@ func _cycle_full() -> void:
 	# --- el primer cuadro jugable ---
 	await _frames(10)
 	var img := await _shot("hx-inicio")
+	_hud_coverage("inicio")
 	var q: Dictionary = hx.qa_state()
 	notes["controles_t0"] = int(q.visible_controls)
 	notes["botones_t0"] = int(q.visible_buttons)
@@ -769,6 +812,7 @@ func _cycle_full() -> void:
 	_follow_guide(20.0)
 	await _frames(8)
 	var img3 := await _shot("hx-hud")
+	_hud_coverage("ataque")
 	notes["rects"] = _capture_rects()  # V05 las aplica a «hx-hud.png»: en píxeles de esa captura y todas con área
 	check(str(hx.qa_state().phase) == "ataque" and hx.hud.chip_labels.golpe.panel.visible, "Ataque: la fase cambia y aparece el golpe en el dock (%s)" % hx.hud.chip_labels.golpe.label.text)
 	_check_overflow("Ataque")
@@ -844,14 +888,29 @@ func _cycle_defeat_and_victory() -> void:
 	await _diary_roundtrip("Victoria")  # H-R1-2
 	var vt := " ".join(PackedStringArray(_visible_texts()))
 	check(vt.find("Medalla") >= 0, "Victoria: el parte muestra la medalla con su motivo")
-	check(vt.find("3 de marzo") >= 0 and vt.find("9 al 16 de marzo") >= 0 and vt.find("6 de julio") >= 0, "Victoria: el epílogo está fechado")
+	check(vt.find("3 de marzo") >= 0 and vt.find("9 al 16 de marzo") >= 0, "Victoria: el epílogo está fechado (plegado: la primera fecha y la que contrasta tu partida)")
 	check(vt.find("En la realidad") >= 0 and vt.find("En tu partida") >= 0, "Victoria: contrasta «en la realidad» con «en tu partida»")
 	check(vt.find("26 horas") >= 0, "Victoria: aclara el tiempo comprimido")
-	check(vt.find("Güemes lo recibe") >= 0 and vt.find("expulsión") < 0, "Victoria: Güemes recibe el parte y no hay «expulsión definitiva»")
-	check(_button("Ver la campaña completa: Sostener el norte") != null and _button("Jugar de nuevo") != null, "Victoria: ofrece «Ver la campaña completa: Sostener el norte» y «Jugar de nuevo»")
+	var next_b := game.find_child("HxNext", true, false) as Button
+	check(next_b != null and next_b == hx.dialogs.primary and next_b.text.find("Sostener el norte") >= 0 and _button("Jugar de nuevo") != null, "Victoria: el botón principal es seguir al capítulo III («%s») y ofrece «Jugar de nuevo»" % (next_b.text if next_b != null else "—"))
+	check(next_b != null and _inside(Kit.rect_of(next_b)), "Victoria: «Seguir al capítulo III» entra entero en el cuadro")
 	check(_jargon_hits(vt).is_empty(), "Victoria: el parte no usa jerga (%s)" % str(_jargon_hits(vt)))
 	var again := game.find_child("HxRetry", true, false) as Button
 	check(again != null and _inside(Kit.rect_of(again)) and not hx.dialogs.scroll_used, "Victoria: «Jugar de nuevo» queda a la vista sin scroll")
+	var tl := game.find_child("HxTimelineToggle", true, false) as Button
+	check(tl != null and _inside(Kit.rect_of(tl)), "Victoria: la línea de tiempo plegada se despliega con un botón a la vista")
+	if tl != null:
+		await _click_control(tl)
+		await _frames(4)
+		await _shot("hx-victoria-linea")
+		var vt2 := " ".join(PackedStringArray(_visible_texts()))
+		check(vt2.find("6 de julio") >= 0 and vt2.find("Güemes lo recibe") >= 0 and vt2.find("expulsión") < 0, "Victoria: desplegada, la línea de tiempo trae todas las fechas; Güemes recibe el parte y no hay «expulsión definitiva»")
+		_check_dialog_fit("Parte de victoria con la línea de tiempo")
+		var tl2 := game.find_child("HxTimelineToggle", true, false) as Button
+		if tl2 != null:
+			await _click_control(tl2)
+			await _frames(4)
+	again = game.find_child("HxRetry", true, false) as Button
 	notes["ciclo_completo"] = true
 	# --- pausa y ayuda ---
 	await _click_control(again)
@@ -895,6 +954,7 @@ func _cycle_overflow() -> void:
 	hx.skip_opening()
 	await _frames(10)
 	var img := await _shot("hx-inicio")
+	_hud_coverage("inicio")
 	_check_overflow("Primer cuadro")
 	var margins := _token_margins(hx.hud.rects())
 	notes["borde_min_pct"] = margins.borde_min_pct
@@ -915,6 +975,7 @@ func _cycle_overflow() -> void:
 	_follow_guide(20.0)
 	await _frames(8)
 	var img_hud := await _shot("hx-hud")
+	_hud_coverage("ataque")
 	notes["rects"] = _capture_rects()
 	_check_overflow("Ataque")
 	_measure_contrast(img_hud, "ataque")

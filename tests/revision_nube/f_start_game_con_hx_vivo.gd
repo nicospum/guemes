@@ -95,6 +95,18 @@ func _run() -> void:
 	game._stop_humahuaca()
 	game._menu()
 	await _frames(3)
+	# (c) T-001: _start_game("norte") con el nivel vivo; tras UN cuadro, un solo ambiente (el del Norte), sin lluvia y con la cámara del Norte.
+	game._start_game("humahuaca")
+	await _frames(3)
+	game._start_game("norte")
+	await process_frame
+	var envs: Array = game.find_children("*", "WorldEnvironment", true, false).filter(func(n): return n.is_inside_tree())
+	check(envs.size() == 1 and is_instance_valid(game.world) and game.world.is_ancestor_of(envs[0]), "T-001: tras _start_game(\"norte\") hay un solo WorldEnvironment y es el de game.world (%d)" % envs.size())
+	check(game.find_children("lluvia_rayas", "", true, false).is_empty(), "T-001: no queda ningún nodo lluvia_rayas")
+	check(is_equal_approx(game.camera.far, 400.0) and game.camera.current, "T-001: camera.far == 400 y la cámara de main es la vigente (far %.0f)" % game.camera.far)
+	check(not is_instance_valid(game.hx) and _hx_children() == 0, "T-001: el controlador del II quedó liberado")
+	game._menu()
+	await _frames(3)
 	for n in CLEAN:
 		if FileAccess.file_exists("user://" + n):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path("user://" + n))

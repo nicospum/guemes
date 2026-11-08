@@ -90,7 +90,7 @@ func _initialize() -> void:
 		push_error("hx_agent_play: faltan --turns-dir=<carpeta> y --out=<arnes.json>")
 		quit(2)
 		return
-	for stale in ["settings.cfg", "campaign.json", "justina_progress.json", "humahuaca_progress.json", "humahuaca_checkpoint.json", "save_humahuaca.json", "qa_humahuaca_progress.json"]:
+	for stale in ["settings.cfg", "campaign.json", "justina_progress.json", "humahuaca_progress.json", "humahuaca_checkpoint.json", "save_humahuaca.json", "qa_humahuaca_progress.json", "qa_humahuaca_checkpoint.json", "qa_save_humahuaca.json"]:
 		if FileAccess.file_exists("user://" + stale):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path("user://" + stale))
 	call_deferred("_run")

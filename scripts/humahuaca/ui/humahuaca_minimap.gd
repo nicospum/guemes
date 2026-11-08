@@ -3,6 +3,11 @@ extends Control
 ## el cuadro de la cámara, la brújula (la N gira con la guiñada) y la escala gráfica de la vista. Un clic o un arrastre mueve la cámara. M lo agranda.
 ## Cada agrupación se distingue por la forma y no solo por el color: las partidas y la reserva son círculos, los reconocedores triángulos y el arreo
 ## un cuadrado. No decide nada: lee el controlador (`ui`).
+## Paleta nocturna (V-06): el relieve que entrega la vista es diurno (beige); acá se lo pasa por un sombreador que lo lleva a tinta violácea con los trazos claros
+## (calles, casas) en oro, coherente con la noche de la escena. Tres capas: el fondo (este nodo), la textura con el sombreador y la tinta (fichas, frentes, cuadro de
+## la cámara, brújula y escala), que se dibuja encima.
+## Costo (revisión G-2): el polígono de la cámara sobre el relieve y los metros por píxel se guardan por pose de cámara, campo visual y tamaño del cuadro (con la cámara
+## quieta un redibujo no vuelve a muestrear el relieve), y fichas y frentes salen de render_state_cached() del controlador (un solo pedido por redibujo).
 
 const Kit = preload("res://scripts/humahuaca/ui/humahuaca_ui_kit.gd")
 const V = preload("res://scripts/humahuaca/humahuaca_vocab.gd")
@@ -19,6 +24,25 @@ var _dragging := false
 var _font: Font = null
 var _redraw_wait := 0.0
 var _frustum: PackedVector2Array = PackedVector2Array()
+var _cam_sig := ""  # pose de la cámara, campo visual y tamaño del cuadro con los que se calcularon _frustum y _mpp
+var _mpp := -1.0
+var _tex_rect: TextureRect = null
+var _ink: Control = null
+const NIGHT_SHADER := "shader_type canvas_item;
+uniform vec4 low : source_color = vec4(0.07, 0.06, 0.09, 1.0);
+uniform vec4 high : source_color = vec4(0.165, 0.141, 0.188, 1.0);
+uniform vec4 line : source_color = vec4(0.788, 0.635, 0.369, 1.0);
+uniform float strength = 1.0;
+uniform float line_gain = 0.55;
+void fragment() {
+	vec4 c = texture(TEXTURE, UV);
+	float l = dot(c.rgb, vec3(0.299, 0.587, 0.114));
+	vec3 night = mix(low.rgb, high.rgb, smoothstep(0.12, 0.80, l));
+	night += (c.rgb - vec3(l)) * 0.45;
+	night = mix(night, line.rgb, smoothstep(0.70, 0.92, l) * line_gain);
+	COLOR = vec4(mix(c.rgb, night, strength), c.a);
+}
+"
 
 
 func _init() -> void:
@@ -31,6 +55,30 @@ func setup(controller: Node, config: Dictionary, font_in: Font) -> void:
 	ui = controller
 	cfg = config
 	_font = font_in
+	_tex_rect = TextureRect.new()
+	_tex_rect.name = "HxMinimapRelief"
+	_tex_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_tex_rect.stretch_mode = TextureRect.STRETCH_SCALE
+	_tex_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_tex_rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var sh := Shader.new()
+	sh.code = NIGHT_SHADER
+	var mat := ShaderMaterial.new()
+	mat.shader = sh
+	mat.set_shader_parameter("low", _color("night_low", Color("120f17")))
+	mat.set_shader_parameter("high", _color("night_high", Color("2a2430")))
+	mat.set_shader_parameter("line", _color("night_line", Kit.GOLD))
+	var night: Variant = cfg.get("night", {})
+	mat.set_shader_parameter("strength", float((night as Dictionary).get("strength", 1.0)) if night is Dictionary else 1.0)
+	mat.set_shader_parameter("line_gain", float((night as Dictionary).get("line_gain", 0.55)) if night is Dictionary else 0.55)
+	_tex_rect.material = mat
+	add_child(_tex_rect)
+	_ink = Control.new()
+	_ink.name = "HxMinimapInk"
+	_ink.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_ink.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_ink.draw.connect(_draw_ink)
+	add_child(_ink)
 	apply_size()
 
 
@@ -55,7 +103,10 @@ func apply_size() -> void:
 	offset_bottom = -m
 	custom_minimum_size = s
 	_tex_key = ""
+	_cam_sig = ""
 	queue_redraw()
+	if _ink != null:
+		_ink.queue_redraw()
 
 
 func set_large(on: bool) -> void:
@@ -76,6 +127,8 @@ func _process(delta: float) -> void:
 	if visible and ui != null and ui.get("rules") != null and _redraw_wait <= 0.0:
 		_redraw_wait = 0.1  # el minimapa se redibuja a 10 Hz: no hace falta más y el cuadro del tablero no lo paga
 		queue_redraw()
+		if _ink != null:
+			_ink.queue_redraw()
 
 
 func _to_map(p: Vector2) -> Vector2:
@@ -111,59 +164,75 @@ func _texture() -> Texture2D:
 
 
 func _draw() -> void:
+	if ui == null or ui.get("rules") == null:
+		return
+	draw_rect(Rect2(Vector2.ZERO, size), _color("back", Kit.INK), true)
+	var tex := _texture()
+	if _tex_rect != null and _tex_rect.texture != tex:
+		_tex_rect.texture = tex
+
+
+## La tinta: todo lo que va encima del relieve. Un solo render_state por redibujo (el del controlador, que lo guarda 50 ms).
+func _draw_ink() -> void:
 	drawn_text_chars = 0
 	if ui == null or ui.get("rules") == null:
 		return
-	var rect := Rect2(Vector2.ZERO, size)
-	draw_rect(rect, _color("back", Kit.INK), true)
-	var tex := _texture()
-	if tex != null:
-		draw_texture_rect(tex, rect, false)
-	draw_rect(rect, _color("border", Kit.PANEL_BORDER), false, 2.0)
-	_draw_fronts()
+	_ink.draw_rect(Rect2(Vector2.ZERO, size), _color("border", Kit.PANEL_BORDER), false, 2.0)
+	var rs: Variant = ui.call("render_state_cached") if ui.has_method("render_state_cached") else ui.get("rules").call("render_state")
+	var rsd: Dictionary = rs if rs is Dictionary else {}
+	_update_camera_cache()
+	_draw_fronts(rsd)
 	_draw_frustum()
-	_draw_units()
+	_draw_units(rsd)
 	_draw_compass()
 	_draw_scale()
 
 
-func _draw_fronts() -> void:
-	var rules: Variant = ui.get("rules")
-	var rs: Variant = rules.call("render_state")
-	if not (rs is Dictionary):
+## Recalcula el polígono de la cámara y los metros por píxel solo si cambió la pose, el campo visual, el tamaño del cuadro o la escala de la interfaz.
+func _update_camera_cache() -> void:
+	var view: Variant = ui.get("view")
+	var cam: Camera3D = ui.call("camera3d")
+	if view == null or cam == null:
+		_frustum = PackedVector2Array()
+		_mpp = -1.0
+		_cam_sig = ""
 		return
-	for o in (rs as Dictionary).get("objectives", []):
+	var sig := "%s|%s|%s|%s" % [str(cam.global_transform), str(cam.fov), str(cam.get_viewport().get_visible_rect().size), str(ui.get("ui_scale"))]
+	if sig == _cam_sig:
+		return
+	_cam_sig = sig
+	_frustum = PackedVector2Array()
+	if view.has_method("camera_frustum_on_ground"):
+		var poly: Variant = view.call("camera_frustum_on_ground", cam)
+		if poly is PackedVector2Array:
+			_frustum = poly
+	_mpp = float(view.call("meters_per_pixel", cam)) if view.has_method("meters_per_pixel") else -1.0
+
+
+func _draw_fronts(rs: Dictionary) -> void:
+	for o in rs.get("objectives", []):
 		var d := o as Dictionary
 		var p := _to_map(Vector2(float(d.get("x", 0.0)), float(d.get("z", 0.0))))
 		var taken := str(d.get("state", "")) == "tomado"
 		var col := _color("front_taken", Kit.GOOD) if taken else _color("front", Kit.ROYAL)
-		draw_rect(Rect2(p - Vector2(4.0, 4.0), Vector2(8.0, 8.0)), col, true)
-		draw_rect(Rect2(p - Vector2(4.0, 4.0), Vector2(8.0, 8.0)), Kit.ROYAL_BORDER, false, 1.5)
+		_ink.draw_rect(Rect2(p - Vector2(4.0, 4.0), Vector2(8.0, 8.0)), col, true)
+		_ink.draw_rect(Rect2(p - Vector2(4.0, 4.0), Vector2(8.0, 8.0)), Kit.ROYAL_BORDER, false, 1.5)
 
 
 func _draw_frustum() -> void:
-	var view: Variant = ui.get("view")
-	var cam: Camera3D = ui.call("camera3d")
-	if view == null or cam == null or not view.has_method("camera_frustum_on_ground"):
-		return
-	var poly: Variant = view.call("camera_frustum_on_ground", cam)
-	if not (poly is PackedVector2Array) or (poly as PackedVector2Array).size() < 3:
+	if _frustum.size() < 3:
 		return
 	var pts := PackedVector2Array()
-	for q in poly:
+	for q in _frustum:
 		var m := _to_map(q as Vector2)
 		pts.append(Vector2(clampf(m.x, 0.0, size.x), clampf(m.y, 0.0, size.y)))
 	pts.append(pts[0])
-	draw_polyline(pts, _color("frame", Kit.PAPER), 1.5, true)
+	_ink.draw_polyline(pts, _color("frame", Kit.PAPER), 1.5, true)
 
 
-func _draw_units() -> void:
-	var rules: Variant = ui.get("rules")
-	var rs: Variant = rules.call("render_state")
-	if not (rs is Dictionary):
-		return
+func _draw_units(rs: Dictionary) -> void:
 	var selected: Array = ui.get("selected")
-	for u in (rs as Dictionary).get("units", []):
+	for u in rs.get("units", []):
 		var d := u as Dictionary
 		var id := str(d.get("id", ""))
 		if str(d.get("stage", "")) == "exited":
@@ -172,40 +241,40 @@ func _draw_units() -> void:
 		var is_sel := selected.has(id)
 		var fill := _color("arreo", Kit.NEUTRAL) if id == "arreo" else _color("unit", Kit.PATRIOT)
 		var border := _color("selected", Kit.GOLD) if is_sel else _color("unit_border", Kit.PATRIOT_BORDER)
+		if id == "arreo" and not is_sel:
+			border = Kit.NEUTRAL_BORDER
 		match str(d.get("kind", "")):
 			"arreo":
-				draw_rect(Rect2(p - Vector2(4.5, 4.5), Vector2(9.0, 9.0)), fill, true)
-				draw_rect(Rect2(p - Vector2(4.5, 4.5), Vector2(9.0, 9.0)), border, false, 2.0 if is_sel else 1.2)
+				_ink.draw_rect(Rect2(p - Vector2(4.5, 4.5), Vector2(9.0, 9.0)), fill, true)
+				_ink.draw_rect(Rect2(p - Vector2(4.5, 4.5), Vector2(9.0, 9.0)), border, false, 2.0 if is_sel else 1.2)
 			"reconocedores":
 				var tri := PackedVector2Array([p + Vector2(0.0, -5.5), p + Vector2(5.0, 4.0), p + Vector2(-5.0, 4.0)])
-				draw_colored_polygon(tri, fill)
-				draw_polyline(PackedVector2Array([tri[0], tri[1], tri[2], tri[0]]), border, 2.0 if is_sel else 1.2, true)
+				_ink.draw_colored_polygon(tri, fill)
+				_ink.draw_polyline(PackedVector2Array([tri[0], tri[1], tri[2], tri[0]]), border, 2.0 if is_sel else 1.2, true)
 			_:
-				draw_circle(p, 5.0, fill)
-				draw_arc(p, 5.0, 0.0, TAU, 16, border, 2.0 if is_sel else 1.2, true)
+				_ink.draw_circle(p, 5.0, fill)
+				_ink.draw_arc(p, 5.0, 0.0, TAU, 16, border, 2.0 if is_sel else 1.2, true)
+		if is_sel:  # elegida: halo violeta (regla de color 2)
+			_ink.draw_arc(p, 8.0, 0.0, TAU, 20, Color(Kit.VIOLET, 0.85), 1.5, true)
 
 
 func _draw_compass() -> void:
 	var cam_yaw := float(ui.call("camera_yaw_deg"))
 	var center := Vector2(size.x - 22.0, 24.0)
-	draw_circle(center, 15.0, Color(0.075, 0.095, 0.062, 0.85))
-	draw_arc(center, 15.0, 0.0, TAU, 24, _color("border", Kit.PANEL_BORDER), 1.2, true)
+	_ink.draw_circle(center, 15.0, Color(Kit.INK_PANEL, 0.9))
+	_ink.draw_arc(center, 15.0, 0.0, TAU, 24, Kit.GOLD, 1.2, true)
 	var a := deg_to_rad(-cam_yaw)  # el norte queda a −guiñada respecto de «arriba» de la pantalla
 	var dir := Vector2(sin(a), -cos(a))
-	draw_line(center - dir * 6.0, center + dir * 9.0, Kit.ROYAL, 2.0, true)
+	_ink.draw_line(center - dir * 6.0, center + dir * 9.0, Kit.GOLD_LIGHT, 2.0, true)
 	var font := _font if _font != null else ThemeDB.fallback_font
 	var tp := center + dir * 8.0 - Vector2(4.0, -4.0)
-	draw_string_outline(font, tp, "N", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, 3, Color(0.05, 0.07, 0.04, 0.95))
-	draw_string(font, tp, "N", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Kit.PAPER)
+	_ink.draw_string_outline(font, tp, "N", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, 3, Color(Kit.INK_NIGHT, 0.95))
+	_ink.draw_string(font, tp, "N", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Kit.PAPER)
 	drawn_text_chars += 1
 
 
 func _draw_scale() -> void:
-	var view: Variant = ui.get("view")
-	var cam: Camera3D = ui.call("camera3d")
-	if view == null or cam == null or not view.has_method("meters_per_pixel"):
-		return
-	var mpp := float(view.call("meters_per_pixel", cam))
+	var mpp := _mpp
 	if mpp <= 0.0:
 		return
 	var steps: Variant = cfg.get("scale_steps_m", [50, 100, 200, 500])
@@ -216,14 +285,15 @@ func _draw_scale() -> void:
 	var px := minf(chosen / mpp / maxf(float(ui.get("ui_scale")), 0.01), 120.0)  # la escala es la de la vista 3D, en píxeles lógicos del lienzo (los mismos que usa meters_per_pixel)
 	var y := size.y - 16.0
 	var x0 := 10.0
-	draw_line(Vector2(x0, y), Vector2(x0 + px, y), Color(0.05, 0.07, 0.04, 0.95), 5.0)
-	draw_line(Vector2(x0, y), Vector2(x0 + px, y), Kit.PAPER, 2.5)
-	draw_line(Vector2(x0, y - 4.0), Vector2(x0, y + 4.0), Kit.PAPER, 2.0)
-	draw_line(Vector2(x0 + px, y - 4.0), Vector2(x0 + px, y + 4.0), Kit.PAPER, 2.0)
+	var shade := Color(Kit.INK_NIGHT, 0.95)
+	_ink.draw_line(Vector2(x0, y), Vector2(x0 + px, y), shade, 5.0)
+	_ink.draw_line(Vector2(x0, y), Vector2(x0 + px, y), Kit.PAPER, 2.5)
+	_ink.draw_line(Vector2(x0, y - 4.0), Vector2(x0, y + 4.0), Kit.PAPER, 2.0)
+	_ink.draw_line(Vector2(x0 + px, y - 4.0), Vector2(x0 + px, y + 4.0), Kit.PAPER, 2.0)
 	var font := _font if _font != null else ThemeDB.fallback_font
 	var label := "%d m" % int(chosen)
-	draw_string_outline(font, Vector2(x0 + px + 6.0, y + 4.0), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, 3, Color(0.05, 0.07, 0.04, 0.95))
-	draw_string(font, Vector2(x0 + px + 6.0, y + 4.0), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Kit.PAPER)
+	_ink.draw_string_outline(font, Vector2(x0 + px + 6.0, y + 4.0), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, 3, shade)
+	_ink.draw_string(font, Vector2(x0 + px + 6.0, y + 4.0), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Kit.PAPER)
 	drawn_text_chars += label.length()
 
 

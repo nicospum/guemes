@@ -54,6 +54,9 @@ func _run() -> void:
 		game.world_script = StubWorld
 	await _justina()
 	await _norte()
+	await _transiciones()
+	await _campana()
+	await _norte_por_humahuaca()
 	report.final_scenario = game.rules.state.scenario
 	report.final_status = game.rules.state.status
 	if is_instance_valid(game.audio_manager):
@@ -461,9 +464,9 @@ func _justina() -> void:
 	var won_run: bool = game.rules.state.status == "victory"
 	var ot := _modal_text()
 	if won_run:
-		check(ot.find("MEDALLA DE") >= 0 and ot.find("Ir a Sostener el Norte") >= 0 and bool(game.progress.justina_ganada), "R1: la victoria muestra medalla y el paso al Norte, y fija el progreso")
+		check(ot.find("MEDALLA DE") >= 0 and ot.find("Seguir: Humahuaca") >= 0 and bool(game.progress.justina_ganada), "R1/D-03: la victoria muestra medalla y el paso al nivel II (Humahuaca), y fija el progreso")
 	else:
-		check(ot.find("Probá esto") >= 0 and ot.find("Reintentar") >= 0 and ot.find("Ir a Sostener el Norte") < 0 and ot.find("campaña del norte") < 0, "R1: la derrota explica y ofrece reintentar, nunca el Norte")
+		check(ot.find("Probá esto") >= 0 and ot.find("Reintentar") >= 0 and ot.find("Seguir: Humahuaca") < 0 and ot.find("Sostener el norte") < 0 and ot.find("campaña del norte") < 0, "R1: la derrota explica y ofrece reintentar, nunca el nivel siguiente")
 	var rep: Dictionary = game.rules.campaign_report()
 	game._report_dialog(true)
 	var mt := _modal_text()
@@ -471,7 +474,7 @@ func _justina() -> void:
 	for g in rep.groups:
 		check(mt.find(str(g.name)) >= 0, "The report lists group " + str(g.name))
 	check(mt.find("Qué fue historia") >= 0 and mt.find("Tradición") >= 0 and mt.find("Documentado") >= 0, "The report ends with 'Qué fue historia' tagged lines")
-	check((_find_button("Ir a la campaña del norte") != null) == won_run, "The full report offers the second scenario after a win and only then")
+	check((_find_button("Seguir: Humahuaca") != null) == won_run, "The full report offers the next level (II, Humahuaca) after a win and only then")
 	_layout_checks("Justina parte")
 	game._outcome_dialog()
 	check(_press("Rejugar") if won_run else _press("Reintentar"), "Outcome provides a working restart")
@@ -615,6 +618,152 @@ func _norte() -> void:
 		await process_frame
 	check(str(game.rules.state.game_id) != restarted_id and int(game.rules.state.round) == 1, "Restart during a pending round begins a clean match")
 	check(not game.pending_round and game.rules.state.external_decisions.is_empty(), "Restart leaves no stale decision or pending lock")
+
+# ------------------------------------------------------------------ transiciones entre niveles (P4: T-001, T-003, T-004)
+func _world_envs() -> Array:
+	return game.find_children("*", "WorldEnvironment", true, false).filter(func(n): return n.is_inside_tree())
+
+func _transiciones() -> void:
+	# T-001: con el II vivo, empezar el III (o cargarlo) libera el II en el mismo cuadro: un solo ambiente, sin lluvia, cámara del Norte.
+	game._menu()
+	await _frames(2)
+	game._start_game("humahuaca")
+	await _frames(4)
+	check(game.mode == "hx" and is_instance_valid(game.hx), "T-001: el nivel II arranca (controlador vivo)")
+	game._start_game("norte")
+	await process_frame
+	var envs := _world_envs()
+	check(envs.size() == 1 and is_instance_valid(game.world) and game.world.is_ancestor_of(envs[0]), "T-001: tras _start_game(\"norte\") con el II vivo queda un solo WorldEnvironment y es el del Norte (%d)" % envs.size())
+	check(game.find_children("lluvia_rayas", "", true, false).is_empty(), "T-001: no queda la lluvia del II")
+	check(game.hx == null and game.mode == "play" and str(game.rules.state.scenario) == "norte", "T-001: el controlador del II quedó liberado y el Norte está en juego")
+	check(game.camera.current and is_equal_approx(game.camera.far, 400.0) and game.camera.position.distance_to(game.camera_target) < 200.0, "T-001: la cámara es la del Norte (far %.0f, a %.0f m del objetivo)" % [game.camera.far, game.camera.position.distance_to(game.camera_target)])
+	game._save_game(false)
+	game._start_game("humahuaca")
+	await _frames(4)
+	game._load_game("norte")
+	await process_frame
+	check(_world_envs().size() == 1 and game.hx == null and game.find_children("lluvia_rayas", "", true, false).is_empty() and str(game.rules.state.scenario) == "norte", "T-001: cargar el Norte con el II vivo también lo libera")
+	# T-004: tras el III el menú vuelve con el plano lejano de arranque.
+	game._menu()
+	await process_frame
+	check(is_equal_approx(game.camera.far, 4000.0), "T-004: tras el Norte el menú repone camera.far = 4000 (es %.0f)" % game.camera.far)
+	# T-003: tras la Justina a 1280x720 el menú (y por lo tanto el II) vuelve con content_scale_factor 1.
+	var old_size: Vector2i = root.size
+	root.size = Vector2i(1280, 720)
+	await _frames(3)
+	game.forced_seed = 1806
+	game._start_game("justine")
+	await _frames(3)
+	var cs_play: float = game.get_window().content_scale_factor
+	game._menu()
+	await _frames(3)
+	check(is_equal_approx(game.get_window().content_scale_factor, 1.0), "T-003: tras la Justina el menú deja content_scale_factor en 1 (en juego era %.2f, en el menú %.2f)" % [cs_play, game.get_window().content_scale_factor])
+	root.size = old_size
+	await _frames(3)
+
+# ------------------------------------------------------------------ progresión I -> II -> III y cierre (P4: D-03, D-04, D-05, D-09, V-01)
+func _campana() -> void:
+	game.campaign.data.north_unlocked = false
+	game.campaign.data.justina_won = false
+	game._progress_sync()
+	game._menu()
+	await _frames(2)
+	var hxb := _find_button("HUMAHUACA")
+	var nb := _find_button("SOSTENER EL NORTE")
+	check(hxb != null and nb != null and hxb.clip_text and hxb.get_child_count() > 0 and hxb.get_theme_color("font_color").a == 0.0, "V-01: los niveles son tarjetas de capítulo (texto accesible oculto, rótulos propios)")
+	var t1 := _ui_text(_find_button("EL RÍO OFRECE"))
+	check(_ui_text(nb).find("CON CANDADO") >= 0 and (t1.find("EMPEZÁ ACÁ") >= 0 or t1.find("EN CURSO") >= 0), "V-01: la tarjeta dice el estado (I: empezá acá o en curso; III: con candado)")
+	game.campaign.data.north_unlocked = true
+	game.campaign.data.justina_won = true
+	game._progress_sync()
+	game._menu()
+	await _frames(2)
+	check(_ui_text(_find_button("HUMAHUACA")).find("RECOMENDADO AHORA") >= 0 and _ui_text(_find_button("SOSTENER EL NORTE")).find("RECOMENDADO") < 0, "D-03: tras ganar la Justina el menú recomienda el II, no el III")
+	# Victoria de la Justina: el botón principal lanza el nivel II
+	game.forced_seed = 1806
+	game._start_game("justine")
+	await _frames(2)
+	game._close_modal()
+	# P-003: cerrar con Esc la ventana de una decisión no la deja oculta con el reloj corriendo
+	game.paused = false
+	game.rules.state.pending_choice = {"title": "Un mensajero", "options": [{"id": "a", "label": "Opción A"}]}
+	game._choice_dialog()
+	game._close_modal()
+	game._update_hud()
+	check(game.paused and game.alert_panel.visible and game.alert_btn.text == "Ver la decisión", "P-003: tras cerrar una decisión pendiente el reloj sigue detenido y un aviso la vuelve a abrir")
+	game._alert_click()
+	check(is_instance_valid(game.modal) and game.modal.has_meta("choice"), "P-003: «Ver la decisión» reabre la ventana")
+	game._close_modal()
+	game.rules.state.pending_choice = {}
+	game._update_hud()
+	game.rules.state.status = "victory"
+	game.rules.state.reason = "Buque capturado"
+	game.rules.state.capture = 100.0
+	game.attempt_logged = false
+	game.beat_enabled = false
+	game.campaign.data.justina_won = false  # primera victoria: es la que anuncia el desbloqueo
+	game._outcome_dialog()
+	await _frames(2)
+	var vt := _modal_text()
+	check(vt.find("Seguir: Humahuaca") >= 0 and vt.find("Se abrió el nivel II") >= 0 and vt.find("escenario 2") < 0, "D-03: la victoria de la Justina anuncia el nivel II y no dice «escenario 2»")
+	check(_press("Seguir: Humahuaca"), "D-03: el botón principal de la victoria existe")
+	await _frames(3)
+	check(game.mode == "hx" and is_instance_valid(game.hx), "D-03: tras ganar la Justina el botón principal lleva al nivel II (Humahuaca)")
+	# II -> III: el controlador sale con «norte» y main arranca el III limpio
+	game.hx.exited.emit("norte")
+	await _frames(2)
+	check(game.mode == "play" and str(game.rules.state.scenario) == "norte" and game.hx == null and _world_envs().size() == 1, "D-03: la salida del II hacia el norte arranca el III sin restos del II")
+	# III: metas a la vista, paso concreto y sin «Jev» para un perfil sin clave
+	game._update_hud()
+	var et: String = str(game.enemy_label.text)
+	check(et.find("meta ≤ 22") >= 0 and et.find("meta ≤ 42") >= 0 and et.find("meta ≤ 45") >= 0 and et.find("de 7") >= 0 and et.find("ronda 10") >= 0, "D-05: el panel del III muestra las tres metas, la presión «x de 7» y la ronda 10")
+	check(game.capture_bar.value < 1.0, "D-05: la barra de victoria arranca vacía (%.1f)" % game.capture_bar.value)
+	check(str(game.tutorial_label.text).begins_with("Siguiente paso · Arias reconoce la Quebrada") and game.next_btn != null and game.next_btn.visible, "D-09: en la ronda 1 la guía da una orden concreta y un botón para prepararla")
+	check(not game.jev_label.visible and _ui_text(game.ui).find("Jev") < 0, "D-09: sin clave configurada no aparece la palabra «Jev»")
+	check(_press("Preparar la orden sugerida") and str(game.rules.get_unit("arias").order.get("action", "")) == "scout", "D-09: «Preparar» deja la orden sugerida preparada en un clic")
+	# P-001: pasar el mouse por una orden no mueve la bandeja (el clic cae donde se apuntó)
+	await _frames(2)
+	var r0: Rect2 = game.action_buttons["scout"].get_global_rect()
+	var rr0: Rect2 = game.round_button.get_global_rect()
+	game._show_campaign_reason("assault")
+	await _frames(2)
+	check(game.action_buttons["scout"].get_global_rect() == r0 and game.round_button.get_global_rect() == rr0, "P-001: la ayuda de una orden no cambia el alto de la bandeja (%s -> %s)" % [str(r0), str(game.action_buttons["scout"].get_global_rect())])
+	game._show_campaign_reason("")
+	var asec: String = str(game.rules.get_unit("arias").sector_id)
+	game.rules.get_sector(asec).known = true
+	game.rules.get_sector("humahuaca").known = true
+	var fake := {"id": "guemes", "strength": 100.0, "supply": 100.0, "fatigue": 0.0, "sector_id": "humahuaca"}
+	check(game.rules.campaign_order_reason("arias", "assault", asec).find("sector Humahuaca") >= 0 and str(game.rules._validate_campaign_order(fake, "assault", "humahuaca").reason).find("Arias") >= 0, "P-010: el bloqueo de «Operar en Humahuaca» dice qué falta (sector o agrupación)")
+	# D-04: fin del III -> pantalla final con «En tu partida» y «En la historia»
+	game.rules.state.status = "victory"
+	game.rules.state.reason = "La presión volvió insostenible la invasión y forzó su retirada."
+	game._outcome_dialog()
+	await _frames(2)
+	var ft := _modal_text()
+	check(ft.find("EN TU PARTIDA") >= 0 and ft.find("EN LA HISTORIA") >= 0 and ft.find("La Justina · 1806") >= 0 and ft.find("Humahuaca · 1817") >= 0 and ft.find("Sostener el norte") >= 0, "D-04: la pantalla final muestra I, II y III frente a la historia")
+	check(ft.find("TRADICIÓN") >= 0 and ft.find("DOCUMENTADO") >= 0 and ft.find("DISEÑO") >= 0 and ft.find("tradición no probada") >= 0 and ft.find("no estuvo en el asalto") >= 0, "D-04: cada renglón histórico lleva su etiqueta y respeta las reglas de historia")
+	check(ft.find("Infernales") < 0 and ft.find("coronel mayor") < 0 and ft.find("general Güemes") < 0 and ft.find("según La Serna") < 0, "D-04: sin afirmaciones vedadas por las reglas de historia")
+	check(bool(game.campaign.data.north_won) and bool(game.campaign.data.north_played), "D-04: el resultado del III queda en el progreso")
+	check(Rect2(Vector2.ZERO, game.get_viewport().get_visible_rect().size).encloses((game.modal.get_child(1) as Control).get_global_rect()) and game.modal.find_children("*", "ScrollContainer", true, false).is_empty(), "D-04: la pantalla final entra sin scroll")
+	check(_press("Volver al menú"), "D-04: la pantalla final vuelve al menú")
+	await _frames(2)
+	check(game.mode == "menu" and _ui_text(_find_button("SOSTENER EL NORTE")).find("GANADA") >= 0, "D-04: tras la campaña el menú marca el III como ganado")
+
+# P-007: ganar Humahuaca también abre el III (y queda en el progreso)
+func _norte_por_humahuaca() -> void:
+	game.campaign.data.north_unlocked = false
+	game.campaign.data.justina_won = false
+	game.campaign.save_progress()
+	game._progress_sync()
+	var f := FileAccess.open("user://humahuaca_progress.json", FileAccess.WRITE)
+	f.store_string(JSON.stringify({"version": 1, "attempts": 1, "defeats_in_row": 0, "best_medal": "bronce", "won": true, "best_golpe": 61.0, "world_index": 1, "tutorial_seen": true, "diary": []}))
+	f.close()
+	game._menu()
+	await _frames(2)
+	var nb := _find_button("SOSTENER EL NORTE")
+	check(nb != null and not nb.disabled and bool(game.campaign.data.north_unlocked), "P-007: ganar Humahuaca abre el III en el menú y en el progreso")
+	check(_ui_text(_find_button("HUMAHUACA")).find("GANADA") >= 0 and _ui_text(_find_button("EL RÍO OFRECE")).find("GANADA") < 0, "P-007: el menú no da por ganada la Justina por haber ganado Humahuaca")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://humahuaca_progress.json"))
 
 # ------------------------------------------------------------------ utilidades
 func _frames(n: int) -> void:
@@ -765,7 +914,7 @@ func _justina_r1_ui() -> void:
 	game.settings.tutorial = true
 	game.tut_step = 0
 	game._update_hud()
-	check(game.reason_label.text.begins_with("Seguí la guía"), "R5: with the tutorial on there is a single guide message (the bar only explains the buttons): " + game.reason_label.text)
+	check(game.reason_label.text == "" and not game.reason_label.visible and game.hint_panel.visible, "R5/D-07: with the tutorial on there is a single guide message (the tray line is hidden): «" + game.reason_label.text + "»")
 	var tut_prev: bool = bool(game.settings.tutorial)
 	game.settings.tutorial = false
 	game._update_hud()
@@ -775,11 +924,12 @@ func _justina_r1_ui() -> void:
 	check(game.reason_label.text.find("límite de 1 ") < 0 and game.reason_label.text.find("(tocá o pasá") < 0, "R5: the grey-reason note is not cut at the decimal: " + game.reason_label.text)
 	check(game._player_text("Texto. La variante con el banco expuesto es una decisión pendiente tuya.").find("pendiente") < 0, "R5: production notes are stripped from player text")
 	check(str(game._order_text("guemes")).length() > 0 and game._friendly_reason("board", "El fondo estimado en ese punto supera el límite de 1.3 m.").begins_with("El camino hasta el buque"), "R5: the board reason says to probe toward the ship first")
-	game.settings.tutorial = tut_prev
-	game._update_hud()
 	game._show_action_info("board")
 	check(game.reason_label.text.find("No disponible") >= 0 and game.reason_label.text.find("Liniers") >= 0, "Hovering a blocked action shows why")
 	game._show_action_info("")
+	game.settings.tutorial = tut_prev
+	game._update_hud()
+	check(str(game.action_buttons["board"].tooltip_text).find("No disponible ahora") >= 0 and str(game.action_buttons["board"].tooltip_text).find("Liniers") >= 0, "D-07: with the tutorial on, the blocked reason lives in the button tooltip (the tray does not change height under the cursor)")
 	game._select_ids(["scout_1"])
 	var rb: Button = game.action_buttons["recall"]
 	check(not rb.disabled and str(rb.get_meta("why")).find("desconocida") < 0, "Volver is valid for a live scout (no 'Acción desconocida')")

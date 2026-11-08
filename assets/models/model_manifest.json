@@ -596,5 +596,416 @@
     "front": "Godot -Z",
     "provenance": "Own procedural geometry and textures; artistic reconstruction.",
     "historical_note": "NEW in phase 2. ~2.5 m cluster of four boulders."
+  },
+  "hx_casa_adobe": {
+    "file": "hx_casa_adobe.glb",
+    "bytes": 167808,
+    "triangles_base_mesh": 1220,
+    "animations_expected": [],
+    "animations_exported": [],
+    "mesh_count": 1,
+    "surfaces": 6,
+    "materials": [
+      "PBR | anchor",
+      "PBR | stone",
+      "PBR | hx_adobe",
+      "PBR | hx_torta",
+      "PBR | wood",
+      "PBR | planks"
+    ],
+    "textures": 0,
+    "vertex_colors": true,
+    "sha256": "136ce8fb8e777d656443f4008969ee564c9c4430907d16eb623d7859f998b2cf",
+    "blender_bounds": {
+      "min": [
+        -3.05,
+        -2.2557959697364787,
+        0.0
+      ],
+      "max": [
+        3.05,
+        2.2557959697364787,
+        3.2500126031055023
+      ]
+    },
+    "godot_bounds": {
+      "min": [
+        -3.05,
+        0.0,
+        -2.2557959697364787
+      ],
+      "max": [
+        3.05,
+        3.2500126031055023,
+        2.2557959697364787
+      ]
+    },
+    "front": "Godot -Z",
+    "provenance": "Own procedural geometry (hx_* builders of tools/create_models.py) exported WITHOUT Blender by tools/hx_models_sin_blender.py: vertex colour only, no PBR textures. Artistic reconstruction.",
+    "historical_note": "P6, Humahuaca 1817. Adobe house 6.0 x 4.0 m, flat torta roof sloping to the street (front, Godot -Z), pretil, rollizos, one door, one window. Design / reasoned reconstruction, not a surveyed building."
+  },
+  "hx_casa_adobe_grande": {
+    "file": "hx_casa_adobe_grande.glb",
+    "bytes": 278140,
+    "triangles_base_mesh": 2048,
+    "animations_expected": [],
+    "animations_exported": [],
+    "mesh_count": 1,
+    "surfaces": 7,
+    "materials": [
+      "PBR | anchor",
+      "PBR | stone",
+      "PBR | hx_adobe",
+      "PBR | hx_torta",
+      "PBR | wood",
+      "PBR | planks",
+      "PBR | hx_paja"
+    ],
+    "textures": 0,
+    "vertex_colors": true,
+    "sha256": "346c2ab29308abf125b37440e1429f2b400ced34c70bfdc98cd60edb3d8cd80a",
+    "blender_bounds": {
+      "min": [
+        -5.05,
+        -3.8049999999999997,
+        0.0
+      ],
+      "max": [
+        5.05,
+        3.8049999999999997,
+        3.400010252338005
+      ]
+    },
+    "godot_bounds": {
+      "min": [
+        -5.05,
+        0.0,
+        -3.8049999999999997
+      ],
+      "max": [
+        5.05,
+        3.400010252338005,
+        3.8049999999999997
+      ]
+    },
+    "front": "Godot -Z",
+    "provenance": "Own procedural geometry (hx_* builders of tools/create_models.py) exported WITHOUT Blender by tools/hx_models_sin_blender.py: vertex colour only, no PBR textures. Artistic reconstruction.",
+    "historical_note": "P6, Humahuaca 1817. Adobe house 10.0 x 5.0 m with a front ramada of horcones and cane; two doors (one ajar), two windows. Design / reasoned reconstruction."
+  },
+  "hx_capilla": {
+    "file": "hx_capilla.glb",
+    "bytes": 175412,
+    "triangles_base_mesh": 1436,
+    "animations_expected": [],
+    "animations_exported": [],
+    "mesh_count": 1,
+    "surfaces": 7,
+    "materials": [
+      "PBR | anchor",
+      "PBR | stone",
+      "PBR | hx_cal",
+      "PBR | hx_torta",
+      "PBR | wood",
+      "PBR | planks",
+      "PBR | metal"
+    ],
+    "textures": 0,
+    "vertex_colors": true,
+    "sha256": "61e35a3833ecb204e3cdd4230445d3212ededcf456278417f4442ca96f7c1a72",
+    "blender_bounds": {
+      "min": [
+        -4.0410109561804575,
+        -6.79,
+        0.0
+      ],
+      "max": [
+        4.0410109561804575,
+        6.79,
+        7.900000000000001
+      ]
+    },
+    "godot_bounds": {
+      "min": [
+        -4.0410109561804575,
+        0.0,
+        -6.79
+      ],
+      "max": [
+        4.0410109561804575,
+        7.900000000000001,
+        6.79
+      ]
+    },
+    "front": "Godot -Z",
+    "provenance": "Own procedural geometry (hx_* builders of tools/create_models.py) exported WITHOUT Blender by tools/hx_models_sin_blender.py: vertex colour only, no PBR textures. Artistic reconstruction.",
+    "historical_note": "P6, Humahuaca 1817. Small limewashed adobe chapel, nave 6.4 x 13 m, gable roof of torta, espadaña with two bells on the facade (Godot -Z); AABB under 8 m. Generic chapel of the quebrada, not the Humahuaca church."
+  },
+  "hx_tapia": {
+    "file": "hx_tapia.glb",
+    "bytes": 43504,
+    "triangles_base_mesh": 300,
+    "animations_expected": [],
+    "animations_exported": [],
+    "mesh_count": 1,
+    "surfaces": 3,
+    "materials": [
+      "PBR | anchor",
+      "PBR | hx_tapial",
+      "PBR | hx_paja"
+    ],
+    "textures": 0,
+    "vertex_colors": true,
+    "sha256": "66b90d41063a27694f9b3ddaa0de95c1ecf08156675af2c3eedee8f61b823fd1",
+    "blender_bounds": {
+      "min": [
+        -2.0,
+        -0.34,
+        0.0
+      ],
+      "max": [
+        2.0,
+        0.34,
+        2.2137309361849224
+      ]
+    },
+    "godot_bounds": {
+      "min": [
+        -2.0,
+        0.0,
+        -0.34
+      ],
+      "max": [
+        2.0,
+        2.2137309361849224,
+        0.34
+      ]
+    },
+    "front": "Godot -Z",
+    "provenance": "Own procedural geometry (hx_* builders of tools/create_models.py) exported WITHOUT Blender by tools/hx_models_sin_blender.py: vertex colour only, no PBR textures. Artistic reconstruction.",
+    "historical_note": "P6, Humahuaca 1817. Rammed-earth wall module 4.0 m long (X), 2.0 m high, 0.55-0.45 m thick, straw capping; square ends to repeat along X."
+  },
+  "hx_corral": {
+    "file": "hx_corral.glb",
+    "bytes": 733828,
+    "triangles_base_mesh": 5522,
+    "animations_expected": [],
+    "animations_exported": [],
+    "mesh_count": 1,
+    "surfaces": 4,
+    "materials": [
+      "PBR | anchor",
+      "PBR | hx_pirca",
+      "PBR | stone",
+      "PBR | wood"
+    ],
+    "textures": 0,
+    "vertex_colors": true,
+    "sha256": "f1c9e7688a699e07c0b54624ee33b4d68af1214ede32d9ab72db2b73db676634",
+    "blender_bounds": {
+      "min": [
+        -5.391948291870094,
+        -5.382796887416609,
+        0.0
+      ],
+      "max": [
+        5.381263715526773,
+        5.383800578991686,
+        1.42
+      ]
+    },
+    "godot_bounds": {
+      "min": [
+        -5.391948291870094,
+        0.0,
+        -5.383800578991686
+      ],
+      "max": [
+        5.381263715526773,
+        1.42,
+        5.382796887416609
+      ]
+    },
+    "front": "Godot -Z",
+    "provenance": "Own procedural geometry (hx_* builders of tools/create_models.py) exported WITHOUT Blender by tools/hx_models_sin_blender.py: vertex colour only, no PBR textures. Artistic reconstruction.",
+    "historical_note": "P6, Humahuaca 1817. Dry-stone (pirca) corral 10 x 10 m, 1.15 m high, pole gate on the front (Godot -Z). Design."
+  },
+  "hx_pirca": {
+    "file": "hx_pirca.glb",
+    "bytes": 80512,
+    "triangles_base_mesh": 580,
+    "animations_expected": [],
+    "animations_exported": [],
+    "mesh_count": 1,
+    "surfaces": 3,
+    "materials": [
+      "PBR | anchor",
+      "PBR | hx_pirca",
+      "PBR | stone"
+    ],
+    "textures": 0,
+    "vertex_colors": true,
+    "sha256": "234fa684e7b7bc2ad71e2bab00ba0720769ca9e905516a37716229f9cfd1a8e5",
+    "blender_bounds": {
+      "min": [
+        -2.0,
+        -0.3848740266614571,
+        0.0
+      ],
+      "max": [
+        2.0,
+        0.38345872223129407,
+        1.3073780507755723
+      ]
+    },
+    "godot_bounds": {
+      "min": [
+        -2.0,
+        0.0,
+        -0.38345872223129407
+      ],
+      "max": [
+        2.0,
+        1.3073780507755723,
+        0.3848740266614571
+      ]
+    },
+    "front": "Godot -Z",
+    "provenance": "Own procedural geometry (hx_* builders of tools/create_models.py) exported WITHOUT Blender by tools/hx_models_sin_blender.py: vertex colour only, no PBR textures. Artistic reconstruction.",
+    "historical_note": "P6, Humahuaca 1817. Straight 4.0 m module of pirca (dry stone), 1.15 m high, to repeat along X."
+  },
+  "hx_pieza_artilleria": {
+    "file": "hx_pieza_artilleria.glb",
+    "bytes": 182624,
+    "triangles_base_mesh": 2044,
+    "animations_expected": [],
+    "animations_exported": [],
+    "mesh_count": 1,
+    "surfaces": 4,
+    "materials": [
+      "PBR | anchor",
+      "PBR | wood",
+      "PBR | hx_hierro",
+      "PBR | hx_paja"
+    ],
+    "textures": 0,
+    "vertex_colors": true,
+    "sha256": "b2a4ac455449b12e94488e6bf0a8b67832ea751dd88c906556ab00bc7c62e067",
+    "blender_bounds": {
+      "min": [
+        -0.9299999999999999,
+        -1.551927146629564,
+        0.0
+      ],
+      "max": [
+        0.9299999999999999,
+        1.551927146629564,
+        1.35
+      ]
+    },
+    "godot_bounds": {
+      "min": [
+        -0.9299999999999999,
+        0.0,
+        -1.551927146629564
+      ],
+      "max": [
+        0.9299999999999999,
+        1.35,
+        1.551927146629564
+      ]
+    },
+    "front": "Godot -Z",
+    "provenance": "Own procedural geometry (hx_* builders of tools/create_models.py) exported WITHOUT Blender by tools/hx_models_sin_blender.py: vertex colour only, no PBR textures. Artistic reconstruction.",
+    "historical_note": "P6, Humahuaca 1817. Light field gun (1.6 m tube, 'de a 4' size) on a bracket-trail carriage; muzzle to Godot -Z. Generic piece, reasoned reconstruction; bronze tube (plate 06 says 'hierro' for cannons: deliberate deviation), iron fittings."
+  },
+  "hx_brasero": {
+    "file": "hx_brasero.glb",
+    "bytes": 63496,
+    "triangles_base_mesh": 1000,
+    "animations_expected": [],
+    "animations_exported": [],
+    "mesh_count": 1,
+    "surfaces": 4,
+    "materials": [
+      "PBR | anchor",
+      "PBR | hx_hierro",
+      "PBR | hx_brasa",
+      "PBR | wood"
+    ],
+    "textures": 0,
+    "vertex_colors": true,
+    "sha256": "e4c7855dc15d243f574218f27a4998a69e6a7c007ad93f10ad88c3dba6148a64",
+    "blender_bounds": {
+      "min": [
+        -0.492,
+        -0.41252115441513615,
+        0.0
+      ],
+      "max": [
+        0.492,
+        0.41252115441513615,
+        0.9055806176625977
+      ]
+    },
+    "godot_bounds": {
+      "min": [
+        -0.492,
+        0.0,
+        -0.41252115441513615
+      ],
+      "max": [
+        0.492,
+        0.9055806176625977,
+        0.41252115441513615
+      ]
+    },
+    "front": "Godot -Z",
+    "provenance": "Own procedural geometry (hx_* builders of tools/create_models.py) exported WITHOUT Blender by tools/hx_models_sin_blender.py: vertex colour only, no PBR textures. Artistic reconstruction.",
+    "historical_note": "P6, Humahuaca 1817. Iron brazier on three legs with emissive embers; warm light anchor about 1.4 m above the origin (above the rim, so the bowl does not shade the ground)."
+  },
+  "hx_fogon": {
+    "file": "hx_fogon.glb",
+    "bytes": 59332,
+    "triangles_base_mesh": 464,
+    "animations_expected": [],
+    "animations_exported": [],
+    "mesh_count": 1,
+    "surfaces": 4,
+    "materials": [
+      "PBR | anchor",
+      "PBR | stone",
+      "PBR | wood",
+      "PBR | hx_brasa"
+    ],
+    "textures": 0,
+    "vertex_colors": true,
+    "sha256": "232fe312353e4505939e7d6e945b387874f2fbfb01b1784c392c7ecb6787ac73",
+    "blender_bounds": {
+      "min": [
+        -0.7852288338004605,
+        -0.7617267266534511,
+        0.0
+      ],
+      "max": [
+        0.7852288338004605,
+        0.7617267266534511,
+        0.23417777307592502
+      ]
+    },
+    "godot_bounds": {
+      "min": [
+        -0.7852288338004605,
+        0.0,
+        -0.7617267266534511
+      ],
+      "max": [
+        0.7852288338004605,
+        0.23417777307592502,
+        0.7617267266534511
+      ]
+    },
+    "front": "Godot -Z",
+    "provenance": "Own procedural geometry (hx_* builders of tools/create_models.py) exported WITHOUT Blender by tools/hx_models_sin_blender.py: vertex colour only, no PBR textures. Artistic reconstruction.",
+    "historical_note": "P6, Humahuaca 1817. Guard fire ring of stones with logs and emissive embers; warm light anchor about 0.6 m above the origin."
   }
 }

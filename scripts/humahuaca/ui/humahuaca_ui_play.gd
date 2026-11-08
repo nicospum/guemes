@@ -19,12 +19,16 @@ func save_game() -> bool:
 	return false
 
 
+## F9 y «Cargar» del menú de pausa. Revisión E-5: si no se puede cargar, la partida sigue como estaba, así que el aviso lo dice (no «Empezás de nuevo», que es
+## el texto de «Continuar» desde el menú) y va solo como aviso de pie con su tiempo: no queda fijo en la línea roja del HUD.
 func load_game() -> bool:
 	if rules == null:
 		return false
 	_notice = ""
 	if not _try_load_save():
-		_toast(_notice, "aviso", true)
+		_notice = ""
+		_toast(tx("load.failed_in_play", "%s") % _load_reason, "aviso", true)
+		_refresh_hud(true)
 		return false
 	if dialogs != null:
 		dialogs.close()
@@ -135,8 +139,10 @@ func _do_key(id: String, action: String, k: InputEventKey) -> bool:
 			if id.begins_with("group_"):
 				select_group(int(id.trim_prefix("group_")) - 1)
 			elif action != "":
-				if action == "attack" and k.ctrl_pressed:
+				if action == "attack" and k.ctrl_pressed and not selected.is_empty():
 					orders.issue_selected("attack", Vector2.ZERO, {"posture": "a_fondo"})
+				elif action == "attack" and k.ctrl_pressed:
+					orders.press("attack")  # revisión E-7: sin agrupación elegida, Ctrl+T avisa como T («Elegí primero una agrupación…») en vez de quedar mudo
 				else:
 					orders.press(action)
 				_refresh_hud(true)
@@ -163,6 +169,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 		return
 	if dialogs != null and dialogs.is_open():
+		end_gestures()  # revisión E-1: con una ventana abierta ningún gesto sigue vivo (la soltada que llega acá se descartaba y el arrastre quedaba pegado)
 		return
 	if event is InputEventMouseMotion:
 		var mm := event as InputEventMouseMotion
@@ -198,6 +205,19 @@ func _unhandled_input(event: InputEvent) -> void:
 				if mb.pressed and cam != null and camera3d() != null:
 					cam.zoom_at(camera3d(), mb.position, 1.0 / _ui_num("camera", "zoom_step", 0.86))
 		get_viewport().set_input_as_handled()
+
+
+## Termina cualquier gesto del mouse en curso (arrastre del mapa con el botón del medio y caja de selección). La llaman las ventanas al abrirse y al cerrarse:
+## lo que empezó antes de una ventana no sigue después (revisión E-1).
+func end_gestures() -> void:
+	if _middle_drag and cam != null:
+		cam.drag_end()
+	elif cam != null and cam.has_method("dragging") and bool(cam.call("dragging")):
+		cam.drag_end()
+	_middle_drag = false
+	_pressing = false
+	_press_unit = ""
+	box_rect = Rect2()
 
 
 func _left_button(mb: InputEventMouseButton) -> void:
@@ -329,10 +349,21 @@ func cycle_selection(backwards: bool) -> void:
 	select([V.GROUPS[idx]], "replace")
 
 
+## Ctrl+Z (T-008). Deshace solo la última orden propia y solo si deshacerla deja a la agrupación como estaba: las reglas de hoy (undo_last) saltan la señal y
+## deshacían la orden anterior de OTRA agrupación, y dejaban «esperando órdenes» aunque la orden hubiera anotado otra etapa previa (por ejemplo, esperando la señal).
+## Mientras las reglas no restauren lo anotado en `prev` (pedido a la pista de reglas, revisión A-08), la interfaz se niega con un motivo claro en esos dos casos.
 func undo_last() -> void:
 	if rules == null or not _playing():
 		return
+	var why := undo_refusal()
+	if why != "":
+		set_motive(why, true)
+		play_sound("error")
+		_refresh_hud(true)
+		return
 	var res: Variant = rules.call("undo_last")
+	if orders != null:
+		orders.forget_availability()
 	if res is Dictionary and bool((res as Dictionary).get("ok", false)):
 		play_sound("order")
 		_refresh_hud(true)
@@ -446,6 +477,8 @@ func _handle_events(events: Array) -> void:
 		if bool(ev.get("strong", false)) and level == "info":
 			level = "aviso"
 		var text := str(ev.get("text", ""))
+		if level != "info":
+			_last_alarm_real = _clock_real()  # D-11: una novedad importante corta la sugerencia de ×2
 		if text != "":
 			if level != "info" or _toast_queue.size() < 2:
 				_toast(text, level)
@@ -559,7 +592,7 @@ func _compute_guide() -> void:
 	var enabled := true
 	var why := ""
 	if actionable:
-		var av: Variant = rules.call("action_availability", actor, action, target, _guide_opts(action, target))
+		var av: Variant = orders.cached_availability(actor, action, target, _guide_opts(action, target)) if orders != null else rules.call("action_availability", actor, action, target, _guide_opts(action, target))
 		enabled = av is Dictionary and bool((av as Dictionary).get("ok", false))
 		if not enabled and av is Dictionary:
 			why = str((av as Dictionary).get("reason", ""))
@@ -567,6 +600,51 @@ func _compute_guide() -> void:
 		"button_visible": button != "", "enabled": enabled, "why": why, "arrow": actionable and bool(ui_data.get("onboarding", {}).get("arrow", true)) and mode == "play" and _playing()}
 	if mode != "play" or not _playing():
 		guide = {}
+	elif action == "hold":
+		var w := _wait_detail(actor)
+		guide["wait"] = true
+		guide["wait_extra"] = str(w.get("extra", ""))
+		guide["wait_focus"] = w.get("focus", Vector2.ZERO)
+
+
+## P-008 (playtest de línea de base: el 69 % del tiempo el siguiente paso decía «Esperá» sin botón): cuando hay que esperar, la interfaz dice qué se espera y cuánto
+## falta con lo que ya dan las reglas (los metros de ruta que le quedan a la agrupación, la toma del frente, la carga del arreo o el reloj del alba) y ofrece algo útil:
+## mirar lo que se espera (centra la cámara) y acelerar ×2 o ×4. No inventa una decisión que las reglas no tienen.
+func _wait_detail(actor: String) -> Dictionary:
+	var out := {"extra": "", "focus": Vector2.ZERO}
+	if rules == null or actor == "":
+		return out
+	var u: Variant = rules.call("get_unit", actor)
+	if not (u is Dictionary) or (u as Dictionary).is_empty():
+		return out
+	var ud := u as Dictionary
+	var pos := Vector2(float(ud.get("x", 0.0)), float(ud.get("z", 0.0)))
+	out["focus"] = pos
+	var stage := str(ud.get("stage", ""))
+	var phase := str(_hs.get("fase", {}).get("id", "")) if _hs.get("fase", {}) is Dictionary else ""
+	if stage in ["moving", "retreating", "scouting"]:
+		var left := 0.0
+		var prev := pos
+		for p in ud.get("path", []):
+			var q := Vector2(float((p as Dictionary).get("x", 0.0)), float((p as Dictionary).get("z", 0.0)))
+			left += prev.distance_to(q)
+			prev = q
+		if left >= 5.0:
+			out["extra"] = tx("hud.wait.distance", "faltan %d m") % int(round(left / 5.0) * 5.0)
+	elif stage == "loading":
+		for c in _hs.get("chips", []):
+			if str((c as Dictionary).get("id", "")) == "carga":
+				out["extra"] = str((c as Dictionary).get("txt", ""))
+	elif phase == "ataque":
+		var fid := str(group_fronts.get(actor, ""))
+		for f in _hs.get("frentes", []):
+			var fd := f as Dictionary
+			if str(fd.get("id", "")) == fid:
+				out["extra"] = tx("hud.wait.take", "%s: toma %d %%") % [str(fd.get("nombre", fid)), int(round(float(fd.get("toma_pct", 0.0))))]
+				out["focus"] = landmark_pos(fid)
+	elif stage == "waiting_signal":
+		out["extra"] = str(_hs.get("fase", {}).get("reloj", "")) if _hs.get("fase", {}) is Dictionary else ""
+	return out
 
 
 func _guide_opts(action: String, target: Vector2) -> Dictionary:
@@ -715,17 +793,46 @@ func _layer_names(ids: Array) -> String:
 	return _join_y(names)
 
 
+## D-11 (ritmo): durante una marcha sin novedades se sugiere ×2, sin tocar la velocidad (la velocidad nunca cambia sola) y sin ventana: aparece el botón «Acelerar ×2»
+## junto al siguiente paso y, una vez cada `repeat_s`, un aviso de pie. «Sin novedades» = el reloj corre a ×1, no hay alerta, decisión ni ventana, el siguiente paso no
+## pide ninguna orden (espera o no trae botón), alguna agrupación está en marcha o esperando y pasaron `after_calm_s` sin un aviso importante. Cualquier novedad lo apaga.
 func _calm_tick(delta: float) -> void:
 	var cfg: Dictionary = ui_data.get("onboarding", {}).get("speed_suggestion", {})
-	var waiting := not guide.is_empty() and str(guide.get("action", "")) == "hold"
-	if mode == "play" and not paused and speed == 1.0 and waiting and _playing():
+	if _calm_conditions():
 		_calm_s += delta
-		if _calm_s >= float(cfg.get("after_calm_s", 20)):
-			_suggest_x2 = true
+		if _calm_s >= float(cfg.get("after_calm_s", 8)):
+			if not _suggest_x2:
+				_suggest_x2 = true
+				_hud_timer = 0.0
+			var now := _clock_real()
+			if now - _suggest_toast_real >= float(cfg.get("repeat_s", 60)):
+				_suggest_toast_real = now
+				_toast(tx("time.suggest_x2", ""), "info")
 	else:
 		_calm_s = 0.0
-		if speed != 1.0 or paused or not waiting:
+		if _suggest_x2:
 			_suggest_x2 = false
+			_hud_timer = 0.0
+
+
+func _calm_conditions() -> bool:
+	if mode != "play" or paused or speed != 1.0 or not _playing() or rules == null:
+		return false
+	if dialogs != null and dialogs.is_open():
+		return false
+	if hud != null and not hud._alert_data.is_empty():
+		return false
+	if _decision_pending() or (orders != null and orders.aiming()):
+		return false
+	var asks := not guide.is_empty() and bool(guide.get("button_visible", false)) and bool(guide.get("enabled", true)) and str(guide.get("action", "")) != "hold"
+	if asks:
+		return false
+	if _clock_real() - _last_alarm_real < float(ui_data.get("onboarding", {}).get("speed_suggestion", {}).get("after_calm_s", 8)):
+		return false
+	for st in _stages_by_group().values():
+		if str(st) in ["moving", "scouting", "loading", "retreating", "waiting_signal", "holding"]:
+			return true
+	return false
 
 
 ## Si pasan `onboarding.first_order_hint_s` segundos (12) sin que el jugador dé ninguna orden, un aviso le dice cómo arranca el reloj (con la primera orden o con Espacio): el nivel
@@ -786,6 +893,7 @@ func _refresh_hud(_force_now: bool = false) -> void:
 	var ctx := {"paused": paused or mode != "play", "speed": speed, "phase": phase_id, "selected": selected, "guide": guide, "alert": alert,
 		"toast": _toast_for_hud(alert), "warn": _warn_text(), "motive": motive, "status": _status_line(), "suggest_x2": _suggest_x2,
 		"bar_items": orders.bar_items(_hs) if orders != null and mode == "play" else [], "idle_groups": _idle_groups(), "stages": _stages_by_group(),
+		"wait_fast": bool(guide.get("wait", false)) and speed < 4.0,
 		"pace": orders.pace if orders != null else "march", "pace_visible": orders != null and orders.aiming() and str(orders.aim.get("action", "")) != "support"}
 	if mode == "play" and selected.is_empty() and _playing() and order_count >= 1:
 		ctx["motive"] = motive if motive != "" else tx("hud.pick_hint", "")
@@ -800,6 +908,11 @@ func _on_hud(kind: String, arg: Variant) -> void:
 			toggle_pause()
 		"speed":
 			set_speed_index(int(arg))
+		"look":  # P-008: mirar lo que se espera
+			var at: Variant = guide.get("wait_focus", Vector2.ZERO)
+			if at is Vector2 and at != Vector2.ZERO and cam != null:
+				cam.center_on(at)
+				apply_camera()
 		"help":
 			open_help()
 		"menu":
@@ -966,6 +1079,7 @@ func _close_dialog() -> void:
 	var back := _dialog_back
 	_dialog_back = ""
 	dialogs.close()
+	end_gestures()
 	if mode == "ended":
 		_show_report()
 		return
@@ -1043,6 +1157,9 @@ func _on_dialog(kind: String, arg: Variant) -> void:
 		"history_toggle":
 			dialogs.history_open = not dialogs.history_open
 			_show_report()
+		"timeline_toggle":
+			dialogs.timeline_open = not dialogs.timeline_open
+			_show_report()
 		"decide":
 			_resolve_decision(str(arg), false)
 
@@ -1076,10 +1193,66 @@ func _show_report() -> void:
 	if dialogs == null or rules == null:
 		return
 	var rep: Variant = rules.call("campaign_report")
-	var options: Array = progress.call("retry_options") if progress != null and progress.has_method("retry_options") else []
+	var options: Array = usable_retry_options()
+	end_gestures()
 	if hud != null:
 		hud.visible_root(false)  # el parte se lee solo, sin el HUD de la partida que terminó debajo
 	dialogs.show_report(rep if rep is Dictionary else {}, _rec, options)
+
+
+## Por qué no se puede volver a un punto de control (texto para el jugador), o «» si se puede: el progreso lo tiene anotado, el archivo lo trae y es de este mundo
+## (misma semilla). Defensa de la interfaz para T-005: el progreso de hoy puede ofrecer un control que el archivo ya no tiene (R-01) o uno de un mundo anterior (R-02).
+func checkpoint_refusal(kind: String) -> String:
+	if progress == null or not progress.has_method("restore_checkpoint") or not progress.has_method("has_checkpoint") or not bool(progress.call("has_checkpoint", kind)):
+		return tx("report.checkpoint_missing", "")
+	var st: Variant = _checkpoint_state(kind)
+	if not (st is Dictionary):
+		return tx("report.checkpoint_missing", "")
+	if int((st as Dictionary).get("seed", -1)) != _seed:
+		return tx("report.checkpoint_other_world", "")
+	return ""
+
+
+## El estado guardado de un punto de control, leído del archivo del progreso (formato {version, points: {tipo: {time, state}}}), o null si no está.
+func _checkpoint_state(kind: String) -> Variant:
+	if _checkpoint_path == "" or not FileAccess.file_exists(_checkpoint_path):
+		return null
+	var parser := JSON.new()
+	if parser.parse(FileAccess.get_file_as_string(_checkpoint_path)) != OK or not (parser.data is Dictionary):
+		return null
+	var points: Variant = (parser.data as Dictionary).get("points", {})
+	if not (points is Dictionary) or not ((points as Dictionary).get(kind, null) is Dictionary):
+		return null
+	var st: Variant = ((points as Dictionary)[kind] as Dictionary).get("state", null)
+	return st if st is Dictionary else null
+
+
+## Las opciones de reintento que el parte puede ofrecer: las del progreso, con «posiciones» y «salida» solo si de verdad se pueden restaurar (T-005).
+func usable_retry_options() -> Array:
+	var out: Array = []
+	var options: Array = progress.call("retry_options") if progress != null and progress.has_method("retry_options") else []
+	for o in options:
+		var od: Dictionary = (o as Dictionary).duplicate()
+		var oid := str(od.get("id", ""))
+		if (oid == "posiciones" or oid == "salida") and bool(od.get("available", false)) and checkpoint_refusal(oid) != "":
+			od["available"] = false
+		out.append(od)
+	return out
+
+
+## Por qué Ctrl+Z no puede deshacer ahora (texto para el jugador), o «» si puede. Se mira la última orden anotada en el estado (lo que deshace undo_last).
+func undo_refusal() -> String:
+	var st := _rules_state()
+	var list: Variant = st.get("orders", [])
+	if not (list is Array) or (list as Array).is_empty():
+		return tx("actions.nothing_to_undo", "")
+	var last: Dictionary = (list as Array)[(list as Array).size() - 1] if (list as Array)[(list as Array).size() - 1] is Dictionary else {}
+	if str(last.get("unit", "")) == "" or str(last.get("action", "")) == "give_signal":
+		return tx("actions.undo_signal", "")  # la señal no se deshace; undo_last la saltaba y deshacía la orden de otra agrupación
+	var prev: Variant = last.get("prev", {})
+	if prev is Dictionary and str((prev as Dictionary).get("stage", "idle")) not in ["idle", ""]:
+		return tx("actions.undo_lost", "")  # deshacer la dejaría «esperando órdenes» en vez de como estaba (revisión A-08)
+	return ""
 
 
 ## Reintenta: `kind` es una de RETRY (posiciones, salida, mismo_mundo, mundo_nuevo). Sin briefing ni apertura: se juega enseguida (≤ 3 s).
@@ -1091,15 +1264,30 @@ func retry(kind: String) -> void:
 		dialogs.close()
 	if kind == "mundo_nuevo" and progress != null and progress.has_method("new_world"):
 		progress.call("new_world")
-	_attempt += 1
-	_seed = _pick_seed()
 	var restored := false
-	if (kind == "posiciones" or kind == "salida") and progress != null and progress.has_method("restore_checkpoint"):
+	if kind == "posiciones" or kind == "salida":
+		# T-005 (mitad interfaz, revisión R-01 y R-02): solo se restaura un control que existe en el archivo y es de este mundo; si no, se dice por qué y se vuelve al
+		# parte en vez de empezar de cero en silencio. Si aun así las reglas lo rechazan, se avisa el motivo y se empieza de cero.
+		var why := checkpoint_refusal(kind)
+		if why != "":
+			if dialogs != null:
+				dialogs.notice = why  # el HUD está oculto detrás del parte: el motivo se lee en el parte mismo
+			_show_report()
+			retry_ms = Time.get_ticks_msec() - t0
+			return
+		_attempt += 1
 		_new_attempt({}, false)  # restore_checkpoint cuenta el intento: contarlo acá también daba «Intento 3» tras un solo reintento
 		var res: Variant = progress.call("restore_checkpoint", rules, kind)
-		restored = res is Dictionary and bool((res as Dictionary).get("ok", false))
-	if not restored:
-		_new_attempt({}, true)  # sin punto de control (o si no sirvió) se empieza de cero y se cuenta ese intento
+		restored = res is Dictionary and bool((res as Dictionary).get("ok", false)) and int(_rules_state().get("seed", _seed)) == _seed
+		if not restored:
+			var reason := str((res as Dictionary).get("reason", "")) if res is Dictionary else ""
+			_toast(tx("report.checkpoint_failed", "%s") % (reason if reason != "" else tx("report.checkpoint_missing", "")), "aviso", true)
+			_new_attempt({}, true)
+	else:
+		_attempt += 1
+		if kind == "mundo_nuevo" or _progress_world() != _world_seen:
+			_seed = _pick_seed()  # al ganar o con «Mundo nuevo» el mundo se re-sortea; si no, se repite el mismo (también el de un guardado recuperado: revisión B-3)
+		_new_attempt({}, true)
 	mode = "play"
 	paused = true
 	_auto_start = not restored

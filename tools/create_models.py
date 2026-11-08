@@ -1583,6 +1583,811 @@ NOTES = {
 }
 
 
+# --------------------------------------------------------------------------------------
+# Nivel II «Humahuaca», 1-III-1817 (pista P6): piezas propias con prefijo hx_
+# --------------------------------------------------------------------------------------
+# Same conventions as the rest of the file: metres, Blender +Y = front (Godot -Z), Z up,
+# origin on the ground at the centre of the footprint (hx_settle). Colours are the 24 HEX
+# of the user's plate 06, read at run time from data/humahuaca_visual.json -> palette and
+# converted to linear albedo. The hx_* texture kinds are new and only these builders use
+# them, so `--only hx_...` leaves every older GLB untouched (they are not rebuilt at all).
+# Everything here is an artistic reconstruction (labelled «diseño» / «razonado»): there is
+# no plan or survey of Humahuaca in 1817 behind these shapes.
+
+def mk_hx_adobe(n, r):
+    """Sun-dried adobe blocks (~40 x 13 cm) in running bond, mud joints, patches of render."""
+    X, Y = grid(n)
+    rows, cols = 12, 4
+    fy = Y * rows
+    iy = np.floor(fy).astype(int)
+    fx = X * cols + .5 * (iy % 2)
+    ix = np.floor(fx).astype(int)
+    sx, sy = fx % 1, fy % 1
+    e = np.minimum(np.minimum(sx, 1 - sx) * .40, np.minimum(sy, 1 - sy) * (1.6 / rows))
+    joint = 1 - smooth(.003, .011, e)
+    tone = r.uniform(.84, 1.06, (rows, cols))[iy % rows, ix % cols]
+    fine = fbm(n, 48, 48, 2, r)
+    patch = smooth(.56, .66, fbm(n, 3, 3, 4, r))
+    straw = smooth(.78, .9, fbm(n, 6, 90, 1, r)) * .5
+    worn = smooth(0.0, .03, e)
+    hb = (1 - joint) * (.55 + .25 * worn + .2 * fine)
+    h = hb * (1 - patch) + patch * (.75 + .15 * fine)
+    alb_b = tone * (.78 + .16 * fine) * (1 - .30 * joint) + .08 * straw
+    alb = alb_b * (1 - patch) + patch * (.88 + .08 * fine)
+    return alb, .93 - .05 * fine, h, np.zeros_like(h), 1.6
+
+
+def mk_hx_tapial(n, r):
+    """Rammed earth: 50 cm lifts (tongadas), formwork joints, needle holes, pebbles."""
+    X, Y = grid(n)
+    B = 4
+    fy = Y * B
+    iy = np.floor(fy).astype(int) % B
+    sy = fy % 1
+    grad = .86 + .22 * sy
+    sub = .035 * np.sin(2 * np.pi * fy * 6)
+    bline = 1 - smooth(.0, .05, np.minimum(sy, 1 - sy))
+    off = r.random(B)[iy]
+    jx = (X + off) % 1
+    vj = (1 - smooth(.0, .006, np.minimum(jx, 1 - jx))) * (sy > .04) * (sy < .96)
+    ib = np.floor(fy + .5).astype(int) % B
+    off2 = r.random(B)[ib]
+    hxm = (((X * 4 + off2) % 1) - .5) * .5
+    hym = (fy - np.round(fy)) * .5
+    hole = 1 - smooth(.012, .026, np.sqrt(hxm ** 2 + hym ** 2))
+    pebble = smooth(.80, .88, fbm(n, 40, 40, 2, r))
+    streak = fbm(n, 2, 26, 3, r)
+    big = fbm(n, 4, 4, 3, r)
+    alb = (.70 + .2 * big - .10 * streak) * grad * (1 - .30 * bline) * (1 - .25 * vj) * (1 - .40 * hole) + .06 * pebble + sub
+    h = .45 * big + .2 * grad - .35 * bline - .3 * vj - .9 * hole + .3 * pebble
+    return alb, .94 - .04 * pebble, h, np.zeros_like(h), 1.7
+
+
+def mk_hx_cal(n, r):
+    """Aged limewash over adobe: rain streaks, chipped patches."""
+    m = fbm(n, 3, 3, 4, r)
+    fine = fbm(n, 64, 64, 2, r)
+    streak = fbm(n, 2, 18, 3, r)
+    chip = smooth(.66, .72, fbm(n, 5, 5, 4, r))
+    alb = (.92 + .05 * m + .04 * fine - .12 * streak) * (1 - .38 * chip)
+    h = .35 * m + .3 * fine - .6 * chip
+    return alb, .92 - .05 * fine, h, np.zeros_like(h), 1.2
+
+
+def mk_hx_torta(n, r):
+    """Torta de barro: mud and chopped straw over the cane bed of a flat roof."""
+    mot = fbm(n, 4, 4, 4, r)
+    fine = fbm(n, 40, 40, 2, r)
+    fib = np.maximum(smooth(.70, .85, fbm(n, 24, 90, 2, r)), smooth(.70, .85, fbm(n, 90, 24, 2, r)))
+    crack = smooth(.86, .95, ridged(n, 5, 5, 3, r))
+    alb = (.68 + .26 * mot + .08 * fine) * (1 - .35 * crack) + .07 * fib
+    h = .45 * mot + .25 * fib + .2 * fine - .5 * crack
+    return alb, .95 - .08 * fib, h, np.zeros_like(h), 1.5
+
+
+def mk_hx_paja(n, r):
+    """Straw / cane: fibres running along V (down a roof slope, across a wall top)."""
+    lines = fbm(n, 3, 120, 2, r)
+    clump = fbm(n, 4, 10, 3, r)
+    h = smooth(.3, .8, lines) * .8 + .2 * clump
+    alb = .58 + .38 * h + .06 * fbm(n, 30, 30, 2, r)
+    return alb, .9 - .1 * h, h, np.zeros_like(h), 1.8
+
+
+def mk_hx_pirca(n, r):
+    """Dry-stone wall: flat-laid field stones (tileable Voronoi) with dark gaps."""
+    X, Y = grid(n)
+    k = 34
+    pts = r.random((k, 2))
+    d1 = np.full((n, n), 9.0)
+    d2 = np.full((n, n), 9.0)
+    idx = np.zeros((n, n), int)
+    for i in range(k):
+        for ox in (-1, 0, 1):
+            for oy in (-1, 0, 1):
+                dx = (X - pts[i, 0] - ox) * .62
+                dy = (Y - pts[i, 1] - oy)
+                d = np.sqrt(dx * dx + dy * dy)
+                closer = d < d1
+                d2 = np.where(closer, d1, np.minimum(d2, d))
+                idx = np.where(closer, i, idx)
+                d1 = np.where(closer, d, d1)
+    edge = d2 - d1
+    gap = 1 - smooth(.0, .035, edge)
+    dome = smooth(.0, .10, edge)
+    tone = r.uniform(.62, 1.05, k)[idx]
+    f = fbm(n, 24, 24, 3, r)
+    alb = (.60 + .32 * f) * tone * (1 - .72 * gap)
+    h = dome * (.75 + .25 * f) - .6 * gap
+    return alb, .9 - .06 * f, h, np.zeros_like(h), 2.4
+
+
+def mk_hx_hierro(n, r):
+    """Weathered cast iron: rough, pitted, only half metallic so it reads at night."""
+    f = fbm(n, 30, 30, 3, r)
+    pits = smooth(.72, .85, fbm(n, 20, 20, 2, r))
+    alb = .78 + .2 * f - .25 * pits
+    return alb, .62 + .2 * f + .1 * pits, f * .4 - pits * .5, .55 + .15 * f, 1.0
+
+
+_HX_EMI = {}
+
+
+def mk_hx_brasa(n, r):
+    """Embers: charcoal albedo plus a glowing crack pattern stored for the emission map."""
+    cr = ridged(n, 5, 5, 3, r)
+    f = fbm(n, 16, 16, 2, r)
+    glow = smooth(.55, .85, cr) * (.6 + .4 * f)
+    _HX_EMI["hx_brasa"] = glow
+    alb = .35 + .25 * f - .1 * glow
+    return alb, .95 - .2 * glow, f * .6 - glow * .3, np.zeros_like(f), 1.4
+
+
+# kind -> (tile metres, texture size, maker, stored sRGB albedo mean). Only hx_cal is brighter
+# than the shared 0.8: limewash (#E4DDCA) cannot be reached with a 0.62 linear texture mean.
+HX_KINDS = {
+    "hx_adobe": (1.6, 256, mk_hx_adobe, .80), "hx_tapial": (2.0, 256, mk_hx_tapial, .80),
+    "hx_cal": (2.0, 256, mk_hx_cal, .92), "hx_torta": (2.0, 256, mk_hx_torta, .80),
+    "hx_paja": (1.0, 256, mk_hx_paja, .80), "hx_pirca": (1.6, 256, mk_hx_pirca, .80),
+    "hx_hierro": (.6, 128, mk_hx_hierro, .80), "hx_brasa": (.6, 128, mk_hx_brasa, .80),
+}
+HX_LINMEAN = {}
+_HX_PAL = {}
+
+
+def _hx_srgb_lin(a):
+    a = np.asarray(a, dtype=float)
+    return np.where(a <= .04045, a / 12.92, ((a + .055) / 1.055) ** 2.4)
+
+
+def hx_textures():
+    """Register the hx_* kinds (once per run) with their own albedo mean."""
+    for kind, (tile, n, maker, mean) in HX_KINDS.items():
+        if kind in _TEX:
+            continue
+        KINDS[kind] = (tile, n, maker)
+        rng = np.random.default_rng(sum(map(ord, kind)) * 7919)
+        alb, rough, height, metal, strength = maker(n, rng)
+        alb = np.clip(alb * (mean / max(alb.mean(), 1e-6)), 0, 1)
+        HX_LINMEAN[kind] = float(_hx_srgb_lin(alb).mean())
+        a3 = np.repeat(alb[:, :, None], 3, axis=2)
+        dx = np.roll(height, -1, axis=1) - np.roll(height, 1, axis=1)
+        dy = np.roll(height, -1, axis=0) - np.roll(height, 1, axis=0)
+        nx, ny, nz = -dx * strength * 4.0, -dy * strength * 4.0, np.ones_like(dx)
+        ln = np.sqrt(nx * nx + ny * ny + nz * nz)
+        nmap = np.stack([nx / ln, ny / ln, nz / ln], axis=2) * .5 + .5
+        rm = np.stack([np.ones_like(rough), np.clip(rough, .05, 1), np.clip(metal, 0, 1)], axis=2)
+        _TEX[kind] = (_image("alb_" + kind, a3), _image("nor_" + kind, nmap, False),
+                      _image("rm_" + kind, rm, False))
+        if kind in _HX_EMI:
+            g = _HX_EMI[kind]
+            emi = np.clip(g[:, :, None] * np.array([1.0, .42, .10]) + (g ** 3)[:, :, None] * np.array([0, .35, .22]), 0, 1)
+            _HX_EMI[kind] = _image("emi_" + kind, emi)
+
+
+def hx_ember_material():
+    """PBR | hx_brasa with the glow map wired to emission (glTF emissiveTexture)."""
+    m = kind_material("hx_brasa")
+    if m.get("hx_emissive"):
+        return m
+    nt = m.node_tree
+    b = next(nd for nd in nt.nodes if nd.type == "BSDF_PRINCIPLED")
+    t = nt.nodes.new("ShaderNodeTexImage")
+    t.image = _HX_EMI["hx_brasa"]
+    nt.links.new(t.outputs["Color"], b.inputs["Emission Color"])
+    b.inputs["Emission Strength"].default_value = 1.0
+    m["hx_emissive"] = 1
+    return m
+
+
+def hx_col(pid, k=1.0):
+    """Linear albedo of a plate-06 colour (data/humahuaca_visual.json), optionally scaled."""
+    if not _HX_PAL:
+        data = json.loads((ROOT / "data" / "humahuaca_visual.json").read_text(encoding="utf-8"))
+        for p in data["palette"]:
+            h = p["hex"].lstrip("#")
+            _HX_PAL[p["id"]] = tuple(float(_hx_srgb_lin(int(h[i:i + 2], 16) / 255.0)) for i in (0, 2, 4))
+    return tuple(min(1.0, c * k) for c in _HX_PAL[pid])
+
+
+def hx_mix(a, b, t, k=1.0):
+    ca, cb = hx_col(a), hx_col(b)
+    return tuple(min(1.0, (x * (1 - t) + y * t) * k) for x, y in zip(ca, cb))
+
+
+class HxMat:
+    """Like Mat, but the colour is divided by the real linear mean of its kind's albedo."""
+
+    def __init__(self, name, color, kind):
+        self.name = name
+        self.kind = kind
+        mean = HX_LINMEAN.get(kind, ALBEDO_LIN)
+        self.color = tuple(min(1.0, c / mean) for c in color)
+
+
+def hx_begin():
+    reset()
+    hx_textures()
+
+
+def hb(name, x0, x1, y0, y1, z0, z1, mat, bevel=0.0):
+    """Axis-aligned box from its extents."""
+    return box(name, ((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2), (x1 - x0, y1 - y0, z1 - z0), mat, bevel, segs=1)
+
+
+def hx_hexa(name, c, mat, smooth=False):
+    """Six-faced solid from 8 corners: bottom 0-3 counter-clockwise seen from above, top 4-7 over them."""
+    faces = [(0, 3, 2, 1), (4, 5, 6, 7), (0, 1, 5, 4), (1, 2, 6, 5), (2, 3, 7, 6), (3, 0, 4, 7)]
+    return mesh(name, [tuple(p) for p in c], faces, mat, smooth)
+
+
+def hx_lathe(name, profile, mat, sides=12, axis="z", origin=(0, 0, 0), tilt=0.0, pivot=None, smooth=True):
+    """Surface of revolution. profile = [(t, r)] along the axis (r == 0 is a pole).
+    axis 'z': t is height; axis 'y': t runs forward. tilt (radians) turns it about X through pivot."""
+    ox, oy, oz = origin
+    verts, rings, faces = [], [], []
+
+    def put(t, a, r):
+        if axis == "z":
+            p = [ox + math.cos(a) * r, oy + math.sin(a) * r, oz + t]
+        else:
+            p = [ox + math.cos(a) * r, oy + t, oz - math.sin(a) * r]
+        if tilt and pivot is not None:
+            dy, dz = p[1] - pivot[1], p[2] - pivot[2]
+            p[1] = pivot[1] + dy * math.cos(tilt) - dz * math.sin(tilt)
+            p[2] = pivot[2] + dy * math.sin(tilt) + dz * math.cos(tilt)
+        verts.append(tuple(p))
+        return len(verts) - 1
+
+    for t, r in profile:
+        if r <= 1e-6:
+            rings.append([put(t, 0, 0)])
+        else:
+            rings.append([put(t, 2 * math.pi * j / sides, r) for j in range(sides)])
+    for A, B in zip(rings, rings[1:]):
+        if len(A) == 1 and len(B) == 1:
+            continue
+        for j in range(sides):
+            k = (j + 1) % sides
+            if len(A) == 1:
+                faces.append((A[0], B[k], B[j]))
+            elif len(B) == 1:
+                faces.append((A[j], A[k], B[0]))
+            else:
+                faces.append((A[j], A[k], B[k], B[j]))
+    if len(rings[0]) > 1:
+        faces.append(tuple(reversed(rings[0])))
+    if len(rings[-1]) > 1:
+        faces.append(tuple(rings[-1]))
+    return mesh(name, verts, faces, mat, smooth)
+
+
+def hx_gable(name, x0, x1, y0, y1, z0, rise, mat):
+    """Triangular gable prism, ridge along Y, between y0 (back) and y1 (front)."""
+    xm = (x0 + x1) / 2
+    v = [(x0, y0, z0), (x1, y0, z0), (xm, y0, z0 + rise), (x0, y1, z0), (x1, y1, z0), (xm, y1, z0 + rise)]
+    f = [(0, 1, 2), (5, 4, 3), (0, 2, 5, 3), (1, 4, 5, 2), (0, 3, 4, 1)]
+    return mesh(name, v, f, mat, False)
+
+
+def hx_spandrel(name, a, b, zs, zt, y0, y1, mat, n=8):
+    """The solid above a round arch between piers at x=a and x=b (springing zs, crown zt)."""
+    m, r = (a + b) / 2, (b - a) / 2
+    arc = [(m + r * math.cos(math.pi * (1 - i / n)), zs + r * math.sin(math.pi * (1 - i / n))) for i in range(n + 1)]
+    v = [(x, y1, z) for x, z in arc] + [(x, y0, z) for x, z in arc]
+    TL1, TR1, TL0, TR0 = len(v), len(v) + 1, len(v) + 2, len(v) + 3
+    v += [(a, y1, zt), (b, y1, zt), (a, y0, zt), (b, y0, zt)]
+    off = n + 1
+    h = n // 2
+    f = []
+    for i in range(n):
+        top1, top0 = (TL1, TL0) if i < h else (TR1, TR0)
+        f.append((top1, i + 1, i))
+        f.append((top0, off + i, off + i + 1))
+        f.append((i, i + 1, off + i + 1, off + i))
+    f.append((TL1, TR1, h))
+    f.append((TL0, off + h, TR0))
+    f.append((TL1, TL0, TR0, TR1))
+    return mesh(name, v, f, mat, False)
+
+
+def hx_wall(name, axis, a0, a1, c, t, z0, z1, openings, mat, split=None, bevel=0.0):
+    """Straight wall running along X (axis 'x', centred at y=c) or Y, thickness t, with
+    rectangular openings [(a, b, za, zb)] cut through it. A horizontal split at `split` gives
+    the lower band its own vertices so hx_grime can darken only the foot of the wall."""
+    zs = [z0] + ([split] if split and z0 < split < z1 else []) + [z1]
+    out = []
+
+    def piece(p0, p1, q0, q1):
+        for za, zb in zip(zs, zs[1:]):
+            lo, hi = max(za, q0), min(zb, q1)
+            if hi - lo > 1e-3 and p1 - p0 > 1e-3:
+                if axis == "x":
+                    out.append(hb(name, p0, p1, c - t / 2, c + t / 2, lo, hi, mat, bevel))
+                else:
+                    out.append(hb(name, c - t / 2, c + t / 2, p0, p1, lo, hi, mat, bevel))
+
+    cur = a0
+    for oa, ob, oza, ozb in sorted(openings):
+        piece(cur, oa, z0, z1)
+        piece(oa, ob, z0, oza)
+        piece(oa, ob, ozb, z1)
+        cur = ob
+    piece(cur, a1, z0, z1)
+    return out
+
+
+def hx_grime(z0=0.0, h=.55, k=.58):
+    """Rain splash and damp at the foot of earthen walls, towards the wet sediment colour."""
+    tint = np.array(hx_col("sedimento_humedo")) / max(hx_col("adobe"))
+
+    def f(p):
+        t = np.clip((p[:, 2] - z0) / h, 0, 1)
+        t = t * t * (3 - 2 * t)
+        dirt = k * (.55 + .45 * tint[None, :])
+        return dirt * (1 - t[:, None]) + t[:, None]
+    return f
+
+
+def hx_low(objs, fn):
+    """Paint the grime only on objects whose top is low (the split lower bands)."""
+    for o in objs:
+        if max((o.matrix_world @ Vector(c)).z for c in o.bound_box) < 1.2:
+            paint_fn(o, fn)
+
+
+def hx_settle(center=True):
+    """Bake transforms, centre the footprint on the origin and flatten anything under the ground."""
+    obs = [o for o in bpy.context.scene.objects if o.type == "MESH"]
+    bpy.ops.object.select_all(action="DESELECT")
+    for o in obs:
+        o.select_set(True)
+    bpy.context.view_layer.objects.active = obs[0]
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+    xs, ys = [], []
+    for o in obs:
+        for v in o.data.vertices:
+            xs.append(v.co.x)
+            ys.append(v.co.y)
+    cx = (min(xs) + max(xs)) / 2 if center else 0.0
+    cy = (min(ys) + max(ys)) / 2 if center else 0.0
+    for o in obs:
+        for v in o.data.vertices:
+            v.co.x -= cx
+            v.co.y -= cy
+            if v.co.z < 0:
+                v.co.z = 0.0
+        o.data.update()
+    bpy.ops.object.select_all(action="DESELECT")
+    return cx, cy
+
+
+def hx_casa(name, W, D, Hf, Hb, doors, windows, ramada=False, ajar=(), seed=1):
+    """Low adobe house of the quebrada: stone footing, thick adobe walls, flat roof of torta de
+    barro sloping to the street (+Y), low pretil on the other three sides, cane-and-pole beam
+    ends (rollizos) over the street, a low plank door and a small shuttered window."""
+    hx_begin()
+    rng = random.Random(seed)
+    adobe = HxMat("Adobe | muro", hx_col("adobe"), "hx_adobe")
+    pretil = HxMat("Adobe | pretil", hx_col("adobe", .92), "hx_adobe")
+    torta = HxMat("Techo | torta de barro y paja", hx_mix("paja", "suelo_seco", .35), "hx_torta")
+    stone = HxMat("Piedra | cimiento", hx_col("piedra_gris"), "stone")
+    door = HxMat("Madera | puerta", hx_col("madera_oscura"), "planks")
+    beam = HxMat("Madera | rollizos y dinteles", hx_col("madera_oscura", 1.15), "wood")
+    dark = HxMat("Vano | interior en sombra", (.012, .010, .008), "stone")
+    t, zc = .55, .30
+    dh, dw = 1.80, .92
+
+    def zt(y):
+        return Hb + (Hf - Hb) * (y + D / 2) / D
+
+    hb("Casa | cimiento de piedra", -W / 2 - .05, W / 2 + .05, -D / 2 - .05, D / 2 + .05, 0, zc, stone, .03)
+    ops = [(x - dw / 2, x + dw / 2, zc, zc + dh) for x in doors]
+    ops += [(x - .30, x + .30, zc + 1.0, zc + 1.48) for x in windows]
+    walls = hx_wall("Casa | muro del frente", "x", -W / 2, W / 2, D / 2 - t / 2, t, zc, zt(D / 2 - t), ops, adobe, zc + .55)
+    walls += hx_wall("Casa | muro del fondo", "x", -W / 2, W / 2, -D / 2 + t / 2, t, zc, Hb, [], adobe, zc + .55)
+    y0, y1 = -D / 2 + t, D / 2 - t
+    zs = zc + .55
+    for s in (-1, 1):
+        xa, xb = (-W / 2, -W / 2 + t) if s < 0 else (W / 2 - t, W / 2)
+        walls.append(hb("Casa | muro lateral", xa, xb, y0, y1, zc, zs, adobe))
+        hx_hexa("Casa | muro lateral", [(xa, y0, zs), (xb, y0, zs), (xb, y1, zs), (xa, y1, zs),
+                                        (xa, y0, zt(y0)), (xb, y0, zt(y0)), (xb, y1, zt(y1)), (xa, y1, zt(y1))], adobe)
+    hx_low(walls, hx_grime(zc))
+    # Roof: torta slab, 20 cm, overhanging the street; pretil on the sides and the back.
+    ra, rb, th = -D / 2 - .06, D / 2 + .42, .20
+    x0, x1 = -W / 2 - .04, W / 2 + .04
+    hx_hexa("Casa | techo de torta", [(x0, ra, zt(ra)), (x1, ra, zt(ra)), (x1, rb, zt(rb)), (x0, rb, zt(rb)),
+                                      (x0, ra, zt(ra) + th), (x1, ra, zt(ra) + th), (x1, rb, zt(rb) + th), (x0, rb, zt(rb) + th)], torta)
+    ph, pt = .30, .30
+    for s in (-1, 1):
+        xa, xb = (x0, x0 + pt) if s < 0 else (x1 - pt, x1)
+        ya, yb = ra, D / 2 + .05
+        hx_hexa("Casa | pretil", [(xa, ya, zt(ya) + th - .02), (xb, ya, zt(ya) + th - .02), (xb, yb, zt(yb) + th - .02), (xa, yb, zt(yb) + th - .02),
+                                  (xa, ya, zt(ya) + th + ph), (xb, ya, zt(ya) + th + ph), (xb, yb, zt(yb) + th + ph), (xa, yb, zt(yb) + th + ph)], pretil)
+    ya, yb = ra, ra + pt
+    hx_hexa("Casa | pretil", [(x0, ya, zt(ya) + th - .02), (x1, ya, zt(ya) + th - .02), (x1, yb, zt(yb) + th - .02), (x0, yb, zt(yb) + th - .02),
+                              (x0, ya, zt(ya) + th + ph), (x1, ya, zt(ya) + th + ph), (x1, yb, zt(yb) + th + ph), (x0, yb, zt(yb) + th + ph)], pretil)
+    # Rollizos: pole ends of the roof bed sticking out over the street.
+    nr = max(4, int(W / .55))
+    for i in range(nr):
+        x = -W / 2 + .3 + i * (W - .6) / (nr - 1)
+        segment("Casa | rollizo", (x, D / 2 - .35, Hf - .03), (x, D / 2 + .34 + rng.uniform(0, .12), Hf - .03 - .01), .06, .055, beam, sides=6)
+    # Doors (inset, low lintel) and windows (small, wooden bars, shutter inside).
+    fy = D / 2
+    for x in doors:
+        hb("Casa | dintel", x - dw / 2 - .22, x + dw / 2 + .22, fy - .02, fy + .08, zc + dh, zc + dh + .16, beam)
+        if x in ajar:
+            hb("Casa | interior en sombra", x - dw / 2 - .6, x + dw / 2 + .6, fy - t - 1.0, fy - t - .96, zc, zc + dh + .2, dark)
+            a = math.radians(65)
+            rbox("Casa | puerta entornada", (x - dw / 2 + .02 + (dw - .04) / 2 * math.cos(a), fy - .23 - (dw - .04) / 2 * math.sin(a), zc + dh / 2),
+                 (dw - .04, .06, dh - .03), (0, 0, -a), door)
+        else:
+            hb("Casa | puerta de tablas", x - dw / 2 + .01, x + dw / 2 - .01, fy - .26, fy - .20, zc, zc + dh - .01, door)
+    for x in windows:
+        hb("Casa | dintel de ventana", x - .45, x + .45, fy - .02, fy + .07, zc + 1.48, zc + 1.60, beam)
+        hb("Casa | postigo", x - .29, x + .29, fy - .36, fy - .32, zc + 1.0, zc + 1.48, door)
+        for k in (-1, 0, 1):
+            segment("Casa | barrote", (x + k * .15, fy - .10, zc + 1.0), (x + k * .15, fy - .10, zc + 1.48), .022, .022, beam, sides=5)
+    if ramada:
+        # Ramada: forked poles (horcones), a ridge pole and a roof of cane and straw against the facade.
+        yp = D / 2 + 2.3
+        zr = 2.0
+        xs = [-W / 2 + .45, -W / 6, W / 6, W / 2 - .45]
+        for x in xs:
+            segment("Ramada | horcon", (x, yp, 0), (x + rng.uniform(-.04, .04), yp, zr), .09, .075, beam, sides=6)
+        segment("Ramada | viga", (-W / 2 + .2, yp, zr + .06), (W / 2 - .2, yp, zr + .06), .08, .08, beam, sides=6)
+        cane = HxMat("Ramada | cañizo y paja", hx_col("paja", .9), "hx_paja")
+        za, zb2, yb2 = Hf - .20, zr + .10, yp + .25
+        hx_hexa("Ramada | techo de cañizo", [(-W / 2 + .1, fy, za), (W / 2 - .1, fy, za), (W / 2 - .1, yb2, zb2), (-W / 2 + .1, yb2, zb2),
+                                             (-W / 2 + .1, fy, za + .07), (W / 2 - .1, fy, za + .07), (W / 2 - .1, yb2, zb2 + .07), (-W / 2 + .1, yb2, zb2 + .07)], cane)
+        for x in xs:
+            segment("Ramada | tirante", (x, fy - .05, za - .04), (x, yp, zr + .02), .045, .045, beam, sides=5)
+    hx_settle()
+    export(name, [])
+
+
+def hx_casa_adobe():
+    hx_casa("hx_casa_adobe", 6.0, 4.0, 2.45, 2.75, doors=[-1.0], windows=[1.35], seed=11)
+
+
+def hx_casa_adobe_grande():
+    hx_casa("hx_casa_adobe_grande", 10.0, 5.0, 2.55, 2.90, doors=[-2.9, 1.5], windows=[-1.2, 3.4],
+            ramada=True, ajar=(1.5,), seed=12)
+
+
+def hx_capilla():
+    """Small limewashed adobe chapel: nave 6.4 x 13 m, gable roof of torta, buttresses, a
+    proud adobe portal and a two-bell espadaña on the facade (+Y). Whole AABB under 8 m."""
+    hx_begin()
+    cal = HxMat("Cal | encalado envejecido", hx_col("cal_envejecida"), "hx_cal")
+    torta = HxMat("Techo | torta de barro y paja", hx_mix("paja", "suelo_seco", .3), "hx_torta")
+    stone = HxMat("Piedra | zocalo", hx_col("piedra_gris"), "stone")
+    door = HxMat("Madera | puertas", hx_col("madera_oscura"), "planks")
+    beam = HxMat("Madera | dinteles y cruz", hx_col("madera_oscura", 1.1), "wood")
+    bronze = HxMat("Bronce | campanas", hx_col("oro_laton", .55), "metal")
+    dark = HxMat("Vano | sombra", (.012, .010, .008), "stone")
+    W, D, zb, H, rise = 6.4, 13.0, .35, 4.2, 1.45
+    hb("Capilla | zocalo de piedra", -W / 2 - .18, W / 2 + .18, -D / 2 - .18, D / 2 + .18, 0, zb, stone, .03)
+    low = [hb("Capilla | nave", -W / 2, W / 2, -D / 2, D / 2, zb, zb + .75, cal)]
+    hb("Capilla | nave", -W / 2, W / 2, -D / 2, D / 2, zb + .75, H, cal)
+    hx_gable("Capilla | hastial", -W / 2, W / 2, -D / 2, -D / 2 + .6, H, rise + .15, cal)
+    hx_gable("Capilla | hastial", -W / 2, W / 2, D / 2 - .6, D / 2, H, rise + .15, cal)
+    roof_pair("Capilla | techo", W, D, H - .06, rise, .42, .05, torta, "y")
+    # Buttresses: battered adobe, two per side and two at the facade corners.
+    for s in (-1, 1):
+        for y in (-4.0, .8, D / 2 - .5):
+            xi = s * W / 2
+            wb, wt, hgt, dpt = (.85, .32, 2.9, .9) if y < D / 2 - 1 else (.75, .30, 3.3, 1.0)
+            xo_b, xo_t = xi + s * wb, xi + s * wt
+            ya, yb = y - dpt / 2, y + dpt / 2
+            xl_b, xr_b = (xo_b, xi) if s < 0 else (xi, xo_b)
+            xl_t, xr_t = (xo_t, xi) if s < 0 else (xi, xo_t)
+            low.append(hx_hexa("Capilla | contrafuerte", [(xl_b, ya, zb), (xr_b, ya, zb), (xr_b, yb, zb), (xl_b, yb, zb),
+                                                          (xl_t, ya, zb + hgt), (xr_t, ya, zb + hgt), (xr_t, yb, zb + hgt), (xl_t, yb, zb + hgt)], cal))
+    for o in low:
+        paint_fn(o, hx_grime(zb, .9, .62))
+    # Portal: adobe frame proud of the facade, plank doors set back, wooden lintel, choir window.
+    fy = D / 2
+    for x0, x1 in ((-1.35, -.88), (.88, 1.35)):
+        paint_fn(hb("Capilla | portada", x0, x1, fy, fy + .32, zb, zb + 3.25, cal), hx_grime(zb, .9, .62))
+    hb("Capilla | portada", -1.35, 1.35, fy, fy + .32, zb + 2.82, zb + 3.25, cal)
+    hb("Capilla | cornisa de la portada", -1.45, 1.45, fy - .02, fy + .40, zb + 3.25, zb + 3.37, cal)
+    hb("Capilla | dintel", -1.0, 1.0, fy + .20, fy + .34, zb + 2.70, zb + 2.84, beam)
+    for x0, x1 in ((-.87, -.015), (.015, .87)):
+        hb("Capilla | puerta", x0, x1, fy - .02, fy + .04, zb, zb + 2.70, door)
+    hb("Capilla | ventana del coro", -.32, .32, fy - .02, fy + .03, zb + 3.55, zb + 4.05, dark)
+    hb("Capilla | marco del coro", -.42, .42, fy, fy + .08, zb + 4.05, zb + 4.15, beam)
+    for s in (-1, 1):
+        for y in (-2.0, 3.2):
+            hb("Capilla | ventana alta", s * W / 2 - .03, s * W / 2 + .03, y - .28, y + .28, 2.75, 3.55, dark)
+    # Espadaña on the facade: solid base up to the ridge, three piers, two round arches, cap, cross.
+    ye0, ye1 = fy - .72, fy + .02
+    zr = H + rise + .15
+    hb("Espadaña | cuerpo", -1.5, 1.5, ye0, ye1, H - .1, zr, cal)
+    zo, ztop = zr + 1.0, zr + 1.32
+    for x0, x1 in ((-1.5, -1.05), (-.2, .2), (1.05, 1.5)):
+        hb("Espadaña | pilar", x0, x1, ye0, ye1, zr, zo, cal)
+    for a, b in ((-1.05, -.2), (.2, 1.05)):
+        hx_spandrel("Espadaña | arco", a, b, zo - (b - a) / 2, zo, ye0, ye1, cal)
+        hb("Espadaña | yugo", a - .02, b + .02, (ye0 + ye1) / 2 - .05, (ye0 + ye1) / 2 + .05, zo - .47, zo - .39, beam)
+        bz = zo - .47
+        hx_lathe("Espadaña | campana", [(-.50, 0), (-.50, .27), (-.46, .25), (-.30, .17), (-.08, .13), (0, .10), (.02, 0)],
+                 bronze, sides=12, origin=((a + b) / 2, (ye0 + ye1) / 2, bz))
+    hb("Espadaña | remate", -1.5, 1.5, ye0, ye1, zo, ztop, cal)
+    hb("Espadaña | cornisa", -1.62, 1.62, ye0 - .08, ye1 + .08, ztop, ztop + .12, cal)
+    hb("Espadaña | cruz", -.05, .05, (ye0 + ye1) / 2 - .05, (ye0 + ye1) / 2 + .05, ztop + .12, ztop + .78, beam)
+    hb("Espadaña | cruz", -.24, .24, (ye0 + ye1) / 2 - .045, (ye0 + ye1) / 2 + .045, ztop + .52, ztop + .61, beam)
+    hx_settle()
+    export("hx_capilla", [])
+
+
+def hx_tapia():
+    """4 m module of rammed-earth wall (tapial): 2.0 m high, 0.55 m at the foot and 0.45 m at
+    the top, straw-and-mud capping. Ends are square so modules butt together along X."""
+    hx_begin()
+    rng = random.Random(31)
+    earth = HxMat("Tapial | tierra apisonada", hx_mix("suelo_seco", "adobe", .4), "hx_tapial")
+    straw = HxMat("Remate | paja y barro", hx_col("paja"), "hx_paja")
+    L, H, tb, tt, zs = 4.0, 2.0, .55, .45, .5
+    tm = tb - (tb - tt) * zs / H
+    lo = hx_hexa("Tapia | pie", [(-L / 2, -tb / 2, 0), (L / 2, -tb / 2, 0), (L / 2, tb / 2, 0), (-L / 2, tb / 2, 0),
+                                 (-L / 2, -tm / 2, zs), (L / 2, -tm / 2, zs), (L / 2, tm / 2, zs), (-L / 2, tm / 2, zs)], earth)
+    paint_fn(lo, hx_grime(0, zs, .6))
+    hx_hexa("Tapia | cuerpo", [(-L / 2, -tm / 2, zs), (L / 2, -tm / 2, zs), (L / 2, tm / 2, zs), (-L / 2, tm / 2, zs),
+                               (-L / 2, -tt / 2, H), (L / 2, -tt / 2, H), (L / 2, tt / 2, H), (-L / 2, tt / 2, H)], earth)
+    prof = [(-.34, -.05), (-.30, .07), (-.13, .16), (.13, .16), (.30, .07), (.34, -.05)]
+    P, nseg = len(prof), 10
+    v, f = [], []
+    for i in range(nseg + 1):
+        x = -L / 2 + L * i / nseg
+        end = i in (0, nseg)
+        dz = 0 if end else .035 * math.sin(i * 1.9) + rng.uniform(-.02, .02)
+        for j, (o, z) in enumerate(prof):
+            jo = 0 if end or z < 0 else rng.uniform(-.025, .025)
+            v.append((x, o + jo, H + z + (dz if z > 0 else 0)))
+    for i in range(nseg):
+        for j in range(P - 1):
+            a = i * P + j
+            f.append((a, a + P, a + P + 1, a + 1))
+    f.append(tuple(range(P)))
+    f.append(tuple(nseg * P + j for j in reversed(range(P))))
+    mesh("Tapia | remate de paja", v, f, straw, False)
+    hx_settle(center=False)
+    export("hx_tapia", [])
+
+
+def hx_pirca_wall(name, path, mat, rng, H=1.15, base=.72, top=.48, step=.42):
+    """Dry-stone wall mesh following a 2D polyline, battered section, uneven crest."""
+    pts = []
+    for a, b in zip(path, path[1:]):
+        seg = math.hypot(b[0] - a[0], b[1] - a[1])
+        k = max(1, round(seg / step))
+        for i in range(k):
+            pts.append((a[0] + (b[0] - a[0]) * i / k, a[1] + (b[1] - a[1]) * i / k))
+    pts.append(path[-1])
+    prof = [(-base / 2, 0), (-(base + top) / 4 - .02, H * .48), (-top / 2, H), (top / 2, H), ((base + top) / 4 + .02, H * .48), (base / 2, 0)]
+    P = len(prof)
+    ph = rng.random() * 6.28
+    v, f = [], []
+    s = 0.0
+    for i, p in enumerate(pts):
+        dirs = []
+        if i > 0:
+            d = (p[0] - pts[i - 1][0], p[1] - pts[i - 1][1])
+            ln = math.hypot(*d)
+            dirs.append((d[0] / ln, d[1] / ln))
+            s += ln
+        if i < len(pts) - 1:
+            d = (pts[i + 1][0] - p[0], pts[i + 1][1] - p[1])
+            ln = math.hypot(*d)
+            dirs.append((d[0] / ln, d[1] / ln))
+        tx, ty = sum(d[0] for d in dirs), sum(d[1] for d in dirs)
+        ln = math.hypot(tx, ty)
+        tx, ty = tx / ln, ty / ln
+        nx, ny = -ty, tx
+        n0 = (-dirs[0][1], dirs[0][0])
+        miter = 1 / max(.4, nx * n0[0] + ny * n0[1])
+        crest = .08 * math.sin(s * 1.7 + ph) + .05 * math.sin(s * 4.3 + 2 * ph) + rng.uniform(-.05, .05)
+        for j, (o, z) in enumerate(prof):
+            jo = rng.uniform(-.05, .05) if 0 < j < P - 1 else rng.uniform(-.025, .025)
+            jz = crest if z >= H else (crest * .5 + rng.uniform(-.03, .03) if z > 0 else 0)
+            v.append((p[0] + nx * (o + jo) * miter, p[1] + ny * (o + jo) * miter, z + jz))
+    n = len(pts)
+    for i in range(n - 1):
+        for j in range(P - 1):
+            a = i * P + j
+            f.append((a, a + P, a + P + 1, a + 1))
+    f.append(tuple(range(P)))
+    f.append(tuple((n - 1) * P + j for j in reversed(range(P))))
+    o = mesh(name, v, f, mat, False)
+    paint_fn(o, lambda q: (.72 + .28 * np.clip(q[:, 2] / .5, 0, 1))[:, None])
+    return pts
+
+
+def hx_pirca_stones(pts, H, mats, rng, every=2):
+    for i in range(0, len(pts), every):
+        x, y = pts[i]
+        o = blob("Pirca | piedra de coronamiento", (x + rng.uniform(-.06, .06), y + rng.uniform(-.06, .06), H + .02),
+                 (rng.uniform(.20, .30), rng.uniform(.16, .24), rng.uniform(.10, .15)), mats[i % len(mats)], rng, 1, .25)
+        paint_fn(o, lambda q: np.full(len(q), rng.uniform(.8, 1.1)))
+
+
+def hx_pirca_mats():
+    a = HxMat("Pirca | piedra seca", hx_col("piedra_gris"), "hx_pirca")
+    b = HxMat("Pirca | piedra de remate", hx_mix("piedra_gris", "suelo_seco", .25), "stone")
+    c = HxMat("Pirca | piedra con liquen", hx_mix("piedra_gris", "churqui", .3), "stone")
+    return a, b, c
+
+
+def hx_corral():
+    """Square stock corral of pirca (dry stone), 10 x 10 m, 1.15 m high, gap with a pole gate
+    (tranquera) on the front (+Y)."""
+    hx_begin()
+    rng = random.Random(41)
+    wall, cap, cap2 = hx_pirca_mats()
+    wood = HxMat("Madera | tranquera", hx_col("madera_oscura", 1.1), "wood")
+    S, g = 5.0, 1.25
+    path = [(-g, S), (-S, S), (-S, -S), (S, -S), (S, S), (g, S)]
+    pts = hx_pirca_wall("Corral | pirca", path, wall, rng)
+    hx_pirca_stones(pts, 1.15, (cap, cap2), rng, 2)
+    for x in (-g - .02, g + .02):
+        segment("Corral | poste de la tranquera", (x, S, 0), (x, S, 1.42), .085, .07, wood, sides=7)
+    for z, dz in ((.40, 0), (.76, -.06), (1.12, .02)):
+        segment("Corral | palo de la tranquera", (-g - .1, S + .1, z), (g + .1, S + .1, z + dz), .045, .045, wood, sides=6)
+    for k in range(6):
+        a = rng.uniform(0, 2 * math.pi)
+        r = S + rng.choice((-1, 1)) * rng.uniform(.5, .8)
+        blob("Corral | piedra caida", (math.cos(a) * r * .9, math.sin(a) * r * .9, .08),
+             (rng.uniform(.14, .22), rng.uniform(.12, .18), .10), cap, rng, 1, .25)
+    hx_settle()
+    export("hx_corral", [])
+
+
+def hx_pirca():
+    """4 m straight module of the same pirca, ends square along X so it can be repeated."""
+    hx_begin()
+    rng = random.Random(43)
+    wall, cap, cap2 = hx_pirca_mats()
+    pts = hx_pirca_wall("Pirca | tramo", [(-2.0, 0), (2.0, 0)], wall, rng)
+    hx_pirca_stones(pts[1:-1], 1.15, (cap, cap2), rng, 2)   # no capping stone over the joints
+    hx_settle(center=False)
+    export("hx_pirca", [])
+
+
+def hx_pieza_artilleria():
+    """Light field gun (a «de a 4»: 1.6 m tube) on a bracket-trail carriage with two spoked wheels.
+    Muzzle to the front (+Y); the trail rests on the ground behind. Generic late-18th-century
+    field piece, not a specific Spanish model: «razonado». The tube is bronze (Spanish field pieces of
+    the period usually were), although plate 06 assigns «hierro» to cannons; fittings stay iron."""
+    hx_begin()
+    iron = HxMat("Hierro | herrajes", hx_col("hierro"), "hx_hierro")
+    bronze = HxMat("Bronce | tubo (la lámina dice hierro)", hx_mix("oro_laton", "verde_elegido", .3, .45), "hx_hierro")
+    wood = HxMat("Madera | cureña", hx_col("madera_oscura"), "wood")
+    wood2 = HxMat("Madera | ruedas", hx_col("madera_oscura", 1.12), "wood")
+    sponge = HxMat("Lana | lanada del escobillon", hx_col("lana_parda"), "hx_paja")
+    az, wx = .675, .74
+    # Wheels: rim, iron tyre, hub and twelve spokes.
+    for s in (-1, 1):
+        x = s * wx
+        torus("Rueda | pina", (x, 0, az), .60, .05, (0, math.pi / 2, 0), wood2, ms=22, ns=4)
+        torus("Rueda | llanta de hierro", (x, 0, az), .645, .03, (0, math.pi / 2, 0), iron, ms=22, ns=4)
+        segment("Rueda | cubo", (x - s * .13, 0, az), (x + s * .15, 0, az), .11, .085, wood2, sides=10)
+        for k in range(12):
+            a = 2 * math.pi * k / 12
+            segment("Rueda | rayo", (x, math.cos(a) * .09, az + math.sin(a) * .09), (x, math.cos(a) * .57, az + math.sin(a) * .57),
+                    .026, .02, wood2, sides=5)
+        segment("Rueda | punta del eje", (x - s * .1, 0, az), (x + s * .19, 0, az), .035, .035, iron, sides=8)
+    hb("Cureña | eje", -wx + .1, wx - .1, -.08, .08, az - .08, az + .07, wood)
+    # Cheeks (gualderas): high at the trunnions, down to the trail on the ground.
+    yf, yb = .40, -2.05
+    for s in (-1, 1):
+        xo_f, xi_f, xo_b, xi_b = s * .26, s * .17, s * .19, s * .10
+        xl_f, xr_f = min(xo_f, xi_f), max(xo_f, xi_f)
+        xl_b, xr_b = min(xo_b, xi_b), max(xo_b, xi_b)
+        hx_hexa("Cureña | gualdera", [(xl_b, yb, .02), (xr_b, yb, .02), (xr_f, yf, .58), (xl_f, yf, .58),
+                                      (xl_b, yb, .30), (xr_b, yb, .30), (xr_f, yf, 1.06), (xl_f, yf, 1.06)], wood)
+        hb("Cureña | sobremuñonera", s * .215 - .055, s * .215 + .055, .05, .21, .99, 1.04, iron)
+        for y, z in ((-.6, .80), (-1.5, .43)):
+            hb("Cureña | cantonera", s * .22 - .06, s * .22 + .06, y - .03, y + .03, z - .19, z + .03, iron)
+    for y, z0, z1 in ((-.35, .58, .76), (-1.15, .32, .47), (-1.88, .08, .24)):
+        hb("Cureña | telera", -.18, .18, y - .07, y + .07, z0, z1, wood)
+    hb("Cureña | cuña de punteria", -.12, .12, -.75, -.30, .70, .80, wood)
+    hb("Cureña | contera", -.15, .15, -2.08, -1.92, .0, .06, iron)
+    # Tube: cascabel, base ring, reinforce, chase and muzzle swell; tilted 2.5 degrees up.
+    ty, tz, tr = .12, .97, .70
+    prof = [(-.17, 0), (-.165, .035), (-.13, .05), (-.10, .03), (-.06, .055), (-.02, .135), (0, .15), (.05, .15), (.07, .138),
+            (.60, .126), (.62, .116), (1.02, .102), (1.04, .092), (1.47, .085), (1.51, .107), (1.57, .112), (1.60, .108),
+            (1.60, .045), (1.45, .044), (1.45, 0)]
+    hx_lathe("Cañon | tubo", [(t - tr, r) for t, r in prof], bronze, sides=16, axis="y", origin=(0, ty, tz),
+             tilt=math.radians(2.5), pivot=(0, ty, tz))
+    segment("Cañon | muñones", (-.24, ty, tz), (.24, ty, tz), .048, .048, bronze, sides=10)
+    # Rammer and sponge carried along the right cheek.
+    segment("Cureña | atacador", (.31, -1.55, .50), (.31, .30, .93), .022, .022, wood2, sides=6)
+    segment("Cureña | lanada", (.31, .30, .93), (.31, .52, .98), .055, .055, sponge, sides=8)
+    hx_settle()
+    export("hx_pieza_artilleria", [])
+
+
+def hx_brasero():
+    """Iron brazier on three legs with glowing charcoal; the view puts its warm light ~1.4 m up."""
+    hx_begin()
+    rng = random.Random(51)
+    iron = HxMat("Hierro | brasero", hx_col("hierro"), "hx_hierro")
+    char = HxMat("Brasas | carbon encendido", (.05, .04, .035), "hx_brasa")
+    wood = HxMat("Madera | tizones", hx_col("madera_oscura", .6), "wood")
+    hx_ember_material()
+    hx_lathe("Brasero | cuenco", [(.60, 0), (.60, .12), (.63, .24), (.70, .33), (.79, .385), (.83, .40), (.845, .385),
+                                  (.80, .355), (.72, .29), (.67, .18), (.655, 0)], iron, sides=16)
+    for k in range(3):
+        a = 2 * math.pi * k / 3 + .3
+        segment("Brasero | pata", (math.cos(a) * .22, math.sin(a) * .22, .64), (math.cos(a) * .40, math.sin(a) * .40, 0), .022, .02, iron, sides=6)
+        sphere("Brasero | pie", (math.cos(a) * .40, math.sin(a) * .40, .015), (.035, .035, .02), iron, seg=8, rings=4)
+    torus("Brasero | aro", (0, 0, .28), .32, .014, (0, 0, 0), iron, ms=16, ns=4)
+    for s in (-1, 1):
+        torus("Brasero | asa", (s * .43, 0, .80), .05, .012, (math.pi / 2, 0, 0), iron, ms=10, ns=4)
+    blob("Brasero | brasas", (0, 0, .755), (.33, .33, .08), char, rng, 2, .30)
+    for k in range(5):
+        a = rng.uniform(0, 6.28)
+        r = rng.uniform(.05, .22)
+        blob("Brasero | carbon", (math.cos(a) * r, math.sin(a) * r, .82), (.07, .06, .045), char, rng, 1, .3)
+    segment("Brasero | tizon", (-.30, .10, .80), (.14, -.06, .88), .03, .026, wood, sides=6)
+    segment("Brasero | tizon", (.28, .16, .79), (-.04, .02, .87), .028, .024, wood, sides=6)
+    hx_settle()
+    export("hx_brasero", [])
+
+
+def hx_fogon():
+    """Guard fire: a ring of field stones, ash bed, five logs to the centre and embers."""
+    hx_begin()
+    rng = random.Random(61)
+    ash = HxMat("Ceniza", hx_col("piedra_gris", .45), "stone")
+    stone, stone2 = HxMat("Piedra | fogon", hx_col("piedra_gris"), "stone"), HxMat("Piedra | fogon tiznada", hx_col("piedra_gris", .6), "stone")
+    log = HxMat("Leña | troncos", hx_col("madera_oscura", .9), "wood")
+    char = HxMat("Brasas | fogon", (.05, .04, .035), "hx_brasa")
+    hx_ember_material()
+    hx_lathe("Fogon | cama de ceniza", [(0, 0), (0, .62), (.03, .55), (.055, .30), (.065, 0)], ash, sides=14)
+    for k in range(9):
+        a = 2 * math.pi * k / 9 + rng.uniform(-.12, .12)
+        r = .64 + rng.uniform(-.03, .05)
+        blob("Fogon | piedra", (math.cos(a) * r, math.sin(a) * r, .06), (rng.uniform(.15, .20), rng.uniform(.12, .16), rng.uniform(.10, .14)),
+             stone if k % 3 else stone2, rng, 1, .25)
+    for k in range(5):
+        a = 2 * math.pi * k / 5 + rng.uniform(-.2, .2)
+        o = segment("Fogon | leño", (math.cos(a) * .78, math.sin(a) * .78, .06), (math.cos(a) * .10, math.sin(a) * .10, .19),
+                    .055, .045, log, sides=7)
+        paint_fn(o, lambda q: (.25 + .75 * np.clip((np.hypot(q[:, 0], q[:, 1]) - .15) / .35, 0, 1))[:, None])
+    blob("Fogon | brasas", (0, 0, .09), (.26, .26, .08), char, rng, 2, .3)
+    hx_settle()
+    export("hx_fogon", [])
+
+
+HX_BUILDERS = {
+    "hx_casa_adobe": hx_casa_adobe,
+    "hx_casa_adobe_grande": hx_casa_adobe_grande,
+    "hx_capilla": hx_capilla,
+    "hx_tapia": hx_tapia,
+    "hx_corral": hx_corral,
+    "hx_pirca": hx_pirca,
+    "hx_pieza_artilleria": hx_pieza_artilleria,
+    "hx_brasero": hx_brasero,
+    "hx_fogon": hx_fogon,
+}
+HX_NOTES = {
+    "hx_casa_adobe": "P6, Humahuaca 1817. Adobe house 6.0 x 4.0 m, flat torta roof sloping to the street (front, Godot -Z), pretil, rollizos, one door, one window. Design / reasoned reconstruction, not a surveyed building.",
+    "hx_casa_adobe_grande": "P6, Humahuaca 1817. Adobe house 10.0 x 5.0 m with a front ramada of horcones and cane; two doors (one ajar), two windows. Design / reasoned reconstruction.",
+    "hx_capilla": "P6, Humahuaca 1817. Small limewashed adobe chapel, nave 6.4 x 13 m, gable roof of torta, espadaña with two bells on the facade (Godot -Z); AABB under 8 m. Generic chapel of the quebrada, not the Humahuaca church.",
+    "hx_tapia": "P6, Humahuaca 1817. Rammed-earth wall module 4.0 m long (X), 2.0 m high, 0.55-0.45 m thick, straw capping; square ends to repeat along X.",
+    "hx_corral": "P6, Humahuaca 1817. Dry-stone (pirca) corral 10 x 10 m, 1.15 m high, pole gate on the front (Godot -Z). Design.",
+    "hx_pirca": "P6, Humahuaca 1817. Straight 4.0 m module of pirca (dry stone), 1.15 m high, to repeat along X.",
+    "hx_pieza_artilleria": "P6, Humahuaca 1817. Light field gun (1.6 m tube, 'de a 4' size) on a bracket-trail carriage; muzzle to Godot -Z. Generic piece, reasoned reconstruction; bronze tube (plate 06 says 'hierro' for cannons: deliberate deviation), iron fittings.",
+    "hx_brasero": "P6, Humahuaca 1817. Iron brazier on three legs with emissive embers; warm light anchor about 1.4 m above the origin (above the rim, so the bowl does not shade the ground).",
+    "hx_fogon": "P6, Humahuaca 1817. Guard fire ring of stones with logs and emissive embers; warm light anchor about 0.6 m above the origin.",
+}
+BUILDERS.update(HX_BUILDERS)
+NOTES.update(HX_NOTES)
+
+
 def main():
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
     only = None
