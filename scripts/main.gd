@@ -74,6 +74,9 @@ var selected_label: Label
 var sector_option: OptionButton
 var round_button: Button
 var next_btn: Button
+var pace_label: Label
+var tut_hint_label: Label
+var info_fold_btn: Button
 var jev_label: Label
 var capture_bar: ProgressBar
 var update_timer = 0.0
@@ -461,7 +464,7 @@ func _menu():
  if hx_won:st2="GANADA"+(" · "+str(hxp.get("best_medal","")).to_upper() if not str(hxp.get("best_medal","")).is_empty() else "");tone2="done"
  elif unlocked:st2="RECOMENDADO AHORA";tone2="rec"
  elif int(hxp.get("attempts",0))>0:st2="EN CURSO";tone2="open"
- var hxb=_chapter_card(box,"II  ·   HUMAHUACA: EL DEPÓSITO DE LA RETAGUARDIA\n"+("El golpe de Arias  ·  1817" if unlocked else "Recomendado tras la Justina  ·  El golpe de Arias, 1817"),"II","Humahuaca: el depósito de la retaguardia","El golpe de Arias · Quebrada de Humahuaca" if unlocked else "Recomendado tras la Justina · El golpe de Arias","1817",st2,tone2,func():_start_game("humahuaca"))
+ var hxb=_chapter_card(box,"II  ·   HUMAHUACA: EL DEPÓSITO DE LA RETAGUARDIA\n"+("El golpe de Arias  ·  1817" if unlocked else "Recomendado tras la Justina  ·  El golpe de Arias, 1817"),"II","Humahuaca","El depósito de la retaguardia · el golpe de Arias" if unlocked else "Recomendado tras la Justina · el golpe de Arias","1817",st2,tone2,func():_start_game("humahuaca"))
  hxb.tooltip_text="Tres partidas, reconocedores y arreo. Tiempo real con pausa. Hay que tomar el depósito antes del alba."  # siempre habilitado (D1c): la Justina no está certificada y un candado dejaría sin probar el nivel
  # III · candado atado a la Justina (no se rompen perfiles); recomendado tras Humahuaca (D-03)
  var st3="CON CANDADO";var tone3="lock"
@@ -485,7 +488,7 @@ func _menu():
  _rich(box,"[color=#a79f92]Reconstrucción jugable con diseño propio, no una crónica: el juego distingue lo documentado, la tradición, la reconstrucción y el diseño (en «Historia» y en cada etiqueta). Que Güemes mandara en la Justina es una tradición no probada.[/color]",12)
  _label(box,"VERSIÓN "+str(ProjectSettings.get_setting("application/config/version","?")).to_upper()+"  ·  3D LOCAL  ·  SE PUEDE JUGAR SIN CONEXIÓN",10,MUTED)
  var credit=_label(ui,"RÍO DE LA PLATA  ·  12 DE AGOSTO DE 1806",16,GOLD,true);credit.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT
- credit.add_theme_color_override("font_outline_color",Color(0.03,0.02,0.05,0.85));credit.add_theme_constant_override("outline_size",6)
+ credit.add_theme_color_override("font_shadow_color",Color(0.03,0.02,0.05,0.75));credit.add_theme_constant_override("shadow_offset_x",1);credit.add_theme_constant_override("shadow_offset_y",2)
  _anchor(credit,1,1,1,1,-620,-58,-32,-28)
 
 # ---------- P4 · menú heroico, viñeta, documentos a pantalla completa ----------
@@ -797,9 +800,9 @@ func _update_hud():
   capture_bar.value=100.0*float(vp.fraction)
   capture_bar.tooltip_text="Cuánto falta para que el invasor tenga que retirarse: el indicador más lejos de su meta y la presión acumulada. Se llena en la ronda en que ganás."
   info_label.text="Apoyo de la población: [b]%d %%[/b]\nReservas propias: [b]%d[/b]\nHumahuaca: %s" % [int(state.population),int(state.stores),"recuperada por Arias" if state.humahuaca else "operación desde marzo"]
-  var et="[b]CAPACIDAD REALISTA[/b]  [color=#a79f92](meta)[/color]"
+  var et="[b]CAPACIDAD REALISTA[/b]"
   for row in vp.rows:
-   et+="\n%s %s: [b]%d[/b] → %d o menos" % ["[color=#8fb89a]✓[/color]" if bool(row.ok) else "·",str(row.label),int(row.value),int(row.goal)]
+   et+="\n%s %s [b]%d[/b]  [color=#a79f92]meta ≤ %d[/color]" % ["[color=#8fb89a]✓[/color]" if bool(row.ok) else "·",str(row.label),int(row.value),int(row.goal)]
   et+="\nPresión: [b]%d de %d[/b]%s" % [mini(int(vp.pressure),int(vp.pressure_goal)),int(vp.pressure_goal)," [color=#8fb89a]✓[/color]" if int(vp.pressure)>=int(vp.pressure_goal) else ""]
   et+="\n[color=#a79f92]La retirada no puede ocurrir antes del 12 de abril (ronda %d).[/color]" % int(vp.round_min)
   et+="\n\n%s" % ("Salta está ocupada.\nLa campaña sigue abierta." if state.enemy.occupied_salta else "El ejército avanza desde el norte.")
@@ -1041,7 +1044,7 @@ func _toggle_details():
 func _apply_details():
  for c in detail_ctls:
   if is_instance_valid(c):c.visible=details_open
- if is_instance_valid(details_btn):details_btn.text="Detalles ▾ (munición, avisos, río)" if details_open else "Detalles ▸ (munición, avisos, río)"
+ if is_instance_valid(details_btn):details_btn.text="Detalles ▾ (vado, munición, río)" if details_open else "Detalles ▸ (vado, munición, río)"
 
 func _sound(sound_name):
  if is_instance_valid(audio_manager):audio_manager.play(sound_name)
@@ -1116,7 +1119,7 @@ func _open_modal(title:String,width=800,height=600,full:bool=false,tone:String="
  width=minf(float(width),vs.x-16.0);height=minf(float(height),vs.y-16.0)
  modal_paused=paused;paused=true
  modal=Control.new();modal.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);ui.add_child(modal)
- var shade=ColorRect.new();shade.color=Color(0.035,0.03,0.055,0.86 if full else (0.975 if _is_j() else 0.94));shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);modal.add_child(shade)
+ var shade=ColorRect.new();shade.color=Color(0.035,0.03,0.055,0.93 if full else (0.975 if _is_j() else 0.94));shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);modal.add_child(shade)
  if full:
   var panel_f=PanelContainer.new();modal.add_child(panel_f)
   panel_f.add_theme_stylebox_override("panel",_style(Color(0,0,0,0),Color(0,0,0,0),0,0,0))
@@ -2123,13 +2126,13 @@ func _build_hud_j():
  overlay=Control.new();overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
  overlay.mouse_filter=Control.MOUSE_FILTER_IGNORE;ui.add_child(overlay);overlay.draw.connect(_draw_overlay)
  # Cabecera: título, indicador permanente de tiempo real / pausa, reloj, pausa, velocidades y menús
- var header=_panel(ui,Vector2(20,8),Vector2(1400,0),Color(0.086,0.075,0.110,0.94),Color("5c4a2e"),3);hud_panels.append(header);_anchor(header,0,0,1,0,12,6,-12,6)
+ var header=_panel(ui,Vector2(20,8),Vector2(1400,0),Color(0.086,0.075,0.110,0.86),Color("5c4a2e"),3);hud_panels.append(header);_anchor(header,0.5,0,0.5,0,-480,6,480,6);header.grow_horizontal=Control.GROW_DIRECTION_BOTH
  var hv=_hbox(header,6)
  var heading=_vbox(hv,0);heading.size_flags_horizontal=Control.SIZE_EXPAND_FILL
- heading.custom_minimum_size.x=60;heading.clip_contents=true
+ heading.custom_minimum_size.x=150;heading.clip_contents=true
  title_label=_label(heading,"",15,PAPER,true);title_label.clip_text=true;title_label.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
  phase_label=_label(heading,"",10,MUTED);phase_label.clip_text=true;phase_label.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
- mode_label=_label(hv,"",13,GREEN);mode_label.custom_minimum_size.x=176;mode_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;mode_label.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
+ mode_label=_label(hv,"",13,GREEN);mode_label.custom_minimum_size.x=150;mode_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;mode_label.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
  mode_label.tooltip_text="La Justina es TIEMPO REAL: el reloj avanza solo. Podés pausar con Espacio y dar órdenes con el tiempo detenido (pausa activa: lo recomendado). Velocidades ×1, ×2, ×4."
  mode_label.mouse_filter=Control.MOUSE_FILTER_PASS
  clock_label=_label(hv,"",19,GOLD,true);clock_label.custom_minimum_size.x=120;clock_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
@@ -2152,7 +2155,7 @@ func _build_hud_j():
  _anchor(place_label,0,0,0,0,16,54,340,76);place_label.visible=false
  # Pila central: pausa, avisos críticos y tutorial (se apilan sin pisarse)
  top_stack=VBoxContainer.new();top_stack.add_theme_constant_override("separation",4);top_stack.mouse_filter=Control.MOUSE_FILTER_IGNORE;ui.add_child(top_stack)
- _anchor(top_stack,0.5,0,0.5,0,-330,54,330,54)
+ _anchor(top_stack,0.5,0,0.5,0,-290,54,290,54)
  pause_banner=_label(top_stack,"",13,Color("f6e2a8"));pause_banner.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;pause_banner.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;pause_banner.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
  pause_banner.add_theme_stylebox_override("normal",_cm_style("banner",Color(0.2,0.15,0.04,0.96),Color("e0bf81"),2,10,5));pause_banner.mouse_filter=Control.MOUSE_FILTER_IGNORE;pause_banner.visible=false
  alert_panel=_panel(top_stack,Vector2.ZERO,Vector2(660,0),Color(0.22,0.07,0.06,0.97),Color("b8433a"),8)
@@ -2166,14 +2169,14 @@ func _build_hud_j():
  var tb=_hbox(tv,6)
  tut_skip_btn=_button(tb,"Saltar paso ▸",_tut_skip,24);_compact(tut_skip_btn,6,2);tut_skip_btn.add_theme_font_size_override("font_size",12)
  tut_close_btn=_button(tb,"Cerrar tutorial",_tut_close,24);_compact(tut_close_btn,6,2);tut_close_btn.add_theme_font_size_override("font_size",12)
- var tl=_label(tb,"F1 o ? abre la ayuda completa",11,MUTED);tl.size_flags_vertical=Control.SIZE_SHRINK_CENTER
+ var tl=_label(tb,"F1 o ? abre la ayuda completa",11,MUTED);tl.size_flags_vertical=Control.SIZE_SHRINK_CENTER;tut_hint_label=tl
  hint_panel.visible=false
  # Panel de la derecha: objetivo, captura, río, tiempos, recursos y riesgo del sondeo
- right_panel=_panel(ui,Vector2.ZERO,Vector2(272,0),Color(0.086,0.075,0.110,0.92),Color("5c4a2e"),8);hud_panels.append(right_panel);_anchor(right_panel,1,0,1,0,-284,54,-12,54)
+ right_panel=_panel(ui,Vector2.ZERO,Vector2(256,0),Color(0.086,0.075,0.110,0.86),Color("5c4a2e"),8);hud_panels.append(right_panel);_anchor(right_panel,1,0,1,0,-268,54,-12,54)
  var rv=_vbox(right_panel,3)
  var rh=_hbox(rv,4)
  var rt=_label(rh,"OBJETIVO Y ESTADO  (tecla I)",11,GOLD);rt.size_flags_horizontal=Control.SIZE_EXPAND_FILL
- var rbtn=_button(rh,"▾",_toggle_info,20);rbtn.custom_minimum_size.x=26;_compact(rbtn,4,0);rbtn.tooltip_text="Plegar o desplegar (I)"
+ var rbtn=_button(rh,"▾",_toggle_info,20);rbtn.custom_minimum_size.x=26;_compact(rbtn,4,0);rbtn.tooltip_text="Plegar o desplegar (I)";info_fold_btn=rbtn
  right_body=_vbox(rv,3)
  goal_label=_rich(right_body,"",14)
  info_label=_rich(right_body,"",12)
@@ -2182,18 +2185,18 @@ func _build_hud_j():
  moral_bar=ProgressBar.new();moral_bar.custom_minimum_size.y=7;moral_bar.show_percentage=false
  moral_bar.add_theme_stylebox_override("fill",_style(Color("c98f6f"),Color.TRANSPARENT,0,3,0));right_body.add_child(moral_bar)
  state_label=_rich(right_body,"",12)
- river_ctl=Control.new();river_ctl.custom_minimum_size=Vector2(254,34);river_ctl.mouse_filter=Control.MOUSE_FILTER_IGNORE;right_body.add_child(river_ctl);river_ctl.draw.connect(_draw_river)
- time_ctl=Control.new();time_ctl.custom_minimum_size=Vector2(254,54);time_ctl.mouse_filter=Control.MOUSE_FILTER_IGNORE;right_body.add_child(time_ctl);time_ctl.draw.connect(_draw_timeline)
+ river_ctl=Control.new();river_ctl.custom_minimum_size=Vector2(238,34);river_ctl.mouse_filter=Control.MOUSE_FILTER_IGNORE;right_body.add_child(river_ctl);river_ctl.draw.connect(_draw_river)
+ time_ctl=Control.new();time_ctl.custom_minimum_size=Vector2(238,50);time_ctl.mouse_filter=Control.MOUSE_FILTER_IGNORE;right_body.add_child(time_ctl);time_ctl.draw.connect(_draw_timeline)
  tide_label=_rich(right_body,"",12)
  res_label=_rich(right_body,"",12)
  risk_label=_rich(right_body,"",12)
  log_label=_rich(right_body,"",11)
- detail_ctls=[tide_label,res_label,risk_label,river_ctl]
+ detail_ctls=[tide_label,res_label,risk_label,river_ctl,state_label]  # D-07: el objetivo queda en dos líneas; el estado del vado y el peligro, a un clic
  details_btn=_button(right_body,"",_toggle_details,22);_compact(details_btn,6,1);details_btn.add_theme_font_size_override("font_size",11)
  details_btn.tooltip_text="Muestra u oculta el detalle: munición, avisos a Liniers, estacas, estado del río y riesgo del sondeo."
  _apply_details()
  # Panel lateral de agrupaciones (siempre visible): una ficha por agrupación
- roster_panel=_panel(ui,Vector2.ZERO,Vector2(240,0),Color(0.086,0.075,0.110,0.94),Color("5c4a2e"),6);hud_panels.append(roster_panel)
+ roster_panel=_panel(ui,Vector2.ZERO,Vector2(224,0),Color(0.086,0.075,0.110,0.86),Color("5c4a2e"),6);hud_panels.append(roster_panel)
  var lv=_vbox(roster_panel,3)
  var lt=_label(lv,"AGRUPACIONES  ·  clic o teclas 1-5",11,GOLD);lt.tooltip_text="Cinco agrupaciones: tres grupos (1-3) y dos exploradores (4-5). Clic selecciona; Mayús suma; Ctrl alterna."
  for id in ALL_ACTORS:
@@ -2201,7 +2204,7 @@ func _build_hud_j():
   var rb=_button(lv,"",func():_roster_click(aid),68);rb.add_theme_font_size_override("font_size",11);rb.alignment=HORIZONTAL_ALIGNMENT_LEFT;_compact(rb,8,3);rb.clip_text=true
   rb.draw.connect(func():_draw_card(aid,rb))
   roster_buttons[id]=rb
- left_foot=_rich(lv,"",11)
+ left_foot=_rich(lv,"",11);left_foot.visible=false  # la munición está en «Detalles» (no se repite: menos tablero)
  deploy_btn=_button(lv,"Ajustar tropas ▸",_deploy_dialog,24);_compact(deploy_btn,6,2);deploy_btn.add_theme_font_size_override("font_size",12)
  deploy_btn.tooltip_text="Composición, rol y punto de partida de las cinco agrupaciones. Antes de empezar se puede reasignar fuerza entre los tres grupos."
  # Minimapa y su barra de cámara
@@ -2212,7 +2215,7 @@ func _build_hud_j():
  for spec in [["Selec. F",_center_selection,"F o Inicio. Centra la cámara en lo seleccionado."],["Buque B",_center_ship,"B. Lleva la cámara al Buque Justina."],["Todo 0",_view_all,"0. Encuadra el mapa entero."],["Ampliar M",_toggle_minimap,"M. Minimapa grande o normal. En el minimapa: clic o arrastre mueve la cámara; clic derecho ordena mover."]]:
   var bb=_button(mb,str(spec[0]),spec[1],22);bb.add_theme_font_size_override("font_size",11);_compact(bb,3,1);bb.size_flags_horizontal=Control.SIZE_EXPAND_FILL;bb.tooltip_text=str(spec[2])
  # Panel inferior: selección, ritmo y acciones contextuales
- var bottom=_panel(ui,Vector2.ZERO,Vector2(900,0),Color(0.086,0.075,0.110,0.94),Color("5c4a2e"),7);hud_panels.append(bottom)
+ var bottom=_panel(ui,Vector2.ZERO,Vector2(660,0),Color(0.086,0.075,0.110,0.86),Color("5c4a2e"),7);hud_panels.append(bottom)
  bottom.grow_vertical=Control.GROW_DIRECTION_BEGIN;bottom_panel=bottom
  var right_col=_vbox(bottom,3)
  var info_row=_hbox(right_col,4)
@@ -2220,13 +2223,14 @@ func _build_hud_j():
  var pl=_label(info_row,"Ritmo",11,MUTED);pl.size_flags_vertical=Control.SIZE_SHRINK_CENTER
  for spec in [["walk","C · Paso"],["trot","T · Trote"],["gallop","G · Galope"]]:
   var pid=str(spec[0])
-  var pb=_button(info_row,str(spec[1]),func():_set_pace(pid),24);pb.toggle_mode=true;pb.add_theme_font_size_override("font_size",11);_compact(pb,5,2)
+  var pb=_button(info_row,str(spec[1]),func():_set_pace(pid),24)
+  pace_label=pl;pb.toggle_mode=true;pb.add_theme_font_size_override("font_size",11);_compact(pb,5,2)
   pb.tooltip_text="Ritmo de marcha de los grupos seleccionados. El galope solo vale en terreno firme."
   pace_buttons[pid]=pb
  action_box=_vbox(right_col,3)
  # Avisos transitorios: arriba, en la pila central (nunca sobre los botones de acción ni sobre las tropas).
  var toast_row=HBoxContainer.new();toast_row.add_theme_constant_override("separation",6);toast_row.mouse_filter=Control.MOUSE_FILTER_IGNORE;top_stack.add_child(toast_row);top_stack.move_child(toast_row,0)
- toast_label=_label(toast_row,"",15,PAPER);toast_label.size_flags_horizontal=Control.SIZE_EXPAND_FILL;toast_label.custom_minimum_size.x=520
+ toast_label=_label(toast_row,"",15,PAPER);toast_label.size_flags_horizontal=Control.SIZE_EXPAND_FILL;toast_label.custom_minimum_size.x=460
  toast_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;toast_label.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;toast_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
  toast_label.add_theme_stylebox_override("normal",_style(Color(0.075,0.063,0.098,0.95),Color("5c4a2e"),1,5,8));toast_label.mouse_filter=Control.MOUSE_FILTER_IGNORE
  toast_view=_button(toast_row,"ver",func():_toast_view_click(),26);_compact(toast_view,8,2);toast_view.size_flags_vertical=Control.SIZE_SHRINK_CENTER;toast_view.visible=false
@@ -2245,8 +2249,8 @@ func _layout_j():
  _anchor(map_widget,0,1,0,1,12,-(sz.y+10),12+sz.x,-10)
  map_widget.queue_redraw()
  if is_instance_valid(mm_bar):_anchor(mm_bar,0,1,0,1,12,-(sz.y+10+32),12+sz.x,-(sz.y+14))
- if is_instance_valid(roster_panel):_anchor(roster_panel,0,0,0,0,12,80,252,80)
- if is_instance_valid(bottom_panel):_anchor(bottom_panel,0,1,0,1,12+sz.x+8,-10,12+sz.x+8+900,-10)
+ if is_instance_valid(roster_panel):_anchor(roster_panel,0,0,0,0,12,54,236,54)
+ if is_instance_valid(bottom_panel):_anchor(bottom_panel,0,1,0,1,12+sz.x+8,-10,12+sz.x+8+660,-10)
 
 func _set_speed(v:float):
  speed=v;auto_fast_on=false;auto_fast_cool=20.0;_update_hud()
@@ -2511,9 +2515,10 @@ func _card_text(id:String)->String:
  if id in SCOUT_IDS:
   var hp_max=int(_jmap().get("resources",{}).get("scout_hp",4))
   if not sel_ids.has(id):return "◈ %d %s   ♥ %d/%d\n%s" % [_actor_number(id),_short_name(id),int(a.hp),hp_max,_order_text(id)]
-  return "%s◈ %d %s   ♥ %d/%d\nExplorador a pie · lanza\n%s\n%s" % [mark,_actor_number(id),_short_name(id),int(a.hp),hp_max,stage_t,_order_text(id)]
+  if str(a.stage) in ["ready","idle"]:return "%s◈ %d %s   ♥ %d/%d\n%s" % [mark,_actor_number(id),_short_name(id),int(a.hp),hp_max,_order_text(id)]  # D-07: sin repetir «Libre» y «Esperando órdenes»; el tipo está en la ayuda emergente
+  return "%s◈ %d %s   ♥ %d/%d\n%s\n%s" % [mark,_actor_number(id),_short_name(id),int(a.hp),hp_max,stage_t,_order_text(id)]
  if not sel_ids.has(id):
-  return "%s %d %s      %d %%\nmunición %d · %s" % [_ujg(id),_actor_number(id),_short_name(id),int(a.strength),int(rules.resources().ammo),_order_text(id)]
+  return "%s %d %s  %d %%\nmunición %d · %s" % [_ujg(id),_actor_number(id),_short_name(id),int(a.strength),int(rules.resources().ammo),_order_text(id)]
  var tired="" if int(a.fatigue)<=0 else " · cansado %d %%" % int(a.fatigue)
  return "%s%s %d %s      %d %%\n%s · munición %d\n%s%s\n%s" % [mark,_ujg(id),_actor_number(id),_short_name(id),int(a.strength),str(role.kind),int(rules.resources().ammo),stage_t,tired,_order_text(id)]
 
@@ -2522,7 +2527,7 @@ func _card_tip(id:String)->String:
  if a.is_empty():return ""
  var tg=str(a.get("tag","diseno"))
  var role=GROUP_ROLE[id]
- var t="%s\nTipo: %s%s. Rol (diseño): %s\nFuente: %s %s" % [str(a.name),str(role.kind),(" · "+("a caballo" if bool(a.get("mounted",false)) else "a pie")) if not (id in SCOUT_IDS) else "",str(role.role),_tag_glyph(tg),_tag_label(tg)]
+ var t="%s\nTipo: %s%s. Rol (diseño): %s\nFuente: %s %s" % [str(a.name),str(role.kind),(" · "+("a caballo" if bool(a.get("mounted",false)) else "a pie")) if not (id in SCOUT_IDS) else " · a pie, con lanza",str(role.role),_tag_glyph(tg),_tag_label(tg)]
  for g in _jmap().get("groups",[]):
   var note=str(g.get("note","")).split(". ")[0]
   if str(g.id)==id and not note.begins_with("Identificador interno"):t+="\n"+note+"."
@@ -3072,7 +3077,7 @@ func _refresh_actions_j():
   if str(a0) in ["withdraw","distract_fire","retreat_all","board_own"]:risky.append(a0)
   else:calm.append(a0)
  ids=calm+risky
- var grid=GridContainer.new();grid.columns=6;grid.add_theme_constant_override("h_separation",4);grid.add_theme_constant_override("v_separation",4);action_box.add_child(grid)
+ var grid=GridContainer.new();grid.columns=5;grid.add_theme_constant_override("h_separation",4);grid.add_theme_constant_override("v_separation",4);action_box.add_child(grid)
  var grid2_holder=_vbox(action_box,0)
  var risk_row:HBoxContainer=null
  for a in ids:
@@ -3092,7 +3097,7 @@ func _refresh_actions_j():
   b.gui_input.connect(_blocked_click.bind(b))
   action_buttons[act]=b
  reason_label=_label(action_box,"",11,MUTED);reason_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
- reason_label.custom_minimum_size=Vector2(860,30);reason_label.max_lines_visible=2;reason_label.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
+ reason_label.custom_minimum_size=Vector2(620,30);reason_label.max_lines_visible=2;reason_label.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
  # Altura fija: si el texto de ayuda creciera al pasar el mouse, los botones se moverían bajo el cursor y el clic fallaría.
  hover_action=""
  _update_action_states()
@@ -3141,6 +3146,32 @@ func _avail(action:String)->Dictionary:
   if fail.is_empty():fail=av
  return fail
 
+# D-07 · Primer cuadro con UNA sola cosa que hacer: hasta la primera acción del jugador (o si ya jugó antes) se pliega lo que todavía no sirve
+# (velocidades ×2/×4, diario, ajuste de tropas, barra del minimapa, captura en 0 %, la ficha repetida de la selección y la ayuda de F1, que ya
+# ofrece la tarjeta). El ritmo de marcha solo se ofrece con un grupo elegido (los exploradores van a pie). Nada se pierde: todo vuelve solo.
+func _first_frame_focus():
+ var st=rules.state
+ var focus=bool(settings.tutorial) and tut_step==0 and str(st.status)=="playing" and float(st.elapsed)<0.5 and st.orders.is_empty() and rules.probes().is_empty() and int(progress.intentos)<=1
+ for sp in [2,4]:
+  if speed_buttons.has(sp) and is_instance_valid(speed_buttons[sp]):speed_buttons[sp].visible=not focus
+ for c in [mm_bar,tut_hint_label,info_fold_btn,sel_info,info_label,capture_bar,moral_bar]:
+  if is_instance_valid(c):c.visible=not focus
+ if is_instance_valid(deploy_btn) and focus:deploy_btn.visible=false
+ if is_instance_valid(ui):
+  for hb in ui.find_children("*","Button",true,false):
+   if str(hb.text)=="Diario" and hb.get_parent() and hb.get_parent().get_parent()==hud_panels[0]:hb.visible=not focus
+ var groups_sel=not _sel_groups().is_empty()
+ for pid in pace_buttons:
+  if is_instance_valid(pace_buttons[pid]):pace_buttons[pid].visible=groups_sel
+ if is_instance_valid(pace_label):pace_label.visible=groups_sel
+
+# D-07: la fila «con riesgo» (retirar, distraer con fuego, cargar sin orden) no sirve antes de que el vado ceda o haya alguien en marcha.
+func _risk_row_open()->bool:
+ if bool(rules.resources().get("advance_authorized",false)) or _ford_soon():return true
+ for id in GROUP_IDS:
+  if str(rules.get_unit(id).get("stage","")) in ["moving","waiting_tide","dismounting","boarding"]:return true
+ return false
+
 func _update_action_states():
  if not is_instance_valid(action_box):return
  var playing=str(rules.state.status)=="playing"
@@ -3165,6 +3196,7 @@ func _update_action_states():
   if a in ["repel","evacuate"]:
    b.visible=_anyone_boarding()
   if a=="retreat_all":b.visible=false  # acción peligrosa: se llega por ☰ Menú > Abandonar, con confirmación
+  if a in ["withdraw","distract_fire","board_own"] and not _risk_row_open() and str(rec.action)!=a:b.visible=false  # D-07: lo riesgoso aparece cuando el vado cede
   var why="" if ok else _friendly_reason(a,str(av.get("reason","")) if playing else "La partida ya terminó.")
   b.tooltip_text=_action_effect(a)+"\nTecla: "+(kt if kt!="" else "—")+"  ·  Fuente: "+_tag_glyph(tag)+" "+_tag_label(tag)+(("\nNo disponible ahora: "+why) if not ok else "")
   b.set_meta("why",why)
@@ -3174,34 +3206,41 @@ func _update_action_states():
    b.tooltip_text+="
 PELIGRO: pide confirmación y termina la partida. No es lo mismo que «Retirar» (L), que solo manda a los grupos elegidos de vuelta a la playa."
   elif ok and str(rec.action)==a:
-   b.add_theme_stylebox_override("normal",_cm_style("act_rec",Color("4a421c"),Color("f6dc92"),3,3,2))
+   b.add_theme_stylebox_override("normal",_cm_style("act_rec",Color("2c2418"),Color("e8cc8a"),2,3,2))
    b.add_theme_font_size_override("font_size",12);b.add_theme_color_override("font_color",Color("fff0c4"))
   elif ok and a in ["withdraw","distract_fire","board_own"]:
-   b.add_theme_stylebox_override("normal",_cm_style("act_risky",Color("3a2616"),Color("d98a5c"),1,3,2))
+   b.add_theme_stylebox_override("normal",_cm_style("act_risky",Color("2c1d14"),Color("d9903a"),1,3,2))
    b.add_theme_font_size_override("font_size",10)
   elif ok:
-   b.add_theme_stylebox_override("normal",_cm_style("act_ok",Color("1f3b42"),Color("6fb8a6"),1,3,2))
+   b.add_theme_stylebox_override("normal",_cm_style("act_ok",Color("1d1828"),Color("7a5bb5"),1,3,2))
   else:
-   b.add_theme_stylebox_override("normal",_cm_style("act_no",Color("1b1722"),Color("2c3a38"),1,3,2))
+   b.add_theme_stylebox_override("normal",_cm_style("act_no",Color("1b1722"),Color("2a2430"),1,3,2))
   if not ok:
    nblocked+=1
    if blocked_note.is_empty() or (str(rec.action)==a):
     var wshort=why.split(". ")[0].rstrip(".")
     blocked_note=_action_label(a)+": "+(wshort if wshort.length()<=120 else wshort.substr(0,117)+"…")
+ for rr in action_box.find_children("*","HBoxContainer",true,false):
+  var any_risky=false
+  for ch in rr.get_children():
+   if ch is Button and (ch as Button).visible:any_risky=true
+  if rr.get_child_count()>0 and rr.get_child(0) is Label and str((rr.get_child(0) as Label).text).begins_with("CON RIESGO"):rr.visible=any_risky
  if is_instance_valid(reason_label) and hover_action.is_empty():
   reason_label.add_theme_color_override("font_color",Color("e8cc8a"))
   var tut_on=bool(settings.tutorial) and tut_step<TUT_STEPS.size() and str(rules.state.status)=="playing" and not _tutorial_j().is_empty() and not (is_instance_valid(alert_panel) and alert_panel.visible)
   if tut_on:
    # Un solo mensaje guía a la vez: mientras el tutorial está en pantalla, esta línea solo explica cómo leer los botones.
    reason_label.add_theme_color_override("font_color",MUTED)
-   reason_label.text="Seguí la guía de arriba. Solo ves los botones que podés usar ahora."
+   reason_label.text=""  # D-07: la guía de arriba es el único mensaje
   else:
    reason_label.text="AHORA ▸ "+str(rec.text)
+  reason_label.visible=not tut_on
 
 func _show_action_info(a:String):
  hover_action=a
  if not is_instance_valid(reason_label):return
  if a.is_empty():_update_action_states();return
+ if not reason_label.visible:return  # con el tutorial en pantalla la explicación va en la ayuda emergente del botón: la bandeja no cambia de alto bajo el cursor
  var b:Button=action_buttons.get(a)
  var why=str(b.get_meta("why","")) if is_instance_valid(b) else ""
  reason_label.add_theme_color_override("font_color",MUTED)
@@ -3728,6 +3767,7 @@ Buque: próxima descarga en [b]%d s[/b]" % [int(res.ammo),int(res.ammo_max),int(
   journal_last.text="• "+(str(grouped[-1].text) if not grouped.is_empty() else "Sin novedades.")
  log_label.text=""
  _tut_update()
+ _first_frame_focus()
  tutorial_label.text=_tutorial_j() if bool(settings.tutorial) else ""
  last_hint_text=tutorial_label.text
  # Un solo mensaje a la vez: el aviso crítico manda; un cartel importante tapa la guía mientras dura.
@@ -3861,7 +3901,7 @@ func _goal_text()->String:
   "done":return "[b]Terminó el intento.[/b] "+("¡Tomaste el buque!" if str(rules.state.status)=="victory" else "Mirá el parte: dice qué probar.")
   "boarding":return "[b]ABORDAJE[/b] Llevá la captura a 100 %. Rechazá los contraataques y reagrupá a quien se dispersa."
   "crossing":return "[b]CRUCE[/b] Llegá al buque sin quedarte quieto en el agua ni bajo el aro rojo."
- return "[b]OBJETIVO[/b] Tomar el buque Justina antes de que suba el río. Si perdés, volvés a probar con lo que anotaste."
+ return "[b]OBJETIVO[/b] Tomar el buque Justina antes de que suba el río."
 
 func _state_text(left:float)->String:
  var st=rules.state
@@ -4744,8 +4784,8 @@ func _diary_new_river():
  else:_close_modal()
 
 func _intro_card():
- var box=_open_modal("Justina · Buenos Aires, 12 de agosto de 1806",760,_scroll_h(440.0,40.0),true,"brief")
- _label(box,"I  ·  EL RÍO OFRECE UNA OPORTUNIDAD",13,GOLD)
+ var box=_open_modal("La Justina",760,_scroll_h(440.0,40.0),true,"brief")
+ _label(box,"I  ·  BUENOS AIRES, 12 DE AGOSTO DE 1806  ·  EL RÍO OFRECE UNA OPORTUNIDAD",13,GOLD)
  _rich(box,"[font_size=22][b]Objetivo:[/b] tomar el buque Justina, varado en el río, antes de que el río vuelva a subir.[/font_size]",22).custom_minimum_size.x=700
  _rich(box,"[font_size=18]Perder no es grave: volvés a jugar con [b]el mismo río[/b] y con lo que anotaste en el diario.[/font_size]",18).custom_minimum_size.x=700
  var n=int(progress.intentos)

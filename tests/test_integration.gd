@@ -703,7 +703,7 @@ func _campana() -> void:
 	# III: metas a la vista, paso concreto y sin «Jev» para un perfil sin clave
 	game._update_hud()
 	var et: String = str(game.enemy_label.text)
-	check(et.find("22 o menos") >= 0 and et.find("42 o menos") >= 0 and et.find("45 o menos") >= 0 and et.find("de 7") >= 0 and et.find("ronda 10") >= 0, "D-05: el panel del III muestra las tres metas, la presión «x de 7» y la ronda 10")
+	check(et.find("meta ≤ 22") >= 0 and et.find("meta ≤ 42") >= 0 and et.find("meta ≤ 45") >= 0 and et.find("de 7") >= 0 and et.find("ronda 10") >= 0, "D-05: el panel del III muestra las tres metas, la presión «x de 7» y la ronda 10")
 	check(game.capture_bar.value < 1.0, "D-05: la barra de victoria arranca vacía (%.1f)" % game.capture_bar.value)
 	check(str(game.tutorial_label.text).begins_with("Siguiente paso · Arias reconoce la Quebrada") and game.next_btn != null and game.next_btn.visible, "D-09: en la ronda 1 la guía da una orden concreta y un botón para prepararla")
 	check(not game.jev_label.visible and _ui_text(game.ui).find("Jev") < 0, "D-09: sin clave configurada no aparece la palabra «Jev»")
@@ -872,7 +872,7 @@ func _justina_r1_ui() -> void:
 	game.settings.tutorial = true
 	game.tut_step = 0
 	game._update_hud()
-	check(game.reason_label.text.begins_with("Seguí la guía"), "R5: with the tutorial on there is a single guide message (the bar only explains the buttons): " + game.reason_label.text)
+	check(game.reason_label.text == "" and not game.reason_label.visible and game.hint_panel.visible, "R5/D-07: with the tutorial on there is a single guide message (the tray line is hidden): «" + game.reason_label.text + "»")
 	var tut_prev: bool = bool(game.settings.tutorial)
 	game.settings.tutorial = false
 	game._update_hud()
@@ -882,11 +882,12 @@ func _justina_r1_ui() -> void:
 	check(game.reason_label.text.find("límite de 1 ") < 0 and game.reason_label.text.find("(tocá o pasá") < 0, "R5: the grey-reason note is not cut at the decimal: " + game.reason_label.text)
 	check(game._player_text("Texto. La variante con el banco expuesto es una decisión pendiente tuya.").find("pendiente") < 0, "R5: production notes are stripped from player text")
 	check(str(game._order_text("guemes")).length() > 0 and game._friendly_reason("board", "El fondo estimado en ese punto supera el límite de 1.3 m.").begins_with("El camino hasta el buque"), "R5: the board reason says to probe toward the ship first")
-	game.settings.tutorial = tut_prev
-	game._update_hud()
 	game._show_action_info("board")
 	check(game.reason_label.text.find("No disponible") >= 0 and game.reason_label.text.find("Liniers") >= 0, "Hovering a blocked action shows why")
 	game._show_action_info("")
+	game.settings.tutorial = tut_prev
+	game._update_hud()
+	check(str(game.action_buttons["board"].tooltip_text).find("No disponible ahora") >= 0 and str(game.action_buttons["board"].tooltip_text).find("Liniers") >= 0, "D-07: with the tutorial on, the blocked reason lives in the button tooltip (the tray does not change height under the cursor)")
 	game._select_ids(["scout_1"])
 	var rb: Button = game.action_buttons["recall"]
 	check(not rb.disabled and str(rb.get_meta("why")).find("desconocida") < 0, "Volver is valid for a live scout (no 'Acción desconocida')")
