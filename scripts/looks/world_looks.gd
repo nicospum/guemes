@@ -99,7 +99,9 @@ static func vignette_strength(nombre: String) -> float:
 static func water_params(nombre: String) -> Dictionary:
 	match nombre:
 		"menu": return {"sky_horizon": Color(0.98, 0.70, 0.42), "sky_zenith": Color(0.20, 0.21, 0.33)}
-		"justina": return {"sky_horizon": Color(0.95, 0.82, 0.64), "sky_zenith": Color(0.42, 0.50, 0.58)}
+		# En juego la cámara mira casi cenital: el agua refleja sobre todo el cénit, que queda como el original (verde agrisado del
+		# río) para no perder el contraste agua/orilla; solo el horizonte toma el oro de la tarde.
+		"justina": return {"sky_horizon": Color(0.95, 0.82, 0.64), "sky_zenith": Color(0.50, 0.58, 0.62)}
 	return {}
 
 ## fx = efectos de posproceso permitidos (Forward+/Mobile y calidad distinta de «baja», como hoy).
