@@ -42,3 +42,17 @@ Resumen de lo que usa el nivel II y de dónde sale. El detalle por pista está e
 **Arte.** Todo el arte del nivel sale del generador procedural `scripts/humahuaca/view/humahuaca_gen.gd` y de shaders propios (`shaders/humahuaca_*`): obra propia del proyecto, sin modelos importados, sin bibliotecas de arte ajenas ni imágenes generadas por IA. La paleta de 24 colores es la lámina 06 del material del usuario (decisiones de producción, no mediciones de 1817). La composición del panorama toma como relación la foto *Panorama de Humahuaca* (*Plus Ultra*, abril de 1923, reproducción declarada de dominio público) sin usar ningún píxel de la foto y excluyendo sus torres, fachada, álamos y alumbrado.
 
 **Fuentes escritas (S46–S54 de `docs/historia/FUENTES.md`).** Parte de Arias del 3-III-1817 y oficios y cartas de Güemes y Belgrano en *Güemes documentado* (t. IV y VI); Diario del Estado Mayor realista en Torata, *Documentos para la historia de la guerra separatista del Perú*, t. II (1895); García Camba, *Memorias* (ed. 1916). Se leyeron en transcripciones OCR de la biblioteca de investigación del proyecto (`investigacion-nivel2/`, fuera de Git) y **no se redistribuyen**; el juego solo cita y resume. El dossier del usuario (resumen, láminas 02, 03 y 06, foto de 1923) es punto de partida y queda fuera del repositorio y del ejecutable.
+
+## Nivel II · modelos GLB de la pista P6 (equipo, 2026-11-08)
+
+Obra propia del proyecto: geometría generada por código (`tools/create_models.py`, constructores `hx_*`; exportador `tools/hx_models_sin_blender.py`), sin modelos, texturas ni bibliotecas de terceros, sin descargas y sin IA generativa de imágenes o mallas. Colores de la lámina 06 del material del usuario. Etiqueta de todos: **reconstrucción artística propia, generada por código sin Blender (variante sin texturas PBR); se puede regenerar con Blender cuando esté disponible con `create_models.py --only hx_...`**. Formas, medidas y detalles son «diseño» o «razonado»: no reproducen edificios ni piezas documentadas de Humahuaca en 1817.
+
+- `assets/models/hx_casa_adobe.glb`: Casa baja de adobe 6 × 4 m: cimiento de piedra, techo plano de torta de barro y paja con caída al frente, pretil, rollizos, puerta baja y ventanita.
+- `assets/models/hx_casa_adobe_grande.glb`: Casa de adobe 10 × 5 m con ramada de horcones y cañizo, dos puertas (una entornada) y dos ventanas.
+- `assets/models/hx_capilla.glb`: Capilla de adobe encalado, nave 6,4 × 13 m, techo de torta a dos aguas, contrafuertes y espadaña de dos campanas; alto total 7,90 m. Capilla genérica de la quebrada, no el templo de Humahuaca.
+- `assets/models/hx_tapia.glb`: Tramo de tapial de 4 m, 2 m de alto, con tongadas de 50 cm (por color de vértice) y remate de paja; se repite en X.
+- `assets/models/hx_corral.glb`: Corral de pirca (piedra seca) 10 × 10 m, 1,15 m de alto, con tranquera de palos.
+- `assets/models/hx_pirca.glb`: Tramo recto de pirca de 4 m para repetir.
+- `assets/models/hx_pieza_artilleria.glb`: Cañón de campaña liviano (tubo de 1,6 m) en cureña de gualderas con ruedas de rayos. Tubo de bronce: la lámina 06 asigna «hierro» a los cañones; se apartó a propósito (las piezas de campaña españolas de la época solían ser de bronce). Pieza genérica, no un modelo documentado.
+- `assets/models/hx_brasero.glb`: Brasero de hierro de tres patas con brasas emisivas (la luz la pone la vista).
+- `assets/models/hx_fogon.glb`: Fogón de guardia: anillo de piedras, leños y brasas emisivas.
