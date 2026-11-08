@@ -389,8 +389,11 @@ func _fit_ui_scale():
 
 func _menu():
  _stop_humahuaca()
- get_window().content_scale_factor=1.0
+ # T-003: el modo cambia ANTES de reponer la escala; si no, el size_changed que dispara corre _fit_ui_scale con mode=="play" (Justina) y la vuelve a 1,25.
  jev.invalidate();pending_round=false;mode="menu";paused=true;outcome_shown=false;shake=0.0;flash_alpha=0.0
+ get_window().content_scale_factor=1.0
+ # T-004: el Norte baja el plano lejano a 400 m; el menú vuelve siempre al de arranque (4000 m) y a la misma óptica.
+ if is_instance_valid(camera):camera.far=4000.0;camera.fov=46.0;camera.current=true
  rules.new_game("justine",1806)
  selected="guemes";_rebuild_world();_new_ui()
  camera_target=Vector3(3,1,0);camera_distance=42;camera_pitch=0.43;camera_yaw=-0.55
@@ -435,6 +438,7 @@ func _button_at(parent,text_value,pos,size_v,fn):
 
 func _start_game(scenario_name:String):
  if scenario_name=="humahuaca":_start_humahuaca();return  # GameRules.new_game() convertiría cualquier nombre desconocido en "justine"
+ _stop_humahuaca()  # T-001: cambiar de nivel siempre libera el II (su ambiente, su sol, su lluvia y su cámara); no hace nada si no está vivo
  var build_start=Time.get_ticks_msec()
  jev.invalidate();pending_round=false;resolution_remaining=0;outcome_shown=false
  attempt_logged=false;shake=0.0;flash_alpha=0.0;toast_prio=0;volley_warned=-1.0;toast_timer=0.0;details_open=false;auto_start_pending=false
@@ -478,7 +482,11 @@ func _hx_make():  # carga con respaldo: si el controlador real falta o no parsea
 
 func _stop_humahuaca():
  if not is_instance_valid(hx):return
- hx.stop();hx.queue_free();hx=null
+ hx.stop()
+ # T-001: se saca del árbol en el mismo cuadro (queue_free es diferido): su WorldEnvironment, su sol y la lluvia (hijos de su vista) no conviven ni un
+ # cuadro con el ambiente del nivel siguiente, que se arma enseguida y si no perdería la elección de «ambiente vigente» de Godot.
+ if hx.get_parent()==self:remove_child(hx)
+ hx.queue_free();hx=null
  if is_instance_valid(camera):camera.current=true
 
 func _on_hx_exited(to:String):
@@ -921,9 +929,12 @@ func _save_game(notify_user=true):
 
 func _load_game(scenario_name:String):
  if scenario_name=="humahuaca":_start_humahuaca({"load":true});return  # el controlador lee su propio guardado; rules.load_game solo conoce justine y norte
+ var was_hx=mode=="hx"
+ if was_hx:_stop_humahuaca();mode="menu"  # T-001: cargar la Justina o el Norte con el II vivo lo libera primero
  jev.invalidate();pending_round=false
  var result=rules.load_game(_save_path(scenario_name))
  if not result.ok:
+  if was_hx:_menu()  # la interfaz del II ya no está: el aviso sale sobre el menú
   if scenario_name=="justine":_load_rejected_dialog(str(result.reason))
   elif mode=="play":_toast(str(result.reason),5,false);_refresh_actions()
   else:_simple_dialog("No se pudo continuar",str(result.reason))

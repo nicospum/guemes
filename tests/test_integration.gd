@@ -54,6 +54,7 @@ func _run() -> void:
 		game.world_script = StubWorld
 	await _justina()
 	await _norte()
+	await _transiciones()
 	report.final_scenario = game.rules.state.scenario
 	report.final_status = game.rules.state.status
 	if is_instance_valid(game.audio_manager):
@@ -615,6 +616,48 @@ func _norte() -> void:
 		await process_frame
 	check(str(game.rules.state.game_id) != restarted_id and int(game.rules.state.round) == 1, "Restart during a pending round begins a clean match")
 	check(not game.pending_round and game.rules.state.external_decisions.is_empty(), "Restart leaves no stale decision or pending lock")
+
+# ------------------------------------------------------------------ transiciones entre niveles (P4: T-001, T-003, T-004)
+func _world_envs() -> Array:
+	return game.find_children("*", "WorldEnvironment", true, false).filter(func(n): return n.is_inside_tree())
+
+func _transiciones() -> void:
+	# T-001: con el II vivo, empezar el III (o cargarlo) libera el II en el mismo cuadro: un solo ambiente, sin lluvia, cámara del Norte.
+	game._menu()
+	await _frames(2)
+	game._start_game("humahuaca")
+	await _frames(4)
+	check(game.mode == "hx" and is_instance_valid(game.hx), "T-001: el nivel II arranca (controlador vivo)")
+	game._start_game("norte")
+	await process_frame
+	var envs := _world_envs()
+	check(envs.size() == 1 and is_instance_valid(game.world) and game.world.is_ancestor_of(envs[0]), "T-001: tras _start_game(\"norte\") con el II vivo queda un solo WorldEnvironment y es el del Norte (%d)" % envs.size())
+	check(game.find_children("lluvia_rayas", "", true, false).is_empty(), "T-001: no queda la lluvia del II")
+	check(game.hx == null and game.mode == "play" and str(game.rules.state.scenario) == "norte", "T-001: el controlador del II quedó liberado y el Norte está en juego")
+	check(game.camera.current and is_equal_approx(game.camera.far, 400.0) and game.camera.position.distance_to(game.camera_target) < 200.0, "T-001: la cámara es la del Norte (far %.0f, a %.0f m del objetivo)" % [game.camera.far, game.camera.position.distance_to(game.camera_target)])
+	game._save_game(false)
+	game._start_game("humahuaca")
+	await _frames(4)
+	game._load_game("norte")
+	await process_frame
+	check(_world_envs().size() == 1 and game.hx == null and game.find_children("lluvia_rayas", "", true, false).is_empty() and str(game.rules.state.scenario) == "norte", "T-001: cargar el Norte con el II vivo también lo libera")
+	# T-004: tras el III el menú vuelve con el plano lejano de arranque.
+	game._menu()
+	await process_frame
+	check(is_equal_approx(game.camera.far, 4000.0), "T-004: tras el Norte el menú repone camera.far = 4000 (es %.0f)" % game.camera.far)
+	# T-003: tras la Justina a 1280x720 el menú (y por lo tanto el II) vuelve con content_scale_factor 1.
+	var old_size: Vector2i = root.size
+	root.size = Vector2i(1280, 720)
+	await _frames(3)
+	game.forced_seed = 1806
+	game._start_game("justine")
+	await _frames(3)
+	var cs_play: float = game.get_window().content_scale_factor
+	game._menu()
+	await _frames(3)
+	check(is_equal_approx(game.get_window().content_scale_factor, 1.0), "T-003: tras la Justina el menú deja content_scale_factor en 1 (en juego era %.2f, en el menú %.2f)" % [cs_play, game.get_window().content_scale_factor])
+	root.size = old_size
+	await _frames(3)
 
 # ------------------------------------------------------------------ utilidades
 func _frames(n: int) -> void:
