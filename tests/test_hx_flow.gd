@@ -668,7 +668,8 @@ func _test_dialogs() -> void:
 	await _frames(2)
 	suite.check(str(hx.qa_state().mode) == "opening" and not hx.hud.root.visible, "ventanas: «Empezar» abre la presentación de cámara y esconde el HUD")
 	var seconds: float = hx.cam.opening_seconds()
-	suite.check(seconds >= 12.0 and seconds <= 15.0, "ventanas: la presentación dura de 12 a 15 s (%.1f s) con el reloj de juego en 0:00" % seconds)
+	var span: Array = (hx.ui_data.get("camera", {}) as Dictionary).get("opening_s", [12.0, 15.0])  # ronda 4 de P2: apertura épica, 5 a 7 s
+	suite.check(seconds >= float(span[0]) and seconds <= float(span[1]), "ventanas: la presentación dura lo que fija camera.opening_s (%.1f s, entre %.0f y %.0f) con el reloj de juego en 0:00" % [seconds, float(span[0]), float(span[1])])
 	suite.check(float(hx.qa_state().elapsed) == 0.0, "ventanas: durante la presentación el reloj de juego sigue en 0:00")
 	await _key(KEY_X)
 	suite.check(str(hx.qa_state().mode) == "play" and hx.hud.root.visible, "ventanas: cualquier tecla salta la presentación")

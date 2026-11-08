@@ -1000,7 +1000,8 @@ func _start_opening() -> void:
 			"yaw_deg": float(d.get("yaw_deg", 90.0)), "hold": true})
 	var fin := initial_pose()
 	frames.append({"target": fin.target, "dist": fin.dist, "pitch_deg": fin.pitch_deg, "yaw_deg": fin.yaw_deg, "hold": false})
-	var total := clampf(float(cfg.get("seconds", 13.5)), 12.0, 15.0)
+	var span: Variant = ui_data.get("camera", {}).get("opening_s", [12.0, 15.0])  # ronda 4 de P2: apertura épica de 5 a 7 s (camera.opening_s)
+	var total := clampf(float(cfg.get("seconds", 13.5)), float((span as Array)[0]) if span is Array else 12.0, float((span as Array)[1]) if span is Array else 15.0)
 	cam.start_opening(frames, total, float(cfg.get("hold_s", 1.1)))
 	hud.visible_root(false)
 	_subtitle.text = "%s  %s" % [tx("briefing.opening.subtitle", ""), Kit.tag_glyph(source_tags, str(ui_data.get("texts", {}).get("briefing", {}).get("opening", {}).get("tag", "documentado")))]

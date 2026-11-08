@@ -398,16 +398,12 @@
 		"pitch_deg_s": 40,
 		"zoom_step": 0.86,
 		"zoom_ease": 14.0,
-		"opening_s": [12, 15],
+		"opening_s": [5, 7],
 		"opening": {
-			"seconds": 13.5,
-			"stops": [
-				{"focus": "bateria", "dist": 150, "pitch_deg": 24, "yaw_deg": 95, "share": 0.22},
-				{"focus": "cuartel", "dist": 130, "pitch_deg": 24, "yaw_deg": 70, "share": 0.22},
-				{"focus": "posta", "dist": 140, "pitch_deg": 22, "yaw_deg": 320, "share": 0.22}
-			],
-			"start": {"x": 450, "z": 330, "dist": 760, "pitch_deg": 60, "yaw_deg": 325},
-			"hold_s": 1.1
+			"seconds": 6.0,
+			"stops": [],
+			"start": {"x": 420, "z": 400, "dist": 1750, "pitch_deg": 19, "yaw_deg": 302},
+			"hold_s": 0.0
 		}
 	},
 	"minimap": {

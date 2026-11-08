@@ -680,7 +680,7 @@ static func _vfov(cam3: Camera3D) -> float:
 
 
 # ---------------------------------------------------------------------------------------------------------------------
-# Apertura: la cámara recorre los tres objetivos y termina en el cuadro inicial (12 a 15 s; cualquier tecla la salta)
+# Apertura: desde lo alto de la quebrada baja en un solo movimiento hasta el cuadro inicial (5 a 7 s, camera.opening_s; clic, Espacio, Enter o cualquier tecla la saltan)
 
 ## `frames`: [{target: Vector2, dist, pitch_deg, yaw_deg, hold: bool}] — el primero es la partida; el último, el cuadro inicial. Los que llevan
 ## `hold` se miran `hold_s` segundos. El tiempo total sale de `total_s`.
@@ -735,6 +735,8 @@ func finish_opening() -> void:
 		set_frame(last.target, last.dist, last.pitch_deg, last.yaw_deg)
 	opening_active = false
 	_op_frames = []
+	if view != null and is_instance_valid(view) and view.has_method("set_opening_look"):
+		view.call("set_opening_look", 0.0)
 
 
 func _apply_opening_pose(t: float) -> void:
@@ -748,6 +750,8 @@ func _apply_opening_pose(t: float) -> void:
 	var span := maxf(float(b.at) - float(a.at), 0.0001)
 	var u := smoothstep(0.0, 1.0, clampf((t - float(a.at)) / span, 0.0, 1.0))
 	target = (a.target as Vector2).lerp(b.target, u)
-	dist = lerpf(float(a.dist), float(b.dist), u)
+	dist = exp(lerpf(log(maxf(float(a.dist), 1.0)), log(maxf(float(b.dist), 1.0)), u))  # en escala logarítmica: el descenso se siente parejo de punta a punta
 	pitch_deg = lerpf(float(a.pitch_deg), float(b.pitch_deg), u)
 	yaw_deg = fposmod(rad_to_deg(lerp_angle(deg_to_rad(float(a.yaw_deg)), deg_to_rad(float(b.yaw_deg)), u)), 360.0)
+	if view != null and is_instance_valid(view) and view.has_method("set_opening_look"):  # luna rasante y bruma lejana al principio; la luz de juego al llegar
+		view.call("set_opening_look", 1.0 - smoothstep(0.0, 1.0, clampf(t / maxf(_op_total, 0.001), 0.0, 1.0)))

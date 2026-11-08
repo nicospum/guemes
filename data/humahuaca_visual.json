@@ -102,6 +102,7 @@
 		"glow": {"qualities": ["media", "alta"], "intensity": 0.7, "bloom": 0.0, "threshold": 1.0, "blend": "aditivo"},
 		"ssao": {"qualities": ["alta"], "intensity": 1.5, "radius": 2.0},
 		"grade": true,
+		"opening": {"sun_elevation_deg": 11.0, "sun_azimuth_deg": 95.0, "sun_energy": 1.15, "fog_depth_end_m": 9000, "fog_depth_max": 0.62},
 		"fires": {"color": "oro_laton", "tint": "rojo_reservado", "tint_mix": 0.34, "gain": 1.4, "energy": {"baja": 0.0, "media": 14.0, "alta": 16.0}, "range_k": 2.4, "attenuation": 1.0, "flicker": 0.12},
 		"tag": "diseno",
 		"source": "dirección de arte, paquete b: resplandor, curva de color por hora y fuegos que son luces reales sin sombra"

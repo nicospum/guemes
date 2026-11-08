@@ -715,7 +715,8 @@ func _cycle_full() -> void:
 	check(not hx.hud.root.visible and hx._subtitle.visible and hx._subtitle.text.find("palos") >= 0, "Apertura: sin HUD y con la frase de Arias («%s»)" % hx._subtitle.text.left(60))
 	var seconds: float = hx.cam.opening_seconds()
 	notes["apertura_s"] = snappedf(seconds, 0.1)
-	check(seconds >= 12.0 and seconds <= 15.0, "Apertura: dura de 12 a 15 s (%.1f s)" % seconds)
+	var span: Array = (hx.ui_data.get("camera", {}) as Dictionary).get("opening_s", [12.0, 15.0])  # ronda 4 de P2: apertura épica, 5 a 7 s
+	check(seconds >= float(span[0]) and seconds <= float(span[1]) and float(span[1]) <= 15.0, "Apertura: dura lo que fija camera.opening_s (%.1f s, entre %.0f y %.0f)" % [seconds, float(span[0]), float(span[1])])
 	await _key(KEY_X)
 	await _frames(6)
 	check(str(hx.qa_state().mode) == "play" and hx.hud.root.visible, "Apertura: cualquier tecla la salta y deja el nivel jugable")
