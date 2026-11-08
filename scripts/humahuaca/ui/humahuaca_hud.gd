@@ -263,6 +263,7 @@ func _build_bottom(minimap_w: float) -> void:
 	_build_bar(bottom)
 	_build_dock(bottom)
 	root.resized.connect(_fit_bottom)
+	_fit_bottom.call_deferred()  # si la raíz ya nace con su tamaño final (ventanas de 1440 × 900 o más) no llega ningún «resized»
 
 
 ## En ventanas anchas el dock no se estira de punta a punta (V-06: «el mapa es el protagonista»): mide a lo sumo `layout.dock_max_w` píxeles lógicos y queda en la
