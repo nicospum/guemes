@@ -32,6 +32,7 @@ const WITH_ADVANTAGE := ["experto", "barrido_senal"]
 const STEP_S := 1.0  # cada cuánto decide una política (segundos de juego)
 const PATH_DETOUR := 1.2  # cuánto más larga que la recta es la ruta real del arreo (A*, barro, vado): margen del plan de carga del experto
 const GROUP_DESTROY_REACH_M := 300.0  # hasta dónde va una partida libre a destruir lo que el plan de carga deja: de la batería o el cuartel a la posta, mientras la columna marcha al vado
+const LEAVE_SPARE_S := 0.0  # el experto sale con este sobrante sobre la marcha al vado (que ya trae el margen de salida) mientras las partidas destruyen
 const PLAN_UNTAKEN_WAIT_S := 60.0  # el plan de carga reserva mulas para un frente que todavía no cayó solo si sobra este tiempo (lo que suele tardar en caer)
 const ATTACK_LOAD_TRAVEL_S := 40.0  # durante el ataque el arreo solo carga lotes a menos de este viaje (no cruza el pueblo bajo la torre por una pieza)
 const LCG_MOD := 2147483647
@@ -405,8 +406,8 @@ static func _extract(view: Dictionary, cfg: Dictionary, allow_leave: bool) -> Ar
 	for it in view.loot.items:
 		if str(it.state) != "en_sitio" or not _taken(view, str(it.front)):
 			continue
-		if not plan.is_empty() and not plan.has(str(it.id)):
-			continue  # fuera del plan de carga: las mulas se guardan para lo que más vale por kilo; lo destruyen las partidas libres (_groups_destroy)
+		## fuera del plan de carga no se carga (las mulas se guardan para lo que más vale por kilo): se destruye, con el arreo o con las partidas libres
+		var off_plan := not plan.is_empty() and not plan.has(str(it.id))
 		var pos := Vector2(float(it.x), float(it.z))
 		var travel := here.distance_to(pos) / mule_speed * detour
 		var back := pos.distance_to(vado) / mule_speed * detour + exit_leg
@@ -416,11 +417,11 @@ static func _extract(view: Dictionary, cfg: Dictionary, allow_leave: bool) -> Ar
 		var value := _item_value(it)
 		var load_s := kg / rate
 		var time_cost := travel + load_s + maxf(back - back_here, 0.0)
-		if recipe != "destruir_todo" and load_kg + kg <= capacity + 1e-6 and travel + load_s + back <= left:
+		if recipe != "destruir_todo" and not off_plan and load_kg + kg <= capacity + 1e-6 and travel + load_s + back <= left:
 			if not (recipe == "ligera" and kg > float(rules_cfg.loot.light_max_kg)):
 				loads.append({"it": it, "score": value / (time_cost / time_budget + kg / kg_budget)})
 		var dcost := travel + float(rules_cfg.loot.classes[str(it.kind)].destroy_s)
-		if recipe != "cargar_todo" and recipe != "ligera" and dcost + back <= left:
+		if recipe != "cargar_todo" and recipe != "ligera" and dcost + back <= left and (plan.is_empty() or (off_plan and allow_leave)):
 			kills.append({"it": it, "score": value * float(rules_cfg.loot.treatments.destruir) / maxf(dcost + maxf(back - back_here, 0.0), 1.0)})
 	if loads.is_empty() and not plan.is_empty() and not bool(view.mem.get("plan_off", false)):
 		for it in view.loot.items:
@@ -443,6 +444,11 @@ static func _extract(view: Dictionary, cfg: Dictionary, allow_leave: bool) -> Ar
 			return [_order("arreo", "move", spot)]
 		return [_order("arreo", action, spot, {"item": str(pick.id)})]
 	if allow_leave:
+		## la partida termina cuando la columna cruza el vado: con reloj de sobra, el arreo espera a que las partidas terminen de destruir lo que quedó
+		if bool(cfg.get("plan_load", false)) and left - back_here > LEAVE_SPARE_S:
+			for it in view.loot.items:
+				if str(it.state) == "en_sitio" and _taken(view, str(it.front)):
+					return []
 		view.mem["arreo_left"] = true
 		return [_order("arreo", "leave")]
 	return []
@@ -517,17 +523,39 @@ static func _load_plan(view: Dictionary, cfg: Dictionary) -> Dictionary:
 ## Las partidas libres (en su frente tomado o sosteniendo, sin otra orden en este paso) destruyen lo que el plan de carga deja: el lote fuera del plan más cercano, a
 ## menos de GROUP_DESTROY_REACH_M (como la pista: su propio frente, no cruzar el pueblo). Lo que el plan lleva no lo tocan mientras el arreo no salió.
 static func _groups_destroy(view: Dictionary, cfg: Dictionary, already: Array) -> Array:
+	if str(cfg.get("extraction", "")) != "mixta" or not bool(cfg.get("plan_load", false)) or _secret(view).is_empty():
+		return []
 	var plan := _load_plan(view, cfg)
 	if plan.is_empty():
-		return []
+		## sin plan (todavía no cayó la posta, o el plan se abandonó): se protege lo que el arreo puede cargar a mano (lo que entra en las mulas, cerca de él)
+		var arreo := _unit_view(view, "arreo")
+		var room := float(view.loot.capacity_kg) - float(view.loot.load_kg)
+		var mule_speed := float(D.rules().stealth.pace[str(D.rules().transport.mule_pace)].speed) * float(D.rules().transport.mule_speed_mult)
+		for it in view.loot.items:
+			if str(it.state) != "en_sitio" or arreo.is_empty():
+				continue
+			var near := Vector2(float(arreo.x), float(arreo.z)).distance_to(Vector2(float(it.x), float(it.z))) / mule_speed * PATH_DETOUR <= ATTACK_LOAD_TRAVEL_S
+			if near and _item_kg(it) <= room + 1e-6:
+				plan[str(it.id)] = true
 	var busy := {}
 	for o in already:
 		busy[str(o.actor)] = true
 	var arreo_stage := str(_unit_view(view, "arreo").get("stage", ""))
 	var arreo_gone := str(view.phase) == "extraccion" and (arreo_stage == "exited" or (arreo_stage == "moving" and float(view.loot.load_kg) > 0.0 and _arreo_leaving(view)))
 	var radius := float(D.rules().transport.destroy_radius_m)
-	var picked := {}
+	var rules_cfg := D.rules()
+	var march := float(rules_cfg.stealth.pace.march.speed)
+	## cada partida reclama el lote que va a destruir: dos partidas no van al mismo (el lote sigue «en sitio» hasta que termina la primera)
+	var claims: Dictionary = view.mem.get("destroy_claims", {})
+	view.mem["destroy_claims"] = claims
 	var out: Array = []
+	for gid in V.COMBAT_GROUPS:
+		var uv := _unit_view(view, gid)
+		var st := str(uv.get("stage", ""))
+		if st == "holding" or st == "idle" or st == "routed" or st == "exited":
+			for k in claims.keys():
+				if str(claims[k]) == gid:
+					claims.erase(k)
 	for gid in V.COMBAT_GROUPS:
 		if busy.has(gid):
 			continue
@@ -537,19 +565,25 @@ static func _groups_destroy(view: Dictionary, cfg: Dictionary, already: Array) -
 			continue
 		var here := Vector2(float(uv.x), float(uv.z))
 		var best: Dictionary = {}
-		var best_d := GROUP_DESTROY_REACH_M
+		var best_d := 0.0
+		var best_score := -1.0
 		for it in view.loot.items:
-			if str(it.state) != "en_sitio" or not _taken(view, str(it.front)) or picked.has(str(it.id)):
+			if str(it.state) != "en_sitio" or not _taken(view, str(it.front)) or (claims.has(str(it.id)) and str(claims[str(it.id)]) != gid):
 				continue
 			if plan.has(str(it.id)) and not arreo_gone:
 				continue
 			var d := here.distance_to(Vector2(float(it.x), float(it.z)))
-			if d < best_d:
+			if d > GROUP_DESTROY_REACH_M:
+				continue
+			## lo que más golpe suma por segundo de trabajo (ir y destruir), no solo lo más cercano
+			var score := _item_value(it) / (d / march + float(rules_cfg.loot.classes[str(it.kind)].destroy_s))
+			if score > best_score:
+				best_score = score
 				best_d = d
 				best = it
 		if best.is_empty():
 			continue
-		picked[str(best.id)] = true
+		claims[str(best.id)] = gid
 		var spot := Vector2(float(best.x), float(best.z))
 		if best_d > radius - 2.0:
 			out.append(_order(gid, "move", spot))
