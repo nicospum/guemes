@@ -50,6 +50,27 @@ Contratos entre pistas: P1 expone `world_view.set_look(nombre)` con `"menu"`, `"
 | V-05 | HUD I/III | MEDIO | HUD ocupa ~40 % de la pantalla en el I; aspecto de tablero. | Paleta común, esquinas, viñeta; ≤ 25 % tapado; briefing a pantalla completa. | P4 | `ui_qa` ×3 + capturas. | abierto |
 | V-06 | HUD II | MEDIO | Interfaz del II con otra paleta; briefing en ventanita. | Paleta común; briefing a pantalla completa (mockup 05); minimapa nocturno. | P5 | `ui_qa_humahuaca` ×3 + capturas. | abierto |
 
+### Tickets del playtest de línea de base (`playtest/LINEA_BASE.md`)
+
+Línea de base: los tres niveles se ganan y se pierden por el recorrido normal; menú → I → II → III → final en una sesión (370 s reales a ×4). 0 BLOQUEANTES.
+
+| ID | Nivel | Grav. | Observado | Esperado | Resp. | Cierre | Estado |
+|---|---|---|---|---|---|---|---|
+| P-001 | III | ALTO | La barra de órdenes salta 18–36 px al pasar el mouse; el clic cae en otro botón (una ronda pareció resolverse sin la orden de Arias). | Layout estable; el clic da la orden pedida. | P4 | Playtest del III por clics + `ui_qa`. | abierto |
+| P-002 | II | ALTO | = D-02 (`data/humahuaca_rules.json:421`). | — | P3 | ver D-02 | abierto |
+| P-003 | I | MEDIO | Esc cierra una decisión pendiente; queda oculta con el reloj corriendo. | La decisión no se pierde de vista. | P4 | Prueba de interfaz. | abierto |
+| P-004 | I | MEDIO | ×4 vuelve solo a ×1 ~12 veces por partida. | Se conserva la velocidad elegida. | P4 | Playtest a ×4. | abierto |
+| P-005 | I | MEDIO | Contraataque: tres mensajes contradictorios y botón Rechazar deshabilitado. | Mensaje coherente con el estado. | P4 | Captura del contraataque. | abierto |
+| P-006 | II | MEDIO | El cuadro inicial deja 4 de 5 agrupaciones fuera de pantalla. | Partidas y objetivos en el primer cuadro. | P2 | Captura inicial + `test_hx_camera`. | abierto |
+| P-007 | II→III | MEDIO | El parte del II abre el III aunque el menú lo tenga bloqueado. | Decisión del lead: el III se abre al ganar I **o** II; todo coherente. | P4 (+P5) | Recorrido con perfil nuevo. | abierto |
+| P-008 | II | MEDIO | 69 % del tiempo el «siguiente paso» dice «Esperá» sin botón. | La espera dice qué se espera y ofrece algo útil (×2, otro frente). | P5 (+P3) | Agente-jugador: proporción de «Esperá» sin acción. | abierto |
+| P-009 | III | MEDIO | La derrota pasiva dice «perdió sus agrupaciones» con 300/300 de fuerza. | La causa real. | P4 | Captura de la derrota pasiva. | abierto |
+| P-010 | III | MEDIO | Motivo de bloqueo de «Operar en Humahuaca» engañoso. | Motivo real. | P4 | Captura/tooltip. | abierto |
+| P-011 | I | MEDIO | Misma semilla y estrategia: 4/5 victorias (varianza). | Dato de balance; se informa. | lead | — | informado |
+| P-012…022 | varios | BAJO | «Escenario 2» para el III, bajas 53 %/52 % en el mismo parte, «LO APRENDIDO» vacío, contador de intentos inflado, etiquetas superpuestas, cámara que se pierde. | — | P4/P5 | Capturas. | abierto |
+
+P6 (modelos): no hay Blender ejecutable en esta PC (la carpeta de Blender 4.4 no tiene `blender.exe`). No se pidió descargar; P6 genera los GLB con un exportador propio sin Blender (color por vértice) y deja listo `create_models.py --only hx_*` para regenerar con Blender cuando esté.
+
 ## Registro de iteraciones
 
 | Fecha | Iteración | Qué pasó |
