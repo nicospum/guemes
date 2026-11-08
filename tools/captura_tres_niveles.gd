@@ -54,11 +54,14 @@ func _run() -> void:
 	game._start_game("humahuaca")
 	await _secs(2.5)
 	await _shot("20_humahuaca_inicio")
-	if is_instance_valid(game.hx):
-		for m in ["_close_briefing", "close_modal", "_close_modal", "_dismiss_briefing"]:
-			if game.hx.has_method(m):
-				game.hx.call(m)
-				break
+	# Enter = «Empezar» en el briefing del nivel II (humahuaca_ui_play.gd), como lo haría el jugador
+	for pressed in [true, false]:
+		var ev := InputEventKey.new()
+		ev.keycode = KEY_ENTER
+		ev.physical_keycode = KEY_ENTER
+		ev.pressed = pressed
+		Input.parse_input_event(ev)
+		await process_frame
 	await _secs(2.0)
 	await _shot("21_humahuaca_tras_briefing")
 	# Nivel III
