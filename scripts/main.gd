@@ -3899,7 +3899,7 @@ Buque: próxima descarga en [b]%d s[/b]" % [int(res.ammo),int(res.ammo_max),int(
  # Primer paso del tutorial: se atenúa lo que no hace falta (panel de estado y minimapa) para que se vea una sola cosa que hacer.
  var tut_focus=bool(settings.tutorial) and tut_step==0 and str(st.status)=="playing" and float(st.elapsed)<1.0 and not is_instance_valid(modal) and int(progress.intentos)<=1
  for dim_c in [right_panel,map_widget,mm_bar]:
-  if is_instance_valid(dim_c):dim_c.modulate.a=1.0  # el objetivo se ve a opacidad completa: es lo primero que hay que leer
+  if is_instance_valid(dim_c) and not mission_hidden.has(dim_c):dim_c.modulate.a=1.0  # el objetivo se ve a opacidad completa: es lo primero que hay que leer (salvo detrás de la pantalla de misión, que apaga el HUD)
  var grouped=_grouped_log(1)
  if is_instance_valid(journal_last):
   journal_last.text="• "+(str(grouped[-1].text) if not grouped.is_empty() else "Sin novedades.")
