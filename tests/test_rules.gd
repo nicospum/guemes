@@ -57,6 +57,7 @@ func _initialize() -> void:
 	_test_external_stale()
 	_test_north_pacing()
 	_test_north_victory_bar()
+	_test_north_intel()
 	_test_norte_snapshot_coherence()
 	_test_salta_occupation_date()
 	_test_history_humahuaca_marked()
@@ -3517,6 +3518,64 @@ func _test_north_pacing() -> void:
 
 
 ## P4 · D-05 y D-09: la barra de victoria del norte se llena en la ronda en que se gana (nunca antes) y la orden sugerida de las rondas 1-2 es legal.
+## D-10 (P4b): la intención del invasor solo se conoce con reconocimiento reciente del sector donde está, y la que se muestra es la que se
+## resuelve. 150 campañas con órdenes al azar (con «Reconocer» frecuente) y, cuando no hay inteligencia, una intención propuesta al azar
+## (como la de Jev): se compara la intención mostrada ANTES de dar órdenes, la mostrada DESPUÉS de darlas y la que queda en state.enemy.intent.
+func _test_north_intel() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 101010
+	var shown := 0
+	var matched := 0
+	var stable := 0
+	var hidden_rounds := 0
+	var hidden_ok := 0
+	for g in range(150):
+		var r := Rules.new()
+		r.new_game("norte", 7000 + g)
+		var acts := ["scout", "scout", "raid", "protect", "rest", "move"]
+		var secs := ["quebrada", "jujuy", "salta", "lerma", "humahuaca", "oran"]
+		var guard := 0
+		while r.state.status == "playing" and guard < 20:
+			guard += 1
+			var before: Dictionary = r.north_enemy_intel()
+			for id in ["guemes", "arias", "zavala"]:
+				for tries in range(6):
+					var a: String = acts[rng.randi() % acts.size()]
+					var sc: String = secs[rng.randi() % secs.size()]
+					if a in ["rest", "protect"]:
+						sc = r.get_unit(id).sector_id
+					if r.issue_campaign_order(id, a, sc).ok:
+						break
+			var after: Dictionary = r.north_enemy_intel()
+			var proposed: Array = r.enemy_choices().keys()
+			var pick: String = str(proposed[rng.randi() % proposed.size()])
+			if bool(before.get("known", false)):
+				shown += 1
+				if bool(after.get("known", false)) and str(after.intent) == str(before.intent):
+					stable += 1
+				r.resolve_round(r.north_intent_for_round(pick))
+				if str(r.state.enemy.intent) == str(before.intent):
+					matched += 1
+			else:
+				hidden_rounds += 1
+				r.resolve_round(r.north_intent_for_round(pick))
+				if str(r.state.enemy.intent) == pick:
+					hidden_ok += 1
+	check(shown >= 200, "D-10: hay rondas con reconocimiento reciente del invasor para medir (%d)" % shown)
+	check(matched == shown, "D-10: la intención mostrada coincide con la resuelta en el 100 %% de las rondas (%d de %d)" % [matched, shown])
+	check(stable == shown, "D-10: dar órdenes no cambia la intención mostrada (%d de %d)" % [stable, shown])
+	check(hidden_rounds > 0 and hidden_ok == hidden_rounds, "D-10: sin reconocimiento no se muestra nada y la ronda usa la intención propuesta (%d de %d)" % [hidden_ok, hidden_rounds])
+	var n := Rules.new()
+	n.new_game("norte", 5)
+	check(not bool(n.north_enemy_intel().get("known", true)), "D-10: al empezar no se conoce la intención (no hay reconocimiento)")
+	n.issue_campaign_order("arias", "scout", "quebrada")
+	n.resolve_round("guard")
+	var ii: Dictionary = n.north_enemy_intel()
+	check(bool(ii.get("known", false)) and str(ii.label) != "" and int(ii.until) == 4, "D-10: reconocer la Quebrada (donde está el invasor) revela su intención por tres rondas: %s" % str(ii))
+	var j := Rules.new()
+	j.new_game("justine", 1806)
+	check(j.north_enemy_intel().is_empty() and j.north_intent_for_round("guard") == "guard", "D-10: en la Justina no hay intención del invasor")
+
 func _test_north_victory_bar() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 515151

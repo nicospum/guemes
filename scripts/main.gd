@@ -232,6 +232,9 @@ var alert_btn: Button
 var alert_ids_seen = {}
 var alert_current = {}
 var pause_reason = ""
+var round_was_empty := false  # P-017: la ronda que se está resolviendo no tenía ninguna orden
+var empty_rounds := 0  # P-017: rondas seguidas sin órdenes
+var pause_alert: Array = []  # [id del aviso, texto] de la última pausa automática por aviso (P-005)
 var left_foot: RichTextLabel
 var mm_bar: PanelContainer
 var autopause_button: Button
@@ -422,6 +425,7 @@ func _fit_ui_scale():
   if is_instance_valid(map_widget) and _is_j():_layout_j()
 
 func _menu():
+ _drop_unplayed_attempt()
  _stop_humahuaca()
  _sync_north_unlock()
  # T-003: el modo cambia ANTES de reponer la escala; si no, el size_changed que dispara corre _fit_ui_scale con mode=="play" (Justina) y la vuelve a 1,25.
@@ -462,14 +466,15 @@ func _menu():
  elif int(progress.intentos)>0 and not bool(cd.get("justina_won",false)):st1="EN CURSO · INTENTO %d" % (int(progress.intentos)+1);tone1="rec"
  var a_text="I   ·   EL RÍO OFRECE UNA OPORTUNIDAD\nTomar la Justina  ·  Buenos Aires, 1806"
  if int(progress.intentos)>0 and not bool(cd.get("justina_won",false)):a_text="I   ·   EL RÍO OFRECE UNA OPORTUNIDAD\nTomar la Justina  ·  intento %d, mismo río" % (int(progress.intentos)+1)
- var a=_chapter_card(box,a_text,"I","El río ofrece una oportunidad","Tomar la Justina · Buenos Aires","1806",st1,tone1,func():_start_game("justine"))
+ # P4b: título corto y subtítulo; el texto llano del botón (pruebas y lectores de pantalla) no cambia.
+ var a=_chapter_card(box,a_text,"I","La Justina","El río ofrece una oportunidad","1806",st1,tone1,func():_start_game("justine"))
  a.tooltip_text="Tres grupos y dos exploradores. Tiempo real con pausa. El fondo del río es turbio: hay que reconocerlo."
  # II · siempre habilitado (D1c); recomendado tras la Justina
  var st2="ABIERTO";var tone2="open"
  if hx_won:st2="GANADA"+(" · "+str(hxp.get("best_medal","")).to_upper() if not str(hxp.get("best_medal","")).is_empty() else "");tone2="done"
  elif unlocked:st2="RECOMENDADO AHORA";tone2="rec"
  elif int(hxp.get("attempts",0))>0:st2="EN CURSO";tone2="open"
- var hxb=_chapter_card(box,"II  ·   HUMAHUACA: EL DEPÓSITO DE LA RETAGUARDIA\n"+("El golpe de Arias  ·  1817" if unlocked else "Recomendado tras la Justina  ·  El golpe de Arias, 1817"),"II","Humahuaca","El depósito de la retaguardia · el golpe de Arias" if unlocked else "Recomendado tras la Justina · el golpe de Arias","1817",st2,tone2,func():_start_game("humahuaca"))
+ var hxb=_chapter_card(box,"II  ·   HUMAHUACA: EL DEPÓSITO DE LA RETAGUARDIA\n"+("El golpe de Arias  ·  1817" if unlocked else "Recomendado tras la Justina  ·  El golpe de Arias, 1817"),"II","Humahuaca","El golpe de Arias sobre el depósito" if unlocked else "Tras la Justina · el golpe de Arias","1817",st2,tone2,func():_start_game("humahuaca"))
  hxb.tooltip_text="Tres partidas, reconocedores y arreo. Tiempo real con pausa. Hay que tomar el depósito antes del alba."  # siempre habilitado (D1c): la Justina no está certificada y un candado dejaría sin probar el nivel
  # III · candado atado a la Justina (no se rompen perfiles); recomendado tras Humahuaca (D-03)
  var st3="CON CANDADO";var tone3="lock"
@@ -477,7 +482,7 @@ func _menu():
   st3="ABIERTO · MEJOR TRAS HUMAHUACA";tone3="open"
   if bool(cd.get("north_won",false)):st3="GANADA · RONDA %d" % int(cd.get("north_round",0));tone3="done"
   elif hx_won:st3="RECOMENDADO AHORA";tone3="rec"
- var b=_chapter_card(box,"III  ·   SOSTENER EL NORTE\n"+("La campaña entera, 1816–1817, vista desde Salta" if unlocked else "Ganá la Justina para abrirlo"),"III","Sostener el norte","La campaña entera, vista desde Salta" if unlocked else "Ganá la Justina o Humahuaca para abrirlo","1816–17",st3,tone3,func():_start_game("norte"))
+ var b=_chapter_card(box,"III  ·   SOSTENER EL NORTE\n"+("La campaña entera, 1816–1817, vista desde Salta" if unlocked else "Ganá la Justina para abrirlo"),"III","Sostener el norte","La campaña entera, vista desde Salta" if unlocked else "Ganá el I o el II para abrirlo","1816–17",st3,tone3,func():_start_game("norte"))
  b.disabled=not unlocked
  b.tooltip_text="Campaña por rondas. Reconocimiento, víveres, hostigamiento y la operación de Arias en Humahuaca." if unlocked else "Se abre cuando tomes el buque Justina (aunque sea con medalla de bronce) o cuando ganes Humahuaca."
  _spacer(box,4)
@@ -495,6 +500,47 @@ func _menu():
  var credit=_label(ui,"RÍO DE LA PLATA  ·  12 DE AGOSTO DE 1806",16,GOLD,true);credit.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT
  credit.add_theme_color_override("font_shadow_color",Color(0.03,0.02,0.05,0.75));credit.add_theme_constant_override("shadow_offset_x",1);credit.add_theme_constant_override("shadow_offset_y",2)
  _anchor(credit,1,1,1,1,-620,-58,-32,-28)
+ if not hx_prewarm_done and not qa_mode:call_deferred("_hx_prewarm")
+
+# ---------- P4b · precalentado de los sombreadores del nivel II (pedido del lead, medido por P2) ----------
+# En una instalación nueva, la primera entrada al II compilaba sus sombreadores dentro de la construcción del nivel (≈ 1 550 ms contra el tope de
+# 1 500). Medido: cargarlos no alcanza (la compilación ocurre al dibujarlos por primera vez). Por eso, al abrir el juego, se cargan en un hilo
+# aparte y después se dibujan todos juntos un par de cuadros en cuadritos de 2 cm pegados a la cámara: la compilación queda hecha (y en la
+# caché de disco) y el II recibe las mismas instancias ya compiladas (caché de ResourceLoader). El tirón de esa compilación (≈ 80 ms por
+# sombreador) queda detrás de un velo de tinta que se desvanece: el menú no se traba con el jugador mirando. Solo la primera vez por sesión.
+const HX_PREWARM_SHADERS=["res://shaders/humahuaca_terrain.gdshader","res://shaders/humahuaca_props.gdshader","res://shaders/humahuaca_water.gdshader","res://shaders/humahuaca_token.gdshader","res://shaders/humahuaca_alert_ring.gdshader","res://shaders/humahuaca_rain.gdshader"]
+var hx_prewarm_done:=false
+var hx_prewarm_finished:=false
+var hx_prewarm_keep:Array=[]
+var hx_prewarm_draw:=true
+
+func _hx_prewarm():
+ if hx_prewarm_done:return
+ hx_prewarm_done=true
+ var veil_layer=CanvasLayer.new();veil_layer.layer=20;add_child(veil_layer)
+ var veil=ColorRect.new();veil.color=INK;veil.mouse_filter=Control.MOUSE_FILTER_IGNORE;veil.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);veil_layer.add_child(veil)
+ # Velo liso, sin texto: las pruebas del menú miden sus rótulos y un rótulo de pantalla completa las confundiría (test_hx_smoke 4.1).
+ var pending=[]
+ for path in HX_PREWARM_SHADERS:
+  if ResourceLoader.exists(path) and ResourceLoader.load_threaded_request(path,"Shader")==OK:pending.append(path)
+ var guard=0
+ while guard<600 and pending.any(func(pp):return ResourceLoader.load_threaded_get_status(pp)==ResourceLoader.THREAD_LOAD_IN_PROGRESS):
+  guard+=1;await get_tree().process_frame
+ var quads=[]
+ for path in pending:
+  if ResourceLoader.load_threaded_get_status(path)!=ResourceLoader.THREAD_LOAD_LOADED:continue
+  var sh=ResourceLoader.load_threaded_get(path)
+  if not (sh is Shader):continue
+  hx_prewarm_keep.append(sh)
+  if not hx_prewarm_draw or not is_instance_valid(camera) or mode!="menu":continue
+  var mi=MeshInstance3D.new();var q=QuadMesh.new();q.size=Vector2(0.02,0.02);mi.mesh=q
+  var mat=ShaderMaterial.new();mat.shader=sh;mi.material_override=mat;mi.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+  camera.add_child(mi);mi.position=Vector3(0.002*quads.size(),0,-maxf(camera.near*4.0,0.2));quads.append(mi)
+ for i in range(3):await get_tree().process_frame
+ for mi in quads:
+  if is_instance_valid(mi):mi.queue_free()
+ hx_prewarm_finished=true
+ var tw=create_tween();tw.tween_property(veil,"modulate:a",0.0,0.35);tw.tween_callback(veil_layer.queue_free)
 
 # ---------- P4 · menú heroico, viñeta, documentos a pantalla completa ----------
 func _ink_gradient(a0:float,a1:float,a2:float,vertical:bool=false)->GradientTexture2D:
@@ -544,6 +590,15 @@ func _chapter_card(parent:Node,plain:String,roman:String,title:String,sub:String
  if heading_font:stl.add_theme_font_override("font",heading_font)
  return b
 
+# P-015: un intento de la Justina que no se jugó (sin reloj, sin órdenes ni sondeos) no cuenta: si se lo deja para ir al menú o para empezar
+# otro, se descuenta. Así «Reintentar» + Esc + «Volver al menú» no infla el «intento N» de la tarjeta del menú.
+func _drop_unplayed_attempt():
+ if mode!="play" or not _is_j() or attempt_logged or not rules.state.has("map_id"):return
+ var st=rules.state
+ if str(st.get("status",""))!="playing" or float(st.get("elapsed",0.0))>=0.5:return
+ if not (st.get("orders",[])).is_empty() or not rules.probes().is_empty() or not order_log.is_empty():return
+ campaign.data.attempts=maxi(0,int(campaign.data.attempts)-1);campaign.save_progress();_progress_sync()
+
 # P-007 (decisión del lead): el III se abre al ganar la Justina O al ganar Humahuaca; queda en el progreso de campaign.json, así el menú y el
 # parte del II dicen lo mismo.
 func _sync_north_unlock():
@@ -564,10 +619,11 @@ func _button_at(parent,text_value,pos,size_v,fn):
 
 func _start_game(scenario_name:String):
  if scenario_name=="humahuaca":_start_humahuaca();return  # GameRules.new_game() convertiría cualquier nombre desconocido en "justine"
+ _drop_unplayed_attempt()
  _stop_humahuaca()  # T-001: cambiar de nivel siempre libera el II (su ambiente, su sol, su lluvia y su cámara); no hace nada si no está vivo
  var build_start=Time.get_ticks_msec()
  jev.invalidate();pending_round=false;resolution_remaining=0;outcome_shown=false
- attempt_logged=false;shake=0.0;flash_alpha=0.0;toast_prio=0;volley_warned=-1.0;toast_timer=0.0;details_open=false;auto_start_pending=false
+ attempt_logged=false;shake=0.0;flash_alpha=0.0;toast_prio=0;volley_warned=-1.0;toast_timer=0.0;details_open=false;auto_start_pending=false;empty_rounds=0
  rules.new_game(scenario_name,_justina_seed() if scenario_name=="justine" else 1817)
  intro_assists=[];last_result={}
  if scenario_name=="justine":campaign.begin_attempt(rules);_progress_sync()
@@ -675,7 +731,8 @@ func _build_hud():
  var jh=_hbox(jv,4)
  var jt=_label(jh,"PARTE DE SITUACIÓN  ·  P",12,GOLD);jt.size_flags_horizontal=Control.SIZE_EXPAND_FILL
  journal_toggle=_button(jh,"▸",_toggle_journal,24);journal_toggle.custom_minimum_size.x=30;journal_toggle.tooltip_text="Abrir o cerrar el parte (P)"
- journal_last=_label(jv,"",12,MUTED);journal_last.clip_text=true;journal_last.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS;journal_last.custom_minimum_size.x=226
+ # P4b: el último renglón del parte se lee entero (antes se cortaba con «…» en la primera línea).
+ journal_last=_label(jv,"",12,MUTED);journal_last.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;journal_last.custom_minimum_size.x=226
  log_label=RichTextLabel.new();log_label.bbcode_enabled=true;log_label.custom_minimum_size=Vector2(226,170);log_label.scroll_following=true;log_label.add_theme_font_size_override("normal_font_size",13);jv.add_child(log_label)
  # Panel inferior: agrupaciones, estado con barras y bandeja de órdenes.
  var bottom=_panel(ui,Vector2(100,890),Vector2(1240,0),Color(0.086,0.075,0.110,0.94),Color("5c4a2e"),10);hud_panels.append(bottom)
@@ -791,18 +848,35 @@ func _resolve_round():
  if pending_round or resolution_remaining>0 or rules.state.status!="playing" or rules.state.scenario!="norte":return
  pending_round=true
  _refresh_actions();_toast("Las agrupaciones preparan sus órdenes…",3)
+ # P-017: una ronda sin ninguna orden se resuelve igual (no se traba el juego), pero el parte lo dice y cuenta cuántas van seguidas.
+ round_was_empty=true
+ for u in rules.state.units:
+  if not (u.order as Dictionary).is_empty():round_was_empty=false
+ # D-10: con reconocimiento reciente la intención del invasor ya se conoce y se muestra; se resuelve esa misma, sin consultar a Jev.
+ var intel=rules.north_enemy_intel()
+ if bool(intel.get("known",false)):
+  jev.invalidate();call_deferred("_resolve_known_intent",str(intel.intent));return
  jev.request_intent(rules.enemy_observation(),rules.enemy_choices(),rules.enemy_fallback(),_context())
+
+func _resolve_known_intent(intent:String):
+ if not pending_round or mode!="play" or rules.state.scenario!="norte":return
+ _after_round(rules.resolve_round(rules.north_intent_for_round(intent)))
 
 func _on_intent(decision:Dictionary):
  if not pending_round or mode!="play" or rules.state.scenario!="norte":return
  if not jev.mark_applied(decision,_context()):
   pending_round=false;_toast("La situación cambió. Volvé a resolver la ronda.",4,false);_refresh_actions();return
  if not rules.record_external_decision(decision):pending_round=false;_refresh_actions();return
- var events=rules.resolve_round(str(decision.choice))
+ _after_round(rules.resolve_round(rules.north_intent_for_round(str(decision.choice))))
+
+func _after_round(events:Array):
  pending_round=false;resolution_remaining=0.75/speed
  _handle_events(events);_sound("bell");_refresh_actions();_update_hud()
  _save_game(false)
- if rules.state.status=="playing":_toast("Ronda resuelta. Revisá el parte y prepará el siguiente movimiento.",4)
+ empty_rounds=empty_rounds+1 if round_was_empty else 0
+ if rules.state.status=="playing":
+  if round_was_empty:_toast("⚠ Esta ronda pasó sin órdenes%s: nadie hostigó ni protegió víveres, y la población pierde apoyo igual. Elegí una agrupación (1, 2, 3) y una orden antes de resolver." % ((" (van %d seguidas)" % empty_rounds) if empty_rounds>1 else ""),7,false,3)
+  else:_toast("Ronda resuelta. Revisá el parte y prepará el siguiente movimiento.",4)
 
 func _update_hud():
  if mode!="play" or not is_instance_valid(title_label):return
@@ -822,6 +896,12 @@ func _update_hud():
   et+="\nPresión: [b]%d de %d[/b]%s" % [mini(int(vp.pressure),int(vp.pressure_goal)),int(vp.pressure_goal)," [color=#8fb89a]✓[/color]" if int(vp.pressure)>=int(vp.pressure_goal) else ""]
   et+="\n[color=#a79f92]La retirada no puede ocurrir antes del 12 de abril (ronda %d).[/color]" % int(vp.round_min)
   et+="\n\n%s" % ("Salta está ocupada.\nLa campaña sigue abierta." if state.enemy.occupied_salta else "El ejército avanza desde el norte.")
+  # D-10: la intención solo se ve con reconocimiento reciente del sector del invasor, y es la que se resuelve (game_rules.north_enemy_intel).
+  var intel=rules.north_enemy_intel()
+  if bool(intel.get("known",false)):
+   et+="\n\n[color=#c9b8ee]◈ INTENCIÓN DEL INVASOR[/color]\n[b]%s[/b] esta ronda.\n[color=#a79f92]Lo sabés por el reconocimiento de %s (vale hasta la ronda %d).[/color]" % [str(intel.label),str(intel.sector),int(intel.until)]
+  elif not intel.is_empty():
+   et+="\n\n[color=#a79f92]◈ Intención del invasor: no se sabe. Reconocé %s, donde está, para anticiparla.[/color]" % str(intel.get("sector","su sector"))
   enemy_label.text=et
   # D-09: «Jev» es una herramienta, no algo del juego: solo se muestra si hay una clave configurada.
   var jev_on=jev.has_method("has_credentials") and bool(jev.has_credentials()) and not bool(jev.force_local)
@@ -1156,7 +1236,20 @@ func _open_modal(title:String,width=800,height=600,full:bool=false,tone:String="
  var box=_vbox(panel,14)
  var header=_hbox(box);var label=_label(header,title,27,GOLD,true);label.size_flags_horizontal=Control.SIZE_EXPAND_FILL
  _button(header,"Cerrar · Esc",_close_modal,36)
+ _fit_small_modal(panel)
  return box
+
+# P-019: la ventana chica se ajusta al alto de lo que contiene (antes quedaban 100-200 px vacíos bajo los botones, p. ej. «Consecuencias de la
+# ronda» en el III). Solo achica, nunca agranda; espera dos cuadros a que el texto se acomode a su ancho.
+func _fit_small_modal(panel:Control):
+ await get_tree().process_frame
+ await get_tree().process_frame
+ if not is_instance_valid(panel) or not is_instance_valid(modal) or not modal.is_ancestor_of(panel):return
+ var need=panel.get_combined_minimum_size().y
+ var vs=get_viewport().get_visible_rect().size
+ need=minf(need,vs.y-16.0)
+ if need>40.0 and need<panel.size.y-8.0:
+  panel.offset_top=-need/2.0;panel.offset_bottom=need/2.0
 
 # Marco de documento: doble filete (oro apagado + acento, 3 px de separación) y un ornamento de 12 px en cada esquina, sin imágenes.
 func _draw_document_frame(c:Control,accent:Color):
@@ -1174,6 +1267,9 @@ func _close_modal():
  var was_choice=is_instance_valid(modal) and modal.has_meta("choice")
  if is_instance_valid(modal):modal.queue_free()
  modal=null;paused=modal_paused
+ for ch in mission_hidden:
+  if is_instance_valid(ch):(ch as CanvasItem).modulate.a=1.0
+ mission_hidden=[]
  if was_choice and _is_j() and not rules.state.get("pending_choice",{}).is_empty() and str(rules.state.status)=="playing":
   paused=true;pause_reason="hay una decisión esperando"  # P-003: el reloj sigue detenido y un aviso permanente la vuelve a abrir
  if _is_j():hover_info={};hover_mouse=Vector2(-1,-1)  # el cursor que quedó sobre el botón del diálogo no dispara una vista previa (ni un rechazo) hasta que se mueva
@@ -1459,6 +1555,9 @@ func _benchmark_run(scenario_name:String):
  settings.quality=benchmark_quality
  if qa_path.is_empty():qa_path=OS.get_user_data_dir().path_join("benchmark")
  DirAccess.make_dir_recursive_absolute(qa_path)
+ # P4b: como un jugador, el II se abre después del menú, con el precalentado de sus sombreadores ya hecho (≤ 10 s de espera).
+ var wait_t=Time.get_ticks_msec()
+ while scenario_name=="humahuaca" and hx_prewarm_done and not hx_prewarm_finished and Time.get_ticks_msec()-wait_t<10000:await get_tree().process_frame
  _start_game(scenario_name)
  if scenario_name=="justine":
   rules.issue_scout("scout_1","probe",[Vector2(200,264),Vector2(330,264)])
@@ -2137,7 +2236,7 @@ func _mm_size()->Vector2:
 func _build_hud_j():
  _new_ui();unit_buttons={};action_buttons={};stat_bars={};hud_panels=[];roster_buttons={};pace_buttons={};speed_buttons={}
  left_panel=null;journal_panel=null;journal_last=null;roster_panel=null
- alert_current={};alert_ids_seen={};pause_reason="";order_log=[];eta_cache={}
+ alert_current={};alert_ids_seen={};pause_reason="";pause_alert=[];order_log=[];eta_cache={}
  tut_cam0=camera_target;tut_dist0=camera_distance
  beat_t=-1.0;auto_fast_on=false;auto_fast_cool=0.0;auto_fast_told=false;cap_bucket=0;clash_t=0.0;ring_labels=[]
  cam_goal_active=false;select_flash=0.0;hover_info={};confirm_action="";confirm_timer=0.0
@@ -2148,8 +2247,9 @@ func _build_hud_j():
  var header=_panel(ui,Vector2(20,8),Vector2(1400,0),Color(0.086,0.075,0.110,0.86),Color("5c4a2e"),3);hud_panels.append(header);_anchor(header,0.5,0,0.5,0,-480,6,480,6);header.grow_horizontal=Control.GROW_DIRECTION_BOTH
  var hv=_hbox(header,6)
  var heading=_vbox(hv,0);heading.size_flags_horizontal=Control.SIZE_EXPAND_FILL
- heading.custom_minimum_size.x=150;heading.clip_contents=true
- title_label=_label(heading,"",15,PAPER,true);title_label.clip_text=true;title_label.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
+ heading.custom_minimum_size.x=150
+ # P4b: sin recorte. «JUSTINA · RETIRO» se cortaba a 1280×720 con el reloj andando; ahora la cabecera crece hacia los dos lados (grow BOTH).
+ title_label=_label(heading,"JUSTINA  ·  RETIRO",15,PAPER,true)
  phase_label=_label(heading,"",10,MUTED);phase_label.clip_text=true;phase_label.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
  mode_label=_label(hv,"",13,GREEN);mode_label.custom_minimum_size.x=150;mode_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;mode_label.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
  mode_label.tooltip_text="La Justina es TIEMPO REAL: el reloj avanza solo. Podés pausar con Espacio y dar órdenes con el tiempo detenido (pausa activa: lo recomendado). Velocidades ×1, ×2, ×4."
@@ -2317,7 +2417,7 @@ func _compute_alerts()->Array:
  if bool(c.active) and not bool(c.answered):
   var rem=maxf(0.0,float(c.until)-t)
   var anyb=_anyone_boarding()
-  out.append({"id":"counter%d" % int(c.count),"level":"crit" if anyb else "warn","nopause":not anyb,"short":"contraataque de la dotación: tenés %d s para rechazarlo." % int(float(cap.get("window_s",14))),"text":"⚔ ¡CONTRAATAQUE! Quedan %d s: «Rechazar» (coma) con un grupo que aborda cuesta %d de munición; si no, perdés fuerza y captura.%s" % [ceili(rem),int(cap.get("repel_ammo",3)),"" if anyb else " Ningún grupo aborda: mandá uno con «Cargar y abordar» (N)."],"btn":"Rechazar ahora (,)","fn":"repel"})
+  out.append({"id":"counter%d" % int(c.count),"level":"crit" if anyb else "warn","nopause":not anyb,"short":"contraataque de la dotación: tenés %d s para rechazarlo." % ceili(rem),"text":"⚔ ¡CONTRAATAQUE! Quedan %d s: «Rechazar» (coma) con un grupo que aborda cuesta %d de munición; si no, perdés fuerza y captura.%s" % [ceili(rem),int(cap.get("repel_ammo",3)),"" if anyb else " Ningún grupo aborda: mandá uno con «Cargar y abordar» (N)."],"btn":"Rechazar ahora (,)","fn":"repel"})
  var pcw=st.get("pending_choice",{})
  if not pcw.is_empty() and not is_instance_valid(modal):
   out.append({"id":"choice_wait","level":"crit","nopause":false,"short":"hay una decisión esperando.","text":"✉ Hay una decisión esperando: %s. El reloj sigue detenido hasta que elijas." % str(pcw.get("title","el mensajero")).strip_edges(),"btn":"Ver la decisión","fn":"open_choice"})
@@ -2358,7 +2458,12 @@ func _update_alerts():
   if not alert_ids_seen.has(str(a.id)):
    alert_ids_seen[str(a.id)]=true
    if bool(settings.auto_pause) and not bool(a.get("nopause",false)) and not paused and not is_instance_valid(modal) and mode=="play":
-    paused=true;pause_reason=str(a.short);_sound("alert")
+    paused=true;pause_reason=str(a.short);pause_alert=[str(a.id),pause_reason];_sound("alert")
+ # P-005: si lo que pidió la pausa automática ya se resolvió (el contraataque se rechazó, la ventana pasó), el cartel de pausa no lo sigue
+ # pidiendo: queda la pausa a secas («EN PAUSA» arriba) y el aviso del hecho, que es lo que pasó de verdad.
+ if not pause_alert.is_empty() and not list.any(func(x):return str(x.id)==str(pause_alert[0])):
+  if pause_reason==str(pause_alert[1]):pause_reason=""
+  pause_alert=[]
  if list.is_empty():
   alert_current={};alert_panel.visible=false;return
  var top=list[0]
@@ -2439,7 +2544,7 @@ func _tut_done(i:int)->bool:
    for id in GROUP_IDS:
     if str(rules.get_unit(id).get("stage","")) in ["moving","waiting_tide","dismounting","boarding"]:return true
    return false
-  4:return int(st.counter.count)>0 or str(st.status)!="playing"
+  4:return int(st.counter.count)>0 or bool(st.counter.get("answered",false)) or str(st.status)!="playing"  # P-005: rechazado el primero, el cartel ya no lo pide
  return true
 
 func _tut_update():
@@ -2546,7 +2651,7 @@ func _card_text(id:String)->String:
  if not sel_ids.has(id):
   return "%s %d %s  %d %%\nmunición %d · %s" % [_ujg(id),_actor_number(id),_short_name(id),int(a.strength),int(rules.resources().ammo),_order_text(id)]
  var tired="" if int(a.fatigue)<=0 else " · cansado %d %%" % int(a.fatigue)
- return "%s%s %d %s      %d %%\n%s · munición %d\n%s%s\n%s" % [mark,_ujg(id),_actor_number(id),_short_name(id),int(a.strength),str(role.kind),int(rules.resources().ammo),stage_t,tired,_order_text(id)]
+ return "%s%s %d %s\n%d %% · %s · munición %d\n%s%s\n%s" % [mark,_ujg(id),_actor_number(id),_short_name(id),int(a.strength),str(role.kind),int(rules.resources().ammo),stage_t,tired,_order_text(id)]
 
 func _card_tip(id:String)->String:
  var a=_actor(id)
@@ -3213,7 +3318,12 @@ func _update_action_states():
   var kt=_key_text(a)
   var cost_parts=str(av.get("cost_text","")).split(" · ")
   var cost=" · ".join(cost_parts.slice(0,2)).replace(" puntos"," pts").replace("hasta ","≤ ")
-  b.text=_tag_glyph(tag)+" "+_action_label(a)+"\n"+(("["+kt+"] ") if kt!="" else "")+cost
+  var line2=(("["+kt+"] ") if kt!="" else "")+cost
+  # P-018: si el costo no entra en el botón («Sondeo cauteloso … ×0.7 de v»), queda solo la primera cifra; el resto está en la ayuda emergente.
+  var room=maxf(b.size.x,b.custom_minimum_size.x)-8.0
+  if cost_parts.size()>1 and b.get_theme_font("font").get_string_size(line2,HORIZONTAL_ALIGNMENT_LEFT,-1,maxi(b.get_theme_font_size("font_size"),12)).x>room:
+   line2=(("["+kt+"] ") if kt!="" else "")+cost_parts[0].replace(" puntos"," pts").replace("hasta ","≤ ")
+  b.text=_tag_glyph(tag)+" "+_action_label(a)+"\n"+line2
   b.disabled=not ok
   # Solo se muestra lo que se puede usar ahora (más la recomendada); lo demás se explica en una línea.
   b.visible=ok or str(rec.action)==a
@@ -3221,6 +3331,8 @@ func _update_action_states():
   # Acciones de abordaje: solo se muestran cuando hay un grupo abordando o un contraataque en curso (menos botones en gris).
   if a in ["repel","evacuate"]:
    b.visible=_anyone_boarding()
+  # P-005: rechazado el contraataque en curso, el botón lo dice en vez de quedar en gris con el mismo rótulo que pide rechazarlo.
+  if a=="repel" and bool(rules.state.counter.active) and bool(rules.state.counter.answered):b.text="✓ Contraataque\nrechazado"
   if a=="retreat_all":b.visible=false  # acción peligrosa: se llega por ☰ Menú > Abandonar, con confirmación
   if a in ["withdraw","distract_fire","board_own"] and not _risk_row_open() and str(rec.action)!=a:b.visible=false  # D-07: lo riesgoso aparece cuando el vado cede
   var why="" if ok else _friendly_reason(a,str(av.get("reason","")) if playing else "La partida ya terminó.")
@@ -4201,9 +4313,22 @@ func _draw_silhouette(at:Vector2,id:String,c:Color):
  # Banderín del bando sobre la lanza.
  _safe_poly(PackedVector2Array([lance_b,lance_b+Vector2(k*0.4,k*0.1),lance_b+Vector2(0,k*0.24)]),c)
 
+func _ship_screen_rect()->Rect2:
+ if not rules.has_method("ship_position") or not rules.state.has("map_id"):return Rect2()
+ var sp:Vector2=rules.ship_position()
+ var y=_ground_y(sp.x,sp.y)
+ var r=Rect2();var first=true
+ for d in [Vector3(-16,0,-10),Vector3(16,0,-10),Vector3(-16,0,10),Vector3(16,0,10),Vector3(0,12,0)]:
+  var p=_project(Vector3(sp.x,y,sp.y)+d)
+  if p==null:continue
+  if first:r=Rect2(p,Vector2.ZERO);first=false
+  else:r=r.expand(p)
+ return r.grow(-6.0) if r.size.x>24.0 and r.size.y>24.0 else Rect2()
+
 func _draw_chips_j(font,placed:Array,blocked:Array=[]):
  var gd=_group_disp()
  var view=get_viewport().get_visible_rect().size
+ var ship_r=_ship_screen_rect() if _anyone_boarding() else Rect2()
  var order=[]
  var items=[]
  for id in ALL_ACTORS:
@@ -4232,7 +4357,8 @@ func _draw_chips_j(font,placed:Array,blocked:Array=[]):
    var off=-float(step) if k%2==1 else float(step)
    rect.position.y=clampf(base_y+off*(chip.y+4.0),60.0,view.y-chip.y-4.0)
    tries=k
-   if not _overlaps_any(rect.grow(2),placed) and not _overlaps_any(rect,blocked):break
+   # P-018: en el abordaje las fichas de los grupos no tapan el casco (se corren y quedan unidas por su línea).
+   if not _overlaps_any(rect.grow(2),placed) and not _overlaps_any(rect,blocked) and not (ship_r.has_area() and rect.intersects(ship_r)):break
   placed.append(rect)
   items.append({"id":id,"rect":rect,"anchor":anchor,"line":rect.end.y<anchor.y-8.0 or tries>0})
  # Primero todas las líneas de unión y después las fichas: ninguna línea cruza el texto de otra ficha.
@@ -4382,11 +4508,186 @@ func _player_text(t:String)->String:
  var rx=RegEx.new();rx.compile("[;,]?[ ]*[^.;]*decisi[oó]n pendiente[^.]*[.]")
  return rx.sub(t,".",true)
 
+# ---------- P4b · pantalla de misión (composición del mockup 05, la misma del briefing del II) ----------
+# Escena a pantalla completa detrás (entintada y con degradés a los costados), objetivo y fuerzas a la izquierda, enemigo, río y cronología a
+# la derecha, cita con fuente abajo a la izquierda y la acción principal abajo a la derecha. La usan la tarjeta inicial, el briefing y los dos
+# partes de la Justina. Hijo 0 = sombra, hijo 1 = panel a pantalla completa (lo miden las pruebas de interfaz), como en _open_modal.
+# Citas: solo fragmentos de Gillespie cotejados con el OCR local (docs/historia/FUENTES.md, S9; MATRIZ_HISTORICA), traducidos por el juego.
+const J_QUOTES={
+ "brief":["Un buque de fuerza quedó inesperadamente en seco y, en ese estado, fue abordado por algo de caballería y tomado.","Alexander Gillespie, Gleanings and Remarks (1818), pp. 35-36 · traducción del juego"],
+ "victory":["Un buque abordado y tomado por caballería.","Alexander Gillespie, Gleanings and Remarks (1818), p. 94 · traducción del juego"],
+ "defeat":["La profundidad del río a veces sube o baja siete u ocho pies, bajo el control arbitrario de las brisas casuales.","Alexander Gillespie, Gleanings and Remarks (1818), pp. 35-36 · traducción del juego"]}
+const J_CHRONO=[["10 ago","Liniers avanza sobre el puesto británico del Retiro."],["12 ago","Rendición británica; el buque combate ese día."],["12 ago, bajante","Caballería aborda y toma el buque."]]
+var italic_font:FontVariation
+var mission_hidden:Array=[]
+
+func _open_mission(tone:String="brief")->Dictionary:
+ if is_instance_valid(modal):_close_modal()
+ var vs=get_viewport().get_visible_rect().size
+ modal_paused=paused;paused=true
+ # El HUD del juego se apaga (transparente) mientras está la pantalla de misión, como en el II: solo queda la escena detrás. No se oculta con
+ # visible=false para no perder su diagramación (los textos con ajuste de línea se recalculan mal estando ocultos). _close_modal lo repone.
+ mission_hidden=[]
+ for ch in ui.get_children():
+  if ch is CanvasItem and (ch as CanvasItem).visible and (ch as CanvasItem).modulate.a>0.99:(ch as CanvasItem).modulate.a=0.0;mission_hidden.append(ch)
+ modal=Control.new();modal.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);ui.add_child(modal)
+ var shade=ColorRect.new();shade.color=Color(0.035,0.03,0.055,0.40 if tone=="brief" else 0.58);shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);modal.add_child(shade)
+ var lw=clampf(vs.x*0.29,330.0,470.0);var rw=clampf(vs.x*0.25,300.0,390.0)
+ for side in [0,1]:
+  var g=TextureRect.new();g.texture=_ink_gradient(0.94,0.78,0.0);g.stretch_mode=TextureRect.STRETCH_SCALE;g.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;g.mouse_filter=Control.MOUSE_FILTER_IGNORE;g.flip_h=side==1;shade.add_child(g)
+  if side==0:_anchor(g,0,0,0,1,0,0,lw+170.0,0)
+  else:_anchor(g,1,0,1,1,-(rw+150.0),0,0,0)
+ var low=TextureRect.new();low.texture=_ink_gradient(0.0,0.35,0.92,true);low.stretch_mode=TextureRect.STRETCH_SCALE;low.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;low.mouse_filter=Control.MOUSE_FILTER_IGNORE;shade.add_child(low);_anchor(low,0,1,1,1,0,-170,0,0)
+ var accent=GOLD if tone!="defeat" else Color("d9903a")
+ var root=PanelContainer.new();modal.add_child(root);root.add_theme_stylebox_override("panel",_style(Color(0,0,0,0),Color(0,0,0,0),0,0,0));_anchor(root,0,0,1,1,14,12,-14,-12)
+ var frame=Control.new();frame.mouse_filter=Control.MOUSE_FILTER_IGNORE;modal.add_child(frame);_anchor(frame,0,0,1,1,14,12,-14,-12)
+ frame.draw.connect(func():_draw_document_frame(frame,accent))
+ var margin=MarginContainer.new();root.add_child(margin)
+ for k in ["margin_left","margin_right"]:margin.add_theme_constant_override(k,24 if vs.x<1400.0 else 34)
+ margin.add_theme_constant_override("margin_top",18 if vs.y<800.0 else 28);margin.add_theme_constant_override("margin_bottom",16 if vs.y<800.0 else 24)
+ var outer=_vbox(margin,12)
+ var top=_hbox(outer,22);top.size_flags_vertical=Control.SIZE_EXPAND_FILL
+ var left=_vbox(top,10);left.custom_minimum_size.x=lw
+ var center=_vbox(top,10);center.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ var right=_vbox(top,10);right.custom_minimum_size.x=rw
+ var lfill=Control.new();lfill.mouse_filter=Control.MOUSE_FILTER_IGNORE;lfill.size_flags_vertical=Control.SIZE_EXPAND_FILL
+ var close_row=_hbox(right,0);var cs=Control.new();cs.size_flags_horizontal=Control.SIZE_EXPAND_FILL;close_row.add_child(cs)
+ _button(close_row,"Cerrar · Esc",_close_modal,30).add_theme_font_size_override("font_size",13)
+ var bottom=_hbox(outer,18)
+ var bfill=Control.new();bfill.size_flags_horizontal=Control.SIZE_EXPAND_FILL;bfill.mouse_filter=Control.MOUSE_FILTER_IGNORE;bottom.add_child(bfill)
+ var buttons=_hbox(bottom,10);buttons.size_flags_vertical=Control.SIZE_SHRINK_END
+ # La cita va al pie de la columna izquierda (abajo a la izquierda); se agrega al final con _mission_quote, después del contenido.
+ var quote=HBoxContainer.new();quote.add_theme_constant_override("separation",10)
+ left.set_meta("quote_fill",lfill);quote.set_meta("column",left)
+ return {"left":left,"center":center,"right":right,"quote":quote,"buttons":buttons,"accent":accent,"center_w":vs.x-28.0-2.0*float(margin.get_theme_constant("margin_left"))-lw-rw-44.0,"vs":vs}
+
+# Encabezado de la pantalla: rótulo, título grande en Cinzel y bajada.
+func _mission_head(parent:Node,kicker:String,title:String,sub:String,accent:Color=GOLD,title_col:Color=PAPER):
+ var vs=get_viewport().get_visible_rect().size
+ var kl=_label(parent,kicker,12,accent)
+ if heading_font:kl.add_theme_font_override("font",heading_font)
+ var tl=_label(parent,title,(40 if title.length()<=18 else 32) if vs.y>=860.0 else (34 if title.length()<=18 else 27),title_col,true);tl.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+ if not sub.is_empty():_label(parent,sub,14,MUTED).autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+
+# Recuadro con rótulo (OBJETIVO, TUS FUERZAS, ENEMIGO…): tinta panel, filete y esquinas de 2 px.
+func _mission_box(parent:Node,title:String,accent:Color=GOLD)->VBoxContainer:
+ var p=PanelContainer.new();p.add_theme_stylebox_override("panel",_style(Color(0.086,0.075,0.110,0.86),FILET,1,RADIUS,11));parent.add_child(p)
+ var v=_vbox(p,5)
+ var t=_label(v,title,11,accent)
+ if heading_font:t.add_theme_font_override("font",heading_font)
+ return v
+
+func _mission_row(parent:Node,left_text:String,right_text:String,lcol:Color=PAPER,rcol:Color=MUTED,fsize:int=14)->HBoxContainer:
+ var r=_hbox(parent,8)
+ var l=_label(r,left_text,fsize,lcol);l.size_flags_horizontal=Control.SIZE_EXPAND_FILL;l.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+ var rr=_label(r,right_text,fsize-1,rcol);rr.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;rr.size_flags_vertical=Control.SIZE_SHRINK_BEGIN
+ return r
+
+# Cita en cursiva con comillas grandes y su fuente (abajo a la izquierda, como en el mockup 05 y en el briefing del II).
+func _mission_quote(parent:Node,key:String,accent:Color=GOLD):
+ var q:Array=J_QUOTES.get(key,J_QUOTES.brief)
+ # El contenedor de la cita vive al pie de la columna izquierda: un relleno elástico la empuja abajo.
+ var col=parent.get_meta("column",null)
+ if col!=null and is_instance_valid(col):
+  col.add_child(col.get_meta("quote_fill"));col.add_child(parent)
+ if italic_font==null and theme_main.default_font:
+  italic_font=FontVariation.new();italic_font.base_font=theme_main.default_font;italic_font.variation_transform=Transform2D(Vector2(1,0),Vector2(0.2,1),Vector2.ZERO)
+ var mk=_label(parent,"«",44,accent,true);mk.size_flags_vertical=Control.SIZE_SHRINK_BEGIN
+ var v=_vbox(parent,2);v.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ var t=_label(v,str(q[0])+"»",15,PAPER);t.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+ if italic_font:t.add_theme_font_override("font",italic_font)
+ _label(v,"— "+str(q[1]),11,MUTED).autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+
+# Las cinco agrupaciones con su tipo y su fuerza (mismos datos que el panel de la izquierda del juego).
+func _mission_forces(parent:Node):
+ var fb=_mission_box(parent,"TUS FUERZAS  ·  TECLAS 1-5")
+ for id in ALL_ACTORS:
+  var a=_actor(id)
+  if a.is_empty():continue
+  var val=""
+  if id in SCOUT_IDS:val="Explorador · ♥ %d/%d" % [int(a.get("hp",0)),int(_jmap().get("resources",{}).get("scout_hp",4))]
+  else:val="%s · %d %%" % [str(GROUP_ROLE[id].kind).replace("Caballería de reserva","Reserva"),int(a.get("strength",0))]
+  var rw=_mission_row(fb,"%s %d  %s" % [str(UNIT_GLYPHS.get(id,"•")) if id in SCOUT_IDS else _ujg(id),_actor_number(id),_short_name(id)],val,UNIT_COLORS.get(id,PAPER),MUTED,13)
+  rw.tooltip_text=_card_tip(id)
+
+# Enemigo, reloj del río y cronología (lo que hoy está repartido entre el panel derecho, la barra de tiempo y las fuentes).
+func _mission_enemy(parent:Node,river:bool=true,chrono:bool=true):
+ var eb=_mission_box(parent,"ENEMIGO",Color("d0604f"))
+ _label(eb,"Buque Justina",17,PAPER,true)
+ var e1=_mission_row(eb,"Mercante británico armado","26 cañones",PAPER,MUTED,13);e1.tooltip_text="Gillespie, p. 28: 26 cañones en total. ● Documentado."
+ var e2=_mission_row(eb,"Dotación propia y cien marineros de la escuadra","● doc.",PAPER,Color("8fb89a"),13);e2.tooltip_text="Gillespie, p. 94. ● Documentado."
+ _mission_row(eb,"Moral de la dotación","%d %%" % int(float(rules.state.get("crew_morale",100.0))),PAPER,MUTED,13)
+ var rk=_risk_now()
+ _mission_row(eb,"Peligro de fuego (aro rojo)",str(rk.level).to_upper(),PAPER,RISK_COLORS.get(str(rk.level),MUTED),13)
+ if river:
+  var tm=rules.tide_marks()
+  var rb=_mission_box(parent,"EL RÍO  ·  RELOJ DE LA PARTIDA")
+  _mission_row(rb,"Empieza a bajar","a los "+_clock(float(tm.drop_start)),PAPER,GOLD_LIGHT,13)
+  _mission_row(rb,"Bajo: el vado puede ceder","%s – %s" % [_clock(float(tm.drop_end)),_clock(float(tm.low_hold_end))],PAPER,GOLD_LIGHT,13)
+  if float(rules.state.get("no_return_s",-1.0))>0.0:_mission_row(rb,"Sin retorno si nadie cargó",_clock(float(rules.state.no_return_s)),PAPER,Color("d9903a"),13)
+  _mission_row(rb,"Plazo: el río ya subió",_clock(float(tm.deadline)),PAPER,Color("d9903a"),13)
+  _label(rb,"▲ Diseño: el reloj cambia con la semilla del río.",11,MUTED).autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+ if chrono:
+  var cb=_mission_box(parent,"CRONOLOGÍA  ·  1806")
+  for c in J_CHRONO:
+   var r=_hbox(cb,8)
+   var d=_label(r,"●",10,VIOLET);d.size_flags_vertical=Control.SIZE_SHRINK_BEGIN
+   var dl=_label(r,str(c[0]),12,GOLD_LIGHT);dl.custom_minimum_size.x=96;dl.size_flags_vertical=Control.SIZE_SHRINK_BEGIN
+   var tl=_label(r,str(c[1]),12,PAPER);tl.size_flags_horizontal=Control.SIZE_EXPAND_FILL;tl.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+  _label(cb,"● Documentado: Gillespie (1818), pp. 35-36 y 94-95.",11,Color("8fb89a")).autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+
+# Ícono de medalla dibujado en código (sin imágenes): cinta oro y violeta, disco del color de la medalla, filete y estrella. En la derrota, el
+# disco queda vacío en ámbar con el signo de la causa (río, cubierta o retirada).
+func _medal_icon(parent:Node,medal:String,defeat_cause:String="")->Control:
+ var c=Control.new();c.custom_minimum_size=Vector2(78,96);c.mouse_filter=Control.MOUSE_FILTER_IGNORE;parent.add_child(c)
+ c.draw.connect(func():_draw_medal(c,medal,defeat_cause))
+ return c
+
+func _draw_medal(c:Control,medal:String,cause:String):
+ var w=c.size.x;var ctr=Vector2(w*0.5,c.size.y-36.0);var r=30.0
+ var lost=medal.is_empty()
+ var col:Color=MEDAL_COLOR.get(medal,Color("d9903a"))
+ if not lost:
+  c.draw_colored_polygon(PackedVector2Array([Vector2(w*0.5-20,0),Vector2(w*0.5-4,0),Vector2(w*0.5+6,ctr.y-r+4),Vector2(w*0.5-10,ctr.y-r+4)]),VIOLET_DEEP)
+  c.draw_colored_polygon(PackedVector2Array([Vector2(w*0.5+4,0),Vector2(w*0.5+20,0),Vector2(w*0.5+10,ctr.y-r+4),Vector2(w*0.5-6,ctr.y-r+4)]),Color("8a6a3a"))
+  c.draw_circle(ctr,r,col.darkened(0.45))
+  c.draw_circle(ctr,r-3.0,col)
+  c.draw_arc(ctr,r-8.0,0,TAU,48,col.darkened(0.35),1.5,true)
+  var star=PackedVector2Array()
+  for i in range(10):
+   var ang=-PI*0.5+i*PI/5.0;var rr=13.0 if i%2==0 else 5.5
+   star.append(ctr+Vector2(cos(ang),sin(ang))*rr)
+  c.draw_colored_polygon(star,col.darkened(0.4))
+ else:
+  c.draw_arc(ctr,r,0,TAU,48,col,2.0,true)
+  c.draw_arc(ctr,r-6.0,0,TAU,48,Color(col.r,col.g,col.b,0.45),1.0,true)
+  if cause in ["plazo","inaccion"]:
+   for k in [-8.0,0.0,8.0]:
+    var pts=PackedVector2Array()
+    for i in range(9):pts.append(ctr+Vector2(-15.0+i*3.75,k+sin(i*1.4)*2.6))
+    c.draw_polyline(pts,col,2.0,true)
+  elif cause=="retirada":
+   c.draw_line(ctr+Vector2(-6,-16),ctr+Vector2(-6,16),col,2.0);c.draw_colored_polygon(PackedVector2Array([ctr+Vector2(-6,-16),ctr+Vector2(12,-10),ctr+Vector2(-6,-4)]),Color(col.r,col.g,col.b,0.6))
+  else:
+   c.draw_line(ctr+Vector2(-14,-14),ctr+Vector2(14,14),col,2.5);c.draw_line(ctr+Vector2(14,-14),ctr+Vector2(-14,14),col,2.5)
+
+# Momento de la derrota en palabras («a los 18:00, en el cruce»): sale de rules.state.defeat_moment (lo mismo que usa campaign.defeat_text).
+func _defeat_when(r:Dictionary)->String:
+ var mom:Dictionary=rules.state.get("defeat_moment",{})
+ var t=_clock(float(mom.get("t",r.get("elapsed",rules.state.get("elapsed",0.0)))))
+ var ph={"preparativos":"antes de cruzar","cruce":"en el cruce","abordaje":"en la cubierta del buque"}.get(str(mom.get("phase","")),"")
+ return "a los %s%s." % [t,(", "+ph) if not ph.is_empty() else ""]
+
 func _briefing_dialog():
  var m=_jmap()
- var box=_open_modal(str(m.get("texts",{}).get("title","Justina")),940,680,true,"brief")
- var scroll=ScrollContainer.new();scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;scroll.custom_minimum_size=Vector2(880,500);box.add_child(scroll)
- var content=VBoxContainer.new();content.size_flags_horizontal=Control.SIZE_EXPAND_FILL;content.add_theme_constant_override("separation",10);scroll.add_child(content)
+ var mm=_open_mission("brief")
+ var box:VBoxContainer=mm.center
+ _mission_head(mm.left,"CAPÍTULO I  ·  BUENOS AIRES, 12 DE AGOSTO DE 1806","La Justina, 1806","Retiro · cómo se juega, teclas, palabras y fuentes")
+ var ob=_mission_box(mm.left,"OBJETIVO")
+ _rich(ob,"Tomar el buque Justina, varado en el río, antes de que el río vuelva a subir. Tiempo real con pausa: [b]Espacio[/b] detiene el reloj y podés dar órdenes.",15)
+ _mission_forces(mm.left)
+ _mission_enemy(mm.right)
+ _mission_quote(mm.quote,"brief")
  var text="[font_size=20][b]TIEMPO REAL con pausa[/b][/font_size]
 El reloj corre solo (×1, ×2, ×4); no es por turnos. [b]Espacio[/b] pausa, y [b]con el tiempo detenido podés dar órdenes[/b]: es la forma recomendada de jugar. El juego se pausa solo ante avisos críticos («Pausa auto»).
 
@@ -4438,17 +4739,18 @@ Gillespie escribe que el buque quedó «en seco» (left dry) y que lo abordó la
  var tips=m.get("texts",{}).get("tips",[])
  for i in range(mini(3,tips.size())):text_g+="• "+str(tips[i])+"\n"
  var text_k="\n[b]Controles[/b]\n• Cámara: WASD/flechas y borde de pantalla mueven · rueda zoom · botón derecho arrastrado agarra el mapa · Q/E giran · RePág/AvPág inclinan · el minimapa (clic o arrastre) mueve la vista; el cuadro blanco es lo que ves.\n• Cámara rápida: F centra la selección · B va al buque · 0 muestra todo el mapa · M agranda el minimapa.\n• Selección: clic en una ficha o en el mapa · 1-5 · Tab cicla · caja con arrastre izquierdo · Mayús suma · Ctrl alterna.\n• Órdenes: clic derecho mueve · V Mover · N Cargar y abordar · K Señalar a Liniers · Z Reconocer (Mayús+Z cauteloso) · H Marcar vado · I Volver · O Distraer con fuego · [b]coma[/b] Rechazar contraataque · [b]punto[/b] Evacuar heridos · X cancelar · [b]Ctrl+Z deshacer[/b] la última orden · G/T/C ritmo.\n• Tiempo: Espacio pausa/reanuda · F2/F3/F4 o +/− velocidad ×1/×2/×4 · P parte · F5 guardar · F9 cargar · R reiniciar · F1 o ? esta ayuda."
- scroll.queue_free()
- var tabs=TabContainer.new();tabs.size_flags_vertical=Control.SIZE_EXPAND_FILL;tabs.custom_minimum_size=Vector2(880,_scroll_h(500.0));box.add_child(tabs);box.move_child(tabs,1)
+ # Las cuatro pestañas de siempre ocupan la columna central (antes: un documento centrado con un tercio vacío abajo, P-019).
+ var tabs=TabContainer.new();tabs.size_flags_vertical=Control.SIZE_EXPAND_FILL;tabs.size_flags_horizontal=Control.SIZE_EXPAND_FILL;box.add_child(tabs)
+ var tw=maxf(300.0,float(mm.center_w)-34.0)
  for pair in [["Cómo jugar",text],["Teclas",text_k],["Palabras y consejos",text_g],["Fuentes",text_f]]:
-  var sc=ScrollContainer.new();sc.name=str(pair[0]);sc.size_flags_horizontal=Control.SIZE_EXPAND_FILL;tabs.add_child(sc)
-  var rt=_rich(sc,str(pair[1]),15);rt.custom_minimum_size.x=840
- var row=_hbox(box)
+  var sc=ScrollContainer.new();sc.name=str(pair[0]);sc.size_flags_horizontal=Control.SIZE_EXPAND_FILL;sc.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;tabs.add_child(sc)
+  var rt=_rich(sc,str(pair[1]),15);rt.custom_minimum_size.x=tw
+ var row:HBoxContainer=mm.buttons
  var fresh=float(rules.state.elapsed)<0.5 and str(rules.state.status)=="playing"
- var go=_button(row,"Jugar (empieza en pausa)" if fresh else "Volver a la partida",_close_modal,42);go.size_flags_horizontal=Control.SIZE_EXPAND_FILL
- if fresh:_button(row,"Ver el despliegue",_deploy_dialog,42)
- _button(row,"Repetir tutorial",func():settings.tutorial=true;tut_step=0;_save_settings();_close_modal();_update_hud(),42)
- _button(row,"Fuentes e historia",_history_dialog,42)
+ if fresh:_button(row,"Ver el despliegue",_deploy_dialog,48)
+ _button(row,"Repetir tutorial",func():settings.tutorial=true;tut_step=0;_save_settings();_close_modal();_update_hud(),48)
+ _button(row,"Fuentes e historia",_history_dialog,48)
+ var go=_button(row,"Jugar (empieza en pausa)" if fresh else "Volver a la partida",_close_modal,48);go.custom_minimum_size.x=250;go.add_theme_font_size_override("font_size",18);_primary_style(go)
 
 # ---------- Rutas con destino y ETA, minimapa ----------
 
@@ -4674,15 +4976,15 @@ func _learned_block(parent:Node,limit:int=5):
  var hint=_aprendido_hint() if int(progress.derrotas_seguidas)>=2 else ""
  if not hint.is_empty():_rich(box,"[color=#e8cc8a]Pista: [/color]"+_plain(hint),15)
 
-func _history_toggle(parent:Node,r:Dictionary):
+func _history_toggle(parent:Node,r:Dictionary,width:float=840.0):
  var holder=_vbox(parent,4)
  var tb=_button(holder,"Qué fue historia ▸",func():pass,30);tb.alignment=HORIZONTAL_ALIGNMENT_LEFT
- var body=ScrollContainer.new();body.custom_minimum_size=Vector2(840,_scroll_h(160.0,460.0));body.visible=false;holder.add_child(body)
+ var body=ScrollContainer.new();body.custom_minimum_size=Vector2(width,_scroll_h(160.0,460.0));body.visible=false;holder.add_child(body);body.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
  var hist=""
  for hline in r.get("history",[]):
   var ht=str(hline.get("tag","diseno"))
   hist+="[color=%s]%s %s[/color]  %s\n" % [str(_tag_info(ht).get("color","#aab7b5")),_tag_glyph(ht),_tag_label(ht),str(hline.get("text",""))]
- var rt=_rich(body,hist,14);rt.custom_minimum_size.x=820
+ var rt=_rich(body,hist,14);rt.custom_minimum_size.x=width-20.0
  tb.pressed.connect(func():body.visible=not body.visible;tb.text="Qué fue historia ▾" if body.visible else "Qué fue historia ▸")
 
 func _primary_style(btn:Button):
@@ -4690,46 +4992,63 @@ func _primary_style(btn:Button):
  btn.add_theme_stylebox_override("hover",_cm_style("retry_main_h",Color("3a2f1c"),Color("e8cc8a"),2,14,8))
 
 # Fila de «Más»: lo secundario queda plegado para que el botón principal sea lo único que pese.
-func _more_row(parent:Node,specs:Array,r:Dictionary):
+func _more_row(parent:Node,specs:Array,r:Dictionary,width:float=840.0):
  var holder=_vbox(parent,6)
  var tb=_button(holder,"Más opciones ▸",func():pass,30);tb.alignment=HORIZONTAL_ALIGNMENT_LEFT
  var body=_vbox(holder,6);body.visible=false
- var row=_hbox(body,8)
- for sp in specs:_button(row,str(sp[0]),sp[1],34)
- _history_toggle(body,r)
+ # En columnas angostas (partes a pantalla completa) los botones van en una grilla de dos para no salirse.
+ var row:Container=_hbox(body,8)
+ if width<700.0:
+  row.queue_free();row=GridContainer.new();(row as GridContainer).columns=2;row.add_theme_constant_override("h_separation",8);row.add_theme_constant_override("v_separation",6);body.add_child(row)
+ for sp in specs:
+  var bb=_button(row,str(sp[0]),sp[1],34)
+  if width<700.0:bb.size_flags_horizontal=Control.SIZE_EXPAND_FILL;bb.clip_text=false;bb.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+ _history_toggle(body,r,width)
  tb.pressed.connect(func():body.visible=not body.visible;tb.text="Más opciones ▾" if body.visible else "Más opciones ▸")
 
 func _defeat_dialog(r:Dictionary):
+ # P4b: parte a pantalla completa con la composición de la misión, como el parte del II: qué pasó (causa y momento), qué probar, cifras,
+ # lo aprendido, una cita con fuente y «Reintentar» como acción principal abajo a la derecha.
  var d=_defeat_text(r)
- var box=_open_modal("Esta vez no pudo ser",820,_scroll_h(430.0,40.0),true,"defeat")
- _label(box,"REPLIEGUE  ·  EL BUQUE SIGUE EN PIE",13,Color("d9903a"))
- _rich(box,"[b]%s[/b]" % _plain(str(d.cause)),20).custom_minimum_size.x=760
- _rich(box,"[color=#e8cc8a]Probá esto:[/color] "+_plain(str(d.advice)),17).custom_minimum_size.x=760
+ var mm=_open_mission("defeat")
+ var amber=Color("d9903a")
+ _mission_head(mm.left,"REPLIEGUE  ·  EL BUQUE SIGUE EN PIE","Esta vez no pudo ser","Intento %d · derrotas seguidas: %d" % [maxi(int(progress.intentos),1),int(progress.derrotas_seguidas)],amber,PAPER)
+ var qb=_mission_box(mm.left,"QUÉ PASÓ",amber)
+ var mrow=_hbox(qb,12)
+ _medal_icon(mrow,"",str(rules.state.get("defeat_cause","")))
+ var qv=_vbox(mrow,4);qv.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ _rich(qv,"[b]%s[/b]" % _plain(str(d.cause)),18)
+ _label(qv,"Cuándo: "+_defeat_when(r),13,GOLD_LIGHT).autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+ var pb=_mission_box(mm.left,"PARA EL PRÓXIMO INTENTO")
+ _rich(pb,"[color=#e8cc8a]Probá esto:[/color] "+_plain(str(d.advice)),17)
  # Solo cifras que dicen algo: un 0 % no enseña nada, así que se reemplaza por lo que sí pasó.
- var chips=_hbox(box,10)
+ var cb=_mission_box(mm.right,"CIFRAS DEL INTENTO",amber)
  var cap=float(rules.state.get("capture",0.0))
  var shown=0
- if cap>=1.0:_stat_chip(chips,"Captura del buque","%d %%" % int(cap),GREEN if cap>=50.0 else PAPER);shown+=1
+ if cap>=1.0:_mission_row(cb,"Captura del buque","%d %%" % int(cap),PAPER,GREEN if cap>=50.0 else PAPER,15);shown+=1
  var lp=float(r.get("loss_total_pct",0.0))
- if lp>=1.0:_stat_chip(chips,"Bajas","%d %%" % int(lp));shown+=1
- if int(r.get("stumbles",0))>0 and shown<2:_stat_chip(chips,"Tropiezos en pozos","%d" % int(r.stumbles),RED);shown+=1
- if int(r.get("shots_taken",0))>0 and shown<2:_stat_chip(chips,"Descargas recibidas","%d" % int(r.shots_taken));shown+=1
- if shown<2:_stat_chip(chips,"Agua sondeada","%d m" % int(float(r.get("probe_m",0.0))));shown+=1
- _stat_chip(chips,"Duró",_clock(float(r.get("elapsed",0.0))))
- var row=_hbox(box,10)
+ if lp>=1.0:_mission_row(cb,"Bajas","%d %%" % int(lp),PAPER,PAPER,15);shown+=1
+ if int(r.get("stumbles",0))>0 and shown<3:_mission_row(cb,"Tropiezos en pozos","%d" % int(r.stumbles),PAPER,RED,15);shown+=1
+ if int(r.get("shots_taken",0))>0 and shown<3:_mission_row(cb,"Descargas recibidas","%d" % int(r.shots_taken),PAPER,PAPER,15);shown+=1
+ if shown<2:_mission_row(cb,"Agua sondeada","%d m" % int(float(r.get("probe_m",0.0))),PAPER,PAPER,15)
+ _mission_row(cb,"Duró",_clock(float(r.get("elapsed",0.0))),PAPER,GOLD_LIGHT,15)
+ var lb=PanelContainer.new();lb.add_theme_stylebox_override("panel",_style(Color(0.086,0.075,0.110,0.86),FILET,1,RADIUS,11));mm.right.add_child(lb)
+ _learned_block(lb,3)
+ var fill=Control.new();fill.size_flags_vertical=Control.SIZE_EXPAND_FILL;fill.mouse_filter=Control.MOUSE_FILTER_IGNORE;mm.center.add_child(fill)
+ # «Mapa distinto» borra el diario: queda como acción chica y aparte, sin competir con Reintentar.
+ _more_row(mm.center,[["Abrir el diario",_diary_dialog],["Parte completo",func():_report_dialog(true)],["Mapa distinto…",_confirm_new_river],["Ver fuentes",_history_dialog],["Menú",_menu]],r,float(mm.center_w))
+ _mission_quote(mm.quote,"defeat",amber)
+ var row:HBoxContainer=mm.buttons
  var retry_btn:Button
  if campaign.has_checkpoint():
-  var cp_btn=_button(row,"Reintentar desde el cruce (%s)" % _clock(campaign.checkpoint_time()),_retry_checkpoint,58);cp_btn.size_flags_horizontal=Control.SIZE_EXPAND_FILL;cp_btn.add_theme_font_size_override("font_size",19)
+  retry_btn=_button(row,"Reintentar (mismo mapa)",func():_retry(false),56);retry_btn.add_theme_font_size_override("font_size",16)
+  var cp_btn=_button(row,"Reintentar desde el cruce (%s)" % _clock(campaign.checkpoint_time()),_retry_checkpoint,56);cp_btn.add_theme_font_size_override("font_size",19);cp_btn.custom_minimum_size.x=280
   _primary_style(cp_btn)
   cp_btn.tooltip_text="Vuelve al momento justo antes del vado, con lo que ya sondeaste. Son segundos, no minutos."
-  retry_btn=_button(row,"Reintentar (mismo mapa)",func():_retry(false),58);retry_btn.size_flags_horizontal=Control.SIZE_EXPAND_FILL;retry_btn.add_theme_font_size_override("font_size",16)
  else:
-  retry_btn=_button(row,"Reintentar (mismo mapa)",func():_retry(false),58);retry_btn.size_flags_horizontal=Control.SIZE_EXPAND_FILL;retry_btn.add_theme_font_size_override("font_size",20)
+  retry_btn=_button(row,"Reintentar (mismo mapa)",func():_retry(false),56);retry_btn.add_theme_font_size_override("font_size",20);retry_btn.custom_minimum_size.x=280
   _primary_style(retry_btn)
  retry_btn.tooltip_text="Vuelve a empezar con el mismo fondo del río: los pozos y vados están donde los anotaste."
- _learned_block(box,3)
- # «Mapa distinto» borra el diario: queda como acción chica y aparte, sin competir con Reintentar.
- _more_row(box,[["Abrir el diario",_diary_dialog],["Parte completo",func():_report_dialog(true)],["Mapa distinto…",_confirm_new_river],["Ver fuentes",_history_dialog],["Menú",_menu]],r)
  _juice("defeat");_sound("defeat")
 
 func _confirm_new_river():
@@ -4744,35 +5063,47 @@ func _outcome_dialog_again():
  elif str(rules.state.status)!="playing":_defeat_dialog(last_attempt_report)
 
 func _victory_dialog(r:Dictionary):
- var box=_open_modal("¡Buque tomado!",900,_scroll_h(540.0,40.0),true,"victory")
- _label(box,"PARTE DE VICTORIA  ·  12 DE AGOSTO DE 1806",13,GOLD)
+ # P4b: parte a pantalla completa con la composición de la misión: medalla dibujada, qué lograste, desbloqueo, cifras, cita con fuente y el
+ # nivel siguiente como acción principal abajo a la derecha.
+ var mm=_open_mission("victory")
+ _mission_head(mm.left,"PARTE DE VICTORIA  ·  12 DE AGOSTO DE 1806","¡Buque tomado!","",GOLD,GOLD)
  var med=last_medal if not last_medal.is_empty() else "bronce"
- var ml=_label(box,"MEDALLA DE "+med.to_upper(),30,MEDAL_COLOR.get(med,GOLD),true);ml.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
  var best=str(progress.mejor_medalla)
  var sub="Esta vez."
  if not best.is_empty() and best!=med:sub="Esta vez. Tu mejor sigue siendo la de %s." % best
  elif best==med and not last_first_win:sub="Esta vez. Igualaste tu mejor medalla."
  elif last_first_win:sub="Esta vez. ¡Primera victoria!"
- var sl=_label(box,sub,14,MUTED);sl.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+ var mb=_mission_box(mm.left,"TU MEDALLA")
+ var mrow=_hbox(mb,14)
+ _medal_icon(mrow,med)
+ var mv=_vbox(mrow,2);mv.size_flags_horizontal=Control.SIZE_EXPAND_FILL;mv.alignment=BoxContainer.ALIGNMENT_CENTER
+ var ml=_label(mv,"MEDALLA DE "+med.to_upper(),22,MEDAL_COLOR.get(med,GOLD),true);ml.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+ _label(mv,sub,14,MUTED).autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
  var why=""
  var n=0
  for ln in last_result.get("lines",[]):
   if str(ln).begins_with("Se desbloqueó") or str(ln).begins_with("Se abrió") or str(ln).find("siguen abiertos")>=0 or str(ln).find("ventaja")>=0:continue
   if n>=3:break
   n+=1;why+="• "+str(ln)+"\n"
- _rich(box,why.strip_edges(),18).custom_minimum_size.x=840
+ if not why.strip_edges().is_empty():
+  var wb=_mission_box(mm.left,"QUÉ LOGRASTE")
+  _rich(wb,why.strip_edges(),16)
+ var cb=_mission_box(mm.right,"CIFRAS")
+ _mission_row(cb,"Tiempo",_clock(float(r.get("elapsed",0.0))),PAPER,GOLD,15)
+ _mission_row(cb,"Bajas","%d %%" % roundi(float(r.get("loss_total_pct",0.0))),PAPER,PAPER,15)
+ _mission_row(cb,"Tu mejor medalla",best.capitalize(),PAPER,MEDAL_COLOR.get(best,PAPER),15)
  if last_first_win:
-  var un=_label(box,"Se abrió el nivel II: Humahuaca, 1817",20,GOLD_LIGHT,true);un.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
- var chips=_hbox(box,10)
- _stat_chip(chips,"Tiempo",_clock(float(r.get("elapsed",0.0))),GOLD)
- _stat_chip(chips,"Bajas","%d %%" % roundi(float(r.get("loss_total_pct",0.0))))
- _stat_chip(chips,"Tu mejor medalla",best.capitalize(),MEDAL_COLOR.get(best,PAPER))
- var row=_hbox(box,10)
- var go=_button(row,"Seguir: Humahuaca (nivel II)",func():_start_game("humahuaca"),58);go.size_flags_horizontal=Control.SIZE_EXPAND_FILL;go.add_theme_font_size_override("font_size",20)
+  var ub=_mission_box(mm.right,"SE ABRE")
+  _label(ub,"Se abrió el nivel II: Humahuaca, 1817",19,GOLD_LIGHT,true).autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+  _label(ub,"El golpe de Arias sobre el depósito de la retaguardia, 1 de marzo de 1817. Después sigue el III, Sostener el norte.",13,MUTED).autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+ var fill=Control.new();fill.size_flags_vertical=Control.SIZE_EXPAND_FILL;fill.mouse_filter=Control.MOUSE_FILTER_IGNORE;mm.center.add_child(fill)
+ _more_row(mm.center,[["Parte completo",func():_report_dialog(true)],["Ir directo al III: Sostener el norte",func():_start_game("norte")],["Ver fuentes",_history_dialog],["Menú",_menu]],r,float(mm.center_w))
+ _mission_quote(mm.quote,"victory")
+ var row:HBoxContainer=mm.buttons
+ _button(row,"Rejugar · mapa distinto",func():_retry(true),56)
+ var go=_button(row,"Seguir: Humahuaca (nivel II)",func():_start_game("humahuaca"),56);go.custom_minimum_size.x=300;go.add_theme_font_size_override("font_size",20)
  go.tooltip_text="Nivel II: el golpe de Arias en Humahuaca, 1 de marzo de 1817. Después sigue el III, Sostener el norte."
  _primary_style(go)
- _button(row,"Rejugar · mapa distinto",func():_retry(true),58)
- _more_row(box,[["Parte completo",func():_report_dialog(true)],["Ir directo al III: Sostener el norte",func():_start_game("norte")],["Ver fuentes",_history_dialog],["Menú",_menu]],r)
  _juice("victory")
  _victory_beat()
 
@@ -4819,10 +5150,17 @@ func _diary_new_river():
  else:_close_modal()
 
 func _intro_card():
- var box=_open_modal("La Justina",760,_scroll_h(440.0,40.0),true,"brief")
- _label(box,"I  ·  BUENOS AIRES, 12 DE AGOSTO DE 1806  ·  EL RÍO OFRECE UNA OPORTUNIDAD",13,GOLD)
- _rich(box,"[font_size=22][b]Objetivo:[/b] tomar el buque Justina, varado en el río, antes de que el río vuelva a subir.[/font_size]",22).custom_minimum_size.x=700
- _rich(box,"[font_size=18]Perder no es grave: volvés a jugar con [b]el mismo río[/b] y con lo que anotaste en el diario.[/font_size]",18).custom_minimum_size.x=700
+ # P4b: pantalla de misión (mockup 05), la misma composición que el briefing del II. Mismos textos y botones que la tarjeta de antes.
+ var mm=_open_mission("brief")
+ _mission_head(mm.left,"CAPÍTULO I  ·  BUENOS AIRES, 12 DE AGOSTO DE 1806","La Justina, 1806","El río ofrece una oportunidad")
+ var ob=_mission_box(mm.left,"LA MISIÓN")
+ _rich(ob,"[font_size=19][b]Objetivo:[/b] tomar el buque Justina, varado en el río, antes de que el río vuelva a subir.[/font_size]",19)
+ _mission_forces(mm.left)
+ _mission_enemy(mm.right)
+ _mission_quote(mm.quote,"brief")
+ var fill=Control.new();fill.size_flags_vertical=Control.SIZE_EXPAND_FILL;fill.mouse_filter=Control.MOUSE_FILTER_IGNORE;mm.center.add_child(fill)
+ var box=_mission_box(mm.center,"ANTES DE EMPEZAR")
+ _rich(box,"[font_size=17]Perder no es grave: volvés a jugar con [b]el mismo río[/b] y con lo que anotaste en el diario.[/font_size]",17)
  var n=int(progress.intentos)
  if n>1:
   var line="Intento %d · anotaste %d %s." % [n,progress.diario.size(),"cosa" if progress.diario.size()==1 else "cosas"]
@@ -4831,14 +5169,14 @@ func _intro_card():
    hint=_plain(hint).replace("\n"," ")
    if hint.length()>150:hint=hint.substr(0,147)+"…"
    line+=" [color=#e8cc8a]Pista:[/color] "+hint
-  _rich(box,"[color=#a79f92]"+line+"[/color]",15).custom_minimum_size.x=700
+  _rich(box,"[color=#a79f92]"+line+"[/color]",15)
  var offered=campaign.offered_assists(rules)
  if not offered.is_empty():_label(box,"AYUDAS OPCIONALES (sin ellas se puede ganar oro)",12,GOLD)
  for o in offered:
   var oid=str(o.id)
   var label_text="%s: %s" % [str(o.label),str(o.text)]
   var cb=Button.new();cb.toggle_mode=true;cb.text="☐  "+label_text;cb.alignment=HORIZONTAL_ALIGNMENT_LEFT;cb.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
-  cb.add_theme_font_size_override("font_size",14);cb.custom_minimum_size=Vector2(700,44);cb.focus_mode=Control.FOCUS_NONE
+  cb.add_theme_font_size_override("font_size",14);cb.custom_minimum_size=Vector2(0,44);cb.focus_mode=Control.FOCUS_NONE
   cb.add_theme_stylebox_override("normal",_cm_style("assist_off",Color("1b1722"),Color("5c4a2e"),1,10,5))
   cb.add_theme_stylebox_override("hover",_cm_style("assist_off_h",Color("2a2233"),Color("a79f92"),1,10,5))
   cb.add_theme_stylebox_override("pressed",_cm_style("assist_on",Color("2c2418"),Color("e8cc8a"),3,10,5))
@@ -4849,13 +5187,13 @@ func _intro_card():
    if on and not intro_assists.has(oid):intro_assists.append(oid)
    elif not on:intro_assists.erase(oid))
   box.add_child(cb)
- _rich(box,"[color=#a79f92]Cómo se juega: medí el agua con un explorador, esperá a que el vado ceda, pedí carga a Liniers y abordá. El reloj arranca con tu primera orden.[/color]",15).custom_minimum_size.x=700
- var row=_hbox(box,10)
- var go=_button(row,"Empezar",_intro_close,56);go.size_flags_horizontal=Control.SIZE_EXPAND_FILL;go.add_theme_font_size_override("font_size",20)
- _primary_style(go)
- _button(row,"Cómo se juega",_briefing_dialog,56)
- var tk=_button(row,"Saltar tutorial",_intro_skip_tutorial,56)
+ _rich(box,"[color=#a79f92]Cómo se juega: medí el agua con un explorador, esperá a que el vado ceda, pedí carga a Liniers y abordá. El reloj arranca con tu primera orden.[/color]",15)
+ var row:HBoxContainer=mm.buttons
+ _button(row,"Cómo se juega",_briefing_dialog,52)
+ var tk=_button(row,"Saltar tutorial",_intro_skip_tutorial,52)
  tk.tooltip_text="Sin los carteles guía. Se reabre con «Repetir tutorial» en la ayuda."
+ var go=_button(row,"Empezar",_intro_close,52);go.custom_minimum_size.x=230;go.add_theme_font_size_override("font_size",20)
+ _primary_style(go)
 
 func _intro_skip_tutorial():
  settings.tutorial=false;_save_settings();_intro_close()

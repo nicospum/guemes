@@ -3491,6 +3491,34 @@ func enemy_fallback() -> String:
 		return "advance"
 	return "guard"
 
+## D-10 · La intención del invasor, a la vista solo con reconocimiento reciente: si el sector donde está el ejército invasor tiene inteligencia
+## vigente (un «Reconocer» de las últimas tres rondas, la misma ventana que usa el hostigamiento informado), se sabe qué va a hacer esta ronda.
+## Lo que se muestra es exactamente lo que se resuelve: con inteligencia, north_intent_for_round() devuelve esta misma intención y la interfaz
+## no consulta a Jev para esa ronda. Las órdenes propias no cambian nada de lo que mira enemy_fallback() (ronda, presión, cifras y posición del
+## invasor), así que el dato no se mueve mientras se preparan las órdenes. Sin inteligencia: {"known": false} y la ronda sigue como siempre.
+const INTENT_LABELS := {"forage": "Buscar víveres", "guard": "Escoltar convoyes", "advance": "Avanzar", "retreat": "Retirarse"}
+func north_enemy_intel() -> Dictionary:
+	if state.get("scenario", "") != "norte" or state.get("status", "") != "playing":
+		return {}
+	var s := get_sector(str(state.enemy.position))
+	if s.is_empty():
+		return {"known": false}
+	var known := int(s.get("intel_until", 0)) >= int(state.round)
+	if not known:
+		return {"known": false, "sector": str(s.name)}
+	var intent := enemy_fallback()
+	var label := str(INTENT_LABELS.get(intent, intent))
+	if intent == "advance":
+		label = "Avanzar hacia " + ("Jujuy" if str(state.enemy.position) == "quebrada" else "Salta")
+	return {"known": true, "intent": intent, "label": label, "text": str(enemy_choices().get(intent, "")), "sector": str(s.name), "until": int(s.intel_until)}
+
+## La intención que se aplica en la ronda: con inteligencia vigente, la que se mostró; si no, la propuesta (Jev o la alternativa local).
+func north_intent_for_round(proposed: String) -> String:
+	var intel := north_enemy_intel()
+	if bool(intel.get("known", false)):
+		return str(intel.intent)
+	return proposed
+
 func enemy_observation() -> Dictionary:
 	if state.get("scenario", "") != "norte":
 		return {}

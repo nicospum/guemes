@@ -57,6 +57,7 @@ func _run() -> void:
 	await _transiciones()
 	await _campana()
 	await _norte_por_humahuaca()
+	await _p4b()
 	report.final_scenario = game.rules.state.scenario
 	report.final_status = game.rules.state.status
 	if is_instance_valid(game.audio_manager):
@@ -82,7 +83,15 @@ func _justina() -> void:
 	check(is_instance_valid(game.modal), "Briefing modal opens at the start")
 	var ctxt := _modal_text()
 	check(ctxt.find("Objetivo") >= 0 and ctxt.find("Perder no es grave") >= 0 and ctxt.find("Empezar") >= 0, "R1: la tarjeta inicial dice el objetivo, que perder no es grave y ofrece Empezar")
-	check(ctxt.length() < 900, "R1: la tarjeta inicial es corta (%d caracteres)" % ctxt.length())
+	# P4b: la tarjeta es ahora la pantalla de misión (mockup 05, como el briefing del II): a los costados suma fuerzas, enemigo, reloj del río,
+	# cronología y una cita, que son datos de consulta y no texto que haya que leer para empezar. «Corta» se mide sobre el mensaje (los textos
+	# con formato y los botones), con el mismo tope de 900; antes se contaban también los rótulos y las ayudas emergentes de todo el modal.
+	var msg := ""
+	for n in game.modal.find_children("*", "", true, false):
+		if n is RichTextLabel: msg += str(n.text) + "\n"
+		elif n is Button: msg += str(n.text) + "\n"
+	check(msg.length() < 900, "R1: el mensaje de la tarjeta inicial es corto (%d caracteres)" % msg.length())
+	check(ctxt.find("TUS FUERZAS") >= 0 and ctxt.find("ENEMIGO") >= 0 and ctxt.find("EL RÍO") >= 0 and ctxt.find("CRONOLOGÍA") >= 0 and ctxt.find("Gillespie") >= 0, "P4b: la tarjeta inicial tiene la composición del mockup 05 (fuerzas, enemigo, río, cronología y cita con fuente)")
 	# Ronda 5: la tarjeta sigue corta aunque el perfil tenga muchos intentos y una pista larga; fases, pista y avisos
 	var gu: Dictionary = game.rules.get_unit("guemes")
 	var st0 = gu.stage
@@ -105,7 +114,8 @@ func _justina() -> void:
 	gu.strength = 100.0
 	gu.stage = st0
 	check(game._learn_line("Pozo del flanco norte").begins_with("Sond") and game._learn_line("Esta vez: x").length() > 0, "R5: lo aprendido usa verbos")
-	check(game.right_panel.modulate.a >= 0.99, "R5: el panel de objetivo no se atenua")
+	# P4b: con la pantalla de misión abierta todo el HUD se apaga a propósito (queda solo la escena); fuera de ella no se atenúa.
+	check(game.right_panel.modulate.a >= 0.99 or (is_instance_valid(game.modal) and game.mission_hidden.has(game.right_panel)), "R5: el panel de objetivo no se atenua")
 	check(game.top_stack.is_ancestor_of(game.toast_label), "R5: el aviso transitorio vive en la pila superior, no sobre los botones")
 	game._briefing_dialog()
 	var btxt := _modal_text()
@@ -766,6 +776,101 @@ func _norte_por_humahuaca() -> void:
 	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://humahuaca_progress.json"))
 
 # ------------------------------------------------------------------ utilidades
+# P4b: P-005 (mensajes del contraataque), P-015 (un intento no jugado no cuenta), P-017 (ronda sin órdenes avisada), D-10 (la intención del
+# invasor mostrada es la que se resuelve, por el camino real del juego) y P-019 (la ventana chica se ajusta a su contenido).
+func _p4b() -> void:
+	game.forced_seed = 1806
+	game._start_game("justine")
+	await _frames(2)
+	check(is_instance_valid(game.modal) and game.right_panel.modulate.a < 0.01 and game.bottom_panel.modulate.a < 0.01, "P4b: con la pantalla de misión abierta el HUD queda apagado")
+	game._intro_close()
+	await _frames(1)
+	check(game.right_panel.modulate.a > 0.99 and game.bottom_panel.modulate.a > 0.99 and game.right_panel.size.y < 600.0, "P4b: al cerrar la pantalla de misión vuelve el HUD, con su tamaño")
+	# P-015
+	var a0 := int(game.campaign.data.attempts)
+	game._start_game("justine")
+	await _frames(1)
+	check(int(game.campaign.data.attempts) == a0, "P-015: empezar otro intento sin haber jugado el anterior no suma intentos (%d -> %d)" % [a0, int(game.campaign.data.attempts)])
+	game._close_modal()
+	# P-005: el contraataque llega con pausa automática y se rechaza con el reloj detenido
+	game.settings.auto_pause = true
+	game.settings.tutorial = true
+	game.auto_start_pending = false
+	var g: Dictionary = game.rules.get_unit("guemes")
+	g.stage = "boarding"
+	game.rules.state.ammo = 9
+	game.rules.state.counter.active = true
+	game.rules.state.counter.answered = false
+	game.rules.state.counter.until = float(game.rules.state.elapsed) + 12.0
+	game.paused = false
+	game._select_ids(["guemes"])
+	game._update_hud()
+	check(game.paused and game.alert_panel.visible and game.pause_banner.text.find("rechazarlo") >= 0, "P-005: el contraataque pausa y pide rechazarlo")
+	game._do_boarding_action("repel")
+	game._update_hud()
+	var b_txt: String = str(game.pause_banner.text) if game.pause_banner.visible else ""
+	check(bool(game.rules.state.counter.answered) and not game.alert_panel.visible and b_txt.find("rechazarlo") < 0 and game.pause_banner.text.find("rechazarlo") < 0, "P-005: rechazado el contraataque, ningún cartel lo sigue pidiendo (cartel: «%s»)" % str(game.pause_banner.text))
+	check(game.toast_label.text.find("rechaza") >= 0 and game.action_buttons["repel"].text.find("rechazado") >= 0, "P-005: el aviso y el botón dicen lo mismo: el contraataque está rechazado")
+	check(game.tutorial_label.text.find("Abordaje: cuando el buque contraataque") < 0 or not game.hint_panel.visible, "P-005: el cartel del tutorial deja de pedir el rechazo una vez hecho")
+	game.rules.state.counter.active = false
+	game.settings.auto_pause = false
+	game.pause_reason = ""
+	game.paused = true
+	g.stage = "ready"
+	# P-015: volver al menú sin jugar descuenta el intento
+	var a1 := int(game.campaign.data.attempts)
+	game.rules.state.elapsed = 0.0
+	game.rules.state.orders = []
+	game.order_log = []
+	game._menu()
+	await _frames(1)
+	check(int(game.campaign.data.attempts) == a1 - 1 or not game.rules.probes().is_empty(), "P-015: volver al menú sin jugar no cuenta el intento (%d -> %d)" % [a1, int(game.campaign.data.attempts)])
+	# D-10 y P-017 por el camino real de la interfaz (_resolve_round con la alternativa local)
+	game._start_game("norte")
+	game.jev.force_local = true
+	await _frames(1)
+	if is_instance_valid(game.modal): game._close_modal()
+	game._update_hud()
+	check(str(game.enemy_label.text).find("Intención del invasor: no se sabe") >= 0, "D-10: sin reconocimiento la intención del invasor no se muestra")
+	game._resolve_round()
+	for i in range(6):
+		await process_frame
+	check(int(game.rules.state.round) == 2 and game.toast_label.text.find("sin órdenes") >= 0, "P-017: una ronda resuelta sin órdenes lo avisa: " + str(game.toast_label.text))
+	game.rules.issue_campaign_order("arias", "scout", "quebrada")
+	game.resolution_remaining = 0.0
+	game._resolve_round()
+	for i in range(6):
+		await process_frame
+	game.resolution_remaining = 0.0
+	var shown := 0
+	var matched := 0
+	for k in range(8):
+		if str(game.rules.state.status) != "playing":
+			break
+		# Se sigue reconociendo donde está el invasor (o hacia donde avanza) para que haya varias rondas con inteligencia.
+		for uid in ["guemes", "zavala"]:
+			for target in [str(game.rules.state.enemy.position), "jujuy", "quebrada"]:
+				if game.rules.issue_campaign_order(uid, "scout", target).ok:
+					break
+		game._update_hud()
+		var intel: Dictionary = game.rules.north_enemy_intel()
+		var et: String = str(game.enemy_label.text)
+		if bool(intel.get("known", false)):
+			shown += 1
+		game._resolve_round()
+		for i in range(6):
+			await process_frame
+		game.resolution_remaining = 0.0
+		if bool(intel.get("known", false)) and et.find("INTENCIÓN DEL INVASOR") >= 0 and et.find(str(intel.label)) >= 0 and str(game.rules.state.enemy.intent) == str(intel.intent):
+			matched += 1
+	check(shown >= 2 and matched == shown, "D-10: con reconocimiento reciente la interfaz muestra la intención y es la que se resuelve (%d de %d rondas)" % [matched, shown])
+	# P-019: la ventana chica se ajusta al alto de su contenido
+	game._round_report()
+	await _frames(3)
+	var panel := game.modal.get_child(1) as Control
+	check(panel.size.y <= panel.get_combined_minimum_size().y + 10.0 and panel.size.y < 560.0, "P-019: «Consecuencias de la ronda» no deja espacio vacío abajo (alto %.0f)" % panel.size.y)
+	game._close_modal()
+
 func _frames(n: int) -> void:
 	for i in range(n):
 		await process_frame
