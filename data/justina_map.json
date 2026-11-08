@@ -1710,7 +1710,7 @@
     "initial_height_m": 90.0,
     "min_distance_m": 25.0,
     "max_distance_m": 900.0,
-    "pitch_deg_default": 55.0,
+    "pitch_deg_default": 50.0,
     "far_m": 4000.0,
     "bounds_margin_m": 60.0,
     "pan_speed_mps_at_100m": 120.0,

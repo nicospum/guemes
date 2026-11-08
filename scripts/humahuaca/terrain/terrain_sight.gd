@@ -14,6 +14,8 @@ const MARGIN_M := 0.05  # el suelo tiene que pasar de la recta por este margen p
 
 
 static func los(t, a: Vector2, b: Vector2, eye_a: float, eye_b: float, open_gaps: Array, heights: PackedFloat32Array = PackedFloat32Array()) -> bool:
+	if is_nan(a.x) or is_nan(a.y) or is_nan(b.x) or is_nan(b.y):  # T-010: un punto que no está en ningún lado no ve ni es visto
+		return false
 	var dist := a.distance_to(b)
 	if dist < 0.001:
 		return true

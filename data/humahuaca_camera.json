@@ -5,10 +5,20 @@
 		"min_distance_m": 30
 	},
 	"initial_frame": {
-		"preset": "pueblo_zona_al_borde",
-		"above_head_px": 78,
+		"preset": "partidas_y_objetivos",
+		"above_head_px": 92,
 		"below_px": 46,
 		"presets": {
+			"partidas_y_objetivos": {
+				"nota": "Pista de arte (P2, tanda 2): las cinco partidas y los tres objetivos en el primer cuadro, con la cámara más baja (42°, la inclinación del cuadro inicial de humahuaca_visual.json) para ganar profundidad. Los objetivos a 10 % o más del borde (V02) y las partidas enteras dentro de la banda libre entre la cabecera y el dock. Más lejos que pueblo_zona_al_borde (que dejaba cuatro partidas fuera) y más cerca que completo; las fichas miden 64 a 72 px reales a cualquier zoom, así que se leen igual.",
+				"hard": [
+					{"landmark": "bateria", "margin_pct": 10},
+					{"landmark": "cuartel", "margin_pct": 10},
+					{"landmark": "posta", "margin_pct": 10},
+					{"units": true, "margin_pct": 3}
+				],
+				"soft": []
+			},
 			"completo": {
 				"nota": "El encuadre de R1 (B-015, B-021): los tres objetivos, la zona de partida y las cinco partidas enteras, a 6 % del costado. Es el de las capturas de R1: todo chico (≈ 485 m en 16:9).",
 				"hard": [
@@ -60,6 +70,13 @@
 				"soft": {"landmarks": ["zona_partida"], "units": true, "margin_pct": 2.5, "max_distance_m": 300}
 			}
 		}
+	},
+	"zoom_tilt": {
+		"enabled": true,
+		"far_m": 220,
+		"near_m": 50,
+		"near_pitch_deg": 24,
+		"nota": "Pista de arte (P2): al acercar con la rueda por debajo de far_m la cámara se va acostando hasta near_pitch_deg en near_m, para que de cerca se vean el horizonte y los cerros de la quebrada; al alejarse vuelve a la inclinación de juego (la inicial o la que eligió el jugador lejos). Inclinar a mano la desactiva hasta volver a alejarse."
 	},
 	"follow": {
 		"enabled": true,

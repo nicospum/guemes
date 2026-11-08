@@ -158,8 +158,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		var k := event as InputEventKey
 		if k.pressed and not k.echo:
 			var code := int(k.keycode) if int(k.keycode) != 0 else int(k.physical_keycode)
-			if _handle_key(k, code):
-				get_viewport().set_input_as_handled()
+			var vp := get_viewport()  # _handle_key puede sacar al controlador del árbol (salir al menú, seguir al III): el viewport se toma antes
+			if _handle_key(k, code) and vp != null:
+				vp.set_input_as_handled()
 		return
 	if mode == "briefing":
 		return

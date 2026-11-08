@@ -373,7 +373,17 @@ func add_tower(mb: MB, w: float, d: float, h: float) -> void:
 
 ## La batería de Santa Bárbara: una losa de tierra con parapeto de gaviones y tres cañoneras al oeste, gola abierta al este, piezas bajas y un abrigo.
 ## Mide a lo sumo 2,4 m sobre la losa: nada de fustes ni cilindros altos (hallazgo B-023: dos fustes se leían como dos torres de iglesia).
-func add_battery(mb: MB, w: float, d: float, parapet_m: float, pieces: int, slab: float) -> void:
+## Dónde va cada pieza de la batería (en el sistema del hito): una por cañonera del parapeto oeste, sobre la losa. Las usa add_battery y, si hay modelo de pieza, la vista.
+func battery_piece_spots(w: float, d: float, pieces: int, slab: float) -> Array:
+	var out: Array = []
+	var span := d - 2.0
+	var west_x := -w * 0.5 + 1.7 * 0.5 + 0.4
+	for k in range(pieces):
+		out.append(Vector3(west_x + 1.0, slab, ((float(k) + 0.5) / float(pieces) - 0.5) * span * 0.78))
+	return out
+
+
+func add_battery(mb: MB, w: float, d: float, parapet_m: float, pieces: int, slab: float, draw_pieces: bool = true) -> void:
 	var earth := pc("suelo_seco", 0.9)
 	var stone := pc("piedra_gris")
 	var wood := pc("madera_oscura")
@@ -409,7 +419,7 @@ func add_battery(mb: MB, w: float, d: float, parapet_m: float, pieces: int, slab
 	mb.box(Vector3(0.0, slab + h * 0.5, d * 0.5 - th * 0.5 - 0.4), Vector3(w - 2.4, h, th), earth.lightened(0.02), stone.darkened(0.1))
 	mb.box(Vector3(0.0, slab + h * 0.3, -d * 0.5 + th * 0.5 + 0.4), Vector3(w - 2.3, h * 0.5, th + 0.12), stone, stone.darkened(0.3))
 	mb.box(Vector3(0.0, slab + h * 0.3, d * 0.5 - th * 0.5 - 0.4), Vector3(w - 2.3, h * 0.5, th + 0.12), stone, stone.darkened(0.3))
-	for k in range(pieces):  # una pieza por cañonera, apuntando al oeste (−X), el tubo apenas levantado
+	for k in range(pieces if draw_pieces else 0):  # una pieza por cañonera, apuntando al oeste (−X), el tubo apenas levantado
 		mb.push()
 		mb.move(Vector3(west_x + 1.0, slab, float(piece_z[k])))
 		mb.turn_y(90.0)
@@ -434,10 +444,13 @@ func add_battery(mb: MB, w: float, d: float, parapet_m: float, pieces: int, slab
 ## Una casa de adobe de `w × d` m (w sobre X) y `h` m de pared. `style`: 0 azotea encalada con pretil, 1 dos aguas de paja, 2 azotea de barro.
 ## `door_z` = +1 o −1: de qué lado (sobre Z) da la puerta. `tone` (0..1) corre el color de la pared entre adobe y cal.
 func add_house(mb: MB, w: float, d: float, h: float, style: int, door_z: float, tone: float, roof_id: String = "") -> void:
-	var wall := pc("adobe").lerp(pc("cal_envejecida"), clampf(tone, 0.0, 1.0))
+	# adobe a la vista casi siempre y cal gastada en una de cada cuatro (antes la mitad se leía blanca: cajas pálidas); techos de torta de barro sobre cañizo, oscuros y
+	# pardos como en la quebrada, no de cal (eran lo más claro del cuadro de noche). Aspecto reconstruido (diseño, sin datos de cada casa en 1817)
+	var t := clampf(tone, 0.0, 1.0)
+	var wall := pc("adobe", 0.92).lerp(pc("cal_envejecida", 0.9), smoothstep(0.72, 0.95, t)).lerp(pc("sedimento_humedo"), 0.18 * (1.0 - t))
 	var wood := pc("madera_oscura")
-	var roof_flat := pc("cal_envejecida", 0.98) if style == 0 else pc("adobe", 1.05)
-	var roof_gable := pc(roof_id if roof_id != "" else "paja")
+	var roof_flat := pc("sedimento_humedo", 1.05).lerp(pc("adobe"), 0.25 + 0.2 * t) if style == 0 else pc("sedimento_humedo", 1.15).lerp(pc("paja"), 0.3)
+	var roof_gable := pc(roof_id if roof_id != "" else "paja", 0.82)
 	mb.box(Vector3(0.0, h * 0.5 - 0.1, 0.0), Vector3(w, h + 0.2, d), wall, pc("adobe").darkened(0.3).lerp(wall, 0.3))
 	if style == 1:
 		mb.gable(Vector3(0.0, h, 0.0), w + 0.9, d + 0.9, minf(d * 0.3, 1.5), roof_gable, wall.darkened(0.05), wood.darkened(0.3))
@@ -714,12 +727,13 @@ func bush(seed_value: int = 1) -> ArrayMesh:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value
 	var mb := MB.new()
-	var green := pc("churqui")
+	var green := pc("churqui", 1.08)
 	for k in range(4):
 		var a := rng.randf() * TAU
 		var r := 0.15 + rng.randf() * 0.5
-		var tone := green.lerp(pc("sedimento_humedo"), rng.randf() * 0.25).darkened(0.1 + rng.randf() * 0.2)
-		mb.ball(Vector3(cos(a) * r, 0.5 + rng.randf() * 0.5, sin(a) * r), 0.55 + rng.randf() * 0.35, 0.5 + rng.randf() * 0.45, 0.55 + rng.randf() * 0.35, 6, 3, tone, tone.darkened(0.35))
+		# tonos de churqui seco con algo de paja: antes salían casi negros y de noche el campo era un salpicado de manchas negras
+		var tone := green.lerp(pc("paja"), rng.randf() * 0.3).darkened(rng.randf() * 0.12)
+		mb.ball(Vector3(cos(a) * r, 0.5 + rng.randf() * 0.5, sin(a) * r), 0.55 + rng.randf() * 0.35, 0.5 + rng.randf() * 0.45, 0.55 + rng.randf() * 0.35, 6, 3, tone.lightened(0.06), tone.darkened(0.25))
 	for k in range(2):  # ramas secas que asoman
 		var a2 := rng.randf() * TAU
 		mb.beam(Vector3(0.0, 0.3, 0.0), Vector3(cos(a2) * 0.9, 0.9 + rng.randf() * 0.6, sin(a2) * 0.9), 0.06, pc("madera_oscura").lerp(green, 0.3))
