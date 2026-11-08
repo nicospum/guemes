@@ -44,6 +44,18 @@ var batch_parent: Node3D = null
 var justina = false
 signal minimap_changed
 var selected_ids: Array = []
+## Looks de luz y color (pista P1, contrato con P4): set_look("menu"|"justina"|"norte"). build() aplica el que corresponde solo.
+const Looks = preload("res://scripts/looks/world_looks.gd")
+var look := ""
+var look_base_env: Environment = null
+var look_base_sun: Dictionary = {}
+## En el look "menu" se ocultan balizas, zona de fuego, rótulos, fichas y aros: el fondo es un cuadro, no un tablero.
+var look_hide_overlays := false
+## Viñeta del look (capa 0, debajo de la interfaz). Si la interfaz pone su propia viñeta, poner en false ANTES de set_look.
+var look_vignette_enabled := true
+var look_vignette: CanvasLayer = null
+var north_terrain_mat: ShaderMaterial = null
+var north_map_rect := Rect2()
 
 func build(game_rules, quality_name = "media"):
  rules = game_rules
@@ -79,6 +91,84 @@ func build(game_rules, quality_name = "media"):
  if justina:
   _create_scouts_j()
  update_state(0.01)
+ set_look(_auto_look_name())
+
+# ---------------------------------------------------------------- looks (contrato P1 ↔ P4)
+## El look que corresponde sin que nadie lo pida: Norte → "norte"; mundo del I armado para el menú (main.mode == "menu") → "menu"; si no, "justina".
+func _auto_look_name()->String:
+ if scenario=="norte":return "norte"
+ var p=get_parent()
+ if p!=null and str(p.get("mode"))=="menu":return "menu"
+ return "justina"
+
+## Cambia la luz, el cielo, la niebla, el grading y la viñeta del mundo. Idempotente: pedir el look vigente no hace nada.
+## Cada cambio parte de una copia nueva del Environment base y del sol base (nada se acumula ni queda colgado).
+## "menu" y "justina" valen para el mundo del I; "norte" para el del III (pedir uno de otro escenario se ignora).
+func set_look(nombre:String)->void:
+ nombre={"juego":"justina","heroico":"menu","justine":"justina"}.get(nombre,nombre)
+ if not (nombre in Looks.LOOKS) or nombre==look:return
+ if not is_instance_valid(environment) or not is_instance_valid(sun):return
+ if (nombre=="norte")!=(scenario=="norte"):return
+ if look_base_env==null:
+  look_base_env=environment.environment
+  look_base_sun={"color":sun.light_color,"energy":sun.light_energy,"rot":sun.rotation_degrees}
+ var env:Environment=Looks.env_copy(look_base_env)
+ sun.light_color=look_base_sun.color;sun.light_energy=look_base_sun.energy;sun.rotation_degrees=look_base_sun.rot
+ Looks.apply(nombre,env,sun,advanced_renderer and quality!="baja")
+ environment.environment=env
+ look=nombre
+ north_fog_d=-1.0
+ if north_terrain_mat!=null:north_terrain_mat.set_shader_parameter("northern",nombre=="norte")
+ _apply_water_look(nombre)
+ _set_overlays_hidden(nombre=="menu")
+ if is_instance_valid(look_vignette):look_vignette.queue_free()
+ look_vignette=null
+ var vs=Looks.vignette_strength(nombre)
+ if look_vignette_enabled and vs>0.0:
+  look_vignette=Looks.make_vignette(vs);add_child(look_vignette)
+
+var look_base_water:Dictionary={}
+func _apply_water_look(nombre:String)->void:
+ if water_mat==null or water_mat.shader==null:return
+ if look_base_water.is_empty():
+  for k in ["sky_horizon","sky_zenith","sun_dir"]:
+   var v=water_mat.get_shader_parameter(k)
+   if v==null:v=RenderingServer.shader_get_parameter_default(water_mat.shader.get_rid(),k)
+   look_base_water[k]=v
+ for k in look_base_water:water_mat.set_shader_parameter(k,look_base_water[k])
+ var wp=Looks.water_params(nombre)
+ if wp.is_empty():return
+ for k in wp:water_mat.set_shader_parameter(k,wp[k])
+ # Dirección hacia el sol del look (la luz direccional ilumina hacia -Z: el sol está en +Z de su base).
+ water_mat.set_shader_parameter("sun_dir",Basis.from_euler(sun.rotation).z.normalized())
+
+## Pose de cámara del fondo heroico del menú (la del prototipo de arte, proto/m3_menu_proto_hud.png). La fija main.gd (P4):
+## camera_target = buque + (-60, 18, -45), distancia 230, inclinación 0,16 rad, rumbo -1,25 rad. Vacío si el mundo no es el del I.
+func menu_camera_pose()->Dictionary:
+ if not justina:return {}
+ var s=M.get("ship",{})
+ var ship_p=Vector3(float(s.get("x",580.0)),0.0,float(s.get("z",262.0)))
+ return {"target":ship_p+Vector3(-60,18,-45),"distance":230.0,"pitch":0.16,"yaw":-1.25}
+
+func _set_overlays_hidden(on:bool)->void:
+ look_hide_overlays=on
+ if not justina:return
+ if is_instance_valid(labels_root):labels_root.visible=bool(layer_state.labels) and not on
+ var tok=get_node_or_null("Ficha_buque")
+ if tok!=null:tok.visible=not on
+ for g in group_markers:
+  if is_instance_valid(g.ring):g.ring.visible=not on
+  for c in (g.root as Node3D).get_children():
+   if str(c.name).begins_with("Ficha_"):c.visible=not on
+ for id in scout_nodes:
+  if unit_nodes.has(id):
+   for c in (unit_nodes[id].root as Node3D).get_children():
+    if str(c.name).begins_with("Ficha_"):c.visible=not on
+ if on:
+  for b in beacons:b.root.visible=false
+  if is_instance_valid(exposure_root):exposure_root.visible=false
+  for id in selected_rings:
+   if is_instance_valid(selected_rings[id]):selected_rings[id].visible=false
 
 func _mat(color: Color, rough = 0.8, emissive = false):
  var key = color.to_html() + str(rough) + str(emissive)
@@ -353,6 +443,12 @@ func _ground():
  var mat = ShaderMaterial.new()
  mat.shader = load("res://assets/terrain.gdshader")
  mat.set_shader_parameter("color_gamma",2.6 if advanced_renderer else 1.9)
+ if scenario=="norte":
+  # C2 (P1): el look "norte" activa la rampa por altura y pendiente, las curvas de nivel y el borde que se funde a tinta.
+  north_map_rect=Rect2(-55.0,-45.0,float(nx)*step,float(nz)*step)
+  mat.set_shader_parameter("map_min",north_map_rect.position)
+  mat.set_shader_parameter("map_max",north_map_rect.end)
+  north_terrain_mat=mat
  m.material_override = mat
  add_child(m)
  m.create_trimesh_collision()
@@ -435,10 +531,14 @@ func _north():
  _rocks_and_reeds(70 if quality=="baja" else 140)
  enemy_marker=Node3D.new()
  add_child(enemy_marker)
- _cylinder(Vector3(0,2,0),0.08,4,Color("625141"),enemy_marker)
- var flag=_box(Vector3(0.7,3.6,0),Vector3(1.5,0.8,0.07),Color("8f4134"),enemy_marker)
+ # Regla de color (P1): el rojo es SOLO del enemigo. Banderola 1,6 veces mayor en rojo realista y aro rojo con borde oscuro bajo la columna.
+ _cylinder(Vector3(0,2.4,0),0.08,4.8,Color("625141"),enemy_marker)
+ var flag=_box(Vector3(1.12,4.0,0),Vector3(2.4,1.28,0.07),Looks.ROJO_REALISTA,enemy_marker)
  flag.rotation.z=-0.08
- _world_label("◆ REALISTAS",Vector3(0,5.4,0),Color("efac90"),28,enemy_marker)
+ var enemy_ring=_ring(3.2,Looks.ROJO_REALISTA,enemy_marker);enemy_ring.name="AroRealista";enemy_ring.position.y=0.2
+ var enemy_edge=_ring(3.42,Looks.ROJO_BORDE,enemy_marker);enemy_edge.position.y=0.19
+ enemy_edge.material_override=_mat(Looks.ROJO_BORDE,0.9,false)
+ _world_label("◆ REALISTAS",Vector3(0,6.0,0),Color("e58478"),28,enemy_marker)
  for i in range(3):
   var troop=_model("royalist_1817",Vector3(i*0.8-0.8,0,0.6),enemy_marker)
   troop.scale=Vector3.ONE*0.85
@@ -447,7 +547,7 @@ func _road(a:Vector2,b:Vector2):
  var count=int(a.distance_to(b)/0.9)
  for i in range(1,count):
   var p=a.lerp(b,float(i)/maxi(1,count))
-  _inst("cyl8",Vector3(p.x,terrain_height(p.x,p.y)+0.06,p.y),Vector3(0.56,0.045,0.56),Color("b2a17c"))
+  _inst("cyl8",Vector3(p.x,terrain_height(p.x,p.y)+0.06,p.y),Vector3(0.56,0.045,0.56),Looks.ORO_VIEJO if scenario=="norte" else Color("b2a17c"))
 
 func _house(pos:Vector3,w:float,d:float,church=false):
  var glb_name="church_colonial" if church else "house_colonial"
@@ -555,6 +655,7 @@ func _create_group(unit:Dictionary):
  for i in range(2 if quality=="baja" else 4):
   var p=Vector3((i%2)*1.3-0.65,0,(i/2)*1.7-0.85)
   var fig=_model(file,p,figures)
+  if file=="rider_1817":_recolor_poncho(fig,str(unit.id)=="guemes" and i==0)
   var ap=fig.find_children("*","AnimationPlayer",true,false)
   for player in ap:
    var list=player.get_animation_list()
@@ -562,11 +663,43 @@ func _create_group(unit:Dictionary):
     if "trot" in anim or "walk" in anim:
      player.get_animation(anim).loop_mode=Animation.LOOP_LINEAR
      player.play(anim);player.seek(float(i)*0.14,true);player.pause();player.speed_scale=0.75;anims.append(player);break
- var ring=_ring(2.65,Color("e2bc72"),root)
+ var ring=_ring(2.65,Looks.ORO_VIEJO,root)
  selected_rings[str(unit.id)]=ring
  var label=_world_label(str(unit.name),Vector3(0,4.0,0),Color("e9d4aa"),30,root)
  unit_labels[str(unit.id)]=label
  unit_nodes[str(unit.id)]={"root":root,"figures":figures,"mounted":mounted,"anims":anims,"last":root.position}
+
+## Regla de color (P1, V-02): el poncho granate de rider_1817 se leía rojo a escala de juego (el rojo es del enemigo).
+## Se reclasifica el color de vértice del GLB en carga (sin regenerar el modelo): poncho y faja → lana parda #705741 / ocre #8A7350.
+## Solo la primera figura del grupo de Güemes conserva un granate oscuro (#5E1F1A) como acento de héroe (regla 4). Aspecto, no dato.
+var poncho_cache:Dictionary={}
+func _recolor_poncho(fig:Node3D,hero:bool)->void:
+ var brown=Color("705741").srgb_to_linear()
+ var hero_c=Color("5e1f1a").srgb_to_linear()
+ var sash=Color("8a7350").srgb_to_linear()
+ for mi in fig.find_children("*","MeshInstance3D",true,false):
+  var src:Mesh=mi.mesh
+  if src==null:continue
+  var key=str(src.get_rid().get_id())+("|h" if hero else "|p")
+  if not poncho_cache.has(key):
+   var out=ArrayMesh.new()
+   for si in range(src.get_surface_count()):
+    var a=src.surface_get_arrays(si)
+    var mat=src.surface_get_material(si)
+    var nm=str(mat.resource_name) if mat!=null else ""
+    if a[Mesh.ARRAY_COLOR] is PackedColorArray and (nm.ends_with("wool") or nm.ends_with("linen")):
+     var cols:PackedColorArray=a[Mesh.ARRAY_COLOR]
+     for k in range(cols.size()):
+      var c=cols[k]
+      if c.r>0.1 and c.r>c.g*2.5 and c.r>c.b*2.5:
+       var t=(hero_c if hero else brown) if nm.ends_with("wool") else sash
+       var f=clampf(c.r/0.5,0.2,1.15)
+       cols[k]=Color(t.r*f,t.g*f,t.b*f,c.a)
+     a[Mesh.ARRAY_COLOR]=cols
+    out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,a)
+    out.surface_set_material(si,mat)
+   poncho_cache[key]=out
+  mi.mesh=poncho_cache[key]
 
 func update_state(delta:float):
  if justina:
@@ -629,7 +762,13 @@ func update_state(delta:float):
     else:ap.pause()
   entry.last=goal
   root.visible=float(u.strength)>0.0
-  selected_rings[id].visible=id==selected or selected=="all"
+  if scenario=="norte":
+   # Regla de color: aliado = aro celeste siempre visible; el elegido pasa a oro viejo.
+   selected_rings[id].visible=true
+   var rm=_mat(Looks.ORO_VIEJO if (id==selected or selected=="all") else Looks.CELESTE,0.55,true)
+   if selected_rings[id].material_override!=rm:selected_rings[id].material_override=rm
+  else:
+   selected_rings[id].visible=id==selected or selected=="all"
   var marker="● " if id==selected or selected=="all" else ""
   var index=rules.state.units.find(u)
   var short_name="Güemes" if id=="guemes" else ("Voluntarios" if id=="arias" else "Reserva")
@@ -643,8 +782,12 @@ func update_state(delta:float):
   for sector in rules.state.sectors:
    var entry=sector_nodes.get(str(sector.id),{})
    if entry.is_empty():continue
-   entry.ring.visible=str(sector.id)==selected_sector or int(sector.get("intel_until",0))>=int(rules.state.round)
-   entry.label.modulate=Color("f6d794") if str(sector.id)==selected_sector else (Color("dfd8bf") if bool(sector.get("known",false)) else Color("7c8d8d"))
+   var sel_s=str(sector.id)==selected_sector
+   entry.ring.visible=sel_s or int(sector.get("intel_until",0))>=int(rules.state.round)
+   # Regla de color: sector elegido = oro viejo; reconocido (información) = violeta.
+   var ring_m=_mat(Looks.ORO_VIEJO if sel_s else Looks.VIOLETA,0.55,true)
+   if entry.ring.material_override!=ring_m:entry.ring.material_override=ring_m
+   entry.label.modulate=Looks.ORO_LUZ if sel_s else (Color("dfd8bf") if bool(sector.get("known",false)) else Color("a79f92"))
    var sector_text=str(sector.name).to_upper()+(" · ?" if not bool(sector.get("known",false)) else (" · ◇" if int(sector.get("intel_until",0))>=int(rules.state.round) else ""))
    if entry.label.text!=sector_text:entry.label.text=sector_text
   if is_instance_valid(enemy_marker):
@@ -653,6 +796,23 @@ func update_state(delta:float):
     var target:Vector3=sector_nodes[position_id].root.position+Vector3(4,0,0)
     target.y=terrain_height(target.x,target.z)
     enemy_marker.position=enemy_marker.position.lerp(target,minf(1,delta*3))
+  if look=="norte":_update_north_fog()
+
+## C1: la niebla de profundidad del Norte arranca un poco detrás del punto que mira la cámara (así el zoom no apaga el mapa)
+## y llega a tinta 95 m después: lo cercano queda limpio y los bordes lejanos se funden en negro. Solo escribe si cambia > 2 m.
+var north_fog_d := -1.0
+func _update_north_fog()->void:
+ var cam=get_viewport().get_camera_3d()
+ if cam==null or not is_instance_valid(environment):return
+ var o:Vector3=cam.global_position
+ var f:Vector3=-cam.global_transform.basis.z
+ var d=96.0
+ if f.y<-0.05:d=clampf((o.y-2.0)/-f.y,30.0,400.0)
+ if absf(d-north_fog_d)<2.0:return
+ north_fog_d=d
+ var env:Environment=environment.environment
+ env.fog_depth_begin=d*1.08
+ env.fog_depth_end=d*1.08+95.0
 
 func refresh_paths():
  if justina:
@@ -664,7 +824,9 @@ func refresh_paths():
   var disc=CylinderMesh.new();disc.top_radius=0.16;disc.bottom_radius=0.16;disc.height=0.06;disc.radial_segments=8
   mm0.mesh=disc
   path_instances=MultiMeshInstance3D.new();path_instances.multimesh=mm0
-  path_instances.material_override=_mat(Color("e9c678"))
+  # Ruta propia = violeta (regla de color); en el Norte, aclarada para leerse sobre el relieve en sombra.
+  var pmat=_mat(Color("a58ae0") if scenario=="norte" else Color("e9c678"),0.6,true)
+  path_instances.material_override=pmat
   route_root.add_child(path_instances)
  var xf=[]
  if show_paths:
@@ -1715,7 +1877,10 @@ func _exposure_j():
  var verts=PackedVector3Array();var cols=PackedColorArray();var idx=PackedInt32Array()
  var steps=72
  # Relleno <= 0,12 (palette.map_overlays); aqui 0,07 maximo y degradado desde el buque: el abanico es un contorno, no una mancha.
- var cs={1.0:Color(0.71,0.27,0.24,0.075),0.5:Color(0.74,0.45,0.25,0.05),0.25:Color(0.74,0.62,0.30,0.03)}
+ # Regla de color (P1, A3): la zona de fuego es del enemigo -> rojo realista #B8433A (antes rosa salmón). El relleno queda bajo
+ # (<= 0,065, degradado desde el buque) para no teñir el agua ni tapar las franjas del vado; lo que se lee es el aro al 55 %.
+ var rr=Looks.ROJO_REALISTA
+ var cs={1.0:Color(rr.r,rr.g,rr.b,0.065),0.5:Color(rr.r,rr.g,rr.b,0.045),0.25:Color(rr.r,rr.g,rr.b,0.03)}
  for k in range(steps):
   var a0=TAU*float(k)/float(steps);var a1=TAU*float(k+1)/float(steps);var am=(a0+a1)*0.5
   var ang=absf(wrapf(am,-PI,PI));if ang>PI*0.5:ang=PI-ang
@@ -1727,7 +1892,7 @@ func _exposure_j():
   idx.append_array(PackedInt32Array([base,base+2,base+1]))
   # Anillo del alcance.
   var rb=verts.size()
-  var ring_col=Color(0.78,0.40,0.32,0.26)   # R5: aro mas tenue y fino (antes 0,55 y 2 m)
+  var ring_col=Color(rr.r,rr.g,rr.b,0.55)   # R5: aro fino (1 m); P1: rojo realista al 55 %
   verts.append(Vector3(cos(a0),0,sin(a0))*(rng-0.5));verts.append(Vector3(cos(a0),0,sin(a0))*(rng+0.5))
   verts.append(Vector3(cos(a1),0,sin(a1))*(rng-0.5));verts.append(Vector3(cos(a1),0,sin(a1))*(rng+0.5))
   for _i in range(4):cols.append(ring_col)
@@ -1750,7 +1915,7 @@ func _exposure_j():
    var b0=cv.size()
    cv.append(Vector3(cos(a0),0,sin(a0))*(crng-0.4));cv.append(Vector3(cos(a0),0,sin(a0))*(crng+0.4))
    cv.append(Vector3(cos(a1),0,sin(a1))*(crng-0.4));cv.append(Vector3(cos(a1),0,sin(a1))*(crng+0.4))
-   for _i in range(4):cc.append(Color(0.78,0.52,0.40,0.16))
+   for _i in range(4):cc.append(Color(rr.r,rr.g,rr.b,0.2))
    ci.append_array(PackedInt32Array([b0,b0+2,b0+1,b0+1,b0+2,b0+3]))
   var carr=[];carr.resize(Mesh.ARRAY_MAX);carr[Mesh.ARRAY_VERTEX]=cv;carr[Mesh.ARRAY_COLOR]=cc;carr[Mesh.ARRAY_INDEX]=ci
   var cm=ArrayMesh.new();cm.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,carr)
@@ -1763,7 +1928,7 @@ func _exposure_j():
  exposure_root.rotation.y=-deg_to_rad(float(M.ship.get("heading_deg",0.0)))
  exposure_root.visible=false
  # Rotulos de los anillos (ronda 3): el anillo rosa es el alcance de fuego del buque; el punteado, la zona de incertidumbre del encallamiento. Ambos de DISEÑO.
- var l1=_label_j("Zona de fuego",Vector3(rng*0.0,0.8,-rng),Color("e6a08c"),20,exposure_root)
+ var l1=_label_j("Zona de fuego",Vector3(rng*0.0,0.8,-rng),Color("e58478"),20,exposure_root)   # rojo realista aclarado para leerse sobre el agua
  l1.outline_size=8
  var unc=float(M.get("ship",{}).get("uncertainty_radius_m",120.0))
  var l2=_label_j("¿Dónde varó? (±%d m)"%int(unc),Vector3(sx+unc*0.2,level_m+1.2,sz+unc),Color("e3d8b0"),20,labels_root)
@@ -1881,7 +2046,7 @@ func _create_group_j(unit:Dictionary):
  var mounted=bool(unit.get("mounted",true))
  var n=_group_count(unit)
  var parts=_mm_parts(root,"rider_1806" if mounted else "dismounted_1806",n,id)
- var ring=_ring_j(7.5,Color("e2bc72"),root)
+ var ring=_ring_j(7.5,Looks.ORO_VIEJO,root)   # seleccionado = oro viejo
  selected_rings[id]=ring
  var tag=str(unit.get("tag","diseno"))
  var label=_label_j(_tag_glyph(tag)+" "+str(unit.name),Vector3(0,7.0,0),Color("e9d4aa"),30,root)
@@ -1911,7 +2076,9 @@ func _token_j(parent:Node3D,shape:int,color:Color,px:float,fade_a:float,fade_b:f
  parent.add_child(mi)
  return mi
 
-const TOKEN_COLORS={"guemes":"f0c25a","arias":"4fc7b8","zavala":"ec8fb6","scout_1":"d8d2c0","scout_2":"c9d8d2"}
+## Regla de color (P1, A3): aliado = celeste patriota #8DB8D6 en todas las fichas propias; la identidad la da la silueta (glifo), no el tono.
+## Antes amarillo, turquesa y rosa pastel. Los exploradores llevan el mismo celeste, apenas más claro.
+const TOKEN_COLORS={"guemes":"8db8d6","arias":"8db8d6","zavala":"8db8d6","scout_1":"a9cbe2","scout_2":"a9cbe2"}
 const TOKEN_SHAPES={"guemes":0,"arias":1,"zavala":2}
 
 func _group_marker_j(id:String,root:Node3D)->void:
@@ -1920,6 +2087,10 @@ func _group_marker_j(id:String,root:Node3D)->void:
  var bj:Dictionary=M.get("banners",{}).get("group_markers",{})
  var cj:Dictionary=bj.get("colors",{}).get(id,{})
  if cj.has("pennant") and cj.has("trim"):pal=[str(cj.pennant).trim_prefix("#"),str(cj.trim).trim_prefix("#")]
+ # P1, regla de color: ningún distintivo propio en rojo (el encarnado del guion de Güemes pasa a oro viejo).
+ for k in range(pal.size()):
+  var pc=Color(pal[k])
+  if pc.r>pc.g*1.8 and pc.r>pc.b*1.8:pal[k]=Looks.ORO_VIEJO.to_html(false)
  var pole_c=Color(str(bj.get("pole",{}).get("color","#4C372B")))
  var m=Node3D.new();m.name="Guion_"+id;root.add_child(m)
  _cylinder(Vector3(0,1.9,0),0.05,3.8,pole_c,m)
@@ -1931,15 +2102,17 @@ func _group_marker_j(id:String,root:Node3D)->void:
  _box(Vector3(fw*0.5,top-fh*0.5,0),Vector3(fw,fh,0.04),Color(pal[0]),m)
  _box(Vector3(fw*0.5,top-fh*0.5,0.03),Vector3(fw,fh*0.3,0.04),Color(pal[1]),m)
  if id=="arias":_box(Vector3(fw+0.25,top-fh*0.5,0),Vector3(0.5,fh*0.45,0.04),Color(pal[0]),m)
- var ring=_ring_j(3.0,Color(pal[0]).lerp(Color("f4efdc"),0.35),root)
+ # P1: el ancla y el halo bajo el grupo son el anillo de aliado (celeste con borde pergamino), no el color del guion.
+ var ring=_ring_j(3.0,Looks.CELESTE,root)
+ var edge=_ring_j(3.2,Color(Looks.PERGAMINO.r,Looks.PERGAMINO.g,Looks.PERGAMINO.b,0.8),ring);edge.name="Borde"
  ring.name="Ancla";ring.scale=Vector3(1,1,1)
  # R-div1: halo relleno del color del bando bajo el grupo (se lee de lejos sin depender de carteles).
  var dm=CylinderMesh.new();dm.top_radius=3.0;dm.bottom_radius=3.0;dm.height=0.04;dm.radial_segments=32;dm.rings=1
  var disc=MeshInstance3D.new();disc.mesh=dm;disc.name="Halo"
- var dmat=StandardMaterial3D.new();dmat.albedo_color=Color(Color(pal[0]).r,Color(pal[0]).g,Color(pal[0]).b,0.30);dmat.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED;dmat.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA;dmat.no_depth_test=false
+ var dmat=StandardMaterial3D.new();dmat.albedo_color=Color(Looks.CELESTE.r,Looks.CELESTE.g,Looks.CELESTE.b,0.26);dmat.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED;dmat.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA;dmat.no_depth_test=false
  disc.material_override=dmat;disc.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;ring.add_child(disc)
  _token_j(root,int(TOKEN_SHAPES.get(id,0)),Color(str(TOKEN_COLORS.get(id,"d8cfb8"))),74.0,30.0,70.0,1.0,false,20.0)   # D4: ficha mas grande con silueta, un poco por debajo del centro para que el cartel no la tape
- group_markers.append({"node":m,"ring":ring,"root":root})
+ group_markers.append({"node":m,"ring":ring,"root":root,"halo":dmat,"halo_sel":false})
 
 func _update_markers_j(cam:Camera3D)->void:
  # R6: el buque (objetivo del juego) crece hasta x2,3 con la distancia de camara para no quedar en 25 px (tamaño minimo en pantalla; simbolico).
@@ -1961,6 +2134,12 @@ func _update_markers_j(cam:Camera3D)->void:
   g.ring.position.y=maxf(0.0,level_m-r.position.y)+0.35
   g.ring.scale=Vector3.ONE*clampf(d*0.0085,1.2,8.0)
   var gid=str(r.name).trim_prefix("Grupo_")
+  # Regla de color: el grupo seleccionado suma un halo violeta (el aro de selección ya es oro viejo).
+  var sel_g=gid in selected_ids or gid==selected or selected=="all"
+  if g.has("halo") and bool(g.halo_sel)!=sel_g:
+   g.halo_sel=sel_g
+   var hc:Color=Looks.VIOLETA if sel_g else Looks.CELESTE
+   (g.halo as StandardMaterial3D).albedo_color=Color(hc.r,hc.g,hc.b,0.34 if sel_g else 0.26)
   label_far[gid]=d>230.0
   label_d[gid]=d
   var fk=clampf(d/110.0,1.0,4.4)
@@ -2029,7 +2208,7 @@ func _create_scouts_j():
    var mi=MeshInstance3D.new();mi.mesh=_tinted_mesh(part.mesh,str(id));mi.transform=Transform3D(part.xf.basis.scaled_local(Vector3.ONE*RIDER_SCALE),part.xf.origin*RIDER_SCALE);fig.add_child(mi)
   var lance=MeshInstance3D.new();var lm=CylinderMesh.new();lm.top_radius=0.03;lm.bottom_radius=0.05;lm.height=3.8;lm.radial_segments=6
   lance.mesh=lm;lance.material_override=_mat(Color("6f5a3c"));lance.position=Vector3(0.45,2.4,-0.3);lance.rotation=Vector3(0.15,0,-0.12);fig.add_child(lance)
-  var ring=_ring_j(2.6,Color("e2bc72"),root)
+  var ring=_ring_j(2.6,Looks.ORO_VIEJO,root)
   selected_rings[id]=ring
   _token_j(root,3,Color(str(TOKEN_COLORS.get(id,"d8d2c0"))),26.0,60.0,130.0,1.0,false,22.0)
   var label=_label_j("◇ "+str(sc.name),Vector3(0,5.0,0),Color("dcd8c0"),26,root)
@@ -2047,9 +2226,10 @@ func _ring_visible(id:String,stage:String)->bool:
  return id in selected_ids or id==selected or selected=="all" or stage=="stumbling" or stage=="working"
 
 func _ring_color(id:String,stage:String)->Color:
- if stage=="stumbling":return Color("d4553f")
- if stage=="working":return Color("7fb5d9")
- return Color("e2bc72")
+ # Regla de color (P1): tropezó = aviso ámbar; trabajando = información violeta (aclarado para leerse en el barro); elegido = oro viejo.
+ if stage=="stumbling":return Looks.AMBAR
+ if stage=="working":return Color("9a80d4")
+ return Looks.ORO_VIEJO
 
 func _update_group_j(u:Dictionary,delta:float):
  var id=str(u.id)
@@ -2085,7 +2265,7 @@ func _update_group_j(u:Dictionary,delta:float):
  entry.moving=moving;entry.stage=stage
  var id_s=id
  var ring:MeshInstance3D=selected_rings[id_s]
- ring.visible=_ring_visible(id_s,stage)
+ ring.visible=_ring_visible(id_s,stage) and not look_hide_overlays
  if ring.visible:
   ring.position.y=maxf(0.0,level_m-root.position.y)+0.3
   (ring.material_override as StandardMaterial3D).albedo_color=_ring_color(id_s,stage)
@@ -2156,7 +2336,7 @@ func _update_label_j(id:String,u,stage:String,root:Node3D,h:float):
  if label.text!=txt:label.text=txt
  var sel2=id in selected_ids or id==selected
  label.modulate=Color("f1d290") if sel2 else Color("ddd7bf")
- if stage=="stumbling":label.modulate=Color("f0a08a")
+ if stage=="stumbling":label.modulate=Color("e8a85a")   # aviso = ámbar (el rojo es del enemigo)
 
 func _update_scout_j(sc:Dictionary,delta:float):
  var id=str(sc.id)
@@ -2178,7 +2358,7 @@ func _update_scout_j(sc:Dictionary,delta:float):
  elif moving:
   fig.position.y=0.06*absf(sin(elapsed_visual*7.0))
  var ring:MeshInstance3D=selected_rings[id]
- ring.visible=_ring_visible(id,stage) and stage!="lost"
+ ring.visible=_ring_visible(id,stage) and stage!="lost" and not look_hide_overlays
  if ring.visible:ring.position.y=maxf(0.0,level_m-root.position.y)+0.3
  _update_label_j(id,sc,stage,root,5.0)
 
@@ -2420,9 +2600,9 @@ func _make_capture_flag_j():
  capture_flag=Node3D.new();capture_flag.name="Bandera_captura";add_child(capture_flag)
  _cylinder(Vector3(0,5.0,0),0.14,10.0,Color("4c372b"),capture_flag)
  capture_flag_cloth=Node3D.new();capture_flag.add_child(capture_flag_cloth)
- # Señal de captura: paño ocre con franja bermellon (color de diseño del bando criollo; NO es una bandera historica ni la argentina).
+ # Señal de captura: paño ocre con franja oscura (color de diseño del bando criollo; NO es una bandera historica ni la argentina).
  _box(Vector3(0,0,-1.6),Vector3(0.06,1.6,3.2),Color("e2bc72"),capture_flag_cloth)
- _box(Vector3(0.04,0,-1.6),Vector3(0.06,0.5,3.2),Color("b6453e"),capture_flag_cloth)
+ _box(Vector3(0.04,0,-1.6),Vector3(0.06,0.5,3.2),Color("3b2a5c"),capture_flag_cloth)   # P1: franja violeta honda (antes bermellón: el rojo es del enemigo)
  capture_flag.visible=false
 
 func _update_boarding_fx_j(delta:float)->void:
@@ -2459,7 +2639,7 @@ func _update_extra_labels_j():
 
 func _update_layers_j():
  var want=exposure_user_on if exposure_forced else selected_ids.size()>0
- exposure_root.visible=bool(layer_state.exposure) and want
+ exposure_root.visible=bool(layer_state.exposure) and want and not look_hide_overlays
  if exposure_root.visible:
   var ss=rules.ship_state() if rules.has_method("ship_state") else {}
   exposure_root.scale=Vector3.ONE
@@ -2537,7 +2717,7 @@ func _update_beacons_j():
  for b in beacons:
   var r:Node3D=b.root
   var d=cam.global_position.distance_to(r.global_position)
-  r.visible=d>140.0
+  r.visible=d>140.0 and not look_hide_overlays
   if not r.visible:continue
   # Poste fino (~2 px) y rombo chico (~7 px): marca la posicion sin tapar el paisaje.
   var k=clampf(d*0.0035,0.25,4.0)
@@ -2708,7 +2888,7 @@ func layer_visible(layer:String)->bool:
 ## "labels" = rótulos 3D de hitos y extras (si la UI rotula los hitos con landmark_labels(), debe apagarla); "unit_labels" = rótulos de grupos y exploradores (solo se tocan al llamar set_layer_visible).
 ## Los rótulos de boyas y vados hallados dependen de la capa "probes" (la UI no los dibuja).
 func _apply_label_layers()->void:
- if is_instance_valid(labels_root):labels_root.visible=bool(layer_state.labels)
+ if is_instance_valid(labels_root):labels_root.visible=bool(layer_state.labels) and not look_hide_overlays
  for id in unit_labels:
   if is_instance_valid(unit_labels[id]):unit_labels[id].visible=bool(layer_state.unit_labels)
 
