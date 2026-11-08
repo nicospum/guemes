@@ -1,0 +1,398 @@
+{
+ "schema": "qa_balance_result_v1",
+ "active_dims": [
+  "guardia",
+  "torre_en",
+  "refuerzo"
+ ],
+ "criterios": {
+  "J00": {
+   "pasa": true,
+   "checks": [
+    {
+     "check": "todas las semillas están en el rango reservado de QA 9001-9060",
+     "ok": true,
+     "fuera": []
+    },
+    {
+     "check": "ninguna partida con excepciones",
+     "ok": true,
+     "con_excepcion": 0
+    },
+    {
+     "check": "experto: ≥ 60 semillas y ≥ 1 réplicas",
+     "ok": true,
+     "semillas": 60,
+     "replicas": 3
+    },
+    {
+     "check": "obediente: ≥ 60 semillas y ≥ 3 réplicas",
+     "ok": true,
+     "semillas": 60,
+     "replicas": 3
+    },
+    {
+     "check": "torpe: ≥ 60 semillas y ≥ 3 réplicas",
+     "ok": true,
+     "semillas": 60,
+     "replicas": 3
+    }
+   ]
+  },
+  "J03": {
+   "pasa": false,
+   "checks": [
+    {
+     "check": "primera decisión ≤ 60 s en todas las partidas (ofertas)",
+     "ok": false,
+     "peor_s": 704.25,
+     "n": 1998
+    },
+    {
+     "check": "mayor brecha sin decisión posible ≤ 45 s (ofertas)",
+     "ok": false,
+     "peor_s": 704.25
+    },
+    {
+     "check": "mayor brecha durante el ataque ≤ 20 s (ofertas)",
+     "ok": false,
+     "peor_s": 419.25
+    },
+    {
+     "check": "≥ 12 partidas del experto medidas por ramificación (decisiones significativas) y cumplen las tres cifras",
+     "ok": false,
+     "n": 12,
+     "incumplen": 12
+    },
+    {
+     "check": "«pausa y reanuda»: existe, pierde por amanecio y no recibe más de una alerta crítica a la vez",
+     "ok": true,
+     "n": 900
+    }
+   ]
+  },
+  "J04": {
+   "pasa": false,
+   "checks": [
+    {
+     "check": "experto, 1.er intento ≥ 80 %",
+     "ok": true,
+     "p": 1.0,
+     "n": 180,
+     "wilson90": [
+      0.985,
+      1.0
+     ]
+    },
+    {
+     "check": "cada bot ciego gana ≤ 10 % (y existe al menos uno)",
+     "ok": true,
+     "ciegos": {
+      "ciego_sin_recon": 0.0,
+      "ciego_tarde": 0.0,
+      "ciego_un_frente": 0.0,
+      "ciego_sin_arreo": 0.0
+     }
+    },
+    {
+     "check": "pasivo y «pausa y reanuda»: 0 victorias y todas por «amanecio»",
+     "ok": true,
+     "n": 1800
+    },
+    {
+     "check": "escena real: hay partidas de la escena (nivel «scene»)",
+     "ok": false,
+     "nota": "faltan filas level=scene"
+    }
+   ]
+  },
+  "J05": {
+   "pasa": false,
+   "checks": [
+    {
+     "check": "experto, 1.er intento ≥ 90 %",
+     "ok": true,
+     "p": 1.0
+    },
+    {
+     "check": "obediente, 1.er intento entre 20 % y 45 %",
+     "ok": true,
+     "p": 0.4,
+     "wilson90": [
+      0.342,
+      0.461
+     ]
+    },
+    {
+     "check": "obediente, 3.er intento (con diario) entre 55 % y 85 % (n ≥ 20)",
+     "ok": false,
+     "p": NaN,
+     "n": 0,
+     "wilson90": [
+      0.0,
+      0.0
+     ]
+    },
+    {
+     "check": "obediente gana al menos una vez en ≤ 5 intentos: ≥ 85 %",
+     "ok": true,
+     "p": 1.0,
+     "n": 180
+    },
+    {
+     "check": "torpe, 1.er intento entre 5 % y 30 %",
+     "ok": false,
+     "p": 0.317,
+     "wilson90": [
+      0.263,
+      0.376
+     ]
+    }
+   ]
+  },
+  "J06": {
+   "pasa": false,
+   "checks": [
+    {
+     "check": "hay ≥ 8 estrategias de frente distintas en la matriz",
+     "ok": false,
+     "n": 5
+    },
+    {
+     "check": "ninguna estrategia concentra > 60 % de las victorias",
+     "ok": true,
+     "max_pct": 26.3
+    },
+    {
+     "check": "ninguna estrategia gana en > 80 % de las semillas",
+     "ok": false,
+     "max_pct": 100.0,
+     "top": [
+      [
+       "est_bateria_frontal",
+       1.0
+      ],
+      [
+       "est_cuartel_calle",
+       1.0
+      ],
+      [
+       "est_posta_directa",
+       1.0
+      ]
+     ]
+    },
+    {
+     "check": "≥ 3 estrategias ganan en ≥ 50 % de las semillas",
+     "ok": true,
+     "n": 3
+    },
+    {
+     "check": "≥ 3 estrategias distintas son la mejor (golpe − 0,5 × bajas) en ≥ 3 semillas cada una",
+     "ok": false,
+     "mejores": {
+      "est_bateria_frontal": 60
+     }
+    },
+    {
+     "check": "cada enfoque de cada frente es el mejor en ≥ 1 semilla",
+     "ok": false,
+     "sin_mundo": [
+      [
+       "bateria",
+       "gola"
+      ]
+     ],
+     "mejor_por_frente": {
+      "posta": {
+       "directa": 60
+      },
+      "cuartel": {
+       "calle": 46,
+       "patios": 14
+      },
+      "bateria": {
+       "frontal": 60
+      }
+     }
+    },
+    {
+     "check": "cada valor de cada variante activa ['guardia', 'torre_en', 'refuerzo'] aparece en ≥ 3 semillas de QA",
+     "ok": true,
+     "escasos": []
+    },
+    {
+     "check": "extracción: ≥ 4 recetas distintas",
+     "ok": true,
+     "n": 4
+    },
+    {
+     "check": "extracción: ninguna receta gana en > 60 % de los mundos",
+     "ok": false,
+     "max_pct": 100.0,
+     "top": [
+      [
+       "ext_mixta",
+       1.0
+      ],
+      [
+       "ext_cargar_todo",
+       0.16666666666666666
+      ],
+      [
+       "ext_ligera",
+       0.16666666666666666
+      ]
+     ]
+    },
+    {
+     "check": "extracción: `ext_ocultar` es la mejor (estricta) en ≥ 1 mundo",
+     "ok": false,
+     "mundos": 0
+    },
+    {
+     "check": "señal: el máximo cae entre 4:15 y 5:45 y no en los 3 primeros instantes",
+     "ok": true,
+     "instante_s": 300.0,
+     "indice": 12
+    },
+    {
+     "check": "señal: unimodal (un solo máximo local con prominencia ≥ 3 puntos)",
+     "ok": false,
+     "maximos": [
+      120.0,
+      300.0
+     ]
+    },
+    {
+     "check": "señal: meseta de ≥ 3 instantes consecutivos (≥ 30 s) con ≥ 90 % del máximo",
+     "ok": true,
+     "tramo": 7,
+     "maximo": 37.06
+    }
+   ]
+  },
+  "J07": {
+   "pasa": true,
+   "checks": [
+    {
+     "check": "victorias: mediana entre 11:00 y 13:00",
+     "ok": true,
+     "mediana_s": 669.8,
+     "n": 360
+    },
+    {
+     "check": "victorias: ≥ 90 % entre 10:00 y 14:00",
+     "ok": true,
+     "pct": 95.8
+    },
+    {
+     "check": "derrotas del 1.er intento: mediana ≤ 8:00 y ninguna pasa de 14:00",
+     "ok": true,
+     "mediana_s": 70.2,
+     "n": 231
+    },
+    {
+     "check": "bajas: mediana de victorias ≤ 55 % y ≤ 15 % con bajas > 80 %",
+     "ok": true,
+     "mediana": 28.9,
+     "pct_gt80": 0.0
+    }
+   ]
+  }
+ },
+ "tasas": {
+  "experto/intento1": {
+   "p": 1.0,
+   "n": 180,
+   "wilson90": [
+    0.985,
+    1.0
+   ]
+  },
+  "obediente/intento1": {
+   "p": 0.4,
+   "n": 180,
+   "wilson90": [
+    0.342,
+    0.461
+   ]
+  },
+  "obediente/intento2": {
+   "p": 1.0,
+   "n": 108,
+   "wilson90": [
+    0.976,
+    1.0
+   ]
+  },
+  "torpe/intento1": {
+   "p": 0.317,
+   "n": 180,
+   "wilson90": [
+    0.263,
+    0.376
+   ]
+  },
+  "torpe/intento2": {
+   "p": 0.78,
+   "n": 123,
+   "wilson90": [
+    0.713,
+    0.835
+   ]
+  },
+  "torpe/intento3": {
+   "p": 1.0,
+   "n": 27,
+   "wilson90": [
+    0.909,
+    1.0
+   ]
+  }
+ },
+ "senal": {
+  "instantes_s": [
+   120.0,
+   135.0,
+   150.0,
+   165.0,
+   180.0,
+   195.0,
+   210.0,
+   225.0,
+   240.0,
+   255.0,
+   270.0,
+   285.0,
+   300.0,
+   315.0,
+   330.0,
+   345.0,
+   360.0,
+   375.0
+  ],
+  "puntaje_medio": [
+   29.72,
+   16.48,
+   16.43,
+   16.63,
+   17.07,
+   17.68,
+   20.49,
+   20.54,
+   30.93,
+   35.77,
+   35.92,
+   36.99,
+   37.24,
+   36.94,
+   36.31,
+   34.99,
+   29.43,
+   29.44
+  ]
+ },
+ "todo_pasa": false,
+ "j05_informe_pasa": false
+}

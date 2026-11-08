@@ -92,12 +92,14 @@ static func _build(size: Vector2, kinds: Array) -> Dictionary:
 	var secs_or_none := _num(-1.0, T_MAX)  # un instante o -1 (todavía no pasó)
 	var pct := _num(0.0, 100.0)
 	var unit_interval := _num(0.0, 1.0)
-	var order := _alt(_obj({"action": _enum(all_actions)}, {"front": _enum(fronts), "posture": _enum(R.POSTURES), "x": x_m, "z": z_m, "item": _str(NAME_MAX)}))
+	var order := _alt(_obj({"action": _enum(all_actions)}, {"front": _enum(fronts), "posture": _enum(R.POSTURES), "x": x_m, "z": z_m, "item": _str(NAME_MAX), "approach": _str(20)}))
+	var option := _obj({"id": _str(40), "label": _str(TEXT_MAX), "costo_txt": _str(TEXT_MAX)}, {"val": _str(40)})
+	var decision := _alt(_obj({"id": _str(40), "titulo": _str(TEXT_MAX), "texto": _str(TEXT_MAX), "opciones": _arr(option, 6), "vence_s": _num(0.0, 600.0), "default": _str(40), "at": _num(0.0, T_MAX)}, {"dim": _str(40)}))
 	var work := _alt(_obj({"kind": _enum(R.WORK_KINDS), "remaining_s": _num(-1.0, T_MAX)}, {"item": _str(NAME_MAX)}))
 	var unit := _obj({"id": _enum(groups), "name": _str(), "kind": _enum(R.UNIT_KINDS), "x": x_m, "z": z_m, "yaw_deg": _num(-720.0, 720.0), "strength": pct, "fatigue": pct,
 		"morale": pct, "armed": unit_interval, "men": _int(0.0, 1000.0), "mounted": _bool(), "pace": _enum(R.PACES), "stage": _enum(R.STAGES), "order": order,
 		"path": _arr(pt, 400), "noise": unit_interval, "detected": _bool(), "custody": _int(0.0, 1000.0), "horses": _int(0.0, 1000.0), "carry_kg": _num(0.0, KG_MAX),
-		"capacity_kg": _num(0.0, KG_MAX), "tag": _enum(V.TAGS), "work": work})
+		"capacity_kg": _num(0.0, KG_MAX), "tag": _enum(V.TAGS), "work": work}, {"tower_cover_until": secs_or_none})
 	var front_req := {"state": _enum(R.FRONT_STATES), "toma": pct, "garrison": _num(0.0, KG_MAX), "garrison_max": _num(1.0, KG_MAX), "alert": unit_interval,
 		"surprise_until": secs_or_none, "reconocido": unit_interval, "held_by": _enum(groups_or_none), "custody": _int(0.0, 1000.0), "taken_at": secs_or_none,
 		"supporters": _arr(_enum(groups), 5)}
@@ -106,12 +108,15 @@ static func _build(size: Vector2, kinds: Array) -> Dictionary:
 		var req := front_req.duplicate()
 		if fid == "cuartel":
 			req["tower"] = _obj({"active": _bool(), "armed": _bool(), "volleys_left": _int(0.0, 1000.0), "next_volley_at": secs_or_none})
-		objectives_req[fid] = _obj(req, {"battery": _obj({"facing": _str(20), "pieces": _int(0.0, 100.0)})} if fid == "bateria" else {})
+		var opt := {"turned_out": _bool()}
+		if fid == "bateria":
+			opt["battery"] = _obj({"facing": _str(20), "pieces": _int(0.0, 100.0)})
+		objectives_req[fid] = _obj(req, opt)
 	var item := _obj({"id": _str(), "kind": _enum(kinds), "qty": _int(0.0, 100000.0), "unit_kg": _num(0.0, KG_MAX), "unit_value": _num(0.0, 1000.0), "state": _enum(R.LOOT_STATES),
 		"x": x_m, "z": z_m, "where": _str(), "front": _enum(fronts), "carried_by": _enum(groups_or_none), "spot": _str(), "safe": _bool()}, {"wet": _bool()})
 	var money := _num(0.0, 1000000.0)
 	var event := _obj({"time": secs, "round": _int(0.0, 100.0), "text": _str(TEXT_MAX), "kind": _enum(R.EVENT_KINDS)},
-		{"tag": _enum(V.TAGS), "pos": pt, "unit": _enum(groups_or_none), "objective": _enum(fronts), "field_event": _str(), "strong": _bool(), "options": _arr(_obj({}), 10), "until": secs})
+		{"tag": _enum(V.TAGS), "pos": pt, "unit": _enum(groups_or_none), "objective": _enum(fronts), "field_event": _str(), "strong": _bool(), "options": _arr(option, 10), "until": secs})
 	var past_order := _obj({"time": secs, "round": _int(0.0, 100.0), "unit": _enum(groups_or_none), "action": _enum(all_actions), "target": pt},
 		{"prev": _obj({"stage": _enum(R.STAGES), "order": order})})
 	var fire_line := _obj({"from": pt, "to": pt, "kind": _str(40), "until": secs})
@@ -123,9 +128,9 @@ static func _build(size: Vector2, kinds: Array) -> Dictionary:
 		"world": _obj({"guardia": _enum(R.VARIANTS["guardia"]), "torre_en": _enum(R.VARIANTS["torre_en"]), "refugio": _enum(R.VARIANTS["refugio"]), "lluvia": _enum(R.VARIANTS["lluvia"]),
 			"refuerzo": _enum(R.VARIANTS["refuerzo"]), "layout": _enum(R.VARIANTS["layout"]),
 			"loot_traits": _obj({"corral": _enum(R.WORLD_TRAITS["corral"]), "plata": _bool(), "polvora": _enum(R.WORLD_TRAITS["polvora"])}),
-			"known": _arr(_str(40), 40), "rumors": _arr(_obj({}), 40)}),
+			"known": _arr(_str(40), 40), "rumors": _arr(_obj({"id": _str(40), "dim": _enum(R.VARIANTS.keys()), "val": _str(40), "reliability": unit_interval, "shown": _bool()}), 40)}),
 		"alarm": _obj({"level": unit_interval, "first_shot_at": secs_or_none, "signaled": _bool(), "signal_at": secs_or_none, "messenger": _enum(R.MESSENGER_STATES),
-			"reinforcement_at": secs_or_none, "reinforcement_arrived": _bool(), "pre_signal": _arr(_enum(fronts), 3)}),
+			"reinforcement_at": secs_or_none, "reinforcement_arrived": _bool(), "pre_signal": _arr(_enum(fronts), 3)}, {"messenger_at": secs_or_none, "spread_at": secs_or_none}),
 		"objectives": _obj(objectives_req),
 		"units": _arr(unit, 5),
 		"loot": _obj({"items": _arr(item, 200), "capacity_kg": _num(0.0, KG_MAX), "load_kg": _num(0.0, KG_MAX), "delivered_value": money, "destroyed_value": money,
@@ -142,7 +147,7 @@ static func _build(size: Vector2, kinds: Array) -> Dictionary:
 		"outcome": _alt(_obj({"cause_id": _str(40), "title": _str(TEXT_MAX), "cause": _str(TEXT_MAX), "advice": _str(TEXT_MAX)})),
 		"render_version": _int(1.0, 1000000000.0), "smoke_used": _int(0.0, 1000.0), "smoke_adv": _num(0.0, 1000.0), "mercy_level": _int(0.0, 3.0),
 		"assists": _arr(_str(40), 20), "diary_marks": _arr(mark, 100)}
-	return _obj(top, {"previous_game_id": _str(120)})
+	return _obj(top, {"previous_game_id": _str(120), "decision": decision, "decisions_done": _arr(_str(40), 20)})
 
 # ---------------------------------------------------------------------------------------------------------------------
 # El recorrido

@@ -22,11 +22,16 @@ const D = preload("res://scripts/humahuaca/rules/humahuaca_data.gd")
 const FIXED := ["experto", "obediente", "torpe", "ciego_sin_recon", "ciego_tarde", "ciego_un_frente", "ciego_sin_arreo", "pasivo", "pausa_reanuda", "aleatorio"]
 const TAIL := ["barrido_senal", "interfaz"]
 ## Las políticas que ya juegan (el resto existe en la lista del contrato y se omite con motivo hasta su ronda). Los ciegos, las estrategias de frente y las recetas de
-## extracción están armadas sobre el mismo plan del experto (`_plan_for`) pero NO se miden en R1: en R1 el reconocimiento todavía no cambia el resultado (la geometría es
-## toda conocida) y una receta sin `ocultar` no es una receta; medirlas ahora daría un número que no quiere decir lo que dice. Se encienden en R2a y R2b (BACKLOG).
-const IMPLEMENTED := ["experto", "obediente", "torpe", "pasivo", "pausa_reanuda", "aleatorio", "barrido_senal"]
+## extracción están armadas sobre el mismo plan del experto (`_plan_for`): desde el balance de R2b se miden (el mundo se sortea, la guardia atenta castiga el
+## reconocimiento, el enfoque del cuartel cambia el fuego de la torre y el reloj del refuerzo hay que conocerlo). Las que piden distraer, voltear piezas u ocultar
+## (acciones de R2a que todavía no existen) siguen omitidas con motivo.
+const IMPLEMENTED := ["experto", "obediente", "torpe", "pasivo", "pausa_reanuda", "aleatorio", "barrido_senal", "ciego_sin_recon", "ciego_tarde", "ciego_un_frente",
+	"ciego_sin_arreo", "est_bateria_frontal", "est_bateria_gola", "est_cuartel_calle", "est_cuartel_patios", "est_posta_directa", "ext_cargar_todo", "ext_destruir_todo",
+	"ext_ligera", "ext_mixta"]
 const WITH_ADVANTAGE := ["experto", "barrido_senal"]
 const STEP_S := 1.0  # cada cuánto decide una política (segundos de juego)
+const PATH_DETOUR := 1.2  # cuánto más larga que la recta es la ruta real del arreo (A*, barro, vado): margen del plan de carga del experto
+const ATTACK_LOAD_TRAVEL_S := 40.0  # durante el ataque el arreo solo carga lotes a menos de este viaje (no cruza el pueblo bajo la torre por una pieza)
 const LCG_MOD := 2147483647
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -52,10 +57,8 @@ static func skip_reason(policy: String) -> String:
 		return "no está en la lista de políticas del contrato"
 	if policy == "interfaz":
 		return "juega con clics sobre la escena real: hace falta --level=scene"
-	if policy == "est_bateria_distraccion" or policy == "est_cuartel_piezas" or policy == "ext_ocultar":
+	if policy == "est_bateria_distraccion" or policy == "est_cuartel_piezas" or policy == "est_posta_distraccion" or policy == "ext_ocultar":
 		return "pide una acción de R2a (distraer, voltear las piezas u ocultar)"
-	if policy.begins_with("ciego_") or policy.begins_with("est_") or policy.begins_with("ext_"):
-		return "se mide desde R2b: en R1 el reconocimiento y los enfoques todavía no cambian el resultado"
 	return "" if is_implemented(policy) else "todavía no existe"
 
 ## La familia de la política, como la agrupa qa_balance.py.
@@ -97,6 +100,8 @@ static func apply_orders(rules: RefCounted, orders: Array) -> Array:
 	for o in orders:
 		if str(o.action) == "give_signal":
 			out.append(rules.call("give_signal"))
+		elif str(o.action) == "choose":  # una decisión de campo (pending_choice) resuelta con una de sus opciones
+			out.append(rules.call("resolve_choice", str((o.opts as Dictionary).get("option", "")), false))
 		else:
 			out.append(rules.call("issue_order", str(o.actor), str(o.action), o.target, o.opts))
 	return out
@@ -138,7 +143,10 @@ static func _plan_for(policy: String) -> Dictionary:
 	var cfg := {"recon": ["bateria"], "approaches": {}, "signal_at_s": 285.0, "deadline_s": 372.0, "fronts": V.COMBAT_GROUPS.duplicate(), "arreo": true, "support": true,
 		"postures": {"bateria": "a_fondo", "cuartel": "con_cautela", "posta": "con_cautela"}, "extraction": "mixta"}
 	match policy:
-		"experto", "barrido_senal":
+		"experto":
+			return cfg
+		"barrido_senal":
+			cfg.signal_any = true  # el barrido da la señal en el segundo pedido aunque falte una partida (mide el instante, no la coordinación)
 			return cfg
 		"ciego_sin_recon":
 			cfg.recon = []
@@ -306,7 +314,21 @@ static func _approach(view: Dictionary, cfg: Dictionary) -> Array:
 	var t := float(view.t)
 	var scouts := _unit_view(view, "reconocedores")
 	var scouts_idle := str(scouts.get("stage", "")) == "idle"
-	if scouts_idle:
+	var secret := _secret(view)
+	## con la guardia atenta los centinelas de la altura ven al reconocedor a la distancia a la que mira: quien conoce el mundo no manda a nadie a mirar
+	var guard_sees_scouts: bool = not secret.is_empty() and str((secret.get("world", {}) as Dictionary).get("guardia", "")) == "atenta"
+	## una decisión de campo pendiente (el informante): quien conoce el mundo le cree a la versión cierta; las demás políticas guionadas también (son el experto con otro plan)
+	if not secret.is_empty():
+		for al in view.hud.get("alertas", []):
+			if str(al.get("id", "")) != "informante" or mem.has("informante_done"):
+				continue
+			var truth := str((secret.get("world", {}) as Dictionary).get("torre_en", ""))
+			for op in al.get("opciones", []):
+				if str(op.get("val", "")) == truth:
+					mem["informante_done"] = true
+					orders.append(_order("", "choose", Vector2.ZERO, {"option": str(op.id)}))
+					break
+	if scouts_idle and not guard_sees_scouts:
 		for fid in cfg.recon:
 			if not mem.has("recon_" + str(fid)):
 				mem["recon_" + str(fid)] = true
@@ -317,15 +339,19 @@ static func _approach(view: Dictionary, cfg: Dictionary) -> Array:
 			continue
 		var fid := _group_front(str(gid))
 		var opts: Dictionary = {"posture": str(cfg.postures.get(fid, "con_cautela"))}
+		if guard_sees_scouts:
+			opts["pace"] = "sneak"  # con la guardia atenta se llega al puesto en silencio: marchar a la vista de la altura levanta la alarma antes de la señal
 		if cfg.approaches.has(fid):
 			opts["approach"] = str(cfg.approaches[fid])
+		elif fid == "cuartel" and not secret.is_empty():  # quien conoce el mundo entra por donde la torre no barre; con la guardia atenta, por la calle (los patios pasan a la vista de la altura)
+			opts["approach"] = "patios" if str((secret.get("world", {}) as Dictionary).get("torre_en", "")) == "casa_cura" and not guard_sees_scouts else "calle"
 		mem["pos_" + str(gid)] = true
 		orders.append(_order(str(gid), "position", Vector2.ZERO, opts))
 	if bool(cfg.arreo) and not mem.has("arreo_move"):
 		mem["arreo_move"] = true
 		orders.append(_order("arreo", "move", D.hito("posta") + Vector2(0.0, 30.0)))
 	var sig: Dictionary = view.signal
-	if bool(sig.can_give) and (sig.waiting as Array).is_empty():
+	if bool(sig.can_give) and ((sig.waiting as Array).is_empty() or bool(cfg.get("signal_any", false))):
 		var due: float = float(cfg.signal_at_s)
 		if mem.has("signal_override"):
 			due = float(mem.signal_override)
@@ -362,26 +388,36 @@ static func _extract(view: Dictionary, cfg: Dictionary, allow_leave: bool) -> Ar
 	var load_kg := float(view.loot.load_kg)
 	var recipe := str(cfg.extraction)
 	var rate := float(rules_cfg.transport.load_kg_per_s_per_team) * float(rules_cfg.transport.teams_max)
+	var detour := PATH_DETOUR  # la ruta real (A*, barro, tapias) es más larga que la recta: se planifica con ese margen
+	var back_here := here.distance_to(vado) / mule_speed * detour + exit_leg
+	## dos recursos escasos: el tiempo que queda hasta tener que salir desde acá y los kilos de mula que faltan llenar. Cada lote cuesta una parte de cada uno y vale
+	## sus puntos: se carga primero el que más puntos da por recurso gastado (con tiempo de sobra manda el peso; con el reloj encima, la cercanía).
+	var time_budget := maxf(left - back_here, 1.0)
+	var kg_budget := maxf(capacity - load_kg, 1.0)
 	var loads: Array = []
 	var kills: Array = []
 	for it in view.loot.items:
 		if str(it.state) != "en_sitio" or not _taken(view, str(it.front)):
 			continue
 		var pos := Vector2(float(it.x), float(it.z))
-		var travel := here.distance_to(pos) / mule_speed
-		var back := pos.distance_to(vado) / mule_speed + exit_leg
+		var travel := here.distance_to(pos) / mule_speed * detour
+		var back := pos.distance_to(vado) / mule_speed * detour + exit_leg
+		if not allow_leave and travel > ATTACK_LOAD_TRAVEL_S:
+			continue  # mientras se pelea, el arreo no cruza el pueblo por un lote: carga lo que tiene a mano y espera el depósito
 		var kg := _item_kg(it)
 		var value := _item_value(it)
-		if recipe != "destruir_todo" and load_kg + kg <= capacity + 1e-6 and travel + kg / rate + back <= left:
+		var load_s := kg / rate
+		var time_cost := travel + load_s + maxf(back - back_here, 0.0)
+		if recipe != "destruir_todo" and load_kg + kg <= capacity + 1e-6 and travel + load_s + back <= left:
 			if not (recipe == "ligera" and kg > float(rules_cfg.loot.light_max_kg)):
-				loads.append({"it": it, "score": value / kg - 0.00001 * travel})
+				loads.append({"it": it, "score": value / (time_cost / time_budget + kg / kg_budget)})
 		var dcost := travel + float(rules_cfg.loot.classes[str(it.kind)].destroy_s)
 		if recipe != "cargar_todo" and recipe != "ligera" and dcost + back <= left:
-			kills.append({"it": it, "score": value * float(rules_cfg.loot.treatments.destruir) / maxf(dcost, 1.0)})
+			kills.append({"it": it, "score": value * float(rules_cfg.loot.treatments.destruir) / maxf(dcost + maxf(back - back_here, 0.0), 1.0)})
 	var pick: Dictionary = {}
 	var action := ""
 	if not loads.is_empty():
-		loads.sort_custom(func(a, b): return float(a.score) > float(b.score))  # primero lo que más puntos da por kilo de mula
+		loads.sort_custom(func(a, b): return float(a.score) > float(b.score))
 		pick = loads[0].it
 		action = "load"
 	elif not kills.is_empty():

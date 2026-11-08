@@ -10,6 +10,8 @@ const V = preload("res://scripts/humahuaca/humahuaca_vocab.gd")
 const R = preload("res://scripts/humahuaca/rules/vocab_rules.gd")
 const D = preload("res://scripts/humahuaca/rules/humahuaca_data.gd")
 
+const GROUP_DESTROY_REACH_M := 160.0  # hasta dónde se manda a una partida a destruir lo que quedó mientras la columna marcha (su propio frente, no cruzar el pueblo)
+
 var _owner: WeakRef
 
 func _init(owner: RefCounted) -> void:
@@ -102,28 +104,73 @@ func _step_dict(key: String, vars: Dictionary, actor: String, action: String, ta
 		out["target"] = {}
 	return out
 
-func _exit_eta(u: Dictionary) -> float:
+const HINT_LOAD_TRAVEL_S := 45.0  # hasta cuántos segundos de viaje manda la pista al arreo por un lote (lo que queda lejos lo destruyen las partidas)
+const PLAN_DETOUR := 1.1  # la ruta real del arreo (A*, barro, vado) es más larga que la recta: el plan de carga cuenta con ese margen
+
+func _mule_speed() -> float:
+	return maxf(float(_rules.stealth.pace[str(_rules.transport.mule_pace)].speed) * float(_rules.transport.mule_speed_mult), 0.1)
+
+func _exit_eta_from(x: float, z: float) -> float:
 	var v := _hito_pos("vado_este")
 	var sal := _hito_pos("salida_este")
-	var length := D.dist(float(u.x), float(u.z), v.x, v.y) + v.distance_to(sal)
-	return length / maxf(float(_rules.stealth.pace[str(_rules.transport.mule_pace)].speed) * float(_rules.transport.mule_speed_mult), 0.1)
+	return (D.dist(x, z, v.x, v.y) * PLAN_DETOUR + v.distance_to(sal)) / _mule_speed()
 
-## El próximo lote a cargar: el de más puntos por kilo entre los que no quedan atrás del arreo, con un descuento por la caminata.
-func _next_load_target(u: Dictionary) -> Dictionary:
+func _exit_eta(u: Dictionary) -> float:
+	return _exit_eta_from(float(u.x), float(u.z))
+
+## El próximo lote a cargar con el sobrante de reloj `slack` (segundos que quedan antes de tener que salir desde donde está el arreo): entre los que entran en las
+## mulas y en el tiempo (viaje, carga y lo que alarga la salida ir hasta ahí), el que más puntos da por recurso gastado. Con tiempo de sobra manda el peso; con el
+## reloj encima, la cercanía. {} si ninguno entra.
+func _next_load_target(u: Dictionary, slack: float) -> Dictionary:
 	var best: Dictionary = {}
 	var best_score := -1.0e9
 	var room := float(state.loot.capacity_kg) - float(state.loot.load_kg)
+	var rate := float(_rules.transport.load_kg_per_s_per_team) * float(_rules.transport.teams_max)
+	var exit_here := _exit_eta(u)
 	for it in state.loot.items:
 		if str(it.state) != "en_sitio" or str(state.objectives[str(it.front)].state) != "tomado" or _item_kg(it) > room + 1e-6:
 			continue
-		if float(it.x) < float(u.x) - 40.0:
+		var travel := D.dist(float(u.x), float(u.z), float(it.x), float(it.z)) * PLAN_DETOUR / _mule_speed()
+		if travel > HINT_LOAD_TRAVEL_S:
+			continue  # la pista no manda el arreo a cruzar el pueblo por un lote: carga lo del depósito; lo lejano lo destruyen las partidas
+		var cost_time := travel + _item_kg(it) / rate + maxf(_exit_eta_from(float(it.x), float(it.z)) - exit_here, 0.0)
+		if cost_time > slack:
 			continue
-		var d := D.dist(float(u.x), float(u.z), float(it.x), float(it.z))
-		var score := _item_value(it) / _item_kg(it) - 0.0002 * d
+		var score := _item_value(it) / (cost_time / maxf(slack, 1.0) + _item_kg(it) / maxf(room, 1.0))
 		if score > best_score:
 			best_score = score
 			best = it
 	return best
+
+## ¿El diario de este mundo ya anotó esa causa? (las marcas «anotado» que HumahuacaProgress le da a la partida: lo único que el jugador aprendió entre intentos).
+func _diary_has(kind: String) -> bool:
+	for m in state.get("diary_marks", []):
+		if str(m.get("kind", "")) == kind:
+			return true
+	return false
+
+## Lo que el jugador puede saber del reloj del refuerzo (el «siguiente paso» NO lee state.alarm.reinforcement_at salvo cuando la polvareda ya se ve): mientras no se
+## lo ve, cuenta con la demora que dice reinforcement.hint_plan (la normal; la temprana si el diario ya anotó una intercepción) descontada desde la señal y del humo
+## quemado, que el jugador también vio. 1e9 si todavía no hubo señal.
+func _reinforcement_left_estimate(t: float) -> float:
+	var al: Dictionary = state.alarm
+	if float(al.reinforcement_at) < 0.0:
+		return 1.0e9
+	var real_left := float(al.reinforcement_at) - t
+	var rf: Dictionary = _rules.reinforcement
+	if real_left <= float(rf.warning_lead_s):
+		return real_left
+	var plan: Dictionary = rf.get("hint_plan", {})
+	var assume := str(plan.get("tras_interceptados", "temprano")) if _diary_has("interceptados") else str(plan.get("default", "normal"))
+	var delay := float((rf.delay_s as Dictionary).get(assume, rf.delay_s.normal))
+	return delay - _known_advance_s() - (t - float(al.signal_at))
+
+## Lo que el jugador vio que adelanta el refuerzo: el humo de la pólvora quemada y el jinete que escapó al sur.
+func _known_advance_s() -> float:
+	var adv := float(state.get("smoke_adv", 0.0))
+	if str(state.alarm.messenger) == "escaped":
+		adv += float(_rules.reinforcement.get("messenger_advance_s", 0.0))
+	return adv
 
 ## Lo que le conviene hacer al arreo ahora: cargar lo mejor que entre, destruir lo que no entra hasta asegurar el golpe, o salir. {} si no hay nada que decir.
 func _arreo_step(t: float, allow_leave: bool) -> Dictionary:
@@ -135,8 +182,10 @@ func _arreo_step(t: float, allow_leave: bool) -> Dictionary:
 		return _step_dict("wait_load", {}, "arreo", "hold", Vector2.ZERO, 0)
 	if st != "idle":
 		return _step_dict("wait_exit", {}, "arreo", "hold", Vector2.ZERO, 0) if allow_leave else {}
-	var left := float(state.alarm.reinforcement_at) - t if float(state.alarm.reinforcement_at) >= 0.0 else 1.0e9
-	var urgent := left <= _exit_eta(u) + float(_rules.transport.exit_margin_s)
+	var left := _reinforcement_left_estimate(t)
+	## lo que sobra del reloj estimado después de la marcha al vado (con su margen): cada lote que se carga o se quema tiene que entrar en ese sobrante
+	var slack := left - (_exit_eta(u) + float(_rules.transport.exit_margin_s))
+	var urgent := slack <= 0.0
 	var carry_value := 0.0
 	for it in state.loot.items:
 		if str(it.state) == "cargado":
@@ -145,20 +194,47 @@ func _arreo_step(t: float, allow_leave: bool) -> Dictionary:
 	var potential := carry_value + float(l.delivered_value) + float(l.destroyed_value) + float(l.hidden_value)
 	var gmin := float(_rules.outcome.victory.golpe_min)
 	if not urgent:
-		if carry_value < gmin + float(_rules.transport.load_margin):
-			var best := _next_load_target(u)
-			if not best.is_empty():
-				var spot := Vector2(float(best.x), float(best.z))
-				if D.dist(float(u.x), float(u.z), spot.x, spot.y) > float(_rules.transport.load_radius_m):
-					return _step_dict("bring_load", {"donde": str(best.where).to_lower()}, "arreo", "move", spot, 1)
-				return _step_dict("load", {"carga": str(_rules.loot.classes[str(best.kind)].name).to_lower()}, "arreo", "load", spot, 1)
-		if potential < gmin + 1.0:
-			var victim := _best_item(-1.0, Vector2(float(u.x), float(u.z)), float(_rules.transport.destroy_radius_m), true)
-			if not victim.is_empty():
-				return _step_dict("destroy", {"carga": str(_rules.loot.classes[str(victim.kind)].name).to_lower()}, "arreo", "destroy", Vector2(float(victim.x), float(victim.z)), 1)
+		var best := _next_load_target(u, slack)
+		if not best.is_empty():
+			var spot := Vector2(float(best.x), float(best.z))
+			if D.dist(float(u.x), float(u.z), spot.x, spot.y) > float(_rules.transport.load_radius_m):
+				return _step_dict("bring_load", {"donde": str(best.where).to_lower()}, "arreo", "move", spot, 1)
+			return _step_dict("load", {"carga": str(_rules.loot.classes[str(best.kind)].name).to_lower()}, "arreo", "load", spot, 1)
+		## lo que no entra en las mulas se destruye mientras el reloj estimado lo permita: suma destruir × valor al golpe (y, si el golpe no alcanza, es la única salida)
+		var victim := _best_item(-1.0, Vector2(float(u.x), float(u.z)), float(_rules.transport.destroy_radius_m), true)
+		if not victim.is_empty() and float(_rules.loot.classes[str(victim.kind)].destroy_s) <= slack:
+			return _step_dict("destroy", {"carga": str(_rules.loot.classes[str(victim.kind)].name).to_lower()}, "arreo", "destroy", Vector2(float(victim.x), float(victim.z)), 1 if potential >= gmin + 1.0 else 2)
 	if not allow_leave:
 		return {}
 	return _step_dict("leave", {}, "arreo", "leave", _hito_pos("salida_este"), 2 if urgent else 1)
+
+## El enfoque que la pista recomienda para un frente: para el cuartel, el que la torre que el jugador cree (lo que le creyó al informante) no barre: patios si cree
+## que está en la casa del cura, calle si cree que está en el templo. "" si no decidió nada o el frente no tiene enfoques que cambien algo.
+func _hint_approach(fid: String) -> String:
+	if fid != "cuartel" or str(state.world.guardia) == "atenta":  # con la guardia atenta (lo dice el briefing) los patios pasan a la vista de la altura: siempre la calle
+		return ""
+	var believed := str(_o()._field().believed_tower())
+	if believed == "casa_cura":
+		return "patios"
+	if believed == "templo":
+		return "calle"
+	return ""
+
+## La partida que podría cargar sobre el cuartel en el hueco de recarga de la torre: la que lo ataca (vuelve a cargar) o una libre a su alcance. "" si no hay hueco o nadie.
+func _tower_gap_charger() -> String:
+	if str(state.objectives.cuartel.state) == "tomado" or not _o()._tower_in_gap():
+		return ""
+	var c := _hito_pos(str(_rules.objectives.cuartel.hito))
+	for g in V.COMBAT_GROUPS:
+		var u := _unit(g)
+		var st := str(u.stage)
+		if st == "routed" or st == "exited" or st == "moving":
+			continue
+		if float(u.get("tower_cover_until", -1.0)) > float(state.elapsed):
+			continue  # ya está cruzando en este hueco
+		if D.dist(float(u.x), float(u.z), c.x, c.y) <= float(_rules.combat.attack_range_m):
+			return g
+	return ""
 
 ## Quien terminó su frente puede socorrer al que más cuesta (es el «Arias acude a Portal» del diseño). {} si nadie puede o nada hace falta.
 func _support_step() -> Dictionary:
@@ -188,21 +264,26 @@ func next_step() -> Dictionary:
 	if not bool(state.alarm.signaled):
 		var recon_u := _unit("reconocedores")
 		var scouts_busy := str(recon_u.stage) == "moving" or str(recon_u.stage) == "scouting"
-		if float(state.objectives.bateria.reconocido) < 1.0 and not scouts_busy:
+		var recon_safe := not _diary_has("descubiertos")  # lo que el diario enseñó: si ya los vieron una vez en este mundo, no se manda a nadie a mirar de cerca
+		if float(state.objectives.bateria.reconocido) < 1.0 and not scouts_busy and recon_safe:
 			return _step_dict("recon", {"frente": str(_rules.objectives.bateria.place)}, "reconocedores", "recon", _hito_pos("bateria"), 1)
 		for g in V.COMBAT_GROUPS:
 			var u := _unit(g)
 			var st := str(u.stage)
-			if st == "idle" or st == "holding" or (st == "moving" and str(u.order.get("action", "")) != "position"):
-				return _step_dict("position", {"grupo": str(_rules.groups[g].short)}, g, "position", _attack_post(str(_rules.groups[g].front), {}), 1)
+			var fid_g := str(_rules.groups[g].front)
+			var approach := _hint_approach(fid_g)
+			## ya en camino o en su puesto, pero por el otro enfoque: después del informante la pista pide cambiar de entrada (una orden nueva de puesto la cambia)
+			var wrong_entry := approach != "" and (st == "waiting_signal" or (st == "moving" and str(u.order.get("action", "")) == "position")) and str(u.order.get("approach", "")) != approach
+			if st == "idle" or st == "holding" or (st == "moving" and str(u.order.get("action", "")) != "position") or wrong_entry:
+				if approach != "":
+					var enfoque := "los patios" if approach == "patios" else "la calle"
+					return _step_dict("position_enfoque", {"grupo": str(_rules.groups[g].short), "enfoque": enfoque}, g, "position", _attack_post(fid_g, {"approach": approach}), 1)
+				return _step_dict("position", {"grupo": str(_rules.groups[g].short)}, g, "position", _attack_post(fid_g, {}), 1)
 		var arreo := _unit("arreo")
 		var posta := _hito_pos("posta")
 		if str(arreo.stage) == "idle" and D.dist(float(arreo.x), float(arreo.z), posta.x, posta.y) > float(_rules.transport.bring_radius_m):
 			return _step_dict("bring", {}, "arreo", "move", posta, 1)
-		if not scouts_busy and t < float(tm.alba_start_s) - float(_rules.stealth.recon.more_until_dawn_s):
-			for fid in ["cuartel", "posta"]:
-				if float(state.objectives[fid].reconocido) < 1.0:
-					return _step_dict("recon", {"frente": str(_rules.objectives[fid].place)}, "reconocedores", "recon", _hito_pos(str(_rules.objectives[fid].hito)), 1)
+		## (el cuartel y la posta no se mandan a mirar de cerca: para llegar hay que pasar por delante de la batería y la guardia los ve; lo que importa ya se sabe)
 		var waiting: Array = []
 		var coming: Array = []
 		for g in V.COMBAT_GROUPS:
@@ -243,7 +324,74 @@ func next_step() -> Dictionary:
 				holder = g
 		return _step_dict("wait_attack", {"frente": str(_rules.objectives[pending].place)}, holder, "hold", Vector2.ZERO, 0)
 	var post := _arreo_step(t, true)
+	if not post.is_empty() and str(post.action) != "hold":
+		return post
+	var leftovers := _group_destroy_step()
+	if not leftovers.is_empty():
+		return leftovers
+	var withdraw := _group_withdraw_step()
+	if not withdraw.is_empty():
+		return withdraw
 	return post if not post.is_empty() else _step_dict("fin", {}, "arreo", "cancel", Vector2.ZERO, 0)
+
+const WITHDRAW_AT_M := {"rodriguez": 1.0e9, "portal": 170.0, "arias": 60.0, "reconocedores": 15.0}  # a qué distancia del vado tiene que estar ya la columna para replegar a cada agrupación
+
+## Con la columna en marcha y nada más que destruir, las partidas se repliegan por el vado de a una, a medida que la columna pasa su altura (los jinetes de
+## Rodríguez primero; Arias, que cubre la posta, al final). {} si el arreo no salió o nadie queda por replegar.
+func _group_withdraw_step() -> Dictionary:
+	var arreo := _unit("arreo")
+	if not _arreo_leaving(arreo):
+		return {}
+	var vado := _hito_pos("vado_este")
+	var d_col := D.dist(float(arreo.x), float(arreo.z), vado.x, vado.y) if str(arreo.stage) == "moving" else 0.0
+	for g in V.COMBAT_GROUPS:
+		var u := _unit(g)
+		var st := str(u.stage)
+		if st != "holding" and st != "idle":
+			continue
+		if d_col <= float(WITHDRAW_AT_M.get(g, 0.0)):
+			return _step_dict("repliegue", {"grupo": str(_rules.groups[g].short)}, g, "leave", _hito_pos("salida_este"), 1)
+	var scouts := _unit("reconocedores")
+	if str(scouts.stage) == "idle" and d_col <= float(WITHDRAW_AT_M.reconocedores) and D.dist(float(scouts.x), float(scouts.z), vado.x, vado.y) > 60.0:
+		return _step_dict("repliegue_scouts", {}, "reconocedores", "move", _hito_pos("salida_este"), 1)
+	return {}
+
+## ¿La columna ya va camino al vado (o salió)? Un arreo que camina hacia un lote todavía no se fue: lo que va a buscar no se destruye.
+func _arreo_leaving(arreo: Dictionary) -> bool:
+	return str(arreo.stage) == "exited" or (str(arreo.stage) == "moving" and str(arreo.order.get("action", "")) == "leave")
+
+## Mientras la columna marcha al vado, las partidas que sostienen un frente destruyen lo que quedó en el sitio (suma destruir × valor al golpe). {} si el arreo sigue
+## cargando, si nadie está libre o si no queda nada a mano.
+func _group_destroy_step() -> Dictionary:
+	var arreo := _unit("arreo")
+	var arreo_gone := _arreo_leaving(arreo)
+	var room := float(state.loot.capacity_kg) - float(state.loot.load_kg)
+	var radius := float(_rules.transport.destroy_radius_m)
+	for g in V.COMBAT_GROUPS:
+		var u := _unit(g)
+		var st := str(u.stage)
+		if st != "holding" and st != "idle":
+			continue
+		var best: Dictionary = {}
+		var best_d := GROUP_DESTROY_REACH_M
+		for it in state.loot.items:
+			if str(it.state) != "en_sitio" or str(state.objectives[str(it.front)].state) != "tomado":
+				continue
+			## mientras el arreo todavía carga, las partidas solo destruyen lo que el arreo no va a llevar (lo que no entra en las mulas o las piezas de la batería, lejos de la posta)
+			if not arreo_gone and _item_kg(it) <= room and str(it.front) != "bateria":
+				continue
+			var d := D.dist(float(u.x), float(u.z), float(it.x), float(it.z))
+			if d < best_d:
+				best_d = d
+				best = it
+		if best.is_empty():
+			continue
+		var spot := Vector2(float(best.x), float(best.z))
+		var carga := str(_rules.loot.classes[str(best.kind)].name).to_lower()
+		if best_d > radius:
+			return _step_dict("ir_destruir", {"grupo": str(_rules.groups[g].short), "carga": carga}, g, "move", spot, 1)
+		return _step_dict("destruir_grupo", {"grupo": str(_rules.groups[g].short), "carga": carga}, g, "destroy", spot, 1)
+	return {}
 
 ## ¿Hay algo para decidir ahora? Un «siguiente paso» con algo para hacer, una alerta con botón o una decisión pendiente (la oferta que mide stats.pacing).
 func offer_now() -> bool:
@@ -274,18 +422,23 @@ func _reinforcement_hud() -> Dictionary:
 	var al: Dictionary = state.alarm
 	var t := float(state.elapsed)
 	var band: Array = _rules.reinforcement.band_initial_s
+	var lo := float(band[0])
+	var hi := float(band[1])
 	var estado := "desconocido"
 	var rest := 0.0
 	if bool(al.reinforcement_arrived):
 		estado = "llego"
 	elif float(al.reinforcement_at) >= 0.0:
 		var left := float(al.reinforcement_at) - t
+		var since := t - float(al.signal_at) + _known_advance_s()  # la banda corre desde la señal y se acorta con el humo quemado y el jinete que escapó (lo que el jugador ve)
+		lo = maxf(0.0, lo - since)
+		hi = maxf(0.0, hi - since)
 		if left <= float(_rules.reinforcement.warning_lead_s):
 			estado = "visible"
 			rest = maxf(0.0, left)
 		elif str(state.phase) == "extraccion":
 			estado = "en_camino"
-	return {"estado": estado, "restante_s": rest, "banda": [float(band[0]), float(band[1])]}
+	return {"estado": estado, "restante_s": rest, "banda": [lo, hi]}
 
 func _hud_alerts(t: float) -> Array:
 	var out: Array = []
@@ -302,6 +455,10 @@ func _hud_alerts(t: float) -> Array:
 			var a: Dictionary = _rules.texts.alertas.en_puesto
 			out.append({"id": "en_puesto", "nivel": "aviso", "corto": _fmt(str(a.corto), {"grupo": who}), "largo": _fmt(str(a.largo), {"grupo": who, "faltan": ", ".join(PackedStringArray(faltan))}),
 				"boton": str(a.boton), "accion": {"action": "give_signal"}, "pausa": false, "vence_s": 0.0})
+		elif bool(info.can_give) and (info.waiting as Array).is_empty() and t < float(tm.alba_start_s) - 60.0 and _rules.texts.alertas.has("todos_en_puesto"):
+			## las tres en su puesto y todavía de noche: dar la señal ya es una decisión posible (de noche se tira peor, pero la guardia duerme)
+			var ap: Dictionary = _rules.texts.alertas.todos_en_puesto
+			out.append({"id": "todos_en_puesto", "nivel": "aviso", "corto": str(ap.corto), "largo": str(ap.largo), "boton": str(ap.boton), "accion": {"action": "give_signal"}, "pausa": false, "vence_s": 0.0})
 		if t >= float(tm.alba_start_s) - 60.0 and t < float(tm.alba_start_s):
 			var b: Dictionary = _rules.texts.alertas.aviso_alba
 			out.append({"id": "aviso_alba", "nivel": "aviso", "corto": str(b.corto), "largo": str(b.largo), "boton": str(b.boton), "accion": {"action": "give_signal"}, "pausa": false, "vence_s": 0.0})
@@ -310,11 +467,26 @@ func _hud_alerts(t: float) -> Array:
 			var left := maxf(0.0, float(tm.dawn_discovery_s) - t)
 			out.append({"id": "amanece", "nivel": "critica", "corto": str(d.corto), "largo": _fmt(str(d.largo), {"t": _clock(float(tm.dawn_discovery_s))}), "boton": str(d.boton),
 				"accion": {"action": "give_signal"}, "pausa": false, "vence_s": left})
+	var dec: Dictionary = _o()._field().pending_decision()
+	if playing and not dec.is_empty() and (dec.opciones as Array).size() >= 2:
+		## la decisión de campo como aviso con botón: el botón cree la segunda versión; sin tocar nada, al vencer se toma la primera (lo dice el texto)
+		var ops: Array = dec.opciones
+		var left_dec := maxf(0.0, float(dec.get("at", t)) + float(dec.get("vence_s", 25.0)) - t)
+		var largo := "%s %s. Si no decidís, se toma la primera." % [str(dec.texto), str(ops[0].label).to_lower().replace("creer que", "La primera dice que")]
+		out.append({"id": "informante", "nivel": "aviso", "corto": str(dec.titulo), "largo": largo, "boton": str(ops[1].label), "accion": {"action": "decide", "actor": str(ops[1].id)},
+			"pausa": true, "vence_s": left_dec, "opciones": ops.duplicate(true)})
 	if playing and bool(state.objectives.cuartel.tower.active):
 		var tw: Dictionary = _rules.texts.alertas.torre
 		var tc: Dictionary = _rules.tower
 		out.append({"id": "torre", "nivel": "aviso", "corto": str(tw.corto), "largo": _fmt(str(tw.largo), {"periodo": tc.volley_period_s, "radio": tc.radius_m, "angulo": tc.dead_angle_m}),
 			"boton": "", "accion": {}, "pausa": false, "vence_s": 0.0})
+		## el hueco de recarga: quien cargue ahora llega al pie de la torre antes de la próxima descarga (la ventana de cruce del diseño). Es una decisión con costo
+		## (una carga más cuesta fatiga) y solo se ofrece a una partida que pueda atacar el cuartel ya.
+		var charger := _tower_gap_charger()
+		if charger != "" and _rules.texts.alertas.has("torre_hueco"):
+			var th: Dictionary = _rules.texts.alertas.torre_hueco
+			var left := maxf(0.0, float(state.objectives.cuartel.tower.next_volley_at) - t)
+			out.append({"id": "torre_hueco", "nivel": "aviso", "corto": str(th.corto), "largo": str(th.largo), "boton": str(th.boton), "accion": {"action": "attack", "actor": charger}, "pausa": false, "vence_s": left})
 	if playing and str(state.phase) == "extraccion":
 		var hud_r := _reinforcement_hud()
 		if str(hud_r.estado) == "visible":
@@ -528,7 +700,7 @@ func campaign_report() -> Dictionary:
 ## Cuánto ve a una agrupación que va con `noise` el centinela más próximo de un frente que sigue en pie: 0 si no lo alcanza y 1 si está encima. Cuenta la visión entre
 ## los dos (un muro la tapa) y la altura de la batería y de la torre.
 func _seen_by(fid: String, p: Vector2, noise: float, vis: float) -> float:
-	var reach: float = vis * (1.0 + float(_rules.stealth.detection.noise_mult) * noise) * _o()._vis_mult_at(fid)
+	var reach: float = vis * (1.0 + float(_rules.stealth.detection.noise_mult) * noise) * _o()._vis_mult_at(fid) * _o()._detect_mult()
 	var best := 0.0
 	var t = _o().terrain()
 	for s in _o()._sentinel_points(fid):
@@ -601,7 +773,7 @@ func plan_route(actor_id: String, target: Vector2, opts: Dictionary = {}) -> Dic
 				if seen > risk:
 					risk = seen
 					warn_front = str(_rules.objectives[fid].place)
-					warn_m = roundi(vis * (1.0 + float(_rules.stealth.detection.noise_mult) * noise) * _o()._vis_mult_at(fid))
+					warn_m = roundi(vis * (1.0 + float(_rules.stealth.detection.noise_mult) * noise) * _o()._vis_mult_at(fid) * _o()._detect_mult())
 	out.ok = true
 	var path: Array = []
 	for p in pts:

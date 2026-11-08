@@ -25,6 +25,7 @@ evidence/**/_appdata/
 # Nivel «Humahuaca» (contrato 4.4): solo la ronda de cierre (r4) entra a Git; r1, r2a, r2b, r3 y cualquier otra quedan fuera
 evidence/humahuaca/*
 !evidence/humahuaca/r4/
+!evidence/humahuaca/r2b/
 evidence/humahuaca/**/_appdata/
 # Teselas de relieve (GeoTIFF): viven fuera del repo (investigacion-nivel2/descargas/); el juego lee data/humahuaca_height.json
 *.tif

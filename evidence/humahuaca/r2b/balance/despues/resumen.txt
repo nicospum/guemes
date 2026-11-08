@@ -1,0 +1,55 @@
+política/intento               n  gana   tasa wilson90      med vict  med derr  causas
+ciego_sin_arreo/1            180     0   0.0% (0, 0.015)    -         1:10      {'interceptados': 87, 'descubiertos': 93}
+ciego_sin_arreo/2            180     0   0.0% (0, 0.015)    -         1:10      {'interceptados': 87, 'descubiertos': 93}
+ciego_sin_arreo/3            180     0   0.0% (0, 0.015)    -         1:10      {'interceptados': 87, 'descubiertos': 93}
+ciego_sin_arreo/4            180     0   0.0% (0, 0.015)    -         1:10      {'interceptados': 87, 'descubiertos': 93}
+ciego_sin_arreo/5            180     0   0.0% (0, 0.015)    -         1:10      {'interceptados': 87, 'descubiertos': 93}
+ciego_sin_recon/1            180     0   0.0% (0, 0.015)    -         12:45     {'interceptados': 180}
+ciego_sin_recon/2            180     0   0.0% (0, 0.015)    -         12:45     {'interceptados': 180}
+ciego_sin_recon/3            180     0   0.0% (0, 0.015)    -         12:45     {'interceptados': 180}
+ciego_sin_recon/4            180     0   0.0% (0, 0.015)    -         12:45     {'interceptados': 180}
+ciego_sin_recon/5            180     0   0.0% (0, 0.015)    -         12:45     {'interceptados': 180}
+ciego_tarde/1                180     0   0.0% (0, 0.015)    -         1:10      {'plazo': 57, 'descubiertos': 93, 'interceptados': 30}
+ciego_tarde/2                180     0   0.0% (0, 0.015)    -         1:10      {'plazo': 57, 'descubiertos': 93, 'interceptados': 30}
+ciego_tarde/3                180     0   0.0% (0, 0.015)    -         1:10      {'plazo': 57, 'descubiertos': 93, 'interceptados': 30}
+ciego_tarde/4                180     0   0.0% (0, 0.015)    -         1:10      {'plazo': 57, 'descubiertos': 93, 'interceptados': 30}
+ciego_tarde/5                180     0   0.0% (0, 0.015)    -         1:10      {'plazo': 57, 'descubiertos': 93, 'interceptados': 30}
+ciego_un_frente/1            180     0   0.0% (0, 0.015)    -         1:10      {'frente_roto': 87, 'descubiertos': 93}
+ciego_un_frente/2            180     0   0.0% (0, 0.015)    -         1:10      {'frente_roto': 87, 'descubiertos': 93}
+ciego_un_frente/3            180     0   0.0% (0, 0.015)    -         1:10      {'frente_roto': 87, 'descubiertos': 93}
+ciego_un_frente/4            180     0   0.0% (0, 0.015)    -         1:10      {'frente_roto': 87, 'descubiertos': 93}
+ciego_un_frente/5            180     0   0.0% (0, 0.015)    -         1:10      {'frente_roto': 87, 'descubiertos': 93}
+experto/1                    192   192 100.0% (0.986, 1)    11:40     -         {}
+obediente/1                  180    72  40.0% (0.342, 0.461) 11:02     1:10      {'descubiertos': 93, 'interceptados': 15}
+obediente/2                  108   108 100.0% (0.976, 1)    11:09     -         {}
+pasivo/1                     180     0   0.0% (0, 0.015)    -         6:30      {'amanecio': 180}
+pasivo/2                     180     0   0.0% (0, 0.015)    -         6:30      {'amanecio': 180}
+pasivo/3                     180     0   0.0% (0, 0.015)    -         6:30      {'amanecio': 180}
+pasivo/4                     180     0   0.0% (0, 0.015)    -         6:30      {'amanecio': 180}
+pasivo/5                     180     0   0.0% (0, 0.015)    -         6:30      {'amanecio': 180}
+pausa_reanuda/1              180     0   0.0% (0, 0.015)    -         6:30      {'amanecio': 180}
+pausa_reanuda/2              180     0   0.0% (0, 0.015)    -         6:30      {'amanecio': 180}
+pausa_reanuda/3              180     0   0.0% (0, 0.015)    -         6:30      {'amanecio': 180}
+pausa_reanuda/4              180     0   0.0% (0, 0.015)    -         6:30      {'amanecio': 180}
+pausa_reanuda/5              180     0   0.0% (0, 0.015)    -         6:30      {'amanecio': 180}
+torpe/1                      180    57  31.7% (0.263, 0.376) 11:34     1:10      {'descubiertos': 93, 'interceptados': 30}
+torpe/2                      123    96  78.0% (0.713, 0.835) 11:36     11:21     {'interceptados': 27}
+torpe/3                       27    27 100.0% (0.909, 1)    10:44     -         {}
+ritmo (oferta, n=1698): primera decisión peor 1 s · brecha máx peor 40 s · brecha ataque peor 18 s · incumplen 0
+ritmo (ramificacion, n=12): primera decisión peor 704 s · brecha máx peor 704 s · brecha ataque peor 419 s · incumplen 12
+   semilla 9001: sig 1/18 · primera 308 · brecha 381 · ataque 381
+   semilla 9002: sig 0/19 · primera 703 · brecha 703 · ataque 418
+   semilla 9003: sig 1/18 · primera 308 · brecha 381 · ataque 381
+   semilla 9004: sig 0/19 · primera 704 · brecha 704 · ataque 419
+   semilla 9005: sig 0/17 · primera 650 · brecha 650 · ataque 365
+   semilla 9006: sig 0/19 · primera 704 · brecha 704 · ataque 419
+   semilla 9007: sig 0/17 · primera 653 · brecha 653 · ataque 368
+   semilla 9008: sig 0/17 · primera 650 · brecha 650 · ataque 365
+   semilla 9009: sig 0/17 · primera 654 · brecha 654 · ataque 369
+   semilla 9010: sig 0/17 · primera 650 · brecha 650 · ataque 365
+   semilla 9011: sig 0/19 · primera 704 · brecha 704 · ataque 419
+   semilla 9012: sig 0/17 · primera 650 · brecha 650 · ataque 365
+J07 victorias experto+obediente: n=372 mediana 11:09 · entre 10:00 y 14:00 96% · bajas mediana 28.7% · >80% 0.0%
+J07 derrotas 1.er intento obediente+torpe: n=231 mediana 1:10 · máxima 11:33
+variantes (semillas del experto): {'guardia': {'descuidada': 35, 'atenta': 37}, 'layout': {'A': 72}, 'lluvia': {'copiosa': 72}, 'refuerzo': {'normal': 30, 'temprano': 25, 'tardio': 17}, 'refugio': {'sur': 72}, 'torre_en': {'templo': 38, 'casa_cura': 34}}
+obediente por mundo: {'atenta/casa_cura/normal': '0/27', 'atenta/casa_cura/tardio': '0/6', 'atenta/casa_cura/temprano': '0/12', 'atenta/templo/normal': '0/18', 'atenta/templo/tardio': '0/15', 'atenta/templo/temprano': '0/15', 'descuidada/casa_cura/normal': '9/9', 'descuidada/casa_cura/tardio': '18/18', 'descuidada/casa_cura/temprano': '0/15', 'descuidada/templo/normal': '21/21', 'descuidada/templo/tardio': '9/9', 'descuidada/templo/temprano': '15/15'}

@@ -1,0 +1,1 @@
+comparadas 180, distintas 0 (mínimo 100 comparadas y 0 distintas) []

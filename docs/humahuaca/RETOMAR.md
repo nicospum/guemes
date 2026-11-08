@@ -34,6 +34,10 @@ Cómo se traduce (el lead lo ordena al retomar):
 
 Orden sugerido: cámara, decisión de herramientas, arte y mapa, dinámica, imágenes, cierre. El plan de rondas R2a a R4 del bucle sigue valiendo; este plan se suma a las pistas visual y ui_feel y puede requerir actualizar `docs/CONTRATO_HUMAHUACA.md` (nuevos formatos de modelos, créditos) antes de relanzar.
 
+## Balance R2b hecho en la nube (rama `hx-balance-nube`, 2026-11-03)
+
+Sobre `humahuaca-r1` se hizo el balance de R2b sin pantalla: mundos sorteados por semilla, guardia atenta que castiga el reconocimiento, pistas que no leen el reloj del refuerzo, informante de los 0:40, hueco de recarga de la torre y repliegue escalonado. Qué cambió y por qué: `docs/humahuaca/BALANCE_R2B.md`; cifras de 60 semillas antes y después: `evidence/humahuaca/r2b/balance/`. Lo que quedó sin alcanzar y su razón están en ese mismo documento (ramificación de J03, torpe algo por encima del 30 %, matriz con cinco de ocho estrategias). Las cinco suites corren verdes con `--headless`. Al retomar con ventana: mirar el aviso del informante y el de «Cargar ahora» en la interfaz real, y correr la escena (`--level=scene`) para J04/J05 de escena.
+
 ## Qué hay en main
 
 - El nivel II «Humahuaca: el depósito de la retaguardia» se juega de punta a punta desde el botón II del menú: noche de preparación, señal, ataque a la batería, el cuartel y la posta, extracción al alba, parte de victoria o de derrota, reintento, guardado y carga.

@@ -1,0 +1,42 @@
+  J00 todas las semillas están en el rango reservado de QA 9001-9060         PASA  {"fuera": []}
+  J00 ninguna partida con excepciones                                        PASA  {"con_excepcion": 0}
+  J00 experto: ≥ 60 semillas y ≥ 1 réplicas                                  PASA  {"semillas": 60, "replicas": 3}
+  J00 obediente: ≥ 60 semillas y ≥ 3 réplicas                                PASA  {"semillas": 60, "replicas": 3}
+  J00 torpe: ≥ 60 semillas y ≥ 3 réplicas                                    PASA  {"semillas": 60, "replicas": 3}
+  J03 primera decisión ≤ 60 s en todas las partidas (ofertas)                FALLA {"peor_s": 704.25, "n": 1998}
+  J03 mayor brecha sin decisión posible ≤ 45 s (ofertas)                     FALLA {"peor_s": 704.25}
+  J03 mayor brecha durante el ataque ≤ 20 s (ofertas)                        FALLA {"peor_s": 419.25}
+  J03 ≥ 12 partidas del experto medidas por ramificación (decisiones significativas) y cumplen las tres cifras FALLA {"n": 12, "incumplen": 12}
+  J03 «pausa y reanuda»: existe, pierde por amanecio y no recibe más de una alerta crítica a la vez PASA  {"n": 900}
+  J04 experto, 1.er intento ≥ 80 %                                           PASA  {"p": 1.0, "n": 180, "wilson90": [0.985, 1.0]}
+  J04 cada bot ciego gana ≤ 10 % (y existe al menos uno)                     PASA  {"ciegos": {"ciego_sin_recon": 0.0, "ciego_tarde": 0.0, "ciego_un_frente": 0.0, "ciego_sin_arreo": 0.0}}
+  J04 pasivo y «pausa y reanuda»: 0 victorias y todas por «amanecio»         PASA  {"n": 1800}
+  J04 escena real: hay partidas de la escena (nivel «scene»)                 FALLA {"nota": "faltan filas level=scene"}
+  J05 experto, 1.er intento ≥ 90 %                                           PASA  {"p": 1.0}
+  J05 obediente, 1.er intento entre 20 % y 45 %                              PASA  {"p": 0.4, "wilson90": [0.342, 0.461]}
+  J05 obediente, 3.er intento (con diario) entre 55 % y 85 % (n ≥ 20)        FALLA {"p": NaN, "n": 0, "wilson90": [0.0, 0.0]}
+  J05 obediente gana al menos una vez en ≤ 5 intentos: ≥ 85 %                PASA  {"p": 1.0, "n": 180}
+  J05 torpe, 1.er intento entre 5 % y 30 %                                   FALLA {"p": 0.317, "wilson90": [0.263, 0.376]}
+  J06 hay ≥ 8 estrategias de frente distintas en la matriz                   FALLA {"n": 5}
+  J06 ninguna estrategia concentra > 60 % de las victorias                   PASA  {"max_pct": 26.3}
+  J06 ninguna estrategia gana en > 80 % de las semillas                      FALLA {"max_pct": 100.0, "top": [["est_bateria_frontal", 1.0], ["est_cuartel_calle", 1.0], ["est_posta_directa", 1.0]]}
+  J06 ≥ 3 estrategias ganan en ≥ 50 % de las semillas                        PASA  {"n": 3}
+  J06 ≥ 3 estrategias distintas son la mejor (golpe − 0,5 × bajas) en ≥ 3 semillas cada una FALLA {"mejores": {"est_bateria_frontal": 60}}
+  J06 cada enfoque de cada frente es el mejor en ≥ 1 semilla                 FALLA {"sin_mundo": [["bateria", "gola"]], "mejor_por_frente": {"posta": {"directa": 60}, "cuartel": {"calle": 46, "patios": 14}, "bateria": {"frontal": 60}
+  J06 cada valor de cada variante activa ['guardia', 'torre_en', 'refuerzo'] aparece en ≥ 3 semillas de QA PASA  {"escasos": []}
+  J06 extracción: ≥ 4 recetas distintas                                      PASA  {"n": 4}
+  J06 extracción: ninguna receta gana en > 60 % de los mundos                FALLA {"max_pct": 100.0, "top": [["ext_mixta", 1.0], ["ext_cargar_todo", 0.16666666666666666], ["ext_ligera", 0.16666666666666666]]}
+  J06 extracción: `ext_ocultar` es la mejor (estricta) en ≥ 1 mundo          FALLA {"mundos": 0}
+  J06 señal: el máximo cae entre 4:15 y 5:45 y no en los 3 primeros instantes PASA  {"instante_s": 300.0, "indice": 12}
+  J06 señal: unimodal (un solo máximo local con prominencia ≥ 3 puntos)      FALLA {"maximos": [120.0, 300.0]}
+  J06 señal: meseta de ≥ 3 instantes consecutivos (≥ 30 s) con ≥ 90 % del máximo PASA  {"tramo": 7, "maximo": 37.06}
+  J07 victorias: mediana entre 11:00 y 13:00                                 PASA  {"mediana_s": 669.8, "n": 360}
+  J07 victorias: ≥ 90 % entre 10:00 y 14:00                                  PASA  {"pct": 95.8}
+  J07 derrotas del 1.er intento: mediana ≤ 8:00 y ninguna pasa de 14:00      PASA  {"mediana_s": 70.2, "n": 231}
+  J07 bajas: mediana de victorias ≤ 55 % y ≤ 15 % con bajas > 80 %           PASA  {"mediana": 28.9, "pct_gt80": 0.0}
+J00 PASA
+J03 FALLA
+J04 FALLA
+J05 FALLA (informe: cuenta como MEDIA, no bloquea)
+J06 FALLA
+J07 PASA

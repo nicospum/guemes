@@ -192,13 +192,16 @@ func _test_progress_checkpoints_and_diary() -> void:
 		if str(o.id) == "posiciones":
 			posiciones_ok = bool(o.available) and float(o.at_s) > 0.0
 	t.ck(posiciones_ok, "retry_options marca «posiciones» como disponible, con su segundo")
-	# el control de la salida se guarda al tomar el tercer frente
+	# el control de la salida se guarda al tomar el tercer frente (balance R2b: el cuartel ya no cae solo; lo juega el experto, con apoyo)
 	var ext = t.new_rules(int(p.call("world_seed")), {"phase": "ataque"})
 	p.call("begin_attempt", ext)
+	var ext_mem := {}
+	var ext_rng := RandomNumberGenerator.new()
+	ext_rng.seed = 7
 	var g2 := 0
 	while str(ext.state.phase) != "extraccion" and str(ext.state.status) == "playing" and g2 < 400:
 		g2 += 1
-		ext.call("tick", 1.0)
+		t.pol.call("step", ext, "experto", ext_mem, ext_rng)
 		p.call("checkpoint_tick", ext)
 	p.call("checkpoint_tick", ext)
 	t.ck(bool(p.call("has_checkpoint", "salida")), "el control de la salida se guarda al tomar el tercer frente")
@@ -225,6 +228,61 @@ func _test_progress_checkpoints_and_diary() -> void:
 	t.ck(float(next_try.state.objectives.bateria.reconocido) == 0.0 and float(next_try.state.objectives.bateria.alert) == 0.0, "las marcas del diario no cuentan como reconocimiento ni bajan la alerta")
 	q.call("reset_all")
 	t.ck((q.call("diary_entries") as Array).is_empty() and not FileAccess.file_exists(CHECKPOINT_PATH), "reset_all vacía el diario y borra los controles")
+
+# ---------------------------------------------------------------------------------------------------------------------
+# El mundo de cada semilla (balance R2b: las dimensiones activas se sortean; la 1817 da el mundo fijo)
+
+func _test_world_from_seed() -> void:
+	var r = t.new_rules()
+	var first: Dictionary = t._dict(r.call("world_from_seed", 1817))
+	var dims_ok := true
+	for dim in R.VARIANTS:
+		if not first.has(dim) or not (R.VARIANTS[dim] as Array).has(first[dim]):
+			dims_ok = false
+	t.ck(dims_ok, "world_from_seed trae las seis dimensiones con valores legales: %s" % str(first))
+	var traits: Dictionary = t._dict(first.get("loot", {}))
+	var traits_ok := true
+	for k in R.WORLD_TRAITS:
+		if not traits.has(k) or not (R.WORLD_TRAITS[k] as Array).has(traits[k]):
+			traits_ok = false
+	t.ck(traits_ok, "...y los rasgos del botín del mundo (corral, plata, pólvora) legales: %s" % str(traits))
+	t.ck(t.same(first, t._dict(r.call("world_from_seed", 1817))), "world_from_seed es determinista")
+	## Balance R2b (rama hx-balance-nube): las dimensiones activas se sortean con la semilla desde ya (antes: «en R1 el mundo es fijo»); la 1817 (el mundo guiado
+	## de la campaña) sigue dando el mundo fijo, las inactivas no cambian y las ocho semillas de calibración cubren cada valor activo al menos dos veces.
+	var fixed: Dictionary = t._dict(t._dict(t.cfg.get("variants", {})).get("fixed", {}))
+	var fixed_1817 := true
+	for dim in R.VARIANTS:
+		if fixed.has(dim) and str(first[dim]) != str(fixed[dim]):
+			fixed_1817 = false
+	t.ck(fixed_1817, "la semilla 1817 da el mundo fijo de variants.fixed: %s" % str(first))
+	var seen := {}
+	var inactive_same := true
+	for sd in [3, 5, 7, 11, 13, 17, 19, 23]:
+		var w: Dictionary = t._dict(r.call("world_from_seed", sd))
+		for dim in R.VARIANTS:
+			if R.ACTIVE_DIMS.has(dim):
+				seen[str(dim) + "=" + str(w[dim])] = int(seen.get(str(dim) + "=" + str(w[dim]), 0)) + 1
+			elif str(w[dim]) != str(first[dim]):
+				inactive_same = false
+	t.ck(inactive_same, "las dimensiones inactivas valen lo mismo en todas las semillas")
+	var scarce: Array = []
+	for dim in R.ACTIVE_DIMS:
+		for val in R.VARIANTS[dim]:
+			if int(seen.get(str(dim) + "=" + str(val), 0)) < 2:
+				scarce.append(str(dim) + "=" + str(val))
+	t.ck(scarce.is_empty(), "las ocho semillas de calibración cubren cada valor de cada dimensión activa ≥ 2 veces (faltan %s)" % str(scarce))
+	var s: Dictionary = r.state
+	var from_state := true
+	for dim in R.VARIANTS:
+		if str(s.world[dim]) != str(first[dim]):
+			from_state = false
+	t.ck(from_state, "el mundo de la partida es el de world_from_seed")
+	var forced = t.new_rules(1817, {"variant": {"torre_en": "templo", "guardia": "atenta"}})
+	t.ck(str(forced.state.world.torre_en) == "templo" and str(forced.state.world.guardia) == "atenta", "opts.variant fuerza una dimensión legal")
+	var bad_variant = t.new_rules(1817, {"variant": {"torre_en": "marte"}})
+	t.ck(str(bad_variant.state.world.torre_en) != "marte", "opts.variant ignora un valor ilegal")
+	var traited = t.new_rules(1817, {"loot_traits": {"polvora": "humeda", "corral": "desbandado"}})
+	t.ck(str(traited.state.world.loot_traits.polvora) == "humeda" and str(traited.state.world.loot_traits.corral) == "desbandado", "opts.loot_traits fuerza rasgos legales del botín")
 
 # ---------------------------------------------------------------------------------------------------------------------
 # La biblioteca de políticas (CONTRATO 3.2.5): el experto gana, el pasivo pierde
@@ -393,7 +451,7 @@ func _test_discovered(reached: Dictionary) -> void:
 		blown.state.objectives[fid].alert = 0.99
 		blown.state.objectives[fid].state = "alertado"
 		var u = t.unit_dict(blown, g)
-		var spot: Vector2 = Vector2(562.0, 262.0) if fid == "posta" else t.hito(fid) + Vector2(-18.0, 6.0)  # a la vista de los centinelas (el patio de la posta tapa el resto)
+		var spot: Vector2 = Vector2(568.0, 275.0) if fid == "posta" else t.hito(fid) + Vector2(-18.0, 6.0)  # a la vista de los centinelas (el patio de la posta tapa el resto; balance R2b: la guardia ve menos lejos)
 		u.stage = "loading"  # una agrupación haciendo ruido junto a los centinelas
 		u.work = {"kind": "load", "item": "", "remaining_s": 999.0}
 		u.x = spot.x
