@@ -500,6 +500,49 @@ func _menu():
  var credit=_label(ui,"RÍO DE LA PLATA  ·  12 DE AGOSTO DE 1806",16,GOLD,true);credit.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT
  credit.add_theme_color_override("font_shadow_color",Color(0.03,0.02,0.05,0.75));credit.add_theme_constant_override("shadow_offset_x",1);credit.add_theme_constant_override("shadow_offset_y",2)
  _anchor(credit,1,1,1,1,-620,-58,-32,-28)
+ if not hx_prewarm_done and not qa_mode:call_deferred("_hx_prewarm")
+
+# ---------- P4b · precalentado de los sombreadores del nivel II (pedido del lead, medido por P2) ----------
+# En una instalación nueva, la primera entrada al II compilaba sus sombreadores dentro de la construcción del nivel (≈ 1 550 ms contra el tope de
+# 1 500). Medido: cargarlos no alcanza (la compilación ocurre al dibujarlos por primera vez). Por eso, al abrir el juego, se cargan en un hilo
+# aparte y después se dibujan todos juntos un par de cuadros en cuadritos de 2 cm pegados a la cámara: la compilación queda hecha (y en la
+# caché de disco) y el II recibe las mismas instancias ya compiladas (caché de ResourceLoader). El tirón de esa compilación (≈ 80 ms por
+# sombreador) queda detrás de un velo de tinta que se desvanece: el menú no se traba con el jugador mirando. Solo la primera vez por sesión.
+const HX_PREWARM_SHADERS=["res://shaders/humahuaca_terrain.gdshader","res://shaders/humahuaca_props.gdshader","res://shaders/humahuaca_water.gdshader","res://shaders/humahuaca_token.gdshader","res://shaders/humahuaca_alert_ring.gdshader","res://shaders/humahuaca_rain.gdshader"]
+var hx_prewarm_done:=false
+var hx_prewarm_finished:=false
+var hx_prewarm_keep:Array=[]
+var hx_prewarm_draw:=true
+
+func _hx_prewarm():
+ if hx_prewarm_done:return
+ hx_prewarm_done=true
+ var veil_layer=CanvasLayer.new();veil_layer.layer=20;add_child(veil_layer)
+ var veil=ColorRect.new();veil.color=INK;veil.mouse_filter=Control.MOUSE_FILTER_IGNORE;veil.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);veil_layer.add_child(veil)
+ var vl=Label.new();vl.text="GÜEMES";vl.add_theme_color_override("font_color",Color(GOLD.r,GOLD.g,GOLD.b,0.55));vl.add_theme_font_size_override("font_size",40)
+ if title_wide:vl.add_theme_font_override("font",title_wide)
+ vl.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;vl.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;vl.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);vl.mouse_filter=Control.MOUSE_FILTER_IGNORE;veil.add_child(vl)
+ var pending=[]
+ for path in HX_PREWARM_SHADERS:
+  if ResourceLoader.exists(path) and ResourceLoader.load_threaded_request(path,"Shader")==OK:pending.append(path)
+ var guard=0
+ while guard<600 and pending.any(func(pp):return ResourceLoader.load_threaded_get_status(pp)==ResourceLoader.THREAD_LOAD_IN_PROGRESS):
+  guard+=1;await get_tree().process_frame
+ var quads=[]
+ for path in pending:
+  if ResourceLoader.load_threaded_get_status(path)!=ResourceLoader.THREAD_LOAD_LOADED:continue
+  var sh=ResourceLoader.load_threaded_get(path)
+  if not (sh is Shader):continue
+  hx_prewarm_keep.append(sh)
+  if not hx_prewarm_draw or not is_instance_valid(camera) or mode!="menu":continue
+  var mi=MeshInstance3D.new();var q=QuadMesh.new();q.size=Vector2(0.02,0.02);mi.mesh=q
+  var mat=ShaderMaterial.new();mat.shader=sh;mi.material_override=mat;mi.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+  camera.add_child(mi);mi.position=Vector3(0.002*quads.size(),0,-maxf(camera.near*4.0,0.2));quads.append(mi)
+ for i in range(3):await get_tree().process_frame
+ for mi in quads:
+  if is_instance_valid(mi):mi.queue_free()
+ hx_prewarm_finished=true
+ var tw=create_tween();tw.tween_property(veil,"modulate:a",0.0,0.35);tw.tween_callback(veil_layer.queue_free)
 
 # ---------- P4 · menú heroico, viñeta, documentos a pantalla completa ----------
 func _ink_gradient(a0:float,a1:float,a2:float,vertical:bool=false)->GradientTexture2D:
@@ -1514,6 +1557,9 @@ func _benchmark_run(scenario_name:String):
  settings.quality=benchmark_quality
  if qa_path.is_empty():qa_path=OS.get_user_data_dir().path_join("benchmark")
  DirAccess.make_dir_recursive_absolute(qa_path)
+ # P4b: como un jugador, el II se abre después del menú, con el precalentado de sus sombreadores ya hecho (≤ 10 s de espera).
+ var wait_t=Time.get_ticks_msec()
+ while scenario_name=="humahuaca" and hx_prewarm_done and not hx_prewarm_finished and Time.get_ticks_msec()-wait_t<10000:await get_tree().process_frame
  _start_game(scenario_name)
  if scenario_name=="justine":
   rules.issue_scout("scout_1","probe",[Vector2(200,264),Vector2(330,264)])
