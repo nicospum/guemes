@@ -1,5 +1,6 @@
 shader_type spatial;
-render_mode blend_mix, depth_draw_always, cull_disabled, shadows_disabled, specular_schlick_ggx;
+render_mode blend_mix, depth_draw_always, cull_disabled, specular_schlick_ggx;
+// P1 ronda 2: el agua RECIBE sombras (antes shadows_disabled): el casco, los palos y la barranca de la tarde se proyectan sobre el río.
 #include "res://shaders/justina_noise.gdshaderinc"
 // Agua del Rio de la Plata para Justina (ronda 4). Turbia, pardo-verdosa (no azul), mas clara y arenosa cerca de la orilla.
 // Olas pequeñas de viento: dos octavas de ruido a distinta escala y direccion (sin textura => sin mosaico visible), mas una
@@ -24,6 +25,9 @@ uniform vec2 ship_fwd = vec2(0.0, -1.0);
 uniform vec2 ship_half = vec2(5.5, 21.0);   // semiancho (m), semieslora (m)
 uniform float unc_radius = 120.0;
 uniform float unc_strength = 1.0;
+// P1 ronda 2: corriente que pasa junto al casco varado (aguas abajo, hacia el sudeste): deja una estela de espuma y agua revuelta. Aspecto.
+uniform vec2 current_dir = vec2(0.18, 1.0);
+uniform float wake_len = 150.0;
 varying vec3 world_pos;
 varying float ground;
 varying float base_bed;
@@ -126,8 +130,23 @@ void fragment(){
 	float rim = smoothstep(0.80, 1.0, hull_edge) * (1.0 - smoothstep(1.12, 1.9, hull_edge)) * (0.65 + 0.35 * lvl_k);
 	float rim_n = 0.55 + 0.45 * j_noise(p * 1.1 + vec2(t * 0.3, 0.0));
 	foam = max(foam, rim * rim_n * 0.95);
+	// Estela de corriente: aguas abajo del casco, una cola que se abre (ancho = manga + 12 % de la distancia), con vetas de espuma que viajan.
+	vec2 cd = normalize(current_dir);
+	float w_a = dot(sd, cd) - ship_half.y * 0.35;
+	float w_b = dot(sd, vec2(-cd.y, cd.x));
+	float w_w = ship_half.x * 1.3 + max(w_a, 0.0) * 0.12;
+	float wake = step(0.0, w_a) * (1.0 - smoothstep(w_w * 0.45, w_w, abs(w_b))) * (1.0 - smoothstep(wake_len * 0.25, wake_len, w_a)) * lvl_k;
+	float streak = smoothstep(0.58, 0.86, j_noise(vec2(w_b * 0.45, w_a * 0.07 - t * 0.55))) * (0.55 + 0.45 * j_noise(p * 0.8 + t * 0.2));
+	foam = max(foam, wake * streak * 0.38);
+	// Sombra del casco sobre el agua (el agua recibe sombras reales, pero el reflejo del cielo no se oscurece: se refuerza aquí).
+	// Cae del lado opuesto al sol, a ~2 mangas (francobordo / tan 26°); se escala con el casco.
+	vec2 sh_off = -normalize(sun_dir.xz + vec2(1e-4)) * ship_half.x * 2.0;
+	vec2 sd_s = sd - sh_off;
+	vec2 loc_s = vec2(dot(sd_s, vec2(-fw.y, fw.x)), dot(sd_s, fw));
+	float hull_shadow = (1.0 - smoothstep(0.75, 1.05, length(loc_s / (ship_half * vec2(1.6, 1.02)))));
 	foam = max(foam, wc_m * (1.0 - shallow * 0.8));
 	body *= 1.0 - 0.45 * (0.6 + 0.4 * lvl_k) * smoothstep(0.55, 0.95, hull_edge) * (1.0 - smoothstep(0.95, 1.1, hull_edge));
+	body = mix(body, body * vec3(1.14, 1.12, 1.04), wake * 0.4);
 	// Zona de incertidumbre (120 m, Informe sec. D): anillo punteado muy tenue, no relleno.
 	float ur = length(sd);
 	float ring = (1.0 - smoothstep(0.0, 0.9, abs(ur - unc_radius))) * step(0.5, fract(atan(sd.y, sd.x) * 9.5493 + 0.5));
@@ -195,7 +214,8 @@ void fragment(){
 	foam = max(foam, smoothstep(0.88, 1.0, tr1) * band_s * 0.30);
 	body *= mix(1.0, 0.62, smoothstep(1.2, 3.4, est) * open_k);   // canal mas hondo y oscuro: profundidad legible
 	ALBEDO = mix(mix(body, sky_horizon * 0.80, haze * 0.40), vec3(0.88, 0.86, 0.76), foam * 0.8) + vec3(1.0, 0.92, 0.72) * sparkle * 0.16;
-	EMISSION = sky * (fres * 0.34 + 0.004) * vec3(1.0, 0.94, 0.80) + vec3(1.0, 0.90, 0.70) * glint;
+	ALBEDO *= 1.0 - 0.5 * hull_shadow;
+	EMISSION = (sky * (fres * 0.34 + 0.004) * vec3(1.0, 0.94, 0.80) + vec3(1.0, 0.90, 0.70) * glint) * (1.0 - 0.6 * hull_shadow);
 	METALLIC = 0.0;
 	ROUGHNESS = mix(0.22, 0.7, foam);
 	SPECULAR = 0.12;
