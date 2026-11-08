@@ -3461,8 +3461,10 @@ func _validate_campaign_order(u: Dictionary, action: String, sector_id: String) 
 		if int(s.crates) <= 0:
 			return _no("Ya se retiraron los víveres de este sector. Elegí otro lugar.")
 	if action == "assault":
-		if u.id != "arias" or sector_id != "humahuaca":
-			return _no("La operación de Humahuaca corresponde a Manuel Eduardo Arias.")
+		if u.id != "arias":
+			return _no("La operación de Humahuaca corresponde a Manuel Eduardo Arias: elegí su agrupación (2).")
+		if sector_id != "humahuaca":
+			return _no("Elegí el sector Humahuaca para operar allí (en el mapa, la lista o con [ y ]).")
 		if int(state.round) < 7:
 			return _no("Humahuaca estará disponible desde la ronda del 1 de marzo de 1817.")
 		if state.humahuaca:
@@ -3664,7 +3666,10 @@ func resolve_round(enemy_intent: String = "forage") -> Array:
 	if int(state.round) == 8:
 		_event("Llega una noticia del frente de Chile: Chacabuco (12 de febrero) da sentido estratégico a sostener el norte. Mensaje dramatizado; San Martín no aparece como refuerzo en Salta.", "history")
 	if surviving == 0 or float(state.population) <= 10.0:
-		_finish("defeat", "La defensa perdió sus agrupaciones o el sostén de las poblaciones. La invasión conserva capacidad de continuar.")
+		if surviving == 0:
+			_finish("defeat", "La defensa perdió sus agrupaciones: ninguna quedó en condiciones de seguir. La invasión conserva capacidad de continuar.")
+		else:
+			_finish("defeat", "Las poblaciones ya no pueden sostener la defensa (apoyo %d %%): sin proteger víveres ni cortarle el abastecimiento al invasor, la guerra de recursos se perdió. La invasión conserva capacidad de continuar." % int(state.population))
 	elif _enemy_can_retreat():
 		var chronology := "La presión volvió insostenible la invasión y forzó su retirada."
 		if int(state.round) < 13:

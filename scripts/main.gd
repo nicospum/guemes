@@ -74,6 +74,8 @@ var selected_label: Label
 var sector_option: OptionButton
 var round_button: Button
 var next_btn: Button
+var speed_restore:=0.0
+var speed_restore_t:=0.0
 var pace_label: Label
 var tut_hint_label: Label
 var info_fold_btn: Button
@@ -734,6 +736,7 @@ func _refresh_actions():
   next_btn.tooltip_text="Prepara la orden que sugiere la guía en las rondas 1 y 2 (se puede cambiar antes de resolver)."
   next_btn.visible=not rules.north_next_step().is_empty() and not pending_round
   reason_label=_label(action_box,"",12,MUTED);reason_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+  reason_label.custom_minimum_size.y=50;reason_label.max_lines_visible=3;reason_label.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS  # P-001: alto fijo (3 renglones)
   _show_campaign_reason("")
 
 func _prepare_next_step():
@@ -1155,8 +1158,11 @@ func _draw_document_frame(c:Control,accent:Color):
   c.draw_circle(q,2.5,accent)
 
 func _close_modal():
+ var was_choice=is_instance_valid(modal) and modal.has_meta("choice")
  if is_instance_valid(modal):modal.queue_free()
  modal=null;paused=modal_paused
+ if was_choice and _is_j() and not rules.state.get("pending_choice",{}).is_empty() and str(rules.state.status)=="playing":
+  paused=true;pause_reason="hay una decisión esperando"  # P-003: el reloj sigue detenido y un aviso permanente la vuelve a abrir
  if _is_j():hover_info={};hover_mouse=Vector2(-1,-1)  # el cursor que quedó sobre el botón del diálogo no dispara una vista previa (ni un rechazo) hasta que se mueva
  if mode=="play":_update_hud()
 
@@ -1165,7 +1171,7 @@ func _simple_dialog(title:String,text_value:String):
 
 func _controls_dialog():
  var box=_open_modal("Cómo jugar",840,650)
- _rich(box,"[b]Cámara[/b]   WASD o flechas desplazan. Q/E giran. La rueda acerca hacia el cursor. Botón central gira e inclina. O enfoca el objetivo y F la selección. I pliega la información, P abre el parte.\n\n[b]Agrupaciones[/b]   Clic sobre un grupo, o teclas 1, 2 y 3. En la Justina, 4 y 5 seleccionan a los exploradores, y Mayús+clic o un recuadro suman agrupaciones. Clic derecho ordena mover. X cancela la orden pendiente.\n\n[b]Justina[/b]   Tiene su propia ayuda (botón «Ayuda · F1» dentro de la partida) y su tabla de teclas en docs/CONTROLES.md.
+ _rich(box,"[b]Cámara[/b]   WASD o flechas desplazan. Q/E giran. La rueda acerca hacia el cursor. Botón central gira e inclina. O enfoca el objetivo y F la selección. I pliega la información, P abre el parte.\n\n[b]Agrupaciones[/b]   Clic sobre un grupo, o teclas 1, 2 y 3. En la Justina, 4 y 5 seleccionan a los exploradores, y Mayús+clic o un recuadro suman agrupaciones. Clic derecho ordena mover. X cancela la orden pendiente.\n\n[b]Justina[/b]   Tiene su propia ayuda (botón «Ayuda · F1» dentro de la partida) con la tabla completa de teclas.
 
 [b]Norte[/b]   Elegí grupo y sector con el mapa o el selector. Prepará una orden por grupo; luego resolvé la ronda. Las órdenes se pueden cambiar antes de resolver. Los botones deshabilitados explican el motivo debajo de la bandeja. [ y ] cambian de sector.
 
@@ -2253,7 +2259,7 @@ func _layout_j():
  if is_instance_valid(bottom_panel):_anchor(bottom_panel,0,1,0,1,12+sz.x+8,-10,12+sz.x+8+660,-10)
 
 func _set_speed(v:float):
- speed=v;auto_fast_on=false;auto_fast_cool=20.0;_update_hud()
+ speed=v;auto_fast_on=false;auto_fast_cool=20.0;speed_restore=0.0;_update_hud()
  _toast("Velocidad ×%d del tiempo real." % int(v),2.5,true,0)
 
 func _toggle_autopause():
@@ -2299,6 +2305,9 @@ func _compute_alerts()->Array:
   var rem=maxf(0.0,float(c.until)-t)
   var anyb=_anyone_boarding()
   out.append({"id":"counter%d" % int(c.count),"level":"crit" if anyb else "warn","nopause":not anyb,"short":"contraataque de la dotación: tenés %d s para rechazarlo." % int(float(cap.get("window_s",14))),"text":"⚔ ¡CONTRAATAQUE! Quedan %d s: «Rechazar» (coma) con un grupo que aborda cuesta %d de munición; si no, perdés fuerza y captura.%s" % [ceili(rem),int(cap.get("repel_ammo",3)),"" if anyb else " Ningún grupo aborda: mandá uno con «Cargar y abordar» (N)."],"btn":"Rechazar ahora (,)","fn":"repel"})
+ var pcw=st.get("pending_choice",{})
+ if not pcw.is_empty() and not is_instance_valid(modal):
+  out.append({"id":"choice_wait","level":"crit","nopause":false,"short":"hay una decisión esperando.","text":"✉ Hay una decisión esperando: %s. El reloj sigue detenido hasta que elijas." % str(pcw.get("title","el mensajero")).strip_edges(),"btn":"Ver la decisión","fn":"open_choice"})
  var le=st.get("last_effort",{})
  if float(le.get("until",-1.0))>=0.0 and not bool(le.get("used",false)):
   var left_le=maxf(0.0,float(le.until)-t)
@@ -2344,7 +2353,10 @@ func _update_alerts():
  alert_label.text=str(top.text)
  alert_panel.add_theme_stylebox_override("panel",_cm_style("alert"+str(top.level),Color(0.22,0.07,0.06,0.97) if str(top.level)=="crit" else Color(0.2,0.14,0.04,0.97),Color("b8433a") if str(top.level)=="crit" else Color("e0bf81"),2,9,6))
  alert_btn.visible=top.has("btn")
- if top.has("btn"):
+ if str(top.get("fn",""))=="repel" and not bool(_avail("repel").get("ok",false)):
+  alert_label.text="⚔ ¡CONTRAATAQUE! No podés rechazarlo: %s Aguantá y reabastecé munición (J) para el próximo; este te cuesta fuerza y captura." % _friendly_reason("repel",str(_avail("repel").get("reason",""))).rstrip(".")+"."
+  alert_btn.visible=false
+ elif top.has("btn"):
   alert_btn.text=str(top.btn)
   var av=_avail(str(top.get("fn","")))
   alert_btn.disabled=not bool(av.get("ok",false))
@@ -2357,6 +2369,7 @@ func _update_alerts():
 func _alert_click():
  var fn=str(alert_current.get("fn",""))
  if alert_current.has("select"):_select_ids([str(alert_current.select)])
+ if fn=="open_choice":_choice_dialog();return
  if fn=="repel":_do_boarding_action("repel")
  elif not fn.is_empty():
   if fn=="signal_liniers" and _sel_groups().is_empty():_select_ids(["guemes"])
@@ -3103,7 +3116,7 @@ func _refresh_actions_j():
  _update_action_states()
 
 func _avail(action:String)->Dictionary:
- if action=="retry_now":return {"ok":true,"reason":"Disponible.","cost_text":"","tag":"diseno"}
+ if action=="retry_now" or action=="open_choice":return {"ok":true,"reason":"Disponible.","cost_text":"","tag":"diseno"}
  if action=="board_own":
   var gs=_sel_groups()
   if gs.is_empty():return {"ok":false,"reason":"Seleccioná un grupo (1, 2, 3).","cost_text":"","tag":"diseno"}
@@ -3798,6 +3811,12 @@ func _feel_tick(delta:float):
  # Espera tranquila: se SUGIERE ×2 (el botón se resalta y un aviso lo dice una vez); nunca cambia la velocidad sola, porque
  # el buque dispara cada pocos segundos y acelerar sin permiso le quitaría tiempo de reacción al jugador.
  auto_fast_cool=maxf(0.0,auto_fast_cool-delta)
+ if speed_restore>1.0 and not paused and not is_instance_valid(modal):
+  if speed>1.0:speed_restore=0.0
+  else:
+   speed_restore_t-=delta
+   if speed_restore_t<=0.0 and _compute_alerts().is_empty():
+    speed=speed_restore;speed_restore=0.0;_toast("Vuelve la velocidad ×%d." % int(speed),2.5,true,0)
  var want=speed==1.0 and auto_fast_cool<=0.0 and _calm_wait()
  if want!=auto_fast_on:
   auto_fast_on=want
@@ -4296,6 +4315,7 @@ func _handle_events_j(events:Array):
    "signal":_sound("order")
   # Los avisos de campo no dejan seguir a ×2/×4: se vuelve a ×1 para poder reaccionar (C19).
   if event.has("field_event") and speed>1.0:
+   speed_restore=speed;speed_restore_t=8.0  # P-004: vuelve a la velocidad elegida 8 s después del último aviso
    speed=1.0
   if kind in ["shot","info","load","objective","shot_warning"]:continue
   var pr=int(KIND_PRIO.get(kind,1))
@@ -4324,6 +4344,7 @@ func _choice_dialog():
  if pc.is_empty() or is_instance_valid(modal) or str(rules.state.status)!="playing":return
  var ttl=str(pc.get("title","")).strip_edges()
  var box=_open_modal(ttl if not ttl.is_empty() else "Un mensajero",760,_scroll_h(330.0,40.0))
+ modal.set_meta("choice",true)
  var tx=choice_text
  var cut=tx.find(" (Se toma")
  if cut>0:tx=tx.substr(0,cut)
@@ -4730,7 +4751,7 @@ func _victory_dialog(r:Dictionary):
   var un=_label(box,"Se abrió el nivel II: Humahuaca, 1817",20,GOLD_LIGHT,true);un.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
  var chips=_hbox(box,10)
  _stat_chip(chips,"Tiempo",_clock(float(r.get("elapsed",0.0))),GOLD)
- _stat_chip(chips,"Bajas","%d %%" % int(float(r.get("loss_total_pct",0.0))))
+ _stat_chip(chips,"Bajas","%d %%" % roundi(float(r.get("loss_total_pct",0.0))))
  _stat_chip(chips,"Tu mejor medalla",best.capitalize(),MEDAL_COLOR.get(best,PAPER))
  var row=_hbox(box,10)
  var go=_button(row,"Seguir: Humahuaca (nivel II)",func():_start_game("humahuaca"),58);go.size_flags_horizontal=Control.SIZE_EXPAND_FILL;go.add_theme_font_size_override("font_size",20)
