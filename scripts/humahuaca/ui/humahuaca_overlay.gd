@@ -171,7 +171,7 @@ func _draw_token_labels(cam: Camera3D) -> void:
 	if not (rs is Dictionary):
 		return
 	var total_scale := maxf(float(ui.call("screen_scale")), 0.05)
-	var fig_h := 62.0 / total_scale  # las fichas miden ≥ 48 px reales: el número va un poco más arriba de su cabeza
+	var fig_h := 85.0 / total_scale  # las fichas miden de 64 a 85 px reales (pista de arte P2): el número va un poco más arriba de su cabeza
 	var selected: Array = ui.get("selected")
 	var local_rect := Rect2(Vector2.ZERO, size)
 	var header_bottom := float(ui.call("layout_num", ["margin"], 12.0)) + float(ui.call("layout_num", ["header_h"], 46.0)) + 4.0

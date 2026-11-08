@@ -402,9 +402,9 @@
 		"opening": {
 			"seconds": 13.5,
 			"stops": [
-				{"focus": "bateria", "dist": 150, "pitch_deg": 26, "yaw_deg": 95, "share": 0.22},
-				{"focus": "cuartel", "dist": 130, "pitch_deg": 28, "yaw_deg": 70, "share": 0.22},
-				{"focus": "posta", "dist": 140, "pitch_deg": 28, "yaw_deg": 320, "share": 0.22}
+				{"focus": "bateria", "dist": 150, "pitch_deg": 24, "yaw_deg": 95, "share": 0.22},
+				{"focus": "cuartel", "dist": 130, "pitch_deg": 24, "yaw_deg": 70, "share": 0.22},
+				{"focus": "posta", "dist": 140, "pitch_deg": 22, "yaw_deg": 320, "share": 0.22}
 			],
 			"start": {"x": 450, "z": 330, "dist": 760, "pitch_deg": 60, "yaw_deg": 325},
 			"hold_s": 1.1
@@ -445,7 +445,7 @@
 		"toast_w": 440,
 		"alert_w": 520,
 		"dock_max_w": 920,
-		"vignette": {"play": 0.32, "screens": 0.55},
+		"vignette": {"play": 0.30, "screens": 0.55},
 		"font": {"title": 17, "body": 15, "small": 13, "tiny": 12},
 		"modal": {"max_w": 940, "pad": 22},
 		"fit_scale": {"enabled": true, "min_window": [1024, 640]}

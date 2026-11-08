@@ -752,7 +752,7 @@ func ring_height(x: float, z: float, base: float, ox: float, oz: float) -> float
 	var edge_k := smoothstep(0.0, 260.0, maxf(ox, oz))
 	var gullies := (_noise_gully.get_noise_2d(x, z) * 0.5 + 0.5)
 	var swell := _noise_big.get_noise_2d(x, z) * 0.5 + 0.5
-	var wall := 720.0 * smoothstep(0.0, 2600.0, ox) * (0.55 + 0.9 * swell) + 170.0 * smoothstep(150.0, 2000.0, ox) * gullies
+	var wall := 820.0 * smoothstep(0.0, 1900.0, ox) * (0.55 + 0.9 * swell) + 190.0 * smoothstep(120.0, 1600.0, ox) * gullies
 	var valley := 230.0 * smoothstep(0.0, 5200.0, oz) * (0.6 + 0.8 * swell) + 90.0 * smoothstep(0.0, 2400.0, oz) * gullies
 	return base + maxf(wall, valley) * edge_k
 

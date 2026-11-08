@@ -296,7 +296,12 @@ func _test_first_frame() -> void:
 		await _frames(3)
 		var view_rect := Rect2(Vector2.ZERO, root.get_visible_rect().size)
 		var fit: Dictionary = hx.cam.last_fit
-		var included: Array = fit.get("soft_in", [])
+		var included: Array = (fit.get("soft_in", []) as Array).duplicate()
+		for h in hx.cam.preset(str(fit.get("preset", ""))).get("hard", []):  # el preset de la pista de arte exige las cinco partidas como puntos duros (P-006)
+			if bool((h as Dictionary).get("units", false)):
+				for gid in V.GROUPS:
+					if not included.has(str(gid)):
+						included.append(str(gid))
 		var covered: Array = []
 		var edge_in := 100.0
 		var visible := 0

@@ -154,8 +154,8 @@ func _crouched_pair(body: String, spec: Dictionary, variants: Array, index: int,
 			mb.xf = Transform3D(Basis(Vector3.UP, deg_to_rad(-12.0 + 30.0 * float(k))), Vector3(-0.55 + 1.15 * float(k), 0.0, -0.45 * float(k)))
 			mb.absorb(parts[key])
 			if k == 0 and str(key) == "equipo":  # el baqueano de pie lleva una tacuara larga (caña con punta): lo distingue de la mula del arreo, que mide lo mismo
-				mb.beam(Vector3(0.43, 1.9, -0.1), Vector3(0.47, 2.75, -0.1), 0.04, gfx.pc("madera_oscura", 1.15))
-				mb.cyl_between(Vector3(0.47, 2.75, -0.1), Vector3(0.48, 2.95, -0.1), 0.045, 0.0, 6, gfx.pc("hierro"))
+				mb.beam(Vector3(0.43, 1.9, -0.1), Vector3(0.46, 2.4, -0.1), 0.04, gfx.pc("madera_oscura", 1.15))
+				mb.cyl_between(Vector3(0.46, 2.4, -0.1), Vector3(0.47, 2.58, -0.1), 0.045, 0.0, 6, gfx.pc("hierro"))
 			mb.pop()
 	for key in merged:
 		out[key] = (merged[key] as Object).call("build", hw)
