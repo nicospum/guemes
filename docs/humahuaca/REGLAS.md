@@ -141,3 +141,16 @@ La doble capa «lo que sabés / lo real» y el reconocimiento con riesgo fino, l
 ## Balance R2b (rama `hx-balance-nube`, 2026-11-02)
 
 Lo que cambió para que el nivel deje de ganarse solo está contado en palabras simples en `docs/humahuaca/BALANCE_R2B.md`, con las cifras de antes y después en `evidence/humahuaca/r2b/balance/`. En resumen: el mundo se sortea con la semilla (guardia, torre y refuerzo), la guardia atenta ve a los reconocedores y corre la voz (derrota «descubiertos» temprana), la guardia que los vio sale entera y manda un jinete al sur, el «siguiente paso» ya no conoce el reloj del refuerzo (planea con la demora normal y, si el diario anotó una intercepción, con la temprana), el informante de los 0:45 dice dónde está la torre y Portal entra por la calle o por los patios según se le crea, la torre tiene un hueco de recarga para cruzar, y las partidas destruyen lo que sobra y se repliegan mientras la columna marcha. La parte de alarma, torre, reconocimiento, botín y decisiones vive ahora en `humahuaca_rules_field.gd`.
+
+## Tanda 2 del equipo (P3, 2026-11-08)
+
+Detalle, causas y cifras en `docs/equipo/P3_REGLAS_HUMAHUACA.md`. Lo que cambia en las reglas:
+
+- **Rutas que rodean a la guardia.** Antes de la señal, toda ruta (orden y vista previa) se arma sobre una variante de la grilla con costo ×`stealth.route_avoid.weight_mult` dentro de `radius_m` de cada centinela de un frente en pie (×1,25 en la altura de la batería y en la torre armada, × `detect_mult` de la guardia). No cambia la velocidad: solo por dónde va la ruta. Si el destino está adentro (reconocer, un puesto pegado), entra igual.
+- **Quien está quieto y en silencio no se ve** (A-03): `_step_alert` salta a las agrupaciones con `noise <= 0`. Es deliberado (los puestos a 60–120 m existen por eso): el costo de esperar es el desvelo del alba, no la vista de los centinelas.
+- **La detección del reconocimiento avisa** (D-01). Si al terminar de mirar un centinela los ve y eso daría la alarma, la guardia tarda `enemy.guard.<guardia>.recon_warn_s` en dar la voz (`units[].spotted`); alejarse `recon_warn_escape_m` del lugar la evita. Aviso crítico `reconocedores_vistos`, paso `retirar_reconocedores` y `render_state().units[].spotted_s` para el anillo. Con la guardia atenta la pista no pide reconocer de cerca.
+- **Sostener antes de la señal** (A-02): en el puesto, «sostener» deja a la partida esperando la señal (sigue contando para darla). **Deshacer** (A-08) devuelve la etapa y la orden anotadas en `prev` si se pueden retomar sin ruta ni trabajo a medias, y nunca salta la señal.
+- **Medallas** (D-06): plata 65 y oro 70 (con bajas ≤ 35 %, sin ayudas y con la columna intacta); la cota del botín con 2 200 kg es 74,2. Si el mundo no trae una clase de botín, los lotes que hay se reparten los 100 puntos (A-10).
+- **Cierre de la partida** (A-12): las etapas de combate quedan quietas y lo que estaba cargado y no salió deja de contarse como carga. Un guardado de una partida terminada no se carga (B-2).
+- **Puntos de control** (R-01, R-02): el índice sigue al archivo, un mundo nuevo los borra y no se escribe uno que no valide (A-07).
+- **El «siguiente paso»** trae además `id` (la clave del paso) y `eta_s` (segundos hasta que cambie una espera: carga, marcha o primera luz; −1 si no se sabe).

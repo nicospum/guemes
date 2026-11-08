@@ -113,6 +113,9 @@ func _valid_entry(e: Variant) -> bool:
 		var v: Variant = entry.get(pair[0])
 		if not ((v is float or v is int) and is_finite(float(v)) and float(v) >= -1.0 and float(v) <= float(pair[1])):
 			return false
+	## sin lugar son las dos en -1; con lugar, las dos dentro del mapa (una sola negativa daba una marca fuera del esquema y cada intento nacía inválido, B-5)
+	if (float(entry.x) < 0.0) != (float(entry.z) < 0.0) or (float(entry.x) < 0.0 and (float(entry.x) != -1.0 or float(entry.z) != -1.0)):
+		return false
 	if entry.has("attempt") and not ((entry.attempt is float or entry.attempt is int) and is_finite(float(entry.attempt)) and float(entry.attempt) >= 0.0 and float(entry.attempt) <= 1000000.0):
 		return false
 	return not entry.has("tag") or entry.tag is String
@@ -138,9 +141,16 @@ func world_seed() -> int:
 	var seeds: Array = _campaign.get("world_seeds", [1817])
 	return int(seeds[_world_index % maxi(seeds.size(), 1)])
 
-## Mundo nuevo: pasa a la semilla siguiente de la lista fija.
+## Mundo nuevo: pasa a la semilla siguiente de la lista fija. Los puntos de control del mundo anterior dejan de valer (R-02): se borran del índice y del archivo.
 func new_world() -> void:
 	_world_index += 1
+	_clear_checkpoints()
+
+func _clear_checkpoints() -> void:
+	_cp = {}
+	_cp_seen = {}
+	if FileAccess.file_exists(_checkpoint_path):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(_checkpoint_path))
 
 ## Cuenta el intento y le da a `rules` las marcas del diario (con su etiqueta «anotado») y la ventaja de la experiencia (ninguna en R1: se muestra en el parte si la hubiera).
 func begin_attempt(rules: RefCounted) -> Dictionary:
@@ -231,6 +241,16 @@ func _note_diary(rules: RefCounted, rep: Dictionary, golpe: float) -> Array:
 				for u in state.get("units", []):
 					if str(u.stage) == "routed":
 						var fid := str(D.rules().groups[str(u.id)].front)
+						if str(state.get("objectives", {}).get(fid, {}).get("state", "")) == "tomado":
+							## su frente ya era suyo: se rompió frente a otro que seguía en pie (el más cercano), y ahí va la marca (A-04)
+							var best_d := 1.0e9
+							for other in V.OBJECTIVES:
+								if str(state.objectives[other].state) == "tomado":
+									continue
+								var d := D.hito(str(D.rules().objectives[other].hito)).distance_to(Vector2(float(u.x), float(u.z)))
+								if d < best_d:
+									best_d = d
+									fid = other
 						at = D.hito(str(D.rules().objectives[fid].hito))
 						place = str(D.rules().objectives[fid].place)
 						break
@@ -250,7 +270,7 @@ func diary_entries() -> Array:
 func diary_marks() -> Array:
 	var out: Array = []
 	for e in _diary:
-		if float(e.get("x", -1.0)) < 0.0:
+		if float(e.get("x", -1.0)) < 0.0 or float(e.get("z", -1.0)) < 0.0:
 			continue
 		out.append({"key": "diario_%d_%s" % [int(e.get("attempt", 0)), str(e.kind)], "kind": str(e.kind), "text": str(_campaign.get("marks", {}).get("anotado", "anotado")) + ": " + str(e.text),
 			"x": float(e.x), "z": float(e.z), "confirmed": false})
@@ -290,11 +310,13 @@ func _write_checkpoint(kind: String, rules: RefCounted) -> void:
 		if parser.parse(FileAccess.get_file_as_string(_checkpoint_path)) == OK and parser.data is Dictionary and (parser.data as Dictionary).get("points", null) is Dictionary:
 			points = (parser.data as Dictionary).points
 	var snap: Dictionary = rules.call("snapshot")
+	if rules.has_method("validate_snapshot") and not bool((rules.call("validate_snapshot", snap) as Dictionary).get("ok", false)):
+		return  # un estado que no valida no se escribe: se lo rechazaría al restaurar (A-07)
 	points[kind] = {"time": float(snap.elapsed), "state": snap}
 	if kind == "posiciones":
 		points.erase("salida")  # un control de la salida de un intento anterior ya no sirve
 	if _write_atomic(_checkpoint_path, {"version": CHECKPOINT_VERSION, "points": points}):
-		_cp[kind] = {"time": float(snap.elapsed), "game_id": str(snap.game_id)}
+		_read_checkpoint_index()  # el índice dice lo mismo que el archivo: lo que se borró de ahí (la «salida» vieja) deja de ofrecerse (R-01)
 
 ## Barato (se llama cada cuadro): guarda `posiciones` cuando las tres partidas esperan la señal (o a los 210 s sin señal) y `deposito` al tomar el tercer frente.
 func checkpoint_tick(rules: RefCounted) -> void:
@@ -335,7 +357,10 @@ func restore_checkpoint(rules: RefCounted, kind: String) -> Dictionary:
 	var points: Variant = (parser.data as Dictionary).get("points", {})
 	if not (points is Dictionary) or not (points as Dictionary).has(kind) or not (points[kind] is Dictionary) or not ((points[kind] as Dictionary).get("state", null) is Dictionary):
 		return {"ok": false, "reason": _line("sin_control")}
-	var res: Dictionary = rules.call("restore_snapshot", (points[kind] as Dictionary).state)
+	var cp_state: Dictionary = (points[kind] as Dictionary).state
+	if str(cp_state.get("status", "")) != "playing":
+		return {"ok": false, "reason": _line("sin_control")}  # un control de una partida terminada no se restaura (B-2); los de otro mundo ya no existen (new_world los borra)
+	var res: Dictionary = rules.call("restore_snapshot", cp_state)
 	if not bool(res.get("ok", false)):
 		return {"ok": false, "reason": str(res.get("reason", _line("sin_control")))}
 	attempts += 1

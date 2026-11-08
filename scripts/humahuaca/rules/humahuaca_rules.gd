@@ -186,6 +186,8 @@ func new_game(seed_value: int = 1817, attempt: int = 1, opts: Dictionary = {}) -
 		return {}
 	if opts.get("terrain", null) is RefCounted:
 		set_terrain(opts.terrain)
+	if seed_value > 2147483647 or seed_value < -2147483647:
+		seed_value = posmod(seed_value, 2147483647)  # una semilla fuera del rango del esquema se pliega (el RNG ya reduce módulo 2³¹−1): la partida se puede guardar (C-1)
 	var world := Setup.make_world(world_from_seed(seed_value), opts)
 	state = {
 		"schema_version": SAVE_VERSION, "game_id": "humahuaca-%d-%d" % [seed_value, maxi(1, attempt)], "state_version": 1, "scenario": SCENARIO,
@@ -249,14 +251,14 @@ func _apply_start(opts: Dictionary) -> void:
 # Reloj
 
 func tick(dt: float) -> Array:
-	if state.is_empty() or str(state.status) != "playing":
+	if state.is_empty() or str(state.status) != "playing" or not is_finite(dt):  # un dt NaN o infinito no avanza el reloj (A-09)
 		return _take_events()
 	var remaining := clampf(dt, 0.0, MAX_DT)
 	if remaining > 0.0:
 		_ensure_started()
 	state.accumulator = float(state.accumulator) + remaining
 	while float(state.accumulator) >= STEP - 1e-9 and str(state.status) == "playing":
-		state.accumulator = float(state.accumulator) - STEP
+		state.accumulator = maxf(0.0, float(state.accumulator) - STEP)  # el paso se consume con tolerancia: el resto nunca queda negativo (A-07)
 		_step()
 	return _take_events()
 
@@ -285,6 +287,7 @@ func _step() -> void:
 	var t := float(state.elapsed)
 	_step_events(t)
 	_field()._step_decisions(t)
+	_field()._step_spotted(t)
 	_step_alert(t)
 	_step_units(t)
 	_step_combat(t)
@@ -536,13 +539,33 @@ func _step_units(t: float) -> void:
 		else:
 			u.fatigue = maxf(0.0, float(u.fatigue) - float(_rules.stealth.rest_fatigue_per_s) * STEP)
 		if _is_combat(u) and float(u.strength) <= float(_rules.combat.rout_strength) and str(u.stage) != "routed" and str(u.stage) != "exited":
+			var fid := _broken_front(u)  # el frente en pie donde se rompió (no el propio si ya lo había tomado, A-04)
 			u.stage = "routed"
 			u.order = {}
 			u.path = []
 			_bump()
 			if not _all_taken():
-				var fid := str(_rules.groups[u.id].front)
 				_finish("defeat", "frente_roto", {"grupo": str(_rules.groups[str(u.id)].phrase), "frente": fid})
+
+## Dónde se rompió una partida: el frente que atacaba o socorría si sigue en pie; si no, el propio si sigue en pie; si no, el frente en pie más cercano.
+func _broken_front(u: Dictionary) -> String:
+	var ordered := str((u.order as Dictionary).get("front", ""))
+	if V.OBJECTIVES.has(ordered) and str(state.objectives[ordered].state) != "tomado":
+		return ordered
+	var own := str(_rules.groups[str(u.id)].front)
+	if str(state.objectives[own].state) != "tomado":
+		return own
+	var best := own
+	var best_d := 1.0e9
+	for fid in V.OBJECTIVES:
+		if str(state.objectives[fid].state) == "tomado":
+			continue
+		var c := _hito_pos(str(_rules.objectives[fid].hito))
+		var d := D.dist(float(u.x), float(u.z), c.x, c.y)
+		if d < best_d:
+			best_d = d
+			best = fid
+	return best
 
 func _move_unit(u: Dictionary) -> void:
 	var path: Array = u.path
@@ -904,8 +927,8 @@ func _finish(status: String, cause_id: String, ctx: Dictionary = {}) -> void:
 			u.order = {}
 			u.path = []
 			u.work = {}
-			if str(u.stage) == "moving" or str(u.stage) == "scouting" or str(u.stage) == "loading" or str(u.stage) == "retreating":
-				u.stage = "idle"
+			if str(u.stage) in ["moving", "scouting", "loading", "retreating", "attacking"]:
+				u.stage = "idle"  # sin orden no hay ataque en curso (A-12)
 		u.noise = 0.0
 	_finalize_loot()
 	_set_phase("epilogo")
@@ -935,6 +958,11 @@ func _finalize_loot() -> void:
 			l.lost_value = float(l.lost_value) + float(it.qty) * float(it.unit_value)
 			it.state = "abandonado"
 			it.carried_by = ""
+	## lo que quedó en las mulas se abandonó: ni la columna ni el chip de carga lo siguen contando (A-12). La que salió ya entregó lo suyo.
+	l.load_kg = 0.0
+	for u in state.units:
+		if str(u.stage) != "exited":
+			u.carry_kg = 0.0
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Órdenes
@@ -1030,6 +1058,8 @@ func _route(from: Vector2, stops: Array, to: Vector2) -> Dictionary:
 	var targets: Array = stops.duplicate()
 	targets.append(to)
 	var n := nav()
+	if n != null and n.has_method("avoiding"):
+		n = _field().route_nav(n)  # antes de la señal la ruta rodea lo que vigilan los centinelas de los frentes en pie (stealth.route_avoid)
 	for raw in targets:
 		var tgt := _clamp_to_map(raw)
 		if n == null:
@@ -1230,9 +1260,13 @@ func _apply_order(c: Dictionary, action: String, opts: Dictionary) -> void:
 		"leave":
 			_go(u, c.route, {"action": "leave"})
 		"hold":
-			u.order = {}
 			u.path = []
-			u.stage = "holding"
+			u.work = {}  # lo que tenía entre manos (destruir, cargar) se suelta (A-12)
+			if not bool(state.alarm.signaled) and str(u.stage) == "waiting_signal":
+				pass  # en su puesto antes de la señal, «sostener» es quedarse donde está esperando la señal: sigue contando para la señal (A-02)
+			else:
+				u.order = {}
+				u.stage = "holding"
 		"cancel":
 			u.order = {}
 			u.path = []
@@ -1261,15 +1295,27 @@ func undo_last() -> Dictionary:
 		return _no("partida_terminada")
 	var orders: Array = state.orders
 	while not orders.is_empty():
-		var last: Dictionary = orders.pop_back()
+		var last: Dictionary = orders[orders.size() - 1]
+		if str(last.get("action", "")) == "give_signal" or str(last.get("unit", "")) == "":
+			return _no("deshacer")  # la señal no se deshace, y deshacer no salta a la orden de otra partida (A-08)
+		orders.pop_back()
 		var u := _unit(str(last.get("unit", "")))
 		if u.is_empty() or str(last.get("action", "")) == "":
 			continue
-		u.order = {}
 		u.path = []
 		u.work = {}
 		if str(u.stage) != "exited" and str(u.stage) != "routed":
-			u.stage = "idle"
+			## vuelve a lo que la orden anotó (`prev`) si se puede retomar sin ruta ni trabajo a medias; si no, queda quieta
+			var prev: Dictionary = last.get("prev", {})
+			var back := str(prev.get("stage", "idle"))
+			var prev_front := str((prev.get("order", {}) as Dictionary).get("front", ""))
+			var at_post := V.OBJECTIVES.has(prev_front) and _approach_of(prev_front, Vector2(float(u.x), float(u.z))) != ""
+			if back in ["idle", "waiting_signal", "holding"] and not (back == "waiting_signal" and (bool(state.alarm.signaled) or not at_post)):
+				u.stage = back
+				u.order = (prev.get("order", {}) as Dictionary).duplicate(true) if back == "waiting_signal" else {}
+			else:
+				u.stage = "idle"
+				u.order = {}
 		_event("info", _ts("eventos.parte_deshacer"), {"unit": str(u.id)})
 		_bump()
 		return {"ok": true, "reason": ""}
@@ -1450,6 +1496,8 @@ func load_game(path: String) -> Dictionary:
 	var check := validate_snapshot(read.data)
 	if not bool(check.ok):
 		return check
+	if str((read.data as Dictionary).get("status", "")) != "playing":
+		return _no("partida_terminada")  # un guardado de una partida ya terminada no se carga: dejaría al jugador sin parte ni reintentos (B-2)
 	var loaded: Dictionary = (read.data as Dictionary).duplicate(true)
 	Save.fix_ints(loaded)
 	loaded.previous_game_id = str(loaded.game_id)

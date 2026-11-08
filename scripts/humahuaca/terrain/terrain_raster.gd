@@ -195,8 +195,11 @@ static func _strokes_nodes(t, feats: Array, default_width_m: float) -> PackedInt
 
 
 ## Nodos que toca un trazo: la línea fina (sin saltos en diagonal, para que una pared no se pueda cruzar por una esquina) y, si es ancho,
-## todos los nodos a menos de `half_w` del eje.
-static func _stroke_nodes(t, pts: PackedVector2Array, half_w: float) -> PackedInt32Array:
+## todos los nodos a menos de `half_w` del eje. Con `trim_ends` (las tapias) los extremos libres del trazo se redondean hacia adentro: un nodo de punta
+## solo es muro si su centro queda al menos media celda adentro del trazo. Así el hueco de 4 m entre dos tapias (una puerta) queda abierto en la grilla
+## de 4 m (antes cada extremo se redondeaba al nodo más cercano y los dos nodos de las jambas quedaban contiguos: muro, T-007). Un trazo de menos de dos
+## celdas no se recorta (no desaparece).
+static func _stroke_nodes(t, pts: PackedVector2Array, half_w: float, trim_ends: bool = false) -> PackedInt32Array:
 	var out := PackedInt32Array()
 	var cell: float = t.cell_m
 	var nx: int = t.nx
@@ -204,9 +207,15 @@ static func _stroke_nodes(t, pts: PackedVector2Array, half_w: float) -> PackedIn
 	var jmax: int = t._jmax
 	if pts.size() == 1:
 		out.append(t._node_index(pts[0].x, pts[0].y))
+	var total := 0.0
+	for k in range(pts.size() - 1):
+		total += pts[k].distance_to(pts[k + 1])
+	var trim := trim_ends and total >= 2.0 * cell
 	for k in range(pts.size() - 1):
 		var a := pts[k]
 		var b := pts[k + 1]
+		var seg_len := a.distance_to(b)
+		var dir := (b - a) / maxf(seg_len, 1e-9)
 		var steps := maxi(1, ceili(a.distance_to(b) / (cell * 0.25)))
 		var pi := -1
 		var pj := -1
@@ -214,6 +223,11 @@ static func _stroke_nodes(t, pts: PackedVector2Array, half_w: float) -> PackedIn
 			var p := a.lerp(b, float(s) / float(steps))
 			var i := clampi(roundi(p.x / cell), 0, imax)
 			var j := clampi(roundi(p.y / cell), 0, jmax)
+			if trim:
+				var along := (Vector2(float(i) * cell, float(j) * cell) - a).dot(dir)
+				if (k == 0 and along < cell * 0.5 - 1e-6) or (k == pts.size() - 2 and along > seg_len - cell * 0.5 + 1e-6):
+					pi = -1
+					continue  # la punta libre de la tapia: el nodo cae a menos de media celda del extremo (o más allá)
 			if pi >= 0 and i != pi and j != pj:
 				out.append(pj * nx + i)
 				out.append(j * nx + pi)
@@ -281,7 +295,7 @@ static func _add_wall(t, pts: PackedVector2Array, height_m: float) -> int:
 	var s_muro: int = t._sid["muro"]
 	var solid: PackedByteArray = t._solid
 	var surf: PackedByteArray = t._surf
-	for idx in _stroke_nodes(t, pts, 0.0):
+	for idx in _stroke_nodes(t, pts, 0.0, true):
 		solid[idx] = 1
 		surf[idx] = s_muro
 	return wi
