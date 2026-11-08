@@ -1,41 +1,61 @@
 extends RefCounted
 ## Kit de interfaz propio del nivel «humahuaca» (CONTRATO 3.5): paneles, etiquetas, botones y barras. No llama a main._panel/_button/_label, porque
-## si ui_feel ajusta el kit no debe cruzarse con los ajustes de la Justina. Todo es estático y sin estado; los colores son los de la interfaz del
-## proyecto (main.gd) más los tres marcadores de bando de humahuaca_visual.json (markers, «interfaz»: no son banderas).
+## si ui_feel ajusta el kit no debe cruzarse con los ajustes de la Justina. Todo es estático y sin estado.
+## Paleta común «Crónica en oro y noche» (qa-equipo/arte/DIRECCION_DE_ARTE.md §2.1, BACKLOG V-06): los mismos HEX que usa la interfaz de los niveles I y III
+## (pista P4). Reglas: oro = título, mando propio, objetivo y botón principal; violeta = información (rutas, selección); rojo SOLO para el enemigo y su fuego;
+## ámbar para avisos del sistema, tiempo y riesgo (lo que antes era rojo y no era el enemigo); la derrota no va en rojo.
 
-const PAPER := Color("e9e3d4")
-const GOLD := Color("d9b576")
-const MUTED := Color("aab7b5")
-const INK := Color("14180f")
-const GOOD := Color("9ac4ab")
-const AMBER := Color("e0b25a")
-const RED := Color("d48f79")
-const PANEL_BG := Color(0.075, 0.095, 0.062, 0.965)
-const PANEL_BORDER := Color("50543a")
-const DIM := Color(0.02, 0.03, 0.03, 0.62)
-const WARN_BG := Color("7a2e26")
-const WARN_BORDER := Color("b8584b")
-const WARN_TEXT := Color("fff1e6")
-## Marcadores de bando de la vista (humahuaca_visual.json: markers): celeste con borde blanco, borgoña con borde negro y oro.
-const PATRIOT := Color("7faac4")
-const PATRIOT_BORDER := Color("efe8d7")
-const ROYAL := Color("983f36")
-const ROYAL_BORDER := Color("383831")
-const NEUTRAL := Color("b99a50")
+## --- paleta común (HEX de la dirección de arte; no cambiar uno sin cambiarlo en la de los niveles I y III) ---
+const INK_NIGHT := Color("0e0c12")  # tinta noche: fondo de pantallas completas y viñeta
+const INK_PANEL := Color("16131c")  # tinta panel (alfa 0,86 en paneles)
+const INK_RAISED := Color("241d2c")  # tinta violácea: hover y tarjeta elegida
+const FILET := Color("5c4a2e")  # oro apagado: filete de 1 px
+const GOLD := Color("c9a25e")  # oro viejo
+const GOLD_LIGHT := Color("e8cc8a")  # oro luz: hover, foco y cifras destacadas
+const VIOLET := Color("7a5bb5")  # violeta: rutas propias, selección, hitos de cronología
+const VIOLET_DEEP := Color("3b2a5c")  # violeta hondo: botón presionado
+const PAPER := Color("ece3cf")  # pergamino: texto principal
+const MUTED := Color("a79f92")  # pergamino apagado: texto secundario
+const ENEMY := Color("b8433a")  # rojo realista: SOLO el enemigo y su fuego
+const ENEMY_BORDER := Color("2a1414")
+const AMBER := Color("d9903a")  # avisos del sistema, tiempo que se acaba, riesgo
+const GOOD := Color("8fb89a")  # salvia: confirmaciones (uso mínimo)
+const PATRIOT := Color("8db8d6")  # celeste patriota: anillo de las fichas propias
+const PATRIOT_BORDER := Color("ece3cf")
+const NEUTRAL := Color("bfb6a3")  # hueso: arreo, civiles y botín sin dueño
+const NEUTRAL_BORDER := Color("16131c")
+const DIVIDER := Color("2a2430")  # línea de 1 px entre filas (sin cajas dentro de cajas)
+const VIGNETTE_INK := Color("08050d")
 
-const BTN_NORMAL := Color("232b1c")
-const BTN_HOVER := Color("34402a")
-const BTN_PRESSED := Color("4f5f3a")
-const BTN_DISABLED := Color("1c2218")
-const BTN_PRIMARY := Color("3b4a27")
+## --- nombres que usa el resto de la interfaz (alias de la paleta) ---
+const INK := INK_NIGHT
+const RED := ENEMY
+const ROYAL := ENEMY
+const ROYAL_BORDER := ENEMY_BORDER
+const PANEL_BG := Color(0.0863, 0.0745, 0.1098, 0.86)  # #16131C al 86 %
+const PANEL_SOLID := Color(0.0863, 0.0745, 0.1098, 0.94)  # el mismo, más opaco, donde hay texto chico sobre el mapa
+const PANEL_BORDER := FILET
+const DIM := Color(0.0549, 0.0471, 0.0706, 0.72)  # velo de tinta noche detrás de las ventanas
+const WARN_BG := Color("2e2014")  # aviso crítico: tinta con ámbar (no rojo: el rojo es del enemigo)
+const WARN_BORDER := AMBER
+const WARN_TEXT := Color("f4ead6")
+const CHIP_BG := Color("1d1824")
+const CARD_BG := Color(0.0863, 0.0745, 0.1098, 0.92)
+const RADIUS := 2  # esquinas casi rectas (antes 5 a 7: se leían «web»)
+
+const BTN_NORMAL := Color("1b1722")
+const BTN_HOVER := Color("2a2233")
+const BTN_PRESSED := VIOLET_DEEP
+const BTN_DISABLED := Color("141118")
+const BTN_PRIMARY := GOLD
 
 
-static func style(bg: Color, border: Color = Color.TRANSPARENT, border_w: int = 1, radius: int = 6, pad_h: float = 10.0, pad_v: float = 6.0) -> StyleBoxFlat:
+static func style(bg: Color, border: Color = Color.TRANSPARENT, border_w: int = 1, radius: int = RADIUS, pad_h: float = 10.0, pad_v: float = 6.0) -> StyleBoxFlat:
 	var s := StyleBoxFlat.new()
 	s.bg_color = bg
 	s.border_color = border
 	s.set_border_width_all(border_w if border.a > 0.0 else 0)
-	s.set_corner_radius_all(radius)
+	s.set_corner_radius_all(mini(radius, RADIUS))  # la paleta común pide esquinas casi rectas: ningún llamador pasa de 2 px
 	s.content_margin_left = pad_h
 	s.content_margin_right = pad_h
 	s.content_margin_top = pad_v
@@ -43,10 +63,13 @@ static func style(bg: Color, border: Color = Color.TRANSPARENT, border_w: int = 
 	return s
 
 
-static func panel(parent: Node, bg: Color = PANEL_BG, border: Color = PANEL_BORDER, pad_h: float = 12.0, pad_v: float = 8.0, radius: int = 7) -> PanelContainer:
+static func panel(parent: Node, bg: Color = PANEL_BG, border: Color = PANEL_BORDER, pad_h: float = 12.0, pad_v: float = 8.0, radius: int = RADIUS) -> PanelContainer:
 	var p := PanelContainer.new()
 	p.mouse_filter = Control.MOUSE_FILTER_STOP
-	p.add_theme_stylebox_override("panel", style(bg, border, 1, radius, pad_h, pad_v))
+	var sb := style(bg, border, 1, radius, pad_h, pad_v)
+	sb.shadow_color = Color(0.0, 0.0, 0.0, 0.45)  # sombra suave de 10 px al 45 % (dirección de arte §2.5)
+	sb.shadow_size = 10
+	p.add_theme_stylebox_override("panel", sb)
 	if parent != null:
 		parent.add_child(p)
 	return p
@@ -122,31 +145,37 @@ static func button(parent: Node, text: String, size: int = 15, kind: String = "n
 	b.custom_minimum_size = Vector2(0.0, 32.0)
 	b.add_theme_font_size_override("font_size", size)
 	var base := BTN_NORMAL
-	var border := Color("5a6044")
+	var border := FILET
 	var width := 1
+	var text_c := PAPER
+	var text_hover := GOLD_LIGHT
 	match kind:
-		"primary":
+		"primary":  # oro lleno con letra de tinta: el botón que se espera que se toque se ve primero (mockup 05: «EMPEZAR» en oro)
 			base = BTN_PRIMARY
-			border = GOLD
-			width = 2
-		"danger":
-			base = Color("4a231f")
-			border = WARN_BORDER
+			border = GOLD_LIGHT
+			text_c = INK_NIGHT
+			text_hover = INK_NIGHT
+		"danger":  # lo que no se deshace: filete ámbar, nunca rojo (el rojo es del enemigo)
+			base = Color("2a1d14")
+			border = AMBER
 	for state_name in ["normal", "hover", "pressed", "disabled", "focus"]:
 		var c := base
 		var bc := border
 		if state_name == "hover":
-			c = base.lightened(0.14)
-			bc = GOLD
+			c = GOLD_LIGHT if kind == "primary" else BTN_HOVER
+			bc = GOLD_LIGHT if kind == "primary" else GOLD
 		elif state_name == "pressed":
-			c = base.lightened(0.26)
+			c = base.darkened(0.12) if kind == "primary" else BTN_PRESSED
+			bc = GOLD
 		elif state_name == "disabled":
 			c = BTN_DISABLED
-			bc = Color("3a3f30")
-		b.add_theme_stylebox_override(state_name, style(c, bc, width, 5, 12.0, 4.0))
-	b.add_theme_color_override("font_color", PAPER)
-	b.add_theme_color_override("font_hover_color", Color.WHITE)
-	b.add_theme_color_override("font_disabled_color", Color("8a9896"))
+			bc = Color("2e2836")
+		b.add_theme_stylebox_override(state_name, style(c, bc, width, RADIUS, 12.0, 4.0))
+	b.add_theme_color_override("font_color", text_c)
+	b.add_theme_color_override("font_hover_color", text_hover)
+	b.add_theme_color_override("font_pressed_color", text_c if kind == "primary" else GOLD_LIGHT)
+	b.add_theme_color_override("font_hover_pressed_color", text_hover)
+	b.add_theme_color_override("font_disabled_color", Color("7d7569"))
 	if group != "":
 		b.set_meta("hx_group", group)
 	if parent != null:
@@ -155,7 +184,7 @@ static func button(parent: Node, text: String, size: int = 15, kind: String = "n
 
 
 ## Barra fina (toma, fuerza, fatiga, alba). No muestra el porcentaje: el texto lo dice la etiqueta de al lado.
-static func bar(parent: Node, color: Color, height: float = 6.0, value: float = 0.0, back: Color = Color(0.2, 0.23, 0.17, 1.0)) -> ProgressBar:
+static func bar(parent: Node, color: Color, height: float = 6.0, value: float = 0.0, back: Color = Color("2a2430")) -> ProgressBar:
 	var p := ProgressBar.new()
 	p.min_value = 0.0
 	p.max_value = 100.0
@@ -198,6 +227,75 @@ static func tag_glyph(source_tags: Dictionary, tag_id: String) -> String:
 
 static func tag_color(source_tags: Dictionary, tag_id: String) -> Color:
 	return Color(str(tag_info(source_tags, tag_id).get("color", "#d8d2c0")))
+
+
+## Inter con otro peso (la fuente es variable: 400 cuerpo, 600 rótulos). Devuelve la base si no se puede.
+static func weighted(base: Font, wght: int, spacing: int = 0) -> Font:
+	if base == null:
+		return null
+	var fv := FontVariation.new()
+	fv.base_font = base
+	fv.variation_opentype = {"wght": wght}
+	if spacing != 0:
+		fv.spacing_glyph = spacing
+	return fv
+
+
+## Cinzel con espaciado (+12 % del cuerpo, dirección de arte §2.2): títulos y rótulos de lugar, siempre en mayúsculas.
+static func spaced(base: Font, spacing: int) -> Font:
+	if base == null:
+		return null
+	var fv := FontVariation.new()
+	fv.base_font = base
+	fv.spacing_glyph = spacing
+	return fv
+
+
+## Un rótulo de panel: mayúsculas, peso 600, espaciado y oro viejo («OBJETIVO», «TUS RECURSOS»). `base` es Inter; el texto llega en minúsculas desde el JSON.
+static func caption(parent: Node, text: String, base: Font, size: int = 12, color: Color = GOLD) -> Label:
+	var l := label(parent, text.to_upper(), size, color)
+	var f := weighted(base, 600, maxi(1, int(round(size * 0.14))))
+	if f != null:
+		l.add_theme_font_override("font", f)
+	return l
+
+
+## Una línea de 1 px entre filas (sin cajas dentro de cajas).
+static func divider(parent: Node) -> ColorRect:
+	var r := ColorRect.new()
+	r.color = DIVIDER
+	r.custom_minimum_size = Vector2(0.0, 1.0)
+	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	r.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if parent != null:
+		parent.add_child(r)
+	return r
+
+
+## La viñeta común (dirección de arte §2.4): un rectángulo de pantalla completa con un sombreador de pocas líneas, en tinta, que no toma clics.
+static func vignette(strength: float) -> ColorRect:
+	var rect := ColorRect.new()
+	rect.name = "HxVignette"
+	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var sh := Shader.new()
+	sh.code = "shader_type canvas_item;
+uniform float strength = 0.32;
+uniform vec4 tint : source_color = vec4(0.031, 0.020, 0.051, 1.0);
+void fragment() {
+	vec2 uv = UV - 0.5;
+	uv.x *= 1.25;
+	float v = smoothstep(0.38, 0.85, length(uv)) * strength;
+	COLOR = vec4(tint.rgb, v);
+}
+"
+	var mat := ShaderMaterial.new()
+	mat.shader = sh
+	mat.set_shader_parameter("strength", strength)
+	mat.set_shader_parameter("tint", VIGNETTE_INK)
+	rect.material = mat
+	rect.color = Color(1, 1, 1, 1)
+	return rect
 
 
 ## Cuántos caracteres de texto hay visibles bajo `node` (etiquetas, botones y textos con formato).

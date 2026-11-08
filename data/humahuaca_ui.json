@@ -19,7 +19,7 @@
 			"speeds": ["×1", "×2", "×4"],
 			"pause_tip": "Pausa o sigue el tiempo (Espacio)",
 			"speed_tip": "Velocidad del tiempo: ×1 es tiempo real (F2, F3 y F4)",
-			"suggest_x2": "Esperá tranquilo: podés acelerar con ×2.",
+			"suggest_x2": "Por ahora no pasa nada que te necesite: podés acelerar con ×2 (F3).",
 			"suggest_button": "Acelerar ×2"
 		},
 		"hud": {
@@ -75,6 +75,8 @@
 			"risk": {"bajo": "bajo", "medio": "medio", "alto": "alto", "desconocido": "desconocido"},
 			"no_selection": "Elegí primero una agrupación (teclas 1 a 5).",
 			"nothing_to_undo": "No hay nada para deshacer.",
+			"undo_signal": "La señal ya se dio: no se puede deshacer.",
+			"undo_lost": "Esa orden no se puede deshacer: dale otra orden a la agrupación.",
 			"stop_outside": "Esa parada queda fuera del mapa: elegí un punto adentro.",
 			"who": {"reconocedores": "los reconocedores", "arreo": "el arreo"},
 			"only_one": "Eso lo hace %s (tecla %s).",
@@ -128,20 +130,37 @@
 		},
 		"load": {
 			"failed": "No se pudo abrir la partida guardada: %s. Empezás de nuevo.",
+			"failed_in_play": "No se pudo abrir la partida guardada: %s. La partida sigue como estaba.",
 			"reasons": {
 				"missing": "no hay un archivo guardado",
 				"broken": "el archivo está vacío o dañado",
-				"no_rules": "faltan las reglas del nivel"
+				"no_rules": "faltan las reglas del nivel",
+				"finished": "esa partida ya había terminado"
 			}
 		},
 		"briefing": {
 			"page1": {
 				"title": "Humahuaca, 1817",
-				"today": "Hoy: %s"
+				"today": "Hoy: %s",
+				"kicker": "Capítulo II",
+				"subtitle": "El depósito de la retaguardia",
+				"objective": "Objetivo",
+				"forces": "Tus fuerzas",
+				"enemy": "Enemigo",
+				"tonight": "Esta noche",
+				"chrono_title": "Cronología",
+				"chrono": [
+					{"fecha": "26 de febrero", "texto": "Carta de Güemes a Arias", "tag": "diseno"},
+					{"fecha": "1 de marzo", "texto": "El golpe sobre Humahuaca", "tag": "discutido"}
+				],
+				"roles": {},
+				"quote": "La mayor parte sin más armas que palos",
+				"quote_source": "Arias, parte del 3 de marzo de 1817"
 			},
 			"page2": {
 				"title": "La carta del 26 de febrero",
-				"label": "Dramatización"
+				"label": "Dramatización",
+				"kicker": "Antes de empezar"
 			},
 			"opening": {
 				"subtitle": "«La mayor parte sin más armas que palos», escribió Arias.",
@@ -230,7 +249,20 @@
 			"epilogue_title": "Qué pasó después",
 			"reality_vs_game": "En la realidad y en tu partida",
 			"assists": "Ayudas usadas: %s",
-			"next_label": "Ver la campaña completa: Sostener el norte"
+			"next_label": "Ver la campaña completa: Sostener el norte",
+			"kicker_victory": "Parte de victoria",
+			"kicker_defeat": "Repliegue",
+			"next_primary": "Seguir al capítulo III: Sostener el norte",
+			"what_title": "Qué pasó",
+			"when": "A los %s de juego",
+			"diary_line": "En el diario: %s",
+			"advice_title": "Para el próximo intento",
+			"timeline_more": "Ver toda la línea de tiempo (%d fechas)",
+			"timeline_less": "Plegar la línea de tiempo",
+			"facts_big": {"fronts": "%d de 3", "fronts_label": "Frentes tomados", "golpe": "%d de 100", "golpe_label": "Golpe", "losses": "%d %%", "losses_label": "Bajas", "time_label": "Tiempo de juego"},
+			"checkpoint_missing": "Ese punto de control ya no existe: elegí otra forma de reintentar.",
+			"checkpoint_other_world": "Ese punto de control es de un mundo anterior: elegí otra forma de reintentar.",
+			"checkpoint_failed": "No se pudo volver al punto de control (%s). Empezás de nuevo."
 		},
 		"quit": {
 			"keep_going": "Volver al juego"
@@ -380,16 +412,20 @@
 		"large_size_px": [520, 376],
 		"refresh_s": 2,
 		"colors": {
-			"unit": "#7FAAC4",
-			"unit_border": "#EFE8D7",
-			"arreo": "#B99A50",
-			"selected": "#D9B576",
-			"frame": "#E9E3D4",
-			"front": "#983F36",
-			"front_taken": "#9AC4AB",
-			"border": "#50543A",
-			"back": "#14180F"
+			"unit": "#8DB8D6",
+			"unit_border": "#ECE3CF",
+			"arreo": "#BFB6A3",
+			"selected": "#C9A25E",
+			"frame": "#E8CC8A",
+			"front": "#B8433A",
+			"front_taken": "#8FB89A",
+			"border": "#5C4A2E",
+			"back": "#16131C",
+			"night_low": "#120F17",
+			"night_high": "#2A2430",
+			"night_line": "#C9A25E"
 		},
+		"night": {"strength": 1.0, "line_gain": 0.55},
 		"scale_steps_m": [50, 100, 200, 500]
 	},
 	"layout": {
@@ -405,6 +441,8 @@
 		"group_card": [142, 58],
 		"toast_w": 440,
 		"alert_w": 520,
+		"dock_max_w": 920,
+		"vignette": {"play": 0.32, "screens": 0.55},
 		"font": {"title": 17, "body": 15, "small": 13, "tiny": 12},
 		"modal": {"max_w": 940, "pad": 22},
 		"fit_scale": {"enabled": true, "min_window": [1024, 640]}
@@ -464,7 +502,7 @@
 	"onboarding": {
 		"arrow": true,
 		"first_order_hint_s": 12,
-		"speed_suggestion": {"after_calm_s": 20, "repeat_s": 60},
+		"speed_suggestion": {"after_calm_s": 8, "repeat_s": 60},
 		"retry_skips_briefing": true
 	}
 }

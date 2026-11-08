@@ -115,15 +115,72 @@ func _has_order(id: String) -> bool:
 	return st in ["moving", "loading", "scouting", "waiting_signal", "retreating", "attacking"]
 
 
-## ¿Puede `actor` hacer `action` ahora? (action_availability con un destino de prueba para las que piden uno).
+## ¿Puede `actor` hacer `action` ahora? (action_availability con un destino de prueba para las que piden uno). «Socorrer» se prueba contra cada frente que siga en
+## pie (revisión E-3: con el punto fijo (450, 325) las reglas entendían siempre «el cuartel» y, con el cuartel tomado, C y la barra decían «Ese frente ya está tomado»
+## aunque la batería pidiera socorro). La respuesta se guarda mientras no cambie el estado (ver cached_availability).
 func availability(actor: String, action: String) -> Dictionary:
 	if ui.rules == null:
 		return {"ok": false, "reason": "", "cost_text": "", "tag": "diseno"}
+	if action == "support":
+		var first: Dictionary = {}
+		for fid in V.OBJECTIVES:
+			if _front_taken(str(fid)):
+				continue
+			var av_f := cached_availability(actor, action, ui.call("landmark_pos", str(fid)), {"front": str(fid)})
+			if bool(av_f.get("ok", false)):
+				return av_f
+			if first.is_empty():
+				first = av_f
+		if not first.is_empty():
+			return first
 	var probe := Vector2.ZERO
 	if U.AIM_ACTIONS.has(action):
 		probe = Vector2(450.0, 325.0)
-	var av: Variant = ui.rules.call("action_availability", actor, action, probe, {})
-	return av if av is Dictionary else {"ok": false, "reason": "", "cost_text": "", "tag": "diseno"}
+	return cached_availability(actor, action, probe, {})
+
+
+func _front_taken(fid: String) -> bool:
+	var o: Variant = ui.rules.call("objective", fid) if ui.rules.has_method("objective") else {}
+	return o is Dictionary and str((o as Dictionary).get("state", "")) == "tomado"
+
+
+## action_availability con memoria (revisión G-1): el HUD se refresca 5 veces por segundo (también en pausa) y cada pregunta arma la ruta entera (hasta 4 búsquedas de
+## camino por refresco). La respuesta solo puede cambiar si cambia el estado: el paso del reloj (state_version), una orden nueva, una etapa o la partida; la firma de
+## estado junta esas cuatro cosas. forget_availability() la borra a mano (tras cada orden, deshacer o cancelar).
+var _av_cache: Dictionary = {}
+var _av_sig := ""
+
+func state_signature() -> String:
+	var st: Variant = ui.rules.get("state") if ui.rules != null else null
+	if not (st is Dictionary) or (st as Dictionary).is_empty():
+		return ""
+	var d := st as Dictionary
+	var stages := ""
+	for u in d.get("units", []):
+		stages += str((u as Dictionary).get("stage", "")) + ","
+	var pending: Variant = ui.rules.call("pending_choice") if ui.rules.has_method("pending_choice") else {}
+	return "%s|%s|%d|%s|%s|%s" % [str(d.get("game_id", "")), str(d.get("state_version", 0)), (d.get("orders", []) as Array).size(), stages, str(d.get("status", "")), str((pending as Dictionary).get("id", "")) if pending is Dictionary else ""]
+
+
+func cached_availability(actor: String, action: String, target: Vector2, opts: Dictionary) -> Dictionary:
+	if ui.rules == null:
+		return {"ok": false, "reason": "", "cost_text": "", "tag": "diseno"}
+	var sig := state_signature()
+	if sig != _av_sig:
+		_av_sig = sig
+		_av_cache = {}
+	var key := "%s|%s|%s|%s" % [actor, action, str(target), str(opts)]
+	if _av_cache.has(key):
+		return _av_cache[key]
+	var av: Variant = ui.rules.call("action_availability", actor, action, target, opts)
+	var out: Dictionary = av if av is Dictionary else {"ok": false, "reason": "", "cost_text": "", "tag": "diseno"}
+	_av_cache[key] = out
+	return out
+
+
+func forget_availability() -> void:
+	_av_cache = {}
+	_av_sig = ""
 
 
 ## ¿El punto (x, z) está dentro del mapa jugable? Las reglas rechazan las paradas de afuera («Una de las paradas queda fuera del mapa.»); la interfaz avisa antes de
@@ -173,6 +230,7 @@ func issue(actor: String, action: String, target: Vector2 = Vector2.ZERO, opts: 
 		r = ui.rules.call("issue_order", actor, action, target, opts)
 	var res: Dictionary = r if r is Dictionary else {"ok": false, "reason": ""}
 	last_result = res
+	forget_availability()
 	if bool(res.get("ok", false)):
 		last_error = ""
 		plan = res.get("plan", {}) if res.get("plan", {}) is Dictionary else {}
