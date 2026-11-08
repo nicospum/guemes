@@ -30,13 +30,13 @@
 	"lights": {
 		"noche_lluvia": {
 			"time_of_day": 0.0,
-			"sun": {"elevation_deg": 36.0, "azimuth_deg": 115.0, "color": "celeste_produccion", "gain": 1.0, "tint": "blanco_textil", "tint_mix": 0.35, "energy": 0.7, "shadows": true},
+			"sun": {"elevation_deg": 36.0, "azimuth_deg": 115.0, "color": "celeste_produccion", "gain": 1.0, "tint": "blanco_textil", "tint_mix": 0.15, "energy": 0.62, "shadows": true},
 			"ambient": {"color": "azul_elegido", "gain": 1.5, "tint": "grana_analogia", "tint_mix": 0.12, "energy": 0.38},
 			"sky": {"top": "azul_elegido", "top_gain": 0.16, "horizon": "azul_elegido", "horizon_gain": 0.55, "horizon_tint": "grana_analogia", "horizon_tint_mix": 0.45, "ground": "negro_textil", "ground_gain": 0.3},
 			"fog": {"color": "azul_elegido", "gain": 0.6, "tint": "grana_analogia", "tint_mix": 0.3, "density": 0.0011, "depth_max": 0.78, "aerial": 0.35},
 			"exposure": 1.32,
 			"fire": 1.0,
-			"grade": {"contrast": 1.14, "saturation": 0.85, "shadows": [0.03, 0.03, 0.08], "mids": [0.47, 0.48, 0.55], "highlights": [0.98, 0.94, 0.86]},
+			"grade": {"contrast": 1.15, "saturation": 0.92, "shadows": [0.03, 0.03, 0.09], "mids": [0.47, 0.48, 0.55], "highlights": [0.98, 0.94, 0.86]},
 			"tag": "diseno",
 			"source": "luna fría con sombras y ambiente bajo para que los fuegos de la guardia iluminen; curva fría (dirección de arte 2.3)"
 		},
@@ -93,7 +93,7 @@
 		"nota": "Modelos propios de la pista de modelos (escala 1, origen en el suelo y centrado, frente hacia menos Z). Si un archivo no existe la vista usa su generador procedural de siempre; reemplazar un modelo es cambiar su ruta acá. Casas del núcleo, capilla (templo), corral de la posta, tapias en módulos de 4 m, brasero y fogón; la pirca y la pieza de artillería quedan anotadas para cuando haya dónde usarlas."
 	},
 	"look": {
-		"glow": {"qualities": ["media", "alta"], "intensity": 0.8, "bloom": 0.04, "threshold": 0.92, "blend": "softlight"},
+		"glow": {"qualities": ["media", "alta"], "intensity": 0.7, "bloom": 0.0, "threshold": 1.0, "blend": "aditivo"},
 		"ssao": {"qualities": ["alta"], "intensity": 1.5, "radius": 2.0},
 		"grade": true,
 		"fires": {"color": "oro_laton", "tint": "rojo_reservado", "tint_mix": 0.22, "gain": 1.35, "energy": {"baja": 0.0, "media": 14.0, "alta": 16.0}, "range_k": 2.4, "attenuation": 1.0, "flicker": 0.12},
@@ -107,7 +107,7 @@
 		"streak_count": {"baja": 0, "media": 700, "alta": 1400},
 		"streak_length_m": 1.8,
 		"streak_px": 22.0,
-		"streak_alpha": 0.24,
+		"streak_alpha": 0.18,
 		"color": "agua_turbia",
 		"tag": "diseno",
 		"source": "el suelo se oscurece ×0,75 donde llueve (diseño 11.2); la lluvia de la noche y el alba es reconstrucción razonada"
@@ -155,7 +155,7 @@
 			"cerro": {"builder": "ninguno"}
 		},
 		"por_id": {
-			"templo": {"builder": "templo_nave", "model": "capilla", "color": "cal_envejecida", "roof_color": "paja", "trim_color": "madera_oscura", "default_height_m": 7.0, "eave_ratio": 0.78, "tag": "sin_datos", "source": "nave simple de adobe encalado a dos aguas, sin torres ni fachada de 1880 (forma de 1817 sin datos)"},
+			"templo": {"builder": "templo_nave", "model": "capilla", "model_fit": "uniforme", "color": "cal_envejecida", "roof_color": "paja", "trim_color": "madera_oscura", "default_height_m": 7.0, "eave_ratio": 0.78, "tag": "sin_datos", "source": "nave simple de adobe encalado a dos aguas, sin torres ni fachada de 1880 (forma de 1817 sin datos)"},
 			"bateria": {"builder": "plataforma", "color": "piedra_gris", "iron_color": "hierro", "trim_color": "madera_oscura", "slab_m": 0.9, "pieces": 3, "tag": "diseno", "source": "plataforma de tierra con piezas de artillería; cota y orientación de la gola son diseño"},
 			"cuartel": {"builder": "casa_cura", "color": "cal_envejecida", "roof_color": "paja", "default_height_m": 3.6, "tag": "diseno", "source": "casa del cura: lugar razonado, planta de diseño"},
 			"posta": {"builder": "patio_posta", "color": "adobe", "roof_color": "paja", "tag": "diseno", "source": "patio de la posta: planta de diseño; los muros de 2,4 m son las tapias del terreno (terrain.features)"},

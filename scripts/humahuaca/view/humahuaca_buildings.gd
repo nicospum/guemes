@@ -20,6 +20,7 @@ var triangle_count := 0
 var content_counts: Dictionary = {}
 var extra_trees: Array = []  ## árboles de patio (sauces chicos) que deja el núcleo; los planta build_vegetation
 var _model_xf: Dictionary = {}  ## clave de modelo → [Transform3D] de las casas que se dibujan con un GLB
+var _lit: Array = []  ## [Transform3D] de las puertas con lumbre
 
 var _terrain: RefCounted = null
 
@@ -138,8 +139,7 @@ func _build_landmark(root: Node3D, lm: Dictionary) -> void:
 		var mi := MeshInstance3D.new()
 		mi.name = "modelo_" + model_key
 		mi.mesh = gfx.model(model_key).mesh
-		mi.material_override = gfx.props_mat
-		mi.transform = gfx.model_fit(model_key, w, d, hgt if bool(spec.get("model_fit_height", true)) else -1.0)
+		mi.transform = gfx.model_fit(model_key, w, d, hgt if bool(spec.get("model_fit_height", true)) else -1.0, str(spec.get("model_fit", "")) == "uniforme")
 		node.add_child(mi)
 		return
 	var mb = gen.builder()
@@ -152,8 +152,18 @@ func _build_landmark(root: Node3D, lm: Dictionary) -> void:
 			gen.add_cura_house(mb, w, d, maxf(hgt, 3.0))
 			_mesh_node(node, "casa", mb.build())
 		"plataforma":  # la batería: losa de tierra con parapeto y piezas bajas (nunca un fuste)
-			gen.add_battery(mb, w, d, clampf(hgt, 1.0, 2.0), int(spec.get("pieces", 3)), float(spec.get("slab_m", 0.9)))
+			var piece_model: bool = not gfx.model("pieza_artilleria").is_empty()
+			gen.add_battery(mb, w, d, clampf(hgt, 1.0, 2.0), int(spec.get("pieces", 3)), float(spec.get("slab_m", 0.9)), not piece_model)
 			_mesh_node(node, "bateria", mb.build())
+			if piece_model:  # las piezas reales de la pista P6 (cañón de campaña con cureña), cada una en su cañonera y con la boca al oeste
+				var k := 0
+				for at in gen.battery_piece_spots(w, d, int(spec.get("pieces", 3)), float(spec.get("slab_m", 0.9))):
+					var piece := MeshInstance3D.new()
+					piece.name = "pieza_%d" % k
+					piece.mesh = gfx.model("pieza_artilleria").mesh
+					piece.transform = Transform3D(Basis(Vector3.UP, PI * 0.5), at)  # el frente del modelo (−Z) pasa a −X, el oeste del hito
+					node.add_child(piece)
+					k += 1
 		"torre":
 			gen.add_tower(mb, w, d, hgt)
 			_mesh_node(node, "torre", mb.build())
@@ -195,7 +205,14 @@ func _build_posta(node: Node3D, mb, w: float, d: float) -> void:
 	var house_w := w * 0.62
 	mb.push()
 	mb.move(Vector3(-w * 0.5 + house_w * 0.5 + 1.8, 0.0, -d * 0.5 + 3.4))
-	gen.add_house(mb, house_w, 4.6, 3.0, 1, 1.0, 0.2)
+	if gfx.model("casa_adobe_grande").is_empty():
+		gen.add_house(mb, house_w, 4.6, 3.0, 1, 1.0, 0.2)
+	else:  # la casa de posta con su ramada (modelo de la pista P6), con el frente hacia el patio (+Z)
+		var house := MeshInstance3D.new()
+		house.name = "casa_de_posta"
+		house.mesh = gfx.model("casa_adobe_grande").mesh
+		house.transform = mb.xf * Transform3D(Basis(Vector3.UP, PI), Vector3.ZERO) * gfx.model_fit("casa_adobe_grande", house_w, 6.0)
+		node.add_child(house)
 	mb.pop()
 	mb.push()
 	mb.move(Vector3(w * 0.5 - 7.0, 0.0, d * 0.5 - 6.5))
@@ -292,7 +309,7 @@ func build_features(root: Node3D) -> void:
 					_wall_run(wall, line[k], line[k + 1], float(f.get("height_m", 2.0)), float(f.get("thickness_m", 0.5)), wall_color, cap_color, cap_h, k == 0 or k == line.size() - 2)
 				walls += 1
 	if not modules.is_empty():
-		_multimesh(root, "tapias_modelo", gfx.model("tapia").mesh, modules, true)
+		_multimesh(root, "tapias_modelo", gfx.model("tapia").mesh, modules, true, true)
 	for f in _terrain.call("features", "barricada"):
 		if f is Dictionary:
 			var line: PackedVector2Array = gfx.pts(f.get("pts", []))
@@ -473,8 +490,25 @@ func build_nucleo(root: Node3D) -> void:
 	content_counts["casas"] = count
 	if count > 0:
 		_mesh_node(root, "casas_del_nucleo", mb.build())
+	if not _lit.is_empty():  # puertas y ventanas con lumbre: puntos cálidos que dicen «pueblo habitado» de noche (se apagan con el día, ver fx.set_fire)
+		var glow := BoxMesh.new()
+		glow.size = Vector3(2.0, 2.0, 0.1)
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.mesh = glow
+		mm.instance_count = _lit.size()
+		for i in range(_lit.size()):
+			mm.set_instance_transform(i, _lit[i])
+		var mmi := MultiMeshInstance3D.new()
+		mmi.name = "lumbre_de_las_casas"
+		mmi.multimesh = mm
+		mmi.material_override = gfx.night_glow_mat()
+		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		root.add_child(mmi)
+		content_counts["casas_con_lumbre"] = _lit.size()
+	_lit = []
 	for key in _model_xf:  # las casas que vienen de un modelo GLB (pista P6): una MultiMesh por modelo
-		_multimesh(root, "casas_modelo_" + str(key), gfx.model(str(key)).mesh, _model_xf[key], true)
+		_multimesh(root, "casas_modelo_" + str(key), gfx.model(str(key)).mesh, _model_xf[key], true, true)
 		content_counts["casas_de_modelo_" + str(key)] = (_model_xf[key] as Array).size()
 	_model_xf = {}
 
@@ -482,7 +516,10 @@ func build_nucleo(root: Node3D) -> void:
 ## Una casa del núcleo en `mb.xf`: con el modelo GLB de `models.casa_adobe` (o `casa_adobe_grande` si mide 9,5 m o más de frente) si existe; si no, el generador
 ## procedural (el respaldo de siempre). El modelo mira a −Z, igual que la puerta de la casa procedural, y se lo estira a la huella conservando su proporción de alto.
 func _add_house(mb, w: float, d: float, h: float, style: int, door_z: float, tone: float) -> void:
-	var key := "casa_adobe_grande" if w >= 9.5 and not gfx.model("casa_adobe_grande").is_empty() else "casa_adobe"
+	var o: Vector3 = mb.xf.origin
+	if posmod(int(o.x * 7.0 + o.z * 13.0), 20) < 9 and w >= 4.0:  # casi la mitad de las casas tiene lumbre en la puerta (aspecto de diseño, sin datos)
+		_lit.append(mb.xf * Transform3D(Basis.IDENTITY, Vector3(w * 0.18, 1.0, signf(door_z) * (d * 0.5 + 0.12))))
+	var key :="casa_adobe_grande" if w >= 9.5 and not gfx.model("casa_adobe_grande").is_empty() else "casa_adobe"
 	if gfx.model(key).is_empty():
 		gen.add_house(mb, w, d, h, style, door_z, tone)
 		return
@@ -530,19 +567,25 @@ func _inner_fill(mb, poly: PackedVector2Array, rng: RandomNumberGenerator, count
 # ---------------------------------------------------------------------------------------------------------------------
 # Anillo de contenido: churqui, cardón, sauce y rocas repartidos según la pendiente y el río (semilla fija)
 
-func _multimesh(parent: Node3D, name_: String, mesh: Mesh, xforms: Array, shadow: bool) -> void:
+func _multimesh(parent: Node3D, name_: String, mesh: Mesh, xforms: Array, shadow: bool, own_material: bool = false) -> void:
 	if xforms.is_empty():
 		return
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_colors = own_material  # los GLB usan el color por vértice: el color de instancia lo multiplica (un tono por casa)
 	mm.mesh = mesh
 	mm.instance_count = xforms.size()
 	for i in range(xforms.size()):
 		mm.set_instance_transform(i, xforms[i])
+		if own_material:
+			var o: Vector3 = (xforms[i] as Transform3D).origin
+			var k := 0.74 + 0.16 * float(posmod(int(o.x * 3.0 + o.z * 5.0), 7)) / 6.0
+			mm.set_instance_color(i, Color(k, k * 0.97, k * 0.93, 1.0))
 	var mi := MultiMeshInstance3D.new()
 	mi.name = name_
 	mi.multimesh = mm
-	mi.material_override = gfx.props_mat
+	if not own_material:  # los GLB de la pista P6 traen sus materiales (color por vértice y emisión): no se pisan
+		mi.material_override = gfx.props_mat
 	if not shadow:
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	parent.add_child(mi)

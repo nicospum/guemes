@@ -373,7 +373,17 @@ func add_tower(mb: MB, w: float, d: float, h: float) -> void:
 
 ## La batería de Santa Bárbara: una losa de tierra con parapeto de gaviones y tres cañoneras al oeste, gola abierta al este, piezas bajas y un abrigo.
 ## Mide a lo sumo 2,4 m sobre la losa: nada de fustes ni cilindros altos (hallazgo B-023: dos fustes se leían como dos torres de iglesia).
-func add_battery(mb: MB, w: float, d: float, parapet_m: float, pieces: int, slab: float) -> void:
+## Dónde va cada pieza de la batería (en el sistema del hito): una por cañonera del parapeto oeste, sobre la losa. Las usa add_battery y, si hay modelo de pieza, la vista.
+func battery_piece_spots(w: float, d: float, pieces: int, slab: float) -> Array:
+	var out: Array = []
+	var span := d - 2.0
+	var west_x := -w * 0.5 + 1.7 * 0.5 + 0.4
+	for k in range(pieces):
+		out.append(Vector3(west_x + 1.0, slab, ((float(k) + 0.5) / float(pieces) - 0.5) * span * 0.78))
+	return out
+
+
+func add_battery(mb: MB, w: float, d: float, parapet_m: float, pieces: int, slab: float, draw_pieces: bool = true) -> void:
 	var earth := pc("suelo_seco", 0.9)
 	var stone := pc("piedra_gris")
 	var wood := pc("madera_oscura")
@@ -409,7 +419,7 @@ func add_battery(mb: MB, w: float, d: float, parapet_m: float, pieces: int, slab
 	mb.box(Vector3(0.0, slab + h * 0.5, d * 0.5 - th * 0.5 - 0.4), Vector3(w - 2.4, h, th), earth.lightened(0.02), stone.darkened(0.1))
 	mb.box(Vector3(0.0, slab + h * 0.3, -d * 0.5 + th * 0.5 + 0.4), Vector3(w - 2.3, h * 0.5, th + 0.12), stone, stone.darkened(0.3))
 	mb.box(Vector3(0.0, slab + h * 0.3, d * 0.5 - th * 0.5 - 0.4), Vector3(w - 2.3, h * 0.5, th + 0.12), stone, stone.darkened(0.3))
-	for k in range(pieces):  # una pieza por cañonera, apuntando al oeste (−X), el tubo apenas levantado
+	for k in range(pieces if draw_pieces else 0):  # una pieza por cañonera, apuntando al oeste (−X), el tubo apenas levantado
 		mb.push()
 		mb.move(Vector3(west_x + 1.0, slab, float(piece_z[k])))
 		mb.turn_y(90.0)

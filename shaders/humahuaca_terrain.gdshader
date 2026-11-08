@@ -100,7 +100,7 @@ void fragment(){
 	float crack = smoothstep(0.10, 0.04, abs(hx_cells(p * 0.55) - 0.5)) * near_k;
 	c_sed *= 1.0 - 0.18 * crack;                                                                     // grietas de barro seco
 	// la piedra de las laderas de la quebrada es parda y rojiza, no gris neutro (con la luna fría el gris se leía como charcos azules): se la mezcla con el adobe y el sedimento
-	vec3 rock_tint = mix(pal_piedra, mix(pal_adobe, pal_sedimento, 0.45), 0.42 + 0.2 * big);
+	vec3 rock_tint = mix(pal_piedra, mix(pal_adobe, pal_sedimento, 0.5), 0.6 + 0.2 * big);
 	vec3 c_piedra = rock_tint * (0.78 + 0.3 * mid + 0.18 * fine) * (0.9 + 0.2 * hx_noise(p * 0.7));
 	float strata = hx_noise(vec2(p.x * 0.006 + p.y * 0.004, asl * 0.22));                           // estratos claros y horizontales de los cerros erosionados
 	float band = smoothstep(0.38, 0.62, fract(asl / 7.0 + strata * 0.9 + big * 0.5));

@@ -41,6 +41,7 @@ var props_mat: ShaderMaterial
 var water_mat: ShaderMaterial
 var token_mats: Dictionary = {}  ## «aliado» y «enemigo»: el material de las figuras (shaders/humahuaca_token.gdshader)
 var _models: Dictionary = {}  ## modelos GLB ya cargados por clave (model())
+var _glow_mat: StandardMaterial3D = null  ## la lumbre de las casas (night_glow_mat)
 var win := Rect2(0.0, 0.0, 900.0, 652.0)  ## la ventana de 4 m: de la primera a la última fila de la grilla
 var ctx := Rect2(-1350.0, -1025.0, 3600.0, 2700.0)  ## el contexto de 30 m
 var build_stats: Dictionary = {}  ## triángulos y milisegundos de cada etapa del terreno (los informa el recorrido de QA)
@@ -203,6 +204,10 @@ func model(key: String) -> Dictionary:
 						cols.fill(Color(pc("adobe"), 1.0))
 						arrays[Mesh.ARRAY_COLOR] = cols
 					merged.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+					# se conserva el material de cada superficie del GLB: el ancla activa el color por vértice y las brasas traen su emisión (P6_MODELOS 1 y 3)
+					var smat: Material = (mi as MeshInstance3D).get_active_material(s)
+					if smat != null:
+						merged.surface_set_material(merged.get_surface_count() - 1, smat)
 			inst_root.free()
 			if merged.get_surface_count() > 0:
 				out = {"mesh": merged, "aabb": merged.get_aabb(), "path": path}
@@ -222,7 +227,7 @@ static func _rel_xf(top: Node, n: Node3D) -> Transform3D:
 
 ## La transformación que lleva el modelo `key` a una huella de `w` × `d` m (x por z, antes de girar) y `h` m de alto, centrado en el origen y apoyado en y = 0. Si el lado
 ## largo del modelo no coincide con el de la huella, se lo gira 90°. `h` ≤ 0 conserva la proporción del modelo según el ancho.
-func model_fit(key: String, w: float, d: float, h: float = -1.0) -> Transform3D:
+func model_fit(key: String, w: float, d: float, h: float = -1.0, uniform: bool = false) -> Transform3D:
 	var m := model(key)
 	if m.is_empty():
 		return Transform3D.IDENTITY
@@ -236,11 +241,35 @@ func model_fit(key: String, w: float, d: float, h: float = -1.0) -> Transform3D:
 		sz = t
 	var kx := w / sx
 	var kz := d / sz
-	var ky := h / maxf(box.size.y, 0.01) if h > 0.0 else clampf((kx + kz) * 0.5, 0.6, 1.6)
+	if uniform:  # sin deformar (la capilla): la escala que entra en la huella, y el alto con la misma
+		kx = minf(minf(kx, kz), 1.0)
+		kz = kx
+	var ky := kx if uniform else (h / maxf(box.size.y, 0.01) if h > 0.0 else clampf((kx + kz) * 0.5, 0.6, 1.6))
 	var center := box.get_center()
 	var rot := Basis(Vector3.UP, PI * 0.5) if turn else Basis.IDENTITY
 	var pre := Transform3D(Basis.IDENTITY, Vector3(-center.x, -box.position.y, -center.z))  # centrado y apoyado en el suelo
 	return Transform3D(Basis.from_scale(Vector3(kx, ky, kz)) * rot, Vector3.ZERO) * pre
+
+
+## La lumbre de puertas y ventanas: sin sombreado, emisiva (el resplandor la abre en un punto cálido) y con la intensidad que da set_night_glow según la hora.
+func night_glow_mat() -> StandardMaterial3D:
+	if _glow_mat == null:
+		_glow_mat = StandardMaterial3D.new()
+		_glow_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		var c := pc("oro_laton", 1.2).lerp(pc("rojo_reservado", 1.2), 0.25)
+		_glow_mat.albedo_color = c
+		_glow_mat.emission_enabled = true
+		_glow_mat.emission = c
+		_glow_mat.emission_energy_multiplier = 9.0
+		_glow_mat.disable_fog = true
+	return _glow_mat
+
+
+func set_night_glow(k: float) -> void:
+	if _glow_mat != null:
+		_glow_mat.emission_energy_multiplier = 9.0 * clampf(k, 0.0, 1.5)
+		_glow_mat.albedo_color.a = 1.0
+		_glow_mat.albedo_color = (pc("oro_laton", 1.2).lerp(pc("rojo_reservado", 1.2), 0.25)).darkened(clampf(1.0 - k, 0.0, 0.85))
 
 
 ## El material de las figuras de un bando («aliado» o «enemigo»).
@@ -250,6 +279,8 @@ func token_mat(side: String) -> ShaderMaterial:
 
 func set_albedo(on: bool) -> void:
 	albedo = on
+	if _glow_mat != null:  # la lumbre no es color de paleta: fuera del render de albedo
+		_glow_mat.emission_enabled = not on
 	for m in [terrain_mat, props_mat, water_mat] + token_mats.values():
 		if m != null:
 			(m as ShaderMaterial).set_shader_parameter("albedo_mode", 1.0 if on else 0.0)

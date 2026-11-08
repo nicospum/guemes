@@ -169,7 +169,7 @@ func sync_lights(root: Node3D, state: Dictionary, layer_on: bool) -> void:
 		var ground: float = gfx.h(x, z)
 		var holder := Node3D.new()
 		holder.name = "luz_" + str(l.get("id", kind))
-		holder.position = Vector3(x, ground + float(LIGHT_HEIGHT.get(kind, 1.4)), z)
+		holder.position = Vector3(x, ground + light_height(kind), z)
 		root.add_child(holder)
 		light_nodes[str(l.get("id", kind))] = holder
 		_fixture(holder, kind, ground)
@@ -183,7 +183,7 @@ func sync_lights(root: Node3D, state: Dictionary, layer_on: bool) -> void:
 		var halo: MeshInstance3D = gfx.inst(holder, _halo_quad(), Vector3(0.0, 0.2, 0.0), _halo_material(float(idx) * 2.3), Vector3.ZERO, false)  # no baja de 30 px
 		halo.name = "resplandor"
 		units.register_scaled(halo, "light", 1.0, 30.0, r_m * 0.25)
-		var pool: MeshInstance3D = gfx.inst(holder, _halo_quad(), Vector3(0.0, -(float(LIGHT_HEIGHT.get(kind, 1.4))) + 0.18, 0.0), _pool_material(), Vector3(-90.0, 0.0, 0.0), false)
+		var pool: MeshInstance3D = gfx.inst(holder, _halo_quad(), Vector3(0.0, -(light_height(kind)) + 0.18, 0.0), _pool_material(), Vector3(-90.0, 0.0, 0.0), false)
 		pool.name = "mancha"
 		pool.scale = Vector3.ONE * r_m * 1.5
 		var omni: OmniLight3D = null
@@ -208,6 +208,13 @@ func sync_lights(root: Node3D, state: Dictionary, layer_on: bool) -> void:
 
 
 ## `humahuaca_visual.json: look.fires`: color (id de paleta con mezcla), energía por calidad, alcance (× el radio de la luz) y parpadeo de los fuegos.
+## Altura de la llama sobre el suelo: la de la tabla, salvo el fogón de la pista P6 (brasas a 0,6 m; el brasero ya coincide en 1,4 m).
+func light_height(kind: String) -> float:
+	if kind == "fogata" and not gfx.model("fogon").is_empty():
+		return 0.6
+	return float(LIGHT_HEIGHT.get(kind, 1.4))
+
+
 func fire_cfg() -> Dictionary:
 	var look: Dictionary = gfx.data.get("look", {})
 	return look.get("fires", {}) if look.get("fires", null) is Dictionary else {}
@@ -230,6 +237,7 @@ func fire_color() -> Color:
 ## marcando dónde está la guardia (son información), pero la luz que echan alrededor se apaga cuando el día la vuelve inútil.
 func set_fire(k: float) -> void:
 	_fire = clampf(k, 0.0, 1.5)
+	gfx.set_night_glow(_fire)
 
 
 func _make_quad() -> QuadMesh:
@@ -244,13 +252,12 @@ func _halo_quad() -> Mesh:
 
 ## La pieza que sostiene cada llama: el cesto de hierro del brasero, el candil colgado, los troncos de la fogata o el marco de la ventana.
 func _fixture(holder: Node3D, kind: String, ground: float) -> void:
-	var y_down := -(float(LIGHT_HEIGHT.get(kind, 1.4)))
+	var y_down := -(light_height(kind))
 	var model_key := str({"brasero": "brasero", "fogata": "fogon"}.get(kind, ""))
 	if model_key != "" and not gfx.model(model_key).is_empty():  # el brasero y el fogón de la pista P6 (escala 1, origen en el suelo); la llama sigue a la altura de LIGHT_HEIGHT
 		var mi := MeshInstance3D.new()
 		mi.name = "modelo_" + model_key
 		mi.mesh = gfx.model(model_key).mesh
-		mi.material_override = gfx.props_mat
 		mi.position = Vector3(0.0, y_down, 0.0)
 		holder.add_child(mi)
 		return

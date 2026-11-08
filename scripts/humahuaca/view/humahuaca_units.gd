@@ -57,10 +57,10 @@ func build_tokens(root_tokens: Node3D, root_labels: Node3D) -> void:
 		var ring_r: float = clampf(dims.y, 0.3 * base_h, 0.62 * base_h)  # el anillo del bando no pasa de la mitad del alto de la ficha: así no domina la pantalla una figura ancha y baja
 		var disc: MeshInstance3D = gfx.inst(root, gfx.cyl_mesh(ring_r + 0.45, ring_r + 0.45, 0.04, 24), Vector3(0.0, 0.06, 0.0), gfx.flat_mat("negro_textil", 0.5), Vector3.ZERO, false)
 		disc.name = "base"  # disco de tinta bajo la ficha: la separa del suelo claro del alba y del barro oscuro de la noche (DIRECCION_DE_ARTE B3)
-		var ring: MeshInstance3D = gfx.flat_ring(root, ring_r, 0.34, ring_color)
+		var ring: MeshInstance3D = gfx.flat_ring(root, ring_r, 0.24, ring_color)
 		ring.material_override = gfx.flat_mat(ring_color, 1.0, false, RING_GAIN.get(ring_color, 1.0))
 		ring.name = "anillo"
-		gfx.flat_ring(root, ring_r + 0.3, 0.13, str(spec.get("ring_border_color", "blanco_textil"))).name = "borde"
+		gfx.flat_ring(root, ring_r + 0.22, 0.09, str(spec.get("ring_border_color", "blanco_textil"))).name = "borde"
 		var selection: MeshInstance3D = gfx.flat_ring(root, ring_r + 1.1, 0.4, "oro_laton")
 		selection.name = "seleccion"
 		selection.visible = false
