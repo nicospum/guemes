@@ -33,10 +33,11 @@
 			"sun": {"elevation_deg": 52.0, "azimuth_deg": 115.0, "color": "celeste_produccion", "gain": 1.0, "tint": "blanco_textil", "tint_mix": 0.15, "energy": 0.75, "shadows": true},
 			"ambient": {"color": "azul_elegido", "gain": 1.5, "tint": "grana_analogia", "tint_mix": 0.12, "energy": 0.38},
 			"sky": {"top": "azul_elegido", "top_gain": 0.16, "horizon": "azul_elegido", "horizon_gain": 0.55, "horizon_tint": "grana_analogia", "horizon_tint_mix": 0.45, "ground": "negro_textil", "ground_gain": 0.3},
-			"fog": {"color": "azul_elegido", "gain": 0.6, "tint": "grana_analogia", "tint_mix": 0.3, "density": 0.0011, "depth_max": 0.78, "aerial": 0.35},
+			"fog": {"color": "azul_elegido", "gain": 1.45, "tint": "grana_analogia", "tint_mix": 0.22, "density": 0.0011, "depth_max": 0.8, "aerial": 0.3},
 			"exposure": 1.32,
 			"fire": 1.0,
-			"grade": {"contrast": 1.15, "saturation": 0.92, "shadows": [0.03, 0.03, 0.09], "mids": [0.47, 0.48, 0.55], "highlights": [0.98, 0.94, 0.86]},
+			"ground_warmth": 1.0,
+			"grade": {"contrast": 1.15, "saturation": 1.0, "shadows": [0.025, 0.03, 0.1], "mids": [0.5, 0.47, 0.45], "highlights": [1.0, 0.9, 0.74]},
 			"tag": "diseno",
 			"source": "luna fría con sombras y ambiente bajo para que los fuegos de la guardia iluminen; curva fría (dirección de arte 2.3)"
 		},
@@ -45,9 +46,10 @@
 			"sun": {"elevation_deg": 12.0, "azimuth_deg": 82.0, "color": "celeste_produccion", "gain": 1.0, "tint": "grana_analogia", "tint_mix": 0.3, "energy": 0.7, "shadows": false},
 			"ambient": {"color": "azul_elegido", "gain": 1.6, "tint": "grana_analogia", "tint_mix": 0.25, "energy": 0.7},
 			"sky": {"top": "azul_elegido", "top_gain": 0.3, "horizon": "paja", "horizon_gain": 0.9, "horizon_tint": "grana_analogia", "horizon_tint_mix": 0.6, "ground": "negro_textil", "ground_gain": 0.4},
-			"fog": {"color": "azul_elegido", "gain": 0.7, "tint": "grana_analogia", "tint_mix": 0.45, "density": 0.0008, "depth_max": 0.72, "aerial": 0.5},
+			"fog": {"color": "azul_elegido", "gain": 1.4, "tint": "grana_analogia", "tint_mix": 0.45, "density": 0.0008, "depth_max": 0.7, "aerial": 0.5},
 			"exposure": 1.32,
 			"fire": 0.8,
+			"ground_warmth": 0.9,
 			"grade": {"contrast": 1.12, "saturation": 0.9, "shadows": [0.03, 0.03, 0.08], "mids": [0.5, 0.49, 0.53], "highlights": [1.0, 0.93, 0.86]},
 			"tag": "diseno",
 			"source": "antes del alba: tierra oscura y fuegos encendidos con el horizonte ya rosado, para que el alba se sienta"
@@ -60,6 +62,7 @@
 			"fog": {"color": "cal_envejecida", "gain": 0.9, "tint": "grana_analogia", "tint_mix": 0.18, "density": 0.00012, "depth_max": 0.55, "aerial": 0.5},
 			"exposure": 0.95,
 			"fire": 0.35,
+			"ground_warmth": 0.35,
 			"grade": {"contrast": 1.14, "saturation": 0.95, "shadows": [0.04, 0.03, 0.07], "mids": [0.5, 0.48, 0.47], "highlights": [1.0, 0.95, 0.86]},
 			"tag": "diseno",
 			"source": "sol a 6° o 7°, cálido sin saturar (lino y 40 % de oro, I-R1.0-3), sombras largas y horizonte rosado (diseño 11.2)"
@@ -72,6 +75,7 @@
 			"fog": {"color": "cal_envejecida", "gain": 0.95, "density": 0.00003, "depth_max": 0.35, "aerial": 0.5},
 			"exposure": 1.0,
 			"fire": 0.12,
+			"ground_warmth": 0.1,
 			"grade": {"contrast": 1.06, "saturation": 1.0, "shadows": [0.02, 0.02, 0.04], "mids": [0.5, 0.5, 0.5], "highlights": [1.0, 0.98, 0.95]},
 			"tag": "diseno",
 			"source": "sol a 35° (diseño 11.2); valores de partida a calibrar"
@@ -89,14 +93,17 @@
 		"pieza_artilleria": "hx_pieza_artilleria.glb",
 		"brasero": "hx_brasero.glb",
 		"fogon": "hx_fogon.glb",
+		"cardon": "tree_cardon.glb",
+		"algarrobo": "tree_algarrobo.glb",
 		"tag": "diseno",
-		"nota": "Modelos propios de la pista de modelos (escala 1, origen en el suelo y centrado, frente hacia menos Z). Si un archivo no existe la vista usa su generador procedural de siempre; reemplazar un modelo es cambiar su ruta acá. Casas del núcleo, capilla (templo), corral de la posta, tapias en módulos de 4 m, brasero y fogón; la pirca y la pieza de artillería quedan anotadas para cuando haya dónde usarlas."
+		"nota": "Modelos propios de la pista de modelos (escala 1, origen en el suelo y centrado, frente hacia menos Z). Si un archivo no existe la vista usa su generador procedural de siempre; reemplazar un modelo es cambiar su ruta acá. Casas del núcleo, capilla (templo), corral de la posta, tapias en módulos de 4 m, brasero y fogón; la pirca queda anotada para cuando haya dónde usarla. Cardones y algarrobos son los árboles del proyecto (MultiMesh)."
 	},
 	"look": {
 		"glow": {"qualities": ["media", "alta"], "intensity": 0.7, "bloom": 0.0, "threshold": 1.0, "blend": "aditivo"},
 		"ssao": {"qualities": ["alta"], "intensity": 1.5, "radius": 2.0},
 		"grade": true,
-		"fires": {"color": "oro_laton", "tint": "rojo_reservado", "tint_mix": 0.22, "gain": 1.35, "energy": {"baja": 0.0, "media": 14.0, "alta": 16.0}, "range_k": 2.4, "attenuation": 1.0, "flicker": 0.12},
+		"opening": {"sun_elevation_deg": 11.0, "sun_azimuth_deg": 95.0, "sun_energy": 1.15, "fog_depth_end_m": 9000, "fog_depth_max": 0.62},
+		"fires": {"color": "oro_laton", "tint": "rojo_reservado", "tint_mix": 0.34, "gain": 1.4, "energy": {"baja": 0.0, "media": 14.0, "alta": 16.0}, "range_k": 2.4, "attenuation": 1.0, "flicker": 0.12},
 		"tag": "diseno",
 		"source": "dirección de arte, paquete b: resplandor, curva de color por hora y fuegos que son luces reales sin sombra"
 	},
@@ -114,9 +121,9 @@
 	},
 	"fog": {
 		"mode": "profundidad",
-		"depth_begin_m": 120,
-		"depth_end_m": 7000,
-		"depth_curve": 0.6,
+		"depth_begin_m": 60,
+		"depth_end_m": 3000,
+		"depth_curve": 0.7,
 		"depth_per_rain": 0.08,
 		"sky_affect": 0.35,
 		"density_min": 0.00002,

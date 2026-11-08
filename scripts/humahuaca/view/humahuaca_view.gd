@@ -52,6 +52,7 @@ var _env: Environment
 var _sky_mat: ProceduralSkyMaterial
 var _sun: DirectionalLight3D
 var _grade_tex: GradientTexture1D = null
+var _opening_k := 0.0  ## peso de la luz de la apertura (1 arriba de la quebrada, 0 en el cuadro de juego)
 var _albedo := false
 var _override_tod := -1.0
 var _override_rain := 0.0
@@ -342,7 +343,7 @@ func _light_params(key: String) -> Dictionary:
 		"fog_col": _tinted(fog, "cal_envejecida"), "fog_density": float(fog.get("density", 0.001)), "fog_depth_max": float(fog.get("depth_max", 0.6)),
 		"fog_aerial": float(fog.get("aerial", 0.0)), "fog_height": float(fog.get("height_m", 60.0)), "fog_height_density": float(fog.get("height_density", 0.0)),
 		"exposure": float(l.get("exposure", 1.0)),
-		"fire": float(l.get("fire", 1.0)),
+		"fire": float(l.get("fire", 1.0)), "ground_warmth": float(l.get("ground_warmth", 0.0)),
 		"grade_contrast": float(grade.get("contrast", 1.0)), "grade_sat": float(grade.get("saturation", 1.0)),
 		"grade_lo": _rgb(grade.get("shadows", [0.0, 0.0, 0.0])), "grade_mid": _rgb(grade.get("mids", [0.5, 0.5, 0.5])), "grade_hi": _rgb(grade.get("highlights", [1.0, 1.0, 1.0]))}
 
@@ -389,6 +390,12 @@ func _apply_environment() -> void:
 				break
 	var rain_cfg: Dictionary = _data.get("rain", {})
 	var fog_cfg: Dictionary = _data.get("fog", {})
+	var op: Dictionary = (_data.get("look", {}) as Dictionary).get("opening", {}) if (_data.get("look", {}) as Dictionary).get("opening", null) is Dictionary else {}
+	if _opening_k > 0.0 and not op.is_empty():
+		p["sun_el"] = lerpf(float(p.sun_el), float(op.get("sun_elevation_deg", 12.0)), _opening_k)
+		p["sun_az"] = rad_to_deg(lerp_angle(deg_to_rad(float(p.sun_az)), deg_to_rad(float(op.get("sun_azimuth_deg", 95.0))), _opening_k))
+		p["sun_energy"] = lerpf(float(p.sun_energy), float(op.get("sun_energy", 1.1)), _opening_k)
+		p["fog_depth_max"] = lerpf(float(p.fog_depth_max), float(op.get("fog_depth_max", 0.6)), _opening_k)
 	var elevation := deg_to_rad(float(p.sun_el))
 	var azimuth := deg_to_rad(float(p.sun_az))
 	var to_sun := Vector3(sin(azimuth) * cos(elevation), sin(elevation), -cos(azimuth) * cos(elevation))
@@ -422,7 +429,7 @@ func _apply_environment() -> void:
 			# niebla exponencial pareja. `density` de cada hora queda para el modo exponencial (y el stub); acá manda `depth_max`, la niebla máxima (0 a 1) a `depth_end_m`
 			_env.fog_mode = Environment.FOG_MODE_DEPTH
 			_env.fog_depth_begin = float(fog_cfg.get("depth_begin_m", 120.0))
-			_env.fog_depth_end = float(fog_cfg.get("depth_end_m", 7000.0))
+			_env.fog_depth_end = lerpf(float(fog_cfg.get("depth_end_m", 7000.0)), float(op.get("fog_depth_end_m", 9000.0)), _opening_k) if not op.is_empty() else float(fog_cfg.get("depth_end_m", 7000.0))
 			_env.fog_depth_curve = float(fog_cfg.get("depth_curve", 0.6))
 			_env.fog_density = clampf(float(p.fog_depth_max) + _rain * float(fog_cfg.get("depth_per_rain", 0.08)), 0.0, 0.97)
 		else:
@@ -436,8 +443,9 @@ func _apply_environment() -> void:
 		_env.tonemap_exposure = float(p.exposure)
 		_apply_look(p)
 	gfx.set_rain(_rain)
-	fxm.set_rain(_rain, _albedo)
+	fxm.set_rain(_rain * (1.0 - 0.65 * _opening_k), _albedo)  # menos rayas en el plano general de la apertura: la lluvia no tapa la quebrada
 	fxm.set_fire(float(p.fire))
+	gfx.set_warmth(0.0 if _albedo else float(p.ground_warmth))
 
 
 ## Resplandor, oclusión y la corrección de color por hora (DIRECCION_DE_ARTE 2.3 y 2.4): curva por canal fría de noche (sombras violáceas, luces apenas cálidas) que se
@@ -470,6 +478,19 @@ func _apply_look(p: Dictionary) -> void:
 		_grade_tex.gradient = g
 	_grade_tex.gradient.colors = PackedColorArray([p.grade_lo, p.grade_mid, p.grade_hi])
 	_env.adjustment_color_correction = _grade_tex
+
+
+## Ronda 4 de P2: la apertura épica. Con `k` = 1 la luna baja y rasante del este dibuja las crestas de la quebrada y la niebla se abre para que se vean los cerros
+## lejanos (`look.opening`); al bajar la cámara la luz vuelve a la de juego. La llama la cámara en cada cuadro de la apertura y con 0 al terminarla.
+func set_opening_look(k: float) -> void:
+	var kk := clampf(k, 0.0, 1.0)
+	if absf(kk - _opening_k) < 0.002 and not (kk == 0.0 and _opening_k > 0.0):
+		return
+	_opening_k = kk
+	if not _roots.is_empty():  # las fichas miden lo mismo en pantalla a cualquier distancia: desde 1,7 km taparían el pueblo. Aparecen cuando la cámara llega
+		(_roots.Fichas as Node3D).visible = kk < 0.04
+	_env_dirty = true
+	_apply_environment()
 
 
 func set_time_override(time_of_day: float, rain: float) -> void:
