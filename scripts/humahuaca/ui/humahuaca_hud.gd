@@ -52,6 +52,8 @@ var next_title_l: Label
 var next_text_l: Label
 var next_btn: Button
 var suggest_btn: Button
+var fast4_btn: Button
+var look_btn: Button
 var actions_box: HFlowContainer
 var pace_box: HBoxContainer
 var pace_btns: Dictionary = {}
@@ -71,6 +73,7 @@ var warn_panel: PanelContainer
 var warn_l: Label
 
 var _minimap_w := 260.0
+var vignette: ColorRect  # la viñeta común (0,32 en juego): debajo de todo el HUD, no toma clics
 var _action_sig := ""
 var _action_buttons: Dictionary = {}
 var _alert_data: Dictionary = {}
@@ -130,6 +133,8 @@ func build(parent: Control, texts_in: Dictionary, layout_in: Dictionary, tags_in
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	parent.add_child(root)
+	vignette = Kit.vignette(_num(["vignette", "play"], 0.32))
+	root.add_child(vignette)
 	_build_header()
 	_build_fronts()
 	_build_bottom(minimap_w)
@@ -141,16 +146,21 @@ func _build_header() -> void:
 	var fs := int(_num(["font", "body"], 15.0))
 	header = Kit.panel(root, Kit.PANEL_BG, Kit.PANEL_BORDER, 12.0, 4.0)
 	header.name = "HxHeader"
+	# franja translúcida con un filete de oro abajo, sin caja (dirección de arte §2.5: «cabecera de franja, sin caja»)
+	var hs := Kit.style(Color(Kit.INK_PANEL, 0.90), Kit.FILET, 0, Kit.RADIUS, 12.0, 4.0)
+	hs.border_width_bottom = 1
+	hs.border_color = Kit.FILET
+	header.add_theme_stylebox_override("panel", hs)
 	_anchor(header, 0.0, 0.0, 1.0, 0.0, m, m, -m, m + _num(["header_h"], 46.0))
 	header.custom_minimum_size.y = _num(["header_h"], 46.0)
 	var row := Kit.hbox(header, 14)
 	row.alignment = BoxContainer.ALIGNMENT_BEGIN
-	title_l = Kit.label(row, "", int(_num(["font", "title"], 17.0)), Kit.PAPER)
+	title_l = Kit.label(row, "", int(_num(["font", "title"], 17.0)), Kit.GOLD)
 	title_l.name = "HxTitle"
 	title_l.autowrap_mode = TextServer.AUTOWRAP_OFF
 	title_l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	if title_font != null:
-		title_l.add_theme_font_override("font", title_font)
+		title_l.add_theme_font_override("font", Kit.spaced(title_font, 2))
 	var time_box := Kit.hbox(row, 6)
 	time_box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	clock_l = Kit.label(time_box, "", fs, Kit.GOLD)
@@ -230,7 +240,7 @@ func _build_fronts() -> void:
 		name_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var guard_l := Kit.label(line1, "", int(_num(["font", "tiny"], 12.0)), Kit.MUTED, false, HORIZONTAL_ALIGNMENT_RIGHT)
 		guard_l.clip_text = false
-		var take_bar := Kit.bar(col, Kit.ROYAL, 7.0, 0.0)
+		var take_bar := Kit.bar(col, Kit.GOLD, 7.0, 0.0)  # cuánto del objetivo se tomó: oro (el objetivo); el filete rojo de la izquierda es la guardia enemiga
 		var alert_bar := Kit.bar(col, Kit.AMBER, 3.0, 0.0)
 		var info_l := Kit.trimmed(Kit.label(col, "", int(_num(["font", "tiny"], 12.0)), Kit.GOLD))  # no ensancha la tarjeta: si no entra se sacan partes (_fit_parts)
 		info_l.visible = false
@@ -252,6 +262,30 @@ func _build_bottom(minimap_w: float) -> void:
 	_build_warn(notice_row)
 	_build_bar(bottom)
 	_build_dock(bottom)
+	root.resized.connect(_fit_bottom)
+	_fit_bottom.call_deferred()  # si la raíz ya nace con su tamaño final (ventanas de 1440 × 900 o más) no llega ningún «resized»
+
+
+## En ventanas anchas el dock no se estira de punta a punta (V-06: «el mapa es el protagonista»): mide a lo sumo `layout.dock_max_w` píxeles lógicos y queda en la
+## esquina de abajo a la izquierda; el resto del borde inferior es mapa. A 1280 × 720 y menos no cambia nada (el dock ya es más angosto que el tope).
+func _fit_bottom() -> void:
+	if bottom == null or root == null:
+		return
+	var m := _num(["margin"], 12.0)
+	var full := -(_minimap_w + 2.0 * m)
+	var cap := _num(["dock_max_w"], 0.0)
+	var right := full
+	if cap > 0.0 and root.size.x > 0.0:
+		right = minf(full, -(root.size.x - m - cap))
+	bottom.offset_right = right
+
+
+## Ancho que ocupa la columna de abajo (dock, barra y avisos), en píxeles lógicos del HUD.
+func bottom_width() -> float:
+	var m := _num(["margin"], 12.0)
+	var full := root.size.x - _minimap_w - 3.0 * m
+	var cap := _num(["dock_max_w"], 0.0)
+	return minf(full, cap) if cap > 0.0 else full
 
 
 ## La barra de órdenes: la línea de motivo con el estado de la señal (arriba, solo mientras hay algo que decir) y, debajo, las acciones de la selección con los ritmos de
@@ -316,7 +350,7 @@ func _build_dock(parent: Control) -> void:
 	chips_box = Kit.hbox(row_a, 6)
 	chips_box.size_flags_horizontal = Control.SIZE_SHRINK_END
 	for id in ["golpe", "carga", "refuerzo"]:
-		var chip := Kit.panel(chips_box, Color(0.16, 0.19, 0.12, 1.0), Kit.PANEL_BORDER, 6.0, 1.0, 4)
+		var chip := Kit.panel(chips_box, Kit.CHIP_BG, Kit.PANEL_BORDER, 6.0, 1.0)
 		var l := Kit.label(chip, "", int(_num(["font", "tiny"], 12.0)), Kit.PAPER)
 		l.clip_text = false
 		chip.tooltip_text = _t("hud.chip_tips." + str(id))  # B-052: nadie entendía «Golpe»
@@ -346,6 +380,19 @@ func _build_dock(parent: Control) -> void:
 	suggest_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	suggest_btn.pressed.connect(func(): _fire("speed", 1))
 	suggest_btn.visible = false
+	fast4_btn = Kit.button(row_b, _t("time.wait_x4", "×4"), small, "normal", "tiempo")
+	fast4_btn.name = "HxFast4"
+	fast4_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	fast4_btn.tooltip_text = _t("time.speed_tip")
+	fast4_btn.pressed.connect(func(): _fire("speed", 2))
+	fast4_btn.visible = false
+	look_btn = Kit.button(row_b, _t("hud.wait.look", "Mirar"), small, "normal", "mirar")
+	look_btn.name = "HxLook"
+	look_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	look_btn.tooltip_text = _t("hud.wait.look_tip")
+	look_btn.pressed.connect(func(): _fire("look"))
+	look_btn.visible = false
+	row_b.move_child(look_btn, suggest_btn.get_index())
 	# fila C: las cinco agrupaciones
 	cards_box = Kit.hbox(col, 6)
 	cards_box.name = "HxCards"
@@ -355,7 +402,7 @@ func _build_dock(parent: Control) -> void:
 
 
 func _make_group_card(id: String, size: Vector2) -> void:
-	var p := Kit.panel(cards_box, Color(0.1, 0.12, 0.08, 1.0), Kit.PANEL_BORDER, 5.0, 3.0, 6)
+	var p := Kit.panel(cards_box, Kit.CARD_BG, Kit.PANEL_BORDER, 5.0, 3.0)
 	p.name = "HxCard_%s" % id
 	p.custom_minimum_size = Vector2(minf(size.x, 96.0), size.y)
 	p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -504,7 +551,7 @@ func _refresh_fronts(hs: Dictionary) -> void:
 			(c.guard as Label).text = _t("hud.guard_unknown", "Guardia ?")
 		var taken := str(d.get("estado", "")) == "tomado"
 		(c.take as ProgressBar).value = float(d.get("toma_pct", 0.0))
-		Kit.recolor_bar(c.take as ProgressBar, Kit.GOOD if taken else Kit.ROYAL)
+		Kit.recolor_bar(c.take as ProgressBar, Kit.GOOD if taken else Kit.GOLD)
 		(c.alert as ProgressBar).value = 100.0 * clampf(float(d.get("alerta", 0.0)), 0.0, 1.0)
 		(c.accent as ColorRect).color = Kit.GOOD if taken else Kit.ROYAL
 		var parts: Array = []  # en orden de importancia: si no entran todas se sacan del final (la toma ya la dice la barra de arriba; la sorpresa, no)
@@ -553,6 +600,9 @@ func _refresh_dock(hs: Dictionary, ctx: Dictionary) -> void:
 	var why := str(guide.get("why", ""))
 	if why != "" and not bool(guide.get("enabled", true)):
 		next_text += " " + why  # B-052: el botón apagado no decía por qué; ahora la causa va junto al paso
+	var wait_extra := str(guide.get("wait_extra", ""))
+	if wait_extra != "":
+		next_text += " (" + wait_extra + ")"
 	next_text_l.text = next_text
 	var urgency := int(guide.get("urgencia", 0))
 	next_text_l.add_theme_color_override("font_color", Kit.WARN_TEXT if urgency >= 2 else Kit.PAPER)
@@ -560,7 +610,13 @@ func _refresh_dock(hs: Dictionary, ctx: Dictionary) -> void:
 	next_btn.visible = button_text != ""
 	next_btn.text = button_text
 	next_btn.disabled = not bool(guide.get("enabled", true))
-	suggest_btn.visible = bool(ctx.get("suggest_x2", false))
+	var wait_fast := bool(ctx.get("wait_fast", false))
+	var spd := float(ctx.get("speed", 1.0))
+	suggest_btn.visible = (bool(ctx.get("suggest_x2", false)) or wait_fast) and spd < 2.0
+	suggest_btn.text = _t("time.wait_x2", "×2") if wait_fast else _t("time.suggest_button", "Acelerar ×2")
+	fast4_btn.visible = wait_fast
+	var focus: Variant = guide.get("wait_focus", Vector2.ZERO)
+	look_btn.visible = bool(guide.get("wait", false)) and focus is Vector2 and focus != Vector2.ZERO
 	# chips: solo cuando ya importan (el golpe desde el ataque; la carga y el refuerzo en la extracción)
 	var phase := str(_dict(hs.get("fase")).get("id", ctx.get("phase", "briefing")))
 	var chips: Dictionary = {}
@@ -620,8 +676,7 @@ func objective_variants(hs: Dictionary, phase: String) -> Array:
 ## Lo que le queda de ancho a la frase del objetivo en su fila: el ancho del dock menos los chips que se ven (golpe, carga y refuerzo). Sale de números del diseño y de
 ## lo ya medido, no del último reparto de la fila: así vale también en el primer cuadro y apenas cambia la ventana.
 func objective_room() -> float:
-	var margin := _num(["margin"], 12.0)
-	var by_design := root.size.x - _minimap_w - 3.0 * margin - 2.0 * 12.0  # el dock va de la izquierda al minimapa, con 12 px de relleno a cada lado
+	var by_design := bottom_width() - 2.0 * 12.0  # el dock va de la izquierda al minimapa (o hasta su tope en ventanas anchas), con 12 px de relleno a cada lado
 	var row_w := objective_row.size.x
 	var width := minf(by_design, row_w) if row_w >= 160.0 else by_design
 	var chips_w := chips_box.get_combined_minimum_size().x
@@ -706,8 +761,12 @@ func _refresh_groups(hs: Dictionary, ctx: Dictionary) -> void:
 		(c.tag as Label).visible = is_sel
 		var alive := bool(d.get("vivo", true))
 		var border := Kit.GOLD if is_sel else Kit.PANEL_BORDER
-		var bg := Color(0.19, 0.22, 0.13, 1.0) if is_sel else Color(0.1, 0.12, 0.08, 1.0)
-		(c.panel as PanelContainer).add_theme_stylebox_override("panel", Kit.style(bg, border, 2 if is_sel else 1, 6, 6.0, 3.0))
+		var bg := Kit.INK_RAISED if is_sel else Kit.CARD_BG
+		var card_style := Kit.style(bg, border, 2 if is_sel else 1, Kit.RADIUS, 6.0, 3.0)
+		if is_sel:  # elegida = filete de oro con halo violeta (regla de color 2)
+			card_style.shadow_color = Color(Kit.VIOLET, 0.55)
+			card_style.shadow_size = 6
+		(c.panel as PanelContainer).add_theme_stylebox_override("panel", card_style)
 		(c.panel as Control).modulate = Color(1, 1, 1, 1) if alive else Color(1, 1, 1, 0.55)
 		var tip_parts: Array = ["%s (%d)" % [str(d.get("nombre", id)), V.GROUPS.find(id) + 1]]
 		tip_parts.append("%s %d %%" % [_t("hud.strength", "Fuerza"), int(round(float(d.get("fuerza_pct", 0.0))))])
@@ -765,7 +824,7 @@ func _refresh_alert(ctx: Dictionary) -> void:
 	if a.is_empty():
 		return
 	var critical := str(a.get("nivel", "aviso")) == "critica"
-	alert_panel.add_theme_stylebox_override("panel", Kit.style(Kit.WARN_BG if critical else Color(0.13, 0.16, 0.1, 0.97), Kit.WARN_BORDER if critical else Kit.GOLD, 2, 8, 14.0, 8.0))
+	alert_panel.add_theme_stylebox_override("panel", Kit.style(Kit.WARN_BG if critical else Kit.PANEL_SOLID, Kit.WARN_BORDER if critical else Kit.GOLD, 2 if critical else 1, Kit.RADIUS, 14.0, 8.0))
 	alert_title_l.text = str(a.get("corto", ""))
 	alert_text_l.text = str(a.get("largo", ""))
 	alert_text_l.visible = alert_text_l.text != ""
@@ -829,8 +888,7 @@ func _refresh_toast(ctx: Dictionary) -> void:
 	if toast_panel.visible:
 		toast_l.text = str(t.get("text", ""))
 		var level := str(t.get("level", "info"))
-		var border := Kit.GOLD if level != "info" else Kit.PANEL_BORDER
-		toast_panel.add_theme_stylebox_override("panel", Kit.style(Kit.PANEL_BG, border, 1, 6, 12.0, 5.0))
+		toast_panel.add_theme_stylebox_override("panel", Kit.style(Kit.PANEL_SOLID, Kit.AMBER if level != "info" else Kit.PANEL_BORDER, 1, Kit.RADIUS, 12.0, 5.0))
 	_sync_notices()
 
 
