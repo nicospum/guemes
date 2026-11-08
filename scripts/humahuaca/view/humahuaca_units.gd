@@ -12,7 +12,10 @@ const Gen = preload("res://scripts/humahuaca/view/humahuaca_gen.gd")
 const MAX_THINGS := 48
 const MAX_STRETCH := 4.6
 const LOOT_COLOR := {"polvora": "madera_oscura", "canones": "hierro", "fusiles": "madera_oscura", "viveres": "lana_natural", "plata": "oro_laton"}
-const ENEMY_ARCHETYPE := {"centinela": "realista_1817", "guardia": "realista_1817", "artillero": "artillero", "fusilero": "realista_1817", "mensajero": "poncho_sombrero", "refuerzo": "realista_1817"}
+## Ganancia de los anillos de bando para llegar a la regla de color común (DIRECCION_DE_ARTE 2.1) sin sumar HEX a la paleta de 24: celeste aliado ≈ #8DB8D6,
+## rojo enemigo ≈ #B8433A, hueso neutral ≈ #BFB6A3.
+const RING_GAIN := {"celeste_produccion": 1.1, "rojo_reservado": 1.2, "lana_natural": 0.93}
+const ENEMY_ARCHETYPE :={"centinela": "realista_1817", "guardia": "realista_1817", "artillero": "artillero", "fusilero": "realista_1817", "mensajero": "poncho_sombrero", "refuerzo": "realista_1817"}
 
 var gfx
 var gen
@@ -52,9 +55,12 @@ func build_tokens(root_tokens: Node3D, root_labels: Node3D) -> void:
 		var base_h: float = dims.x
 		var ring_color := str(spec.get("ring_color", "celeste_produccion"))
 		var ring_r: float = clampf(dims.y, 0.3 * base_h, 0.62 * base_h)  # el anillo del bando no pasa de la mitad del alto de la ficha: así no domina la pantalla una figura ancha y baja
-		var ring: MeshInstance3D = gfx.flat_ring(root, ring_r, 0.55, ring_color)
+		var disc: MeshInstance3D = gfx.inst(root, gfx.cyl_mesh(ring_r + 0.45, ring_r + 0.45, 0.04, 24), Vector3(0.0, 0.06, 0.0), gfx.flat_mat("negro_textil", 0.5), Vector3.ZERO, false)
+		disc.name = "base"  # disco de tinta bajo la ficha: la separa del suelo claro del alba y del barro oscuro de la noche (DIRECCION_DE_ARTE B3)
+		var ring: MeshInstance3D = gfx.flat_ring(root, ring_r, 0.34, ring_color)
+		ring.material_override = gfx.flat_mat(ring_color, 1.0, false, RING_GAIN.get(ring_color, 1.0))
 		ring.name = "anillo"
-		gfx.flat_ring(root, ring_r + 0.45, 0.22, str(spec.get("ring_border_color", "blanco_textil"))).name = "borde"
+		gfx.flat_ring(root, ring_r + 0.3, 0.13, str(spec.get("ring_border_color", "blanco_textil"))).name = "borde"
 		var selection: MeshInstance3D = gfx.flat_ring(root, ring_r + 1.1, 0.4, "oro_laton")
 		selection.name = "seleccion"
 		selection.visible = false
@@ -89,7 +95,7 @@ func _token_parts(root: Node3D, shape: String, spec: Dictionary, variants: Array
 	var parts: Dictionary = {}
 	var body := str(spec.get("body_color", "lana_parda"))
 	var hw := hull_w() * 1.4
-	var vmat: Material = gfx.vertex_mat()
+	var vmat: Material = gfx.token_mat("aliado")
 	match shape:
 		"jinete":
 			var v := {"camisa": "lino_crudo", "abrigo": body, "sombrero": "madera_oscura", "acento": ""}
@@ -130,7 +136,8 @@ func _add_pennant(root: Node3D, color_id: String, vmat: Material) -> void:
 	gfx.part_node(root, "banderin", mb.build(hull_w() * 1.4), vmat)
 
 
-## Dos figuras agachadas con poncho (los reconocedores), una a cada lado y mirando un poco para afuera; de ropa distinta (una de lana natural: se lee sobre el suelo oscuro).
+## Los reconocedores: un baqueano de pie con su lanza y otro agachado delante, que mira (de ropa distinta: uno de lana natural, que se lee sobre el suelo oscuro).
+## Antes eran dos figuras agachadas: bajas y anchas, al estirarlas hasta el alto pedido en pantalla se volvían una mancha ancha del doble de las otras fichas.
 func _crouched_pair(body: String, spec: Dictionary, variants: Array, index: int, hw: float) -> Dictionary:
 	var out := {}
 	var merged := {}
@@ -138,14 +145,17 @@ func _crouched_pair(body: String, spec: Dictionary, variants: Array, index: int,
 		var v: Dictionary = _variant_of(spec, variants, index + k + 1, "")
 		v["abrigo"] = "lana_natural" if k == 0 else body
 		v["sombrero"] = "madera_oscura"
-		var parts: Dictionary = gen.figure_parts("poncho_sombrero", v, "agachado")
+		var parts: Dictionary = gen.figure_parts("poncho_sombrero", v, "de_pie" if k == 0 else "agachado")
 		for key in parts:
 			if not merged.has(key):
 				merged[key] = gen.builder()
 			var mb = merged[key]
 			mb.push()
-			mb.xf = Transform3D(Basis(Vector3.UP, deg_to_rad(-25.0 + 50.0 * float(k))), Vector3(-0.5 + 1.0 * float(k), 0.0, 0.12 * float(k)))
+			mb.xf = Transform3D(Basis(Vector3.UP, deg_to_rad(-12.0 + 30.0 * float(k))), Vector3(-0.55 + 1.15 * float(k), 0.0, -0.45 * float(k)))
 			mb.absorb(parts[key])
+			if k == 0 and str(key) == "equipo":  # el baqueano de pie lleva una tacuara larga (caña con punta): lo distingue de la mula del arreo, que mide lo mismo
+				mb.beam(Vector3(0.43, 1.9, -0.1), Vector3(0.47, 2.75, -0.1), 0.04, gfx.pc("madera_oscura", 1.15))
+				mb.cyl_between(Vector3(0.47, 2.75, -0.1), Vector3(0.48, 2.95, -0.1), 0.045, 0.0, 6, gfx.pc("hierro"))
 			mb.pop()
 	for key in merged:
 		out[key] = (merged[key] as Object).call("build", hw)
@@ -174,7 +184,7 @@ func _enemy_mesh(kind: String) -> ArrayMesh:
 	if not _enemy_meshes.has(kind):
 		var arch := str(ENEMY_ARCHETYPE.get(kind, "realista_1817"))
 		var v := {"camisa": "lana_natural", "abrigo": "lana_parda", "sombrero": "lana_parda", "acento": "borgona_hipotetica"}
-		_enemy_meshes[kind] = gen.figure_single(arch, v, hull_w())
+		_enemy_meshes[kind] = gen.figure_single(arch, v, hull_w() * 1.8)  # contorno más grueso: a 28 px la figura tiene que recortarse del suelo
 	return _enemy_meshes[kind]
 
 
@@ -212,12 +222,16 @@ func sync_things(root: Node3D, category: String, list: Array) -> int:
 		if category == "enemy":
 			var mi := MeshInstance3D.new()
 			mi.mesh = _enemy_mesh(kind)
-			mi.set_surface_override_material(0, gfx.vertex_mat())
+			mi.set_surface_override_material(0, gfx.token_mat("enemigo"))
 			if mi.mesh.get_surface_count() > 1:
 				mi.set_surface_override_material(1, gfx.outline_mat())
 			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			holder.add_child(mi)
-			gfx.flat_ring(holder, 1.5, 0.45, "borgona_hipotetica" if float(e.get("alert", 0.0)) > 0.5 else "grana_analogia", 0.95)
+			# regla de color: el enemigo es ROJO (anillo rojo con filete de tinta y disco oscuro debajo), más vivo si está alertado
+			gfx.inst(holder, gfx.cyl_mesh(1.75, 1.75, 0.04, 16), Vector3(0.0, 0.05, 0.0), gfx.flat_mat("negro_textil", 0.5), Vector3.ZERO, false).name = "base"
+			var alert := float(e.get("alert", 0.0)) > 0.5
+			gfx.flat_ring(holder, 1.5, 0.45, "rojo_reservado", 1.0).material_override = gfx.flat_mat("rojo_reservado", 1.0, false, 1.35 if alert else 1.1)
+			gfx.flat_ring(holder, 1.72, 0.2, "negro_textil", 0.9).name = "borde"
 			if bool(e.get("firing", false)):
 				gfx.inst(holder, gfx.sphere_mesh(0.5), Vector3(0.0, 1.6, -0.9), gfx.flat_mat("oro_laton", 1.0, true, 1.4), Vector3.ZERO, false)
 			register_scaled(holder, category, 1.9, float(gfx.qcfg.get("enemy_min_px", 14)))
@@ -263,7 +277,8 @@ func sync_units(state: Dictionary, labels_on: bool) -> void:
 		node.visible = not gone
 		(unit_labels[id] as Label3D).visible = not gone and labels_on
 		var info: Dictionary = tokens[id]
-		(info.ring as MeshInstance3D).material_override = gfx.flat_mat("rojo_reservado" if bool(u.get("detected", false)) else str(info.ring_color))
+		var ring_id := "rojo_reservado" if bool(u.get("detected", false)) else str(info.ring_color)
+		(info.ring as MeshInstance3D).material_override = gfx.flat_mat(ring_id, 1.0, false, float(RING_GAIN.get(ring_id, 1.0)))
 
 
 # ---------------------------------------------------------------------------------------------------------------------

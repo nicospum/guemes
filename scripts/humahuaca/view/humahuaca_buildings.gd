@@ -19,6 +19,7 @@ var house_count := 0
 var triangle_count := 0
 var content_counts: Dictionary = {}
 var extra_trees: Array = []  ## árboles de patio (sauces chicos) que deja el núcleo; los planta build_vegetation
+var _model_xf: Dictionary = {}  ## clave de modelo → [Transform3D] de las casas que se dibujan con un GLB
 
 var _terrain: RefCounted = null
 
@@ -132,6 +133,15 @@ func _build_landmark(root: Node3D, lm: Dictionary) -> void:
 	if builder in ["caja_con_techo", "templo_nave", "casa_cura", "torre", "plataforma", "patio_posta", "patio_muros", "polvorin"]:  # la huella: una mancha oscura de tierra bajo el edificio
 		var pad := 9.0 if builder == "templo_nave" else 4.0  # el templo, más grande: es el hito que tiene que leerse a 470 m
 		gfx.patch(node, w + pad, d + pad, 0.0, 0.07, gfx.mat("sedimento_humedo", 0.95, 0.78)).name = "huella"
+	var model_key := str(spec.get("model", ""))
+	if model_key != "" and not gfx.model(model_key).is_empty():  # un modelo GLB de la pista P6 (props.por_id.<id>.model): se lo estira a la huella y al alto del hito
+		var mi := MeshInstance3D.new()
+		mi.name = "modelo_" + model_key
+		mi.mesh = gfx.model(model_key).mesh
+		mi.material_override = gfx.props_mat
+		mi.transform = gfx.model_fit(model_key, w, d, hgt if bool(spec.get("model_fit_height", true)) else -1.0)
+		node.add_child(mi)
+		return
 	var mb = gen.builder()
 	match builder:
 		"templo_nave":  # nave simple encalada a dos aguas: sin torres, sin fachada de 1880, caballete en 7 m
@@ -161,7 +171,10 @@ func _build_landmark(root: Node3D, lm: Dictionary) -> void:
 			gfx.patch(node, w, d, 0.0, 0.1, gfx.mat("sedimento_humedo", 0.95, 0.85))
 		"plano":
 			var alpha := float(spec.get("alpha", 1.0))
-			gfx.patch(node, w, d, float(fp.r), float(spec.get("raise_m", 0.12)), gfx.flat_mat(color_id, alpha) if alpha < 1.0 else gfx.mat(color_id, 0.95, float(spec.get("gain", 1.0))))
+			var ground_mat: Material = gfx.mat(color_id, 0.95, float(spec.get("gain", 1.0)))
+			if str(spec.get("material", "")) == "suelo":  # la plaza: el mismo suelo que la rodea (tierra apisonada, lluvia y charcos), no un parche liso más claro que todo
+				ground_mat = gfx.terrain_mat
+			gfx.patch(node, w, d, float(fp.r), float(spec.get("raise_m", 0.12)), gfx.flat_mat(color_id, alpha) if alpha < 1.0 else ground_mat)
 			if bool(spec.get("outline", false)) and str(lm.get("type", "")) == "partida" and float(fp.r) <= 0.0:  # el contorno de la zona de partida (un borde fino y tenue)
 				var rect := PackedVector2Array([Vector2(-w * 0.5, -d * 0.5), Vector2(w * 0.5, -d * 0.5), Vector2(w * 0.5, d * 0.5), Vector2(-w * 0.5, d * 0.5)])
 				var world_pts := PackedVector2Array()
@@ -261,12 +274,25 @@ func build_features(root: Node3D) -> void:
 	var cap_color: Color = gfx.pc(str(tapia.get("cap_color", "paja")))
 	var cap_h := float(tapia.get("cap_m", 0.2))
 	var walls := 0
+	var modules: Array = []  # con el modelo «tapia» (módulo de 4 m de la pista P6): un módulo estirado por cada tramo de ≈ 4 m, siguiendo el suelo
+	var use_module: bool = not gfx.model("tapia").is_empty()
 	for f in _terrain.call("features", "tapia"):
 		if f is Dictionary:
 			var line: PackedVector2Array = gfx.pts(f.get("pts", []))
 			for k in range(line.size() - 1):
-				_wall_run(wall, line[k], line[k + 1], float(f.get("height_m", 2.0)), float(f.get("thickness_m", 0.5)), wall_color, cap_color, cap_h, k == 0 or k == line.size() - 2)
+				if use_module:
+					var seg := line[k + 1] - line[k]
+					var n := maxi(1, roundi(seg.length() / 4.0))
+					var dir := seg / maxf(seg.length(), 0.001)
+					for i in range(n):
+						var c := line[k] + seg * ((float(i) + 0.5) / float(n))
+						modules.append(Transform3D(Basis(Vector3.UP, -atan2(dir.y, dir.x)), Vector3(c.x, gfx.h(c.x, c.y), c.y))
+							* gfx.model_fit("tapia", seg.length() / float(n), float(f.get("thickness_m", 0.5)), float(f.get("height_m", 2.0))))
+				else:
+					_wall_run(wall, line[k], line[k + 1], float(f.get("height_m", 2.0)), float(f.get("thickness_m", 0.5)), wall_color, cap_color, cap_h, k == 0 or k == line.size() - 2)
 				walls += 1
+	if not modules.is_empty():
+		_multimesh(root, "tapias_modelo", gfx.model("tapia").mesh, modules, true)
 	for f in _terrain.call("features", "barricada"):
 		if f is Dictionary:
 			var line: PackedVector2Array = gfx.pts(f.get("pts", []))
@@ -288,6 +314,7 @@ func build_features(root: Node3D) -> void:
 	content_counts["tapias"] = walls
 	if walls > 0:
 		_mesh_node(root, "tapias", wall.build())
+	_build_gaps(root)
 	var spec_z: Dictionary = props.get("zanja", {})
 	var ditches := 0
 	for kind in ["zanja", "acequia"]:
@@ -309,6 +336,61 @@ func build_features(root: Node3D) -> void:
 				gfx.strip(root, line, maxf(float(f.get("width_m", 5.0)), 2.0), float(spec_c.get("raise_m", 0.09)), gfx.mat(str(spec_c.get("color", "suelo_seco")), 0.95, float(spec_c.get("gain", 1.12))), false, false, "camino_%d" % roads, 4.0, true)
 				roads += 1
 	content_counts["caminos"] = roads
+
+
+## T-007 (mitad de la vista): los huecos entre dos tapias (extremos de tapias distintas a 2,5 a 10 m) se dibujan según lo que dice la navegación en su centro, así que
+## lo que se ve abierto es lo que se puede atravesar. Un hueco transitable lleva sus dos jambas de adobe con umbral oscuro; uno que el terreno da por cerrado, una
+## tranquera de palos cruzada (aspecto de diseño): antes los dos huecos de 4 m de la posta se veían abiertos y eran muro para las rutas. La otra mitad (que esos huecos
+## sean transitables) es de la rasterización de las tapias en el terreno y la coordina la pista de reglas.
+func _build_gaps(root: Node3D) -> void:
+	var ends: Array = []  # [punto, id de la tapia, altura]
+	for f in _terrain.call("features", "tapia"):
+		if f is Dictionary:
+			var line: PackedVector2Array = gfx.pts(f.get("pts", []))
+			if line.size() >= 2:
+				ends.append([line[0], str(f.get("id", "")), float(f.get("height_m", 2.0))])
+				ends.append([line[line.size() - 1], str(f.get("id", "")), float(f.get("height_m", 2.0))])
+	var mb = gen.builder()
+	var wood: Color = gfx.pc("madera_oscura")
+	var adobe: Color = gfx.pc("adobe", 0.95)
+	var open_n := 0
+	var closed_n := 0
+	var seen := {}
+	for a in range(ends.size()):
+		for b in range(a + 1, ends.size()):
+			if str(ends[a][1]) == str(ends[b][1]):
+				continue
+			var pa: Vector2 = ends[a][0]
+			var pb: Vector2 = ends[b][0]
+			var gap := pa.distance_to(pb)
+			if gap < 2.5 or gap > 10.0:
+				continue
+			var key := "%d,%d" % [roundi((pa.x + pb.x) * 2.0), roundi((pa.y + pb.y) * 2.0)]
+			if seen.has(key):
+				continue
+			seen[key] = true
+			var mid := (pa + pb) * 0.5
+			var h := minf(float(ends[a][2]), float(ends[b][2]))
+			var dir := (pb - pa) / gap
+			var yaw := atan2(dir.y, dir.x)
+			var blocked := bool(_terrain.call("is_blocked", mid.x, mid.y))
+			mb.push()
+			mb.xf = Transform3D(Basis(Vector3.UP, -yaw), Vector3(mid.x, gfx.h(mid.x, mid.y), mid.y))
+			for s in [-1.0, 1.0]:  # jambas: dos pilares de adobe un poco más altos que la tapia
+				mb.box(Vector3(s * (gap * 0.5 - 0.15), (h + 0.35) * 0.5, 0.0), Vector3(0.6, h + 0.35, 0.7), adobe, adobe.darkened(0.3))
+			if blocked:
+				for y in [0.45, 0.95, 1.45]:  # tranquera cerrada: tres palos de lado a lado
+					mb.box(Vector3(0.0, y, 0.0), Vector3(gap - 0.5, 0.12, 0.12), wood, wood.darkened(0.25))
+				mb.beam(Vector3(-gap * 0.5 + 0.3, 0.3, 0.05), Vector3(gap * 0.5 - 0.3, 1.5, 0.05), 0.07, wood.darkened(0.1))
+				closed_n += 1
+			else:
+				mb.box(Vector3(0.0, 0.03, 0.0), Vector3(gap - 0.6, 0.06, 0.9), gfx.pc("sedimento_humedo", 0.8))  # umbral de tierra pisada
+				open_n += 1
+			mb.pop()
+	content_counts["puertas_abiertas"] = open_n
+	content_counts["puertas_cerradas"] = closed_n
+	if open_n + closed_n > 0:
+		_mesh_node(root, "puertas", mb.build())
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -383,7 +465,7 @@ func build_nucleo(root: Node3D) -> void:
 				var yaw := atan2(inward.x, inward.y)
 				mb.push()
 				mb.xf = Transform3D(Basis(Vector3.UP, yaw), Vector3(center.x, gfx.h(center.x, center.y), center.y))
-				gen.add_house(mb, hw, hd, hh, rng.randi() % 3, -1.0, rng.randf())
+				_add_house(mb, hw, hd, hh, rng.randi() % 3, -1.0, rng.randf())
 				mb.pop()
 				count += 1
 		count = _inner_fill(mb, poly, rng, count, max_houses)
@@ -391,6 +473,23 @@ func build_nucleo(root: Node3D) -> void:
 	content_counts["casas"] = count
 	if count > 0:
 		_mesh_node(root, "casas_del_nucleo", mb.build())
+	for key in _model_xf:  # las casas que vienen de un modelo GLB (pista P6): una MultiMesh por modelo
+		_multimesh(root, "casas_modelo_" + str(key), gfx.model(str(key)).mesh, _model_xf[key], true)
+		content_counts["casas_de_modelo_" + str(key)] = (_model_xf[key] as Array).size()
+	_model_xf = {}
+
+
+## Una casa del núcleo en `mb.xf`: con el modelo GLB de `models.casa_adobe` (o `casa_adobe_grande` si mide 9,5 m o más de frente) si existe; si no, el generador
+## procedural (el respaldo de siempre). El modelo mira a −Z, igual que la puerta de la casa procedural, y se lo estira a la huella conservando su proporción de alto.
+func _add_house(mb, w: float, d: float, h: float, style: int, door_z: float, tone: float) -> void:
+	var key := "casa_adobe_grande" if w >= 9.5 and not gfx.model("casa_adobe_grande").is_empty() else "casa_adobe"
+	if gfx.model(key).is_empty():
+		gen.add_house(mb, w, d, h, style, door_z, tone)
+		return
+	var flip := Basis(Vector3.UP, PI) if door_z > 0.0 else Basis.IDENTITY  # la puerta procedural de door_z > 0 mira a +Z
+	if not _model_xf.has(key):
+		_model_xf[key] = []
+	(_model_xf[key] as Array).append(mb.xf * Transform3D(flip, Vector3.ZERO) * gfx.model_fit(key, w, d))
 
 
 
@@ -419,7 +518,7 @@ func _inner_fill(mb, poly: PackedVector2Array, rng: RandomNumberGenerator, count
 				if roll < 0.4:
 					mb.push()
 					mb.xf = Transform3D(Basis(Vector3.UP, rng.randf_range(-0.2, 0.2)), Vector3(q.x, gfx.h(q.x, q.y), q.y))
-					gen.add_house(mb, rng.randf_range(3.6, 6.0), rng.randf_range(3.2, 4.8), rng.randf_range(2.1, 2.7), 1 + rng.randi() % 2, 1.0, rng.randf())
+					_add_house(mb, rng.randf_range(3.6, 6.0), rng.randf_range(3.2, 4.8), rng.randf_range(2.1, 2.7), 1 + rng.randi() % 2, 1.0, rng.randf())
 					mb.pop()
 					count += 1
 				elif roll < 0.62:

@@ -11,6 +11,7 @@ const VV = preload("res://scripts/humahuaca/view/vocab_view.gd")
 const TERRAIN_SHADER := "res://shaders/humahuaca_terrain.gdshader"
 const PROPS_SHADER := "res://shaders/humahuaca_props.gdshader"
 const WATER_SHADER := "res://shaders/humahuaca_water.gdshader"
+const TOKEN_SHADER := "res://shaders/humahuaca_token.gdshader"
 const FLAT_H := 17.0
 const SKIRT_M := 3.0
 const RING_ROWS := [0.0, 30.0, 85.0, 180.0, 340.0, 620.0, 1050.0, 1750.0, 2900.0, 4500.0, 6800.0]
@@ -38,6 +39,8 @@ var albedo := false
 var terrain_mat: ShaderMaterial
 var props_mat: ShaderMaterial
 var water_mat: ShaderMaterial
+var token_mats: Dictionary = {}  ## «aliado» y «enemigo»: el material de las figuras (shaders/humahuaca_token.gdshader)
+var _models: Dictionary = {}  ## modelos GLB ya cargados por clave (model())
 var win := Rect2(0.0, 0.0, 900.0, 652.0)  ## la ventana de 4 m: de la primera a la última fila de la grilla
 var ctx := Rect2(-1350.0, -1025.0, 3600.0, 2700.0)  ## el contexto de 30 m
 var build_stats: Dictionary = {}  ## triángulos y milisegundos de cada etapa del terreno (los informa el recorrido de QA)
@@ -141,6 +144,15 @@ func _make_shader_materials() -> void:
 	water_mat = _shader_material(WATER_SHADER)
 	water_mat.set_shader_parameter("pal_agua", pc("agua_turbia"))
 	water_mat.set_shader_parameter("pal_orilla", pc("lana_natural"))
+	# fichas y defensores: color de vértice con luz propia y un borde del color del bando (celeste aliado, rojo enemigo: la regla de color de DIRECCION_DE_ARTE 2.1)
+	var tokens_look: Dictionary = (data.get("look", {}) as Dictionary).get("tokens", {}) if (data.get("look", {}) as Dictionary).get("tokens", null) is Dictionary else {}
+	for side in [["aliado", "celeste_produccion", 1.1], ["enemigo", "rojo_reservado", 1.2]]:
+		var tm := _shader_material(TOKEN_SHADER)
+		var spec: Dictionary = tokens_look.get(side[0], {}) if tokens_look.get(side[0], null) is Dictionary else {}
+		tm.set_shader_parameter("rim_color", pc(str(spec.get("rim_color", side[1])), float(spec.get("rim_gain", side[2]))))
+		tm.set_shader_parameter("rim_amount", float(spec.get("rim_amount", 0.55)))
+		tm.set_shader_parameter("self_light", float(spec.get("self_light", 0.22)))
+		token_mats[side[0]] = tm
 
 
 ## Lluvia 0..1: oscurece y alisa el suelo, los edificios y el agua (CONTRATO 11.2: suelo ×0,75).
@@ -151,9 +163,94 @@ func set_rain(value: float) -> void:
 			(m as ShaderMaterial).set_shader_parameter("rain", r)
 
 
+## Un modelo GLB de `humahuaca_visual.json: models` (casas de adobe, capilla, tapia, corral, pirca, brasero, fogón… de la pista de modelos P6) como UNA malla lista para
+## MultiMesh: {mesh, aabb} con todas sus piezas unidas en el sistema del archivo (escala 1, origen en el suelo, frente hacia −Z). Devuelve {} si la clave no está, está
+## apagada o el archivo no existe: quien lo pide sigue con su generador procedural (el respaldo). Reemplazar un modelo es cambiar la ruta en el JSON.
+func model(key: String) -> Dictionary:
+	if _models.has(key):
+		return _models[key]
+	var out := {}
+	var cfg: Dictionary = data.get("models", {}) if data.get("models", null) is Dictionary else {}
+	var path := str(cfg.get(key, ""))
+	if path != "" and not path.begins_with("res://"):  # el JSON guarda el nombre y la carpeta («dir»), así la validación de rutas no exige archivos que todavía no llegaron
+		path = "res://" + str(cfg.get("dir", "assets/models")).trim_suffix("/") + "/" + path
+	if bool(cfg.get("enabled", true)) and path != "" and ResourceLoader.exists(path):
+		var scene: Variant = load(path)
+		if scene is PackedScene:
+			var inst_root: Node = (scene as PackedScene).instantiate()
+			var merged := ArrayMesh.new()
+			for mi in inst_root.find_children("*", "MeshInstance3D", true, false):
+				var m: Mesh = (mi as MeshInstance3D).mesh
+				if m == null:
+					continue
+				var xf := _rel_xf(inst_root, mi as Node3D)
+				for s in range(m.get_surface_count()):
+					var arrays: Array = m.surface_get_arrays(s)
+					var vs: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+					var ns: Variant = arrays[Mesh.ARRAY_NORMAL]
+					for i in range(vs.size()):
+						vs[i] = xf * vs[i]
+					arrays[Mesh.ARRAY_VERTEX] = vs
+					if ns is PackedVector3Array:
+						var nn: PackedVector3Array = ns
+						for i in range(nn.size()):
+							nn[i] = (xf.basis * nn[i]).normalized()
+						arrays[Mesh.ARRAY_NORMAL] = nn
+					arrays[Mesh.ARRAY_TANGENT] = null  # el material de props no las usa y no siempre vienen
+					if arrays[Mesh.ARRAY_COLOR] == null:  # sin color de vértice: adobe parejo (el shader de props colorea por vértice)
+						var cols := PackedColorArray()
+						cols.resize(vs.size())
+						cols.fill(Color(pc("adobe"), 1.0))
+						arrays[Mesh.ARRAY_COLOR] = cols
+					merged.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+			inst_root.free()
+			if merged.get_surface_count() > 0:
+				out = {"mesh": merged, "aabb": merged.get_aabb(), "path": path}
+	_models[key] = out
+	return out
+
+
+static func _rel_xf(top: Node, n: Node3D) -> Transform3D:
+	var xf := Transform3D.IDENTITY
+	var cur: Node = n
+	while cur != null and cur != top:
+		if cur is Node3D:
+			xf = (cur as Node3D).transform * xf
+		cur = cur.get_parent()
+	return xf
+
+
+## La transformación que lleva el modelo `key` a una huella de `w` × `d` m (x por z, antes de girar) y `h` m de alto, centrado en el origen y apoyado en y = 0. Si el lado
+## largo del modelo no coincide con el de la huella, se lo gira 90°. `h` ≤ 0 conserva la proporción del modelo según el ancho.
+func model_fit(key: String, w: float, d: float, h: float = -1.0) -> Transform3D:
+	var m := model(key)
+	if m.is_empty():
+		return Transform3D.IDENTITY
+	var box: AABB = m.aabb
+	var sx := maxf(box.size.x, 0.01)
+	var sz := maxf(box.size.z, 0.01)
+	var turn := (sx > sz) != (w > d) and absf(sx - sz) > 0.15 * maxf(sx, sz) and absf(w - d) > 0.15 * maxf(w, d)
+	if turn:
+		var t := sx
+		sx = sz
+		sz = t
+	var kx := w / sx
+	var kz := d / sz
+	var ky := h / maxf(box.size.y, 0.01) if h > 0.0 else clampf((kx + kz) * 0.5, 0.6, 1.6)
+	var center := box.get_center()
+	var rot := Basis(Vector3.UP, PI * 0.5) if turn else Basis.IDENTITY
+	var pre := Transform3D(Basis.IDENTITY, Vector3(-center.x, -box.position.y, -center.z))  # centrado y apoyado en el suelo
+	return Transform3D(Basis.from_scale(Vector3(kx, ky, kz)) * rot, Vector3.ZERO) * pre
+
+
+## El material de las figuras de un bando («aliado» o «enemigo»).
+func token_mat(side: String) -> ShaderMaterial:
+	return token_mats.get(side, token_mats.get("aliado"))
+
+
 func set_albedo(on: bool) -> void:
 	albedo = on
-	for m in [terrain_mat, props_mat, water_mat]:
+	for m in [terrain_mat, props_mat, water_mat] + token_mats.values():
 		if m != null:
 			(m as ShaderMaterial).set_shader_parameter("albedo_mode", 1.0 if on else 0.0)
 	for m in _std_mats:
@@ -613,14 +710,16 @@ func build_terrain(root: Node3D) -> void:
 
 
 ## Altura del horizonte más allá del contexto: el valle sigue y sus paredes suben con la distancia (cerros erosionados cerca, cordillera suave lejos).
+## Las paredes de la quebrada (pista de arte P2): al oeste y al este del contexto suben de 500 a 900 m en unos 2,5 km, con cárcavas y crestas dentadas, como los
+## cerros que cierran el valle del río Grande a la altura del pueblo; hacia el norte y el sur el valle sigue y sube menos. Aspecto razonado (la forma de cada cerro es
+## diseño): el relieve real de Copernicus llega solo hasta el borde del contexto y acá se lo continúa para que haya horizonte, no se lo reemplaza.
 func ring_height(x: float, z: float, base: float, ox: float, oz: float) -> float:
-	var far_k := smoothstep(0.0, 3200.0, ox)
-	var z_k := smoothstep(0.0, 5200.0, oz)
 	var edge_k := smoothstep(0.0, 260.0, maxf(ox, oz))
 	var gullies := (_noise_gully.get_noise_2d(x, z) * 0.5 + 0.5)
 	var swell := _noise_big.get_noise_2d(x, z) * 0.5 + 0.5
-	var rise := 360.0 * far_k * (0.55 + 0.9 * swell) + 190.0 * z_k * (0.7 + 0.6 * swell) + 95.0 * smoothstep(0.0, 1800.0, ox + oz) * gullies
-	return base + rise * edge_k
+	var wall := 720.0 * smoothstep(0.0, 2600.0, ox) * (0.55 + 0.9 * swell) + 170.0 * smoothstep(150.0, 2000.0, ox) * gullies
+	var valley := 230.0 * smoothstep(0.0, 5200.0, oz) * (0.6 + 0.8 * swell) + 90.0 * smoothstep(0.0, 2400.0, oz) * gullies
+	return base + maxf(wall, valley) * edge_k
 
 
 func _ring_mesh(pts: PackedVector2Array, dirs: PackedVector2Array) -> ArrayMesh:

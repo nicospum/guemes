@@ -272,7 +272,10 @@ func _measure_initial(size: Vector2i) -> void:
 	var fit: Dictionary = hx.cam.last_fit.duplicate(true) if "last_fit" in hx.cam else {}
 	var hard_ids: Array = []
 	var zona_hard := false
+	var units_hard := false  # el preset de la pista de arte (P2) exige las cinco partidas en el cuadro (P-006 del playtest)
 	for h in hx.cam.preset(str(fit.get("preset", ""))).get("hard", []):
+		if bool((h as Dictionary).get("units", false)):
+			units_hard = true
 		if (h as Dictionary).has("landmark"):
 			hard_ids.append(str(h.landmark))
 			if str(h.landmark) == "zona_partida":
@@ -305,8 +308,13 @@ func _measure_initial(size: Vector2i) -> void:
 		if float(units.get(str(id), -1.0)) < 2.0:
 			soft_short.append(str(id))
 	suite.check(soft_short.is_empty(), "%s: las partidas que el encuadre da por incluidas (%s) quedan a ≥ 2 %% del borde (%s)" % [label, str(soft_in), str(soft_short)])
+	if units_hard:
+		var worst_unit := 1000.0
+		for id in V.GROUPS:
+			worst_unit = minf(worst_unit, float(units.get(id, -1000.0)))
+		suite.check(visible == V.GROUPS.size() and worst_unit >= 2.0, "%s: P-006: las cinco partidas entran en el primer cuadro, a ≥ 2 %% del borde (%d de 5; peor %.1f %%)" % [label, visible, worst_unit])
 	if size.x >= 1280:
-		suite.check(soft_in.has("reconocedores") or zona_hard, "%s: los reconocedores (la partida que se usa primero) o la zona de partida entera quedan a la vista (incluidas: %s)" % [label, str(soft_in)])
+		suite.check(soft_in.has("reconocedores") or zona_hard or units_hard, "%s: los reconocedores (la partida que se usa primero) o la zona de partida entera quedan a la vista (incluidas: %s)" % [label, str(soft_in)])
 	# el templo y la plaza, a la vista
 	var town_pts := {}
 	for id in ["templo", "plaza"]:

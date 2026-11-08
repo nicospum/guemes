@@ -182,8 +182,11 @@ func zoom_at(cam: Camera3D, mouse: Vector2, factor: float) -> void:
 	apply(cam)
 	if follow_id != "":
 		return
-	var after: Variant = _ground(cam, mouse)
-	if before is Vector2 and after is Vector2:
+	# el punto del suelo bajo el cursor se queda: con relieve y la cámara baja una sola corrección dejaba hasta 8 m de error, así que se corrige hasta tres veces
+	for _pass in range(3):
+		var after: Variant = _ground(cam, mouse)
+		if not (before is Vector2 and after is Vector2) or (before as Vector2).distance_to(after as Vector2) < 0.05:
+			break
 		target = clamp_target(target + ((before as Vector2) - (after as Vector2)))
 		apply(cam)
 
