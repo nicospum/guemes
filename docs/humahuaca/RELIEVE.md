@@ -1,14 +1,14 @@
 # Relieve y mapa del nivel «Humahuaca» (pista `relieve_mapa`)
 
-Estado: **R1** (corte vertical mínimo), 2 de noviembre de 2026. Dueña: `relieve_mapa`. Lo que esta pista entrega: la clase `HumahuacaTerrain` (`scripts/humahuaca/terrain/`), `data/humahuaca_height.json` y `data/humahuaca_map.json`, el generador `tools/build_humahuaca_terrain.py`, `tests/test_hx_terrain.gd` y este documento. El contrato es `docs/CONTRATO_HUMAHUACA.md` (2.1, 2.2, 3.1); lo que se juega y por qué, `docs/DISENO_HUMAHUACA.md` (3 y 4); cómo se certifica, `docs/QA_NIVEL2.md` (R01 a R06 y el anexo A1).
+Estado: **R1 + relieve real** (rama `hx-relieve-nube`, 2 de noviembre de 2026: la fuente pasó de la lámina 03 a la tesela Copernicus GLO-30; método, cifras y diferencias con el diseño en `docs/humahuaca/RELIEVE_COPERNICUS.md`). Dueña: `relieve_mapa`. Lo que esta pista entrega: la clase `HumahuacaTerrain` (`scripts/humahuaca/terrain/`), `data/humahuaca_height.json` y `data/humahuaca_map.json`, el generador `tools/build_humahuaca_terrain.py`, `tests/test_hx_terrain.gd` y este documento. El contrato es `docs/CONTRATO_HUMAHUACA.md` (2.1, 2.2, 3.1); lo que se juega y por qué, `docs/DISENO_HUMAHUACA.md` (3 y 4); cómo se certifica, `docs/QA_NIVEL2.md` (R01 a R06 y el anexo A1).
 
-**Lo primero, la honestidad del dato.** El relieve de base es **dato actual, no restitución del suelo de 1817**: sale de la lámina 03 del material del usuario (SRTM v3 de 90 m, NASA/USGS; 475 nodos de 150 m reconstruidos a ±10 m). Todo lo que el juego le suma para que haya decisiones (el domo de la batería, la plataforma, las quebraditas, el cauce, el micro-relieve, las tapias, las zanjas y las superficies) es **diseño** y `report()` lo rotula como tal.
+**Lo primero, la honestidad del dato.** El relieve de base es **dato actual, no restitución del suelo de 1817**: sale de la tesela `Copernicus_DSM_COG_10_S24_00_W066_00_DEM.tif` del Copernicus DEM GLO-30 (modelo de **superficie** de 30 m, ±5 m; licencia y aviso en `CREDITOS_RELIEVE.md`). La lámina 03 del material del usuario (SRTM v3 de 90 m, 475 nodos de 150 m reconstruidos a ±10 m) fue la fuente de R1 y sigue siendo la referencia de los 41 puntos (R02). Todo lo que el juego le suma para que haya decisiones (el domo de la batería, la plataforma, las quebraditas, el cauce, el micro-relieve, las tapias, las zanjas y las superficies) es **diseño** y `report()` lo rotula como tal.
 
 ## 1. Cómo se arma la altura (una sola implementación)
 
 | Paso | Qué pasa | Dónde |
 |---|---|---|
-| 1. Fuente | Una superficie continua del relieve actual S(E, N) en metros sobre el nivel del mar: bilineal sobre los 475 nodos (como se dibujó la lámina), suavizada con un gaussiano de σ = 15 m (`meta.smooth_m` = 30 m) | `tools/build_humahuaca_terrain.py` |
+| 1. Fuente | Una superficie continua del relieve actual S(E, N) en metros sobre el nivel del mar: la tesela Copernicus recortada alrededor del ancla (georreferencia píxel-es-punto), con mediana de 5 × 5 píxeles (quita techos y árboles aislados) y gaussiano de σ = 22,5 m (`meta.smooth_m` = 45 m), leída con spline cúbica. Con `--source lamina03`: bilineal sobre los 475 nodos y gaussiano de σ = 15 m (`smooth_m` = 30 m) | `tools/build_humahuaca_terrain.py` |
 | 2. Muestreo | **Ventana** de 91 × 66 nodos a 10 m (esquina noroeste en (0, 0)) y **contexto** de 121 × 91 nodos a 30 m (origen (−1350, −1025); el dominio de la lámina), las dos de la misma superficie, en decímetros enteros sobre el cero local de 2 940 m | builder → `data/humahuaca_height.json` |
 | 3. Borde | Los nodos del borde de la ventana valen la bilineal del contexto, redondeada (≤ 0,5 dm; V7 pide ≤ 1 dm) | builder |
 | 4. Malla de juego | Catmull-Rom **separable** de la ventana a 226 × 164 nodos de 4 m → `height_dem_only` | `terrain_relief.gd` |
@@ -21,20 +21,21 @@ Estado: **R1** (corte vertical mínimo), 2 de noviembre de 2026. Dueña: `reliev
 **Regenerar el relieve** (Git Bash; el csv, el tif y la lámina viven fuera del repo y se pasan con ruta absoluta):
 
 ```sh
-PREP="<...>/investigacion-nivel2/preparacion"; LAM="<...>/info/2/03_relieve_actual.png"
-python -I -X utf8 tools/build_humahuaca_terrain.py --source lamina03 --csv "$PREP/01b_relieve_lamina03_nodos_25x19.csv" --check-lamina "$LAM" --update-map
-python -I -X utf8 tools/build_humahuaca_terrain.py --source copernicus --tif <...>/Copernicus_DSM_COG_10_S24_00_W066_00_DEM.tif --out <archivo temporal> --smooth-m 45 --check-lamina "$LAM"
+TIF="<...>/investigacion-nivel2/descargas/Copernicus_DSM_COG_10_S24_00_W066_00_DEM.tif"; LAM="<...>/info/2/03_relieve_actual.png"
+python -I -X utf8 tools/build_humahuaca_terrain.py --source copernicus --tif "$TIF" --expect-sha256 1b38c9054683f2ea927915ffc9f81e664f919cf13a6cbb4e93a1bd637301f97f --update-map [--check-lamina "$LAM"]
+python -I -X utf8 tools/build_humahuaca_terrain.py --compare <relieve_A.json> data/humahuaca_height.json     # los 41 puntos, R05, curva de 2 960 m y pendientes de cada archivo
+python -I -X utf8 tools/build_humahuaca_terrain.py --source lamina03 --csv "<...>/preparacion/01b_relieve_lamina03_nodos_25x19.csv" --out <archivo temporal>   # plan B
 python -I -X utf8 tools/build_humahuaca_terrain.py --measure-river "$LAM"     # imprime la traza del Río Grande medida en la lámina
 ```
 
-El generador es determinista (sin fechas): correrlo dos veces da el mismo archivo. `--update-map` escribe en el mapa el último `delta_m` del domo; la clase **lo resuelve de nuevo al cargar** con la fuente que tenga (una prueba exige que coincidan a 0,1 m). La tesela Copernicus nunca entra a Git (`*.tif` está en `.gitignore`).
+El generador es determinista (sin fechas): correrlo dos veces da el mismo archivo. `--update-map` escribe en el mapa el último `delta_m` del domo; la clase **lo resuelve de nuevo al cargar** con la fuente que tenga (una prueba exige que coincidan a 0,1 m). `--expect-sha256` corta si la tesela no es la autorizada en ADDENDA A-02. La tesela Copernicus nunca entra a Git (`*.tif` está en `.gitignore`).
 
 ## 2. Capas de diseño (todas `diseno`)
 
 | Capa (`id`) | Tipo | Qué hace | Consecuencia de juego |
 |---|---|---|---|
-| `cerro_bateria` | `dome` | Domo de núcleo plano de 16 m y flanco de coseno hasta 75 m de radio, centrado en (305, 345). Es un **residuo**: `delta_m` se calcula para que la plataforma quede a 12,0 m sobre la media del anillo de 16 puntos a 135 m (la medida del QA, R05) con la fuente que sea. Hoy `delta_m` = 12,3 m | Ventaja de vista y de tiro de la batería; subir el flanco (hasta 18°) cuesta velocidad (×0,7) |
-| `plataforma_bateria` | `platform` | Losa llana de 28 × 18 m en (318, 350), a 33,9 m sobre el cero local (talud de 6 m). La visión de quien está sobre la losa pasa por encima de su propio borde (sección 4, punto 1) | La batería domina la calle del cuartel y la plaza (16,7 m sobre la plaza) |
+| `cerro_bateria` | `dome` | Domo de núcleo plano de 16 m y flanco de coseno hasta 75 m de radio, centrado en (305, 345). Es un **residuo**: `delta_m` se calcula para que la plataforma quede a 12,0 m sobre la media del anillo de 16 puntos a 135 m (la medida del QA, R05) con la fuente que sea. Con Copernicus `delta_m` = 6,56 m (la ladera real ya sube 5,5 m sobre el anillo; con la lámina pedía 12,3 m) | Ventaja de vista y de tiro de la batería; subir el flanco (hasta 18°) cuesta velocidad (×0,7) |
+| `plataforma_bateria` | `platform` | Losa llana de 28 × 18 m en (318, 350), a 32,66 m sobre el cero local (talud de 6 m). La visión de quien está sobre la losa pasa por encima de su propio borde (sección 4, punto 1) | La batería domina la calle del cuartel y la plaza (25,6 m sobre la plaza con el relieve real; 16,7 m con la lámina: ver `RELIEVE_COPERNICUS.md` §5) |
 | `quebradita_norte`, `quebradita_sur` | `gully` | Hondonada de 36 × 8 m (ancho medido a media profundidad), −2,5 m, piso de un nodo de ancho, bancos de 1,2 m a los costados, abierta al oeste. Giradas ±20° para seguir la caída de la ladera (los hitos llevan el mismo `yaw_deg`) | Refugio de caballos: desde el este (el pueblo) no se ve el piso a más de 40 m y desde el lado de la ladera, a más de 25 m; desde el oeste (extremo abierto) y desde el lado cuesta abajo sí |
 | `cauce_rio` | `carve` | Talla de −1,6 m a lo largo de la traza del río (fondo llano hasta 0,55 del semiancho, subida suave hasta el semiancho + 12 m) | El cauce queda más bajo que el núcleo; define el agua y el sedimento |
 | `micro` | micro-relieve | Cinco ondas planas de semilla fija (1817), torcidas por un desplazamiento suave y con la amplitud modulada: ±0,5 m como tope, onda de 25 m o más; medido sobre la malla: amplitud máxima 0,46 m, rms 0,13 m y pendiente máxima 3,5° (cota teórica 6°). Se apaga en los 40 m del borde de la ventana y sobre la plataforma | Ninguna regla (no llega a los 8°); da sombras largas al alba y evita el suelo liso |
@@ -63,9 +64,9 @@ Dos decisiones que conviene saber:
 
 `minimap_image(px, opts)`: relieve sombreado (luz del noroeste, exageración 1,3 de la superficie sin micro-relieve), curvas de 20 m trazadas sobre las alturas ya remuestreadas, superficies teñidas con la paleta de la lámina 06 y cauce; norte arriba; sin texto ni unidades; no dibuja tapias ni hitos. `opts`: `shade`, `contours`, `river`, `surfaces`, `exaggeration`. Se cachea por tamaño y opciones y devuelve una copia.
 
-## 6. Qué se midió (R1, lámina 03, todo sobre la clase real)
+## 6. Qué se midió en R1 con la lámina 03 (histórico; las cifras con Copernicus están en `RELIEVE_COPERNICUS.md` §4)
 
-`qa_relieve.gd` y `qa_relieve.py` (anexo A1 de `QA_NIVEL2.md`) sobre `main` + esta rama:
+`qa_relieve.gd` y `qa_relieve.py` (anexo A1 de `QA_NIVEL2.md`) sobre `main` + la rama de R1, con el relieve de la lámina:
 
 | Ítem | Umbral | Medido |
 |---|---|---|
@@ -94,11 +95,13 @@ Tesela `Copernicus_DSM_COG_10_S24_00_W066_00_DEM.tif` (39 438 103 B, SHA-256 `1b
 | R05 referencias | templo +17,2; cauce +10,6; partida +28,7; batería 16,7 m sobre la plaza | templo **+7,9** (pide +17 ± 3); cauce **+0,2** (pide +12 ± 3); partida +28,9; batería **25,6 m** sobre la plaza (pide 14–19): **falla** |
 | R06 | pasa | pasa |
 
-**Lectura.** La tesela real discrepa de la lámina en el núcleo y el cauce por 9 a 12 m, que es la incertidumbre de la lámina (±10 m): las cotas de referencia del QA (+17, +12, +27) salen de la lámina, así que ningún DEM real las cumple con ±3 m. Una mezcla (lámina de baja frecuencia más el detalle local de Copernicus) se midió en un experimento descartable: R02 y R03 pasan, pero templo y cauce siguen a 4 a 7 m de lo pedido. Por la regla de la ADDENDA A-02 («si alguno falla, el relieve se queda con la lámina y se anota acá»), **R1 sigue con la lámina y `--source copernicus` queda listo**. Para pasar a Copernicus en R2a hace falta una enmienda del QA que fije las alturas de referencia de R05 sobre la fuente real (o un addendum que acepte el híbrido); es una decisión del integrador (pedido C1 de abajo). La prueba A/B de `test_hx_terrain` ya corre con una fuente sintética (+4 m y ondulación de ±0,8 m): la prominencia sigue en 12,0 ± 0,5 m y el signo del gradiente se conserva; la parte «los tres objetivos a ≤ 1 m entre sí» espera a las explanadas de R2a.
+**Lectura.** La tesela real discrepa de la lámina en el núcleo y el cauce por 9 a 12 m, que es la incertidumbre de la lámina (±10 m): las cotas de referencia del QA (+17, +12, +27) salen de la lámina, así que ningún DEM real las cumple con ±3 m. Una mezcla (lámina de baja frecuencia más el detalle local de Copernicus) se midió en un experimento descartable: R02 y R03 pasan, pero templo y cauce siguen a 4 a 7 m de lo pedido. Por la regla de la ADDENDA A-02, R1 se cerró con la lámina.
+
+**Decisión del 2-nov-2026 (usuario): Copernicus pasa a ser la fuente** (rama `hx-relieve-nube`). El relieve no se fuerza para cumplir las referencias de la lámina: las referencias de R05 se declaran por fuente en `humahuaca_map.json` (`relief.references`), `test_hx_terrain` verifica contra las de la fuente en uso, y la diferencia con la rúbrica (templo +7,9 contra +17, cauce +0,2 contra +12, batería 25,6 m sobre la plaza contra 14–19) queda documentada en `RELIEVE_COPERNICUS.md` §5 como enmienda propuesta del QA (opción b del pedido C1), junto con los ajustes de diseño que el relieve real sugiere. La prueba A/B de `test_hx_terrain` sigue corriendo con una fuente sintética (+4 m y ondulación de ±0,8 m); la parte «los tres objetivos a ≤ 1 m entre sí» espera a las explanadas de R2a, que hay que dimensionar sobre el relieve real.
 
 ## 8. Límites honestos
 
-- La lámina resuelve 150 m: dentro de la ventana el relieve base sube 25 m en 900 m. Todo lo que se ve como cerro, plataforma, hondonada o cauce es diseño; la forma del relieve de 1817 se desconoce.
+- Copernicus resuelve 30 m y es un modelo de superficie (techos y árboles de hoy; en el núcleo del pueblo puede sumar 1 a 3 m): dentro de la ventana el relieve base sube 38 m de este a oeste y la ladera real al oeste del pueblo pasa de 8° en el 7 % de las celdas (la lámina lo veía casi plano: 25 m y 0 %). El cerro de la batería, la plataforma, las hondonadas y el cauce siguen siendo diseño; la forma del relieve de 1817 se desconoce.
 - Las tapias, zanjas, caminos y parcelas vienen de `humahuaca_level.json` (de `reglas_historia`) y se rasterizan a 4 m: una zanja de 1,6 m de ancho es un renglón de nodos, no un hueco en la malla (la vista dibuja sus cintas).
 - El camino cubierto solo pinta su suelo (sus tapias de 1,8 m no son sólidas) y las manzanas no son sólidas: simplificaciones heredadas del stub.
 - Las quebraditas no esconden el piso de quien las mira desde el oeste ni desde el lado cuesta abajo (sección 4, punto 2).
@@ -109,7 +112,7 @@ Tesela `Copernicus_DSM_COG_10_S24_00_W066_00_DEM.tif` (39 438 103 B, SHA-256 `1b
 
 | Id | Pedido | Motivo | Prueba de aceptación |
 |---|---|---|---|
-| C1 | Decidir sobre Copernicus: (a) se queda la lámina (A-02, ítem R05 falla con la tesela); (b) enmienda del QA que fije las referencias de R05 sobre la fuente real; (c) addendum del híbrido | Sección 7 | La decisión escrita en `ADDENDA.md`; si es (b) o (c), `meta.source` cambia y V18 exige el aviso de Copernicus |
+| C1 | **Resuelto en parte el 2-nov-2026:** el usuario decidió Copernicus (rama `hx-relieve-nube`); falta la **enmienda del QA** que fije las referencias de R05 sobre la fuente real (opción b; los valores propuestos están en `RELIEVE_COPERNICUS.md` §5 y en `map.relief.references.copernicus_glo30`) y la decisión de diseño sobre la calle del cuartel y la banda «batería sobre la plaza» | Sección 7 y `RELIEVE_COPERNICUS.md` | La enmienda escrita en `QA_NIVEL2.md` (anexo F) y la decisión en `ADDENDA.md`; `qa_relieve.py` pasa R05 con los valores nuevos |
 | A1 | Addendum de VP-04 y VP-03: quedan **confirmadas** tal como las pidió `visual` (esta sección 3) | Cerrar los pedidos de `VISUAL.md` | Fila nueva en `ADDENDA.md`; `test_hx_terrain::_test_footprint_convention` y `_test_vp04_contracts` |
 | V1 | Encender V6, V12, V18 y V21 en `test_hx_data` (B-013) | El mapa ya trae hitos, río y relieve con sus etiquetas: V6 (21 hitos dentro de la ventana, objetivos separados 101, 175 y 277 m), V12 (`relief.height_file` existe), V18 (`CREDITOS_RELIEVE.md` trae «OpenStreetMap» y «ODbL» y el texto de Copernicus) y V21 (los `r_m` y `radius_m` del mapa son geometría) tienen con qué verificarse | `test_hx_data --ronda=r1` los lista como activas y pasa |
 

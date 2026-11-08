@@ -34,12 +34,17 @@
 		"game_relief": {"smooth_m": 30.0, "nota": "La ventana de 10 m ya viene suavizada por el builder (meta.smooth_m); la clase no vuelve a suavizar: interpola a 4 m con Catmull-Rom."},
 		"micro": {"amp_m": 0.5, "wavelength_m": 25.0, "seed": 1817, "edge_fade_m": 40.0, "tag": "diseno", "source": "Micro-relieve de semilla fija (±0,5 m, onda de 25 m o más): diseño; evita el suelo liso."},
 		"design_layers": [
-			{"id": "cerro_bateria", "kind": "dome", "center": {"x": 305.0, "z": 345.0}, "radius_m": 75.0, "core_m": 16.0, "delta_m": 12.31, "prominence_target_m": 12.0, "tag": "diseno", "source": "Domo de diseño: residuo del DEM para 12,0 m de prominencia sobre el anillo de 120–150 m. DISENO §4."},
+			{"id": "cerro_bateria", "kind": "dome", "center": {"x": 305.0, "z": 345.0}, "radius_m": 75.0, "core_m": 16.0, "delta_m": 6.56, "prominence_target_m": 12.0, "tag": "diseno", "source": "Domo de diseño: residuo del DEM para 12,0 m de prominencia sobre el anillo de 120–150 m. DISENO §4."},
 			{"id": "plataforma_bateria", "kind": "platform", "landmark": "bateria", "center": {"x": 318.0, "z": 350.0}, "length_m": 28.0, "width_m": 18.0, "yaw_deg": 0.0, "falloff_m": 6.0, "tag": "diseno", "source": "Plataforma de 28 × 18 m sobre el cerro: diseño. DISENO §4."},
 			{"id": "quebradita_norte", "kind": "gully", "landmark": "quebradita_norte", "center": {"x": 282.0, "z": 298.0}, "length_m": 36.0, "width_m": 8.0, "yaw_deg": 20.0, "delta_m": -2.5, "bank_m": 1.2, "falloff_m": 10.0, "open_side": "oeste", "tag": "diseno", "source": "Hondonada de 36 × 8 m y −2,5 m, abierta al oeste: diseño; el parte solo dice «una quebradita»."},
 			{"id": "quebradita_sur", "kind": "gully", "landmark": "quebradita_sur", "center": {"x": 288.0, "z": 402.0}, "length_m": 36.0, "width_m": 8.0, "yaw_deg": -20.0, "delta_m": -2.5, "bank_m": 1.2, "falloff_m": 10.0, "open_side": "oeste", "tag": "diseno", "source": "Hondonada de 36 × 8 m y −2,5 m, abierta al oeste: diseño; el parte solo dice «una quebradita»."},
 			{"id": "cauce_rio", "kind": "carve", "river": "rio_grande", "delta_m": -1.6, "falloff_m": 12.0, "tag": "diseno", "source": "Cauce tallado a lo largo de la traza del río (lecho de 25–40 m): diseño; el cauce de 1817 no tiene datos."}
 		],
+		"references": {
+			"nota": "Alturas de referencia (m sobre el cero local), banda de la batería sobre la plaza y posición de la curva de 2 960 m que test_hx_terrain verifica contra la fuente declarada en height.meta.source. Las de la lámina 03 son las de la rúbrica R05 (QA_NIVEL2 v1.5); las de Copernicus se midieron sobre la tesela el 2-nov-2026 y son la enmienda de R05 que se propone (docs/humahuaca/RELIEVE_COPERNICUS.md). Dato actual, no restitución del suelo de 1817.",
+			"lamina03_reconstruida": {"templo_m": 17.0, "cauce_z325_m": 12.0, "partida_m": 27.0, "tol_m": 10.0, "bateria_sobre_plaza_m": [14.0, 19.0], "curva_2960_x": {"z0": 270.0, "z325": 366.0, "z650": 380.0}, "curva_tol_m": 15.0, "tag": "razonado", "source": "Lámina 03 (SRTM v3 de 90 m) y rúbrica R05 de docs/QA_NIVEL2.md."},
+			"copernicus_glo30": {"templo_m": 7.9, "cauce_z325_m": 0.2, "partida_m": 28.9, "tol_m": 3.0, "bateria_sobre_plaza_m": [23.0, 28.0], "curva_2960_x": {"z0": 256.0, "z325": 348.0, "z650": 433.0}, "curva_tol_m": 15.0, "tag": "razonado", "source": "Medido sobre la tesela Copernicus GLO-30 (2-nov-2026); enmienda de R05 propuesta en RELIEVE_COPERNICUS.md."}
+		},
 		"lamina_points": [
 			{"id": "P01", "E": 0, "N": 0, "banda_min_m": 2940, "banda_max_m": 2960, "est_m": 2957},
 			{"id": "P02", "E": -111, "N": -35, "banda_min_m": 2960, "banda_max_m": 2980, "est_m": 2961},
@@ -297,13 +302,13 @@
 	},
 	"provenance": {
 		"lines": [
-			"Relieve: lámina 03 (SRTM v3 de 90 m, NASA/USGS), 475 nodos de 150 m reconstruidos a ±10 m. Dato actual, no restitución del suelo de 1817.",
+			"Relieve: Copernicus DEM GLO-30 (tesela S24_00_W066_00; modelo de superficie de 30 m, ±5 m), mediana de 5 × 5 px y suavizado de 45 m; licencia COPDEM-30 con el aviso de CREDITOS_RELIEVE.md. Dato actual, no restitución del suelo de 1817.",
 			"Traza del Río Grande: 19 puntos medidos de la lámina 03, © OpenStreetMap contributors, licencia ODbL (subconjunto de una base de datos derivada).",
 			"Domo y plataforma de la batería, quebraditas, cauce, micro-relieve y vados: diseño del nivel, rotulado como tal en report().",
-			"Hitos: posiciones de diseño, salvo el sitio del templo (inferencia razonada, ±15 m). Una fuente de relieve nueva no mueve el juego (prueba A/B).",
-			"Detalle: docs/humahuaca/RELIEVE.md, CREDITOS_RELIEVE.md y PROCEDENCIA.md."
+			"Hitos: posiciones de diseño, salvo el sitio del templo (inferencia razonada, ±15 m). La lámina 03 (SRTM v3 de 90 m, 475 nodos, ±10 m) fue el relieve de R1 y sigue siendo la referencia de los 41 puntos (R02).",
+			"Detalle: docs/humahuaca/RELIEVE.md, RELIEVE_COPERNICUS.md, CREDITOS_RELIEVE.md y PROCEDENCIA.md."
 		],
-		"license": "ODbL 1.0 (traza del río); SRTM: dominio público (NASA/USGS)",
+		"license": "Copernicus DEM GLO-30: licencia COPDEM-30 (atribución obligatoria; producto modificado); ODbL 1.0 (traza del río); SRTM (lámina 03): dominio público (NASA/USGS)",
 		"credits_ref": "docs/humahuaca/CREDITOS_RELIEVE.md"
 	}
 }
