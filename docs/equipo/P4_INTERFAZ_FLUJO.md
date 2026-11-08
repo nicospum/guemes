@@ -121,7 +121,7 @@ Evidencia fuera de Git, en `../qa-equipo/p4b/`:
 | `tools/justina_playthrough.gd` (con ventana) | **sale con 0**: 18 victorias y 6 derrotas en las políticas clásicas × 3 semillas; la política `ui_real` (clics y teclas reales) **gana** en las tres semillas | gana |
 | `tests/test_hx_smoke.gd` (158 / 0) y `tests/test_hx_flow.gd` (303 / 0), de otras pistas | corridas para ver que el menú, el velo y la pantalla de misión no las rompen | — |
 
-Todas con perfil `APPDATA` aislado y borrado al terminar. Otros agentes corrían Godot en paralelo.
+Todas con perfil `APPDATA` aislado y borrado al terminar. Otros agentes corrían Godot en paralelo. Después entró otra mezcla de `equipo/integracion` (P2 ronda 4, fa5d415: solo archivos del II); sobre esa mezcla volví a correr `test_integration` (330 / 0) y `test_hx_smoke` (158 / 0).
 
 ### Textos de pruebas que cambié a propósito
 
