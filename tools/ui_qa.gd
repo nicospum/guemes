@@ -616,6 +616,8 @@ func _run() -> void:
 	# En una vista baja (720p, 1280x720 logicos) los mismos paneles son una fraccion mayor de la pantalla: el limite es 40 % con 900 logicos de alto y 55 % de ocupacion con menos de 800 (la interfaz no se encoge: se prefiere letra legible).
 	var free_min := 60.0 if root.get_visible_rect().size.y >= 800.0 else 40.0
 	check(float(notes["justina_free_con_ayuda"].free_pct) >= free_min, "Justina: la interfaz deja libre al menos %s %% de la vista (libre %s %%)" % [str(free_min), str(notes["justina_free_con_ayuda"].free_pct)])
+	check(float(notes["justina_free_con_ayuda"].free_pct) >= (75.0 if root.get_visible_rect().size.y >= 800.0 else 70.0), "P4 V-05: el HUD de la Justina tapa <= 25 %% (<= 30 %% con menos de 800 de alto); libre %s %%" % str(notes["justina_free_con_ayuda"].free_pct))
+	check(not game.mm_bar.visible and not game.speed_buttons[2].visible and not game.reason_label.visible and game.hint_panel.visible, "P4 D-07: primer cuadro con un solo mensaje (la guía); lo que todavía no sirve queda plegado")
 	# Tiempo real con pausa, evidente desde el primer cuadro
 	check(game.mode_label.text.find("PAUSA") >= 0 and game.hint_panel.visible and game.tutorial_label.text.find("Espacio") >= 0 and not game.pause_banner.visible, "Justina: la pausa se anuncia (indicador) y la guia dice como arrancar el reloj, sin cartel duplicado")
 	check(game.roster_buttons.size() == 5 and game.roster_panel.is_visible_in_tree(), "Justina: el panel lateral muestra las cinco agrupaciones")
