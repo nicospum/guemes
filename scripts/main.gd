@@ -2324,9 +2324,11 @@ func _build_hud_j():
  for spec in [["Diario",_diary_dialog,"Lo que descubriste y sufriste en este río. Se marca tenue en el mapa del próximo intento."],["Ayuda",_briefing_dialog,"F1 o ?. Controles, tiempo real, tutorial y fuentes."],["☰ Menú",_pause_menu,"Esc. Pausa: guardar, ajustes, parte, reiniciar, volver al menú o abandonar. Lo que corta el intento está acá, aparte de las órdenes."]]:
   var hb=_button(hv,str(spec[0]),spec[1],26);hb.add_theme_font_size_override("font_size",13);_compact(hb);hb.tooltip_text=str(spec[2])
  # Nombre del paraje (arriba a la izquierda, sin fondo)
- place_label=_label(ui,"",13,PAPER);place_label.clip_text=true;place_label.mouse_filter=Control.MOUSE_FILTER_IGNORE
+ # Q-105: el rótulo del paraje bajo el cursor vivía en (16,54), detrás del panel «AGRUPACIONES», y asomaba como una solapa vacía con
+ # «…reconocer)» a la derecha. Ahora va abajo a la izquierda, sobre la barra del minimapa (_layout_j), sin recorte: crece con el texto.
+ place_label=_label(ui,"",13,PAPER);place_label.mouse_filter=Control.MOUSE_FILTER_IGNORE
  place_label.add_theme_stylebox_override("normal",_style(Color(0.075,0.063,0.098,0.82),Color("5c4a2e"),1,4,5))
- _anchor(place_label,0,0,0,0,16,54,340,76);place_label.visible=false
+ place_label.grow_horizontal=Control.GROW_DIRECTION_END;place_label.grow_vertical=Control.GROW_DIRECTION_BEGIN;place_label.visible=false
  # Pila central: pausa, avisos críticos y tutorial (se apilan sin pisarse)
  top_stack=VBoxContainer.new();top_stack.add_theme_constant_override("separation",4);top_stack.mouse_filter=Control.MOUSE_FILTER_IGNORE;ui.add_child(top_stack)
  _anchor(top_stack,0.5,0,0.5,0,-290,54,290,54)
@@ -2424,6 +2426,7 @@ func _layout_j():
  _anchor(map_widget,0,1,0,1,12,-(sz.y+10),12+sz.x,-10)
  map_widget.queue_redraw()
  if is_instance_valid(mm_bar):_anchor(mm_bar,0,1,0,1,12,-(sz.y+10+32),12+sz.x,-(sz.y+14))
+ if is_instance_valid(place_label):_anchor(place_label,0,1,0,1,12,-(sz.y+10+32+6),12,-(sz.y+10+32+6))
  if is_instance_valid(roster_panel):_anchor(roster_panel,0,0,0,0,12,54,236,54)
  if is_instance_valid(bottom_panel):_anchor(bottom_panel,0,1,0,1,12+sz.x+8,-10,12+sz.x+8+660,-10)
 
@@ -2717,6 +2720,28 @@ func _card_text(id:String)->String:
   return "%s %d %s  %d %%\nmunición %d · %s" % [_ujg(id),_actor_number(id),_short_name(id),int(a.strength),int(rules.resources().ammo),_order_text(id)]
  var tired="" if int(a.fatigue)<=0 else " · cansado %d %%" % int(a.fatigue)
  return "%s%s %d %s\n%d %% · %s · munición %d\n%s%s\n%s" % [mark,_ujg(id),_actor_number(id),_short_name(id),int(a.strength),str(role.kind),int(rules.resources().ammo),stage_t,tired,_order_text(id)]
+
+# Q-105: ningún renglón de la ficha se corta. Si no entra, primero se cae el tipo («Caballería de reserva», que está en la ayuda
+# emergente) y después la hora de llegada; recién al final se acorta con «…» en un borde de palabra.
+func _fit_card_lines(b:Button,text:String)->String:
+ var room=b.size.x-18.0
+ if room<=40.0:return text
+ var f=b.get_theme_font("font");var fs=b.get_theme_font_size("font_size")
+ var out=[]
+ for ln in text.split("
+"):
+  var line=str(ln)
+  if f.get_string_size(line,HORIZONTAL_ALIGNMENT_LEFT,-1,fs).x>room:
+   for role in GROUP_ROLE.values():line=line.replace(" · "+str(role.kind)+" · "," · ")
+   if f.get_string_size(line,HORIZONTAL_ALIGNMENT_LEFT,-1,fs).x>room:
+    var cut_eta=line.find(" · ETA ")
+    if cut_eta>0:line=line.substr(0,cut_eta)
+   while f.get_string_size(line,HORIZONTAL_ALIGNMENT_LEFT,-1,fs).x>room and line.find(" ")>0:
+    line=line.substr(0,line.rfind(" ")).rstrip(" ·")+"…"
+    if line.ends_with("……"):line=line.substr(0,line.length()-1)
+  out.append(line)
+ return "
+".join(out)
 
 func _card_tip(id:String)->String:
  var a=_actor(id)
@@ -3960,7 +3985,7 @@ Buque: próxima descarga en [b]%d s[/b]" % [int(res.ammo),int(res.ammo_max),int(
  for id in ALL_ACTORS:
   var b:Button=roster_buttons.get(id)
   if not is_instance_valid(b):continue
-  b.text=_card_text(id);b.tooltip_text=_card_tip(id)
+  b.text=_fit_card_lines(b,_card_text(id));b.tooltip_text=_card_tip(id)
   b.custom_minimum_size.y=70.0 if sel_ids.has(id) else 40.0
   b.add_theme_color_override("font_color",UNIT_COLORS[id]);b.add_theme_color_override("font_hover_color",UNIT_COLORS[id])
   if sel_ids.has(id):
