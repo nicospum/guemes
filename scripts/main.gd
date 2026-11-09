@@ -2738,6 +2738,9 @@ func _card_text(id:String)->String:
  if not sel_ids.has(id):
   return "%s %d %s  %d %%\nmunición %d · %s" % [_ujg(id),_actor_number(id),_short_name(id),int(a.strength),int(rules.resources().ammo),_order_text(id)]
  var tired="" if int(a.fatigue)<=0 else " · cansado %d %%" % int(a.fatigue)
+ if str(a.stage)=="ready" and str(a.get("order",{}).get("action","")).is_empty() and tired.is_empty():
+  # Q-104: sin repetir «A la espera» y «Esperando órdenes» (como la ficha del explorador): un renglón menos en el panel de agrupaciones
+  return "%s%s %d %s\n%d %% · %s · munición %d\n%s" % [mark,_ujg(id),_actor_number(id),_short_name(id),int(a.strength),str(role.kind),int(rules.resources().ammo),_order_text(id)]
  return "%s%s %d %s\n%d %% · %s · munición %d\n%s%s\n%s" % [mark,_ujg(id),_actor_number(id),_short_name(id),int(a.strength),str(role.kind),int(rules.resources().ammo),stage_t,tired,_order_text(id)]
 
 # Q-105: ningún renglón de la ficha se corta. Si no entra, primero se cae el tipo («Caballería de reserva», que está en la ayuda
@@ -2747,8 +2750,7 @@ func _fit_card_lines(b:Button,text:String)->String:
  if room<=40.0:return text
  var f=b.get_theme_font("font");var fs=b.get_theme_font_size("font_size")
  var out=[]
- for ln in text.split("
-"):
+ for ln in text.split("\n"):
   var line=str(ln)
   if f.get_string_size(line,HORIZONTAL_ALIGNMENT_LEFT,-1,fs).x>room:
    for role in GROUP_ROLE.values():line=line.replace(" · "+str(role.kind)+" · "," · ")
@@ -2759,8 +2761,7 @@ func _fit_card_lines(b:Button,text:String)->String:
     line=line.substr(0,line.rfind(" ")).rstrip(" ·")+"…"
     if line.ends_with("……"):line=line.substr(0,line.length()-1)
   out.append(line)
- return "
-".join(out)
+ return "\n".join(out)
 
 func _card_tip(id:String)->String:
  var a=_actor(id)
@@ -3402,16 +3403,17 @@ func _first_frame_focus():
  var focus=bool(settings.tutorial) and tut_step==0 and str(st.status)=="playing" and float(st.elapsed)<0.5 and st.orders.is_empty() and rules.probes().is_empty() and int(progress.intentos)<=1
  for sp in [2,4]:
   if speed_buttons.has(sp) and is_instance_valid(speed_buttons[sp]):speed_buttons[sp].visible=not focus
- for c in [mm_bar,tut_hint_label,info_fold_btn,sel_info,info_label,capture_bar,moral_bar]:
+ for c in [mm_bar,tut_hint_label,info_fold_btn,sel_info,info_label,capture_bar,moral_bar,details_btn]:  # Q-104: también «Detalles» (vado, munición, río), que no sirve antes de empezar
   if is_instance_valid(c):c.visible=not focus
  if is_instance_valid(deploy_btn) and focus:deploy_btn.visible=false
  if is_instance_valid(ui):
   for hb in ui.find_children("*","Button",true,false):
    if str(hb.text)=="Diario" and hb.get_parent() and hb.get_parent().get_parent()==hud_panels[0]:hb.visible=not focus
- var groups_sel=not _sel_groups().is_empty()
+ var groups_sel=not _sel_groups().is_empty() and not focus  # Q-104: el ritmo tampoco sirve antes de la primera orden (vuelve solo)
  for pid in pace_buttons:
   if is_instance_valid(pace_buttons[pid]):pace_buttons[pid].visible=groups_sel
  if is_instance_valid(pace_label):pace_label.visible=groups_sel
+ if is_instance_valid(phase_label):phase_label.visible=not focus  # Q-104: la fecha y el río (en el briefing y en la tarjeta) vuelven con la primera acción: la cabecera queda de un renglón
 
 # Q-104 (I): la bandeja inferior conservaba su ancho fijo de 660 aunque mostrara tres botones. Sin la ficha de la selección ni la línea
 # «AHORA», se ajusta al ancho de sus botones (el contenedor no baja de su tamaño mínimo); con texto vuelve a 660.
@@ -4005,7 +4007,7 @@ Buque: próxima descarga en [b]%d s[/b]" % [int(res.ammo),int(res.ammo_max),int(
   var b:Button=roster_buttons.get(id)
   if not is_instance_valid(b):continue
   b.text=_fit_card_lines(b,_card_text(id));b.tooltip_text=_card_tip(id)
-  b.custom_minimum_size.y=70.0 if sel_ids.has(id) else 40.0
+  b.custom_minimum_size.y=(70.0 if b.text.count("\n")>=3 else 60.0) if sel_ids.has(id) else 40.0  # Q-104: la ficha elegida de tres renglones no reserva el alto de cuatro
   b.add_theme_color_override("font_color",UNIT_COLORS[id]);b.add_theme_color_override("font_hover_color",UNIT_COLORS[id])
   if sel_ids.has(id):
    b.add_theme_stylebox_override("normal",_cm_style("rosel"+id,Color("2a2233"),GOLD,2,8,3))
