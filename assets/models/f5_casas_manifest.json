@@ -1,0 +1,2450 @@
+{
+ "_convenciones": {
+  "unidad": "metro",
+  "frente": "Godot -Z (Blender +Y)",
+  "arriba": "Godot +Y",
+  "origen": "suelo, centro de la caja",
+  "color": "COLOR_0 lineal, sin texturas",
+  "ancla": "primera primitiva, material «F5 | ancla» (Godot 4.7.2)",
+  "paleta_srgb": {
+   "adobe": "#94714F",
+   "adobe_claro": "#A88560",
+   "adobe_oscuro": "#7A5B40",
+   "revoque": "#9C7B58",
+   "cal": "#EAE4D6",
+   "cal_sucia": "#D6CCB6",
+   "cal_ba": "#EDE8DC",
+   "ladrillo": "#8F5E46",
+   "torta": "#66503B",
+   "torta_seca": "#80684F",
+   "cana": "#B19D72",
+   "paja": "#8F7A58",
+   "paja_oscura": "#6E5B42",
+   "paja_clara": "#A68F68",
+   "teja": "#85634E",
+   "teja_oscura": "#6A4E3E",
+   "teja_liquen": "#6F6A58",
+   "madera": "#59432E",
+   "madera_gris": "#74685A",
+   "cardon": "#8D7E66",
+   "algarrobo": "#4E3B2A",
+   "piedra": "#8E8A80",
+   "piedra_osc": "#6F685E",
+   "piedra_ocre": "#9A8670",
+   "piedra_clara": "#A39B8B",
+   "piedra_rojiza": "#8A6B57",
+   "sedimento": "#5E4B37",
+   "hierro": "#3B3A37",
+   "bronce": "#6A5634",
+   "sombra": "#1C1814",
+   "suelo": "#B99A72"
+  },
+  "fuente": "tools/f5_casas.py (obra propia)",
+  "historia": "docs/historia/CASAS_F5.md"
+ },
+ "casa_ba_a": {
+  "file": "casa_ba_a.glb",
+  "bytes": 180488,
+  "triangles": 2206,
+  "meshes": 1,
+  "surfaces": 7,
+  "materials": [
+   "F5 | ancla",
+   "F5 | muro",
+   "F5 | teja",
+   "F5 | madera",
+   "F5 | piedra",
+   "F5 | hierro",
+   "F5 | sombra"
+  ],
+  "textures": 0,
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -4.215,
+    0.0,
+    -3.307
+   ],
+   "max": [
+    4.215,
+    5.333,
+    3.307
+   ]
+  },
+  "size_m": [
+   8.43,
+   5.33,
+   6.61
+  ],
+  "front": "Godot -Z (Blender +Y)",
+  "origin": "suelo, centro de la caja",
+  "sha256": "74ca0be6f238bbf4bc2e9c9537c661a5b0a9ce03db58cf2372fb2f0892aa87ec",
+  "note": "Casa de Buenos Aires (1806): ladrillo revocado y blanqueado, techo de teja a dos aguas, rejas de hierro.",
+  "levels": "justina",
+  "tag": "razonado",
+  "doors_godot": [
+   [
+    -1.62,
+    1.38,
+    -2.85
+   ]
+  ],
+  "lstar_albedo": {
+   "techo": 34.5,
+   "muro": 80.9,
+   "suelo_seco": 65.5,
+   "delta_techo": -31.0,
+   "delta_muro": 15.4
+  },
+  "lod": "casa_ba_a_lod.glb"
+ },
+ "casa_ba_a_lod": {
+  "file": "casa_ba_a_lod.glb",
+  "bytes": 65932,
+  "triangles": 656,
+  "meshes": 1,
+  "surfaces": 7,
+  "materials": [
+   "F5 | ancla",
+   "F5 | muro",
+   "F5 | teja",
+   "F5 | madera",
+   "F5 | piedra",
+   "F5 | hierro",
+   "F5 | sombra"
+  ],
+  "textures": 0,
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -4.215,
+    0.0,
+    -3.307
+   ],
+   "max": [
+    4.215,
+    5.333,
+    3.307
+   ]
+  },
+  "size_m": [
+   8.43,
+   5.33,
+   6.61
+  ],
+  "front": "Godot -Z (Blender +Y)",
+  "origin": "suelo, centro de la caja",
+  "sha256": "3790d4f38de2f77ed59d239112bdcf8e20d9bbf1752e0ad8dd23f24343729f89",
+  "note": "Casa de Buenos Aires (1806): ladrillo revocado y blanqueado, techo de teja a dos aguas, rejas de hierro. LOD lejano: caras coplanares disueltas y colapso.",
+  "levels": "justina",
+  "tag": "razonado",
+  "lod_of": "casa_ba_a"
+ },
+ "casa_ba_b": {
+  "file": "casa_ba_b.glb",
+  "bytes": 136900,
+  "triangles": 1670,
+  "meshes": 1,
+  "surfaces": 7,
+  "materials": [
+   "F5 | ancla",
+   "F5 | muro",
+   "F5 | teja",
+   "F5 | madera",
+   "F5 | piedra",
+   "F5 | hierro",
+   "F5 | sombra"
+  ],
+  "textures": 0,
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -4.6,
+    0.0,
+    -3.49
+   ],
+   "max": [
+    4.6,
+    4.5,
+    3.49
+   ]
+  },
+  "size_m": [
+   9.2,
+   4.5,
+   6.98
+  ],
+  "front": "Godot -Z (Blender +Y)",
+  "origin": "suelo, centro de la caja",
+  "sha256": "75a57783c0e4ced5a10acf8763130bdd5579159f1cb5dc098b3f62cc4182b6e9",
+  "note": "Casa de azotea de Buenos Aires (1806): techo plano tras pretil con cornisa, gárgolas, rejas de hierro.",
+  "levels": "justina",
+  "tag": "razonado",
+  "doors_godot": [
+   [
+    -2.8,
+    1.45,
+    -2.99
+   ]
+  ],
+  "lstar_albedo": {
+   "techo": 59.2,
+   "muro": 81.8,
+   "suelo_seco": 65.5,
+   "delta_techo": -6.3,
+   "delta_muro": 16.3
+  },
+  "lod": "casa_ba_b_lod.glb"
+ },
+ "casa_ba_b_lod": {
+  "file": "casa_ba_b_lod.glb",
+  "bytes": 38268,
+  "triangles": 418,
+  "meshes": 1,
+  "surfaces": 7,
+  "materials": [
+   "F5 | ancla",
+   "F5 | muro",
+   "F5 | teja",
+   "F5 | madera",
+   "F5 | piedra",
+   "F5 | hierro",
+   "F5 | sombra"
+  ],
+  "textures": 0,
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -4.6,
+    0.0,
+    -3.49
+   ],
+   "max": [
+    4.6,
+    4.5,
+    3.49
+   ]
+  },
+  "size_m": [
+   9.2,
+   4.5,
+   6.98
+  ],
+  "front": "Godot -Z (Blender +Y)",
+  "origin": "suelo, centro de la caja",
+  "sha256": "af8ea39defb457ae3834c28cb378192626ba99fb7cf4d87efad3ec8964b28825",
+  "note": "Casa de azotea de Buenos Aires (1806): techo plano tras pretil con cornisa, gárgolas, rejas de hierro. LOD lejano: caras coplanares disueltas y colapso.",
+  "levels": "justina",
+  "tag": "razonado",
+  "lod_of": "casa_ba_b"
+ },
+ "casa_capilla_a": {
+  "file": "casa_capilla_a.glb",
+  "bytes": 270204,
+  "triangles": 3359,
+  "meshes": 1,
+  "surfaces": 7,
+  "materials": [
+   "F5 | ancla",
+   "F5 | muro",
+   "F5 | techo",
+   "F5 | madera",
+   "F5 | piedra",
+   "F5 | hierro",
+   "F5 | sombra"
+  ],
+  "textures": 0,
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -4.2,
+    0.0,
+    -6.775
+   ],
+   "max": [
+    4.2,
+    7.9,
+    6.775
+   ]
+  },
+  "size_m": [
+   8.4,
+   7.9,
+   13.55
+  ],
+  "front": "Godot -Z (Blender +Y)",
+  "origin": "suelo, centro de la caja",
+  "sha256": "4e991ef3444307505121e438b62b4eccec2bb0275323c6c24b448c4c109c74b9",
+  "note": "Capilla de la quebrada con espadaña, sin atrio (reemplazo directo de hx_capilla, ≤ 8 m de alto).",
+  "levels": "humahuaca, norte",
+  "tag": "razonado",
+  "doors_godot": [
+   [
+    0.0,
+    1.65,
+    -6.52
+   ]
+  ],
+  "lstar_albedo": {
+   "techo": 45.0,
+   "muro": 77.6,
+   "suelo_seco": 65.5,
+   "delta_techo": -20.5,
+   "delta_muro": 12.1
+  },
+  "lod": "casa_capilla_a_lod.glb"
+ },
+ "casa_capilla_a_lod": {
+  "file": "casa_capilla_a_lod.glb",
+  "bytes": 49344,
+  "triangles": 572,
+  "meshes": 1,
+  "surfaces": 7,
+  "materials": [
+   "F5 | ancla",
+   "F5 | muro",
+   "F5 | techo",
+   "F5 | madera",
+   "F5 | piedra",
+   "F5 | hierro",
+   "F5 | sombra"
+  ],
+  "textures": 0,
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -4.2,
+    0.0,
+    -6.775
+   ],
+   "max": [
+    4.2,
+    7.9,
+    6.775
+   ]
+  },
+  "size_m": [
+   8.4,
+   7.9,
+   13.55
+  ],
+  "front": "Godot -Z (Blender +Y)",
+  "origin": "suelo, centro de la caja",
+  "sha256": "49d23657a6b9b4d190898e771777432e802a04e6591a33c3c9c0d9c74e98fb89",
+  "note": "Capilla de la quebrada con espadaña, sin atrio (reemplazo directo de hx_capilla, ≤ 8 m de alto). LOD lejano: caras coplanares disueltas y colapso.",
+  "levels": "humahuaca, norte",
+  "tag": "razonado",
+  "lod_of": "casa_capilla_a"
+ },
+ "casa_capilla_b": {
+  "file": "casa_capilla_b.glb",
+  "bytes": 346524,
+  "triangles": 4341,
+  "meshes": 1,
+  "surfaces": 7,
+  "materials": [
+   "F5 | ancla",
+   "F5 | muro",
+   "F5 | techo",
+   "F5 | madera",
+   "F5 | piedra",
+   "F5 | hierro",
+   "F5 | sombra"
+  ],
+  "textures": 0,
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -5.322,
+    0.0,
+    -9.315
+   ],
+   "max": [
+    5.322,
+    8.0,
+    9.315
+   ]
+  },
+  "size_m": [
+   10.64,
+   8.0,
+   18.63
+  ],
+  "front": "Godot -Z (Blender +Y)",
+  "origin": "suelo, centro de la caja",
+  "sha256": "c595a7176e640983985f175bfd61e6c2c2a277421acbbffbfe6d55e385467278",
+  "note": "Capilla con espadaña y atrio cerrado por pirca, portada de atrio y cruz.",
+  "levels": "humahuaca, norte",
+  "tag": "razonado",
+  "doors_godot": [
+   [
+    -0.01,
+    1.65,
+    -2.48
+   ]
+  ],
+  "lstar_albedo": {
+   "techo": 47.0,
+   "muro": 71.9,
+   "suelo_seco": 65.5,
+   "delta_techo": -18.5,
+   "delta_muro": 6.4
+  },
+  "lod": "casa_capilla_b_lod.glb"
+ },
+ "casa_capilla_b_lod": {
+  "file": "casa_capilla_b_lod.glb",
+  "bytes": 116560,
+  "triangles": 1298,
+  "meshes": 1,
+  "surfaces": 7,
+  "materials": [
+   "F5 | ancla",
+   "F5 | muro",
+   "F5 | techo",
+   "F5 | madera",
+   "F5 | piedra",
+   "F5 | hierro",
+   "F5 | sombra"
+  ],
+  "textures": 0,
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -5.322,
+    -0.0,
+    -9.315
+   ],
+   "max": [
+    5.322,
+    8.0,
+    9.315
+   ]
+  },
+  "size_m": [
+   10.64,
+   8.0,
+   18.63
+  ],
+  "front": "Godot -Z (Blender +Y)",
+  "origin": "suelo, centro de la caja",
+  "sha256": "e57e4d4877cc09b15dbdfb731a4b24289f268653a2bda90559f79aaf247c5c23",
+  "note": "Capilla con espadaña y atrio cerrado por pirca, portada de atrio y cruz. LOD lejano: caras coplanares disueltas y colapso.",
+  "levels": "humahuaca, norte",
+  "tag": "razonado",
+  "lod_of": "casa_capilla_b"
+ },
+ "casa_capilla_c": {
+  "file": "casa_capilla_c.glb",
+  "bytes": 376736,
+  "triangles": 4717,
+  "meshes": 1,
+  "surfaces": 7,
+  "materials": [
+   "F5 | ancla",
+   "F5 | muro",
+   "F5 | teja",
+   "F5 | madera",
+   "F5 | piedra",
+   "F5 | hierro",
+   "F5 | sombra"
+  ],
+  "textures": 0,
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -5.41,
+    0.0,
+    -8.275
+   ],
+   "max": [
+    5.41,
+    11.98,
+    8.275
+   ]
+  },
+  "size_m": [
+   10.82,
+   11.98,
+   16.55
+  ],
+  "front": "Godot -Z (Blender +Y)",
+  "origin": "suelo, centro de la caja",
+  "sha256": "dd3a23e5ccbc0266c3ad3b9487d4d9e0306537b4e4e0ca13d812520634475f66",
+  "note": "Iglesia de pueblo con torre a un costado del frente, cupulín y techo de teja (Salta, Jujuy; sirve de silueta en Buenos Aires).",
+  "levels": "norte, justina",
+  "tag": "diseno",
+  "doors_godot": [
+   [
+    -0.91,
+    1.65,
+    -8.02
+   ]
+  ],
+  "lstar_albedo": {
+   "techo": 43.2,
+   "muro": 80.6,
+   "suelo_seco": 65.5,
+   "delta_techo": -22.3,
+   "delta_muro": 15.1
+  },
+  "lod": "casa_capilla_c_lod.glb"
+ },
+ "casa_capilla_c_lod": {
+  "file": "casa_capilla_c_lod.glb",
+  "bytes": 125960,
+  "triangles": 1414,
+  "meshes": 1,
+  "surfaces": 7,
+  "materials": [
+   "F5 | ancla",
+   "F5 | muro",
+   "F5 | teja",
+   "F5 | madera",
+   "F5 | piedra",
+   "F5 | hierro",
+   "F5 | sombra"
+  ],
+  "textures": 0,
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -5.41,
+    0.0,
+    -8.275
+   ],
+   "max": [
+    5.41,
+    11.98,
+    8.275
+   ]
+  },
+  "size_m": [
+   10.82,
+   11.98,
+   16.55
+  ],
+  "front": "Godot -Z (Blender +Y)",
+  "origin": "suelo, centro de la caja",
+  "sha256": "5f26d3bb58cfdeb0c7eb2f9f7af7b10ec4c318c02ed588362099a42a902ecbd0",
+  "note": "Iglesia de pueblo con torre a un costado del frente, cupulín y techo de teja (Salta, Jujuy; sirve de silueta en Buenos Aires). LOD lejano: caras coplanares disueltas y colapso.",
+  "levels": "norte, justina",
+  "tag": "diseno",
+  "lod_of": "casa_capilla_c"
+ },
+ "casa_corral_palos_c": {
+  "file": "casa_corral_palos_c.glb",
+  "bytes": 100464,
+  "triangles": 1262,
+  "meshes": 1,
+  "surfaces": 2,
+  "materials": [
+   "F5 | ancla",
+   "F5 | madera"
+  ],
+  "textures": 0,
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -5.589,
+    0.0,
+    -4.096
+   ],
+   "max": [
+    5.589,
+    1.701,
+    4.096
+   ]
+  },
+  "size_m": [
+   11.18,
+   1.7,
+   8.19
+  ],
+  "front": "Godot -Z (Blender +Y)",
+  "origin": "suelo, centro de la caja",
+  "sha256": "864ce359c7df0c9dbccc654b9cb10dbb9596e9699adfeb8fdc9a8529127c911c",
+  "note": "Corral de palo a pique (Buenos Aires y llanura): palos hincados juntos, tranquera.",
+  "levels": "justina",
+  "tag": "diseno",
+  "doors_godot": [],
+  "lstar_albedo": {
+   "techo": 40.3,
+   "muro": 40.8,
+   "suelo_seco": 65.5,
+   "delta_techo": -25.2,
+   "delta_muro": -24.7
+  },
+  "lod": "casa_corral_palos_c_lod.glb"
+ },
+ "casa_corral_palos_c_lod": {
+  "file": "casa_corral_palos_c_lod.glb",
+  "bytes": 44276,
+  "triangles": 372,
+  "meshes": 1,
+  "surfaces": 2,
+  "materials": [
+   "F5 | ancla",
+   "F5 | madera"
+  ],
+  "textures": 0,
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -5.559,
+    0.0,
+    -4.094
+   ],
+   "max": [
+    5.56,
+    1.7,
+    4.096
+   ]
+  },
+  "size_m": [
+   11.12,
+   1.7,
+   8.19
+  ],
+  "front": "Godot -Z (Blender +Y)",
+  "origin": "suelo, centro de la caja",
+  "sha256": "d69c4ac84858cdffb5c6d07d829a8c3f2a755adf426a6bc42c82caf7fe336865",
+  "note": "Corral de palo a pique (Buenos Aires y llanura): palos hincados juntos, tranquera. LOD lejano: caras coplanares disueltas y colapso.",
+  "levels": "justina",
+  "tag": "diseno",
+  "lod_of": "casa_corral_palos_c"
+ },
+ "casa_corral_pirca_a": {
+  "file": "casa_corral_pirca_a.glb",
+  "bytes": 166820,
+  "triangles": 2102,
+  "meshes": 1,
+  "surfaces": 3,
+  "materials": [
+   "F5 | ancla",
+   "F5 | madera",
+   "F5 | piedra"
+  ],
+  "textures": 0,
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -5.409,
+    0.0,
+    -5.206
+   ],
+   "max": [
+    5.409,
+    1.45,
+    5.206
+   ]
+  },
+  "size_m": [
+   10.82,
+   1.45,
+   10.41
+  ],
+  "front": "Godot -Z (Blender +Y)",
+  "origin": "suelo, centro de la caja",
+  "sha256": "86c160fb43a26364e3504fb02bbd23c13246ea6812cf5329569073d16239575f",
+  "note": "Corral redondo de pirca (~10 m) con abertura y tranquera de palos.",
+  "levels": "humahuaca, norte",
+  "tag": "razonado",
+  "doors_godot": [],
+  "lstar_albedo": {
+   "techo": 46.1,
+   "muro": 42.4,
+   "suelo_seco": 65.5,
+   "delta_techo": -19.4,
+   "delta_muro": -23.1
+  },
+  "lod": "casa_corral_pirca_a_lod.glb"
+ },
+ "casa_corral_pirca_a_lod": {
+  "file": "casa_corral_pirca_a_lod.glb",
+  "bytes": 72376,
+  "triangles": 625,
+  "meshes": 1,
+  "surfaces": 3,
+  "materials": [
+   "F5 | ancla",
+   "F5 | madera",
+   "F5 | piedra"
+  ],
+  "textures": 0,
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -5.343,
+    -0.0,
+    -5.205
+   ],
+   "max": [
+    5.401,
+    1.45,
+    5.164
+   ]
+  },
+  "size_m": [
+   10.74,
+   1.45,
+   10.37
+  ],
+  "front": "Godot -Z (Blender +Y)",
+  "origin": "suelo, centro de la caja",
+  "sha256": "a2904192645717f5a6c5ece6ecf60ddc6e0b79420e78f1dac231ebab0ef7dbfd",
+  "note": "Corral redondo de pirca (~10 m) con abertura y tranquera de palos. LOD lejano: caras coplanares disueltas y colapso.",
+  "levels": "humahuaca, norte",
+  "tag": "razonado",
+  "lod_of": "casa_corral_pirca_a"
+ },
+ "casa_corral_pirca_b": {
+  "file": "casa_corral_pirca_b.glb",
+  "bytes": 206420,
+  "triangles": 2613,
+  "meshes": 1,
+  "surfaces": 3,
+  "materials": [
+   "F5 | ancla",
+   "F5 | madera",
+   "F5 | piedra"
+  ],
+  "textures": 0,
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -6.347,
+    0.0,
+    -4.852
+   ],
+   "max": [
+    6.347,
+    1.5,
+    4.852
+   ]
+  },
+  "size_m": [
+   12.69,
+   1.5,
+   9.7
+  ],
+  "front": "Godot -Z (Blender +Y)",
+  "origin": "suelo, centro de la caja",
+  "sha256": "106090f5310054cb0e415b06a2ff15093ae609538f9746584deadf74cf7fa025",
+  "note": "Corral rectangular de pirca (12 x 9 m) con tranquera y un brete de palos adentro.",
+  "levels": "humahuaca, norte",
+  "tag": "razonado",
+  "doors_godot": [],
+  "lstar_albedo": {
+   "techo": 46.2,
+   "muro": 43.0,
+   "suelo_seco": 65.5,
+   "delta_techo": -19.3,
+   "delta_muro": -22.5
+  },
+  "lod": "casa_corral_pirca_b_lod.glb"
+ },
+ "casa_corral_pirca_b_lod": {
+  "file": "casa_corral_pirca_b_lod.glb",
+  "bytes": 89360,
+  "triangles": 776,
+  "meshes": 1,
+  "surfaces": 3,
+  "materials": [
+   "F5 | ancla",
+   "F5 | madera",
+   "F5 | piedra"
+  ],
+  "textures": 0,
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -6.347,
+    -0.0,
+    -4.833
+   ],
+   "max": [
+    6.338,
+    1.5,
+    4.839
+   ]
+  },
+  "size_m": [
+   12.69,
+   1.5,
+   9.67
+  ],
+  "front": "Godot -Z (Blender +Y)",
+  "origin": "suelo, centro de la caja",
+  "sha256": "62ce8540917967f37d3efe4fef86e794b1224c80ce0a9865d8262508d8898ee4",
+  "note": "Corral rectangular de pirca (12 x 9 m) con tranquera y un brete de palos adentro. LOD lejano: caras coplanares disueltas y colapso.",
+  "levels": "humahuaca, norte",
+  "tag": "razonado",
+  "lod_of": "casa_corral_pirca_b"
+ },
+ "casa_galeria_a": {
+  "file": "casa_galeria_a.glb",
+  "bytes": 149700,
+  "triangles": 1859,
+  "meshes": 1,
+  "surfaces": 6,
+  "materials": [
+   "F5 | ancla",
+   "F5 | muro",
+   "F5 | techo",
+   "F5 | madera",
+   "F5 | piedra",
+   "F5 | sombra"
+  ],
+  "textures": 0,
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -4.108,
+    0.0,
+    -3.45
+   ],
+   "max": [
+    4.108,
+    3.23,
+    3.45
+   ]
+  },
+  "size_m": [
+   8.22,
+   3.23,
+   6.9
+  ],
+  "front": "Godot -Z (Blender +Y)",
+  "origin": "suelo, centro de la caja",
+  "sha256": "c64828f3c76dc5f50934a7acf1519ab5064dc866eacbacf0328dd0ad4bf66a1e",
+  "note": "Casa de adobe con galería de horcones y techo de torta (quebrada).",
+  "levels": "humahuaca, norte",
+  "tag": "razonado",
+  "doors_godot": [
+   [
+    -2.21,
+    1.23,
+    -0.85
+   ],
+   [
+    1.39,
+    1.23,
+    -0.85
+   ]
+  ],
+  "lstar_albedo": {
+   "techo": 39.1,
+   "muro": 56.7,
+   "suelo_seco": 65.5,
+   "delta_techo": -26.4,
+   "delta_muro": -8.8
+  },
+  "lod": "casa_galeria_a_lod.glb"
+ },
+ "casa_galeria_a_lod": {
+  "file": "casa_galeria_a_lod.glb",
+  "bytes": 59688,
+  "triangles": 555,
+  "meshes": 1,
+  "surfaces": 6,
+  "materials": [
+   "F5 | ancla",
+   "F5 | muro",
+   "F5 | techo",
+   "F5 | madera",
+   "F5 | piedra",
+   "F5 | sombra"
+  ],
+  "textures": 0,
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -4.108,
+    -0.0,
+    -3.45
+   ],
+   "max": [
+    4.094,
+    3.23,
+    3.45
+   ]
+  },
+  "size_m": [
+   8.2,
+   3.23,
+   6.9
+  ],
+  "front": "Godot -Z (Blender +Y)",
+  "origin": "suelo, centro de la caja",
+  "sha256": "8a0f44e127f5118490f7bc9405b020087112888d1bb9d4a357176ed2a8284c26",
+  "note": "Casa de adobe con galería de horcones y techo de torta (quebrada). LOD lejano: caras coplanares disueltas y colapso.",
+  "levels": "humahuaca, norte",
+  "tag": "razonado",
+  "lod_of": "casa_galeria_a"
+ },
+ "casa_galeria_b": {
+  "file": "casa_galeria_b.glb",
+  "bytes": 201284,
+  "triangles": 2482,
+  "meshes": 1,
+  "surfaces": 7,
+  "materials": [
+   "F5 | ancla",
+   "F5 | muro",
+   "F5 | techo",
+   "F5 | teja",
+   "F5 | madera",
+   "F5 | piedra",
+   "F5 | sombra"
+  ],
+  "textures": 0,
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -4.724,
+    0.0,
+    -4.153
+   ],
+   "max": [
+    4.724,
+    4.583,
+    4.153
+   ]
+  },
+  "size_m": [
+   9.45,
+   4.58,
+   8.31
+  ],
+  "front": "Godot -Z (Blender +Y)",
+  "origin": "suelo, centro de la caja",
+  "sha256": "547fa0196007789828162cdb8f5ba49bfec354d79ad4d407601fc79b49c0a189",
+  "note": "Casa de adobe encalada con galería de horcones y techo de teja (pueblos del Valle de Lerma y Jujuy).",
+  "levels": "norte",
+  "tag": "razonado",
+  "doors_godot": [
+   [
+    -2.51,
+    1.3,
+    -1.4
+   ],
+   [
+    1.79,
+    1.3,
+    -1.4
+   ]
+  ],
+  "lstar_albedo": {
+   "techo": 33.0,
+   "muro": 74.9,
+   "suelo_seco": 65.5,
+   "delta_techo": -32.5,
+   "delta_muro": 9.4
+  },
+  "lod": "casa_galeria_b_lod.glb"
+ },
+ "casa_galeria_b_lod": {
+  "file": "casa_galeria_b_lod.glb",
+  "bytes": 81508,
+  "triangles": 743,
+  "meshes": 1,
+  "surfaces": 7,
+  "materials": [
+   "F5 | ancla",
+   "F5 | muro",
+   "F5 | techo",
+   "F5 | teja",
+   "F5 | madera",
+   "F5 | piedra",
+   "F5 | sombra"
+  ],
+  "textures": 0,
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -4.725,
+    -0.0,
+    -4.155
+   ],
+   "max": [
+    4.724,
+    4.603,
+    4.153
+   ]
+  },
+  "size_m": [
+   9.45,
+   4.6,
+   8.31
+  ],
+  "front": "Godot -Z (Blender +Y)",
+  "origin": "suelo, centro de la caja",
+  "sha256": "f4996250d251e67cb1b35f5b0e6401f2180c8a2f535f614d46f4eba7f97157c8",
+  "note": "Casa de adobe encalada con galería de horcones y techo de teja (pueblos del Valle de Lerma y Jujuy). LOD lejano: caras coplanares disueltas y colapso.",
+  "levels": "norte",
+  "tag": "razonado",
+  "lod_of": "casa_galeria_b"
+ },
+ "casa_patio_a": {
+  "file": "casa_patio_a.glb",
+  "bytes": 275744,
+  "triangles": 3471,
+  "meshes": 1,
+  "surfaces": 6,
+  "materials": [
+   "F5 | ancla",
+   "F5 | muro",
+   "F5 | techo",
+   "F5 | madera",
+   "F5 | piedra",
+   "F5 | sombra"
+  ],
+  "textures": 0,
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -5.69,
+    0.0,
+    -6.205
+   ],
+   "max": [
+    5.69,
+    3.13,
+    6.205
+   ]
+  },
+  "size_m": [
+   11.38,
+   3.13,
+   12.41
+  ],
+  "front": "Godot -Z (Blender +Y)",
+  "origin": "suelo, centro de la caja",
+  "sha256": "245fc0fbd7d8959e6bf7e004ab1ccd9273f21559fa42a2a0f9e62e641035fa63",
+  "note": "Casa de patio de la quebrada: cuartos en L con torta, patio cerrado por tapia con portón de madera.",
+  "levels": "humahuaca, norte",
+  "tag": "razonado",
+  "doors_godot": [
+   [
+    -3.14,
+    1.2,
+    1.9
+   ],
+   [
+    0.86,
+    1.2,
+    1.9
+   ],
+   [
+    -1.79,
+    1.17,
+    -1.35
+   ],
+   [
+    2.26,
+    1.2,
+    -6.2
+   ]
+  ],
+  "lstar_albedo": {
+   "techo": 41.7,
+   "muro": 46.2,
+   "suelo_seco": 65.5,
+   "delta_techo": -23.8,
+   "delta_muro": -19.3
+  },
+  "lod": "casa_patio_a_lod.glb"
+ },
+ "casa_patio_a_lod": {
+  "file": "casa_patio_a_lod.glb",
+  "bytes": 86088,
+  "triangles": 1041,
+  "meshes": 1,
+  "surfaces": 6,
+  "materials": [
+   "F5 | ancla",
+   "F5 | muro",
+   "F5 | techo",
+   "F5 | madera",
+   "F5 | piedra",
+   "F5 | sombra"
+  ],
+  "textures": 0,
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -5.69,
+    0.0,
+    -6.205
+   ],
+   "max": [
+    5.69,
+    3.13,
+    6.205
+   ]
+  },
+  "size_m": [
+   11.38,
+   3.13,
+   12.41
+  ],
+  "front": "Godot -Z (Blender +Y)",
+  "origin": "suelo, centro de la caja",
+  "sha256": "3d3da6f16cb275782c143faa229e63ad9cefd2fb07ab9a032e81026362d9053a",
+  "note": "Casa de patio de la quebrada: cuartos en L con torta, patio cerrado por tapia con portón de madera. LOD lejano: caras coplanares disueltas y colapso.",
+  "levels": "humahuaca, norte",
+  "tag": "razonado",
+  "lod_of": "casa_patio_a"
+ },
+ "casa_patio_b": {
+  "file": "casa_patio_b.glb",
+  "bytes": 421800,
+  "triangles": 5278,
+  "meshes": 1,
+  "surfaces": 8,
+  "materials": [
+   "F5 | ancla",
+   "F5 | muro",
+   "F5 | techo",
+   "F5 | teja",
+   "F5 | madera",
+   "F5 | piedra",
+   "F5 | hierro",
+   "F5 | sombra"
+  ],
+  "textures": 0,
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -6.433,
+    0.0,
+    -7.633
+   ],
+   "max": [
+    6.433,
+    5.083,
+    7.633
+   ]
+  },
+  "size_m": [
+   12.87,
+   5.08,
+   15.27
+  ],
+  "front": "Godot -Z (Blender +Y)",
+  "origin": "suelo, centro de la caja",
+  "sha256": "6c302a29129c27e47b79009e9898e2c6f499a60f4fe92b6a380ae614e3522811",
+  "note": "Casa de patio de ciudad (Salta, Jujuy): frente encalado con zaguán, techo de teja, ala lateral con corredor.",
+  "levels": "norte",
+  "tag": "razonado",
+  "doors_godot": [
+   [
+    0.08,
+    1.5,
+    -7.17
+   ],
+   [
+    0.08,
+    1.45,
+    -2.07
+   ],
+   [
+    -1.47,
+    1.35,
+    1.08
+   ],
+   [
+    -1.47,
+    1.35,
+    5.08
+   ]
+  ],
+  "lstar_albedo": {
+   "techo": 36.8,
+   "muro": 77.5,
+   "suelo_seco": 65.5,
+   "delta_techo": -28.7,
+   "delta_muro": 12.0
+  },
+  "lod": "casa_patio_b_lod.glb"
+ },
+ "casa_patio_b_lod": {
+  "file": "casa_patio_b_lod.glb",
+  "bytes": 151356,
+  "triangles": 1577,
+  "meshes": 1,
+  "surfaces": 8,
+  "materials": [
+   "F5 | ancla",
+   "F5 | muro",
+   "F5 | techo",
+   "F5 | teja",
+   "F5 | madera",
+   "F5 | piedra",
+   "F5 | hierro",
+   "F5 | sombra"
+  ],
+  "textures": 0,
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -6.433,
+    0.0,
+    -7.633
+   ],
+   "max": [
+    6.433,
+    5.103,
+    7.633
+   ]
+  },
+  "size_m": [
+   12.87,
+   5.1,
+   15.27
+  ],
+  "front": "Godot -Z (Blender +Y)",
+  "origin": "suelo, centro de la caja",
+  "sha256": "6090b03e9878d355972388b91ad3d71db34916de5c2825b0336a5ccca103e5d1",
+  "note": "Casa de patio de ciudad (Salta, Jujuy): frente encalado con zaguán, techo de teja, ala lateral con corredor. LOD lejano: caras coplanares disueltas y colapso.",
+  "levels": "norte",
+  "tag": "razonado",
+  "lod_of": "casa_patio_b"
+ },
+ "casa_posta_a": {
+  "file": "casa_posta_a.glb",
+  "bytes": 217464,
+  "triangles": 2733,
+  "meshes": 1,
+  "surfaces": 6,
+  "materials": [
+   "F5 | ancla",
+   "F5 | muro",
+   "F5 | techo",
+   "F5 | madera",
+   "F5 | piedra",
+   "F5 | sombra"
+  ],
+  "textures": 0,
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -7.608,
+    0.0,
+    -4.615
+   ],
+   "max": [
+    7.608,
+    3.28,
+    4.615
+   ]
+  },
+  "size_m": [
+   15.22,
+   3.28,
+   9.23
+  ],
+  "front": "Godot -Z (Blender +Y)",
+  "origin": "suelo, centro de la caja",
+  "sha256": "94fb755e74084bfcfc2f21529a05a03741a69a852efaf788a258dc0cd0617668",
+  "note": "Casa de posta de la quebrada: cuerpo largo de cuatro cuartos con galería de horcones y torta.",
+  "levels": "humahuaca, norte",
+  "tag": "diseno",
+  "doors_godot": [
+   [
+    -5.39,
+    1.23,
+    -0.49
+   ],
+   [
+    -1.79,
+    1.23,
+    -0.49
+   ],
+   [
+    1.81,
+    1.23,
+    -0.49
+   ],
+   [
+    5.41,
+    1.23,
+    -0.49
+   ]
+  ],
+  "lstar_albedo": {
+   "techo": 38.4,
+   "muro": 45.3,
+   "suelo_seco": 65.5,
+   "delta_techo": -27.1,
+   "delta_muro": -20.2
+  },
+  "lod": "casa_posta_a_lod.glb"
+ },
+ "casa_posta_a_lod": {
+  "file": "casa_posta_a_lod.glb",
+  "bytes": 81604,
+  "triangles": 818,
+  "meshes": 1,
+  "surfaces": 6,
+  "materials": [
+   "F5 | ancla",
+   "F5 | muro",
+   "F5 | techo",
+   "F5 | madera",
+   "F5 | piedra",
+   "F5 | sombra"
+  ],
+  "textures": 0,
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -7.608,
+    0.0,
+    -4.615
+   ],
+   "max": [
+    7.608,
+    3.28,
+    4.615
+   ]
+  },
+  "size_m": [
+   15.22,
+   3.28,
+   9.23
+  ],
+  "front": "Godot -Z (Blender +Y)",
+  "origin": "suelo, centro de la caja",
+  "sha256": "79cb7549bd68a161dbbe79b2698b7a6683d46862c1a01b75a6f22749d03175d2",
+  "note": "Casa de posta de la quebrada: cuerpo largo de cuatro cuartos con galería de horcones y torta. LOD lejano: caras coplanares disueltas y colapso.",
+  "levels": "humahuaca, norte",
+  "tag": "diseno",
+  "lod_of": "casa_posta_a"
+ },
+ "casa_posta_b": {
+  "file": "casa_posta_b.glb",
+  "bytes": 259700,
+  "triangles": 3246,
+  "meshes": 1,
+  "surfaces": 6,
+  "materials": [
+   "F5 | ancla",
+   "F5 | muro",
+   "F5 | techo",
+   "F5 | madera",
+   "F5 | piedra",
+   "F5 | sombra"
+  ],
+  "textures": 0,
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -6.9,
+    0.0,
+    -4.765
+   ],
+   "max": [
+    6.9,
+    4.31,
+    4.765
+   ]
+  },
+  "size_m": [
+   13.8,
+   4.31,
+   9.53
+  ],
+  "front": "Godot -Z (Blender +Y)",
+  "origin": "suelo, centro de la caja",
+  "sha256": "56d7d4a15fafe3b2d0cb04fbe5120415033a7b262bc80de7e685fc39e37a9f75",
+  "note": "Posta de camino real con techo de paja: cuerpo largo, galería de horcones, palenque y bebedero.",
+  "levels": "norte",
+  "tag": "diseno",
+  "doors_godot": [
+   [
+    -4.5,
+    1.23,
+    -0.54
+   ],
+   [
+    -0.8,
+    1.23,
+    -0.54
+   ],
+   [
+    3.2,
+    1.23,
+    -0.54
+   ]
+  ],
+  "lstar_albedo": {
+   "techo": 45.6,
+   "muro": 45.7,
+   "suelo_seco": 65.5,
+   "delta_techo": -19.9,
+   "delta_muro": -19.8
+  },
+  "lod": "casa_posta_b_lod.glb"
+ },
+ "casa_posta_b_lod": {
+  "file": "casa_posta_b_lod.glb",
+  "bytes": 70200,
+  "triangles": 799,
+  "meshes": 1,
+  "surfaces": 6,
+  "materials": [
+   "F5 | ancla",
+   "F5 | muro",
+   "F5 | techo",
+   "F5 | madera",
+   "F5 | piedra",
+   "F5 | sombra"
+  ],
+  "textures": 0,
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -6.9,
+    0.0,
+    -4.765
+   ],
+   "max": [
+    6.9,
+    4.31,
+    4.765
+   ]
+  },
+  "size_m": [
+   13.8,
+   4.31,
+   9.53
+  ],
+  "front": "Godot -Z (Blender +Y)",
+  "origin": "suelo, centro de la caja",
+  "sha256": "1cfb97ef64aea8a0f46ed1bde7f1389ab92d19e824e0a734cd5f2c1fd87339f6",
+  "note": "Posta de camino real con techo de paja: cuerpo largo, galería de horcones, palenque y bebedero. LOD lejano: caras coplanares disueltas y colapso.",
+  "levels": "norte",
+  "tag": "diseno",
+  "lod_of": "casa_posta_b"
+ },
+ "casa_pulperia_a": {
+  "file": "casa_pulperia_a.glb",
+  "bytes": 168212,
+  "triangles": 2074,
+  "meshes": 1,
+  "surfaces": 6,
+  "materials": [
+   "F5 | ancla",
+   "F5 | muro",
+   "F5 | techo",
+   "F5 | madera",
+   "F5 | piedra",
+   "F5 | sombra"
+  ],
+  "textures": 0,
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -3.9,
+    0.0,
+    -4.565
+   ],
+   "max": [
+    3.9,
+    4.16,
+    4.565
+   ]
+  },
+  "size_m": [
+   7.8,
+   4.16,
+   9.13
+  ],
+  "front": "Godot -Z (Blender +Y)",
+  "origin": "suelo, centro de la caja",
+  "sha256": "9a361251c48053a5d79380bd25e5f6993c9c54acd02c2dc010e3a003e73056ab",
+  "note": "Pulpería de campaña: rancho de adobe con paja, despacho con reja de madera, ramada y palenque.",
+  "levels": "norte, justina",
+  "tag": "diseno",
+  "doors_godot": [
+   [
+    -2.0,
+    1.2,
+    -0.34
+   ]
+  ],
+  "lstar_albedo": {
+   "techo": 45.6,
+   "muro": 46.1,
+   "suelo_seco": 65.5,
+   "delta_techo": -19.9,
+   "delta_muro": -19.4
+  },
+  "lod": "casa_pulperia_a_lod.glb"
+ },
+ "casa_pulperia_a_lod": {
+  "file": "casa_pulperia_a_lod.glb",
+  "bytes": 52176,
+  "triangles": 580,
+  "meshes": 1,
+  "surfaces": 6,
+  "materials": [
+   "F5 | ancla",
+   "F5 | muro",
+   "F5 | techo",
+   "F5 | madera",
+   "F5 | piedra",
+   "F5 | sombra"
+  ],
+  "textures": 0,
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -3.9,
+    0.0,
+    -4.565
+   ],
+   "max": [
+    3.9,
+    4.16,
+    4.565
+   ]
+  },
+  "size_m": [
+   7.8,
+   4.16,
+   9.13
+  ],
+  "front": "Godot -Z (Blender +Y)",
+  "origin": "suelo, centro de la caja",
+  "sha256": "f5d0f57b5903151cfc965f2fa1336f2e2f87594c26768a563416c426008fc669",
+  "note": "Pulpería de campaña: rancho de adobe con paja, despacho con reja de madera, ramada y palenque. LOD lejano: caras coplanares disueltas y colapso.",
+  "levels": "norte, justina",
+  "tag": "diseno",
+  "lod_of": "casa_pulperia_a"
+ },
+ "casa_pulperia_b": {
+  "file": "casa_pulperia_b.glb",
+  "bytes": 128288,
+  "triangles": 1582,
+  "meshes": 1,
+  "surfaces": 6,
+  "materials": [
+   "F5 | ancla",
+   "F5 | muro",
+   "F5 | techo",
+   "F5 | madera",
+   "F5 | piedra",
+   "F5 | sombra"
+  ],
+  "textures": 0,
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -3.604,
+    0.0,
+    -4.265
+   ],
+   "max": [
+    3.604,
+    3.13,
+    4.265
+   ]
+  },
+  "size_m": [
+   7.21,
+   3.13,
+   8.53
+  ],
+  "front": "Godot -Z (Blender +Y)",
+  "origin": "suelo, centro de la caja",
+  "sha256": "583e4f6ee15dbde76cd0cbff814e1df0c7683639f05b578ac5fb89ae34a3457b",
+  "note": "Pulpería de la quebrada: casa de torta con despacho enrejado, galería de horcones y palenque.",
+  "levels": "humahuaca, norte",
+  "tag": "diseno",
+  "doors_godot": [
+   [
+    -2.0,
+    1.2,
+    -0.24
+   ]
+  ],
+  "lstar_albedo": {
+   "techo": 38.8,
+   "muro": 45.8,
+   "suelo_seco": 65.5,
+   "delta_techo": -26.7,
+   "delta_muro": -19.7
+  },
+  "lod": "casa_pulperia_b_lod.glb"
+ },
+ "casa_pulperia_b_lod": {
+  "file": "casa_pulperia_b_lod.glb",
+  "bytes": 49828,
+  "triangles": 473,
+  "meshes": 1,
+  "surfaces": 6,
+  "materials": [
+   "F5 | ancla",
+   "F5 | muro",
+   "F5 | techo",
+   "F5 | madera",
+   "F5 | piedra",
+   "F5 | sombra"
+  ],
+  "textures": 0,
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -3.601,
+    0.0,
+    -4.25
+   ],
+   "max": [
+    3.604,
+    3.13,
+    4.265
+   ]
+  },
+  "size_m": [
+   7.2,
+   3.13,
+   8.52
+  ],
+  "front": "Godot -Z (Blender +Y)",
+  "origin": "suelo, centro de la caja",
+  "sha256": "c6163ddf1bce876e2bcb1588576eaeb0878aff1f5a47cafb53893025cf953e67",
+  "note": "Pulpería de la quebrada: casa de torta con despacho enrejado, galería de horcones y palenque. LOD lejano: caras coplanares disueltas y colapso.",
+  "levels": "humahuaca, norte",
+  "tag": "diseno",
+  "lod_of": "casa_pulperia_b"
+ },
+ "casa_quinta_a": {
+  "file": "casa_quinta_a.glb",
+  "bytes": 251056,
+  "triangles": 3102,
+  "meshes": 1,
+  "surfaces": 8,
+  "materials": [
+   "F5 | ancla",
+   "F5 | muro",
+   "F5 | techo",
+   "F5 | teja",
+   "F5 | madera",
+   "F5 | piedra",
+   "F5 | hierro",
+   "F5 | sombra"
+  ],
+  "textures": 0,
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -5.715,
+    0.0,
+    -4.352
+   ],
+   "max": [
+    5.715,
+    4.883,
+    4.352
+   ]
+  },
+  "size_m": [
+   11.43,
+   4.88,
+   8.7
+  ],
+  "front": "Godot -Z (Blender +Y)",
+  "origin": "suelo, centro de la caja",
+  "sha256": "0248cdd3f6b089353880f1576fe285f1812cd556f0a44949f53f0a8302e13ae2",
+  "note": "Casa de quinta (Retiro, 1806): encalada, techo de teja y corredor de pilares de madera al frente.",
+  "levels": "justina",
+  "tag": "razonado",
+  "doors_godot": [
+   [
+    -2.02,
+    1.3,
+    -1.6
+   ],
+   [
+    2.58,
+    1.25,
+    -1.6
+   ]
+  ],
+  "lstar_albedo": {
+   "techo": 32.6,
+   "muro": 76.2,
+   "suelo_seco": 65.5,
+   "delta_techo": -32.9,
+   "delta_muro": 10.7
+  },
+  "lod": "casa_quinta_a_lod.glb"
+ },
+ "casa_quinta_a_lod": {
+  "file": "casa_quinta_a_lod.glb",
+  "bytes": 103772,
+  "triangles": 923,
+  "meshes": 1,
+  "surfaces": 8,
+  "materials": [
+   "F5 | ancla",
+   "F5 | muro",
+   "F5 | techo",
+   "F5 | teja",
+   "F5 | madera",
+   "F5 | piedra",
+   "F5 | hierro",
+   "F5 | sombra"
+  ],
+  "textures": 0,
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -5.728,
+    0.0,
+    -4.355
+   ],
+   "max": [
+    5.715,
+    4.883,
+    4.352
+   ]
+  },
+  "size_m": [
+   11.44,
+   4.88,
+   8.71
+  ],
+  "front": "Godot -Z (Blender +Y)",
+  "origin": "suelo, centro de la caja",
+  "sha256": "470bfe34f9068516003541be2a9f0870066935ed34d1ba1c93e39da9af780197",
+  "note": "Casa de quinta (Retiro, 1806): encalada, techo de teja y corredor de pilares de madera al frente. LOD lejano: caras coplanares disueltas y colapso.",
+  "levels": "justina",
+  "tag": "razonado",
+  "lod_of": "casa_quinta_a"
+ },
+ "casa_quinta_b": {
+  "file": "casa_quinta_b.glb",
+  "bytes": 292776,
+  "triangles": 3643,
+  "meshes": 1,
+  "surfaces": 8,
+  "materials": [
+   "F5 | ancla",
+   "F5 | muro",
+   "F5 | techo",
+   "F5 | teja",
+   "F5 | madera",
+   "F5 | piedra",
+   "F5 | hierro",
+   "F5 | sombra"
+  ],
+  "textures": 0,
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -9.805,
+    0.0,
+    -7.906
+   ],
+   "max": [
+    9.805,
+    4.733,
+    7.906
+   ]
+  },
+  "size_m": [
+   19.61,
+   4.73,
+   15.81
+  ],
+  "front": "Godot -Z (Blender +Y)",
+  "origin": "suelo, centro de la caja",
+  "sha256": "f3870ac0f85ce79be7ac1d4b44768d8c24bfe8b542ef7f8c100a05a7d3bf5713",
+  "note": "Quinta con casa de teja, tapia baja de adobe alrededor del frente y pozo de balde.",
+  "levels": "justina",
+  "tag": "razonado",
+  "doors_godot": [
+   [
+    -1.2,
+    1.25,
+    2.35
+   ]
+  ],
+  "lstar_albedo": {
+   "techo": 42.5,
+   "muro": 74.9,
+   "suelo_seco": 65.5,
+   "delta_techo": -23.0,
+   "delta_muro": 9.4
+  },
+  "lod": "casa_quinta_b_lod.glb"
+ },
+ "casa_quinta_b_lod": {
+  "file": "casa_quinta_b_lod.glb",
+  "bytes": 91560,
+  "triangles": 1091,
+  "meshes": 1,
+  "surfaces": 8,
+  "materials": [
+   "F5 | ancla",
+   "F5 | muro",
+   "F5 | techo",
+   "F5 | teja",
+   "F5 | madera",
+   "F5 | piedra",
+   "F5 | hierro",
+   "F5 | sombra"
+  ],
+  "textures": 0,
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -9.805,
+    0.0,
+    -7.906
+   ],
+   "max": [
+    9.805,
+    4.733,
+    7.906
+   ]
+  },
+  "size_m": [
+   19.61,
+   4.73,
+   15.81
+  ],
+  "front": "Godot -Z (Blender +Y)",
+  "origin": "suelo, centro de la caja",
+  "sha256": "539746cee6dc3456c3c5b29b6facfdc0756969f44578f8f8830148031f2adfb0",
+  "note": "Quinta con casa de teja, tapia baja de adobe alrededor del frente y pozo de balde. LOD lejano: caras coplanares disueltas y colapso.",
+  "levels": "justina",
+  "tag": "razonado",
+  "lod_of": "casa_quinta_b"
+ },
+ "casa_rancho_a": {
+  "file": "casa_rancho_a.glb",
+  "bytes": 112996,
+  "triangles": 1367,
+  "meshes": 1,
+  "surfaces": 6,
+  "materials": [
+   "F5 | ancla",
+   "F5 | muro",
+   "F5 | techo",
+   "F5 | madera",
+   "F5 | piedra",
+   "F5 | sombra"
+  ],
+  "textures": 0,
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -3.182,
+    0.0,
+    -2.39
+   ],
+   "max": [
+    3.182,
+    3.91,
+    2.39
+   ]
+  },
+  "size_m": [
+   6.36,
+   3.91,
+   4.78
+  ],
+  "front": "Godot -Z (Blender +Y)",
+  "origin": "suelo, centro de la caja",
+  "sha256": "bfb0adc85800fbeaf1787a67f9c766287a494b1b7c0f94de1bb6a220017551c6",
+  "note": "Rancho de adobe con techo de paja a dos aguas: una pieza, una puerta y un ventanuco.",
+  "levels": "norte, justina",
+  "tag": "razonado",
+  "doors_godot": [
+   [
+    -0.32,
+    1.18,
+    -1.71
+   ]
+  ],
+  "lstar_albedo": {
+   "techo": 45.9,
+   "muro": 45.3,
+   "suelo_seco": 65.5,
+   "delta_techo": -19.6,
+   "delta_muro": -20.2
+  },
+  "lod": "casa_rancho_a_lod.glb"
+ },
+ "casa_rancho_a_lod": {
+  "file": "casa_rancho_a_lod.glb",
+  "bytes": 37400,
+  "triangles": 409,
+  "meshes": 1,
+  "surfaces": 6,
+  "materials": [
+   "F5 | ancla",
+   "F5 | muro",
+   "F5 | techo",
+   "F5 | madera",
+   "F5 | piedra",
+   "F5 | sombra"
+  ],
+  "textures": 0,
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -3.182,
+    0.0,
+    -2.39
+   ],
+   "max": [
+    3.182,
+    3.91,
+    2.39
+   ]
+  },
+  "size_m": [
+   6.36,
+   3.91,
+   4.78
+  ],
+  "front": "Godot -Z (Blender +Y)",
+  "origin": "suelo, centro de la caja",
+  "sha256": "407f80739fcaf1c5bb4c48054274756d9605e053035714b87d377bf6f3b6021e",
+  "note": "Rancho de adobe con techo de paja a dos aguas: una pieza, una puerta y un ventanuco. LOD lejano: caras coplanares disueltas y colapso.",
+  "levels": "norte, justina",
+  "tag": "razonado",
+  "lod_of": "casa_rancho_a"
+ },
+ "casa_rancho_b": {
+  "file": "casa_rancho_b.glb",
+  "bytes": 134012,
+  "triangles": 1634,
+  "meshes": 1,
+  "surfaces": 6,
+  "materials": [
+   "F5 | ancla",
+   "F5 | muro",
+   "F5 | techo",
+   "F5 | madera",
+   "F5 | piedra",
+   "F5 | sombra"
+  ],
+  "textures": 0,
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -3.4,
+    0.0,
+    -3.525
+   ],
+   "max": [
+    3.4,
+    4.01,
+    3.525
+   ]
+  },
+  "size_m": [
+   6.8,
+   4.01,
+   7.05
+  ],
+  "front": "Godot -Z (Blender +Y)",
+  "origin": "suelo, centro de la caja",
+  "sha256": "a1c52ac3268d7ab28f98a9225a00c511821790485e1fc629216497637c35e2b8",
+  "note": "Rancho de adobe con paja y ramada al frente sobre horcones (sombra de trabajo).",
+  "levels": "norte, justina",
+  "tag": "razonado",
+  "doors_godot": [
+   [
+    -1.2,
+    1.18,
+    -0.78
+   ]
+  ],
+  "lstar_albedo": {
+   "techo": 45.4,
+   "muro": 46.4,
+   "suelo_seco": 65.5,
+   "delta_techo": -20.1,
+   "delta_muro": -19.1
+  },
+  "lod": "casa_rancho_b_lod.glb"
+ },
+ "casa_rancho_b_lod": {
+  "file": "casa_rancho_b_lod.glb",
+  "bytes": 42412,
+  "triangles": 449,
+  "meshes": 1,
+  "surfaces": 6,
+  "materials": [
+   "F5 | ancla",
+   "F5 | muro",
+   "F5 | techo",
+   "F5 | madera",
+   "F5 | piedra",
+   "F5 | sombra"
+  ],
+  "textures": 0,
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -3.4,
+    0.0,
+    -3.525
+   ],
+   "max": [
+    3.4,
+    4.01,
+    3.525
+   ]
+  },
+  "size_m": [
+   6.8,
+   4.01,
+   7.05
+  ],
+  "front": "Godot -Z (Blender +Y)",
+  "origin": "suelo, centro de la caja",
+  "sha256": "45bea7020d3f844fc100ee2c5c7449defee7006a44349dc81ddbec38581db855",
+  "note": "Rancho de adobe con paja y ramada al frente sobre horcones (sombra de trabajo). LOD lejano: caras coplanares disueltas y colapso.",
+  "levels": "norte, justina",
+  "tag": "razonado",
+  "lod_of": "casa_rancho_b"
+ },
+ "casa_rancho_c": {
+  "file": "casa_rancho_c.glb",
+  "bytes": 62796,
+  "triangles": 734,
+  "meshes": 1,
+  "surfaces": 6,
+  "materials": [
+   "F5 | ancla",
+   "F5 | muro",
+   "F5 | techo",
+   "F5 | madera",
+   "F5 | piedra",
+   "F5 | sombra"
+  ],
+  "textures": 0,
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -2.35,
+    0.0,
+    -2.325
+   ],
+   "max": [
+    2.35,
+    2.57,
+    2.325
+   ]
+  },
+  "size_m": [
+   4.7,
+   2.57,
+   4.65
+  ],
+  "front": "Godot -Z (Blender +Y)",
+  "origin": "suelo, centro de la caja",
+  "sha256": "769351de36af94fa875acc3739faa8a922a648ea003ba880eb3ac46525854e8c",
+  "note": "Rancho de la quebrada con techo de torta a un agua (barro sobre cañizo), sin pretil, rollizos al frente.",
+  "levels": "humahuaca, norte",
+  "tag": "razonado",
+  "doors_godot": [
+   [
+    0.4,
+    1.15,
+    -1.38
+   ]
+  ],
+  "lstar_albedo": {
+   "techo": 42.2,
+   "muro": 47.2,
+   "suelo_seco": 65.5,
+   "delta_techo": -23.3,
+   "delta_muro": -18.3
+  },
+  "lod": "casa_rancho_c_lod.glb"
+ },
+ "casa_rancho_c_lod": {
+  "file": "casa_rancho_c_lod.glb",
+  "bytes": 23236,
+  "triangles": 230,
+  "meshes": 1,
+  "surfaces": 6,
+  "materials": [
+   "F5 | ancla",
+   "F5 | muro",
+   "F5 | techo",
+   "F5 | madera",
+   "F5 | piedra",
+   "F5 | sombra"
+  ],
+  "textures": 0,
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -2.35,
+    0.0,
+    -2.325
+   ],
+   "max": [
+    2.35,
+    2.57,
+    2.325
+   ]
+  },
+  "size_m": [
+   4.7,
+   2.57,
+   4.65
+  ],
+  "front": "Godot -Z (Blender +Y)",
+  "origin": "suelo, centro de la caja",
+  "sha256": "c037ecd808e8d19edec53b5bf326e2c689b6d6770d1eaf6d4a059523c538e7cb",
+  "note": "Rancho de la quebrada con techo de torta a un agua (barro sobre cañizo), sin pretil, rollizos al frente. LOD lejano: caras coplanares disueltas y colapso.",
+  "levels": "humahuaca, norte",
+  "tag": "razonado",
+  "lod_of": "casa_rancho_c"
+ },
+ "casa_tapia_adobe_a": {
+  "file": "casa_tapia_adobe_a.glb",
+  "bytes": 19528,
+  "triangles": 198,
+  "meshes": 1,
+  "surfaces": 4,
+  "materials": [
+   "F5 | ancla",
+   "F5 | muro",
+   "F5 | techo",
+   "F5 | piedra"
+  ],
+  "textures": 0,
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -2.02,
+    0.0,
+    -0.33
+   ],
+   "max": [
+    2.02,
+    2.2,
+    0.33
+   ]
+  },
+  "size_m": [
+   4.04,
+   2.2,
+   0.66
+  ],
+  "front": "Godot -Z (Blender +Y)",
+  "origin": "suelo, centro de la caja",
+  "sha256": "a8ffd21ad2e08ee442a504359c20a4a45ffb3e7a47ad8ec1992840fa1510ba43",
+  "note": "Módulo de tapia de adobe de 4 m con cumbrera de barro (reemplazo de hx_tapia).",
+  "levels": "humahuaca, norte, justina",
+  "tag": "razonado",
+  "doors_godot": [],
+  "lstar_albedo": {
+   "techo": 44.1,
+   "muro": 47.8,
+   "suelo_seco": 65.5,
+   "delta_techo": -21.4,
+   "delta_muro": -17.7
+  }
+ },
+ "casa_tapia_cal_b": {
+  "file": "casa_tapia_cal_b.glb",
+  "bytes": 19540,
+  "triangles": 198,
+  "meshes": 1,
+  "surfaces": 4,
+  "materials": [
+   "F5 | ancla",
+   "F5 | muro",
+   "F5 | teja",
+   "F5 | piedra"
+  ],
+  "textures": 0,
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -2.02,
+    0.0,
+    -0.33
+   ],
+   "max": [
+    2.02,
+    2.4,
+    0.33
+   ]
+  },
+  "size_m": [
+   4.04,
+   2.4,
+   0.66
+  ],
+  "front": "Godot -Z (Blender +Y)",
+  "origin": "suelo, centro de la caja",
+  "sha256": "f9d52cc980c3cfaad40202666b7ff95f67dae9179a8b055c2e0f8f801cd1f472",
+  "note": "Módulo de tapia encalada de 4 m con cumbrera de teja (ciudades: Salta, Jujuy, Buenos Aires).",
+  "levels": "norte, justina",
+  "tag": "razonado",
+  "doors_godot": [],
+  "lstar_albedo": {
+   "techo": 61.1,
+   "muro": 81.5,
+   "suelo_seco": 65.5,
+   "delta_techo": -4.4,
+   "delta_muro": 16.0
+  }
+ },
+ "casa_tapia_pirca_c": {
+  "file": "casa_tapia_pirca_c.glb",
+  "bytes": 25544,
+  "triangles": 296,
+  "meshes": 1,
+  "surfaces": 2,
+  "materials": [
+   "F5 | ancla",
+   "F5 | piedra"
+  ],
+  "textures": 0,
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -2.004,
+    0.0,
+    -0.358
+   ],
+   "max": [
+    2.004,
+    1.417,
+    0.358
+   ]
+  },
+  "size_m": [
+   4.01,
+   1.42,
+   0.72
+  ],
+  "front": "Godot -Z (Blender +Y)",
+  "origin": "suelo, centro de la caja",
+  "sha256": "c431ff8a72172f80440d18769afda90ec9f1eadccbeaa724170868eccafc8da7",
+  "note": "Módulo de pirca de 4 m (reemplazo de hx_pirca).",
+  "levels": "humahuaca, norte",
+  "tag": "razonado",
+  "doors_godot": [],
+  "lstar_albedo": {
+   "techo": 46.5,
+   "muro": 42.9,
+   "suelo_seco": 65.5,
+   "delta_techo": -19.0,
+   "delta_muro": -22.6
+  }
+ },
+ "casa_torta_a": {
+  "file": "casa_torta_a.glb",
+  "bytes": 95456,
+  "triangles": 1157,
+  "meshes": 1,
+  "surfaces": 6,
+  "materials": [
+   "F5 | ancla",
+   "F5 | muro",
+   "F5 | techo",
+   "F5 | madera",
+   "F5 | piedra",
+   "F5 | sombra"
+  ],
+  "textures": 0,
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -3.05,
+    0.0,
+    -2.5
+   ],
+   "max": [
+    3.05,
+    3.08,
+    2.5
+   ]
+  },
+  "size_m": [
+   6.1,
+   3.08,
+   5.0
+  ],
+  "front": "Godot -Z (Blender +Y)",
+  "origin": "suelo, centro de la caja",
+  "sha256": "0602c6976855cef9a85d399ef2ebdd5e4d9def7167c243ac9cb54bc9d5a6a882",
+  "note": "Casa de adobe de la quebrada (mejora de hx_casa_adobe): 6 x 4 m, torta al frente, pretil, rollizos, gárgolas.",
+  "levels": "humahuaca, norte",
+  "tag": "razonado",
+  "doors_godot": [
+   [
+    -1.0,
+    1.2,
+    -1.6
+   ]
+  ],
+  "lstar_albedo": {
+   "techo": 41.8,
+   "muro": 47.6,
+   "suelo_seco": 65.5,
+   "delta_techo": -23.7,
+   "delta_muro": -17.9
+  },
+  "lod": "casa_torta_a_lod.glb"
+ },
+ "casa_torta_a_lod": {
+  "file": "casa_torta_a_lod.glb",
+  "bytes": 38916,
+  "triangles": 345,
+  "meshes": 1,
+  "surfaces": 6,
+  "materials": [
+   "F5 | ancla",
+   "F5 | muro",
+   "F5 | techo",
+   "F5 | madera",
+   "F5 | piedra",
+   "F5 | sombra"
+  ],
+  "textures": 0,
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -3.05,
+    0.0,
+    -2.5
+   ],
+   "max": [
+    3.05,
+    3.08,
+    2.5
+   ]
+  },
+  "size_m": [
+   6.1,
+   3.08,
+   5.0
+  ],
+  "front": "Godot -Z (Blender +Y)",
+  "origin": "suelo, centro de la caja",
+  "sha256": "a90f5a8f8263794071939813fcfc94ae5afe230cf743d9830ae802e493f058ac",
+  "note": "Casa de adobe de la quebrada (mejora de hx_casa_adobe): 6 x 4 m, torta al frente, pretil, rollizos, gárgolas. LOD lejano: caras coplanares disueltas y colapso.",
+  "levels": "humahuaca, norte",
+  "tag": "razonado",
+  "lod_of": "casa_torta_a"
+ },
+ "casa_torta_b": {
+  "file": "casa_torta_b.glb",
+  "bytes": 151664,
+  "triangles": 1885,
+  "meshes": 1,
+  "surfaces": 6,
+  "materials": [
+   "F5 | ancla",
+   "F5 | muro",
+   "F5 | techo",
+   "F5 | madera",
+   "F5 | piedra",
+   "F5 | sombra"
+  ],
+  "textures": 0,
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -5.415,
+    0.0,
+    -3.014
+   ],
+   "max": [
+    5.415,
+    3.23,
+    3.014
+   ]
+  },
+  "size_m": [
+   10.83,
+   3.23,
+   6.03
+  ],
+  "front": "Godot -Z (Blender +Y)",
+  "origin": "suelo, centro de la caja",
+  "sha256": "678c72c25fd0c7a35354d34dfa067be9bcd07be005f5086c91384576e0009cab",
+  "note": "Casa encalada de la quebrada en dos cuerpos: pieza principal y un cuarto más bajo al costado.",
+  "levels": "humahuaca, norte",
+  "tag": "razonado",
+  "doors_godot": [
+   [
+    -3.57,
+    1.23,
+    -2.11
+   ],
+   [
+    2.93,
+    1.15,
+    -1.51
+   ]
+  ],
+  "lstar_albedo": {
+   "techo": 52.5,
+   "muro": 69.7,
+   "suelo_seco": 65.5,
+   "delta_techo": -13.0,
+   "delta_muro": 4.2
+  },
+  "lod": "casa_torta_b_lod.glb"
+ },
+ "casa_torta_b_lod": {
+  "file": "casa_torta_b_lod.glb",
+  "bytes": 54716,
+  "triangles": 564,
+  "meshes": 1,
+  "surfaces": 6,
+  "materials": [
+   "F5 | ancla",
+   "F5 | muro",
+   "F5 | techo",
+   "F5 | madera",
+   "F5 | piedra",
+   "F5 | sombra"
+  ],
+  "textures": 0,
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -5.415,
+    0.0,
+    -3.014
+   ],
+   "max": [
+    5.415,
+    3.23,
+    3.01
+   ]
+  },
+  "size_m": [
+   10.83,
+   3.23,
+   6.02
+  ],
+  "front": "Godot -Z (Blender +Y)",
+  "origin": "suelo, centro de la caja",
+  "sha256": "0ec56e02c0afc2a94cf95ec9614d184ac771ff1f564a652bf29570d08399e436",
+  "note": "Casa encalada de la quebrada en dos cuerpos: pieza principal y un cuarto más bajo al costado. LOD lejano: caras coplanares disueltas y colapso.",
+  "levels": "humahuaca, norte",
+  "tag": "razonado",
+  "lod_of": "casa_torta_b"
+ }
+}
