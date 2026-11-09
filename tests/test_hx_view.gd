@@ -152,6 +152,9 @@ func _test_build() -> void:
 	var landmarks := (rules.call("terrain").call("landmarks", {}) as Array).size()
 	_ck((view.find_children("hito_*", "Node3D", true, false).size()) >= mini(landmarks - 2, 15), "TR-091 hay un nodo por hito con huella (%d hitos)" % landmarks)
 	_ck(view.unit_nodes.size() == 5 and view.unit_labels.size() == 5, "TR-091 hay una ficha y una etiqueta por agrupación")
+	var dc: Dictionary = load("res://scripts/humahuaca/view/humahuaca_declutter.gd").spread([{"id": "portal", "x": 100.0, "z": 100.0}, {"id": "arias", "x": 100.0, "z": 100.0},
+		{"id": "arreo", "x": 300.0, "z": 100.0}], {"portal": 1, "arias": 1, "arreo": 1}, func(_id: String) -> float: return 5.0, {"max_m": 14.0})  # visual/r1 F6 (B-049)
+	_ck(dc.has("portal") and dc.has("arias") and not dc.has("arreo") and (dc.arias as Vector2).distance_to(dc.portal) >= 8.9 and (dc.portal as Vector2).length() <= 14.0, "visual/r1 F6 (B-049) dos agrupaciones en el mismo punto se dibujan lado a lado (%s)" % str(dc))
 	for q in VV.QUALITY:
 		view.build(rules, q)
 		_ck(view.get_child_count() >= 3, "TR-091 build(«%s») no rompe la escena" % q)

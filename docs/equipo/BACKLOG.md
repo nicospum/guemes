@@ -79,13 +79,13 @@ Los estados «abierto» de las tablas de arriba son los de la tanda 1. Verificad
 
 | ID | Nivel | Grav. | Observado | Resp. | Estado |
 |---|---|---|---|---|---|
-| Q-201 | II cámara | ALTO | El acercamiento automático se dispara con cada orden de la guía (32 deslizamientos en 5,8 min). | fix II | cerrado (verificado en la certificación final) |
-| Q-202 | II | MEDIO | «Reintentar desde las posiciones» sin órdenes restaura a 56 s del alba con el reloj a ×4. | fix II | cerrado (verificado en la certificación final) |
-| Q-203 | II | MEDIO | 36 de 62 órdenes de una victoria son «Destruir» repetido. | fix II | cerrado (verificado en la certificación final) |
-| Q-204 | II | MEDIO | Parcelas regadas como rectángulos lisos (placeholder); en el minimapa se confunden con objetivos. | fix II | cerrado (verificado en la certificación final) |
-| Q-205 | II | MEDIO | Construcción del nivel 1,57–2,06 s con ventana desde el menú (tope 1,5 s). | fix II | cerrado (verificado en la certificación final) |
-| Q-206 | II | MEDIO | HUD a 1280×720 tapa 29,9 % al inicio y 45,2 % en ataque. | fix II | cerrado (verificado en la certificación final) |
-| Q-207…210 | II | BAJO | Parte culpa la guardia equivocada; dos Esc salen sin confirmar; escala del minimapa; mañana sobreexpuesta. | fix II | cerrado (verificado en la certificación final) |
+| Q-201 | II cámara | ALTO | El acercamiento automático se dispara con cada orden de la guía (32 deslizamientos en 5,8 min). | fix II | cerrado (verificado en la certificación final); reverificado tras visual/r1 F1–F5 (F6, 9-nov-2026: `docs/humahuaca/BACKLOG.md` B-065) |
+| Q-202 | II | MEDIO | «Reintentar desde las posiciones» sin órdenes restaura a 56 s del alba con el reloj a ×4. | fix II | cerrado (verificado en la certificación final); reverificado tras visual/r1 F1–F5 (F6, 9-nov-2026: `docs/humahuaca/BACKLOG.md` B-065) |
+| Q-203 | II | MEDIO | 36 de 62 órdenes de una victoria son «Destruir» repetido. | fix II | cerrado (verificado en la certificación final); reverificado tras visual/r1 F1–F5 (F6, 9-nov-2026: `docs/humahuaca/BACKLOG.md` B-065) |
+| Q-204 | II | MEDIO | Parcelas regadas como rectángulos lisos (placeholder); en el minimapa se confunden con objetivos. | fix II | cerrado (verificado en la certificación final); reverificado tras visual/r1 F1–F5 (F6, 9-nov-2026: `docs/humahuaca/BACKLOG.md` B-065) |
+| Q-205 | II | MEDIO | Construcción del nivel 1,57–2,06 s con ventana desde el menú (tope 1,5 s). | fix II | cerrado (verificado en la certificación final); reverificado tras visual/r1 F1–F5 (F6, 9-nov-2026: `docs/humahuaca/BACKLOG.md` B-065) |
+| Q-206 | II | MEDIO | HUD a 1280×720 tapa 29,9 % al inicio y 45,2 % en ataque. | fix II | cerrado (verificado en la certificación final); reverificado tras visual/r1 F1–F5 (F6, 9-nov-2026: `docs/humahuaca/BACKLOG.md` B-065) |
+| Q-207…210 | II | BAJO | Parte culpa la guardia equivocada; dos Esc salen sin confirmar; escala del minimapa; mañana sobreexpuesta. | fix II | cerrado (verificado en la certificación final); reverificado tras visual/r1 F1–F5 (F6, 9-nov-2026: `docs/humahuaca/BACKLOG.md` B-065) |
 | Q-101 | I | MEDIO | ×4 cae solo a ×1 doce veces por partida. | fix I/III | cerrado (verificado en la certificación final) |
 | Q-102…107 | I/III | BAJO | Espacio corre el reloj con decisión pendiente; parte de victoria no reabrible; HUD 1280; tarjeta recortada; aviso de fuga intermitente; autoguardado pisa F5. | fix I/III | cerrado (verificado en la certificación final) |
 | Q-108 | evidencia | BAJO | Carpetas de evidencia fuera de Git borradas (ver incidente). | lead | mitigado: documentos clave versionados en `docs/equipo/` |

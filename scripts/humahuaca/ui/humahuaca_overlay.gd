@@ -214,6 +214,9 @@ func token_marks() -> Array:
 			continue
 		var id := str(d.get("id", ""))
 		var xz := Vector2(float(d.get("x", 0.0)), float(d.get("z", 0.0)))
+		var vw: Variant = ui.get("view")
+		if vw != null and is_instance_valid(vw) and (vw as Object).has_method("unit_display_offset"):  # visual/r1 F6 (B-049): la marca va sobre la figura, que la vista separa si se pisa con otra
+			xz += (vw as Object).call("unit_display_offset", id)
 		var foot: Variant = _world_to_screen(null, xz, 0.0)
 		var head: Variant = _world_to_screen(null, xz, MARK_HEAD_M)
 		var behind := false
@@ -230,6 +233,17 @@ func token_marks() -> Array:
 		if behind or center.y < header_bottom + r or not local_rect.grow(-6.0).has_point(center):
 			center = Vector2(clampf(center.x, r + 6.0, size.x - r - 6.0), clampf(center.y, header_bottom + r, size.y - 180.0))
 			clamped = true
+			# visual/r1 F6: pegada al borde no queda debajo de un panel de abajo (el aviso de pie, la barra de órdenes, el dock): sube hasta encima de él
+			var blockers: Array = []
+			if hud != null and (hud as Object).has_method("panels"):
+				var pd: Dictionary = (hud as Object).call("panels")
+				for key in pd:
+					if not (str(key) in ["header", "fronts"]):
+						blockers.append(get_global_transform().affine_inverse() * Kit.rect_of(pd[key] as Control))
+			for _pass in range(3):
+				for br in blockers:
+					if (br as Rect2).grow(r + 4.0).has_point(center) and (br as Rect2).position.y - r - 6.0 > header_bottom + r:
+						center.y = (br as Rect2).position.y - r - 6.0
 			for other in pinned:
 				if (other as Vector2).distance_to(center) < 2.0 * r + float(LABEL_FONT) + 4.0:
 					center.y -= 2.0 * r + float(LABEL_FONT) + 6.0

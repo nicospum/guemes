@@ -647,6 +647,11 @@ func _screen_of(camera: Camera3D, p: Vector3) -> Dictionary:
 	return {"screen": camera.unproject_position(p), "behind": camera.is_position_behind(p)}
 
 
+## visual/r1 F6 (B-049): cuánto corre la vista a la agrupación `id` para que no se pise con otra (la marca de la interfaz va sobre la figura).
+func unit_display_offset(id: String) -> Vector2:
+	return units.display_offsets.get(id, Vector2.ZERO) if units != null else Vector2.ZERO
+
+
 func _unit_top(id: String) -> Vector3:
 	var info: Dictionary = units.tokens[id]
 	var root: Node3D = info.root

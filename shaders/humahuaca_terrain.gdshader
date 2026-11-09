@@ -30,6 +30,7 @@ uniform float albedo_mode = 0.0;     // 1 = render de albedo para la métrica de
 uniform float detail = 1.0;          // 1 = calidad media y alta; 0,6 = baja (menos ruido por píxel)
 uniform float contour_m = 5.0;
 uniform float contour_alpha = 0.09;
+uniform vec2 contour_fade_m = vec2(260.0, 720.0);  // visual/r1 F6 (B-058): las curvas de nivel se apagan entre estas distancias; de lejos, sobre el llano del contexto, se leían como líneas rectas
 uniform float datum_m = 2940.0;
 // visual/r1 F5: texturas fotográficas CC0 (Poly Haven, assets/terrain/humahuaca) en dos arreglos de seis capas, en el orden de TERRAIN_TEXTURES (humahuaca_gfx.gd):
 // 0 grava del suelo, 1 ladera pedregosa, 2 cantos del cauce, 3 roca de barranca, 4 pasto seco, 5 tierra de andenes. tex_data lleva la normal (0-5, OpenGL),
@@ -242,7 +243,8 @@ void fragment(){
 	float line_w = max(fwidth(asl) * 1.1, 0.02);
 	float line = 1.0 - smoothstep(0.0, line_w, dist_line);
 	float major = 1.0 - smoothstep(0.0, line_w, abs(fract(asl / 20.0 + 0.5) - 0.5) * 20.0);
-	c *= 1.0 - (line * contour_alpha + major * contour_alpha * 1.3) * mid_k * (1.0 - steep * 0.6);
+	float contour_k = mid_k * (1.0 - smoothstep(contour_fade_m.x, contour_fade_m.y, vdist));  // visual/r1 F6 (B-058)
+	c *= 1.0 - (line * contour_alpha + major * contour_alpha * 1.3) * contour_k * (1.0 - steep * 0.6);
 	c *= 1.0 - 0.22 * smoothstep(0.03, 0.30, slope);                                                 // la ladera se ve más oscura que el llano
 
 	// --- lluvia: el suelo se oscurece, se alisa y junta charcos chicos (solo de cerca: de lejos serían manchas de camuflaje) --------------------------------------

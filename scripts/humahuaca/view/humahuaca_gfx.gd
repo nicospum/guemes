@@ -10,6 +10,7 @@ const VV = preload("res://scripts/humahuaca/view/vocab_view.gd")
 
 const TERRAIN_SHADER := "res://shaders/humahuaca_terrain.gdshader"
 const PROPS_SHADER := "res://shaders/humahuaca_props.gdshader"
+const WALL_SHADER := "res://shaders/humahuaca_muro.gdshader"  # visual/r1 F6 (B-064): paredes de las casas del kit
 const WATER_SHADER := "res://shaders/humahuaca_water.gdshader"
 const TOKEN_SHADER := "res://shaders/humahuaca_token.gdshader"
 const FLAT_H := 17.0
@@ -60,6 +61,7 @@ var props_mat: ShaderMaterial
 var water_mat: ShaderMaterial
 var token_mats: Dictionary = {}  ## «aliado» y «enemigo»: el material de las figuras (shaders/humahuaca_token.gdshader)
 var _models: Dictionary = {}  ## modelos GLB ya cargados por clave (model())
+static var wall_mat: ShaderMaterial = null  ## visual/r1 F6 (B-064): las paredes («F5 | muro») de los GLB; estático como la caché de modelos que lo usa
 static var _model_cache: Dictionary = {}  ## ruta → {mesh, aabb}: la malla unida sobrevive entre construcciones del nivel
 var _glow_mat: StandardMaterial3D = null  ## la lumbre de las casas (night_glow_mat)
 var win := Rect2(0.0, 0.0, 900.0, 652.0)  ## la ventana de 4 m: de la primera a la última fila de la grilla
@@ -166,6 +168,17 @@ func _make_shader_materials() -> void:
 		terrain_mat.set_shader_parameter("tex_albedo", tex_arrays[0])
 		terrain_mat.set_shader_parameter("tex_data", tex_arrays[1])
 	props_mat = _shader_material(PROPS_SHADER)
+	var wall_spec: Dictionary = (data.get("materials", {}) as Dictionary).get("muro_kit", {})  # visual/r1 F6 (B-064)
+	if wall_mat == null and bool(wall_spec.get("enabled", true)) and ResourceLoader.exists(WALL_SHADER):
+		wall_mat = _shader_material(WALL_SHADER)
+	if wall_mat != null:
+		for key in ["stain_amount", "grain_amount", "streak_amount", "plinth_h", "plinth_dark", "ao_amount", "lift"]:
+			if wall_spec.has(key):
+				wall_mat.set_shader_parameter(key, float(wall_spec[key]))
+		wall_mat.set_shader_parameter("wet_darken", float((data.get("rain", {}) as Dictionary).get("wet_darken", 0.75)))
+		wall_mat.set_shader_parameter("detail", float(qcfg.get("shader_detail", 1.0)) if bool(wall_spec.get("enabled", true)) else 0.0)
+		wall_mat.set_shader_parameter("albedo_mode", 0.0)
+		wall_mat.set_shader_parameter("rain", 0.0)
 	props_mat.set_shader_parameter("wet_darken", float((data.get("rain", {}) as Dictionary).get("wet_darken", 0.75)))
 	props_mat.set_shader_parameter("detail", float(qcfg.get("shader_detail", 1.0)))
 	water_mat = _shader_material(WATER_SHADER)
@@ -236,7 +249,7 @@ static func texture_array(paths: Array) -> Texture2DArray:
 ## Lluvia 0..1: oscurece y alisa el suelo, los edificios y el agua (CONTRATO 11.2: suelo ×0,75).
 func set_rain(value: float) -> void:
 	var r := clampf(value, 0.0, 1.0)
-	for m in [terrain_mat, props_mat, water_mat]:
+	for m in [terrain_mat, props_mat, water_mat, wall_mat]:
 		if m != null:
 			(m as ShaderMaterial).set_shader_parameter("rain", r)
 
@@ -285,6 +298,8 @@ func model(key: String) -> Dictionary:
 					merged.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 					# se conserva el material de cada superficie del GLB: el ancla activa el color por vértice y las brasas traen su emisión (P6_MODELOS 1 y 3)
 					var smat: Material = (mi as MeshInstance3D).get_active_material(s)
+					if smat != null and wall_mat != null and smat.resource_name.ends_with("muro"):
+						smat = wall_mat  # visual/r1 F6 (B-064): manchas, chorreaduras, zócalo y oclusión al pie (el color de vértice sigue mandando)
 					if smat != null:
 						merged.surface_set_material(merged.get_surface_count() - 1, smat)
 			inst_root.free()
@@ -367,7 +382,7 @@ func set_albedo(on: bool) -> void:
 	albedo = on
 	if _glow_mat != null:  # la lumbre no es color de paleta: fuera del render de albedo
 		_glow_mat.emission_enabled = not on
-	for m in [terrain_mat, props_mat, water_mat] + token_mats.values():
+	for m in [terrain_mat, props_mat, water_mat, wall_mat] + token_mats.values():
 		if m != null:
 			(m as ShaderMaterial).set_shader_parameter("albedo_mode", 1.0 if on else 0.0)
 	for m in _std_mats:

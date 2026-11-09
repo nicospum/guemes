@@ -31,6 +31,7 @@ extends RefCounted
 ## en la mano. Si faltan los GLB (o `units.a_pie.enabled` es falso), vuelven las figuras del generador, que queda como respaldo. La mula sigue siendo del generador.
 
 const V = preload("res://scripts/humahuaca/humahuaca_vocab.gd")
+const Declutter = preload("res://scripts/humahuaca/view/humahuaca_declutter.gd")  # visual/r1 F6 (B-049)
 const Gen = preload("res://scripts/humahuaca/view/humahuaca_gen.gd")
 
 const MAX_THINGS := 48
@@ -84,6 +85,7 @@ var unit_labels: Dictionary = {}
 var scaled: Array = []  ## [{node, cat, base, px, min}]: lo que crece hasta ocupar `px` píxeles de pantalla (fichas aparte)
 var part_counts: Dictionary = {}  ## partes y triángulos de cada ficha (informe de QA)
 
+var display_offsets: Dictionary = {}  ## visual/r1 F6 (B-049): {id: corrimiento de dibujo para no pisarse} (humahuaca_declutter.gd)
 var formation_report: Dictionary = {}  ## visual/r1 F3: {id: {hombres, figuras, jinetes, a_pie, mulas, arrieros, etiqueta, fuente, radio_m}} (informe de QA)
 var _enemy_meshes: Dictionary = {}
 var _ring_mats: Dictionary = {}
@@ -211,7 +213,7 @@ func _token_parts(root: Node3D, shape: String, spec: Dictionary, variants: Array
 					v["abrigo"] = "lana_natural" if k == 0 else body
 					v["sombrero"] = "madera_oscura"
 					pair.append([_foot_model("reconocedor_de_pie" if k == 0 else "reconocedor_2"), "paisano", v,
-						Transform3D(Basis(Vector3.UP, deg_to_rad(-12.0 + 30.0 * float(k))), Vector3(-0.75 + 1.5 * float(k), 0.0, -0.6 * float(k)))])
+						Transform3D(Basis(Vector3.UP, deg_to_rad(-12.0 + 30.0 * float(k))), Vector3(-0.75 + 1.5 * float(k), 0.0, -0.6 * float(k))), "idle" if k == 0 else "crouch"])  # F6: el 2.º, agachado
 				return _foot_token(root, pair)
 			parts = _crouched_pair(body, spec, variants, index, hw)
 		"mula_cargada":
@@ -832,7 +834,7 @@ func _drive_gait(info: Dictionary, h: Dictionary, players: Array, now_s: float, 
 	if want != cur:
 		for p in players:
 			if (p as AnimationPlayer).has_animation(want):
-				(p as AnimationPlayer).play(want, float(cfg.call("blend_s")))
+				(p as AnimationPlayer).play(str((p as Node).get_meta("idle_anim", "idle")) if want == "idle" else want, float(cfg.call("blend_s")))
 		h["gait"] = want
 	for p in players:
 		(p as AnimationPlayer).speed_scale = sc
@@ -1067,8 +1069,9 @@ func _foot_token(root: Node3D, list: Array) -> Vector2:
 		var found := fig.find_children("*", "AnimationPlayer", true, false)
 		if not found.is_empty():
 			var player := found[0] as AnimationPlayer
+			player.set_meta("idle_anim", str(entry[4]) if entry.size() > 4 and player.has_animation(str(entry[4])) else "idle")  # visual/r1 F6 (B-049): quieto, agachado
 			if player.has_animation("idle"):
-				player.play("idle")
+				player.play(str(player.get_meta("idle_anim")))
 				player.seek(1.3 * float(k + 1), true)
 			players.append(player)
 	_pending_foot = {"players": players, "gait": "idle", "speed": 0.0, "at": Vector3(INF, INF, INF), "t": -1.0, "scale": 1.0, "modelos": ", ".join(PackedStringArray(names))}
@@ -1352,12 +1355,14 @@ func sync_things(root: Node3D, category: String, list: Array) -> int:
 ## (hallazgo H-R1-9: 30,8 m a ×1, 92,5 m a ×2 y 123,4 m a ×4). Cuesta lo que cinco nodos. Devuelve verdadero si alguna ficha se movió.
 func sync_poses(state: Dictionary) -> bool:
 	var moved := false
+	display_offsets = Declutter.spread(state.get("units", []), unit_nodes, ring_radius, (gfx.data.get("units", {}) as Dictionary).get("declutter", {}))  # visual/r1 F6 (B-049)
 	for u in state.get("units", []):
 		if not (u is Dictionary) or not unit_nodes.has(str(u.get("id", ""))):
 			continue
 		var node: Node3D = unit_nodes[str(u.id)]
-		var x := float(u.get("x", 0.0))
-		var z := float(u.get("z", 0.0))
+		var off: Vector2 = display_offsets.get(str(u.id), Vector2.ZERO)
+		var x := float(u.get("x", 0.0)) + off.x
+		var z := float(u.get("z", 0.0)) + off.y
 		var yaw := -deg_to_rad(float(u.get("yaw_deg", 0.0)))
 		_sync_alert(str(u.id), float(u.get("spotted_s", 0.0)))
 		if absf(node.position.x - x) > 0.0005 or absf(node.position.z - z) > 0.0005 or absf(node.rotation.y - yaw) > 0.0005:

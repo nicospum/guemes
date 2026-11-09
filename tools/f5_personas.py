@@ -967,6 +967,7 @@ GAITS = {
     "run":  dict(n=16, v=3.2, duty=.36, lift=.20, bob=.035, drop=.07, lean=-.20, arm=.62, elbow=.95, center=-.08, kick=.22),
 }
 ANIM_REPORT = {}
+CROUCH_DROP = .40   # visual/r1 F6: cuánto baja la cadera al agacharse (m)
 
 
 def animate(rig, J, carry):
@@ -1047,6 +1048,34 @@ def animate(rig, J, carry):
                 key(rig, b + s, f, rot=(0, 0, 0))
     finish_action(act, n, True)
     ANIM_REPORT["idle"] = {"frames": n, "seconds": n / FPS, "design_mps": 0.0}
+    # visual/r1 F6 (BACKLOG B-049): agachado en el lugar (el reconocedor que mira de cerca). La cadera baja CROUCH_DROP m, los pies quedan apoyados donde
+    # estaban (cinemática inversa de dos huesos, el izquierdo un poco adelante), el tronco se inclina y la cabeza mira al frente; respira apenas. Diseño, no captura.
+    n = 48
+    act = new_action(rig, "crouch")
+    worst = 0.0
+    for f in range(0, n + 1, 8):
+        w = 2 * math.pi * f / n
+        b = .006 * math.sin(w)
+        key(rig, "cadera", f, loc=(0, -CROUCH_DROP + b, 0), rot=(0, 0, 0))
+        for s, dy in (("L", .16), ("R", -.05)):
+            dz = a_z - (hipz - CROUCH_DROP + b)
+            a1, a2 = leg_ik(dy, dz, L1, L2)
+            ky = L1 * math.sin(a1) + L2 * math.sin(a1 + a2)
+            kz = -L1 * math.cos(a1) - L2 * math.cos(a1 + a2)
+            worst = max(worst, math.hypot(ky - dy, kz - dz))
+            key(rig, "muslo_" + s, f, rot=(a1, 0, 0))
+            key(rig, "pierna_" + s, f, rot=(a2, 0, 0))
+            key(rig, "pie_" + s, f, rot=(-(a1 + a2), 0, 0))
+            k = carry.get(s, 1.0)
+            key(rig, "brazo_" + s, f, rot=(.30 * k, 0, 0))
+            key(rig, "antebrazo_" + s, f, rot=(.45 * k, 0, 0))
+            key(rig, "mano_" + s, f, rot=(0, 0, 0))
+        key(rig, "columna", f, rot=(-.30 + .01 * math.sin(w), 0, 0))
+        key(rig, "pecho", f, rot=(-.20, .02 * math.sin(w), 0))
+        key(rig, "cuello", f, rot=(.26, 0, 0))
+        key(rig, "cabeza", f, rot=(.18, .10 * math.sin(.5 * w), 0))
+    finish_action(act, n, True)
+    ANIM_REPORT["crouch"] = {"frames": n, "seconds": n / FPS, "design_mps": 0.0, "hip_drop_m": CROUCH_DROP, "ankle_err_m": round(worst, 4)}
     rig.animation_data.action = bpy.data.actions["idle"]
 
 
@@ -1540,7 +1569,7 @@ def build_person(key, hi):
     m.object = rig
     animate(rig, J, carry)
     extra["anim"] = json.loads(json.dumps(ANIM_REPORT))
-    export(name, note, "persona", anims=("idle", "walk", "run"), extra=extra)
+    export(name, note, "persona", anims=("idle", "walk", "run", "crouch"), extra=extra)
 
 
 # --------------------------------------------------------------------------------------
@@ -1933,7 +1962,8 @@ def main():
                    "y humahuaca_units._rider_color)"},
         "persona": {"origen": "suelo, entre los pies", "huesos": BONES, "lado_L": "-X de Blender = izquierda de la figura (Godot -X)",
                     "animaciones": {k: {"frames": v["n"], "design_mps": v["v"]} for k, v in GAITS.items()} | {"idle": {"frames": 96, "design_mps": 0}},
-                    "bucles": "idle, walk, run en el lugar (sin desplazamiento de raíz); loop_mode=1 en los .import"},
+                    "bucles": "idle, walk, run en el lugar (sin desplazamiento de raíz); loop_mode=1 en los .import",
+                    "agachado": "crouch (visual/r1 F6): pose en el lugar, cadera %.2f m más abajo, pies apoyados; la usa el segundo reconocedor del nivel II" % CROUCH_DROP},
         "arma": {"origen": "punto de agarre", "eje": "Godot +Y (de la culata a la punta)"},
         "retinte": "por rol: cada rol es una superficie propia; color nuevo = tinte x (COLOR_0 / color base del rol) conserva la oclusión",
     }

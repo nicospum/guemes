@@ -146,6 +146,7 @@
 	"materials": {
 		"terreno": {"color": "suelo_seco", "roughness": 0.96, "metallic": 0.0, "contour_m": 5.0, "contour_alpha": 0.09},
 		"adobe": {"color": "adobe", "roughness": 0.95, "metallic": 0.0},
+		"muro_kit": {"color": "cal_envejecida", "roughness": 0.92, "metallic": 0.0, "enabled": true, "stain_amount": 0.1, "grain_amount": 0.05, "streak_amount": 0.06, "plinth_h": 0.45, "plinth_dark": 0.3, "ao_amount": 0.16, "lift": 0.07, "tag": "diseno", "source": "visual/r1 F6 (B-064): manchas de cal, chorreaduras, zócalo de barro y oclusión al pie de las paredes del kit"},
 		"cal": {"color": "cal_envejecida", "roughness": 0.9, "metallic": 0.0},
 		"madera": {"color": "madera_oscura", "roughness": 0.85, "metallic": 0.0},
 		"paja": {"color": "paja", "roughness": 1.0, "metallic": 0.0},
@@ -199,6 +200,7 @@
 	},
 	"units": {
 		"marks": {"figure_scale": 1.0, "ring_radius_m": 2.4, "ring_width_m": 0.3, "ring_edge_m": 0.18, "ring_lift_m": 0.22, "selection_gap_m": 0.9, "selection_width_m": 0.5, "segments": 40, "rebuild_m": 0.75, "label_font_px": 13, "tag": "diseno", "source": "visual/r1 F1: fichas a escala real y anillo fino de radio real; revierte a propósito el estirón de R1 y P2"},
+		"declutter": {"enabled": true, "touch_k": 0.9, "max_m": 14.0, "passes": 4, "tag": "diseno", "source": "visual/r1 F6 (B-049): solo en la vista, agrupaciones en el mismo lugar se dibujan una al lado de la otra"},
 		"formation": {"men_per_figure": 3.5, "min_figures": 6, "max_figures": 24, "foot_gap_m": 1.3, "foot_depth_m": 1.6, "foot_cols": 4, "horse_gap_m": 1.7, "horse_depth_m": 3.2, "horse_cols": 3,
 			"mule_gap_m": 1.9, "mule_depth_m": 2.9, "mule_cols": 2, "block_gap_m": 1.4, "jitter_m": 0.22, "jitter_deg": 9.0, "variants": 3, "far_m": 300.0, "far_keep": 0.5, "mule_load_kg": 100.0,
 			"step_bob_m": 0.05, "step_hz": 1.8, "tag": "diseno", "source": "visual/r1 F3: una figura cada 3 o 4 hombres (6 a 24, nunca más que los hombres); separaciones y carga por mula: diseño",

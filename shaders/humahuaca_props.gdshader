@@ -13,6 +13,8 @@ uniform float albedo_mode = 0.0;
 uniform float grime = 0.42;        // cuánto oscurece el pie de las paredes
 uniform float band_amount = 0.07;  // intensidad de las franjas del tapial
 uniform float detail = 1.0;
+uniform float mottle_amount = 0.16;  // visual/r1 F6 (B-064): manchas de cal gastada en las paredes, solo de cerca (±)
+uniform float plinth_amount = 0.32;  // visual/r1 F6 (B-064): zócalo de barro salpicado al pie de las paredes (de borde irregular)
 
 varying vec3 wpos;
 varying vec3 wnrm;
@@ -34,6 +36,12 @@ void fragment(){
 	c *= 1.0 - band_amount * (strata - 0.5) * 2.0 * wall * near_k;
 	float low = 1.0 - smoothstep(0.0, 0.5, COLOR.a);
 	c *= 1.0 - grime * low * (0.6 + 0.4 * stain);
+	// visual/r1 F6 (B-064): de cerca la cal se veía pareja. Manchas anchas (sin cambiar el valor medio) y un zócalo salpicado al pie (COLOR.a ≈ 0 a 0,15)
+	float mottle = hx_fbm2(vec2(wpos.x + wpos.z, wpos.y) * vec2(0.55, 0.8) + 3.1) - 0.5;
+	c *= 1.0 + mottle * 2.0 * mottle_amount * wall * near_k;
+	float pl_edge = 0.11 + 0.07 * hx_noise(vec2((wpos.x + wpos.z) * 1.7, 2.0));
+	float plinth = (1.0 - smoothstep(pl_edge - 0.025, pl_edge + 0.025, COLOR.a)) * wall * (0.5 + 0.5 * near_k);
+	c = mix(c, c * vec3(0.80, 0.68, 0.56), plinth * plinth_amount / 0.32);
 	c *= mix(1.0, wet_darken, rain * 0.85);
 	if (albedo_mode > 0.5) {
 		ALBEDO = vec3(0.0);

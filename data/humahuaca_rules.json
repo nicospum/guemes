@@ -319,7 +319,7 @@
 			"destroy": "Destruí lo que no entra en las mulas: {carga}.",
 			"bring_load": "Llevá el arreo hasta {donde}.",
 			"leave": "Sacá la carga por el vado, al este.",
-			"ir_destruir": "Mientras la columna marcha, llevá a {grupo} hasta {carga} para destruirla.",
+			"ir_destruir": "Mientras la columna marcha, llevá a {grupo} a destruir {carga}.",
 			"repliegue": "La columna ya pasó la altura de {grupo}: replegalo por el vado antes de que llegue el refuerzo.",
 			"repliegue_scouts": "La columna ya cruza el vado: mandá a los reconocedores a la salida.",
 			"destruir_grupo": "Que {grupo} destruya {carga} y lo que quede cerca: suma al golpe lo que no se pudo cargar.",

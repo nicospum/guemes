@@ -52,7 +52,8 @@
      "design_mps": 0
     }
    },
-   "bucles": "idle, walk, run en el lugar (sin desplazamiento de raíz); loop_mode=1 en los .import"
+   "bucles": "idle, walk, run en el lugar (sin desplazamiento de raíz); loop_mode=1 en los .import",
+   "agachado": "crouch (visual/r1 F6): pose en el lugar, cadera 0.40 m más abajo, pies apoyados; la usa el segundo reconocedor del nivel II"
   },
   "arma": {
    "origen": "punto de agarre",
@@ -516,9 +517,10 @@
  },
  "persona_gaucho_1817_carabina": {
   "file": "persona_gaucho_1817_carabina.glb",
-  "bytes": 347712,
+  "bytes": 395260,
   "triangles": 5088,
   "animations": {
+   "crouch": 2,
    "idle": 4,
    "run": 0.667,
    "walk": 1
@@ -567,7 +569,7 @@
   "vertex_colors": true,
   "godot_bounds": {
    "min": [
-    -0.378,
+    -0.367,
     -0.004,
     -0.268
    ],
@@ -579,7 +581,7 @@
   },
   "front": "Godot -Z",
   "origin": "suelo, entre los pies",
-  "sha256": "25828496c11134513e69265af33adfe5acdc2e964688981c3705fcde200eaca0",
+  "sha256": "e5495e98633f6ca18a18e20c3adc1a78bc9b34c1f470713e6f72a30aaf3863c2",
   "note": "Paisano de las milicias gauchas, 1817, a pie, con carabina. Obra propia (tools/f5_personas.py): geometría, poncho colgado por simulación propia, color con oclusión, esqueleto y ciclos por fórmula (diseño, no captura). Vestuario: DISEÑO plausible, no uniforme verificado.",
   "roles": [
    "botas",
@@ -628,6 +630,13 @@
     "frames": 96,
     "seconds": 4.0,
     "design_mps": 0.0
+   },
+   "crouch": {
+    "frames": 48,
+    "seconds": 2.0,
+    "design_mps": 0.0,
+    "hip_drop_m": 0.4,
+    "ankle_err_m": 0.0
    }
   }
  },
