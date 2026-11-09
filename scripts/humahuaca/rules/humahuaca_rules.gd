@@ -651,79 +651,12 @@ func _work_unit(u: Dictionary) -> void:
 			_continue_destroy(u, it_front)
 	_bump()
 
-## Q-203 (QA ronda 2): una orden de destruir sigue sola, lote por lote, hasta agotar lo destruible. Antes cada lote era una orden («Destruir» repetido: 36 de las
-## 62 órdenes de una victoria por la guía). Al terminar un lote:
-##   · una partida de combate pasa al lote siguiente a su alcance (`destroy_radius_m`) en un frente tomado y, si ya no hay, camina hasta el que más golpe suma por
-##     segundo a menos de `destroy_chain_reach_m` (160 m, el mismo alcance que usa la guía: no cruza el pueblo) y lo destruye al llegar. Mientras el arreo no se fue no toca lo que el arreo todavía puede llevar (lo que entra en
-##     las mulas y no es de la batería), con el mismo criterio que la guía; nunca un lote que otra partida ya está destruyendo;
-##   · el arreo sigue solo si la guía le pediría destruir otra vez (lo que no entra en las mulas, mientras el reloj estimado del refuerzo lo permita).
-## «Mantener», «Cancelar» o una orden nueva la cortan, como siempre. `transport.destroy_chain: false` vuelve al comportamiento de antes (lo usa tools/hx_balance_destroy.gd).
+## Q-203: la cadena de destruir (humahuaca_rules_field.gd).
 func _continue_destroy(u: Dictionary, front: String) -> void:
-	if not bool(_rules.transport.get("destroy_chain", true)) or str(state.status) != "playing":
-		return
-	if str(u.id) == "arreo":
-		var step: Dictionary = _info()._arreo_step(float(state.elapsed), false)
-		if str(step.get("action", "")) != "destroy":
-			return
-		var victim := _best_item(-1.0, Vector2(float(u.x), float(u.z)), float(_rules.transport.destroy_radius_m), true)
-		if not victim.is_empty():
-			_start_destroy(u, victim)
-		return
-	if not V.COMBAT_GROUPS.has(str(u.id)):
-		return
-	var here := _next_destroy(u, float(_rules.transport.destroy_radius_m), "")
-	if not here.is_empty():
-		_start_destroy(u, here)
-		return
-	var far := _next_destroy(u, float(_rules.transport.get("destroy_chain_reach_m", 160.0)), "")  # lo que la guía mandaría a destruir: a menos de 160 m (no cruza el pueblo)
-	if far.is_empty():
-		return
-	var route := _route(Vector2(float(u.x), float(u.z)), [], Vector2(float(far.x), float(far.z)))
-	if not bool(route.ok) or (route.pts as Array).is_empty():
-		return
-	_go(u, route.pts, {"action": "destroy", "item": str(far.id), "front": str(far.front)})  # «destroy» con la partida en marcha: lo destruye al llegar (_arrive)
-
+	_field()._continue_destroy(u, front)
 
 func _start_destroy(u: Dictionary, it: Dictionary) -> void:
-	u.order = {"action": "destroy", "item": str(it.id)}
-	u.work = {"kind": "destroy", "item": str(it.id), "remaining_s": float(_rules.loot.classes[str(it.kind)].destroy_s)}
-	u.stage = "loading"
-	u.path = []
-
-
-## El lote que una partida de combate destruiría ahora: el de más valor por segundo de trabajo a menos de `reach` m (y del frente `front`, si se pide).
-func _next_destroy(u: Dictionary, reach: float, front: String) -> Dictionary:
-	var arreo := _unit("arreo")
-	var arreo_gone := arreo.is_empty() or str(arreo.stage) == "exited" or (str(arreo.stage) == "moving" and str(arreo.order.get("action", "")) == "leave")
-	var room := float(state.loot.capacity_kg) - float(state.loot.load_kg)
-	var march := float(_rules.stealth.pace.march.speed)
-	var taken_by := {}
-	for o in state.units:
-		if str(o.id) == str(u.id):
-			continue
-		var w: Variant = o.get("work", {})
-		if w is Dictionary and str((w as Dictionary).get("kind", "")) == "destroy":
-			taken_by[str((w as Dictionary).get("item", ""))] = true
-		var od: Variant = o.get("order", {})
-		if od is Dictionary and str((od as Dictionary).get("action", "")) == "destroy":
-			taken_by[str((od as Dictionary).get("item", ""))] = true
-	var best: Dictionary = {}
-	var best_score := -1.0
-	for it in state.loot.items:
-		if str(it.state) != "en_sitio" or str(state.objectives[str(it.front)].state) != "tomado" or taken_by.has(str(it.id)):
-			continue
-		if front != "" and str(it.front) != front:
-			continue
-		if not arreo_gone and _item_kg(it) <= room + 1e-6 and str(it.front) != "bateria":
-			continue
-		var d := D.dist(float(u.x), float(u.z), float(it.x), float(it.z))
-		if d > reach:
-			continue
-		var score := _item_value(it) / (d / maxf(march, 0.1) + float(_rules.loot.classes[str(it.kind)].destroy_s))
-		if score > best_score:
-			best_score = score
-			best = it
-	return best
+	_field()._start_destroy(u, it)
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Señal, ataque y toma
@@ -1041,12 +974,8 @@ func _finish(status: String, cause_id: String, ctx: Dictionary = {}) -> void:
 	state.outcome = out
 	_event(status, str(out.cause), {"strong": true})
 
-## ¿La alarma de `fid` antes de la señal salió de ver a los reconocedores? (el aviso «reconocedores vistos» o una detección de ellos en ese frente, en el diario de la partida)
 func _seen_recon(fid: String) -> bool:
-	for e in state.log:
-		if str(e.get("unit", "")) == "reconocedores" and (str(e.get("kind", "")) == "warning" or str(e.get("kind", "")) == "detected") and (fid == "" or str(e.get("objective", "")) == fid):
-			return true
-	return false
+	return _field()._seen_recon(fid)
 
 func _finalize_loot() -> void:
 	var l: Dictionary = state.loot

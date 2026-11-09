@@ -9,6 +9,7 @@ extends SceneTree
 ## Escribe solo en user:// y se niega a correr sin APPDATA aislado (export APPDATA="$TEMP/ap_iso_<pista>").
 
 const Fx = preload("res://tests/hx_fixtures.gd")
+const QA2 = preload("res://tests/hx_rules_qa2.gd")
 const V = preload("res://scripts/humahuaca/humahuaca_vocab.gd")
 const R = preload("res://scripts/humahuaca/rules/vocab_rules.gd")
 const Checks = preload("res://tests/hx_rules_checks.gd")
@@ -101,8 +102,7 @@ func _initialize() -> void:
 	_test_tower()
 	_test_reinforcement()
 	_test_loot_and_treatments()
-	_test_destroy_chain()
-	_test_discovered_blame()
+	QA2.new(self).run()  # QA ronda 2: Q-203 y Q-207 (tests/hx_rules_qa2.gd)
 	_test_outcomes()
 	_test_event_kinds()
 	_test_save_roundtrip()
@@ -1162,66 +1162,6 @@ func _test_loot_and_treatments() -> void:
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Desenlaces
-
-## Q-203 (QA ronda 2): una orden de destruir sigue sola lote por lote (transport.destroy_chain). El obediente gana con ≤ 8 órdenes de destruir (antes 36–37) y el
-## golpe no baja más de 2 puntos contra la cadena apagada, en las mismas semillas.
-func _test_destroy_chain() -> void:
-	if not real_only():
-		return
-	var probe := new_rules(1817, {})
-	var tr: Dictionary = probe.get("_rules").transport if probe.get("_rules") is Dictionary else {}
-	if not ck(not tr.is_empty(), "Q-203: las reglas exponen transport"):
-		return
-	var rows: Array = []
-	var worst_orders := 0
-	var worst_drop := 0.0
-	var all_won := true
-	for sd in [1817, 3, 13, 2005]:
-		var res := {}
-		for chain in [false, true]:
-			tr["destroy_chain"] = chain
-			var r := new_rules(sd, {})
-			var rec: Dictionary = _dict(pol.call("play", r, "obediente", {}))
-			var n := 0
-			for o in r.state.orders:
-				if str(o.action) == "destroy":
-					n += 1
-			res[chain] = {"estado": str(rec.status), "golpe": float(rec.golpe), "destruir": n}
-		tr.erase("destroy_chain")
-		rows.append({"semilla": sd, "sin_cadena": res[false], "cadena": res[true]})
-		worst_orders = maxi(worst_orders, int(res[true].destruir))
-		worst_drop = maxf(worst_drop, float(res[false].golpe) - float(res[true].golpe))
-		all_won = all_won and (str(res[true].estado) == "victory" or str(res[false].estado) != "victory")
-	suite.extra["cadena_destruir"] = rows
-	ck(worst_orders <= 8, "Q-203: el obediente da como mucho 8 órdenes de destruir con la cadena (peor: %d)" % worst_orders)
-	ck(worst_drop <= 2.0, "Q-203: la cadena no baja el golpe del obediente más de 2 puntos (peor baja: %.2f)" % worst_drop)
-	ck(all_won, "Q-203: donde el obediente ganaba sin la cadena, gana con la cadena (%s)" % str(rows))
-
-
-## Q-207 (QA ronda 2): con la guardia atenta, reconocer la batería y no retirar a los reconocedores con el aviso pierde por «descubiertos»; el parte tiene que nombrar
-## al frente que dio la voz (la batería, aunque la voz corra después a los otros) y el consejo tiene que hablar de retirarlos con el aviso.
-func _test_discovered_blame() -> void:
-	if not real_only():
-		return
-	var sd := -1
-	for cand in [13, 3, 5, 17]:
-		var probe := new_rules(cand, {})
-		if str(probe.state.world.guardia) == "atenta":
-			sd = cand
-			break
-	if not ck(sd > 0, "Q-207: hay una semilla con guardia atenta"):
-		return
-	var r := new_rules(sd, {})
-	order(r, "reconocedores", "recon", hito("bateria"))
-	run_until(r, func(): return str(r.state.status) != "playing", 400.0, 0.5)
-	var out: Dictionary = r.state.outcome
-	var place := str(cfg.objectives.bateria.place)
-	var first := str((r.state.alarm.pre_signal as Array)[0]) if not (r.state.alarm.pre_signal as Array).is_empty() else ""
-	suite.extra["descubiertos_q207"] = {"semilla": sd, "estado": str(r.state.status), "causa": str(out.get("cause_id", "")), "texto": str(out.get("cause", "")), "consejo": str(out.get("advice", "")), "primero_en_alarma": first}
-	ck(str(r.state.status) == "defeat" and str(out.get("cause_id", "")) == "descubiertos" and first == "bateria", "Q-207: quedarse tras el aviso pierde por «descubiertos» y la batería fue la primera en dar la voz (%s, %s)" % [str(out.get("cause_id", "")), first])
-	ck(place.to_lower() in str(out.get("cause", "")).to_lower(), "Q-207: el «Qué pasó» nombra al frente que dio la voz (%s): «%s»" % [place, str(out.get("cause", ""))])
-	ck("aviso" in str(out.get("advice", "")).to_lower() and "reconocedores" in str(out.get("advice", "")).to_lower(), "Q-207: el consejo habla de retirar a los reconocedores con el aviso: «%s»" % str(out.get("advice", "")))
-
 
 func _test_outcomes() -> void:
 	var oc: Dictionary = cfg.outcome
