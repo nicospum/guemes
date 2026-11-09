@@ -1708,7 +1708,7 @@
   },
   "camera": {
     "initial_height_m": 90.0,
-    "min_distance_m": 25.0,
+    "min_distance_m": 18.0,
     "max_distance_m": 900.0,
     "pitch_deg_default": 50.0,
     "far_m": 4000.0,
@@ -1723,14 +1723,16 @@
     "initial_framing": {
       "tag": "diseno",
       "focus": [
-        330,
-        265
+        236,
+        268
       ],
-      "height_m": 380,
-      "note": "Encuadre propuesto para que orilla, barranca y buque entren juntos y los anillos no queden bajo el panel izquierdo. Lo consume main/world_view (otra pista); focus_start sigue siendo el valor actual.",
+      "distance_m": 165,
+      "height_m": 126,
+      "note": "visual/r1 F2: cámara inicial cercana sobre las tres agrupaciones y la orilla (distancia 165 m, altura ~126 m con la inclinación de 50°); antes 380 m para meter el buque en el mismo cuadro y las tropas quedaban diminutas. El buque se alcanza con B, el minimapa o la tecla 0. Lo consume main._reset_camera_j.",
       "must_include": [
-        "justina",
-        "alcance_gillespie"
+        "guemes",
+        "arias",
+        "zavala"
       ]
     }
   },

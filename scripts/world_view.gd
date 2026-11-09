@@ -669,9 +669,11 @@ func _create_group(unit:Dictionary):
      player.play(anim);player.seek(float(i)*0.14,true);player.pause();player.speed_scale=0.75;anims.append(player);break
  var ring=_ring(2.65,Looks.ORO_VIEJO,root)
  if scenario=="norte":
-  # P1 ronda 2: aro de aliado más grueso, sin luz y dibujado por encima del relieve (en ladera ya no queda medio enterrado).
-  var tm=TorusMesh.new();tm.inner_radius=2.45;tm.outer_radius=2.9;tm.rings=40;tm.ring_segments=6
-  ring.mesh=tm;ring.position.y=0.3;ring.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+  # visual/r1 F1: aro de aliado fino a escala real (cinta de ~0,16 m que copia el relieve, 0,18 m sobre el suelo) y CON prueba de
+  # profundidad: una loma lo tapa como taparía a la tropa. Reemplaza el toro grueso dibujado encima de todo (P1 ronda 2).
+  ring.mesh=null;ring.position.y=0.0;ring.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+  # visual/r1 F1: ficha de pantalla chica (14 px, la misma de la Justina; silueta por tipo) que aparece al alejar la cámara.
+  _token_j(root,int(TOKEN_SHAPES.get(str(unit.id),0)),Looks.CELESTE,J_TOKEN_PX,40.0,80.0,1.0,false,0.0)
  selected_rings[str(unit.id)]=ring
  var label=_world_label(str(unit.name),Vector3(0,4.0,0),Color("e9d4aa"),30,root)
  unit_labels[str(unit.id)]=label
@@ -697,10 +699,40 @@ func _ring_mat_n(c:Color)->StandardMaterial3D:
  var key="ring_n"+c.to_html()
  if ring_mat_cache.has(key):return ring_mat_cache[key]
  var m=StandardMaterial3D.new();m.albedo_color=c;m.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
- m.no_depth_test=true;m.render_priority=2;m.disable_fog=true
+ # visual/r1 F1: el aro respeta la profundidad (antes no_depth_test=true y prioridad 2: se veía entero a través de las lomas).
+ # En este relieve tan quebrado la parte tapada por una loma queda como un fantasma tenue (segunda pasada al 22 %), no a pleno.
+ m.no_depth_test=false;m.disable_fog=true;m.cull_mode=BaseMaterial3D.CULL_DISABLED
  m.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA;m.albedo_color.a=0.92
+ var ghost=StandardMaterial3D.new();ghost.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED;ghost.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA
+ ghost.albedo_color=Color(c.r,c.g,c.b,0.22);ghost.no_depth_test=true;ghost.disable_fog=true;ghost.cull_mode=BaseMaterial3D.CULL_DISABLED;ghost.render_priority=-1
+ m.next_pass=ghost
  ring_mat_cache[key]=m
  return m
+
+## visual/r1 F1: cinta circular a escala real que sigue el relieve (cada vértice a la altura del suelo, o del agua en la Justina,
+## más unos centímetros), con prueba de profundidad. `center` es la posición del aro en coordenadas de la vista (mi.position.y = 0).
+## Se rehace solo si el centro se mueve más de 5 cm o cambian radio o ancho; 48 tramos por aro, costo despreciable.
+func _conform_ring(mi:MeshInstance3D,center:Vector3,r:float,half_w:float)->void:
+ var last:Vector3=mi.get_meta("ring_c",Vector3(1e9,0,0))
+ if last.distance_to(center)<0.05 and absf(float(mi.get_meta("ring_hw",-1.0))-half_w)<0.001 and absf(float(mi.get_meta("ring_rr",-1.0))-r)<0.02:return
+ mi.set_meta("ring_c",center);mi.set_meta("ring_hw",half_w);mi.set_meta("ring_rr",r)
+ var st=SurfaceTool.new();st.begin(Mesh.PRIMITIVE_TRIANGLE_STRIP)
+ var n=48
+ for i in range(n+1):
+  var a=TAU*float(i)/float(n);var dir=Vector3(cos(a),0.0,sin(a))
+  for rr in [r-half_w,r+half_w]:
+   var w=center+dir*rr
+   var gy=maxf(_h(w.x,w.z),level_m)+0.22 if justina else terrain_height(w.x,w.z)+0.18
+   st.add_vertex(Vector3(dir.x*rr,gy-center.y,dir.z*rr))
+ mi.mesh=st.commit()
+
+func _ring_ribbon(color:Color,parent:Node3D,name_s:String)->MeshInstance3D:
+ var n=MeshInstance3D.new();n.name=name_s
+ var mat=StandardMaterial3D.new();mat.albedo_color=color;mat.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
+ mat.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA;mat.cull_mode=BaseMaterial3D.CULL_DISABLED;mat.disable_fog=true
+ n.material_override=mat;n.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;n.set_meta("ribbon",true)
+ parent.add_child(n)
+ return n
 
 ## Regla de color (P1, V-02): el poncho granate de rider_1817 se leía rojo a escala de juego (el rojo es del enemigo).
 ## Se reclasifica el color de vértice del GLB en carga (sin regenerar el modelo): poncho y faja → lana parda #705741 / ocre #8A7350.
@@ -798,7 +830,9 @@ func update_state(delta:float):
   if scenario=="norte":
    # Regla de color: aliado = aro celeste siempre visible; el elegido pasa a oro viejo.
    selected_rings[id].visible=true
-   var rm=_ring_mat_n(Looks.ORO_VIEJO if (id==selected or selected=="all") else Looks.CELESTE)
+   var sel_n=id==selected or selected=="all"
+   _conform_ring(selected_rings[id],root.position,2.3,0.2 if sel_n else 0.07)
+   var rm=_ring_mat_n(Looks.ORO_VIEJO if sel_n else Looks.CELESTE)
    if selected_rings[id].material_override!=rm:selected_rings[id].material_override=rm
   else:
    selected_rings[id].visible=id==selected or selected=="all"
@@ -1249,7 +1283,7 @@ func _water_j():
  var sh=M.get("ship",{});var hdg=deg_to_rad(float(sh.get("heading_deg",0.0)))
  water_mat.set_shader_parameter("ship_xz",Vector2(float(sh.get("x",580.0)),float(sh.get("z",262.0))))
  water_mat.set_shader_parameter("ship_fwd",Vector2(sin(hdg),-cos(hdg)))
- water_mat.set_shader_parameter("ship_half",Vector2(5.4,21.0)*1.5)
+ water_mat.set_shader_parameter("ship_half",Vector2(5.4,21.0)*ship_far_k)   # visual/r1 F1: en sintonía con la escala inicial del buque (antes x1,5 fijo)
  water_mat.set_shader_parameter("unc_radius",float(sh.get("uncertainty_radius_m",120.0)))
  # Una sola superficie plana a y = nivel, del pie de la barranca al horizonte. UV.x = altura real del suelo (halo de 0,3 m y espuma);
  # UV2.x = fondo base publico por x (solo degrada el color; no revela bancos ni pozo oculto).
@@ -1852,7 +1886,7 @@ func _ship_j():
  ship_hull=ship;ship_y0=ship.position.y
  _strip_ladder(ship)
  # Ficha del objetivo: el buque se ve desde cualquier altura (tamaño fijo en pantalla, aro que late). Hija del mundo, no del casco escalado.
- var ship_tok=_token_j(self,4,Color("e6b04a"),56.0,260.0,620.0,10.0,true);ship_tok.name="Ficha_buque"
+ var ship_tok=_token_j(self,4,Color("e6b04a"),18.0,260.0,620.0,10.0,true);ship_tok.name="Ficha_buque"   # visual/r1 F1: 18 px (antes 56)
  ship_tok.position=Vector3(sx,10.0,sz)
  # Anillo de fango y arena humeda alrededor del casco apoyado (Diseño: grounded_visual.mud_ring_radius_m).
  var mr:Array=M.get("ship",{}).get("grounded_visual",{}).get("mud_ring_radius_m",[22.0,34.0])
@@ -2152,8 +2186,8 @@ func _overlay_mat()->StandardMaterial3D:
  return m
 
 # ---------------------------------------------------------------- unidades
-func _ring_j(radius:float,color:Color,parent:Node3D)->MeshInstance3D:
- var m=TorusMesh.new();m.inner_radius=radius-0.11;m.outer_radius=radius+0.11;m.rings=64;m.ring_segments=6
+func _ring_j(radius:float,color:Color,parent:Node3D,half_w:float=0.11)->MeshInstance3D:
+ var m=TorusMesh.new();m.inner_radius=radius-half_w;m.outer_radius=radius+half_w;m.rings=64;m.ring_segments=6
  var n=MeshInstance3D.new();n.mesh=m
  var mat=StandardMaterial3D.new();mat.albedo_color=color;mat.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED;mat.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA
  n.material_override=mat;n.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -2251,7 +2285,7 @@ func _create_group_j(unit:Dictionary):
  var mounted=bool(unit.get("mounted",true))
  var n=_group_count(unit)
  var parts=_mm_parts(root,"rider_1806" if mounted else "dismounted_1806",n,id)
- var ring=_ring_j(7.5,Looks.ORO_VIEJO,root)   # seleccionado = oro viejo
+ var ring=_ring_ribbon(Looks.ORO_VIEJO,root,"Aro_sel")   # seleccionado = oro viejo (visual/r1 F1: cinta sobre el suelo, mismo radio que el ancla y más ancha)
  selected_rings[id]=ring
  var tag=str(unit.get("tag","diseno"))
  var label=_label_j(_tag_glyph(tag)+" "+str(unit.name),Vector3(0,7.0,0),Color("e9d4aa"),30,root)
@@ -2265,6 +2299,11 @@ var group_markers: Array = []
 var label_far:Dictionary={}
 var label_d:Dictionary={}
 var ship_far_k=1.0
+## visual/r1 F1: radio del aro de grupo (m, a escala real: abarca la banda de 14 m de jinetes) y tamaño de la ficha de pantalla (px).
+const J_RING_R = 8.0
+const J_TOKEN_PX = 14.0
+## visual/r1 F1: el guion (asta de ~3,7 m) queda a tamaño real y se apaga más allá de esta distancia de cámara (antes crecía hasta x5,5).
+const J_GUION_FAR_M = 240.0
 var far_k:Dictionary={}   # R6: tamaño minimo en pantalla de las figuras de un grupo (simbolico: 1 hasta ~150 m de camara, hasta x3,4 a 600 m)
 
 ## Ficha de lectura de tamaño fijo en pantalla (shaders/justina_token.gdshader). shape: 0 caballeria, 1 voluntarios, 2 reserva, 3 explorador, 4 buque.
@@ -2307,23 +2346,20 @@ func _group_marker_j(id:String,root:Node3D)->void:
  _box(Vector3(fw*0.5,top-fh*0.5,0),Vector3(fw,fh,0.04),Color(pal[0]),m)
  _box(Vector3(fw*0.5,top-fh*0.5,0.03),Vector3(fw,fh*0.3,0.04),Color(pal[1]),m)
  if id=="arias":_box(Vector3(fw+0.25,top-fh*0.5,0),Vector3(0.5,fh*0.45,0.04),Color(pal[0]),m)
- # P1: el ancla y el halo bajo el grupo son el anillo de aliado (celeste con borde pergamino), no el color del guion.
- var ring=_ring_j(3.0,Looks.CELESTE,root)
- var edge=_ring_j(3.2,Color(Looks.PERGAMINO.r,Looks.PERGAMINO.g,Looks.PERGAMINO.b,0.8),ring);edge.name="Borde"
- ring.name="Ancla";ring.scale=Vector3(1,1,1)
- # R-div1: halo relleno del color del bando bajo el grupo (se lee de lejos sin depender de carteles).
- var dm=CylinderMesh.new();dm.top_radius=3.0;dm.bottom_radius=3.0;dm.height=0.04;dm.radial_segments=32;dm.rings=1
- var disc=MeshInstance3D.new();disc.mesh=dm;disc.name="Halo"
- var dmat=StandardMaterial3D.new();dmat.albedo_color=Color(Looks.CELESTE.r,Looks.CELESTE.g,Looks.CELESTE.b,0.26);dmat.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED;dmat.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA;dmat.no_depth_test=false
- disc.material_override=dmat;disc.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;ring.add_child(disc)
- _token_j(root,int(TOKEN_SHAPES.get(id,0)),Color(str(TOKEN_COLORS.get(id,"d8cfb8"))),74.0,30.0,70.0,1.0,false,20.0)   # D4: ficha mas grande con silueta, un poco por debajo del centro para que el cartel no la tape
- group_markers.append({"node":m,"ring":ring,"root":root,"halo":dmat,"halo_sel":false})
+ # visual/r1 F1 (revierte R5/R6/D4/R-div1 a propósito): marcadores sutiles. El ancla es un aro celeste FINO a escala real que rodea
+ # la tropa (sin halo relleno ni borde, sin crecer con la distancia), apenas sobre el suelo y con prueba de profundidad. Al elegir el
+ # grupo el ancla se apaga y queda el aro de selección oro viejo (selected_rings), más ancho.
+ var ring=_ring_ribbon(Color(Looks.CELESTE.r,Looks.CELESTE.g,Looks.CELESTE.b,0.75),root,"Ancla")
+ # Ficha de pantalla chica (14 px): ubica al grupo de lejos sin taparlo; de cerca se desvanece y mandan las figuras.
+ _token_j(root,int(TOKEN_SHAPES.get(id,0)),Color(str(TOKEN_COLORS.get(id,"d8cfb8"))),J_TOKEN_PX,45.0,95.0,1.0,false,0.0)
+ group_markers.append({"node":m,"ring":ring,"root":root})
 
 func _update_markers_j(cam:Camera3D)->void:
  # R6: el buque (objetivo del juego) crece hasta x2,3 con la distancia de camara para no quedar en 25 px (tamaño minimo en pantalla; simbolico).
  if is_instance_valid(ship):
   var ds=cam.global_position.distance_to(ship.global_position)
-  var ks=clampf(ds/105.0,1.5,5.6)   # D4: buque mas grande a escala de juego (antes ds/170, tope 4,2)
+  # visual/r1 F1: tamaño real hasta ~200 m de cámara y tope x2 a lo lejos (antes x1,5 a x5,6, D4); ship_half del agua sigue a ks.
+  var ks=clampf(ds/200.0,1.0,2.0)
   if absf(ks-ship_far_k)>0.03:
    ship_far_k=ks
    ship.scale=Vector3(SHIP_SX,SHIP_SY,SHIP_SZ)*ks
@@ -2334,17 +2370,26 @@ func _update_markers_j(cam:Camera3D)->void:
  for g in group_markers:
   var r:Node3D=g.root
   var d=cam.global_position.distance_to(r.global_position)
-  var k=clampf(d*0.0085,1.2,5.5)   # R5: guion de ~3,7 m (1 u = 1 m) que crece solo hasta x3 a lo lejos (antes x7 = antenas de 40 m)
-  g.node.scale=Vector3.ONE*k
-  g.ring.position.y=maxf(0.0,level_m-r.position.y)+0.35
-  g.ring.scale=Vector3.ONE*clampf(d*0.0085,1.2,8.0)
+  # visual/r1 F1: guion a tamaño real (~3,7 m), sin crecer con la distancia; de lejos se apaga (la ficha chica ya ubica al grupo).
+  g.node.visible=d<J_GUION_FAR_M
   var gid=str(r.name).trim_prefix("Grupo_")
-  # Regla de color: el grupo seleccionado suma un halo violeta (el aro de selección ya es oro viejo).
+  # Aro a escala real: solo acompaña la apertura de la formación (far_k, pendiente de F3) para seguir rodeando a las figuras.
+  var spread_k=lerpf(1.0,float(far_k.get(gid,1.0)),0.8)
   var sel_g=gid in selected_ids or gid==selected or selected=="all"
-  if g.has("halo") and bool(g.halo_sel)!=sel_g:
-   g.halo_sel=sel_g
-   var hc:Color=Looks.VIOLETA if sel_g else Looks.CELESTE
-   (g.halo as StandardMaterial3D).albedo_color=Color(hc.r,hc.g,hc.b,0.34 if sel_g else 0.26)
+  g.ring.visible=not sel_g and not look_hide_overlays
+  # El aro se centra en la huella real de la formación (las filas salen hacia atrás desde el punto del grupo) y la abarca.
+  if unit_nodes.has(gid):
+   var e:Dictionary=unit_nodes[gid]
+   var nn:int=int(e.get("n",8));var mounted:bool=bool(e.get("mounted",true))
+   var lanes=clampi(int(ceil(sqrt(float(nn)*0.9))),1,4);var rows=int(ceil(float(nn)/float(lanes)))
+   var half_len=float(rows-1)*(2.5 if mounted else 1.5)*spread_k*0.5
+   var off=Vector3(0,0,half_len).rotated(Vector3.UP,float(e.get("yaw",0.0)))
+   var rad=maxf((GROUP_BAND if mounted else 9.0)*spread_k*0.5+1.0,half_len+1.5)
+   var c=r.position+off
+   for rg in [g.ring,selected_rings.get(gid,null)]:
+    if rg==null or not (rg as Node3D).visible and rg!=g.ring:continue
+    (rg as Node3D).position=Vector3(off.x,0.0,off.z)
+    _conform_ring(rg,c,rad,0.07 if rg==g.ring else 0.2)
   label_far[gid]=d>230.0
   label_d[gid]=d
   var fk=clampf(d/110.0,1.0,4.4)
@@ -2379,7 +2424,7 @@ func _spread_tokens_j(cam:Camera3D)->void:
    var rt:Node3D=e.root
    var d=cam.global_position.distance_to(rt.global_position)
    var mpp=d*2.0*tan(deg_to_rad(cam.fov)*0.5)/vh
-   var off=right*((float(slot)-float(n-1)*0.5)*86.0*mpp) if n>1 else Vector3.ZERO
+   var off=right*((float(slot)-float(n-1)*0.5)*(J_TOKEN_PX+8.0)*mpp) if n>1 else Vector3.ZERO   # visual/r1 F1: abanico a la medida de la ficha chica
    (e.tok as Node3D).position=Vector3(off.x,1.0,off.z)
 
 func _ensign_j(s:Dictionary)->void:
@@ -2415,7 +2460,7 @@ func _create_scouts_j():
   lance.mesh=lm;lance.material_override=_mat(Color("6f5a3c"));lance.position=Vector3(0.45,2.4,-0.3);lance.rotation=Vector3(0.15,0,-0.12);fig.add_child(lance)
   var ring=_ring_j(2.6,Looks.ORO_VIEJO,root)
   selected_rings[id]=ring
-  _token_j(root,3,Color(str(TOKEN_COLORS.get(id,"d8d2c0"))),26.0,60.0,130.0,1.0,false,22.0)
+  _token_j(root,3,Color(str(TOKEN_COLORS.get(id,"d8d2c0"))),12.0,60.0,130.0,1.0,false,0.0)   # visual/r1 F1: 12 px (antes 26)
   var label=_label_j("◇ "+str(sc.name),Vector3(0,5.0,0),Color("dcd8c0"),26,root)
   unit_labels[id]=label
   unit_nodes[id]={"root":root,"figures":fig,"mounted":true,"anims":[],"last":root.position,"kind":"scout","yaw":-PI/2.0,"pos2":Vector2(float(sc.x),float(sc.z)),"moving":false,"stage":""}
@@ -2472,7 +2517,7 @@ func _update_group_j(u:Dictionary,delta:float):
  var ring:MeshInstance3D=selected_rings[id_s]
  ring.visible=_ring_visible(id_s,stage) and not look_hide_overlays
  if ring.visible:
-  ring.position.y=maxf(0.0,level_m-root.position.y)+0.3
+  if not ring.has_meta("ribbon"):ring.position.y=maxf(0.0,level_m-root.position.y)+0.3
   (ring.material_override as StandardMaterial3D).albedo_color=_ring_color(id_s,stage)
  _update_label_j(id_s,u,stage,root,7.0)
 

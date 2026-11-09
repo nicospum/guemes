@@ -638,10 +638,9 @@ func _run() -> void:
 	check(_overlaps(game.last_overlay_rects) == 0, "Justina inicio: etiquetas y fichas sin solapamiento")
 	# Contexto inicial, rotulos propios, estado de partida
 	var vis := Rect2(Vector2.ZERO, root.get_visible_rect().size)
-	var ship_p: Vector2 = game.rules.ship_position()
-	var ship_s: Vector2 = game.camera.unproject_position(Vector3(ship_p.x, game._ground_y(ship_p.x, ship_p.y), ship_p.y))
 	var grp_s: Vector2 = game.camera.unproject_position(game.world.unit_nodes["guemes"].root.global_position)
-	check(vis.has_point(ship_s) and vis.has_point(grp_s), "Camara inicial: se ven a la vez los grupos y el buque")
+	# visual/r1 F2: la camara inicial es cercana (sobre las tropas y la orilla); el buque ya no entra en el mismo cuadro, se alcanza con B.
+	check(vis.has_point(grp_s) and game.camera_distance <= 200.0, "Camara inicial cercana: se ven los grupos a %d m" % int(game.camera_distance))
 	check(game.world.layer_state.get("labels", true) == false, "La capa 'labels' de la vista esta apagada (rotulos propios de la interfaz)")
 	var dup := 0
 	for l in game.world.find_children("*", "Label3D", true, false):
@@ -707,7 +706,9 @@ func _run() -> void:
 		e2.pressed = true
 		root.push_input(e2)
 		await process_frame
-	check(game.camera_distance >= 25.0 - 0.01, "Zoom con minimo de 25 m")
+	# visual/r1 F2: el minimo de zoom sale del mapa (camera.min_distance_m, hoy 18 m; antes 25 fijo)
+	var min_d: float = float(game.rules.map_data().camera.get("min_distance_m", 18.0))
+	check(game.camera_distance >= min_d - 0.01 and absf(game.camera_distance - min_d) < 1.0, "Zoom con minimo de %d m" % int(min_d))
 	game.camera_distance = 90.0
 	game._center_on(Vector2(140, 265))
 	game._apply_camera()

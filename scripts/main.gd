@@ -632,7 +632,7 @@ func _start_game(scenario_name:String):
  selected="guemes";sector="lerma";mode="play";paused=scenario_name=="justine";speed=1
  sel_ids=["guemes"];pace="trot";aim="";aim_pts=[];wp_list=[];pending_pt=null;tut_step=0;mm_big=false
  camera_target=Vector3(-6,0,0) if scenario_name=="justine" else Vector3(1,0,4)
- camera_distance=81 if scenario_name=="justine" else 96;camera_pitch=0.91;camera_yaw=-0.17
+ camera_distance=81 if scenario_name=="justine" else 60;camera_pitch=0.91;camera_yaw=-0.17   # visual/r1 F2: III más cerca (antes 96 m)
  camera.far=400.0
  _set_vignette(0.30)
  _fit_ui_scale()
@@ -1206,7 +1206,7 @@ func _load_game(scenario_name:String,prefer_manual:bool=false):
  mode="play";outcome_shown=false;paused=true;selected="guemes";sector=str(rules.get_unit("guemes").sector_id)
  sel_ids=["guemes"];aim="";aim_pts=[];wp_list=[];pending_pt=null
  camera_target=Vector3(-6,0,0) if rules.state.scenario=="justine" else Vector3(1,0,4)
- camera_distance=82 if rules.state.scenario=="justine" else 96;camera_pitch=0.91;camera_yaw=-0.17
+ camera_distance=82 if rules.state.scenario=="justine" else 60;camera_pitch=0.91;camera_yaw=-0.17   # visual/r1 F2
  camera.far=4000.0 if rules.state.scenario=="justine" else 400.0
  if rules.state.scenario=="justine":_reset_camera_j()
  _set_vignette(0.30)
@@ -1977,23 +1977,17 @@ func _draw_rings():
   var id=str(u.id)
   if float(u.strength)<=0.0 or not world.unit_nodes.has(id):continue
   var pos:Vector3=world.unit_nodes[id].root.global_position
-  var c:Color=UNIT_COLORS[id]
+  # visual/r1 F1: el aro lo dibuja la vista 3D (cinta fina sobre el relieve, con profundidad); aquí queda un aro oro viejo de 11 px
+  # alrededor de la ficha del elegido (como en la Justina: en ladera el aro del suelo puede quedar tapado) y la onda breve al elegir.
   if _is_selected(id):
-   var pts=_ground_circle(pos,3.4)
-   if pts.size()>1:
-    overlay.draw_polyline(pts,Color(0.03,0.06,0.07,0.7),6.0,true)
-    overlay.draw_polyline(pts,c,3.5,true)
-   for k in range(4):
-    var a=float(k)*PI*0.5+PI*0.25
-    var p1=_project(pos+Vector3(cos(a)*3.0,0.2,sin(a)*3.0));var p2=_project(pos+Vector3(cos(a)*4.1,0.2,sin(a)*4.1))
-    if p1!=null and p2!=null:overlay.draw_line(p1,p2,c,3.5,true)
-   if select_flash>0:
-    var t=select_flash/0.5
-    var wave=_ground_circle(pos,3.4+(1.0-t)*4.5)
-    if wave.size()>1:overlay.draw_polyline(wave,Color(1,1,1,t*0.9),3.0,true)
-  else:
-   var faint=_ground_circle(pos,2.7,28)
-   if faint.size()>1:overlay.draw_polyline(faint,Color(c.r,c.g,c.b,0.5),1.5,true)
+   var pr=_project(pos+Vector3(0,1.0,0))
+   if pr!=null:
+    overlay.draw_arc(pr,11.0,0,TAU,28,Color(0.03,0.06,0.07,0.7),4.0)
+    overlay.draw_arc(pr,11.0,0,TAU,28,GOLD,2.0)
+  if _is_selected(id) and select_flash>0:
+   var t=select_flash/0.5
+   var wave=_ground_circle(pos,2.3+(1.0-t)*3.5)
+   if wave.size()>1:overlay.draw_polyline(wave,Color(1,1,1,t*0.9),2.0,true)
 
 func _draw_chips(font,placed:Array):
  var view=get_viewport().get_visible_rect().size
@@ -2008,7 +2002,7 @@ func _draw_chips(font,placed:Array):
   if anchor==null or not Rect2(Vector2(10,10),view-Vector2(20,20)).has_point(anchor):continue
   var is_sel=_is_selected(id)
   var c:Color=UNIT_COLORS[id]
-  var chip=Vector2(168,54) if is_sel else Vector2(112,24)
+  var chip=Vector2(168,22) if is_sel else Vector2(78,20)   # visual/r1 F1: rótulo de una línea (antes 168x54 y 112x24)
   var rect=Rect2(anchor-Vector2(chip.x*0.5,chip.y+6),chip)
   var tries=0
   while tries<6 and _overlaps_any(rect.grow(2),placed):
@@ -2021,17 +2015,15 @@ func _draw_chips(font,placed:Array):
   var bar_color=GREEN if strength>=60 else (GOLD if strength>=35 else RED)
   var title=str(UNIT_GLYPHS[id])+" "+str(rules.state.units.find(u)+1)+" "+_short_name(id)
   if is_sel:
-   overlay.draw_string(font,rect.position+Vector2(8,17),title,HORIZONTAL_ALIGNMENT_LEFT,100,13,c)
-   overlay.draw_string(font,rect.position+Vector2(chip.x-60,17),"%d %%" % int(strength),HORIZONTAL_ALIGNMENT_RIGHT,52,13,Color("f4efe0"))
-   overlay.draw_rect(Rect2(rect.position+Vector2(8,23),Vector2(chip.x-16,6)),Color("2a2430"))
-   overlay.draw_rect(Rect2(rect.position+Vector2(8,23),Vector2((chip.x-16)*clampf(strength/100.0,0,1),6)),bar_color)
-   overlay.draw_rect(Rect2(rect.position+Vector2(8,30),Vector2((chip.x-16)*clampf(float(u.fatigue)/100.0,0,1),2)),Color("c9b6a0"))
-   var state_text=_stage_badge(str(u.stage))
-   overlay.draw_string(font,rect.position+Vector2(8,46),state_text,HORIZONTAL_ALIGNMENT_LEFT,chip.x-14,11,Color("ece3cf"))
+   # visual/r1 F1: una línea (nombre y fuerza) y barra de 2 px; estado, fatiga y suministros siguen en el panel inferior.
+   overlay.draw_string(font,rect.position+Vector2(7,15),title,HORIZONTAL_ALIGNMENT_LEFT,chip.x-58,12,GOLD_LIGHT)
+   overlay.draw_string(font,rect.position+Vector2(chip.x-52,15),"%d %%" % int(strength),HORIZONTAL_ALIGNMENT_RIGHT,46,12,Color("f4efe0"))
+   overlay.draw_rect(Rect2(rect.position+Vector2(5,18),Vector2(chip.x-10,2)),Color("2a2430"))
+   overlay.draw_rect(Rect2(rect.position+Vector2(5,18),Vector2((chip.x-10)*clampf(strength/100.0,0,1),2)),bar_color)
   else:
-   overlay.draw_string(font,rect.position+Vector2(7,16),str(UNIT_GLYPHS[id])+" "+str(rules.state.units.find(u)+1)+"  %d %%" % int(strength),HORIZONTAL_ALIGNMENT_LEFT,chip.x-10,12,c)
-   overlay.draw_rect(Rect2(rect.position+Vector2(6,19),Vector2(chip.x-12,3)),Color("2a2430"))
-   overlay.draw_rect(Rect2(rect.position+Vector2(6,19),Vector2((chip.x-12)*clampf(strength/100.0,0,1),3)),bar_color)
+   overlay.draw_string(font,rect.position+Vector2(6,14),str(UNIT_GLYPHS[id])+" "+str(rules.state.units.find(u)+1)+" %d %%" % int(strength),HORIZONTAL_ALIGNMENT_LEFT,chip.x-10,12,c)
+   overlay.draw_rect(Rect2(rect.position+Vector2(5,16),Vector2(chip.x-10,2)),Color("2a2430"))
+   overlay.draw_rect(Rect2(rect.position+Vector2(5,16),Vector2((chip.x-10)*clampf(strength/100.0,0,1),2)),bar_color)
 
 func _draw_map_labels(font,blocked:Array,placed:Array):
  var view=get_viewport().get_visible_rect().size
@@ -2132,7 +2124,16 @@ func _reset_camera_j():
  camera_pitch=deg_to_rad(float(cam_cfg.get("pitch_deg_default",55.0)))
  camera_yaw=0.0
  camera.far=float(cam_cfg.get("far_m",4000.0))
- # Vista inicial con contexto: grupos, barranca, orilla y buque en el mismo cuadro.
+ # visual/r1 F2: cámara inicial cercana (camera.initial_framing.distance_m, ~165 m) sobre las tropas y la orilla; el buque se
+ # alcanza con B, el minimapa o la tecla 0. Antes se encuadraban grupos y buque juntos (~380 m) y todo quedaba diminuto.
+ var fr:Dictionary=cam_cfg.get("initial_framing",{})
+ if fr.has("distance_m"):
+  var f:Array=fr.get("focus",cam_cfg.get("focus_start",[235,265]))
+  camera_target=world.clamp_camera_target(Vector3(float(f[0]),0.0,float(f[1])))
+  camera_distance=clampf(float(fr.distance_m),float(cam_cfg.get("min_distance_m",18.0)),float(cam_cfg.get("max_distance_m",900.0)))
+  cam_goal_active=false;_apply_camera()
+  return
+ # Sin initial_framing.distance_m: vista con contexto (grupos, barranca, orilla y buque en el mismo cuadro).
  var pts=[]
  for g in _jmap().get("groups",[]):pts.append(Vector2(float(g.x),float(g.z)))
  var sp=rules.ship_position();pts.append(sp)
@@ -4348,33 +4349,25 @@ func _draw_overlay_j(font,blocked:Array,placed:Array):
  _draw_landmarks_j(font,blocked,placed)
 
 func _draw_marks_j():
- var gdisp=_group_disp()
  for id in ALL_ACTORS:
   var a=_actor(id)
   if a.is_empty() or not world.unit_nodes.has(id):continue
   var pr=_project(world.unit_nodes[id].root.global_position+Vector3(0,1.0,0))
   if pr==null:continue
-  var c:Color=UNIT_COLORS[id]
+  # visual/r1 F1: sin silueta 2D de 30-54 px ni aro de reposo (la ficha 3D de 14 px ya ubica al grupo); el elegido suma un aro
+  # oro viejo fino de 11 px alrededor de su ficha, además del aro de selección en el suelo.
   if _is_selected(id):
-   overlay.draw_arc(pr,17.0,0,TAU,28,Color(0.03,0.06,0.07,0.7),5.0)
-   overlay.draw_arc(pr,17.0,0,TAU,28,c,3.0)
+   overlay.draw_arc(pr,11.0,0,TAU,28,Color(0.03,0.06,0.07,0.7),4.0)
+   overlay.draw_arc(pr,11.0,0,TAU,28,GOLD,2.0)
    if select_flash>0:
     var t=select_flash/0.5
-    overlay.draw_arc(pr,17.0+(1.0-t)*26.0,0,TAU,28,Color(1,1,1,t*0.9),3.0)
-  else:
-   var shifted=gdisp.has(id) and Vector2(gdisp[id].disp).distance_to(Vector2(gdisp[id].real))>6.0
-   if not shifted:overlay.draw_arc(pr,6.0 if id in SCOUT_IDS else 10.0,0,TAU,20,Color(c.r,c.g,c.b,0.55),1.5)
-  if not (id in SCOUT_IDS) and float(a.strength)>0.0 and gdisp.has(id):
-   var gp:Vector2=gdisp[id].disp
-   if gp.distance_to(gdisp[id].real)>6.0:overlay.draw_line(gdisp[id].real,gp,Color(c.r,c.g,c.b,0.8),2.0,true)
-   _draw_silhouette(gp+Vector2(0,6),id,c)
-   if _is_selected(id):overlay.draw_arc(gp,_sil_k()*0.8,0,TAU,28,c,3.0)
+    overlay.draw_arc(pr,11.0+(1.0-t)*20.0,0,TAU,28,Color(1,1,1,t*0.9),2.0)
 
 # Silueta de jinete o infante con tamaño mínimo en pantalla: la tropa se lee como tropa aunque el zoom esté lejos.
 # Posición en pantalla de cada grupo para dibujar su silueta: si dos quedan casi encimados se abren en abanico hacia la tierra, así se cuentan de un vistazo.
 func _group_disp()->Dictionary:
  var out={}
- var k=_sil_k()
+ var k=_mark_k()
  var placed=[]
  for id in GROUP_IDS:
   var a=_actor(id)
@@ -4395,6 +4388,10 @@ func _group_disp()->Dictionary:
 
 func _sil_k()->float:
  return clampf(3400.0/maxf(camera_distance,20.0),30.0,54.0)
+
+# visual/r1 F1: medida (px) de la marca de grupo en pantalla, para abrir en abanico y anclar los rótulos (la ficha 3D mide 14 px).
+func _mark_k()->float:
+ return 16.0
 
 # Piezas convexas (cuerpo elíptico, cuello, cabeza, torso) más patas como líneas: sin polígonos cóncavos que fallen al triangular.
 func _ellipse_pts(at:Vector2,rx:float,ry:float,n:int=14)->PackedVector2Array:
@@ -4419,6 +4416,7 @@ func _safe_poly(pts:PackedVector2Array,col:Color):
  if absf(area)<2.0:return
  overlay.draw_colored_polygon(pts,col)
 
+# visual/r1 F1: hoy sin uso (la marca de grupo es la ficha 3D chica); queda por si F3 la recupera a otra escala.
 func _draw_silhouette(at:Vector2,id:String,c:Color):
  var vs=get_viewport().get_visible_rect().size
  if at.x<-150.0 or at.y<-150.0 or at.x>vs.x+150.0 or at.y>vs.y+150.0:return  # fuera de cuadro: no se dibuja (evita coordenadas enormes)
@@ -4479,11 +4477,11 @@ func _draw_chips_j(font,placed:Array,blocked:Array=[]):
   var anchor=_project(world.unit_nodes[id].root.global_position+Vector3(0,4.0,0))
   # La ficha va sobre la silueta (alto = silueta + banderín), nunca encima de la tropa.
   if anchor!=null and is_scout:anchor+=Vector2(54,-6)  # los exploradores rotulan hacia el agua, lejos de la tropa
-  if anchor!=null and not is_scout and gd.has(id):anchor=Vector2(gd[id].disp)+Vector2(0,-_sil_k()*1.55)
+  if anchor!=null and not is_scout and gd.has(id):anchor=Vector2(gd[id].disp)+Vector2(0,-_mark_k()*0.6)
   if anchor==null or not Rect2(Vector2(10,10),view-Vector2(20,20)).has_point(anchor):continue
   var is_sel=_is_selected(id)
   var c:Color=UNIT_COLORS[id]
-  var chip=(Vector2(104,22) if is_sel else Vector2(56,20)) if is_scout else (Vector2(224,54) if is_sel else Vector2(66,20))
+  var chip=(Vector2(104,22) if is_sel else Vector2(56,20)) if is_scout else (Vector2(196,22) if is_sel else Vector2(66,20))   # visual/r1 F1: rótulo de una línea
   var rect=Rect2(anchor-Vector2(chip.x*0.5,chip.y+6),chip)
   rect.position.x=clampf(rect.position.x,4.0,view.x-chip.x-4.0)
   var base_y=rect.position.y
@@ -4517,12 +4515,11 @@ func _draw_chips_j(font,placed:Array,blocked:Array=[]):
   var tg_mark=_tag_glyph(str(u.get("tag","diseno")))
   if id!="guemes":title+=" "+tg_mark
   if is_sel:
-   overlay.draw_string(font,rect.position+Vector2(8,17),title,HORIZONTAL_ALIGNMENT_LEFT,chip.x-70,13,c)
-   overlay.draw_string(font,rect.position+Vector2(chip.x-60,17),"%d %%" % int(strength),HORIZONTAL_ALIGNMENT_RIGHT,52,13,Color("f4efe0"))
-   overlay.draw_rect(Rect2(rect.position+Vector2(8,23),Vector2(chip.x-16,6)),Color("2a2430"))
-   overlay.draw_rect(Rect2(rect.position+Vector2(8,23),Vector2((chip.x-16)*clampf(strength/100.0,0,1),6)),bar_color)
-   overlay.draw_rect(Rect2(rect.position+Vector2(8,30),Vector2((chip.x-16)*clampf(float(u.fatigue)/100.0,0,1),2)),Color("c9b6a0"))
-   overlay.draw_string(font,rect.position+Vector2(8,46),_stage_badge(str(u.stage)),HORIZONTAL_ALIGNMENT_LEFT,chip.x-14,11,Color("ece3cf"))
+   # visual/r1 F1: una sola línea (nombre y fuerza) con una barra de 2 px al pie; el estado y la fatiga quedan en el panel inferior.
+   overlay.draw_string(font,rect.position+Vector2(7,15),title,HORIZONTAL_ALIGNMENT_LEFT,chip.x-58,12,c)
+   overlay.draw_string(font,rect.position+Vector2(chip.x-52,15),"%d %%" % int(strength),HORIZONTAL_ALIGNMENT_RIGHT,46,12,Color("f4efe0"))
+   overlay.draw_rect(Rect2(rect.position+Vector2(5,18),Vector2(chip.x-10,2)),Color("2a2430"))
+   overlay.draw_rect(Rect2(rect.position+Vector2(5,18),Vector2((chip.x-10)*clampf(strength/100.0,0,1),2)),bar_color)
   else:
    overlay.draw_string(font,rect.position+Vector2(5,14),str(_actor_number(id))+" %d%%" % int(strength),HORIZONTAL_ALIGNMENT_LEFT,chip.x-8,12,c)
    overlay.draw_rect(Rect2(rect.position+Vector2(5,16),Vector2(chip.x-10,3)),Color("2a2430"))

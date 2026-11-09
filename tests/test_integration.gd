@@ -144,8 +144,8 @@ func _justina() -> void:
 	# La camara inicial muestra contexto: grupos, barranca y buque a la vez, sin ser el mapa entero.
 	var vis := Rect2(Vector2.ZERO, game.get_viewport().get_visible_rect().size)
 	var ship_p: Vector2 = game.rules.ship_position()
-	var ship_s: Vector2 = game.camera.unproject_position(Vector3(ship_p.x, game._ground_y(ship_p.x, ship_p.y), ship_p.y))
-	check(vis.has_point(ship_s) and not game.camera.is_position_behind(Vector3(ship_p.x, 0, ship_p.y)), "Initial camera shows the ship")
+	# visual/r1 F2: la camara inicial es cercana (initial_framing.distance_m ~165 m): tropas y orilla; el buque se ve con B o la tecla 0.
+	check(game.camera_distance <= 200.0 and not game.camera.is_position_behind(Vector3(ship_p.x, 0, ship_p.y)), "Initial camera is close (<= 200 m), looking at the troops and the shore")
 	for gid in ["guemes", "arias", "zavala"]:
 		var gp: Vector2 = game.camera.unproject_position(game.world.unit_nodes[gid].root.global_position)
 		check(vis.has_point(gp), "Initial camera shows group " + gid)
@@ -363,9 +363,10 @@ func _justina() -> void:
 		for j in range(i + 1, ids_d.size()):
 			var da: Vector2 = gdisp[ids_d[i]].disp
 			var db: Vector2 = gdisp[ids_d[j]].disp
-			if absf(da.x - db.x) < game._sil_k() * 0.9 and absf(da.y - db.y) < game._sil_k() * 1.2:
+			if absf(da.x - db.x) < game._mark_k() * 0.9 and absf(da.y - db.y) < game._mark_k() * 1.2:
 				seps_ok = false
-	check(seps_ok and game._sil_k() >= 30.0, "R4: las siluetas de grupo miden >= 30 px y no se pisan entre si")
+	# visual/r1 F1: la marca de grupo en pantalla es chica (12-16 px; antes siluetas >= 30 px) y sigue sin pisarse
+	check(seps_ok and game._mark_k() >= 12.0 and game._mark_k() <= 16.0, "F1: las marcas de grupo miden 12-16 px y no se pisan entre si")
 	var story: Dictionary = game._defeat_story({"elapsed": 215.0, "stumbles": 0, "counter_hits": 0, "shots_taken": 0})
 	check(str(story.get("cause", "")).find("03:35") >= 0 and str(story.get("advice", "")).find("Probá de nuevo con lo que anotaste") < 0, "R4: la derrota dice cuando paso y da un consejo concreto")
 	# Vista previa de ruta y confirmacion por tramo sin reconocer
