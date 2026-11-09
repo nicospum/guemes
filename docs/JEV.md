@@ -2,7 +2,7 @@
 
 ## Estado comprobado
 
-El cliente real de HTTP está implementado en `scripts/jev_client.gd` y compila con Godot 4.7.2. Se ejecutaron 15 comprobaciones de contrato y recuperación sin fallos. La API de TypeSafe no se llamó con una credencial válida en este entorno: no hay `TYPESAFE_API_KEY` configurada. **No se ha comprobado una decisión real de Jev aplicada a una partida.** La partida utiliza una alternativa local cuando falta acceso.
+El cliente real de HTTP está implementado en `scripts/jev_client.gd` y compila con Godot 4.7.2. Se ejecutaron 15 comprobaciones de contrato y recuperación sin fallos. **El 9 de noviembre de 2026 se comprobó una decisión real de Jev aplicada a una partida del norte** (`tools/jev_vivo.gd`, ver «Evidencia» abajo). La partida utiliza una alternativa local cuando falta acceso o la red no responde a tiempo.
 
 Las respuestas inválidas y el timeout se inyectaron en el punto de entrada del transporte para probar su recuperación; son pruebas simuladas explícitas. La ruta de alternativa local sí se ejecutó en Godot. El primer resultado local demoró 0 ms según el reloj monotónico de esa ejecución; no representa latencia de red ni calidad de decisiones de Jev.
 
@@ -67,11 +67,23 @@ finally { Remove-Item Env:TYPESAFE_API_KEY }
 
 El archivo opcional de configuración local guarda la clave como texto; la variable de entorno de la sesión evita crear ese archivo. Para una distribución comercial con clave del desarrollador se necesitaría un servicio propio: esta entrega local usa exclusivamente la clave del jugador, si la aporta.
 
-## Evidencia y prueba que falta
+## Evidencia de la prueba en vivo
 
-`user://jev_decisions.jsonl` registra solo decisiones aceptadas: identidad de partida/ronda/versión, opción, modo, motivo, tiempo, modelo y payload sin cabecera de autorización. También conserva el hash del payload para reproducirlo. No se usa caché: no puede presentarse una respuesta precargada como una llamada viva.
+**Hecha el 9 de noviembre de 2026** con `tools/jev_vivo.gd` (Godot 4.7.2 para Windows, `--headless`, perfil aislado: `APPDATA` en una carpeta temporal, así que no se usó ningún `jev.cfg`; la clave llegó por la variable de entorno `TYPESAFE_API_KEY` de la sesión de Windows y el script solo informa si hay credencial, nunca su valor). La prueba inicia una partida del norte, resuelve la ronda 1 consultando a Jev y comprueba `source`, `applied`, el modelo y el cambio de estado:
 
-Para cerrar la aceptación pendiente: configurar acceso autorizado, iniciar una partida del norte, resolver una ronda, comprobar `source: live`, `applied: true`, el modelo respondido y el cambio de intención en el estado de esa partida. Conservar el registro y repetir con conexión ausente para comparar la recuperación. La integración se considera incompleta respecto de ese criterio hasta que se haga esa prueba.
+| Corrida | `source` | Motivo | Opción | Modelo | Latencia | Ronda | Aplicada |
+|---|---|---|---|---|---|---|---|
+| En vivo (presupuesto del juego, 2 s) | `live` | `validated_choice` | `forage` (avanzar 0,02 · buscar víveres 0,73 · proteger 0,25; confianza 0,6) | `jev-1.14.0` | 330 ms | 1 → 2 (`state_version` 1 → 2) | sí, y registrada en `jev_decisions.jsonl` |
+| Red que no responde a tiempo (`--presupuesto=0.05`) | `local_fallback` | `timeout` | `guard` | `local-rules-v1` | 95 ms | 1 → 2 | sí |
+
+La red lenta se simuló con un presupuesto de 50 ms, no desconectando el equipo: prueba la recuperación por `timeout`, que es la que ve el jugador cuando la API no contesta a tiempo. El registro de la decisión en vivo no contiene la cabecera de autorización ni la clave (comprobado). Evidencia fuera de Git: `../qa-visual-r1/jev_vivo/` (`jev_decisions_vivo.jsonl` y `sin_red/jev_vivo.json`). Se hizo **una** consulta autenticada; el gasto de la cuenta no se midió.
+
+Repetir:
+
+```text
+godot --headless --path . --script tools/jev_vivo.gd -- --out=<carpeta>            # sale con 0 si fue en vivo y se aplicó
+godot --headless --path . --script tools/jev_vivo.gd -- --presupuesto=0.05 --out=<carpeta>   # recuperación por timeout (sale con 1)
+```
 
 Prueba reproducible sin red:
 
