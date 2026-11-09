@@ -558,7 +558,7 @@ func _test_explicit_only() -> void:
 	await _fresh_play()
 	var visible_id := ""
 	for id in V.GROUPS:
-		if hx.cam.on_screen(_cam(), _unit_pos(str(id)), 10.0) and not (hx.qa_state().selected as Array).has(id):
+		if hx.cam.on_screen(_cam(), _unit_pos(str(id)), float(hx.cam.data.approach.visible_margin_pct)) and not (hx.qa_state().selected as Array).has(id):
 			visible_id = str(id)
 			break
 	var before := _pose()
@@ -574,7 +574,7 @@ func _test_explicit_only() -> void:
 	await _frames(3)
 	var far_ids: Array = []
 	for id in V.GROUPS:
-		if not hx.cam.on_screen(_cam(), _unit_pos(str(id)), 10.0):
+		if not hx.cam.on_screen(_cam(), _unit_pos(str(id)), float(hx.cam.data.approach.visible_margin_pct)):
 			far_ids.append(str(id))
 	before = _pose()
 	if far_ids.size() >= 2:

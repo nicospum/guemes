@@ -175,7 +175,7 @@ func on_screen(cam3: Camera3D, p: Vector2, margin_pct: float) -> bool:
 	var size := cam3.get_viewport().get_visible_rect().size
 	var s := cam3.unproject_position(w)
 	var band := {"top": 0.0, "bottom": size.y}
-	var b: Variant = last_fit.get("band", null)
+	var b: Variant = last_fit.get("hud_band", null)  # lo que de verdad tapan la cabecera y el dock (sin el aire extra que deja el encuadre inicial)
 	if b is Array and (b as Array).size() == 2:
 		band = {"top": float(b[0]), "bottom": float(b[1])}
 	return _inside(s, margin_pct / 100.0, band, size)
@@ -199,7 +199,7 @@ func request_approach(cam3: Camera3D, id: String) -> Dictionary:
 	var p: Variant = _unit_pos(id)
 	if not (p is Vector2):
 		return {"moved": false, "motivo": "sin_ficha"}
-	if on_screen(cam3, p, float(a.get("visible_margin_pct", 10.0))):
+	if on_screen(cam3, p, float(a.get("visible_margin_pct", 4.0))):
 		return {"moved": false, "motivo": "a_la_vista"}
 	var now := _now_s()
 	if now - _last_approach_s < float(a.get("cooldown_s", 7.0)):
@@ -537,7 +537,8 @@ func fit_with(cam3: Camera3D, start: Dictionary, hud: Dictionary, preset_name: S
 	out["yaw_deg"] = yaw
 	last_fit = {"preset": preset_name, "dist": snappedf(float(result.dist), 0.1), "target": [snappedf((result.target as Vector2).x, 0.1), snappedf((result.target as Vector2).y, 0.1)], "hard_ok": hard_ok,
 		"soft_in": soft_in, "soft_out": soft_out, "a_medio_tapar": _half_hidden(cam3, soft, band, size), "corrimiento_px": snappedf(shifted, 0.1), "size": [size.x, size.y],
-		"band": [snappedf(float(band.top), 0.1), snappedf(float(band.bottom), 0.1)], "duros": hard.size(), "blandos": soft.size()}
+		"band": [snappedf(float(band.top), 0.1), snappedf(float(band.bottom), 0.1)], "duros": hard.size(), "blandos": soft.size(),
+		"hud_band": [snappedf(float(hud.get("top_px", 0.0)), 0.1), snappedf(size.y - float(hud.get("bottom_px", 0.0)), 0.1)]}
 	set_frame(result.target, float(result.dist), pitch, yaw)
 	apply(cam3)
 	return out
