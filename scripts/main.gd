@@ -1868,6 +1868,8 @@ func _blocked_rects()->Array:
   for extra in [pause_banner,alert_panel,hint_panel,toast_label]:
    if is_instance_valid(extra) and extra.is_visible_in_tree():rects.append(extra.get_global_rect().grow(4.0))
  elif is_instance_valid(hint_panel) and hint_panel.visible:rects.append(hint_panel.get_global_rect().grow(4.0))
+ # visual/r1 F6: en el Norte el aviso de arriba («Elegí tu primera orden…») también tapa: «JUJUY» quedaba medio escondido debajo.
+ if not _is_j() and is_instance_valid(toast_label) and toast_label.is_visible_in_tree():rects.append(toast_label.get_global_rect().grow(4.0))
  return rects
 
 # ---------- Despliegue previo ----------
@@ -2033,6 +2035,9 @@ func _draw_chips(font,placed:Array):
   var is_sel=_is_selected(id)
   var c:Color=UNIT_COLORS[id]
   var chip=Vector2(168,22) if is_sel else Vector2(78,20)   # visual/r1 F1: rótulo de una línea (antes 168x54 y 112x24)
+  var title=str(UNIT_GLYPHS[id])+" "+str(rules.state.units.find(u)+1)+" "+_short_name(id)
+  # visual/r1 F6 (Q-304): el elegido se ensancha hasta que su nombre entre entero («● 3 Partida del valle» se cortaba en «3 Partida del…»).
+  if is_sel:chip.x=maxf(chip.x,ceilf(font.get_string_size(title,HORIZONTAL_ALIGNMENT_LEFT,-1,12).x)+66.0)
   var rect=Rect2(anchor-Vector2(chip.x*0.5,chip.y+6),chip)
   var tries=0
   while tries<6 and _overlaps_any(rect.grow(2),placed):
@@ -2043,7 +2048,6 @@ func _draw_chips(font,placed:Array):
   overlay.draw_style_box(_cached_style("chip"+str(is_sel)+c.to_html(),Color(0.075,0.063,0.098,0.9),c if is_sel else Color(c.r,c.g,c.b,0.6),3 if is_sel else 1,5),rect)
   var strength=float(u.strength)
   var bar_color=GREEN if strength>=60 else (GOLD if strength>=35 else RED)
-  var title=str(UNIT_GLYPHS[id])+" "+str(rules.state.units.find(u)+1)+" "+_short_name(id)
   if is_sel:
    # visual/r1 F1: una línea (nombre y fuerza) y barra de 2 px; estado, fatiga y suministros siguen en el panel inferior.
    overlay.draw_string(font,rect.position+Vector2(7,15),title,HORIZONTAL_ALIGNMENT_LEFT,chip.x-58,12,GOLD_LIGHT)
@@ -2077,6 +2081,11 @@ func _draw_map_labels(font,blocked:Array,placed:Array):
   if p==null:continue
   var text_size=font.get_string_size(str(item.text),HORIZONTAL_ALIGNMENT_LEFT,-1,int(item.size))
   var rect=Rect2(p-Vector2(text_size.x*0.5+6,text_size.y*0.5+3),text_size+Vector2(12,6))
+  # visual/r1 F6: si el rótulo cae bajo un panel o un aviso, se prueba más abajo (hasta tres renglones) en vez de asomar cortado.
+  if _overlaps_any(rect,blocked):
+   for k in range(3):
+    rect.position.y+=rect.size.y+4.0
+    if not _overlaps_any(rect,blocked) and not _overlaps_any(rect,placed):break
   if not Rect2(Vector2.ZERO,view).encloses(rect):continue
   if _overlaps_any(rect,blocked) or _overlaps_any(rect,placed):continue
   placed.append(rect)
@@ -2366,6 +2375,12 @@ func _mm_size()->Vector2:
  if get_viewport().get_visible_rect().size.y<800.0:
   mine=Vector2(440,254) if mm_big else Vector2(250,144)  # Q-104: 250×144 a 720p (el piso de legibilidad de ui_qa es 230 px; la leyenda se ajusta)
   return mine
+ # visual/r1 F6: en ventanas menores que la base sin escala propia (1024×640: la interfaz se achica a 0,71) el minimapa de 300 lógicos
+ # quedaba en 213 px reales, bajo el piso de legibilidad de ui_qa (230). Se agranda hasta 240 px reales, con la misma proporción.
+ var vw=get_viewport().get_visible_rect().size.x
+ var phys=float(get_window().size.x)/vw if vw>0.0 else 1.0
+ # Solo con ventana real de 800 px o más (sin ventana, headless, el tamaño de ventana no dice nada) y con tope de 340 lógicos.
+ if not mm_big and get_window().size.x>=800 and phys>=0.5 and mine.x*phys<240.0:mine*=minf(240.0/(mine.x*phys),340.0/mine.x)
  return Vector2(maxf(float(a[0]),mine.x),maxf(float(a[1]),mine.y))
 
 func _build_hud_j():
@@ -2383,6 +2398,9 @@ func _build_hud_j():
  var hv=_hbox(header,6)
  var heading=_vbox(hv,0);heading.size_flags_horizontal=Control.SIZE_EXPAND_FILL
  heading.custom_minimum_size.x=150
+ # visual/r1 F6: título centrado en la altura de la cabecera. Con la fecha y el río plegados (primer cuadro, Q-104) «JUSTINA · RETIRO»
+ # quedaba pegado al borde de arriba, con el renglón vacío debajo, y parecía cortado (capturas f6_jn a 1280×720 y 1920×1080).
+ heading.size_flags_vertical=Control.SIZE_SHRINK_CENTER
  # P4b: sin recorte. «JUSTINA · RETIRO» se cortaba a 1280×720 con el reloj andando; ahora la cabecera crece hacia los dos lados (grow BOTH).
  title_label=_label(heading,"JUSTINA  ·  RETIRO",15,PAPER,true)
  phase_label=_label(heading,"",10,MUTED);phase_label.clip_text=true;phase_label.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
@@ -4542,6 +4560,10 @@ func _draw_chips_j(font,placed:Array,blocked:Array=[]):
   var is_sel=_is_selected(id)
   var c:Color=UNIT_COLORS[id]
   var chip=(Vector2(104,22) if is_sel else Vector2(56,20)) if is_scout else (Vector2(196,22) if is_sel else Vector2(66,20))   # visual/r1 F1: rótulo de una línea
+  if is_sel and not is_scout:
+   # visual/r1 F6: el elegido se ensancha si su nombre no entra en 196 px (mismo cálculo que el dibujo de abajo; nunca se corta con «…»).
+   var tj=_ujg(id)+" "+str(_actor_number(id))+" "+("Güemes (trad.)" if id=="guemes" else _short_name(id))+("" if id=="guemes" else " "+_tag_glyph(str(u.get("tag","diseno"))))
+   chip.x=maxf(chip.x,ceilf(font.get_string_size(tj,HORIZONTAL_ALIGNMENT_LEFT,-1,12).x)+66.0)
   var rect=Rect2(anchor-Vector2(chip.x*0.5,chip.y+6),chip)
   rect.position.x=clampf(rect.position.x,4.0,view.x-chip.x-4.0)
   var base_y=rect.position.y
@@ -5563,7 +5585,9 @@ func _edge_pointer(world_pos:Vector3,text_value:String):
  var rc=Rect2(pos-dir*34.0-sz*0.5-Vector2(8,4),sz+Vector2(16,8))
  rc.position.x=clampf(rc.position.x,6.0,view.x-rc.size.x-6.0)
  rc.position.y=clampf(rc.position.y,64.0,view.y-rc.size.y-6.0)
- rc=_push_out(rc,_blocked_rects()+last_overlay_rects,view)
+ # visual/r1 F6: también fuera de los rótulos 3D de pozos y vados hallados (a 2560×1440 «Buque ▸» tapaba «▲ Pozo del banco»).
+ var kn_rects:Array=world.kn_label_screen_rects(camera) if is_instance_valid(world) and world.has_method("kn_label_screen_rects") else []
+ rc=_push_out(rc,_blocked_rects()+last_overlay_rects+kn_rects,view)
  overlay_top.draw_rect(rc,Color(0.05,0.04,0.0,0.9));overlay_top.draw_rect(rc,col,false,2.0)
  overlay_top.draw_string(font,rc.position+Vector2(8,sz.y-1),text_value,HORIZONTAL_ALIGNMENT_LEFT,-1,14,Color("fff0c4"))
 

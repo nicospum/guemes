@@ -519,7 +519,8 @@ func _defeat_screen_checks() -> void:
 	game.attempt_logged = false
 	game.beat_enabled = true
 	game._outcome_dialog()
-	await _frames(30)
+	# visual/r1 F6: el banner dura 2,4 s; con 30 cuadros y la máquina cargada (<12 fps) ya se había ido y R2 fallaba sin error real.
+	await _frames(3)
 	check(is_instance_valid(game.outcome_beat) or game.qa_mode, "R2: la victoria arranca con un cierre breve (banner sobre el buque) antes del resultado")
 	await _shot("justina-victoria-cierre")
 	game._close_modal()

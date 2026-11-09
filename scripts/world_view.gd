@@ -710,16 +710,19 @@ func _north():
 ## de Lerma quedan a 7,3 m; cada pueblo se aplana en un radio de 2,8 m y la tropa acampa a 6–9 m), así que la escala real no entra:
 ## todas las casas van a UNA escala de maqueta, NORTE_CASA_ESCALA (1:4,2), sin estirar ninguna (antes cada casa se deformaba a una
 ## huella de 1,15 × 1,45 m y la iglesia de Salta iba a 0,5). Así se conservan las proporciones entre tipos (la iglesia con torre llega a
-## 2,9 m, un rancho a 0,9 m) y el pueblo entra en su aro (3,2 m). La tropa va a 0,8 porque es la marca de juego, no una maqueta.
-## Frente −Z del kit girado media vuelta: puertas y galerías miran al sur, a la cámara inicial. [modelo, dx, dz, giro extra].
+## 2,9 m, un rancho a 0,9 m) y el pueblo entra en su aro (3,2 m). La tropa va a NORTE_FIG_SCALE (0,6 desde F6) porque es la marca de juego, no una maqueta.
+## Frente −Z del kit girado media vuelta: puertas y galerías miran al sur, a la cámara inicial. [modelo, dx, dz, giro extra, (aclarado)].
+## visual/r1 F6: Chicoana y Orán (solo adobe oscuro y paja) no se distinguían a 60 m, sobre todo en la ladera en sombra: Chicoana suma
+## una capilla encalada (casa_capilla_a) en lugar de un rancho, Orán una casa encalada con galería (casa_galeria_b) en lugar de otro, y
+## el adobe que queda va un 22 % más claro (quinto valor: tinte del lote, como los ranchos de la ribera de la Justina). Diseño.
 const NORTE_CASA_ESCALA := 0.24
 const NORTE_PUEBLOS := {
  "salta":[["casa_capilla_c",-1.35,-0.8,0.0],["casa_patio_b",1.5,-0.55,0.0],["casa_galeria_b",0.15,2.3,0.0]],
  "jujuy":[["casa_capilla_c",1.35,-0.8,0.0],["casa_patio_b",-1.5,-0.55,0.0],["casa_galeria_b",-0.15,2.3,0.0]],
  "lerma":[["casa_capilla_a",0.0,-1.2,0.0],["casa_pulperia_a",-1.9,0.6,0.0],["casa_rancho_a",1.75,0.4,0.1],["casa_rancho_b",0.0,1.9,-0.08]],
- "chicoana":[["casa_posta_b",0.2,-1.0,0.0],["casa_rancho_a",-1.5,1.3,-0.1],["casa_galeria_b",1.3,1.5,0.0]],
+ "chicoana":[["casa_posta_b",0.6,-1.2,0.0,1.22],["casa_capilla_a",-1.8,1.6,0.0],["casa_galeria_b",1.3,1.5,0.0]],
  "rosario":[["casa_capilla_a",-1.4,-0.8,0.0],["casa_pulperia_a",1.0,-0.9,0.0],["casa_galeria_b",0.9,1.5,0.0],["casa_rancho_a",-1.5,1.7,0.12]],
- "oran":[["casa_capilla_a",0.0,-1.3,0.0],["casa_rancho_a",-1.6,0.8,0.1],["casa_rancho_b",1.5,0.8,-0.1],["casa_rancho_a",0.1,2.0,0.0]],
+ "oran":[["casa_capilla_a",0.0,-1.3,0.0],["casa_galeria_b",-1.6,0.9,0.1],["casa_rancho_b",1.5,0.8,-0.1,1.22],["casa_rancho_a",0.1,2.0,0.0,1.22]],
  "quebrada":[["casa_capilla_b",-1.2,-0.6,0.0],["casa_torta_b",1.5,-1.2,0.0],["casa_torta_a",1.4,0.7,0.1],["casa_corral_pirca_a",1.3,2.8,0.0]],
  "humahuaca":[["casa_capilla_a",0.0,-1.3,0.0],["casa_torta_a",-1.6,0.6,-0.1],["casa_torta_b",1.3,0.9,0.0],["casa_rancho_c",-0.3,2.0,0.15]]}
 
@@ -734,7 +737,7 @@ func _pueblo_n(s:Dictionary,point:Vector3)->void:
   var y=terrain_height(c.x,c.y)
   for k in [Vector2(-hs.x,-hs.z),Vector2(hs.x,-hs.z),Vector2(-hs.x,hs.z),Vector2(hs.x,hs.z)]:
    var q=k.rotated(-yaw);y=minf(y,terrain_height(c.x+q.x,c.y+q.y))
-  if _casa(model,Transform3D(Basis.from_euler(Vector3(0,yaw,0)).scaled_local(Vector3.ONE*sc),Vector3(c.x,y-0.03,c.y))):
+  if _casa(model,Transform3D(Basis.from_euler(Vector3(0,yaw,0)).scaled_local(Vector3.ONE*sc),Vector3(c.x,y-0.03,c.y)),false,float(e[4]) if e.size()>4 else 1.0):
    norte_bldg.append(Vector3(c.x,c.y,maxf(hs.x,hs.z)))
   else:
    _house(Vector3(c.x,y,c.y),1.15,1.45,model.begins_with("casa_capilla"))
@@ -1462,7 +1465,11 @@ const NORTE_MEN_DISENO = {"guemes":400.0,"arias":300.0,"zavala":60.0}
 ## visual/r1 F4: con el caballo criollo (2,51 m de largo; el viejo medía 3,39) la escala real 1,0 no entra: 24 jinetes sin tocarse
 ## piden un aro de ~7,3 m y los campamentos (norte_camp) están pensados para ~5,9 m. La mayor que entra es 0,8, con línea de 8 de
 ## frente (_form_dims) y las separaciones NORTE_GAP_*: aro de ~5,9 m, como en F3b. El caballo mide así 2,0 m (antes 1,86).
-const NORTE_FIG_SCALE = 0.8
+## visual/r1 F6: 0,6. Con los pueblos del kit en maqueta (NORTE_CASA_ESCALA 0,24) un jinete a 0,8 (2 m de caballo) era tan alto
+## como una casa y la tropa tapaba el pueblo vecino. A 0,6 (caballo de 1,5 m) sigue siendo la marca de juego, más grande que la maqueta
+## a propósito, pero el aro baja de ~5,9 a ~4,4 m, entra holgado en el campamento (norte_camp, NORTE_CAMP_R 4,6) y deja ver el pueblo.
+## Decidido con capturas (qa-visual-r1/f6_jn/vistas_08 contra vistas_06). Diseño de lectura.
+const NORTE_FIG_SCALE = 0.6
 ## visual/r1 F4: desorden de la tropa del Norte (fracción del de la Justina): con filas tan cerradas, el entero haría tocarse caballos.
 const NORTE_JITTER = 0.5
 const DECK_Y = 3.9
@@ -1911,8 +1918,14 @@ func _landmarks_j():
  for hz in [20.0,64.0,110.0,152.0,372.0,408.0,452.0,496.0]:
   var crest_x=_poly_x(M.get("barranca",{}).get("crest",[]),hz)
   var hx=maxf(3.0,crest_x-14.0-decoration_rng.randf()*6.0)
-  _house(Vector3(hx,_h(hx,hz),hz),7.5,8.5,false)
-  _house(Vector3(hx-1.0,_h(hx-1.0,hz+9.5),hz+9.5),7.0,8.0,false)
+  # visual/r1 F6: estas 16 casas de las manzanas R4 seguían con house_colonial (teja salmón clara, la que se veía anaranjada con la luz
+  # cálida); pasan al kit del territorio como el resto de la Justina (_house_at "ciudad": azotea, teja o rancho; frente al este, a la
+  # barranca; ≤ 8,4 m de frente, entran en los 9,5 m entre casas). Sin el kit, las de antes.
+  if _glb_ok("casa_ba_a"):
+   _house_at(hx,hz,7.5,8.5,-PI*0.5,"ciudad");_house_at(hx-1.0,hz+9.5,7.0,8.0,-PI*0.5,"ciudad")
+  else:
+   _house(Vector3(hx,_h(hx,hz),hz),7.5,8.5,false)
+   _house(Vector3(hx-1.0,_h(hx-1.0,hz+9.5),hz+9.5),7.0,8.0,false)
   # R6: tapia cerrando un patio (4 lados cortos, alineados con las casas y asentados en el terreno); antes eran tablones sueltos que salian al aire.
   var tx0=hx-9.5;var tx1=hx+9.0;var tz0=hz-7.0;var tz1=hz+16.5
   for seg_i in range(4):
@@ -2393,6 +2406,17 @@ func _ribera_j():
   var x=_poly_x(toe,z)+sz.z*0.5-rng.randf_range(1.2,2.0)
   var yaw=-PI*0.5+rng.randf_range(-0.12,0.12)   # frente (−Z del kit) hacia el río (+X)
   var ok=not _reserved_j(x,z,sz.x*0.5+4.0) and absf(z-(SCALE_Z0+50.0))>62.0 and _h(x,z)>level_high_m+0.3
+  # visual/r1 F6: los ranchos no son obstáculo en las reglas; para que la tropa no se vea atravesándolos, tampoco van a menos de 8 m
+  # (más media casa) de los trazos de ruta del mapa (routes.items) ni en la playa de la reunión y la marcha al pie de la barranca
+  # (z 175–330: los grupos arrancan en z 240–296 y caminan pegados al pie hasta la ruta central, z≈190). El de z≈188 quedaba a 2 m de la
+  # ruta central y la reserva pasaba a 4,9 m de su borde; corrido solo por la ruta, cayó en z≈206, en plena marcha (f6_ribera_paths.gd,
+  # 21 partidas por reglas y 3 por la interfaz).
+  if z>175.0 and z<330.0:ok=false
+  if ok:
+   for it in M.get("routes",{}).get("items",[]):
+    var pl:Array=it.get("polyline",[])
+    for i in range(pl.size()-1):
+     if Geometry2D.get_closest_point_to_segment(Vector2(x,z),_pt(pl[i]),_pt(pl[i+1])).distance_to(Vector2(x,z))<8.0+maxf(sz.x,sz.z)*0.5:ok=false
   # Los ranchos van 18 % más oscuros (adobe y paja ahumados): contra la arena clara de la playa alta el adobe del kit quedaba a ΔL* ≈ −10
   # (V06 pide 12); la casa de teja no lo necesita (cal clara y teja oscura).
   if ok and _casa(model,Transform3D(Basis.from_euler(Vector3(0,yaw,0)),Vector3(x,_casa_base_j(x,z,yaw,sz.x*0.5,sz.z*0.5),z)),false,1.0 if model=="casa_ba_a" else 0.82):
@@ -2994,7 +3018,7 @@ func _mount_parts(root:Node3D,period:String,count:int,group_id:String,gseed:int,
 ## color de vértice). Conserva huesos y pesos (sirve para el caballo animado del jefe). Menos dibujos: 1–2 por malla en vez de 6 a 9.
 var merged_mesh_cache:Dictionary={}
 func _merge_surfaces(src:Mesh,split_shiny:bool)->Mesh:
- var key=str(src.get_rid().get_id())+("|s" if split_shiny else "|m")
+ var key=str(src.get_rid().get_id())+("|s" if split_shiny else "|m")+("|tj" if scenario=="justine" else "")
  if merged_mesh_cache.has(key):return merged_mesh_cache[key]
  var groups:Array=[[],[]]   # [mate, brillante]
  var mats:Array=[null,null];var best:Array=[-1,-1]
@@ -3010,7 +3034,12 @@ func _merge_surfaces(src:Mesh,split_shiny:bool)->Mesh:
  for g in range(2):
   if (groups[g] as Array).is_empty():continue
   var st=SurfaceTool.new();st.begin(Mesh.PRIMITIVE_TRIANGLES)
-  for si in groups[g]:st.append_from(src,si,Transform3D.IDENTITY)
+  for si in groups[g]:
+   var sm=src.surface_get_material(si)
+   # visual/r1 F6: la teja del kit (#85634E) se leía anaranjada con la luz cálida de la Justina; se apaga en el color de vértice al
+   # unir (en tiempo de ejecución, sin tocar el GLB). El Norte la deja como viene.
+   if scenario=="justine" and sm!=null and str(sm.resource_name).ends_with("teja"):st.append_from(_teja_apagada(src,si),0,Transform3D.IDENTITY)
+   else:st.append_from(src,si,Transform3D.IDENTITY)
   st.commit(out)
   var m2:BaseMaterial3D=(mats[g].duplicate() if mats[g]!=null else StandardMaterial3D.new())
   m2.vertex_color_use_as_albedo=true
@@ -3019,6 +3048,23 @@ func _merge_surfaces(src:Mesh,split_shiny:bool)->Mesh:
  var res:Mesh=out if out.get_surface_count()>0 else src
  merged_mesh_cache[key]=res
  return res
+
+## visual/r1 F6: copia de la superficie `si` con la teja apagada: 45 % hacia su gris (misma luminancia) y un 6 % más oscura. Con el
+## sol bajo y cálido de la Justina la teja pardo-terracota se veía naranja; así queda parda, sin perder el contraste con la cal.
+func _teja_apagada(src:Mesh,si:int)->ArrayMesh:
+ var arr:Array=src.surface_get_arrays(si)
+ var out=ArrayMesh.new()
+ if arr[Mesh.ARRAY_COLOR]!=null and (arr[Mesh.ARRAY_COLOR] as PackedColorArray).size()>0:
+  var cols:PackedColorArray=arr[Mesh.ARRAY_COLOR]
+  for i in range(cols.size()):
+   var c:Color=cols[i]
+   var l=0.2126*c.r+0.7152*c.g+0.0722*c.b
+   var d=Color(l,l,l,c.a).lerp(c,0.55)
+   cols[i]=Color(d.r*0.94,d.g*0.94,d.b*0.94,c.a)
+  arr[Mesh.ARRAY_COLOR]=cols
+ out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arr)
+ out.surface_set_material(0,src.surface_get_material(si))
+ return out
 
 ## visual/r1 F4 (costo): malla de tropa = una sola superficie mate (_merge_surfaces; los metales de la tropa quedan mates, a la
 ## distancia de juego no se distinguen) con niveles de detalle (_lod_mesh). Un dibujo por lote.
@@ -3816,6 +3862,20 @@ func _kn_label(text_value:String,pos:Vector3,color:Color)->void:
   lab=_label_j("",pos,color,28,knowledge_root);kn_labels.append(lab)
  kn_label_used+=1
  lab.text=text_value;lab.position=pos;lab.modulate=color;lab.visible=true
+
+## visual/r1 F6: cajas aproximadas en pantalla (coordenadas de la interfaz) de los rótulos 3D de lo hallado (pozos y vados), para que
+## la flecha «Buque ▸» del borde no los tape (a 2560×1440 caía sobre «▲ Pozo del banco»). Label3D de tamaño fijo: ~0,36 del cuerpo de letra
+## por carácter de ancho y 0,8 de alto, más el contorno (medido en las capturas de f6_jn). view_scale: píxeles de ventana por píxel de interfaz.
+func kn_label_screen_rects(camera:Camera3D,view_scale:float=1.0)->Array:
+ var out:Array=[]
+ if not is_instance_valid(knowledge_root) or not knowledge_root.is_visible_in_tree():return out
+ for i in range(mini(kn_label_used,kn_labels.size())):
+  var lab:Label3D=kn_labels[i]
+  if not is_instance_valid(lab) or not lab.visible or camera.is_position_behind(lab.global_position):continue
+  var sz=Vector2(float(lab.text.length())*float(lab.font_size)*0.36+12.0,float(lab.font_size)*0.8+8.0)
+  var c=camera.unproject_position(lab.global_position)/maxf(view_scale,0.01)
+  out.append(Rect2(c-sz*0.5,sz))
+ return out
 
 func _rebuild_knowledge_j():
  kn_rebuilds+=1
