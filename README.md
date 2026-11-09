@@ -1,16 +1,14 @@
 # Güemes — Juegos de la Patria
 
-**Versión 0.3.0-alfa (preview 5 en curso: ronda de diversión R2, interfaz y sensación de juego; base preview 4) — alfa jugable, 30 de octubre de 2026.** Preview 4 aclara los controles de la Justina: tiempo real con pausa y velocidades ×1/×2/×4 siempre indicado, panel lateral con las cinco agrupaciones, acciones contextuales con motivo, rutas con destino y ETA, deshacer (Ctrl+Z), avisos con pausa automática, despliegue previo y tutorial de seis pasos. Ronda 5 de interfaz: un solo mensaje guía a la vez, «Cargar y abordar» guía al sondeo previo en lugar de fallar, Señalar a Liniers se rotula como marcha, interfaz legible a 720p, diálogos que entran en pantalla y briefing con «Jugar». Respecto de 0.2.0: casas, iglesias, árboles y rocas 3D ya usados en escena; balance del norte (victoria no antes de la ronda 10); órdenes que no ahogan unidades; validación de coherencia de guardados; interfaz adaptable; sin fugas de recursos al salir. (La entrega 0.1.0 conserva su verificación en `docs/VERIFICACION.md`; la de 0.2.0 está en `docs/VERIFICACION_FASE2.md`.)
+**Versión 0.5.0-preview1 — 9 de noviembre de 2026.** Tres capítulos jugables de punta a punta y encadenados: **I · La Justina (1806)**, **II · Humahuaca: el depósito de la retaguardia (1817)** y **III · Sostener el norte (1816–1817)**, con pantalla final de campaña. Esta versión es la entrega del equipo de agentes del 8–9 de noviembre: dirección de arte «Crónica en oro y noche» (menú heroico, Norte con relieve dorado, barranca del Retiro, noche de Humahuaca con modelos propios de adobe, braseros y una apertura sobre la quebrada), briefings y partes a pantalla completa, cadena I → II → III, y las correcciones verificadas por QA independiente. Qué cambió, cómo se probó y qué falta: `docs/equipo/ENTREGA.md` y `docs/equipo/DICTAMEN_QA.md`.
 
-**Rama `humahuaca-r1` (noviembre de 2026):** suma el nivel II, «Humahuaca: el depósito de la retaguardia», como **corte vertical en desarrollo**: se juega de punta a punta, pero el control de calidad del nivel (`docs/QA_NIVEL2.md`) todavía no lo da por presentable y no hay EXE con él. `main` sigue en la alfa 0.3.0 con los escenarios I y III.
-
-Tres escenarios: dos completos en sus reglas (I y III), con selección, objetivos, victoria, derrota, reinicio y persistencia, y uno en desarrollo (II). Proyecto independiente en Godot 4.7.2. La entrega incluye código y exportación Windows x64. El acabado es 3D estilizado de detalle medio: la fidelidad cinematográfica solicitada sigue pendiente. Jev está integrado por contrato y alternativa local, pero no se validó una decisión viva por falta de credencial.
+Proyecto independiente en Godot 4.7.2 (GDScript, Forward+), exportado para Windows x64. **Nadie jugó a mano esta versión:** la probaron scripts que juegan por la entrada real (teclado y clics) y revisores automáticos; la diversión para personas reales queda para una prueba humana.
 
 ## Abrir en Windows
 
 1. Extraé el ZIP de Windows en una carpeta propia.
 2. Abrí **PatriaGuemes.exe**. El paquete del juego está embebido en el ejecutable.
-3. Elegí **I · El río ofrece una oportunidad** (la Justina), **II · Humahuaca: el depósito de la retaguardia** (en desarrollo; recomendado tras la Justina) o **III · Sostener el norte** (se abre al ganar la Justina).
+3. Elegí **I · La Justina** (empezá acá), **II · Humahuaca** (siempre abierto; recomendado tras la Justina) o **III · Sostener el norte** (se abre al ganar la Justina o Humahuaca). Al ganar un capítulo, el botón principal del parte lleva al siguiente.
 
 No hace falta instalar el editor de Godot, Blender, REA, Python ni un MCP para jugar. No hace falta una clave de Jev para completar los escenarios. Los guardados y ajustes se escriben en `%APPDATA%\Godot\app_userdata\Güemes — Juegos de la Patria`, fuera de la carpeta del ejecutable. La instalación de Civilization VII no forma parte del proyecto.
 
@@ -36,11 +34,11 @@ Al llegar al buque se representa un desmontaje de 12 segundos y la resolución d
 
 Los tiempos y tasas de victoria de los recorridos automatizados están en `docs/DISENO_JUSTINA.md` y en `evidence/`; son resultados del balance actual, no mediciones de jugadores.
 
-### II. Humahuaca: el depósito de la retaguardia · 1817 (corte vertical en desarrollo)
+### II. Humahuaca: el depósito de la retaguardia · 1817
 
 Hacia el 1 de marzo de 1817, unas 150 personas al mando de Manuel Eduardo Arias atacaron los depósitos que el ejército de La Serna tenía en Humahuaca, en su retaguardia: una batería, un cuartel y la posta con la pólvora. Güemes conducía desde Salta y no estuvo en el asalto. El nivel recrea esa noche en **tiempo real con pausa**: preparación, aproximación con lluvia, señal, ataque a los tres frentes a la vez y extracción al alba por el vado del este, antes de que llegue un refuerzo que es recurso del juego (en la realidad no hubo refuerzo inmediato). Cinco agrupaciones (las partidas de Rodríguez, Portal y Arias, los reconocedores y el arreo de mulas), un parte de victoria o derrota que enseña, reintento con el mismo mundo, diario, guardado y carga. Cada dato lleva su etiqueta de fuente (● documentado, ◇ razonado, ◆ discutido, ○ sin datos, ▲ diseño) y el epílogo fechado separa «en la realidad» de «en tu partida».
 
-**Estado honesto:** está en la rama `humahuaca-r1`, no en `main` ni en ningún EXE. Es un corte vertical: se juega entero y pasa sus pruebas automáticas, pero el arte es provisional (generador procedural, sin modelos nuevos), la cámara inicial queda lejos, el balance está abierto (los bots obedientes ganan casi siempre) y el QA del nivel (`docs/QA_NIVEL2.md`) no lo dio por presentable; faltan las rondas R2a a R4 (`docs/humahuaca/RETOMAR.md`).
+**Estado:** se juega entero desde el menú y desde el EXE de 0.5.0-preview1; la apertura muestra la quebrada y se salta con cualquier tecla; al elegir una partida fuera de la vista la cámara se acerca a ella (segunda pulsación: acercar a 240 m). Límite de diseño conocido: quien sigue la guía gana con bronce; la exigencia está en la plata y el oro (`docs/equipo/REFERENTES_Y_DECISIONES.md`).
 
 **Para empezar:** mirá el **siguiente paso** (abajo): una sola cosa por vez, con su botón y su tecla. Elegí una agrupación con **1 a 5**, mandá a los reconocedores (4) a mirar los frentes (**R**), llevá cada partida a su puesto (**P**), da la señal (**F**) cuando estén en posición y atacá (**T**). Tomados los tres frentes, cargá el arreo (**L**), destruí lo que no entra (**X**) y salí por el vado (**V**). **Espacio** pausa; **F1** explica todo. Teclas completas en `docs/CONTROLES.md` y `docs/humahuaca/CONTROLES.md`.
 
