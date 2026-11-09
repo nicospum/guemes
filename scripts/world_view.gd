@@ -74,6 +74,10 @@ func build(game_rules, quality_name = "media"):
  decoration_rng.seed = 12081806
  norte_relief = _norte_relief_load() if scenario == "norte" and NORTE_RELIEVE_REAL else {}
  norte_sector_h.clear()
+ # visual/r1 F5: lotes de casas por celda y distancia del cambio a _lod (Justina: 200 m, celdas de 128 m; Norte: 70 m, un lote por pueblo).
+ norte_bldg.clear()
+ casa_celda = 12.0 if scenario == "norte" else 128.0
+ casa_lod_m = 70.0 if scenario == "norte" else 200.0
  # Justina a escala real: solo si Reglas ya expone el mapa del contrato (map_data). Si no, queda el escenario anterior.
  justina = scenario == "justine" and rules.has_method("map_data") and not rules.map_data().is_empty()
  _lighting()
@@ -319,29 +323,87 @@ func _glb_variation(model_name:String,pos:Vector3)->Color:
   var wall=Color("d8cfb8").lerp(Color("c9b996"),h1)   # lino crudo -> arena (paleta del paquete)
   var k=0.66+0.22*h2
   return Color(wall.r*k*1.02,wall.g*k*0.97,wall.b*k*0.90)
+ if model_name.begins_with("casa_"):
+  # visual/r1 F5: el kit ya trae su color (cal, adobe, teja, torta); solo una edad leve por casa (±6 % de valor, apenas más cálida o fría).
+  var vk=0.94+0.12*h1
+  return Color(vk*(0.99+0.02*h2),vk,vk*(1.01-0.03*h2))
  var v=0.88+0.2*h1
  return Color(v,v*(0.97+0.06*h2),v*0.94)
 
+## visual/r1 F5: kit de casas del territorio (assets/models/casa_*.glb, docs/historia/CASAS_F5.md). Cada casa entra en un lote
+## MultiMesh por modelo y por celda de casa_celda m (128 m en la Justina; 12 m en el Norte, un pueblo): de cerca el GLB completo y desde casa_lod_m su _lod (rango de visibilidad de
+## cada lote, que Godot mide al centro de la caja del lote; por eso las celdas). Lo muy lejano del tablero va directo al _lod, sin
+## sombra. Las superficies se unen en una sola (_merge_surfaces: todo es color de vértice mate) y quedan 1 o 2 dibujos por lote.
+var casa_celda := 128.0
+var casa_lod_m := 200.0
+var glb_batch_info: Dictionary = {}
+## visual/r1 F5: huellas de las casas del Norte (x, z, radio) para que norte_camp no acampe encima.
+var norte_bldg: Array = []
+
+## Pone la casa `model` (frente −Z del GLB; origen en el suelo, centro de la caja). only_lod: solo la versión liviana (lejos del
+## tablero). tint: valor que multiplica el color del lote (contraste con el suelo donde hace falta; 1 = como viene). Devuelve false si
+## el GLB no carga (el que llama arma su respaldo procedural).
+func _casa(model:String,xf:Transform3D,only_lod:bool=false,tint:float=1.0)->bool:
+ if not _glb_ok(model):return false
+ var lod=model+"_lod"
+ var has_lod=ResourceLoader.exists("res://assets/models/"+lod+".glb")
+ var cell="%d_%d" % [int(floor(xf.origin.x/casa_celda)),int(floor(xf.origin.z/casa_celda))]+("" if is_equal_approx(tint,1.0) else "~%d" % roundi(tint*100.0))
+ if only_lod or not has_lod:
+  var k0=(lod if has_lod else model)+"@"+cell+("#lejos" if only_lod else "")
+  if not glb_batches.has(k0):
+   glb_batches[k0]=[]
+   glb_batch_info[k0]={"model":(lod if has_lod else model),"begin":0.0,"end":0.0,"shadow":not only_lod,"merge":true,"tint":tint}
+  glb_batches[k0].append(xf)
+  return true
+ var kn=model+"@"+cell;var kf=lod+"@"+cell
+ if not glb_batches.has(kn):
+  glb_batches[kn]=[];glb_batches[kf]=[]
+  glb_batch_info[kn]={"model":model,"begin":0.0,"end":casa_lod_m,"shadow":true,"merge":true,"tint":tint}
+  glb_batch_info[kf]={"model":lod,"begin":casa_lod_m,"end":0.0,"shadow":true,"merge":true,"tint":tint}
+ glb_batches[kn].append(xf);glb_batches[kf].append(xf)
+ return true
+
+## visual/r1 F5: altura de apoyo de una casa en la Justina: la más baja entre el centro y las cuatro esquinas de su caja (el cimiento
+## de piedra se entierra del lado alto, nunca queda flotando del lado bajo).
+func _casa_base_j(x:float,z:float,yaw:float,hx:float,hz:float)->float:
+ var y=_far_h(x,z)
+ for c in [Vector2(-hx,-hz),Vector2(hx,-hz),Vector2(-hx,hz),Vector2(hx,hz)]:
+  var p=c.rotated(-yaw)
+  y=minf(y,_far_h(x+p.x,z+p.y))
+ return y-0.05
+
 func _flush_glb_batches():
- for model_name in glb_batches:
-  var xfs:Array=glb_batches[model_name]
+ for key in glb_batches:
+  var xfs:Array=glb_batches[key]
+  var info:Dictionary=glb_batch_info.get(key,{})
+  var model_name:String=str(info.get("model",key))
+  if xfs.is_empty():continue
   for part in _glb_parts(model_name):
    var mm=MultiMesh.new()
    mm.transform_format=MultiMesh.TRANSFORM_3D
-   mm.mesh=part.mesh
+   mm.mesh=_merge_surfaces(part.mesh,false) if bool(info.get("merge",false)) else part.mesh
    mm.use_colors=true
    mm.instance_count=xfs.size()
    for i in range(xfs.size()):
     mm.set_instance_transform(i,xfs[i]*part.xf)
-    mm.set_instance_color(i,_glb_variation(model_name,xfs[i].origin))
+    var vc=_glb_variation(model_name,xfs[i].origin)
+    var tk=float(info.get("tint",1.0))
+    mm.set_instance_color(i,Color(vc.r*tk,vc.g*tk,vc.b*tk,vc.a))
    var mmi=MultiMeshInstance3D.new()
-   mmi.name="LoteGLB_"+model_name
+   mmi.name="LoteGLB_"+key.replace("@","_").replace("#","_").replace("~","_t")
    mmi.multimesh=mm
+   if not info.is_empty():
+    # visual/r1 F5: rango de visibilidad del lote (casa completa de cerca, _lod de lejos) con 12 m de margen para que no titile.
+    mmi.visibility_range_begin=float(info.begin);mmi.visibility_range_end=float(info.end)
+    if float(info.begin)>0.0:mmi.visibility_range_begin_margin=12.0
+    if float(info.end)>0.0:mmi.visibility_range_end_margin=12.0
+    if not bool(info.shadow):mmi.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
    (batch_parent if batch_parent!=null else self).add_child(mmi)
    if scenario=="norte" and model_name in NORTE_DECO_MODELS:
     if not glb_live.has(model_name):glb_live[model_name]={"xfs":xfs.duplicate(),"mms":[]}
     glb_live[model_name].mms.append({"mm":mm,"pxf":part.xf})
  glb_batches.clear()
+ glb_batch_info.clear()
 
 func _lighting():
  environment = WorldEnvironment.new()
@@ -562,10 +624,13 @@ func _coast():
  for o in rules.state.get("obstacles",[]):
   var center = Vector2(float(o.get("x",0)),float(o.get("z",0)))
   _house(Vector3(center.x,terrain_height(center.x,center.y),center.y),float(o.get("w",5)),float(o.get("d",5)))
- # Casas de la ribera, fuera de las rutas tácticas.
+ # Casas de la ribera, fuera de las rutas tácticas. visual/r1 F5: ranchos de paja y una casa de teja de cada tres (kit casa_*,
+ # a 0,5: esta ribera vieja es esquemática); ya no hay una iglesia cada tres casas (CASAS_F5.md, «Ribera: ninguna iglesia»).
  for i in range(10):
   var p = Vector2(-43.0+(i%2)*4.7,-25.0+i*5.0)
-  _house(Vector3(p.x,terrain_height(p.x,p.y),p.y),3.2,3.4, i%3==0)
+  var m_r = "casa_ba_a" if i%3==0 else ("casa_rancho_b" if i%2==0 else "casa_rancho_a")
+  if not _casa(m_r,Transform3D(Basis.from_euler(Vector3(0,-PI*0.5,0)).scaled_local(Vector3.ONE*0.5),Vector3(p.x,terrain_height(p.x,p.y)-0.05,p.y))):
+   _house(Vector3(p.x,terrain_height(p.x,p.y),p.y),3.2,3.4)
  for i in range(38):
   var p = Vector2(decoration_rng.randf_range(-53,-38),decoration_rng.randf_range(-40,40))
   _tree(Vector3(p.x,terrain_height(p.x,p.y),p.y),decoration_rng.randf_range(0.8,1.6))
@@ -596,13 +661,10 @@ func _north():
   ring.position.y = 0.18
   var label = _world_label(str(s.name).to_upper(),Vector3(0,3.6,0),Color("f1e2c2"),35,root)
   sector_nodes[str(s.id)] = {"root":root,"ring":ring,"label":label}
-  for j in range(4):
-   _house(point+Vector3((j%2)*1.8-0.9,0,(j/2)*1.9-0.9),1.15,1.45,j==0)
-  if str(s.id)=="salta":
-   _house(point+Vector3(0,0,-2.0),2.5,1.8,true)
-   _inst("cyl12",point+Vector3(-1.2,2.2,-1.7),Vector3(0.7,3.7,0.7),Color("d3c4a3"))
-  for t in range(2):
-   _tree(point+Vector3(3.2,0,float(t)*2.0-1),0.6)
+  _pueblo_n(s,point)
+  # visual/r1 F5: dos árboles fuera de las casas y del puesto realista (+4 m al este del sector; antes en (3,2, ±1), donde ahora lo tapaban).
+  _tree(point+Vector3(3.5,0,-2.7),0.6)
+  _tree(point+Vector3(-3.5,0,1.6),0.6)
  var sectors = rules.state.sectors
  # Las líneas muestran conectividad simplificada, no caminos topográficos de época.
  var drawn = {}
@@ -632,9 +694,52 @@ func _north():
  var enemy_edge=_ring(3.42,Looks.ROJO_BORDE,enemy_marker);enemy_edge.position.y=0.19
  enemy_edge.material_override=_mat(Looks.ROJO_BORDE,0.9,false)
  _world_label("◆ REALISTAS",Vector3(0,6.0,0),Color("e58478"),28,enemy_marker)
+ # visual/r1 F5: tres realistas de 1817 a pie (persona_realista_1817: chaqueta de bayeta, vueltas granate = código del enemigo, chacó;
+ # vestuario de DISEÑO), animados: idle quietos, walk cuando el puesto cambia de sector (_update_royalists_n). Antes royalist_1817.
+ royal_rigs.clear()
  for i in range(3):
-  var troop=_model("royalist_1817",Vector3(i*0.8-0.8,0,0.6),enemy_marker)
+  var rr=_foot_rig(enemy_marker,"persona_realista_1817","")
+  var troop:Node3D=rr.node
+  troop.name="Realista_%d" % i
+  troop.position=Vector3(i*0.8-0.8,0,0.6+0.25*float(i%2))
   troop.scale=Vector3.ONE*0.85
+  if rr.ap!=null and (rr.ap as AnimationPlayer).has_animation("idle"):(rr.ap as AnimationPlayer).seek(1.3*float(i),true)
+  royal_rigs.append(rr)
+
+## visual/r1 F5: pueblos del Norte con el kit de casas (CASAS_F5.md, «III · _north()»). El mapa del III es esquemático (Salta y el Valle
+## de Lerma quedan a 7,3 m; cada pueblo se aplana en un radio de 2,8 m y la tropa acampa a 6–9 m), así que la escala real no entra:
+## todas las casas van a UNA escala de maqueta, NORTE_CASA_ESCALA (1:4,2), sin estirar ninguna (antes cada casa se deformaba a una
+## huella de 1,15 × 1,45 m y la iglesia de Salta iba a 0,5). Así se conservan las proporciones entre tipos (la iglesia con torre llega a
+## 2,9 m, un rancho a 0,9 m) y el pueblo entra en su aro (3,2 m). La tropa va a 0,8 porque es la marca de juego, no una maqueta.
+## Frente −Z del kit girado media vuelta: puertas y galerías miran al sur, a la cámara inicial. [modelo, dx, dz, giro extra].
+const NORTE_CASA_ESCALA := 0.24
+const NORTE_PUEBLOS := {
+ "salta":[["casa_capilla_c",-1.35,-0.8,0.0],["casa_patio_b",1.5,-0.55,0.0],["casa_galeria_b",0.15,2.3,0.0]],
+ "jujuy":[["casa_capilla_c",1.35,-0.8,0.0],["casa_patio_b",-1.5,-0.55,0.0],["casa_galeria_b",-0.15,2.3,0.0]],
+ "lerma":[["casa_capilla_a",0.0,-1.2,0.0],["casa_pulperia_a",-1.9,0.6,0.0],["casa_rancho_a",1.75,0.4,0.1],["casa_rancho_b",0.0,1.9,-0.08]],
+ "chicoana":[["casa_posta_b",0.2,-1.0,0.0],["casa_rancho_a",-1.5,1.3,-0.1],["casa_galeria_b",1.3,1.5,0.0]],
+ "rosario":[["casa_capilla_a",-1.4,-0.8,0.0],["casa_pulperia_a",1.0,-0.9,0.0],["casa_galeria_b",0.9,1.5,0.0],["casa_rancho_a",-1.5,1.7,0.12]],
+ "oran":[["casa_capilla_a",0.0,-1.3,0.0],["casa_rancho_a",-1.6,0.8,0.1],["casa_rancho_b",1.5,0.8,-0.1],["casa_rancho_a",0.1,2.0,0.0]],
+ "quebrada":[["casa_capilla_b",-1.2,-0.6,0.0],["casa_torta_b",1.5,-1.2,0.0],["casa_torta_a",1.4,0.7,0.1],["casa_corral_pirca_a",1.3,2.8,0.0]],
+ "humahuaca":[["casa_capilla_a",0.0,-1.3,0.0],["casa_torta_a",-1.6,0.6,-0.1],["casa_torta_b",1.3,0.9,0.0],["casa_rancho_c",-0.3,2.0,0.15]]}
+
+func _pueblo_n(s:Dictionary,point:Vector3)->void:
+ var lay:Array=NORTE_PUEBLOS.get(str(s.id),[["casa_rancho_a",-1.0,-0.6,0.0],["casa_rancho_b",1.0,0.4,0.0],["casa_capilla_a",0.0,-1.6,0.0]])
+ var sc=NORTE_CASA_ESCALA
+ for e in lay:
+  var model=str(e[0]);var yaw=PI+float(e[3])
+  var hs=_casa_size(model)*sc*0.5
+  var c=Vector2(point.x+float(e[1]),point.z+float(e[2]))
+  # De pie en el punto más bajo de su caja (el pueblo es plano hasta 2,8 m; más afuera la ladera sube y el cimiento se entierra).
+  var y=terrain_height(c.x,c.y)
+  for k in [Vector2(-hs.x,-hs.z),Vector2(hs.x,-hs.z),Vector2(-hs.x,hs.z),Vector2(hs.x,hs.z)]:
+   var q=k.rotated(-yaw);y=minf(y,terrain_height(c.x+q.x,c.y+q.y))
+  if _casa(model,Transform3D(Basis.from_euler(Vector3(0,yaw,0)).scaled_local(Vector3.ONE*sc),Vector3(c.x,y-0.03,c.y))):
+   norte_bldg.append(Vector3(c.x,c.y,maxf(hs.x,hs.z)))
+  else:
+   _house(Vector3(c.x,y,c.y),1.15,1.45,model.begins_with("casa_capilla"))
+
+var royal_rigs:Array=[]
 
 func _road(a:Vector2,b:Vector2):
  var count=int(a.distance_to(b)/0.9)
@@ -742,8 +847,6 @@ func _create_group(unit:Dictionary):
  root.position=Vector3(float(unit.x),terrain_height(float(unit.x),float(unit.z)),float(unit.z))
  var figures=Node3D.new();figures.name="Figures";root.add_child(figures)
  var mounted=bool(unit.get("mounted",true))
- var file="rider_1806" if scenario=="justine" else "rider_1817"
- if not mounted:file="dismounted_1806"
  var anims=[]
  # visual/r1 F3: la tropa sale de los hombres de diseño (NORTE_MEN_DISENO, tope 24 figuras). El jefe es una figura animada del GLB
  # (con su trote) al frente y al centro; el resto va en un MultiMesh (un solo dibujo por pieza) formado en filas detrás de él.
@@ -759,15 +862,11 @@ func _create_group(unit:Dictionary):
   lead=rig.node
   parts=_mount_parts(figures,"1806" if scenario=="justine" else "1817",maxi(n-1,1),"",gid.hash())
  else:
-  lead=_model(file,Vector3.ZERO,figures);lead.name="Jefe"
-  for player in lead.find_children("*","AnimationPlayer",true,false):
-   var list=player.get_animation_list()
-   for anim in list:
-    if "trot" in anim or "walk" in anim:
-     player.get_animation(anim).loop_mode=Animation.LOOP_LINEAR
-     player.play(anim);player.pause();player.speed_scale=0.75;anims.append(player);break
-  parts=_mm_parts(figures,file,maxi(n-1,1))
-  for p in parts:p.mm.mesh=_lod_mesh(p.mm.mesh)
+  # visual/r1 F5: a pie en el Norte, gaucho de 1817 (persona_gaucho_1817, antes el desmontado de 1806, de otra época): jefe animado
+  # (idle/walk/run, _foot_step) con poncho pardo o, si es Güemes, el granate oscuro; tropa _lod en MultiMesh.
+  rig=_foot_rig(figures,"persona_gaucho_1817","heroe" if gid=="guemes" else "poncho")
+  lead=rig.node
+  parts=_foot_parts(figures,"persona_gaucho_1817",maxi(n-1,1),"poncho")
  lead.scale=Vector3.ONE*NORTE_FIG_SCALE
  if scenario=="norte":
   # P1 ronda 2: realce de borde (luz de contorno celeste pálido + un piso mínimo de luz) para que las figuras propias no se pierdan
@@ -821,7 +920,7 @@ func _layout_group_n(entry:Dictionary,id:String,moving:bool)->void:
   var wp=base+lp.rotated(Vector3.UP,fig.rotation.y)
   var gy=terrain_height(wp.x,wp.z)-base.y
   hsum+=gy
-  var bob=0.07*absf(sin(t*7.0+float(i)*0.9)) if (moving and not far) else 0.0
+  var bob=0.07*absf(sin(t*7.0+float(i)*0.9)) if (moving and not far and (mounted or not (entry.parts[0] as Dictionary).has("poses"))) else 0.0   # visual/r1 F5: a pie con cuadros horneados, sin vaivén
   var xf=Transform3D(Basis.from_euler(Vector3(0.0,f.z,0.0)).scaled_local(Vector3.ONE*sc),Vector3(lp.x,gy+bob*sc,lp.z))
   _set_fig(entry.parts,i,xf)
  # Radio del aro: media diagonal de la huella (jefe incluido) + medio caballo y un margen.
@@ -882,38 +981,45 @@ func norte_camp(sector_id:String,slot:int)->Vector2:
  for s2 in rules.state.get("sectors",[]):
   avoid.append(Vector2(float(s2.x),float(s2.z)));avoid.append(Vector2(float(s2.x)+4.0,float(s2.z)))
  var best=c0+Vector2(-3.3,2.8);var best_cost=INF
- for r in [6.0,7.0,8.0,9.0]:
-  for ai in range(24):
-   var a=TAU*float(ai)/24.0
-   var c=c0+Vector2(cos(a),sin(a))*r
-   if absf(c.x)>44.0 or absf(c.y)>34.0:continue
-   var bad=false
-   for q in avoid:
-    if c.distance_to(q)<NORTE_CAMP_R+1.6:bad=true;break
-   for t in taken:
-    if c.distance_to(t)<NORTE_CAMP_R*2.0+0.8:bad=true;break
-   # Que se lea como parte de SU pueblo: más cerca de su sector que de cualquier otro (con 1,5 m de margen).
-   for s3 in rules.state.get("sectors",[]):
-    if str(s3.id)!=sector_id and c.distance_to(Vector2(float(s3.x),float(s3.z)))<c.distance_to(c0)+1.5:bad=true;break
-   if bad:continue
-   var hs:Array=[]
-   for k in range(13):
-    var q2=c if k==0 else c+Vector2(cos(TAU*float(k)/6.0),sin(TAU*float(k)/6.0))*(NORTE_CAMP_R*(0.5 if k<=6 else 1.0))
-    hs.append(terrain_height(q2.x,q2.y))
-   var hmin:float=hs.min();var hmax:float=hs.max()
-   var occl=0
-   var to_cam=Vector2(sin(-0.17),cos(-0.17));var rise=tan(0.91)
-   for k in range(7):
-    var q3=c if k==0 else c+Vector2(cos(TAU*float(k)/6.0),sin(TAU*float(k)/6.0))*NORTE_CAMP_R*0.7
-    var h0=terrain_height(q3.x,q3.y)+0.8
-    for step in range(1,26):
-     var pp=q3+to_cam*float(step)
-     if terrain_height(pp.x,pp.y)>h0+rise*float(step):occl+=1;break
-   var cost=(hmax-hmin)+float(occl)*1.5+r*0.35
-   # Lejos del lado de los otros pueblos, donde acampan sus tropas (sin esto Güemes en Lerma y Arias en Jujuy se pisaban los aros).
-   for s4 in rules.state.get("sectors",[]):
-    if str(s4.id)!=sector_id:cost+=0.6*maxf(0.0,16.0-c.distance_to(Vector2(float(s4.x),float(s4.z))))
-   if cost<best_cost:best_cost=cost;best=c
+ # visual/r1 F5: primera pasada evitando también las casas; si ningún lugar sirve, la segunda las ignora (como antes de F5).
+ for use_bldg in ([true,false] if not norte_bldg.is_empty() else [false]):
+  if best_cost<INF:break
+  for r in [6.0,7.0,8.0,9.0]:
+   for ai in range(24):
+    var a=TAU*float(ai)/24.0
+    var c=c0+Vector2(cos(a),sin(a))*r
+    if absf(c.x)>44.0 or absf(c.y)>34.0:continue
+    var bad=false
+    for q in avoid:
+     if c.distance_to(q)<NORTE_CAMP_R+1.6:bad=true;break
+    for t in taken:
+     if c.distance_to(t)<NORTE_CAMP_R*2.0+0.8:bad=true;break
+    # visual/r1 F5: tampoco encima de una casa del pueblo (huella de _pueblo_n): la tropa queda a NORTE_CAMP_R + media casa de cada una.
+    if use_bldg:
+     for b in norte_bldg:
+      if c.distance_to(Vector2(b.x,b.y))<NORTE_CAMP_R+b.z*0.5+0.2:bad=true;break
+    # Que se lea como parte de SU pueblo: más cerca de su sector que de cualquier otro (con 1,5 m de margen).
+    for s3 in rules.state.get("sectors",[]):
+     if str(s3.id)!=sector_id and c.distance_to(Vector2(float(s3.x),float(s3.z)))<c.distance_to(c0)+1.5:bad=true;break
+    if bad:continue
+    var hs:Array=[]
+    for k in range(13):
+     var q2=c if k==0 else c+Vector2(cos(TAU*float(k)/6.0),sin(TAU*float(k)/6.0))*(NORTE_CAMP_R*(0.5 if k<=6 else 1.0))
+     hs.append(terrain_height(q2.x,q2.y))
+    var hmin:float=hs.min();var hmax:float=hs.max()
+    var occl=0
+    var to_cam=Vector2(sin(-0.17),cos(-0.17));var rise=tan(0.91)
+    for k in range(7):
+     var q3=c if k==0 else c+Vector2(cos(TAU*float(k)/6.0),sin(TAU*float(k)/6.0))*NORTE_CAMP_R*0.7
+     var h0=terrain_height(q3.x,q3.y)+0.8
+     for step in range(1,26):
+      var pp=q3+to_cam*float(step)
+      if terrain_height(pp.x,pp.y)>h0+rise*float(step):occl+=1;break
+    var cost=(hmax-hmin)+float(occl)*1.5+r*0.35
+    # Lejos del lado de los otros pueblos, donde acampan sus tropas (sin esto Güemes en Lerma y Arias en Jujuy se pisaban los aros).
+    for s4 in rules.state.get("sectors",[]):
+     if str(s4.id)!=sector_id:cost+=0.6*maxf(0.0,16.0-c.distance_to(Vector2(float(s4.x),float(s4.z))))
+    if cost<best_cost:best_cost=cost;best=c
  norte_camp_cache[key]=best
  return best
 
@@ -1046,7 +1152,14 @@ func _poncho_mesh(src:Mesh,hero:bool)->Mesh:
    # visual/r1 F4: jinete F4 sin textura: color normalizado (/0,62) para reconocer el granate y tinta de salida x0,62 (ver F4_ALBEDO).
    var nk=1.0/F4_ALBEDO if nm.begins_with("F4") else 1.0
    var ok=F4_ALBEDO if nm.begins_with("F4") else 1.0
-   if a[Mesh.ARRAY_COLOR] is PackedColorArray and (nm.ends_with("wool") or nm.ends_with("linen")):
+   var role=_role_of(nm)
+   if role!="" and a[Mesh.ARRAY_COLOR] is PackedColorArray:
+    # visual/r1 F5: jinete F5 (y figuras F5 de a pie) con material por rol: el umbral de color de abajo dejaba sin teñir el 35 % del
+    # poncho nuevo (más oscuro por la oclusión horneada: r normalizado 0,04–0,26) y lo teñía casi negro (factor r/0,5). Ahora se tiñe la
+    # superficie entera del rol con la sombra relativa (_role_cols): poncho pardo de tropa, granate oscuro del héroe, faja ocre.
+    if role=="poncho":a[Mesh.ARRAY_COLOR]=_role_cols(a[Mesh.ARRAY_COLOR],hero_c if hero else brown,ok)
+    elif role=="panuelo":a[Mesh.ARRAY_COLOR]=_role_cols(a[Mesh.ARRAY_COLOR],sash,ok)
+   elif a[Mesh.ARRAY_COLOR] is PackedColorArray and (nm.ends_with("wool") or nm.ends_with("linen")):
     var cols:PackedColorArray=a[Mesh.ARRAY_COLOR]
     for k in range(cols.size()):
      var c=Color(cols[k].r*nk,cols[k].g*nk,cols[k].b*nk,cols[k].a)
@@ -1136,7 +1249,10 @@ func update_state(delta:float):
   if not rig_n.is_empty():
    var v_n=Vector2(root.position.x-float(entry.get("vpos",root.position).x),root.position.z-float(entry.get("vpos",root.position).z)).length()/maxf(delta,0.0001)
    entry["vpos"]=root.position
-   _gait_step(rig_n,v_n if v_n<60.0 else 0.0,-1.0,animating,"",NORTE_FIG_SCALE,delta,far_n or not root.visible)
+   if bool(rig_n.get("foot",false)):
+    _foot_step(rig_n,v_n if v_n<60.0 else 0.0,animating,NORTE_FIG_SCALE,delta,far_n or not root.visible)
+    _foot_troop_anim(entry.parts,rig_n,far_n or not root.visible)
+   else:_gait_step(rig_n,v_n if v_n<60.0 else 0.0,-1.0,animating,"",NORTE_FIG_SCALE,delta,far_n or not root.visible)
   if entry.has("parts"):
    # Bajas y refuerzos cambian la cantidad de figuras; en marcha se rehace la formación (suelo y vaivén) y una vez más al parar.
    var n_now=_group_count(u)
@@ -1189,7 +1305,15 @@ func update_state(delta:float):
    if sector_nodes.has(position_id):
     var target:Vector3=sector_nodes[position_id].root.position+Vector3(4,0,0)
     target.y=terrain_height(target.x,target.z)
+    var em_prev=enemy_marker.position
     enemy_marker.position=enemy_marker.position.lerp(target,minf(1,delta*3))
+    # visual/r1 F5: los realistas caminan mientras el puesto se mueve y miran hacia donde van; quietos, idle.
+    var em_v=Vector2(enemy_marker.position.x-em_prev.x,enemy_marker.position.z-em_prev.z)
+    for rr in royal_rigs:
+     if not is_instance_valid(rr.node):continue
+     var mv=em_v.length()/maxf(delta,0.0001)
+     if mv>0.15:(rr.node as Node3D).rotation.y=lerp_angle((rr.node as Node3D).rotation.y,atan2(-em_v.x,-em_v.y),minf(1.0,delta*6.0))
+     _foot_step(rr,mv,mv>0.15,0.85,delta,false)
   if look=="norte":_update_north_fog()
 
 ## C1: la niebla de profundidad del Norte arranca un poco detrás del punto que mira la cámara (así el zoom no apaga el mapa)
@@ -1476,6 +1600,7 @@ func _build_justina():
  _scenery_j()
  _barranca_j()
  _meseta_town_j()
+ _ribera_j()
  _scale_bar_j()
  _obstacles_j()
  _ship_j()
@@ -1483,6 +1608,9 @@ func _build_justina():
  _ensign_j(M.get("ship",{}))
  _effects_j()
  _exposure_j()
+ # visual/r1 F5: horneado previo de la tropa de a pie de cada grupo (piel por CPU, tinte y LOD: ~50 ms en total al cargar), así el
+ # desmonte en pleno juego no da un tirón.
+ for g in M.get("groups",[]):_foot_poses("persona_voluntario_1806",str(g.get("id","")))
 
 func _sample_heightfield():
  hf_nx=int(round(map_w/J_CELL))+1
@@ -1949,31 +2077,45 @@ var ref_labels: Dictionary = {}
 const SCALE_X = 197.0
 const SCALE_Z0 = 312.0
 
-func _house_at(x:float,z:float,w:float,d:float,yaw:float,col_tint:Color=Color.WHITE):
+## visual/r1 F5: casas del kit (CASAS_F5.md, «I · _house_at»). ctx "quinta" (meseta del Retiro), "aislada" (quintas y ranchos sueltos del
+## camino de Las Conchas) o "ciudad" (cuadras al sur y ciudad alta; más teja que azotea: es la orilla de la traza, y la azotea clara
+## del kit casi no se despega del suelo visto desde arriba y de lejos). A escala real (el tablero de la Justina está en metros) con ±4 %
+## de variación; w y d de quien llama ya no estiran la casa (las cajas del kit miden 6–20 m). Reconstrucción estética (Vidal, S24):
+## azoteas y teja en la ciudad, quintas con corredor y tapia en la meseta, ranchos de paja en las afueras. Sin GLB, las cajas de R7.
+const CASAS_J = {
+ "quinta":[[0.22,"casa_ba_b"],[0.36,"casa_rancho_a"],[0.46,"casa_rancho_b"],[0.80,"casa_quinta_a"],[1.01,"casa_ba_a"]],
+ "aislada":[[0.18,"casa_rancho_a"],[0.30,"casa_rancho_b"],[0.70,"casa_quinta_b"],[1.01,"casa_quinta_a"]],
+ "ciudad":[[0.30,"casa_ba_b"],[0.88,"casa_ba_a"],[1.01,"casa_rancho_a"]]}
+var casa_size_cache:Dictionary={}
+## Tamaño (x, y, z) de la caja de un modelo del kit según f5_casas_manifest.json (godot_bounds); sin manifiesto, 6 × 4 × 6 m.
+func _casa_size(model:String)->Vector3:
+ if casa_size_cache.is_empty():
+  casa_size_cache["_"]=true
+  var mf=JSON.parse_string(FileAccess.get_file_as_string("res://assets/models/f5_casas_manifest.json")) if FileAccess.file_exists("res://assets/models/f5_casas_manifest.json") else null
+  if mf is Dictionary:
+   for k in mf:
+    var b=(mf[k] as Dictionary).get("godot_bounds",{}) if mf[k] is Dictionary else {}
+    if b is Dictionary and b.has("min") and b.has("max"):
+     casa_size_cache[k]=Vector3(float(b.max[0])-float(b.min[0]),float(b.max[1])-float(b.min[1]),float(b.max[2])-float(b.min[2]))
+ return casa_size_cache.get(model,Vector3(6.0,4.0,6.0))
+
+func _house_at(x:float,z:float,w:float,d:float,yaw:float,ctx:String="ciudad"):
  var hv=fposmod(sin(x*7.31+z*3.17)*9631.7,1.0)
- if hv>=0.30 and hv<0.80:
-  # R7: variedad (informe F/E2: casas bajas de azotea, ranchos de paja y tejados; Vidal 1820). Reconstruccion estetica, no inventario.
-  var hb=_far_h(x,z);var thatch=hv<0.46
-  var wh=2.3+1.4*fposmod(sin(x*1.7+z*4.1)*431.3,1.0)
-  var wc=Color("d8cfb8").lerp(Color("a38d6b"),fposmod(sin(x*3.3+z*2.7)*377.7,1.0)*(0.9 if thatch else 0.5)).darkened(0.10)
-  var ww=w*(0.75 if thatch else 0.9);var dd=d*(0.7 if thatch else 0.85)
-  _inst_r("box",Vector3(x,hb+wh*0.5,z),Vector3(ww,wh,dd),yaw,wc)
-  var roof=Color("b9a57c").darkened(0.12) if thatch else Color("77604a").lerp(Color("7e5b48"),fposmod(sin(x+z)*99.9,1.0))
-  var rh=ww*(0.34 if thatch else 0.22)
-  _inst_r("prism",Vector3(x,hb+wh+rh*0.5-0.02,z),Vector3(ww*1.08,rh,dd*1.12),yaw+PI*0.5,roof)
-  return
- if not _glb_ok("house_colonial") or hv<0.30:
-  # Casa de azotea (Vidal 1820: techos planos con parapeto, revoque claro) o sin GLB: caja con parapeto, alturas y tonos variados. Reconstruccion.
-  var hh=3.2+1.8*fposmod(sin(x*2.1+z*5.3)*777.7,1.0)
-  var base=_far_h(x,z)
-  var wall=Color("d8cfb8").lerp(Color("c2ae88"),fposmod(sin(x*4.3+z*1.9)*555.5,1.0)).darkened(0.12)
-  _inst_r("box",Vector3(x,base+hh*0.5,z),Vector3(w,hh,d),yaw,wall)
-  _inst_r("box",Vector3(x,base+hh+0.28,z),Vector3(w*1.02,0.56,d*1.02),yaw,wall.lightened(0.04))
-  if hv<0.12:_inst_r("box",Vector3(x,base+hh*0.55,z),Vector3(w*0.3,hh*0.8,d*1.04),yaw,Color("4c372b"))
-  return
- var sx=w/5.7;var sz=d/6.0
- var b=Basis.from_euler(Vector3(0,yaw,0)).scaled_local(Vector3(sx,(sx+sz)*0.5*(0.85+0.5*hv),sz))
- _inst_glb("house_colonial",Transform3D(b,Vector3(x,_far_h(x,z),z)))
+ var model=""
+ for e in CASAS_J.get(ctx,CASAS_J.ciudad):
+  if hv<float(e[0]):model=str(e[1]);break
+ var s=0.96+0.08*fposmod(sin(x*2.1+z*5.3)*777.7,1.0)
+ var sz=_casa_size(model)*s
+ # Lejos del tablero (más de 150 m afuera): solo la versión liviana y sin sombra.
+ var out=maxf(maxf(-x,x-map_w),maxf(-z,z-map_h))
+ var y=_casa_base_j(x,z,yaw,sz.x*0.5,sz.z*0.5)
+ if _casa(model,Transform3D(Basis.from_euler(Vector3(0,yaw,0)).scaled_local(Vector3.ONE*s),Vector3(x,y,z)),out>150.0):return
+ # Respaldo sin GLB (R7): casa de azotea, caja con parapeto. Reconstrucción.
+ var hh=3.2+1.8*fposmod(sin(x*2.1+z*5.3)*777.7,1.0)
+ var base=_far_h(x,z)
+ var wall=Color("d8cfb8").lerp(Color("c2ae88"),fposmod(sin(x*4.3+z*1.9)*555.5,1.0)).darkened(0.12)
+ _inst_r("box",Vector3(x,base+hh*0.5,z),Vector3(w,hh,d),yaw,wall)
+ _inst_r("box",Vector3(x,base+hh+0.28,z),Vector3(w*1.02,0.56,d*1.02),yaw,wall.lightened(0.04))
 
 func _scenery_j():
  var rng=RandomNumberGenerator.new();rng.seed=4606
@@ -2080,7 +2222,7 @@ func _scenery_j():
  for i in range(14):
   var qx=rng.randf_range(-260.0,90.0);var qz=rng.randf_range(-520.0,-30.0)
   if _far_h(qx,qz)<4.0:continue
-  _house_at(qx,qz,rng.randf_range(6.5,10.0),rng.randf_range(6.5,9.0),rng.randf()*TAU)
+  _house_at(qx,qz,rng.randf_range(6.5,10.0),rng.randf_range(6.5,9.0),rng.randf()*TAU,"aislada")
  # ciudad al sur: cuadras de ~117 m (Boneo 1801), casas bajas de azotea; dos torres de iglesia
  var churches=0
  var bz=660.0
@@ -2094,10 +2236,12 @@ func _scenery_j():
      var side=k%4;var t=rng.randf_range(-0.45,0.45)
      var hx=bx+(t*117.0 if side%2==0 else (-0.42 if side==1 else 0.42)*117.0)
      var hz=bz+((-0.42 if side==0 else 0.42)*117.0 if side%2==0 else t*117.0)
-     _house_at(hx,hz,rng.randf_range(8.0,12.0),rng.randf_range(9.0,13.0),(0.0 if side%2==0 else PI*0.5)+rng.randf_range(-0.04,0.04))
-    if churches<4 and rng.randf()<0.16 and _glb_ok("church_colonial"):
+     # visual/r1 F5: el frente (−Z del kit) mira a la calle de su lado de la cuadra (lados 2 y 3: media vuelta).
+     _house_at(hx,hz,rng.randf_range(8.0,12.0),rng.randf_range(9.0,13.0),(0.0 if side%2==0 else PI*0.5)+rng.randf_range(-0.04,0.04)+(PI if side>=2 else 0.0),"ciudad")
+    if churches<4 and rng.randf()<0.16 and _glb_ok("casa_capilla_c"):
      churches+=1
-     _inst_glb("church_colonial",Transform3D(Basis.from_scale(Vector3.ONE*0.95),Vector3(bx,_far_h(bx,bz),bz)))
+     # visual/r1 F5: iglesia con torre y cupulín del kit (casa_capilla_c, 12 m) a escala 1, en lugar de church_colonial.
+     _casa("casa_capilla_c",Transform3D(Basis.IDENTITY,Vector3(bx,_casa_base_j(bx,bz,0.0,5.4,8.3),bz)),true)
    bx+=117.0
   bz+=117.0
 
@@ -2114,9 +2258,9 @@ func _scenery_j():
     for k in range(5):
      var hx=x0+rng2.randf_range(-58.0,58.0);var hz=bz2+rng2.randf_range(-58.0,58.0)
      if _far_h(hx,hz)>3.0:_house_at(hx,hz,rng2.randf_range(8.0,12.0),rng2.randf_range(9.0,13.0),(0.0 if rng2.randf()<0.5 else PI*0.5))
-    if towers<7 and ring_i<2 and rng2.randf()<0.10 and _glb_ok("church_colonial"):
+    if towers<7 and ring_i<2 and rng2.randf()<0.10 and _glb_ok("casa_capilla_c"):
      towers+=1
-     _inst_glb("church_colonial",Transform3D(Basis.from_scale(Vector3.ONE*1.15),Vector3(x0,_far_h(x0,bz2),bz2)))
+     _casa("casa_capilla_c",Transform3D(Basis.from_euler(Vector3(0,PI*0.5,0)),Vector3(x0,_casa_base_j(x0,bz2,PI*0.5,5.4,8.3),bz2)),x0<-150.0)
    bz2+=117.0
 
 # ---------------------------------------------------------------- barranca y caserío (P1, ronda 2)
@@ -2206,23 +2350,54 @@ func _meseta_town_j():
   var xq=rng.randf_range(22.0,62.0)
   if not _reserved_j(xq,zq,22.0):
    # 2-4 casas alineadas a la calle (frente al este), patio con tapia baja y 3-6 frutales detrás.
+   # visual/r1 F5: casas del kit (_house_at "quinta") a 12 m entre centros (antes 9,5: la quinta con corredor mide 11,4 m de frente);
+   # el frente −Z del kit gira −90° para mirar al este, a la calle. Tapia del patio con módulos de tapia encalada (casa_tapia_cal_b).
    var nh=rng.randi_range(2,4)
    for k in range(nh):
-    var hz=zq-12.0+float(k)*9.5
-    _house_at(xq+rng.randf_range(-1.0,1.0),hz,rng.randf_range(6.5,9.0),rng.randf_range(7.0,8.5),PI*0.5+rng.randf_range(-0.05,0.05))
-   var px0=xq-26.0;var px1=xq-6.0;var pz0=zq-16.0;var pz1=zq-16.0+float(nh)*9.5+4.0
+    var hz=zq-12.0+float(k)*12.0
+    _house_at(xq+rng.randf_range(-1.0,1.0),hz,rng.randf_range(6.5,9.0),rng.randf_range(7.0,8.5),-PI*0.5+rng.randf_range(-0.05,0.05),"quinta")
+   var px0=xq-26.0;var px1=xq-6.0;var pz0=zq-18.0;var pz1=zq-18.0+float(nh)*12.0+2.0
+   var tapia_glb=_glb_ok("casa_tapia_cal_b")
    for seg in [[px0,pz0,px1,pz0],[px0,pz1,px1,pz1],[px0,pz0,px0,pz1]]:
     var a=Vector2(seg[0],seg[1]);var b=Vector2(seg[2],seg[3])
     var n=maxi(1,int(ceil(a.distance_to(b)/4.0)))
     for i in range(n):
      var m0=a.lerp(b,(float(i)+0.5)/float(n));var ln=a.distance_to(b)/float(n)
      var horiz=absf(b.x-a.x)>absf(b.y-a.y)
-     _inst_r("box",Vector3(m0.x,_h(m0.x,m0.y)+0.75,m0.y),Vector3(ln+0.05 if horiz else 0.45,1.6,0.45 if horiz else ln+0.05),0.0,Color("c8bb9c").darkened(rng.randf()*0.12))
+     var tc=Color("c8bb9c").darkened(rng.randf()*0.12)
+     if tapia_glb:
+      # Módulo de 4,04 m estirado al tramo y a 1,7 m de alto (la «tapia baja» de antes medía 1,6 m); de pie en el punto más bajo del tramo.
+      var ty=minf(_h(m0.x,m0.y),minf(_h(m0.x-(ln*0.5 if horiz else 0.0),m0.y-(0.0 if horiz else ln*0.5)),_h(m0.x+(ln*0.5 if horiz else 0.0),m0.y+(0.0 if horiz else ln*0.5))))-0.08
+      _casa("casa_tapia_cal_b",Transform3D(Basis.from_euler(Vector3(0,0.0 if horiz else PI*0.5,0)).scaled_local(Vector3((ln+0.05)/4.04,0.72,1.0)),Vector3(m0.x,ty,m0.y)))
+     else:
+      _inst_r("box",Vector3(m0.x,_h(m0.x,m0.y)+0.75,m0.y),Vector3(ln+0.05 if horiz else 0.45,1.6,0.45 if horiz else ln+0.05),0.0,tc)
    if glb_tree:
     for i in range(rng.randi_range(3,6)):
      var fx=rng.randf_range(px0+3.0,px1-3.0);var fz=rng.randf_range(pz0+3.0,pz1-3.0)
      _inst_glb("tree_algarrobo",Transform3D(Basis.from_euler(Vector3(0,rng.randf()*TAU,0)).scaled_local(Vector3.ONE*rng.randf_range(0.8,1.25)),Vector3(fx,_h(fx,fz)-0.1,fz)))
   zq+=rng.randf_range(52.0,78.0)
+
+## visual/r1 F5: ranchos del bajo del Retiro, al pie de la barranca (CASAS_F5.md, «Ribera»: ranchos de paja y alguna casa de teja;
+## ninguna iglesia). Vidal (S24) muestra ranchos de paja en las afueras; que hubiera ranchos de pescadores o lavanderas en el bajo es
+## inferencia: Reconstrucción estética. Con el fondo contra el pie (lo de atrás se entierra en el talud y el frente sale 2–4 m a la playa,
+## donde menos se camina), con el frente al río, sobre la marea alta y lejos de
+## hitos, bajadas, grupos, carretas y la regla de escala. No cambian reglas, caminos ni lo que se puede pisar.
+func _ribera_j():
+ var toe:Array=M.get("barranca",{}).get("toe",[])
+ if toe.is_empty():return
+ var rng=RandomNumberGenerator.new();rng.seed=18060731
+ var z=12.0;var placed=0
+ while z<map_h-12.0 and placed<9:
+  var model="casa_ba_a" if placed%4==3 else ("casa_rancho_b" if rng.randf()<0.4 else "casa_rancho_a")
+  var sz=_casa_size(model)
+  var x=_poly_x(toe,z)+sz.z*0.5-rng.randf_range(1.2,2.0)
+  var yaw=-PI*0.5+rng.randf_range(-0.12,0.12)   # frente (−Z del kit) hacia el río (+X)
+  var ok=not _reserved_j(x,z,sz.x*0.5+4.0) and absf(z-(SCALE_Z0+50.0))>62.0 and _h(x,z)>level_high_m+0.3
+  # Los ranchos van 18 % más oscuros (adobe y paja ahumados): contra la arena clara de la playa alta el adobe del kit quedaba a ΔL* ≈ −10
+  # (V06 pide 12); la casa de teja no lo necesita (cal clara y teja oscura).
+  if ok and _casa(model,Transform3D(Basis.from_euler(Vector3(0,yaw,0)),Vector3(x,_casa_base_j(x,z,yaw,sz.x*0.5,sz.z*0.5),z)),false,1.0 if model=="casa_ba_a" else 0.82):
+   placed+=1;z+=rng.randf_range(18.0,32.0)
+  else:z+=6.0
 
 # ---------------------------------------------------------------- escala y referencias
 func _scale_bar_j():
@@ -2669,6 +2844,27 @@ const GROUP_RIDERS = {"guemes":"guemes","arias":"voluntarios","zavala":"jinetes"
 const ROLE_KEYS = {"casaca":["casaca","chaqueta","chaleco"],"vueltas":["vueltas","botones","chaleco"],"poncho":["poncho","chaleco","chaqueta"],
  "calzon":["calzon","calzado"],"sombrero":["sombrero"],"camisa":["camisa"],"camisa2":["camisa"]}
 var tint_cache:Dictionary={}
+## visual/r1 F5: rol de la figura F5 → rol de TINT_BASES/ROLE_KEYS cuyo color de la paleta del grupo toma (los mismos que reconoce el
+## jinete F4 de 1806: casaca, vueltas, sombrero y corbatín negros, calzón de lino como la camisa). Los demás roles quedan como vienen.
+const F5_ROLE_TINT = {"casaca":"casaca","chaqueta":"casaca","vueltas":"vueltas","sombrero":"sombrero","corbatin":"sombrero","calzon":"camisa","camisa":"camisa"}
+
+## visual/r1 F5: rol del material «<F4|F5> | <rol> | <clase>» (f5_personas_manifest: _convenciones.color); "" si no tiene ese formato.
+func _role_of(nm:String)->String:
+ var p=nm.split(" | ")
+ return p[1] if p.size()>=3 and (p[0]=="F4" or p[0]=="F5") else ""
+
+## visual/r1 F5: retinte de una superficie de un rol (manifiesto: «color nuevo = tinte × (COLOR_0 / color base del rol)»): la sombra de
+## cada vértice es su luminancia sobre la del vértice más claro de la superficie (la oclusión horneada se conserva; tope abajo 0,15).
+## out_k = F4_ALBEDO en los jinetes F4, 1 en las figuras F5.
+func _role_cols(src:PackedColorArray,t:Color,out_k:float)->PackedColorArray:
+ var cols:PackedColorArray=src.duplicate()
+ var mx=0.0
+ for c in cols:mx=maxf(mx,c.get_luminance())
+ if mx<=0.00001:return cols
+ for k in range(cols.size()):
+  var sh=clampf(cols[k].get_luminance()/mx,0.15,1.0)*out_k
+  cols[k]=Color(minf(t.r*sh,1.0),minf(t.g*sh,1.0),minf(t.b*sh,1.0),cols[k].a)
+ return cols
 
 func _tinted_mesh(src:Mesh,group_id:String)->Mesh:
  var key=str(src.get_rid().get_id())+"|"+group_id
@@ -2696,9 +2892,15 @@ func _tinted_mesh(src:Mesh,group_id:String)->Mesh:
   # visual/r1 F4: en los jinetes F4 («F4 | …», sin textura) el color se lee normalizado (/0,62) y la tinta sale x0,62; su «coat»
   # es pelo y barba del jinete, no pelaje: no se reclasifica (los caballos F4 traen su pelaje y no pasan por acá).
   var f4=nm.begins_with("F4")
+  var f5=nm.begins_with("F5")
   var nk=1.0/F4_ALBEDO if f4 else 1.0
   var ok=F4_ALBEDO if f4 else 1.0
-  if a[Mesh.ARRAY_COLOR] is PackedColorArray and (nm.ends_with("wool") or nm.ends_with("linen") or (nm.ends_with("coat") and not f4)):
+  if f5:
+   # visual/r1 F5: figuras de a pie F5 (persona_*): retinte por rol, sin umbrales (con los de abajo la casaca azul oscura del voluntario
+   # caía en «sombrero» y se volvía negra, el 70 % de las vueltas quedaba sin tocar y el pelo tomaba el pelaje de un caballo).
+   var rk=str(F5_ROLE_TINT.get(_role_of(nm),""))
+   if rk!="" and target.has(rk) and a[Mesh.ARRAY_COLOR] is PackedColorArray:a[Mesh.ARRAY_COLOR]=_role_cols(a[Mesh.ARRAY_COLOR],target[rk],1.0)
+  elif a[Mesh.ARRAY_COLOR] is PackedColorArray and (nm.ends_with("wool") or nm.ends_with("linen") or (nm.ends_with("coat") and not f4)):
    var cols:PackedColorArray=a[Mesh.ARRAY_COLOR]
    var chg=0
    for i in range(cols.size()):
@@ -2841,6 +3043,10 @@ func _resize_parts(parts:Array,count:int,gseed:int)->void:
   p.mm.visible_instance_count=-1
   if p.has("coat"):
    p.map=cm[0][int(p.coat)];p.mm.instance_count=int(cm[1][int(p.coat)])
+  elif p.has("phase"):
+   # visual/r1 F5: tropa de a pie repartida en lotes por fase del ciclo (_foot_parts).
+   var pm=_phase_maps(count)
+   p.map=pm[0][int(p.phase)];p.mm.instance_count=int(pm[1][int(p.phase)])
   else:p.mm.instance_count=count
 
 ## visual/r1 F4: el jefe del grupo, animado: caballo criollo (Skeleton3D de 25 huesos, AnimationPlayer con idle/walk/trot/gallop)
@@ -2872,6 +3078,187 @@ func _mount_rig(parent:Node3D,coat:String,period:String,group_id:String,hero:boo
    if ap.has_animation(an):ap.get_animation(an).loop_mode=Animation.LOOP_LINEAR
   if ap.has_animation("idle"):ap.play("idle")
  return {"node":horse,"ap":ap,"gait":"idle","v":0.0,"seat":seat}
+
+## visual/r1 F5: jefe de a pie animado (persona_*.glb: Skeleton3D de 18 huesos, AnimationPlayer idle/walk/run en el lugar). tint: "" (como
+## viene), un id de grupo de la Justina (_tinted_mesh) o "poncho"/"heroe" (Norte: _poncho_mesh, pardo de tropa o granate oscuro).
+## Devuelve {node, ap, gait, v, foot}; el andar lo lleva _foot_step. Sin GLB, cápsula (como _model).
+func _foot_rig(parent:Node3D,model:String,tint:String)->Dictionary:
+ var fig=_model(model,Vector3.ZERO,parent)
+ fig.name="Jefe"
+ _fix_vc(fig)
+ for mi in fig.find_children("*","MeshInstance3D",true,false):
+  if mi.mesh==null or mi.mesh is PrimitiveMesh:continue
+  var m:Mesh=mi.mesh
+  if tint=="poncho" or tint=="heroe":m=_poncho_mesh(m,tint=="heroe")
+  elif tint!="":m=_tinted_mesh(m,tint)
+  mi.mesh=_lod_mesh(_merge_surfaces(m,true),true)
+ var ap:AnimationPlayer=null
+ var aps=fig.find_children("*","AnimationPlayer",true,false)
+ if not aps.is_empty():
+  ap=aps[0]
+  for an in ["idle","walk","run"]:
+   if ap.has_animation(an):ap.get_animation(an).loop_mode=Animation.LOOP_LINEAR
+  if ap.has_animation("idle"):ap.play("idle")
+ return {"node":fig,"ap":ap,"gait":"idle","v":0.0,"foot":true}
+
+## visual/r1 F5: tropa de a pie que camina. El MultiMesh no anima huesos: se hornean una vez (en caché) cuadros del ciclo de la figura
+## completa (`model`: idle, FOOT_PHASES de walk y de run; piel por CPU en _foot_raw_poses) y la tropa se reparte en FOOT_PHASES lotes,
+## cada uno corrido una fase del ciclo: al andar, cada lote toma la malla del cuadro que le toca según el reloj del jefe
+## (_foot_troop_anim; un cambio de recurso por lote y por cuadro, nada por figura). Cada malla va teñida como el jefe y unida en una
+## superficie con niveles de detalle (_troop_mesh). Si la figura no trae esqueleto o animación: la versión _lod quieta, en un lote.
+const FOOT_PHASES := 6
+func _foot_parts(root:Node3D,model:String,count:int,tint:String)->Array:
+ var poses:Dictionary=_foot_poses(model,tint)
+ if poses.is_empty():
+  var out0=_mm_parts(root,model+"_lod",count,"" if tint=="poncho" or tint=="heroe" else tint)
+  for p in out0:
+   var m:Mesh=p.mm.mesh
+   if m is PrimitiveMesh:continue
+   if tint=="poncho" or tint=="heroe":m=_poncho_mesh(m,tint=="heroe")
+   p.mm.mesh=_troop_mesh(m)
+   (p.mmi as Node).name="APie"
+  return out0
+ var out:Array=[]
+ var pm=_phase_maps(count)
+ for k in range(FOOT_PHASES):
+  var mm=MultiMesh.new();mm.transform_format=MultiMesh.TRANSFORM_3D;mm.mesh=poses.idle[0];mm.instance_count=int(pm[1][k])
+  var mmi=MultiMeshInstance3D.new();mmi.name="APie_%d" % k;mmi.multimesh=mm;mmi.custom_aabb=AABB(Vector3(-30,-5,-30),Vector3(60,20,60))
+  root.add_child(mmi)
+  out.append({"mmi":mmi,"mm":mm,"xf":Transform3D.IDENTITY,"phase":k,"map":pm[0][k],"poses":poses})
+ return out
+
+## visual/r1 F5: reparto de `count` figuras de a pie en FOOT_PHASES lotes: figura i → lote i % FOOT_PHASES, instancia i / FOOT_PHASES.
+func _phase_maps(count:int)->Array:
+ var maps:Array=[];var nums:Array=[]
+ for k in range(FOOT_PHASES):
+  var pm=PackedInt32Array();pm.resize(count);pm.fill(-1);maps.append(pm);nums.append(0)
+ for i in range(count):
+  var k2=i%FOOT_PHASES
+  var pm2:PackedInt32Array=maps[k2];pm2[i]=int(nums[k2]);maps[k2]=pm2;nums[k2]=int(nums[k2])+1
+ return [maps,nums]
+
+## visual/r1 F5: cuadro de la tropa de a pie: el andar del jefe (idle/walk/run) y la fase de su reloj; el lote k toma el cuadro
+## (fase del jefe + k). De lejos (LOD) no cambia de malla.
+func _foot_troop_anim(parts:Array,rig:Dictionary,far:bool)->void:
+ if far or parts.is_empty() or not (parts[0] as Dictionary).has("poses"):return
+ var poses:Dictionary=parts[0].poses
+ var ap:AnimationPlayer=rig.get("ap",null)
+ var g=str(rig.get("gait","idle")) if ap!=null else "idle"
+ var arr:Array=poses.get(g,poses.idle)
+ var base=0
+ if arr.size()>1 and ap!=null and ap.current_animation_length>0.0:
+  base=int(floor(fposmod(ap.current_animation_position,ap.current_animation_length)/ap.current_animation_length*float(arr.size())))
+ for p in parts:
+  var m:Mesh=arr[(base+int(p.phase))%arr.size()]
+  if p.mm.mesh!=m:p.mm.mesh=m
+
+## visual/r1 F5: cuadros horneados y teñidos de una figura de a pie (caché por modelo y tinte): {idle:[1], walk:[FOOT_PHASES], run:[…]}.
+var foot_pose_cache:Dictionary={}
+func _foot_poses(model:String,tint:String)->Dictionary:
+ var key=model+"|"+tint
+ if foot_pose_cache.has(key):return foot_pose_cache[key]
+ var raw:Dictionary=_foot_raw_poses(model)
+ var out:Dictionary={}
+ for an in raw:
+  var arr:Array=[]
+  for m in raw[an]:
+   var t:Mesh=m
+   if tint=="poncho" or tint=="heroe":t=_poncho_mesh(t,tint=="heroe")
+   elif tint!="":t=_tinted_mesh(t,tint)
+   arr.append(_troop_mesh(t))
+  out[an]=arr
+ foot_pose_cache[key]=out
+ return out
+
+## visual/r1 F5: piel por CPU de la figura completa (persona_*.glb) en cuadros de sus ciclos: vértice = Σ peso · (pose global del hueso ·
+## pose de enlace del Skin) · vértice, pasado al espacio de la raíz de la figura. Sin huesos ni pesos en la salida. Vacío si falta algo.
+var foot_raw_cache:Dictionary={}
+func _foot_raw_poses(model:String)->Dictionary:
+ if foot_raw_cache.has(model):return foot_raw_cache[model]
+ foot_raw_cache[model]={}
+ var path="res://assets/models/"+model+".glb"
+ if not ResourceLoader.exists(path):return {}
+ var fig:Node3D=(load(path) as PackedScene).instantiate()
+ add_child(fig);fig.visible=false
+ var aps=fig.find_children("*","AnimationPlayer",true,false)
+ var sks=fig.find_children("*","Skeleton3D",true,false)
+ var mi:MeshInstance3D=null
+ for n in fig.find_children("*","MeshInstance3D",true,false):
+  if (n as MeshInstance3D).skin!=null and (n as MeshInstance3D).mesh!=null:mi=n;break
+ if aps.is_empty() or sks.is_empty() or mi==null:
+  fig.queue_free();return {}
+ var ap:AnimationPlayer=aps[0];var sk:Skeleton3D=sks[0];var skin:Skin=mi.skin;var src:Mesh=mi.mesh
+ var rel:Transform3D=fig.global_transform.affine_inverse()*sk.global_transform
+ var binds:Array=[]
+ for b in range(skin.get_bind_count()):
+  var bone=skin.get_bind_bone(b)
+  if bone<0:bone=sk.find_bone(str(skin.get_bind_name(b)))
+  binds.append(bone)
+ var res:Dictionary={}
+ for an in ["idle","walk","run"]:
+  if not ap.has_animation(an):continue
+  var length=ap.get_animation(an).length
+  var nf=1 if an=="idle" else FOOT_PHASES
+  var arr:Array=[]
+  for f in range(nf):
+   ap.play(an);ap.seek(length*float(f)/float(nf),true)
+   var bx:Array=[]
+   for b in range(binds.size()):
+    bx.append(rel*(sk.get_bone_global_pose(maxi(int(binds[b]),0))*skin.get_bind_pose(b)) if int(binds[b])>=0 else rel)
+   var am=ArrayMesh.new()
+   for si in range(src.get_surface_count()):
+    var a=src.surface_get_arrays(si)
+    var vs:PackedVector3Array=a[Mesh.ARRAY_VERTEX]
+    var ns=a[Mesh.ARRAY_NORMAL]
+    var bi=a[Mesh.ARRAY_BONES];var wi=a[Mesh.ARRAY_WEIGHTS]
+    if bi is PackedInt32Array and wi is PackedFloat32Array and vs.size()>0:
+     var per=int((wi as PackedFloat32Array).size()/vs.size())
+     var has_n=ns is PackedVector3Array and (ns as PackedVector3Array).size()==vs.size()
+     for v in range(vs.size()):
+      var p0=vs[v];var acc=Vector3.ZERO;var nacc=Vector3.ZERO;var wsum=0.0
+      for j in range(per):
+       var w=float(wi[v*per+j])
+       if w<=0.0:continue
+       var t:Transform3D=bx[int(bi[v*per+j])]
+       acc+=(t*p0)*w;wsum+=w
+       if has_n:nacc+=(t.basis*ns[v])*w
+      vs[v]=acc/wsum if wsum>0.0 else rel*p0
+      if has_n:ns[v]=nacc.normalized() if nacc.length_squared()>0.0 else ns[v]
+     a[Mesh.ARRAY_VERTEX]=vs
+     if has_n:a[Mesh.ARRAY_NORMAL]=ns
+    a[Mesh.ARRAY_BONES]=null;a[Mesh.ARRAY_WEIGHTS]=null;a[Mesh.ARRAY_TANGENT]=null
+    am.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,a)
+    am.surface_set_material(si,src.surface_get_material(si))
+   arr.append(am)
+  res[an]=arr
+ fig.queue_free()
+ if not res.has("idle") or not res.has("walk"):return {}
+ if not res.has("run"):res["run"]=res.walk
+ foot_raw_cache[model]=res
+ return res
+
+## visual/r1 F5: velocidades de diseño de los ciclos de a pie (f5_personas_manifest: anim.walk/run.design_mps; zancada 1,15 y 2,13 m).
+const FOOT_MPS = {"walk":1.15,"run":3.2}
+## visual/r1 F5: andar del jefe de a pie según su velocidad en pantalla v_vis (m/s reales): quieto, idle; al paso, walk; desde 2,3 m/s
+## (a escala 1; vuelve al paso bajo 1,8), run. speed_scale = v_vis / (velocidad de diseño · sc), así el pie no patina.
+func _foot_step(rig:Dictionary,v_vis:float,moving:bool,sc:float,delta:float,far:bool)->void:
+ var ap:AnimationPlayer=rig.get("ap",null)
+ if ap==null:return
+ rig.v=lerpf(float(rig.v),v_vis,1.0-exp(-delta*6.0))
+ if far:
+  if ap.is_playing():ap.pause()
+  return
+ var g:String=str(rig.gait)
+ var v=float(rig.v)/maxf(sc,0.05)
+ if not moving or float(rig.v)<0.08:g="idle"
+ else:
+  if g=="idle":g="walk"
+  if g=="walk" and v>2.3:g="run"
+  elif g=="run" and v<1.8:g="walk"
+ if g!=str(rig.gait) or not ap.is_playing() or str(ap.current_animation)!=g:
+  if ap.has_animation(g):ap.play(g,0.25)
+  rig.gait=g
+ ap.speed_scale=1.0 if g=="idle" else clampf(float(rig.v)/(float(FOOT_MPS[g])*maxf(sc,0.05)),0.5,3.0)
 
 ## Defecto de Godot 4.7.2 (ver _glb_parts): el color de vértice no siempre se aplica al albedo; se fuerza en las mallas del nodo.
 func _fix_vc(n:Node)->void:
@@ -2940,7 +3327,10 @@ func _create_group_j(unit:Dictionary):
  if mounted:
   rig=_mount_rig(root,str(HORSE_COATS[_coat_of(id.hash(),-1)]),"1806",id,false)
   parts=_mount_parts(root,"1806",maxi(n-1,1),id,id.hash())
- else:parts=_mm_parts(root,"dismounted_1806",n,id)
+ else:
+  # visual/r1 F5: a pie, voluntario de 1806 (persona_voluntario_1806): jefe animado en el punto del grupo y la tropa (n−1) detrás.
+  rig=_foot_rig(root,"persona_voluntario_1806",id)
+  parts=_foot_parts(root,"persona_voluntario_1806",maxi(n-1,1),id)
  var ring=_ring_ribbon(Looks.ORO_VIEJO,root,"Aro_sel")   # seleccionado = oro viejo (visual/r1 F1: cinta sobre el suelo, mismo radio que el ancla y más ancha)
  selected_rings[id]=ring
  var tag=str(unit.get("tag","diseno"))
@@ -3155,14 +3545,15 @@ func _update_group_j(u:Dictionary,delta:float):
   if mounted:
    entry.rig=_mount_rig(entry.root,str(HORSE_COATS[_coat_of(id.hash(),-1)]),"1806",id,false)
    entry.parts=_mount_parts(entry.root,"1806",maxi(n-1,1),id,id.hash())
-  else:entry.parts=_mm_parts(entry.root,"dismounted_1806",n,id)
+  else:
+   # visual/r1 F5: desmontan → voluntarios de a pie (jefe animado + tropa _lod); el jefe a caballo ya se fue arriba.
+   entry.rig=_foot_rig(entry.root,"persona_voluntario_1806",id)
+   entry.parts=_foot_parts(entry.root,"persona_voluntario_1806",maxi(n-1,1),id)
   entry.mounted=mounted;entry.dirty=true;entry.n=n
   _apply_fig_lod(entry)
  elif n!=entry.n:
   if mounted:_resize_parts(entry.parts,maxi(n-1,1),id.hash())
-  else:
-   for p in entry.parts:
-    p.mm.visible_instance_count=-1;p.mm.instance_count=n
+  else:_resize_parts(entry.parts,maxi(n-1,1),id.hash())   # visual/r1 F5: el jefe de a pie va aparte; la tropa, en lotes por fase
   entry.n=n;entry.dirty=true
   _apply_fig_lod(entry)
  var root:Node3D=entry.root
@@ -3194,11 +3585,23 @@ func _update_group_j(u:Dictionary,delta:float):
  if not rig.is_empty():
   var v_vis=cur.distance_to(prev)/maxf(delta,0.0001)
   if v_vis>60.0:v_vis=0.0   # salto (carga de partida, reubicación): no es marcha
-  _gait_step(rig,v_vis,Vector2(float(u.get("vx",0.0)),float(u.get("vz",0.0))).length(),moving,str(u.get("pace","trot")),RIDER_SCALE,delta,far or not root.visible)
+  if bool(rig.get("foot",false)):
+   # visual/r1 F5: de a pie, el andar sale de lo que avanza el jefe en el mundo (incluye la subida a la cubierta al abordar).
+   var bkf=float(entry.get("board_k",0.0))
+   _foot_step(rig,float(entry.get("lead_v",0.0)),moving or (bkf>0.001 and bkf<0.999),FOOT_SCALE,delta,far or not root.visible)
+   _foot_troop_anim(entry.parts,rig,far or not root.visible)
+  else:
+   _gait_step(rig,v_vis,Vector2(float(u.get("vx",0.0)),float(u.get("vz",0.0))).length(),moving,str(u.get("pace","trot")),RIDER_SCALE,delta,far or not root.visible)
  # De lejos (LOD) no hay vaivén: solo se rehace la formación si el grupo se movió, giró o cambió.
  if root.visible and (changed or entry.dirty or (moving and not far) or stage=="routed" or entry.moving!=moving):
   _layout_group_j(entry,u,moving,stage)
   entry.dirty=false
+ if bool(rig.get("foot",false)) and is_instance_valid(rig.get("node",null)):
+  var lgp:Vector3=(rig.node as Node3D).global_position
+  var lpv:Vector3=entry.get("lead_gp",lgp)
+  var lv=Vector2(lgp.x-lpv.x,lgp.z-lpv.z).length()/maxf(delta,0.0001)
+  entry["lead_v"]=lv if lv<60.0 else 0.0
+  entry["lead_gp"]=lgp
  entry.moving=moving;entry.stage=stage
  var id_s=id
  var ring:MeshInstance3D=selected_rings[id_s]
@@ -3243,6 +3646,25 @@ func _layout_group_j(entry:Dictionary,u:Dictionary,moving:bool,stage:String):
   n=maxi(n-1,1)
   z_lead=_gaps(true).y*sc
   dims=_form_dims(n,mounted,form_k>0.5)
+ elif not mounted and not rig.is_empty() and is_instance_valid(rig.node):
+  # visual/r1 F5: a pie, el jefe animado (persona_voluntario_1806) va en el punto del grupo y la tropa (n−1) forma una fila más atrás;
+  # al abordar sube a la cubierta con el mismo arco que la tropa, adelante de ella. El guion va a su derecha.
+  var lead_f:Node3D=rig.node
+  var loff=Vector3.ZERO;var lgy=_h(rootpos.x,rootpos.z)-rootpos.y
+  if bk>0.0 and is_instance_valid(ship):
+   var tw0:Vector3=ship.global_transform*Vector3(0.0,DECK_Y,(float(gi%3)-1.0)*2.3-0.6)
+   var sm0=bk*bk*(3.0-2.0*bk)
+   loff=Vector3(lerpf(0.0,tw0.x-rootpos.x,sm0),0.0,lerpf(0.0,tw0.z-rootpos.z,sm0))
+   lgy=lerpf(lgy,tw0.y-rootpos.y,sm0)+0.9*sin(sm0*PI)
+  lead_f.position=Vector3(loff.x,lgy,loff.z)
+  lead_f.rotation=Vector3(0.0,yaw,0.0)
+  lead_f.scale=Vector3.ONE*sc
+  if is_instance_valid(gn0):
+   gn0.position=lead_f.position+Vector3(0.42,0.0,0.1).rotated(Vector3.UP,yaw)
+   gn0.rotation=Vector3(0.0,yaw-PI*0.5,0.0)
+  n=maxi(n-1,1)
+  z_lead=_gaps(false).y*sc
+  dims=_form_dims(n,mounted,form_k>0.5)
  for i in range(n):
   var f=_form_slot(i,n,mounted,sc,form_k,gseed)
   f.y+=z_lead
@@ -3259,7 +3681,8 @@ func _layout_group_j(entry:Dictionary,u:Dictionary,moving:bool,stage:String):
   var bob=0.0
   var pitch=0.0
   if moving and not far:
-   bob=0.07*absf(sin(t*7.0+float(i)*0.9))
+   # visual/r1 F5: la tropa de a pie con cuadros horneados ya sube y baja con su paso; el vaivén queda para los caballos.
+   if mounted or not (entry.parts[0] as Dictionary).has("poses"):bob=0.07*absf(sin(t*7.0+float(i)*0.9))
    if stage=="stumbling":pitch=0.18*sin(t*9.0+float(i))
   var basis=Basis.from_euler(Vector3(pitch,yaw+f.z,0.0)).scaled_local(Vector3.ONE*sc)
   var xf=Transform3D(basis,Vector3(off.x,gy+bob,off.z))
