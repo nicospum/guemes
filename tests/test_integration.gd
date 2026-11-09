@@ -391,7 +391,7 @@ func _justina() -> void:
 	for i in range(40):
 		if float(game.rules.state.get("t", 0.0)) >= 260.0:
 			break
-		game._process(10.0)
+		_play_step(10.0)
 	game.paused = true
 	check(game.rules.water_level_m() < water_start, "The river drops while the scout works")
 	game.paused = false
@@ -405,7 +405,7 @@ func _justina() -> void:
 	game._aim_click(Vector2(330, 264), false)
 	check(game.aim == "" and game.rules.scouts()[0].stage != "idle", "The last click orders the probe")
 	for i in range(40):
-		game._process(10.0)
+		_play_step(10.0)
 		if game.rules.scouts()[0].stage == "idle":
 			break
 	game.paused = true
@@ -421,7 +421,7 @@ func _justina() -> void:
 	game._aim_click(Vector2(250, 264), false)
 	game.paused = false
 	for i in range(12):
-		game._process(5.0)
+		_play_step(5.0)
 		if int(game.rules.resources().balizas) < balizas0:
 			break
 	game.paused = true
@@ -431,7 +431,7 @@ func _justina() -> void:
 	game._do_action("signal_liniers")
 	game.paused = false
 	for i in range(30):
-		game._process(10.0)
+		_play_step(10.0)
 		if bool(game.rules.resources().advance_authorized):
 			break
 	check(bool(game.rules.resources().advance_authorized), "Signalling Liniers grants the advance order")
@@ -444,7 +444,7 @@ func _justina() -> void:
 	for i in range(80):
 		if bool(game.rules.action_availability("guemes", "board", game.rules.board_point()).ok):
 			break
-		game._process(5.0)
+		_play_step(5.0)
 	game.paused = true
 	game._update_hud()
 	await _frames(2)
@@ -464,7 +464,7 @@ func _justina() -> void:
 	check(ordered == 3, "Board is ordered for the three selected groups")
 	game.paused = false
 	for i in range(120):
-		game._process(10.0)
+		_play_step(10.0)
 		if game.rules.state.status != "playing":
 			break
 	game.paused = true
@@ -870,6 +870,16 @@ func _p4b() -> void:
 	var panel := game.modal.get_child(1) as Control
 	check(panel.size.y <= panel.get_combined_minimum_size().y + 10.0 and panel.size.y < 560.0, "P-019: «Consecuencias de la ronda» no deja espacio vacío abajo (alto %.0f)" % panel.size.y)
 	game._close_modal()
+
+## Un paso del reloj por el _process real. Q-102: con una decisión pendiente el reloj de la Justina queda detenido hasta que se elige, así
+## que el guion contesta como lo haría el plazo vencido (la opción por defecto, contada como «sin respuesta») y sigue.
+func _play_step(dt: float) -> void:
+	var pc: Dictionary = game.rules.state.get("pending_choice", {})
+	if not pc.is_empty() and str(game.rules.state.status) == "playing":
+		game.rules.resolve_choice(str(pc.get("default", pc.options[0].id)), true)
+		if is_instance_valid(game.modal) and game.modal.has_meta("choice"): game._close_modal()
+		game.paused = false
+	game._process(dt)
 
 func _frames(n: int) -> void:
 	for i in range(n):

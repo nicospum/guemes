@@ -976,6 +976,8 @@ func _process(delta):
  if mode=="play" and not is_instance_valid(modal):_camera_keys(delta)
  _camera_goal_step(delta)
  _apply_camera()
+ # Q-102: una decisión pendiente detiene el reloj aunque su ventana esté cerrada (Esc) y aunque la pausa automática esté apagada.
+ if not paused and not is_instance_valid(modal) and _choice_waiting():paused=true;pause_reason="hay una decisión esperando"
  if mode=="play" and rules.state.status=="playing" and rules.state.scenario=="justine" and not paused and not is_instance_valid(modal):
   _handle_events(rules.tick(delta*speed))
   if rules.state.scenario=="justine":campaign.checkpoint_tick(rules)
@@ -1101,9 +1103,16 @@ func _unhandled_input(event):
 
 func _toggle_pause():
  if rules.state.scenario=="norte":_resolve_round();return
+ # Q-102: con una decisión esperando, Espacio (o «Reanudar») la reabre en vez de largar el reloj: el aviso dice que el reloj sigue
+ # detenido hasta que elijas, y así es.
+ if _choice_waiting():
+  paused=true;pause_reason="hay una decisión esperando";_choice_dialog();_update_hud();return
  paused=not paused;auto_start_pending=false
  if not paused:pause_reason=""
  _update_hud();_sound("order")
+
+func _choice_waiting()->bool:
+ return mode=="play" and _is_j() and str(rules.state.get("status",""))=="playing" and not rules.state.get("pending_choice",{}).is_empty()
 
 func _cycle_speed():
  if _is_j():_step_speed(1,true);return
@@ -2420,7 +2429,7 @@ func _compute_alerts()->Array:
   out.append({"id":"counter%d" % int(c.count),"level":"crit" if anyb else "warn","nopause":not anyb,"short":"contraataque de la dotación: tenés %d s para rechazarlo." % ceili(rem),"text":"⚔ ¡CONTRAATAQUE! Quedan %d s: «Rechazar» (coma) con un grupo que aborda cuesta %d de munición; si no, perdés fuerza y captura.%s" % [ceili(rem),int(cap.get("repel_ammo",3)),"" if anyb else " Ningún grupo aborda: mandá uno con «Cargar y abordar» (N)."],"btn":"Rechazar ahora (,)","fn":"repel"})
  var pcw=st.get("pending_choice",{})
  if not pcw.is_empty() and not is_instance_valid(modal):
-  out.append({"id":"choice_wait","level":"crit","nopause":false,"short":"hay una decisión esperando.","text":"✉ Hay una decisión esperando: %s. El reloj sigue detenido hasta que elijas." % str(pcw.get("title","el mensajero")).strip_edges(),"btn":"Ver la decisión","fn":"open_choice"})
+  out.append({"id":"choice_wait","level":"crit","nopause":false,"short":"hay una decisión esperando.","text":"✉ Hay una decisión esperando: %s. El reloj sigue detenido hasta que elijas (Espacio la abre)." % str(pcw.get("title","el mensajero")).strip_edges(),"btn":"Ver la decisión","fn":"open_choice"})
  var le=st.get("last_effort",{})
  if float(le.get("until",-1.0))>=0.0 and not bool(le.get("used",false)):
   var left_le=maxf(0.0,float(le.until)-t)
