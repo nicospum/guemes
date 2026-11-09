@@ -970,18 +970,28 @@ func _cycle_overflow() -> void:
 	notes["caracteres_t0"] = int(hx.qa_state().text_chars)
 	notes["rects_inicio"] = _capture_rects()
 	_measure_contrast(img, "inicio")
-	# ronda 2 de P2: al elegir una partida lejos del centro, la cámara se acerca sola (≈ 240 m) y se acuesta hacia el horizonte
+	# Q-201 (QA ronda 2): elegir una partida que ya está a la vista NO mueve la cámara; la segunda pulsación de su tecla la lleva hasta ella, acercándose (≈ 240 m) y
+	# acostándose hacia el horizonte (el pedido del usuario de ver más cerca, ahora a voluntad)
 	var d0 := float(hx.qa_state().camera.dist)
-	var pick := "rodriguez" if not (hx.qa_state().selected as Array).has("rodriguez") else "arreo"
-	await _key(KEY_1 if pick == "rodriguez" else KEY_5)
+	var pick := "arreo" if not (hx.qa_state().selected as Array).has("arreo") else "reconocedores"
+	var pick_key := KEY_5 if pick == "arreo" else KEY_4
+	var cam_before: Dictionary = hx.qa_state().camera
+	await _key(pick_key)
 	var t_wait := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - t_wait < 1400:
+		await process_frame
+	var cam_mid: Dictionary = hx.qa_state().camera
+	var still := Vector2(float(cam_mid.target[0]), float(cam_mid.target[1])).distance_to(Vector2(float(cam_before.target[0]), float(cam_before.target[1]))) <= 0.5 and absf(float(cam_mid.dist) - float(cam_before.dist)) <= 0.5
+	check(still, "Acercamiento: elegir una partida que ya está a la vista no mueve la cámara (Q-201; %s)" % pick)
+	await _key(pick_key)
+	t_wait = Time.get_ticks_msec()
 	while Time.get_ticks_msec() - t_wait < 1400:
 		await process_frame
 	var cam_after: Dictionary = hx.qa_state().camera
 	var u_pick: Dictionary = hx.rules.get_unit(pick)
 	var gap := Vector2(float(cam_after.target[0]), float(cam_after.target[1])).distance_to(Vector2(float(u_pick.x), float(u_pick.z)))
-	notes["acercamiento"] = {"partida": pick, "desde_m": snappedf(d0, 0.1), "hasta_m": snappedf(float(cam_after.dist), 0.1), "inclinacion": snappedf(float(cam_after.pitch_deg), 0.1), "a_la_ficha_m": snappedf(gap, 0.1)}
-	check(float(cam_after.dist) >= 215.0 and float(cam_after.dist) <= 265.0 and float(cam_after.pitch_deg) <= 32.0 and gap <= 6.0, "Acercamiento: al elegir una partida la cámara llega sola a 220–260 m, acostada (≤ 32°) y centrada en ella (%s)" % str(notes.acercamiento))
+	notes["acercamiento"] = {"partida": pick, "desde_m": snappedf(d0, 0.1), "hasta_m": snappedf(float(cam_after.dist), 0.1), "inclinacion": snappedf(float(cam_after.pitch_deg), 0.1), "a_la_ficha_m": snappedf(gap, 0.1), "primera_pulsacion_quieta": still}
+	check(float(cam_after.dist) >= 215.0 and float(cam_after.dist) <= 265.0 and float(cam_after.pitch_deg) <= 32.0 and gap <= 6.0, "Acercamiento: la segunda pulsación de la tecla lleva la cámara a la partida a 220–260 m, acostada (≤ 32°) y centrada en ella (%s)" % str(notes.acercamiento))
 	await _shot("hx-acercamiento")
 	_check_overflow("Acercamiento")
 	hx.reset_camera()

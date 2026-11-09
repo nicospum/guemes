@@ -39,9 +39,8 @@ var last_fit: Dictionary = {}
 var follow_id := ""
 var _base_pitch := -1.0  ## la inclinación «de juego» a la que vuelve la cámara al alejarse (zoom_tilt)
 var _glide: Dictionary = {}  ## el acercamiento en curso a una partida recién elegida ({} si ninguno)
-var _last_sel: Variant = null  ## la selección del cuadro anterior (para ver cuándo se elige una partida nueva)
 var _last_approach_s := -100.0
-## El último acercamiento: {id, desde_m, hasta_m, inclinacion, fuera_del_centro_pct}. Lo leen las pruebas y la herramienta de capturas.
+## El último acercamiento: {id, como («eleccion» o «ir»), desde_m, hasta_m, inclinacion, t, previa, previa_s}. Lo leen las pruebas y la herramienta de capturas.
 var last_approach: Dictionary = {}
 
 var opening_active := false
@@ -60,6 +59,7 @@ func setup(config: Dictionary, rules_ref: Variant, view_ref: Variant) -> void:
 	if over is Dictionary:
 		cfg.merge(over, true)  # el mismo diccionario que tiene el controlador: zoom_step, edge_speed, min_distance_m… quedan en un solo lugar
 	follow_id = ""
+	forget_approach()
 
 
 static func _load_data() -> Dictionary:
@@ -137,7 +137,6 @@ func pose() -> Dictionary:
 func apply(cam: Camera3D) -> void:
 	if cam == null or not cam.is_inside_tree():
 		return
-	_watch_selection(cam)
 	if not _glide.is_empty():
 		_glide_step()
 	if follow_id != "":
@@ -151,75 +150,119 @@ func apply(cam: Camera3D) -> void:
 	cam.look_at(p.look_at, Vector3.UP)
 
 
-## Acercamiento a la acción (ronda 2 de P2, pedido del usuario: «ver todo más cerca»). El encuadre inicial amplio sirve para orientarse; al ELEGIR una sola partida
-## (tecla 1 a 5, clic en su ficha o en su tarjeta: todo pasa por view.selected_ids) la cámara se desliza en `approach.duration_s` hasta `approach.dist_m` centrada en ella,
-## con la inclinación acostada de zoom_tilt (se ven el horizonte y los cerros). Para no marear: solo si la ficha está lejos del centro (`min_off_center_pct` del lado menor)
-## o el zoom está abierto (más de `wide_dist_m`), nunca durante la apertura, mientras se arrastra el mapa o con el botón derecho apretado (trazando una ruta), y con una
-## pausa de `cooldown_s` entre acercamientos. Cualquier movimiento manual (teclas, borde, arrastre, rueda, giro, minimapa, Inicio, centrar) lo corta.
-func _watch_selection(cam: Camera3D) -> void:
-	if view == null or not is_instance_valid(view) or not ("selected_ids" in view):
-		return
-	var sel: Array = (view.get("selected_ids") as Array).duplicate()
-	if _last_sel == null:
-		_last_sel = sel  # la selección con que arranca el nivel no mueve la cámara
-		return
-	if sel == _last_sel:
-		return
-	var newly: Array = []
-	for id in sel:
-		if not (_last_sel as Array).has(id):
-			newly.append(id)
-	_last_sel = sel
-	if sel.size() == 1 and newly.size() == 1:
-		_maybe_approach(cam, str(sel[0]))
-
-
+## Acercamiento a la acción (ronda 2 de P2, pedido del usuario: «ver todo más cerca»; corregido por QA ronda 2, Q-201). El encuadre inicial amplio sirve para orientarse.
+## La cámara NO mira la selección: antes se disparaba con cualquier cambio de view.selected_ids, y como la guía («Siguiente paso», los botones de orden y los avisos)
+## elige al actor antes de dar la orden, cada orden de la guía la hacía deslizarse (32 deslizamientos en 5,8 min, ping-pong Rodríguez ↔ arreo en la extracción).
+## Ahora solo la mueve el controlador, y solo ante una elección EXPLÍCITA del jugador:
+##   · request_approach(cam, id): primera elección de una partida (tecla 1 a 5, clic en su ficha o en su tarjeta). Se desliza SOLO si la ficha no está a la vista con
+##     margen (`visible_margin_pct` del lado y dentro de la banda libre entre la cabecera y el dock), como mucho una vez cada `cooldown_s` y sin volver a la partida del
+##     acercamiento anterior antes de `no_return_s`. Si la cámara está abierta (más de `wide_dist_m`) llega a `dist_m`; si ya está cerca, recentra sin alejarse.
+##   · focus_on(p, id): segunda pulsación de la misma tecla o tarjeta (o doble clic en la ficha): el jugador pide ir ahí. Se desliza hasta el punto (la ficha o su frente),
+##     se acerca a `dist_m` si está más lejos (nunca aleja) y, si es una ficha, la sigue después.
+## Nunca durante la apertura, mientras se arrastra el mapa o con el botón derecho apretado (trazando una ruta). Cualquier movimiento manual (teclas, borde, arrastre,
+## rueda, giro, minimapa, Inicio, centrar) corta el deslizamiento. La cámara no se aleja sola en ningún caso.
 func _approach_cfg() -> Dictionary:
 	return data.get("approach", {}) if data.get("approach", null) is Dictionary else {}
 
 
-func _maybe_approach(cam: Camera3D, id: String) -> void:
+## ¿La ficha (o el punto) está a la vista con margen? `margin_pct` en % del lado; además tiene que caer en la banda libre del HUD (la del último encuadre).
+func on_screen(cam3: Camera3D, p: Vector2, margin_pct: float) -> bool:
+	if cam3 == null or not cam3.is_inside_tree():
+		return false
+	var w := Vector3(p.x, ground_h(p.x, p.y), p.y)
+	if cam3.is_position_behind(w):
+		return false
+	var size := cam3.get_viewport().get_visible_rect().size
+	var s := cam3.unproject_position(w)
+	var band := {"top": 0.0, "bottom": size.y}
+	var b: Variant = last_fit.get("band", null)
+	if b is Array and (b as Array).size() == 2:
+		band = {"top": float(b[0]), "bottom": float(b[1])}
+	return _inside(s, margin_pct / 100.0, band, size)
+
+
+func _now_s() -> float:
+	return float(Time.get_ticks_msec()) / 1000.0
+
+
+func _blocked() -> bool:
+	return opening_active or dragging() or Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT)
+
+
+## Primera elección explícita de una partida. Devuelve {moved: bool, motivo: String}; el motivo lo leen las pruebas.
+func request_approach(cam3: Camera3D, id: String) -> Dictionary:
 	var a := _approach_cfg()
-	if not bool(a.get("enabled", false)) or opening_active or dragging() or Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT):
-		return
-	var now := float(Time.get_ticks_msec()) / 1000.0
-	if now - _last_approach_s < float(a.get("cooldown_s", 1.0)):
-		return
+	if not bool(a.get("enabled", false)):
+		return {"moved": false, "motivo": "apagado"}
+	if cam3 == null or not cam3.is_inside_tree() or _blocked():
+		return {"moved": false, "motivo": "bloqueado"}
 	var p: Variant = _unit_pos(id)
 	if not (p is Vector2):
-		return
-	var size := cam.get_viewport().get_visible_rect().size
-	var w := Vector3((p as Vector2).x, ground_h((p as Vector2).x, (p as Vector2).y), (p as Vector2).y)
-	var off := 1.0e9
-	if not cam.is_position_behind(w):
-		off = (cam.unproject_position(w) - size * 0.5).length() / maxf(minf(size.x, size.y), 1.0) * 100.0
-	var want_d := float(a.get("dist_m", 240.0))
+		return {"moved": false, "motivo": "sin_ficha"}
+	if on_screen(cam3, p, float(a.get("visible_margin_pct", 10.0))):
+		return {"moved": false, "motivo": "a_la_vista"}
+	var now := _now_s()
+	if now - _last_approach_s < float(a.get("cooldown_s", 7.0)):
+		return {"moved": false, "motivo": "pausa"}
+	if id == str(last_approach.get("previa", "")) and now - float(last_approach.get("previa_s", -100.0)) < float(a.get("no_return_s", 12.0)):
+		return {"moved": false, "motivo": "vuelta"}
 	var wide := dist > float(a.get("wide_dist_m", 300.0))
-	if not wide and off < float(a.get("min_off_center_pct", 22.0)):
+	var to_d := float(a.get("dist_m", 240.0)) if wide else dist  # si ya está cerca no se aleja: solo se recentra
+	_start_glide(id, p, to_d, "")
+	var prev_id := str(last_approach.get("id", ""))
+	var prev_s := float(last_approach.get("t", -100.0))
+	last_approach = {"id": id, "como": "eleccion", "desde_m": snappedf(dist, 0.1), "hasta_m": snappedf(to_d, 0.1), "inclinacion": snappedf(float(_glide.to_p), 0.1),
+		"t": now, "previa": prev_id, "previa_s": prev_s}
+	_last_approach_s = now
+	return {"moved": true, "motivo": ""}
+
+
+## Segunda pulsación: ir al punto (la ficha `id` o su frente si `id` es «») acercándose a dist_m si la cámara está más lejos, y seguir a la ficha después.
+func focus_on(p: Vector2, id: String = "") -> void:
+	var a := _approach_cfg()
+	if _blocked() or not bool(a.get("enabled", false)):
+		center_on(p)
 		return
-	var to_d := want_d if wide else dist  # si ya está cerca no se aleja: solo se recentra
+	var to_d := minf(dist, float(a.get("dist_m", 240.0)))
+	follow_id = ""
+	_start_glide(id, p, to_d, id if follow_enabled() else "")
+	last_approach = {"id": id, "como": "ir", "desde_m": snappedf(dist, 0.1), "hasta_m": snappedf(to_d, 0.1), "inclinacion": snappedf(float(_glide.to_p), 0.1),
+		"t": _now_s(), "previa": str(last_approach.get("id", "")), "previa_s": float(last_approach.get("t", -100.0))}
+
+
+func _start_glide(id: String, p: Vector2, to_d: float, then_follow: String) -> void:
+	var a := _approach_cfg()
 	if _base_pitch <= 0.0:
 		_base_pitch = pitch_deg if dist >= _tilt_far() else 42.0
-	_glide = {"id": id, "t0": now, "dur": maxf(float(a.get("duration_s", 0.9)), 0.05), "from_t": target, "from_d": dist, "from_p": pitch_deg,
-		"to_d": to_d, "to_p": tilt_pitch(to_d)}
+	var to_p := tilt_pitch(to_d) if to_d < dist - 0.5 or dist <= _tilt_far() else pitch_deg
+	_glide = {"id": id, "at": p, "t0": _now_s(), "dur": maxf(float(a.get("duration_s", 0.9)), 0.05), "from_t": target, "from_d": dist, "from_p": pitch_deg,
+		"to_d": to_d, "to_p": to_p, "follow": then_follow}
 	follow_id = ""
-	_last_approach_s = now
-	last_approach = {"id": id, "desde_m": snappedf(dist, 0.1), "hasta_m": snappedf(to_d, 0.1), "inclinacion": snappedf(float(_glide.to_p), 0.1), "fuera_del_centro_pct": snappedf(off, 0.1)}
 
 
 ## Un paso del deslizamiento (con el reloj real, suave al empezar y al terminar). El destino sigue a la ficha si marcha mientras tanto.
 func _glide_step() -> void:
 	var k := clampf((float(Time.get_ticks_msec()) / 1000.0 - float(_glide.t0)) / float(_glide.dur), 0.0, 1.0)
 	var e := k * k * (3.0 - 2.0 * k)
-	var to_t: Vector2 = _glide.from_t
-	var p: Variant = _unit_pos(str(_glide.id))
+	var to_t: Vector2 = _glide.get("at", _glide.from_t)
+	var p: Variant = _unit_pos(str(_glide.id)) if str(_glide.id) != "" else null
 	if p is Vector2:
 		to_t = p
 	target = clamp_target((_glide.from_t as Vector2).lerp(to_t, e))
 	dist = clampf(lerpf(float(_glide.from_d), float(_glide.to_d), e), min_dist(), max_dist())
 	pitch_deg = lerpf(float(_glide.from_p), float(_glide.to_p), e)
 	if k >= 1.0:
+		var then_follow := str(_glide.get("follow", ""))
 		_glide = {}
+		if then_follow != "" and _unit_pos(then_follow) is Vector2:
+			follow_id = then_follow
+
+
+## Olvida la pausa y el último acercamiento (un intento nuevo o un reintento).
+func forget_approach() -> void:
+	_glide = {}
+	_last_approach_s = -100.0
+	last_approach = {}
 
 
 func approaching() -> bool:
@@ -337,8 +380,6 @@ func dragging() -> bool:
 func center_on(p: Vector2) -> void:
 	follow_id = ""
 	_glide = {}
-	if view != null and is_instance_valid(view) and ("selected_ids" in view):  # centrar ya responde a la elección de la partida (segunda pulsación): no se suma un acercamiento
-		_last_sel = (view.get("selected_ids") as Array).duplicate()
 	target = clamp_target(p)
 	if not follow_enabled():
 		return

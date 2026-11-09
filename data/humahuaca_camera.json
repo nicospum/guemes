@@ -82,10 +82,11 @@
 		"enabled": true,
 		"dist_m": 240,
 		"wide_dist_m": 300,
-		"min_off_center_pct": 22,
+		"visible_margin_pct": 10,
 		"duration_s": 0.9,
-		"cooldown_s": 1.0,
-		"nota": "Ronda 2 de la pista de arte (P2): el encuadre inicial amplio orienta; al elegir una sola partida (tecla, clic en la ficha o en su tarjeta) la cámara se desliza hasta dist_m centrada en ella, con la inclinación de zoom_tilt para esa distancia (≈ 24°: horizonte y cerros). Solo si la ficha está a más de min_off_center_pct del centro (en % del lado menor) o la cámara está a más de wide_dist_m; nunca en la apertura, arrastrando o con el botón derecho apretado. Si ya está más cerca, solo recentra."
+		"cooldown_s": 7.0,
+		"no_return_s": 12.0,
+		"nota": "Ronda 2 de P2, corregida por QA ronda 2 (Q-201). La cámara solo se desliza sola ante una elección EXPLÍCITA del jugador, nunca por las órdenes de la guía, los botones de orden ni los avisos. Primera elección de una partida (tecla 1 a 5, clic en su ficha o en su tarjeta): se desliza hacia ella solo si la ficha NO está a la vista con visible_margin_pct del borde (y fuera de la cabecera y del dock), como mucho una vez cada cooldown_s y sin volver a la partida anterior antes de no_return_s; si la cámara está a más de wide_dist_m llega a dist_m, si no recentra sin alejarse. Segunda pulsación de la misma tecla o tarjeta, o doble clic en la ficha: va a la ficha (o a su frente en las teclas 1 a 3), se acerca a dist_m si está más lejos (nunca aleja) con la inclinación de zoom_tilt y la sigue. Nunca en la apertura, arrastrando o con el botón derecho apretado."
 	},
 	"follow": {
 		"enabled": true,

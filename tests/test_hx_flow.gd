@@ -59,6 +59,15 @@ func _key(code: int, ctrl: bool = false, shift: bool = false) -> void:
 
 
 ## Una pulsación entera (apretar y soltar) en un solo cuadro.
+## Espera en tiempo real a que termine el deslizamiento de la cámara (Q-201), con tope.
+func _wait_glide(max_s: float = 3.0) -> void:
+	var t0 := Time.get_ticks_msec()
+	await _frames(1)
+	while hx.cam.approaching() and float(Time.get_ticks_msec() - t0) / 1000.0 < max_s:
+		await process_frame
+	await _frames(1)
+
+
 func _tap(code: int) -> void:
 	for pressed in [true, false]:
 		var e := InputEventKey.new()
@@ -442,12 +451,14 @@ func _test_reserved_keys() -> void:
 	await _key(KEY_2)
 	suite.check(hx.qa_state().selected == ["portal"], "teclas: 2 elige la partida de Portal")
 	await _key(KEY_2)
+	await _wait_glide()  # Q-201: la segunda pulsación desliza la cámara (0,9 s) en vez de saltar
 	var cuartel: Vector2 = hx.landmark_pos("cuartel")
 	var tgt: Array = hx.qa_state().camera.target
 	suite.check(Vector2(float(tgt[0]), float(tgt[1])).distance_to(cuartel) < 1.5, "teclas: pulsar 2 otra vez centra la cámara en el cuartel (%s vs %s)" % [str(tgt), str(cuartel)])
 	await _key(KEY_5)
 	suite.check(hx.qa_state().selected == ["arreo"], "teclas: 5 elige el arreo")
 	await _key(KEY_5)
+	await _wait_glide()
 	var arreo_u: Dictionary = hx.rules.get_unit("arreo")
 	var arreo_t: Array = hx.qa_state().camera.target
 	suite.check(Vector2(float(arreo_t[0]), float(arreo_t[1])).distance_to(Vector2(float(arreo_u.x), float(arreo_u.z))) < 1.5, "teclas: pulsar 5 otra vez centra la cámara en el arreo (%s vs %.0f, %.0f)" % [str(arreo_t), float(arreo_u.x), float(arreo_u.z)])
