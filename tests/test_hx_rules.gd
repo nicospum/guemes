@@ -101,6 +101,7 @@ func _initialize() -> void:
 	_test_tower()
 	_test_reinforcement()
 	_test_loot_and_treatments()
+	_test_destroy_chain()
 	_test_outcomes()
 	_test_event_kinds()
 	_test_save_roundtrip()
@@ -1160,6 +1161,41 @@ func _test_loot_and_treatments() -> void:
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Desenlaces
+
+## Q-203 (QA ronda 2): una orden de destruir sigue sola lote por lote (transport.destroy_chain). El obediente gana con ≤ 8 órdenes de destruir (antes 36–37) y el
+## golpe no baja más de 2 puntos contra la cadena apagada, en las mismas semillas.
+func _test_destroy_chain() -> void:
+	if not real_only():
+		return
+	var probe := new_rules(1817, {})
+	var tr: Dictionary = probe.get("_rules").transport if probe.get("_rules") is Dictionary else {}
+	if not ck(not tr.is_empty(), "Q-203: las reglas exponen transport"):
+		return
+	var rows: Array = []
+	var worst_orders := 0
+	var worst_drop := 0.0
+	var all_won := true
+	for sd in [1817, 3, 13, 2005]:
+		var res := {}
+		for chain in [false, true]:
+			tr["destroy_chain"] = chain
+			var r := new_rules(sd, {})
+			var rec: Dictionary = _dict(pol.call("play", r, "obediente", {}))
+			var n := 0
+			for o in r.state.orders:
+				if str(o.action) == "destroy":
+					n += 1
+			res[chain] = {"estado": str(rec.status), "golpe": float(rec.golpe), "destruir": n}
+		tr.erase("destroy_chain")
+		rows.append({"semilla": sd, "sin_cadena": res[false], "cadena": res[true]})
+		worst_orders = maxi(worst_orders, int(res[true].destruir))
+		worst_drop = maxf(worst_drop, float(res[false].golpe) - float(res[true].golpe))
+		all_won = all_won and (str(res[true].estado) == "victory" or str(res[false].estado) != "victory")
+	suite.extra["cadena_destruir"] = rows
+	ck(worst_orders <= 8, "Q-203: el obediente da como mucho 8 órdenes de destruir con la cadena (peor: %d)" % worst_orders)
+	ck(worst_drop <= 2.0, "Q-203: la cadena no baja el golpe del obediente más de 2 puntos (peor baja: %.2f)" % worst_drop)
+	ck(all_won, "Q-203: donde el obediente ganaba sin la cadena, gana con la cadena (%s)" % str(rows))
+
 
 func _test_outcomes() -> void:
 	var oc: Dictionary = cfg.outcome
