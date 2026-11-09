@@ -662,23 +662,33 @@ func _create_group(unit:Dictionary):
  # visual/r1 F3: la tropa sale de los hombres de diseño (NORTE_MEN_DISENO, tope 24 figuras). El jefe es una figura animada del GLB
  # (con su trote) al frente y al centro; el resto va en un MultiMesh (un solo dibujo por pieza) formado en filas detrás de él.
  var n=_group_count(unit)
- var lead=_model(file,Vector3.ZERO,figures);lead.name="Jefe";lead.scale=Vector3.ONE*NORTE_FIG_SCALE
- if file=="rider_1817":_recolor_poncho(lead,str(unit.id)=="guemes")
+ var lead:Node3D
+ var rig:Dictionary={}
+ var parts:Array
+ var gid=str(unit.id)
+ if mounted:
+  # visual/r1 F4: jefe = caballo criollo animado (andar según la marcha, _gait_step) con el jinete 1817 en la silla; Güemes conserva
+  # el acento granate del poncho. La tropa (n−1) va en MultiMesh por pelaje + jinetes, a NORTE_FIG_SCALE.
+  rig=_mount_rig(figures,str(HORSE_COATS[_coat_of(gid.hash(),-1)]),"1806" if scenario=="justine" else "1817",gid,gid=="guemes")
+  lead=rig.node
+  parts=_mount_parts(figures,"1806" if scenario=="justine" else "1817",maxi(n-1,1),"",gid.hash())
+ else:
+  lead=_model(file,Vector3.ZERO,figures);lead.name="Jefe"
+  for player in lead.find_children("*","AnimationPlayer",true,false):
+   var list=player.get_animation_list()
+   for anim in list:
+    if "trot" in anim or "walk" in anim:
+     player.get_animation(anim).loop_mode=Animation.LOOP_LINEAR
+     player.play(anim);player.pause();player.speed_scale=0.75;anims.append(player);break
+  parts=_mm_parts(figures,file,maxi(n-1,1))
+  for p in parts:p.mm.mesh=_lod_mesh(p.mm.mesh)
+ lead.scale=Vector3.ONE*NORTE_FIG_SCALE
  if scenario=="norte":
   # P1 ronda 2: realce de borde (luz de contorno celeste pálido + un piso mínimo de luz) para que las figuras propias no se pierdan
   # en los valles en sombra. Un pase extra sin luz; en F3 también sobre el MultiMesh de la tropa.
   for mi in lead.find_children("*","MeshInstance3D",true,false):(mi as MeshInstance3D).material_overlay=_rim_mat()
- for player in lead.find_children("*","AnimationPlayer",true,false):
-  var list=player.get_animation_list()
-  for anim in list:
-   if "trot" in anim or "walk" in anim:
-    player.get_animation(anim).loop_mode=Animation.LOOP_LINEAR
-    player.play(anim);player.pause();player.speed_scale=0.75;anims.append(player);break
- var parts=_mm_parts(figures,file,maxi(n-1,1))
  for p in parts:
-  if file=="rider_1817":p.mm.mesh=_poncho_mesh(p.mm.mesh,false)
   # visual/r1 F3b (costo): la tropa usa una malla estática con niveles de detalle (_lod_mesh) y no proyecta sombra; el jefe sí.
-  p.mm.mesh=_lod_mesh(p.mm.mesh)
   (p.mmi as GeometryInstance3D).cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
   if scenario=="norte":(p.mmi as GeometryInstance3D).material_overlay=_rim_mat()
  var ring=_ring(2.65,Looks.ORO_VIEJO,root)
@@ -693,7 +703,7 @@ func _create_group(unit:Dictionary):
  selected_rings[str(unit.id)]=ring
  var label=_world_label(str(unit.name),Vector3(0,4.0,0),Color("e9d4aa"),30,root)
  unit_labels[str(unit.id)]=label
- var entry={"root":root,"figures":figures,"mounted":mounted,"anims":anims,"last":root.position,"lead":lead,"parts":parts,"n":n,"lod_far":false,"ring_r":2.3,"no_shadow":true}
+ var entry={"root":root,"figures":figures,"mounted":mounted,"anims":anims,"last":root.position,"lead":lead,"parts":parts,"n":n,"lod_far":false,"ring_r":2.3,"no_shadow":true,"rig":rig}
  unit_nodes[str(unit.id)]=entry
  _layout_group_n(entry,str(unit.id),false)
 
@@ -703,9 +713,9 @@ func _create_group(unit:Dictionary):
 func _layout_group_n(entry:Dictionary,id:String,moving:bool)->void:
  var n:int=int(entry.n);var mounted:bool=bool(entry.mounted)
  var m=maxi(n-1,1)
- var sc=NORTE_FIG_SCALE;var sg=NORTE_FIG_SCALE*NORTE_GAP_K   # escala del modelo y de la separación
- var gz=(CAV_GAP_Z if mounted else FOOT_GAP_Z)*sg
- var ext=_form_extent(m,mounted,sg,0.0)
+ var sc=NORTE_FIG_SCALE   # visual/r1 F4: escala del modelo y de la separación (las separaciones del Norte salen de _gaps)
+ var gz=_gaps(mounted).y*sc
+ var ext=_form_extent(m,mounted,sc,0.0)
  var z0=-(ext.y+gz)*0.5   # el jefe va una fila por delante del bloque
  var gseed=id.hash()
  var t=elapsed_visual
@@ -719,7 +729,7 @@ func _layout_group_n(entry:Dictionary,id:String,moving:bool)->void:
   lead.position=Vector3(0.0,terrain_height(lw.x,lw.z)-base.y,z0)
   hsum+=lead.position.y
  for i in range(m):
-  var f=_form_slot(i,m,mounted,sg,0.0,gseed)
+  var f=_form_slot(i,m,mounted,sc,0.0,gseed,NORTE_JITTER)
   var lp=Vector3(f.x,0.0,z0+gz+f.y)
   # Cada figura apoya en su propio suelo (relieve quebrado): altura del terreno en su punto del mundo menos la del grupo.
   var wp=base+lp.rotated(Vector3.UP,fig.rotation.y)
@@ -727,9 +737,10 @@ func _layout_group_n(entry:Dictionary,id:String,moving:bool)->void:
   hsum+=gy
   var bob=0.07*absf(sin(t*7.0+float(i)*0.9)) if (moving and not far) else 0.0
   var xf=Transform3D(Basis.from_euler(Vector3(0.0,f.z,0.0)).scaled_local(Vector3.ONE*sc),Vector3(lp.x,gy+bob*sc,lp.z))
-  for p in entry.parts:p.mm.set_instance_transform(i,xf*p.xf)
+  _set_fig(entry.parts,i,xf)
  # Radio del aro: media diagonal de la huella (jefe incluido) + medio caballo y un margen.
- entry["ring_r"]=sqrt(ext.x*ext.x+pow((ext.y+gz)*0.5,2.0))+(2.1 if mounted else 1.0)*sc
+ # visual/r1 F4: a caballo, medio caballo criollo (1,25 m) + 0,15 m (antes 2,1 con el caballo viejo).
+ entry["ring_r"]=sqrt(ext.x*ext.x+pow((ext.y+gz)*0.5,2.0))+(1.4 if mounted else 1.0)*sc
  entry["ring_y"]=hsum/float(m+1)   # altura media de la tropa sobre el punto del grupo (para el aro plano)
 
 var rim_mat:ShaderMaterial=null
@@ -915,13 +926,14 @@ func _recolor_poncho(fig:Node3D,hero:bool)->void:
 ## visual/r1 F3b: copia estática de una malla del GLB (sin huesos: el MultiMesh la dibuja en pose de reposo) con niveles de detalle
 ## generados en tiempo de carga (ImporterMesh.generate_lods); el motor baja de detalle solo según el tamaño en pantalla. En caché.
 var lod_mesh_cache:Dictionary={}
-func _lod_mesh(src:Mesh)->Mesh:
- var key=src.get_rid().get_id()
+## visual/r1 F4: keep_bones conserva huesos y pesos (caballo animado del jefe, tras unir superficies con _merge_surfaces).
+func _lod_mesh(src:Mesh,keep_bones:bool=false)->Mesh:
+ var key=str(src.get_rid().get_id())+("|b" if keep_bones else "")
  if lod_mesh_cache.has(key):return lod_mesh_cache[key]
  var im=ImporterMesh.new()
  for si in range(src.get_surface_count()):
   var a=src.surface_get_arrays(si)
-  a[Mesh.ARRAY_BONES]=null;a[Mesh.ARRAY_WEIGHTS]=null
+  if not keep_bones:a[Mesh.ARRAY_BONES]=null;a[Mesh.ARRAY_WEIGHTS]=null
   im.add_surface(Mesh.PRIMITIVE_TRIANGLES,a,[],{},src.surface_get_material(si))
  im.generate_lods(25.0,60.0,[])
  var out:Mesh=im.get_mesh()
@@ -941,13 +953,16 @@ func _poncho_mesh(src:Mesh,hero:bool)->Mesh:
    var a=src.surface_get_arrays(si)
    var mat=src.surface_get_material(si)
    var nm=str(mat.resource_name) if mat!=null else ""
+   # visual/r1 F4: jinete F4 sin textura: color normalizado (/0,62) para reconocer el granate y tinta de salida x0,62 (ver F4_ALBEDO).
+   var nk=1.0/F4_ALBEDO if nm.begins_with("F4") else 1.0
+   var ok=F4_ALBEDO if nm.begins_with("F4") else 1.0
    if a[Mesh.ARRAY_COLOR] is PackedColorArray and (nm.ends_with("wool") or nm.ends_with("linen")):
     var cols:PackedColorArray=a[Mesh.ARRAY_COLOR]
     for k in range(cols.size()):
-     var c=cols[k]
+     var c=Color(cols[k].r*nk,cols[k].g*nk,cols[k].b*nk,cols[k].a)
      if c.r>0.1 and c.r>c.g*2.5 and c.r>c.b*2.5:
       var t=(hero_c if hero else brown) if nm.ends_with("wool") else sash
-      var f=clampf(c.r/0.5,0.2,1.15)
+      var f=clampf(c.r/0.5,0.2,1.15)*ok
       cols[k]=Color(t.r*f,t.g*f,t.b*f,c.a)
     a[Mesh.ARRAY_COLOR]=cols
    out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,a)
@@ -979,7 +994,8 @@ func update_state(delta:float):
    if not bool(u.get("mounted",true)) and not parked_horses.has(id):
     var stable=Node3D.new();add_child(stable)
     stable.position=Vector3(10.0,terrain_height(10,float(u.z)),float(rules.state.units.find(u)-1)*2.7)
-    for h_index in range(2):_model("horse_only",Vector3(-1.2-h_index*1.2,0,0),stable)
+    # visual/r1 F4: caballos criollos de tropa (antes horse_only, el caballo viejo), a la escala de las figuras del Norte.
+    for h_index in range(2):_model("caballo_criollo_"+str(HORSE_COATS[h_index])+"_lod",Vector3(-1.2-h_index*1.2,0,0),stable).scale=Vector3.ONE*NORTE_FIG_SCALE
     parked_horses[id]=stable
    var old=entry.root;remove_child(old);old.queue_free();unit_nodes.erase(id);_create_group(u);entry=unit_nodes[id]
   var root:Node3D=entry.root
@@ -1024,12 +1040,21 @@ func update_state(delta:float):
     ap.speed_scale=0.75
     if anim_on:ap.play()
     else:ap.pause()
+  # visual/r1 F4: andar del jefe criollo según lo que avanza en pantalla (el III no tiene velocidades de juego: va de campamento a
+  # campamento), escalado a NORTE_FIG_SCALE; quieto, idle.
+  var rig_n:Dictionary=entry.get("rig",{})
+  if not rig_n.is_empty():
+   var v_n=Vector2(root.position.x-float(entry.get("vpos",root.position).x),root.position.z-float(entry.get("vpos",root.position).z)).length()/maxf(delta,0.0001)
+   entry["vpos"]=root.position
+   _gait_step(rig_n,v_n if v_n<60.0 else 0.0,-1.0,animating,"",NORTE_FIG_SCALE,delta,far_n or not root.visible)
   if entry.has("parts"):
    # Bajas y refuerzos cambian la cantidad de figuras; en marcha se rehace la formación (suelo y vaivén) y una vez más al parar.
    var n_now=_group_count(u)
    if n_now!=int(entry.n):
-    for p in entry.parts:
-     p.mm.visible_instance_count=-1;p.mm.instance_count=maxi(n_now-1,1)
+    if entry.has("rig") and not (entry.rig as Dictionary).is_empty():_resize_parts(entry.parts,maxi(n_now-1,1),id.hash())
+    else:
+     for p in entry.parts:
+      p.mm.visible_instance_count=-1;p.mm.instance_count=maxi(n_now-1,1)
     entry.n=n_now;_apply_fig_lod(entry);entry["relayout"]=true
    if animating or bool(entry.get("relayout",false)) or bool(entry.get("was_moving",false))!=animating:
     _layout_group_n(entry,id,animating)
@@ -1170,19 +1195,40 @@ const SHIP_SX = 1.62
 const SHIP_SY = 2.2
 const SHIP_SZ = 2.4
 const SHIP_KEEL = 1.58
-const RIDER_SCALE = 0.82
+## visual/r1 F4: el caballo criollo nuevo ya viene a escala real (1,45 m de cruz, ~2,51 m de largo): la Justina lo usa a escala 1
+## (antes 0,82 sobre el caballo viejo de 3,39 m, que así medía ~2,8 m).
+const RIDER_SCALE = 1.0
 const FOOT_SCALE = 0.9
+## visual/r1 F4: caballos criollos (tools/f4_caballos.py). Jefe animado (10 000 triángulos, idle/walk/trot/gallop en el lugar) y
+## tropa estática de pocos triángulos (_lod: caballo 1 756 + jinete ~1 084). Mismo modelo en cuatro pelajes; la tropa los mezcla
+## por grupo con un reparto fijo (mayoría zainos y alazanes, pocos tordillos y overos). Pelajes y reparto: diseño.
+const HORSE_COATS = ["zaino","alazan","tordillo","overo"]
+const HORSE_COAT_W = [0.46,0.34,0.12,0.08]
+## Asiento del jinete sobre el caballo (hueso «silla», en reposo): la tropa pone al jinete ahí; el jefe lo cuelga del hueso.
+const RIDER_SEAT = Vector3(0.0,1.5,0.0)
+## visual/r1 F4: velocidad (m/s, a escala 1) a la que cada andar del jefe pisa sin patinar; el andar sale de la velocidad real del
+## grupo (y del paso pedido: C/T/G) y speed_scale = velocidad en pantalla / la del andar. Umbrales con histéresis entre andares.
+const GAIT_MPS = {"walk":1.6,"trot":3.3,"gallop":7.0}
+const GAIT_UP = {"walk":2.5,"trot":5.2}
+const GAIT_DOWN = {"walk":2.1,"trot":4.6}
+## Las tintas del jinete F4 vienen sin textura (create_models guardaba color/0,62 porque lo multiplicaba una textura de media
+## ~0,62): para reclasificar se normalizan y la tinta de salida se multiplica por 0,62, así el color final queda como antes.
+const F4_ALBEDO = 0.62
 const GROUP_BAND = 14.0
 ## visual/r1 F3: tropa a escala real. Cada figura representa 3,5 hombres (regla 3–4) y un grupo muestra entre 6 y 24 figuras;
 ## de ahí las pérdidas restan figuras en proporción a la fuerza. Las cifras de hombres son de DISEÑO (ver _fig_men): nada se muestra.
 const MEN_PER_FIGURE = 3.5
 const FIG_MIN = 6
 const FIG_MAX = 24
-## visual/r1 F3: separación de la tropa a escala 1 (se multiplica por la escala del modelo). Caballería más abierta que la infantería:
-## de hombro a hombro ~1,9 m entre jinetes (el caballo mide 1,07 m de ancho) y una fila cada largo de caballo (3,39 m) + 0,55 m;
+## visual/r1 F3: separación de la tropa a escala 1 (se multiplica por la escala del modelo). Caballería más abierta que la infantería;
 ## a pie ~1,0 m de frente y 1,3 m de fondo. Diseño de lectura, no reglamento de época.
-const CAV_GAP_X = 1.9
-const CAV_GAP_Z = 3.94
+## visual/r1 F4: con el caballo criollo (0,77 m de ancho, 2,51 m de largo; antes 1,07 y 3,39 m) la Justina pone ~1,5 m de hombro a
+## hombro y una fila cada largo de caballo + 0,6 m (3,1 m): a escala 1 la huella queda casi igual a la de F3 (1,56 x 3,23 m a 0,82).
+const CAV_GAP_X = 1.5
+const CAV_GAP_Z = 3.1
+## visual/r1 F4: el Norte cierra más las filas (0,43 m entre caballos de costado y 0,29 m de la cola a la cabeza, a escala 1).
+const NORTE_GAP_X = 1.2
+const NORTE_GAP_Z = 2.8
 const FOOT_GAP_X = 1.0
 const FOOT_GAP_Z = 1.3
 ## visual/r1 F3: LOD de figuras. Más allá de esta distancia de cámara (m, con ±20 m de histéresis) cada grupo dibuja la mitad de las
@@ -1197,8 +1243,12 @@ const NORTE_MEN_DISENO = {"guemes":400.0,"arias":300.0,"zavala":60.0}
 ## hay escala real posible y la figura ya era un símbolo. A escala 1 una tropa de 24 jinetes ocupa ~13 x 12 m y tapa el sector vecino
 ## (Salta queda a ~10 m de Güemes y los grupos a ~12 m entre sí); a 0,55 y con filas cerradas (x0,88 la separación de la Justina, sin
 ## que los caballos se toquen) entra en un aro de menos de 6 m. Diseño de lectura.
-const NORTE_FIG_SCALE = 0.55
-const NORTE_GAP_K = 0.88
+## visual/r1 F4: con el caballo criollo (2,51 m de largo; el viejo medía 3,39) la escala real 1,0 no entra: 24 jinetes sin tocarse
+## piden un aro de ~7,3 m y los campamentos (norte_camp) están pensados para ~5,9 m. La mayor que entra es 0,8, con línea de 8 de
+## frente (_form_dims) y las separaciones NORTE_GAP_*: aro de ~5,9 m, como en F3b. El caballo mide así 2,0 m (antes 1,86).
+const NORTE_FIG_SCALE = 0.8
+## visual/r1 F4: desorden de la tropa del Norte (fracción del de la Justina): con filas tan cerradas, el entero haría tocarse caballos.
+const NORTE_JITTER = 0.5
 const DECK_Y = 3.9
 const DECK_REACH = 70.0
 const J_STAGE_TEXT = {"working":"trabaja","stumbling":"tropezó","dismounting":"desmonta","boarding":"aborda","routed":"dispersos","blocked":"bloqueado","rally":"reagrupa","lost":"perdido","waiting_tide":""}
@@ -1760,10 +1810,12 @@ func _camp_j(lm:Dictionary):
   var q=c+Vector2(cos(a),sin(a))*r*(0.45+0.3*float(i%2))
   _inst_r("prism",Vector3(q.x,_h(q.x,q.y)+1.1,q.y),Vector3(3.2,2.2,4.2),a+0.4,Color("c9bc9c"))
  _inst_t("cyl12",Transform3D(Basis.from_scale(Vector3(1.2,0.25,1.2)),Vector3(c.x,_h(c.x,c.y)+0.12,c.y)),Color("3b3128"))
- if _glb_ok("horse_only"):
+ # visual/r1 F4: caballos del campamento = criollos de tropa a escala 1 con pelajes mezclados (antes horse_only a 0,9: ~3,05 m).
+ if _glb_ok("caballo_criollo_zaino_lod"):
   for i in range(6):
-   var q=c+Vector2(-r*0.9,-r*0.8+float(i)*3.2)
-   _inst_glb("horse_only",Transform3D(Basis.from_euler(Vector3(0,PI/2.0,0)).scaled_local(Vector3.ONE*0.9),Vector3(q.x,_h(q.x,q.y),q.y)))
+   var q=c+Vector2(-r*0.9,-r*0.8+float(i)*2.2)
+   var cm="caballo_criollo_"+str(HORSE_COATS[_coat_of(int(c.x*7.0+c.y*13.0),i)])+"_lod"
+   _inst_glb(cm,Transform3D(Basis.from_euler(Vector3(0,PI/2.0,0)),Vector3(q.x,_h(q.x,q.y),q.y)))
 
 func _command_j(lm:Dictionary):
  var c=Vector2(float(lm.x),float(lm.z))
@@ -2469,30 +2521,35 @@ func _lod_slot(i:int,n:int)->int:
 func _form_dims(n:int,mounted:bool,column:bool)->Vector2i:
  var lanes:int
  if column:lanes=(2 if n<=12 else 3) if mounted else (3 if n<=15 else 4)
- else:lanes=clampi(int(ceil(sqrt(float(n)*(2.0 if mounted else 2.5)))),2,8 if mounted else 10)
+ else:lanes=clampi(int(ceil(sqrt(float(n)*((2.8 if scenario=="norte" else 2.0) if mounted else 2.5)))),2,8 if mounted else 10)   # visual/r1 F4: el Norte forma más ancho y menos hondo (24 jinetes: 8 de frente), así entra en su aro
  lanes=mini(lanes,n)
  return Vector2i(lanes,int(ceil(float(n)/float(lanes))))
+
+## visual/r1 F4: separación (de costado, de fondo) a escala 1 según el nivel y si van a caballo.
+func _gaps(mounted:bool)->Vector2:
+ if not mounted:return Vector2(FOOT_GAP_X,FOOT_GAP_Z)
+ return Vector2(NORTE_GAP_X,NORTE_GAP_Z) if scenario=="norte" else Vector2(CAV_GAP_X,CAV_GAP_Z)
 
 func _slot_xy(s:int,n:int,mounted:bool,sc:float,column:bool)->Vector2:
  var dims=_form_dims(n,mounted,column)
  var row=s/dims.x;var lane=s%dims.x
  var in_row=mini(dims.x,n-row*dims.x)   # la última fila, si queda corta, va centrada
- var gx=(CAV_GAP_X if mounted else FOOT_GAP_X)*sc;var gz=(CAV_GAP_Z if mounted else FOOT_GAP_Z)*sc
- return Vector2((float(lane)-float(in_row-1)*0.5)*gx,float(row)*gz)
+ var g=_gaps(mounted)*sc
+ return Vector2((float(lane)-float(in_row-1)*0.5)*g.x,float(row)*g.y)
 
 ## Puesto de la instancia i: (de costado, hacia atrás, giro) en metros y radianes, mezclando línea (form_k 0) y columna (1),
-## con un leve desorden fijo por grupo (±0,2 m de costado, ±0,3 m de fondo, ±4°): tropa, no grilla.
-func _form_slot(i:int,n:int,mounted:bool,sc:float,form_k:float,gseed:int)->Vector3:
+## con un leve desorden fijo por grupo (±0,2 m de costado, ±0,3 m de fondo, ±4°; por `jit`): tropa, no grilla.
+func _form_slot(i:int,n:int,mounted:bool,sc:float,form_k:float,gseed:int,jit:float=1.0)->Vector3:
  var s=_lod_slot(i,n)
  var p=_slot_xy(s,n,mounted,sc,false).lerp(_slot_xy(s,n,mounted,sc,true),form_k)
  var h1=fposmod(sin(float(s)*12.9898+float(gseed%977)*0.731)*43758.5453,1.0)
  var h2=fposmod(sin(float(s)*78.233+float(gseed%613)*1.137)*24634.6345,1.0)
  var h3=fposmod(sin(float(s)*39.347+float(gseed%331)*2.011)*13579.2468,1.0)
- return Vector3(p.x+(h1-0.5)*0.4*sc,p.y+(h2-0.5)*0.6*sc,(h3-0.5)*0.14)
+ return Vector3(p.x+(h1-0.5)*0.4*sc*jit,p.y+(h2-0.5)*0.6*sc*jit,(h3-0.5)*0.14*jit)
 
 ## Huella de la formación: (semiancho, fondo) entre centros de figuras, ya mezclada entre línea y columna.
 func _form_extent(n:int,mounted:bool,sc:float,form_k:float)->Vector2:
- var gx=(CAV_GAP_X if mounted else FOOT_GAP_X)*sc;var gz=(CAV_GAP_Z if mounted else FOOT_GAP_Z)*sc
+ var g=_gaps(mounted)*sc;var gx=g.x;var gz=g.y
  var a=_form_dims(n,mounted,false);var b=_form_dims(n,mounted,true)
  return Vector2(lerpf(float(a.x-1),float(b.x-1),form_k)*0.5*gx,lerpf(float(a.y-1),float(b.y-1),form_k)*gz)
 
@@ -2542,11 +2599,16 @@ func _tinted_mesh(src:Mesh,group_id:String)->Mesh:
   var a=src.surface_get_arrays(si)
   var mat=src.surface_get_material(si)
   var nm=str(mat.resource_name) if mat!=null else ""
-  if a[Mesh.ARRAY_COLOR] is PackedColorArray and (nm.ends_with("wool") or nm.ends_with("linen") or nm.ends_with("coat")):
+  # visual/r1 F4: en los jinetes F4 («F4 | …», sin textura) el color se lee normalizado (/0,62) y la tinta sale x0,62; su «coat»
+  # es pelo y barba del jinete, no pelaje: no se reclasifica (los caballos F4 traen su pelaje y no pasan por acá).
+  var f4=nm.begins_with("F4")
+  var nk=1.0/F4_ALBEDO if f4 else 1.0
+  var ok=F4_ALBEDO if f4 else 1.0
+  if a[Mesh.ARRAY_COLOR] is PackedColorArray and (nm.ends_with("wool") or nm.ends_with("linen") or (nm.ends_with("coat") and not f4)):
    var cols:PackedColorArray=a[Mesh.ARRAY_COLOR]
    var chg=0
    for i in range(cols.size()):
-    var c=cols[i];var t=Color(0,0,0,0);var k=1.0
+    var c0=cols[i];var c=Color(c0.r*nk,c0.g*nk,c0.b*nk,c0.a);var t=Color(0,0,0,0);var k=1.0
     if nm.ends_with("coat"):
      if c.r>c.g*1.6 and c.g>c.b*1.35 and c.r<0.5 and target.has("pelaje"):
       t=target["pelaje"];k=clampf(c.r/0.16,0.35,2.4)
@@ -2558,7 +2620,7 @@ func _tinted_mesh(src:Mesh,group_id:String)->Mesh:
      elif c.r<0.08 and c.g<0.08 and c.b<0.08 and target.has("sombrero"):t=target["sombrero"];k=clampf(c.r/0.04,0.8,1.3)
     elif nm.ends_with("linen") and c.r>0.6 and target.has("camisa"):
      t=target["camisa"];k=clampf(c.r/0.98,0.8,1.1)
-    if t.a>0.0:chg+=1;cols[i]=Color(minf(t.r*k,1.0),minf(t.g*k,1.0),minf(t.b*k,1.0),c.a)
+    if t.a>0.0:chg+=1;cols[i]=Color(minf(t.r*k*ok,1.0),minf(t.g*k*ok,1.0),minf(t.b*k*ok,1.0),c.a)
    a[Mesh.ARRAY_COLOR]=cols
   out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,a)
   # El mapa rugosidad/metal del GLB da un brillo plateado a telas y pelaje a escala de juego: se pasa a mate (aspecto, no color de fuente).
@@ -2587,20 +2649,212 @@ func _mm_parts(root:Node3D,model_name:String,count:int,group_id:String="")->Arra
   root.add_child(mmi2);out.append({"mmi":mmi2,"mm":mm2,"xf":Transform3D(Basis.IDENTITY,Vector3(0,0.9,0))})
  return out
 
+## visual/r1 F4: pelaje fijo de la figura i del grupo (índice en HORSE_COATS), con los pesos de HORSE_COAT_W. i<0: el del jefe.
+func _coat_of(gseed:int,i:int)->int:
+ var h=fposmod(sin(float(i+3)*91.173+float(gseed%1009)*0.377)*43758.5453,1.0)
+ var acc=0.0
+ for c in range(HORSE_COATS.size()):
+  acc+=float(HORSE_COAT_W[c])
+  if h<acc:return c
+ return 0
+
+## visual/r1 F4: reparto de `count` figuras en un MultiMesh por pelaje: map[c][i] = instancia de la figura i en el lote c (o −1).
+## Dentro de cada lote se respeta el orden de i, así el LOD (primera mitad visible) sigue raleando toda la huella.
+func _coat_maps(count:int,gseed:int)->Array:
+ var maps:Array=[];var nums:Array=[]
+ for c in range(HORSE_COATS.size()):
+  var pm=PackedInt32Array();pm.resize(count);pm.fill(-1);maps.append(pm);nums.append(0)
+ for i in range(count):
+  var c=_coat_of(gseed,i)
+  var pm2:PackedInt32Array=maps[c];pm2[i]=int(nums[c]);maps[c]=pm2;nums[c]=int(nums[c])+1
+ return [maps,nums]
+
+## visual/r1 F4: tropa montada en MultiMesh: un lote por pelaje (caballo _lod, estático) y uno del jinete _lod puesto en el asiento
+## (RIDER_SEAT). period "1806" (Justina: tinta por grupo) o "1817" (Norte: poncho pardo). Con rider=false, solo caballos
+## (caballada de los desmontados). Las partes llevan "coat" y "map" (ver _set_fig y _resize_parts). Sin GLB: cápsulas de antes.
+func _mount_parts(root:Node3D,period:String,count:int,group_id:String,gseed:int,rider:bool=true)->Array:
+ var out=[]
+ var cm=_coat_maps(count,gseed)
+ for c in range(HORSE_COATS.size()):
+  for part in _glb_parts("caballo_criollo_"+str(HORSE_COATS[c])+"_lod"):
+   var mm=MultiMesh.new();mm.transform_format=MultiMesh.TRANSFORM_3D;mm.mesh=_troop_mesh(part.mesh);mm.instance_count=int(cm[1][c])
+   var mmi=MultiMeshInstance3D.new();mmi.name="Caballos_"+str(HORSE_COATS[c]);mmi.multimesh=mm;mmi.custom_aabb=AABB(Vector3(-30,-5,-30),Vector3(60,20,60))
+   root.add_child(mmi)
+   out.append({"mmi":mmi,"mm":mm,"xf":part.xf,"coat":c,"map":cm[0][c]})
+ if out.is_empty():return _mm_parts(root,"rider_1806" if period=="1806" else "rider_1817",count,group_id)
+ if rider:
+  for part in _glb_parts("jinete_criollo_"+period+"_lod"):
+   var mesh:Mesh=part.mesh
+   if period=="1817":mesh=_poncho_mesh(mesh,false)
+   elif group_id!="":mesh=_tinted_mesh(mesh,group_id)
+   var mm=MultiMesh.new();mm.transform_format=MultiMesh.TRANSFORM_3D;mm.mesh=_troop_mesh(mesh);mm.instance_count=count
+   var mmi=MultiMeshInstance3D.new();mmi.name="Jinetes";mmi.multimesh=mm;mmi.custom_aabb=AABB(Vector3(-30,-5,-30),Vector3(60,20,60))
+   root.add_child(mmi)
+   out.append({"mmi":mmi,"mm":mm,"xf":Transform3D(Basis.IDENTITY,RIDER_SEAT)*part.xf})
+ return out
+
+## visual/r1 F4 (costo): une las superficies con color de vértice de una malla F4 bajo un material mate (y, con split_shiny, otro
+## para metal y charol) y quita el «ancla» (esfera de 2 mm que solo esquiva un defecto de importación; acá el material ya fuerza el
+## color de vértice). Conserva huesos y pesos (sirve para el caballo animado del jefe). Menos dibujos: 1–2 por malla en vez de 6 a 9.
+var merged_mesh_cache:Dictionary={}
+func _merge_surfaces(src:Mesh,split_shiny:bool)->Mesh:
+ var key=str(src.get_rid().get_id())+("|s" if split_shiny else "|m")
+ if merged_mesh_cache.has(key):return merged_mesh_cache[key]
+ var groups:Array=[[],[]]   # [mate, brillante]
+ var mats:Array=[null,null];var best:Array=[-1,-1]
+ for si in range(src.get_surface_count()):
+  var m=src.surface_get_material(si)
+  var nm=str(m.resource_name) if m!=null else ""
+  if nm.ends_with("ancla"):continue
+  var g=1 if (split_shiny and (nm.ends_with("metal") or nm.ends_with("gloss"))) else 0
+  groups[g].append(si)
+  var nv=src.surface_get_array_len(si)
+  if m is BaseMaterial3D and (g==1 or not (nm.ends_with("metal") or nm.ends_with("gloss"))) and nv>int(best[g]):best[g]=nv;mats[g]=m
+ var out=ArrayMesh.new()
+ for g in range(2):
+  if (groups[g] as Array).is_empty():continue
+  var st=SurfaceTool.new();st.begin(Mesh.PRIMITIVE_TRIANGLES)
+  for si in groups[g]:st.append_from(src,si,Transform3D.IDENTITY)
+  st.commit(out)
+  var m2:BaseMaterial3D=(mats[g].duplicate() if mats[g]!=null else StandardMaterial3D.new())
+  m2.vertex_color_use_as_albedo=true
+  if g==0:m2.metallic=0.0;m2.roughness=0.88
+  out.surface_set_material(out.get_surface_count()-1,m2)
+ var res:Mesh=out if out.get_surface_count()>0 else src
+ merged_mesh_cache[key]=res
+ return res
+
+## visual/r1 F4 (costo): malla de tropa = una sola superficie mate (_merge_surfaces; los metales de la tropa quedan mates, a la
+## distancia de juego no se distinguen) con niveles de detalle (_lod_mesh). Un dibujo por lote.
+func _troop_mesh(src:Mesh)->Mesh:
+ return _lod_mesh(_merge_surfaces(src,false))
+
+## visual/r1 F4: pone la figura i (transformación del caballo en el marco del lote) en todas las partes que la dibujan.
+func _set_fig(parts:Array,i:int,xf:Transform3D)->void:
+ for p in parts:
+  var k:int=i
+  if p.has("map"):
+   var pm:PackedInt32Array=p.map
+   if i>=pm.size():continue
+   k=pm[i]
+   if k<0:continue
+  if k<p.mm.instance_count:p.mm.set_instance_transform(k,xf*p.xf)
+
+## visual/r1 F4: cambia la cantidad de figuras (bajas, refuerzos) rehaciendo el reparto por pelaje. Después hay que rehacer la formación.
+func _resize_parts(parts:Array,count:int,gseed:int)->void:
+ var cm=_coat_maps(count,gseed)
+ for p in parts:
+  p.mm.visible_instance_count=-1
+  if p.has("coat"):
+   p.map=cm[0][int(p.coat)];p.mm.instance_count=int(cm[1][int(p.coat)])
+  else:p.mm.instance_count=count
+
+## visual/r1 F4: el jefe del grupo, animado: caballo criollo (Skeleton3D de 25 huesos, AnimationPlayer con idle/walk/trot/gallop)
+## y el jinete colgado del hueso «silla» con un BoneAttachment3D (transformación identidad: el origen del jinete es el asiento).
+## Devuelve {node, ap, gait, v}; el andar lo lleva _gait_step. Sin GLB, cápsula (como _model).
+func _mount_rig(parent:Node3D,coat:String,period:String,group_id:String,hero:bool)->Dictionary:
+ var horse=_model("caballo_criollo_"+coat,Vector3.ZERO,parent)
+ horse.name="Jefe"
+ _fix_vc(horse)
+ for mi in horse.find_children("*","MeshInstance3D",true,false):
+  if mi.mesh!=null:mi.mesh=_lod_mesh(_merge_surfaces(mi.mesh,true),true)   # visual/r1 F4: unir quita los LOD del importador; se rehacen
+ var sks=horse.find_children("*","Skeleton3D",true,false)
+ var seat:Node3D=horse
+ if not sks.is_empty():
+  var ba=BoneAttachment3D.new();ba.name="Silla";ba.bone_name="silla";(sks[0] as Skeleton3D).add_child(ba);seat=ba
+ var rider=_model("jinete_criollo_"+period,Vector3.ZERO if seat!=horse else RIDER_SEAT,seat)
+ rider.name="Jinete"
+ _fix_vc(rider)
+ for mi in rider.find_children("*","MeshInstance3D",true,false):
+  if mi.mesh==null:continue
+  if period=="1817":mi.mesh=_poncho_mesh(mi.mesh,hero)
+  elif group_id!="":mi.mesh=_tinted_mesh(mi.mesh,group_id)
+  mi.mesh=_lod_mesh(_merge_surfaces(mi.mesh,true))
+ var ap:AnimationPlayer=null
+ var aps=horse.find_children("*","AnimationPlayer",true,false)
+ if not aps.is_empty():
+  ap=aps[0]
+  for an in ["idle","walk","trot","gallop"]:
+   if ap.has_animation(an):ap.get_animation(an).loop_mode=Animation.LOOP_LINEAR
+  if ap.has_animation("idle"):ap.play("idle")
+ return {"node":horse,"ap":ap,"gait":"idle","v":0.0,"seat":seat}
+
+## Defecto de Godot 4.7.2 (ver _glb_parts): el color de vértice no siempre se aplica al albedo; se fuerza en las mallas del nodo.
+func _fix_vc(n:Node)->void:
+ for mi in n.find_children("*","MeshInstance3D",true,false):
+  if mi.mesh==null:continue
+  for si in range(mi.mesh.get_surface_count()):
+   var m=mi.mesh.surface_get_material(si)
+   if m is BaseMaterial3D:m.vertex_color_use_as_albedo=true
+
+## visual/r1 F4: velocidad en pantalla de algo que las reglas mueven a pasos fijos (exploradores): distancia del último salto / tiempo
+## desde el salto anterior (tope 0,5 s); sin saltos durante 0,75 s (quieto o en pausa), 0.
+func _step_speed(entry:Dictionary,cur:Vector2,prev:Vector2,delta:float)->float:
+ var vt=float(entry.get("vt",0.0))+delta
+ var d=cur.distance_to(prev)
+ if d>0.0001:
+  var v=d/minf(vt,0.5)
+  entry["vv"]=v if v<60.0 else 0.0
+  vt=0.0
+ elif vt>0.75:entry["vv"]=0.0
+ entry["vt"]=vt
+ return float(entry.get("vv",0.0))
+
+## visual/r1 F4: andar del jefe. v_vis = velocidad en pantalla (m/s reales, incluye la aceleración del tiempo); v_game = velocidad
+## del juego (m/s de juego; <0 si no hay) para elegir el andar; pace = paso pedido (walk/trot/gallop o ""); sc = escala de la figura.
+## Quieto: idle. En marcha con el reloj parado (pausa): queda congelado en su andar. speed_scale = v_vis / (GAIT_MPS · sc).
+func _gait_step(rig:Dictionary,v_vis:float,v_game:float,moving:bool,pace:String,sc:float,delta:float,far:bool)->void:
+ var ap:AnimationPlayer=rig.get("ap",null)
+ if ap==null:return
+ rig.v=lerpf(float(rig.v),v_vis,1.0-exp(-delta*6.0))
+ if far:
+  if ap.is_playing():ap.pause()
+  return
+ var g:String=str(rig.gait)
+ var v_sel=(v_game if v_game>=0.0 else float(rig.v))/maxf(sc,0.05)
+ var frozen=false
+ if not moving:g="idle"
+ elif float(rig.v)<0.05:
+  frozen=true
+  if g=="idle":g="walk"
+ else:
+  if g=="idle":g="walk"
+  if g=="walk" and v_sel>float(GAIT_UP.walk):g="trot"
+  if g=="trot" and v_sel>float(GAIT_UP.trot):g="gallop"
+  if g=="gallop" and v_sel<float(GAIT_DOWN.trot):g="trot"
+  if g=="trot" and v_sel<float(GAIT_DOWN.walk):g="walk"
+  if pace=="walk":g="walk"
+  elif pace=="trot" and g=="gallop":g="trot"
+ if g!=str(rig.gait) or not ap.is_playing() or str(ap.current_animation)!=g:
+  if ap.has_animation(g):ap.play(g,0.3)
+  rig.gait=g
+ if g=="idle":ap.speed_scale=1.0
+ elif frozen:ap.speed_scale=0.0
+ else:
+  # Tope ×4,5 con velocidad de juego (Justina a ×4); sin ella (Norte: la vista arrima el grupo con un lerp que arranca muy rápido), ×2,5.
+  ap.speed_scale=clampf(float(rig.v)/(float(GAIT_MPS[g])*maxf(sc,0.05)),0.45,4.5 if v_game>=0.0 else 2.5)
+
 func _create_group_j(unit:Dictionary):
  var id=str(unit.id)
  var root=Node3D.new();root.name="Grupo_"+id;add_child(root)
  root.position=Vector3(float(unit.x),_h(float(unit.x),float(unit.z)),float(unit.z))
  var mounted=bool(unit.get("mounted",true))
  var n=_group_count(unit)
- var parts=_mm_parts(root,"rider_1806" if mounted else "dismounted_1806",n,id)
+ # visual/r1 F4: a caballo, el jefe animado va en el punto del grupo y el resto (n−1) en MultiMesh por pelaje detrás de él.
+ var rig:Dictionary={}
+ var parts:Array
+ if mounted:
+  rig=_mount_rig(root,str(HORSE_COATS[_coat_of(id.hash(),-1)]),"1806",id,false)
+  parts=_mount_parts(root,"1806",maxi(n-1,1),id,id.hash())
+ else:parts=_mm_parts(root,"dismounted_1806",n,id)
  var ring=_ring_ribbon(Looks.ORO_VIEJO,root,"Aro_sel")   # seleccionado = oro viejo (visual/r1 F1: cinta sobre el suelo, mismo radio que el ancla y más ancha)
  selected_rings[id]=ring
  var tag=str(unit.get("tag","diseno"))
  var label=_label_j(_tag_glyph(tag)+" "+str(unit.name),Vector3(0,7.0,0),Color("e9d4aa"),30,root)
  unit_labels[id]=label
  _group_marker_j(id,root)
- unit_nodes[id]={"root":root,"figures":root,"mounted":mounted,"anims":[],"last":root.position,"parts":parts,"n":n,"yaw":-PI/2.0,"kind":"group","dirty":true,"pos2":Vector2(float(unit.x),float(unit.z)),"moving":false,"stage":"","form_k":0.0,"lod_far":false,"foot":Vector2.ZERO}
+ var guion:Node3D=group_markers[group_markers.size()-1].node
+ unit_nodes[id]={"guion":guion,"root":root,"figures":root,"mounted":mounted,"anims":[],"last":root.position,"parts":parts,"n":n,"yaw":-PI/2.0,"kind":"group","dirty":true,"pos2":Vector2(float(unit.x),float(unit.z)),"moving":false,"stage":"","form_k":0.0,"lod_far":false,"foot":Vector2.ZERO,"rig":rig}
 
 ## Paleta del paquete (04_paleta_diseno). Guion de lectura de cada grupo: color de DISEÑO para distinguir, NO es un estandarte histórico.
 const GROUP_PAL = {"guemes":["a88943","4c372b"],"arias":["d8cfb8","4c372b"],"zavala":["33475b","d8cfb8"]}
@@ -2692,7 +2946,8 @@ func _update_markers_j(cam:Camera3D)->void:
    var mounted:bool=bool(e.get("mounted",true))
    var ft:Vector2=e.get("foot",Vector2.ZERO)
    var off=Vector3(0,0,ft.y*0.5).rotated(Vector3.UP,float(e.get("yaw",0.0)))
-   var rad=sqrt(ft.x*ft.x+ft.y*ft.y*0.25)+(1.9 if mounted else 1.0)
+   # visual/r1 F4: margen a caballo = medio caballo criollo (1,25 m) + 0,45 m (antes 1,9 con el caballo viejo de 3,39 m a 0,82).
+   var rad=sqrt(ft.x*ft.x+ft.y*ft.y*0.25)+(1.7 if mounted else 1.0)
    var c=r.position+off
    for rg in [g.ring,selected_rings.get(gid,null)]:
     if rg==null or not (rg as Node3D).visible and rg!=g.ring:continue
@@ -2764,16 +3019,16 @@ func _create_scouts_j():
   var root=Node3D.new();root.name="Explorador_"+id;add_child(root)
   root.position=Vector3(float(sc.x),_h(float(sc.x),float(sc.z)),float(sc.z))
   var fig=Node3D.new();fig.name="Figura";root.add_child(fig)
-  for part in _glb_parts("rider_1806"):
-   var mi=MeshInstance3D.new();mi.mesh=_tinted_mesh(part.mesh,str(id));mi.transform=Transform3D(part.xf.basis.scaled_local(Vector3.ONE*RIDER_SCALE),part.xf.origin*RIDER_SCALE);fig.add_child(mi)
+  # visual/r1 F4: el explorador es un jinete criollo animado (mismo armado que el jefe de grupo) con su lanza en la silla.
+  var rig=_mount_rig(fig,str(HORSE_COATS[_coat_of(id.hash(),-1)]),"1806",str(id),false)
   var lance=MeshInstance3D.new();var lm=CylinderMesh.new();lm.top_radius=0.03;lm.bottom_radius=0.05;lm.height=3.8;lm.radial_segments=6
-  lance.mesh=lm;lance.material_override=_mat(Color("6f5a3c"));lance.position=Vector3(0.45,2.4,-0.3);lance.rotation=Vector3(0.15,0,-0.12);fig.add_child(lance)
+  lance.mesh=lm;lance.material_override=_mat(Color("6f5a3c"));lance.position=Vector3(0.45,0.75,-0.3);lance.rotation=Vector3(0.15,0,-0.12);(rig.seat as Node3D).add_child(lance)
   var ring=_ring_j(2.6,Looks.ORO_VIEJO,root)
   selected_rings[id]=ring
   _token_j(root,3,Color(str(TOKEN_COLORS.get(id,"d8d2c0"))),12.0,60.0,130.0,1.0,false,0.0)   # visual/r1 F1: 12 px (antes 26)
   var label=_label_j("◇ "+str(sc.name),Vector3(0,5.0,0),Color("dcd8c0"),26,root)
   unit_labels[id]=label
-  unit_nodes[id]={"root":root,"figures":fig,"mounted":true,"anims":[],"last":root.position,"kind":"scout","yaw":-PI/2.0,"pos2":Vector2(float(sc.x),float(sc.z)),"moving":false,"stage":""}
+  unit_nodes[id]={"root":root,"figures":fig,"mounted":true,"anims":[],"last":root.position,"kind":"scout","yaw":-PI/2.0,"pos2":Vector2(float(sc.x),float(sc.z)),"moving":false,"stage":"","rig":rig}
   scout_nodes[id]=true
 
 func _dir_yaw(prev:Vector2,cur:Vector2,yaw:float,delta:float)->float:
@@ -2799,18 +3054,31 @@ func _update_group_j(u:Dictionary,delta:float):
  var n=_group_count(u)
  if entry.mounted!=mounted:
   for p in entry.parts:p.mmi.queue_free()
-  entry.parts=_mm_parts(entry.root,"rider_1806" if mounted else "dismounted_1806",n,id)
+  # visual/r1 F4: al desmontar se va el jefe a caballo (la caballada queda en el vado, _update_parked_j); al volver a montar, vuelve.
+  var rig0:Dictionary=entry.get("rig",{})
+  if not rig0.is_empty() and is_instance_valid(rig0.node):(rig0.node as Node).queue_free()
+  entry.rig={}
+  if mounted:
+   entry.rig=_mount_rig(entry.root,str(HORSE_COATS[_coat_of(id.hash(),-1)]),"1806",id,false)
+   entry.parts=_mount_parts(entry.root,"1806",maxi(n-1,1),id,id.hash())
+  else:entry.parts=_mm_parts(entry.root,"dismounted_1806",n,id)
   entry.mounted=mounted;entry.dirty=true;entry.n=n
   _apply_fig_lod(entry)
  elif n!=entry.n:
-  for p in entry.parts:
-   p.mm.visible_instance_count=-1;p.mm.instance_count=n
+  if mounted:_resize_parts(entry.parts,maxi(n-1,1),id.hash())
+  else:
+   for p in entry.parts:
+    p.mm.visible_instance_count=-1;p.mm.instance_count=n
   entry.n=n;entry.dirty=true
   _apply_fig_lod(entry)
  var root:Node3D=entry.root
  var cur=Vector2(float(u.x),float(u.z))
  var stage=str(u.get("stage",""))
  var moving=stage=="moving" or stage=="stumbling"
+ # visual/r1 F4: las reglas avanzan en pasos fijos de 0,25 s; en marcha la vista extrapola con la velocidad del último paso y el
+ # resto del acumulador (como mucho un paso), así el grupo se desliza parejo y el andar del jefe no patina a saltos.
+ if stage=="moving":
+  cur+=Vector2(float(u.get("vx",0.0)),float(u.get("vz",0.0)))*clampf(float(rules.state.get("accumulator",0.0)),0.0,0.25)
  var prev:Vector2=entry.pos2
  var yaw=_dir_yaw(prev,cur,float(entry.yaw),delta)
  var changed=cur.distance_squared_to(prev)>0.0001 or absf(yaw-float(entry.yaw))>0.002
@@ -2827,6 +3095,12 @@ func _update_group_j(u:Dictionary,delta:float):
  if absf(fk1-fk0)>0.001:
   entry["form_k"]=move_toward(fk0,fk1,delta/1.2);entry.dirty=true
  var far=bool(entry.get("lod_far",false))
+ # visual/r1 F4: andar del jefe según su velocidad en pantalla (m/s reales) y la del juego (vx, vz) con el paso pedido.
+ var rig:Dictionary=entry.get("rig",{})
+ if not rig.is_empty():
+  var v_vis=cur.distance_to(prev)/maxf(delta,0.0001)
+  if v_vis>60.0:v_vis=0.0   # salto (carga de partida, reubicación): no es marcha
+  _gait_step(rig,v_vis,Vector2(float(u.get("vx",0.0)),float(u.get("vz",0.0))).length(),moving,str(u.get("pace","trot")),RIDER_SCALE,delta,far or not root.visible)
  # De lejos (LOD) no hay vaivén: solo se rehace la formación si el grupo se movió, giró o cambió.
  if root.visible and (changed or entry.dirty or (moving and not far) or stage=="routed" or entry.moving!=moving):
   _layout_group_j(entry,u,moving,stage)
@@ -2856,8 +3130,28 @@ func _layout_group_j(entry:Dictionary,u:Dictionary,moving:bool,stage:String):
  var t=elapsed_visual
  var bk=float(entry.get("board_k",0.0))
  var gi=maxi(unit_nodes.keys().find(str(u.id)),0)
+ # visual/r1 F4: a caballo, el jefe animado ocupa el punto del grupo y la tropa (n−1 figuras) forma una fila más atrás.
+ var rig:Dictionary=entry.get("rig",{})
+ var z_lead=0.0
+ var gn0:Node3D=entry.get("guion",null)
+ if is_instance_valid(gn0) and not mounted:gn0.position=Vector3.ZERO;gn0.rotation=Vector3.ZERO
+ if mounted and not rig.is_empty() and is_instance_valid(rig.node):
+  var lead:Node3D=rig.node
+  lead.position=Vector3(0.0,_h(rootpos.x,rootpos.z)-rootpos.y,0.0)
+  lead.rotation=Vector3(0.0,yaw,0.0)
+  lead.scale=Vector3.ONE*sc
+  # visual/r1 F4: el guion lo lleva el jefe: asta al costado derecho de su caballo (antes en el centro del grupo, ahora lo atravesaría)
+  # y paño hacia atrás. Desmontados, vuelve al punto del grupo.
+  var gn:Node3D=entry.get("guion",null)
+  if is_instance_valid(gn):
+   gn.position=lead.position+Vector3(0.45,0.55,0.15).rotated(Vector3.UP,yaw)
+   gn.rotation=Vector3(0.0,yaw-PI*0.5,0.0)
+  n=maxi(n-1,1)
+  z_lead=_gaps(true).y*sc
+  dims=_form_dims(n,mounted,form_k>0.5)
  for i in range(n):
   var f=_form_slot(i,n,mounted,sc,form_k,gseed)
+  f.y+=z_lead
   var off=Vector3(f.x*spread,0,f.y*spread).rotated(Vector3.UP,yaw)
   var wx=rootpos.x+off.x;var wz=rootpos.z+off.z
   var gy=_h(wx,wz)-rootpos.y
@@ -2875,8 +3169,8 @@ func _layout_group_j(entry:Dictionary,u:Dictionary,moving:bool,stage:String):
    if stage=="stumbling":pitch=0.18*sin(t*9.0+float(i))
   var basis=Basis.from_euler(Vector3(pitch,yaw+f.z,0.0)).scaled_local(Vector3.ONE*sc)
   var xf=Transform3D(basis,Vector3(off.x,gy+bob,off.z))
-  for p in entry.parts:p.mm.set_instance_transform(i,xf*p.xf)
- entry["foot"]=_form_extent(n,mounted,sc,form_k)*spread
+  _set_fig(entry.parts,i,xf)
+ entry["foot"]=(_form_extent(n,mounted,sc,form_k)+Vector2(0.0,z_lead))*spread
 
 func _update_label_j(id:String,u,stage:String,root:Node3D,h:float):
  var label:Label3D=unit_labels[id]
@@ -2924,9 +3218,13 @@ func _update_scout_j(sc:Dictionary,delta:float):
  var fig:Node3D=entry.figures
  fig.rotation=Vector3(0,yaw,0)
  fig.position.y=0.0
+ # visual/r1 F4: el andar del caballo reemplaza el vaivén; el explorador perdido queda caído y quieto.
+ var rig:Dictionary=entry.get("rig",{})
+ if not rig.is_empty():
+  _gait_step(rig,_step_speed(entry,cur,prev,delta),-1.0,moving and stage!="lost",str(sc.get("pace","")),RIDER_SCALE,delta,not root.visible)
  if stage=="lost":
   fig.rotation=Vector3(0,yaw,PI*0.5);fig.position.y=0.6
- elif moving:
+ elif moving and rig.is_empty():
   fig.position.y=0.06*absf(sin(elapsed_visual*7.0))
  var ring:MeshInstance3D=selected_rings[id]
  ring.visible=_ring_visible(id,stage) and stage!="lost" and not look_hide_overlays
@@ -2945,15 +3243,16 @@ func _update_parked_j():
   if not bool(u.get("mounted",true)) and float(u.strength)>0.0 and not parked_j.has(id):
    var n=_group_count(u)
    var holder=Node3D.new();holder.name="Caballos_"+id;add_child(holder)
-   var parts=_mm_parts(holder,"horse_only",n)
+   # visual/r1 F4: caballada de criollos sin jinete, con los pelajes de su grupo (antes horse_only, el caballo viejo de 3,39 m a 0,82).
+   var parts=_mount_parts(holder,"1806",n,id,id.hash(),false)
    var lanes=clampi(int(ceil(sqrt(float(n)*0.9))),1,4)
    var base=bp+Vector2(-4.0,float(gi-1)*9.0)
    for i in range(n):
     var row=i/lanes;var lane=i%lanes
-    var p=base+Vector2(-float(row)*2.5,(float(lane)-float(lanes-1)*0.5)*3.0)
+    var p=base+Vector2(-float(row)*2.9,(float(lane)-float(lanes-1)*0.5)*1.6)
     var basis=Basis.from_euler(Vector3(0,PI*0.5,0)).scaled_local(Vector3.ONE*RIDER_SCALE)
     var xf=Transform3D(basis,Vector3(p.x,_h(p.x,p.y),p.y))
-    for pt in parts:pt.mm.set_instance_transform(i,xf*pt.xf)
+    _set_fig(parts,i,xf)
    parked_j[id]=holder
   gi+=1
  var deep=false
