@@ -239,6 +239,7 @@ func _run() -> void:
 	await _set_window(Vector2i(1280, 720))
 	await _test_zoom(Vector2i(1280, 720))
 	await _test_centering()
+	await _test_explicit_only()
 	suite.extra["camara"] = by_size
 	suite.extra["nota"] = "píxeles reales de la ventana; el margen es el menor de los cuatro bordes en % del lado; las fichas son de tamaño fijo en píxeles (tokens.min_px)"
 	_write_report()
@@ -441,18 +442,30 @@ func _test_zoom(size: Vector2i) -> void:
 	await _frames(2)
 
 
-## Las teclas 4 y 5 (dos veces) centran la cámara en la ficha; se mide si después la cámara la sigue cuando marcha.
+## Espera (en tiempo real) a que termine el deslizamiento de la cámara, si hay uno.
+func _wait_glide(max_s: float = 3.0) -> void:
+	var t0 := Time.get_ticks_msec()
+	await _frames(1)
+	while hx.cam.approaching() and float(Time.get_ticks_msec() - t0) / 1000.0 < max_s:
+		await process_frame
+	await _frames(1)
+
+
+## Las teclas 4 y 5 (dos veces) llevan la cámara a la ficha (Q-201: se desliza, se acerca si estaba lejos y nunca aleja); se mide si después la cámara la sigue cuando marcha.
 func _test_centering() -> void:
 	hx.reset_camera()
 	await _frames(2)
+	var d_start := float(hx.qa_state().camera.dist)
 	var recon := _unit_pos("reconocedores")
 	hx.select_group(3)
-	hx.select_group(3)  # la segunda vez centra
-	await _frames(2)
+	hx.select_group(3)  # la segunda vez va a la ficha
+	await _wait_glide()
 	var t: Array = hx.qa_state().camera.target
 	var centered := Vector2(float(t[0]), float(t[1])).distance_to(recon)
-	suite.check(hx.qa_state().selected == ["reconocedores"] and centered <= 0.5, "centrar: la tecla 4 dos veces elige a los reconocedores y centra la cámara en ellos (a %.2f m)" % centered)
-	var dist_before := float(hx.qa_state().camera.dist)
+	suite.check(hx.qa_state().selected == ["reconocedores"] and centered <= 0.5, "centrar: la tecla 4 dos veces elige a los reconocedores y lleva la cámara a ellos (a %.2f m)" % centered)
+	var d_focus := float(hx.qa_state().camera.dist)
+	suite.check(d_focus <= d_start + 0.5 and d_focus <= 260.0, "ir a la ficha: la segunda pulsación acerca la cámara (de %.0f a %.0f m) y nunca la aleja" % [d_start, d_focus])
+	var dist_before := d_focus
 	var r: Dictionary = hx.orders.issue("reconocedores", "move", recon + Vector2(0.0, -60.0), {})
 	hx.qa_step(40.0)
 	await _frames(3)
@@ -463,8 +476,8 @@ func _test_centering() -> void:
 	var following_id := str(hx.cam.follow_id) if "follow_id" in hx.cam else ""
 	suite.extra["seguimiento"] = {"orden_ok": bool(r.get("ok", false)), "ficha_se_movio_m": snappedf(moved, 0.1), "distancia_camara_ficha_m": snappedf(gap, 0.1), "sigue_a_la_ficha": follows, "siguiendo": following_id, "zoom_se_mantiene": is_equal_approx(dist_before, float(hx.qa_state().camera.dist))}
 	suite.check(bool(r.get("ok", false)) and moved > 5.0, "centrar: la orden de marcha mueve a los reconocedores (%.1f m en 40 s)" % moved)
-	suite.check(is_equal_approx(dist_before, float(hx.qa_state().camera.dist)), "centrar: centrar en una ficha no cambia el zoom")
-	suite.check(follows and following_id == "reconocedores", "seguir: tras centrar en los reconocedores la cámara los sigue mientras marchan (a %.1f m de la ficha tras %.0f m de marcha)" % [gap, moved])
+	suite.check(is_equal_approx(dist_before, float(hx.qa_state().camera.dist)), "centrar: seguir a una ficha no cambia el zoom")
+	suite.check(follows and following_id == "reconocedores", "seguir: tras ir a los reconocedores la cámara los sigue mientras marchan (a %.1f m de la ficha tras %.0f m de marcha)" % [gap, moved])
 	# la rueda no suelta a la ficha; mover la cámara a mano (teclas, arrastre, minimapa) o volver al cuadro inicial sí
 	hx.cam.zoom_at(_cam(), root.get_visible_rect().size * 0.5, ZOOM_NOTCH)
 	suite.check(str(hx.cam.follow_id) == "reconocedores" and float(hx.qa_state().camera.dist) < dist_before, "seguir: la rueda acerca sin soltar a la ficha")
@@ -472,13 +485,116 @@ func _test_centering() -> void:
 	suite.check(str(hx.cam.follow_id) == "", "seguir: mover la cámara con las teclas la suelta")
 	hx.select_group(4)
 	hx.select_group(4)
+	await _wait_glide()
 	suite.check(str(hx.cam.follow_id) == "arreo", "seguir: la tecla 5 dos veces pasa a seguir al arreo")
 	hx.center_on_front("bateria")
 	suite.check(str(hx.cam.follow_id) == "" and Vector2(float(hx.qa_state().camera.target[0]), float(hx.qa_state().camera.target[1])).distance_to(hx.landmark_pos("bateria")) <= 0.5, "seguir: centrar en un frente suelta a la ficha y centra en el frente")
 	hx.select_group(3)
 	hx.select_group(3)
 	hx.reset_camera()
+	await _wait_glide()
 	suite.check(str(hx.cam.follow_id) == "", "seguir: volver al cuadro inicial (Inicio) suelta a la ficha")
+	await _frames(2)
+
+
+func _pose() -> Dictionary:
+	var c: Dictionary = hx.qa_state().camera
+	return {"t": Vector2(float(c.target[0]), float(c.target[1])), "d": float(c.dist), "p": float(c.pitch_deg)}
+
+
+func _moved(a: Dictionary, b: Dictionary) -> bool:
+	return (a.t as Vector2).distance_to(b.t) > 0.5 or absf(float(a.d) - float(b.d)) > 0.5 or absf(float(a.p) - float(b.p)) > 0.5
+
+
+func _fresh_play() -> void:
+	hx.retry("mismo_mundo")
+	await _frames(4)
+	if str(hx.mode) != "play":
+		hx._start_play_after_briefing(true)
+		await _frames(2)
+	hx.reset_camera()
+	await _frames(3)
+
+
+## Q-201 (QA ronda 2, ALTO): la cámara se movía sola con cada orden de la guía (la guía elige al actor y la cámara miraba la selección). Ahora:
+##   · las órdenes por la guía («Siguiente paso»), los avisos y Tab NO mueven la cámara, aunque cambien la partida elegida;
+##   · elegir una partida que ya está a la vista no mueve la cámara;
+##   · elegir una partida fuera de cuadro desliza la cámara UNA vez (sin alejarla), y otra elección dentro de la pausa no la vuelve a mover.
+func _test_explicit_only() -> void:
+	await _fresh_play()
+	var p0 := _pose()
+	var moves := 0
+	var actors := {}
+	var steps := 0
+	for i in range(45):
+		var st: Dictionary = hx.qa_state()
+		if str(st.get("mode", "play")) != "play":
+			break
+		var g: Variant = hx.get("guide")
+		if g is Dictionary and str((g as Dictionary).get("actor", "")) != "":
+			actors[str((g as Dictionary).actor)] = true
+		hx._on_hud("next", null)
+		hx._on_hud("alert", null)
+		steps += 1
+		await _frames(2)
+		var p1 := _pose()
+		if _moved(p0, p1):
+			moves += 1
+			p0 = p1
+		hx.qa_step(6.0)
+		await _frames(2)
+		p1 = _pose()
+		if _moved(p0, p1):
+			moves += 1
+			p0 = p1
+	hx.cycle_selection(false)
+	hx.cycle_selection(false)
+	await _frames(3)
+	if _moved(p0, _pose()):
+		moves += 1
+	suite.extra["guia_no_mueve_camara"] = {"pasos": steps, "actores_elegidos_por_la_guia": actors.keys(), "movimientos_de_camara": moves, "ordenes": hx.qa_state().get("orders", 0)}
+	suite.check(steps >= 10 and actors.size() >= 2 and moves == 0, "Q-201: la orden por la guía no mueve la cámara (%d pasos de «Siguiente paso» con %d partidas distintas elegidas por la guía, y Tab dos veces: %d movimientos)" % [steps, actors.size(), moves])
+	# elegir a mano una partida que ya está a la vista: la cámara se queda
+	await _fresh_play()
+	var visible_id := ""
+	for id in V.GROUPS:
+		if hx.cam.on_screen(_cam(), _unit_pos(str(id)), float(hx.cam.data.approach.visible_margin_pct)) and not (hx.qa_state().selected as Array).has(id):
+			visible_id = str(id)
+			break
+	var before := _pose()
+	if visible_id != "":
+		hx.select_group(V.GROUPS.find(visible_id))
+		await _wait_glide()
+	suite.check(visible_id != "" and not _moved(before, _pose()), "Q-201: elegir una partida que ya está a la vista no mueve la cámara (%s)" % visible_id)
+	# elegir a mano una partida fuera de cuadro: un solo deslizamiento, que no aleja; otra elección enseguida no lo repite
+	hx.select([], "replace")
+	hx.cam.forget_approach()  # la elección anterior de esta prueba pudo haber gastado la pausa entre acercamientos
+	hx.cam.set_frame(hx.landmark_pos("posta"), 150.0, 30.0, float(hx.cam.yaw_deg))
+	hx.apply_camera()
+	await _frames(3)
+	var far_ids: Array = []
+	for id in V.GROUPS:
+		if not hx.cam.on_screen(_cam(), _unit_pos(str(id)), float(hx.cam.data.approach.visible_margin_pct)):
+			far_ids.append(str(id))
+	before = _pose()
+	if far_ids.size() >= 2:
+		hx.select_group(V.GROUPS.find(far_ids[0]))
+		await _wait_glide()
+		var after := _pose()
+		var glides := 1 if _moved(before, after) else 0
+		var gap := (after.t as Vector2).distance_to(_unit_pos(str(far_ids[0])))
+		suite.extra["eleccion_fuera_de_cuadro"] = {"partida": far_ids[0], "a_la_ficha_m": snappedf(gap, 0.1), "desde_m": snappedf(float(before.d), 0.1), "hasta_m": snappedf(float(after.d), 0.1)}
+		suite.check(glides == 1 and gap <= 6.0 and float(after.d) <= float(before.d) + 0.5, "Q-201: elegir a mano una partida fuera de cuadro desliza la cámara hasta ella una vez y sin alejarla (%s, a %.1f m, de %.0f a %.0f m)" % [str(far_ids[0]), gap, float(before.d), float(after.d)])
+		hx.cam.set_frame(hx.landmark_pos("posta"), 150.0, 30.0, float(hx.cam.yaw_deg))
+		hx.apply_camera()
+		await _frames(3)
+		before = _pose()
+		hx.select_group(V.GROUPS.find(far_ids[1]))
+		await _wait_glide()
+		suite.check(not _moved(before, _pose()), "Q-201: otra elección dentro de la pausa de %.0f s no vuelve a deslizar la cámara (%s)" % [float(hx.cam.data.approach.cooldown_s), str(far_ids[1])])
+	else:
+		suite.check(false, "Q-201: con la cámara en la posta hay al menos dos partidas fuera de cuadro (%s)" % str(far_ids))
+	hx.reset_camera()
 	await _frames(2)
 
 

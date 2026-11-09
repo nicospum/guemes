@@ -9,22 +9,77 @@ func start(m: Node, opts: Dictionary = {}) -> void:
 	_opts = opts.duplicate(true)
 	_cli = _cli_flags()
 	process_priority = 10  # después de main: la cámara de main.gd se pisa con la de este nivel en cada cuadro
+	var t0 := Time.get_ticks_usec()
+	start_stages_ms = {}
 	_read_json()
 	_read_options()
 	_remember_global_state()
 	if is_instance_valid(main.camera):
 		main.camera.far = 9000.0
 		main.camera.fov = 46.0
+	t0 = _stage("datos", t0)
 	_build_ui()
 	_fit_scale()
+	t0 = _stage("interfaz", t0)
 	_build_layers()
+	t0 = _stage("capas", t0)
 	_begin_game()
-	_build_view()
-	_setup_camera()
+	t0 = _stage("partida", t0)
+	# Q-205 (QA ronda 2): al entrar desde el menú la primera pantalla es el briefing, que tapa todo el cuadro; la vista 3D (≈ 450–620 ms de los 1 130–1 270 de la
+	# construcción) se arma recién después de que el briefing se dibujó, mientras se lee. Con la apertura salteada, una partida recuperada o la QA, se arma acá.
+	_view_pending = _wants_deferred_view()
+	if not _view_pending:
+		_build_view()
+		t0 = _stage("vista", t0)
+		_setup_camera()
+		t0 = _stage("camara", t0)
 	_open_first_screen()
 	_refresh_hud(true)
+	t0 = _stage("primera_pantalla", t0)
+	if _view_pending:
+		_build_view_later.call_deferred()
 	if is_instance_valid(main.audio_manager):
 		main.audio_manager.set_environment("norte")  # viento; la lluvia propia llega con los efectos (sin música)
+
+
+var _view_pending := false  ## Q-205: la vista se arma detrás del briefing (ensure_view)
+
+
+func _wants_deferred_view() -> bool:
+	if not bool(ui_data.get("defer_view_behind_briefing", true)):
+		return false
+	return not (_skip_intro or _start_phase != "" or bool(_opts.get("qa", false)) or bool(_opts.get("load", false)))
+
+
+func _build_view_later() -> void:
+	await get_tree().process_frame
+	await RenderingServer.frame_post_draw  # el briefing ya está en pantalla
+	if main == null or not is_inside_tree():
+		return
+	ensure_view()
+
+
+## Arma la vista si quedó pendiente (la llaman el cuadro después del briefing y «Empezar», por si el jugador fue más rápido).
+func ensure_view() -> void:
+	if not _view_pending:
+		return
+	_view_pending = false
+	var t0 := Time.get_ticks_usec()
+	_build_view()
+	t0 = _stage("vista_diferida", t0)
+	_setup_camera()
+	_stage("camara", t0)
+	_refresh_hud(true)
+
+
+## Cuánto tardó cada paso de start() (ms), para perfilar la construcción del nivel (Q-205). Lo leen tools/hx_build_profile.gd y el benchmark.
+var start_stages_ms: Dictionary = {}
+
+
+func _stage(name_: String, since_usec: int) -> int:
+	var now := Time.get_ticks_usec()
+	start_stages_ms[name_] = snappedf(float(now - since_usec) / 1000.0, 0.1)
+	return now
 
 
 ## Libera lo propio y deja `main` como estaba; main.gd libera este nodo y vuelve al menú o al norte. Se puede llamar más de una vez.

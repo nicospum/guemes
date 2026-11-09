@@ -239,7 +239,12 @@ func _left_button(mb: InputEventMouseButton) -> void:
 	var how := "add" if mb.shift_pressed else ("toggle" if mb.ctrl_pressed else "replace")
 	if moved <= CLICK_PX:
 		if _press_unit != "":
-			select([_press_unit], how)
+			if how == "replace" and selected == [_press_unit]:
+				focus_group(_press_unit)  # clic en la ficha ya elegida: como la segunda pulsación de su tecla
+			else:
+				select([_press_unit], how)
+				if how == "replace":
+					explicit_pick(_press_unit)
 		elif how == "replace":
 			select([], "replace")
 	else:
@@ -285,7 +290,10 @@ func _escape() -> void:
 	if orders != null and (orders.aiming() or not orders.waypoints.is_empty()):
 		orders.cancel_aim()
 		return
-	if order_count == 0 and _elapsed() < _ui_num("hud_limits", "esc_menu_free_s", 20.0) and _playing():
+	# Q-208 (QA ronda 2): sin órdenes y en los primeros 20 s, Esc salía al menú sin preguntar; como Esc también salta la apertura (y Espacio el briefing), dos Esc al
+	# empezar sacaban del nivel y había que volver a pasar por el briefing. En el recorrido del jugador (con briefing) Esc ahora siempre abre la pausa, que tiene
+	# «Volver al menú»; la salida rápida queda solo para las entradas sin briefing (la bandera de pruebas skip_intro, PoC-11).
+	if _skip_intro and order_count == 0 and _elapsed() < _ui_num("hud_limits", "esc_menu_free_s", 20.0) and _playing():
 		exited.emit("menu")
 		return
 	open_pause_menu()
@@ -324,12 +332,35 @@ func select_group(index: int) -> void:
 		return
 	var id := str(V.GROUPS[index])
 	if selected == [id]:
-		if index < 3:
-			center_on_front(str(group_fronts.get(id, "")))
-		else:
-			center_on_unit(id)  # los reconocedores y el arreo no tienen un frente: se sigue a la agrupación misma
+		focus_group(id)
 		return
 	select([id], "replace")
+	explicit_pick(id)
+
+
+## Q-201: la elección EXPLÍCITA de una partida por el jugador (tecla 1 a 5, clic en su ficha o en su tarjeta) es lo único que puede deslizar la cámara sola, y solo si
+## la ficha no está a la vista (humahuaca_camera.request_approach). La guía, los botones de orden y los avisos eligen al actor con select() y no mueven la cámara.
+func explicit_pick(id: String) -> void:
+	if cam == null or main == null or not is_instance_valid(main.camera) or selected != [id]:
+		return
+	cam.request_approach(main.camera, id)
+	apply_camera()
+
+
+## La segunda pulsación de la tecla o de la tarjeta de una partida ya elegida (o el clic en su ficha): la cámara va hacia su frente (1 a 3) o hacia la ficha y la sigue
+## (4 y 5, que no tienen frente), y se acerca si está lejos. Nunca aleja.
+func focus_group(id: String) -> void:
+	if cam == null:
+		return
+	var fid := str(group_fronts.get(id, ""))
+	if fid != "":
+		cam.focus_on(landmark_pos(fid), "")
+	else:
+		var u: Variant = rules.call("get_unit", id) if rules != null else null
+		if not (u is Dictionary) or (u as Dictionary).is_empty():
+			return
+		cam.focus_on(Vector2(float((u as Dictionary).get("x", 0.0)), float((u as Dictionary).get("z", 0.0))), id)
+	apply_camera()
 
 
 ## Centra la cámara en una agrupación (la ficha o la tecla de los reconocedores y del arreo, que no tienen un frente).
@@ -393,6 +424,7 @@ func refresh_hud_now() -> void:
 
 func on_order_ok(actor: String, action: String) -> void:
 	order_count += 1
+	commit_attempt()
 	if first_order_s < 0.0:
 		first_order_s = _elapsed()
 	if _auto_start:
@@ -928,11 +960,11 @@ func _on_hud(kind: String, arg: Variant) -> void:
 			var d := arg as Dictionary
 			var id := str(d.id)
 			if selected == [id] and not bool(d.shift) and not bool(d.ctrl):
-				center_on_front(str(group_fronts.get(id, "")))
-				if str(group_fronts.get(id, "")) == "":
-					center_on_unit(id)
+				focus_group(id)
 			else:
 				select([id], "add" if bool(d.shift) else ("toggle" if bool(d.ctrl) else "replace"))
+				if not bool(d.shift) and not bool(d.ctrl):
+					explicit_pick(id)
 		"front":
 			center_on_front(str((arg as Dictionary).id))
 		"action":
@@ -975,6 +1007,8 @@ func _open_first_screen() -> void:
 
 
 func _start_play_after_briefing(skip_opening_now: bool) -> void:
+	if has_method("ensure_view"):
+		call("ensure_view")  # Q-205: si el jugador apretó «Empezar» antes de que la vista diferida se armara
 	dialogs.close()
 	if skip_opening_now or cam == null:
 		mode = "play"
@@ -1182,6 +1216,7 @@ func _check_end(delayed: bool) -> void:
 	_auto_resume = 0.0
 	if orders != null:
 		orders.cancel_aim()
+	commit_attempt()  # Q-208: una partida que terminó (aun sin órdenes, por el reloj) es un intento
 	if progress != null and progress.has_method("record_result"):
 		var rec: Variant = progress.call("record_result", rules)
 		_rec = rec if rec is Dictionary else {}
@@ -1296,9 +1331,15 @@ func retry(kind: String) -> void:
 	if hud != null:
 		hud.visible_root(true)
 	if restored:
-		paused = false
+		# Q-202: volver a un punto de control deja el juego EN PAUSA y a velocidad normal (antes seguía corriendo a la velocidad del intento anterior, ×4):
+		# el jugador mira dónde quedó cada partida y sigue con Espacio
+		paused = true
+		speed = U.SPEEDS[0]
+		_toast(tx("report.checkpoint_paused", ""), "info", true)
 	if is_instance_valid(view) and view.has_method("update_state"):
 		view.call("update_state", 0.0)
+	if cam != null:
+		cam.forget_approach()
 	reset_camera()
 	_refresh_hud(true)
 	retry_ms = Time.get_ticks_msec() - t0

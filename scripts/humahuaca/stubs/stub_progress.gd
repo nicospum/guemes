@@ -107,10 +107,15 @@ func new_world() -> void:
 	_world_index += 1
 
 ## Cuenta el intento. El stub no tiene diario ni ventaja de la experiencia, así que no le da nada a `rules`.
-func begin_attempt(_rules: RefCounted) -> Dictionary:
-	attempts += 1
+func begin_attempt(_rules: RefCounted, count: bool = true) -> Dictionary:
+	if count:
+		attempts += 1
 	save_progress()
 	return {"attempt": attempts, "seed": world_seed(), "defeats_in_row": defeats_in_row, "marks": [], "mercy_level": 0}
+
+func commit_attempt() -> void:
+	attempts += 1
+	save_progress()
 
 func _medal_rank(medal: String) -> int:
 	return maxi(0, R.MEDALS.find(medal))

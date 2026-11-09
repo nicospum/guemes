@@ -478,8 +478,10 @@ func _step_alert(t: float) -> void:
 	_step_messenger(t)
 	_step_spread(t)
 	if not bool(al.signaled) and (al.pre_signal as Array).size() >= V.OBJECTIVES.size() and str(state.status) == "playing":
-		var last := str((al.pre_signal as Array)[(al.pre_signal as Array).size() - 1])
-		_finish("defeat", "descubiertos", {"frente": last})
+		## Q-207 (QA ronda 2): el parte nombra al frente que DIO LA VOZ (el primero en alarma antes de la señal), no al último al que le llegó: con la guardia atenta la voz
+		## corre y el último suele ser la posta aunque a los reconocedores los vieran en la batería
+		var first := str((al.pre_signal as Array)[0])
+		_finish("defeat", "descubiertos", {"frente": first})
 
 func _noise_of(u: Dictionary, env: Dictionary) -> float:
 	var st := str(u.stage)
@@ -611,6 +613,16 @@ func _arrive(u: Dictionary) -> void:
 			u.work = {"kind": "recon", "remaining_s": float(_rules.stealth.recon.duration_s)}
 		"leave":
 			_exit_unit(u)
+		"destroy":  # Q-203: la cadena de destruir llegó caminando al lote siguiente del frente
+			var nxt := _item(str(u.order.get("item", "")))
+			var chain_front := str(u.order.get("front", ""))
+			u.stage = "idle"
+			u.order = {}
+			if not nxt.is_empty() and str(nxt.state) == "en_sitio" and D.dist(float(u.x), float(u.z), float(nxt.x), float(nxt.z)) <= float(_rules.transport.destroy_radius_m):
+				_start_destroy(u, nxt)
+			else:
+				_continue_destroy(u, chain_front)
+			_bump()
 		_:
 			u.stage = "idle"
 			u.order = {}
@@ -634,8 +646,17 @@ func _work_unit(u: Dictionary) -> void:
 		"load":
 			_complete_load(u, str(w.item))
 		"destroy":
+			var it_front := str(_item(str(w.item)).get("front", ""))
 			_complete_destroy(u, str(w.item))
+			_continue_destroy(u, it_front)
 	_bump()
+
+## Q-203: la cadena de destruir (humahuaca_rules_field.gd).
+func _continue_destroy(u: Dictionary, front: String) -> void:
+	_field()._continue_destroy(u, front)
+
+func _start_destroy(u: Dictionary, it: Dictionary) -> void:
+	_field()._start_destroy(u, it)
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Señal, ataque y toma
@@ -948,8 +969,13 @@ func _finish(status: String, cause_id: String, ctx: Dictionary = {}) -> void:
 		out.title = str(c.titulo)
 		out.cause = D.fmt(str(c.texto), vars)
 		out.advice = str(c.consejo)
+		if cause_id == "descubiertos" and c.has("consejo_reconocedores") and _seen_recon(str(ctx.get("frente", ""))):
+			out.advice = str(c.consejo_reconocedores)  # Q-207: la voz la dio un centinela que vio a los reconocedores: el consejo es retirarlos con el aviso
 	state.outcome = out
 	_event(status, str(out.cause), {"strong": true})
+
+func _seen_recon(fid: String) -> bool:
+	return _field()._seen_recon(fid)
 
 func _finalize_loot() -> void:
 	var l: Dictionary = state.loot

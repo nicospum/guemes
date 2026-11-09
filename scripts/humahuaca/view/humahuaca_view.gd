@@ -811,6 +811,16 @@ func initial_frame(camera: Camera3D) -> Dictionary:
 # ---------------------------------------------------------------------------------------------------------------------
 # Minimapa y sondas de QA
 
+## Los polígonos (x, z) de las parcelas regadas, para dibujarlas como sembrados en el minimapa (Q-204).
+func parcel_polys() -> Array:
+	var out: Array = []
+	if _terrain != null and _terrain.has_method("features"):
+		for f in _terrain.call("features", "parcela"):
+			if f is Dictionary:
+				out.append(Gfx.new().pts(f.get("poly", f.get("pts", []))) if gfx == null else gfx.pts(f.get("poly", f.get("pts", []))))
+	return out
+
+
 func get_minimap_texture(size: Vector2i) -> Texture2D:
 	var key := "%dx%d" % [size.x, size.y]
 	if not _minimap_cache.has(key):

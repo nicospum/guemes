@@ -5,7 +5,7 @@ extends RefCounted
 ##
 ## Qué recuerda: intentos, racha de derrotas, mejor medalla, si ganó y el mejor golpe; el mundo (una lista fija de semillas, rules.campaign.world_seeds: no cambia hasta ganar y
 ## al ganar se re-sortea); el diario (hasta 40 entradas, cada una con una marca tenue «anotado» para el intento siguiente: las marcas NO cuentan como reconocimiento) y si ya vio
-## el tutorial. Dos puntos de control (CONTRATO 8.4): `posiciones` (las tres partidas en su puesto y aún sin descarga, o a los 210 s) y `deposito` (al tomar el tercer frente);
+## el tutorial. Dos puntos de control (CONTRATO 8.4): `posiciones` (las tres partidas en su puesto y aún sin descarga; Q-202: ya no a los 210 s sin nadie en su puesto) y `deposito` (al tomar el tercer frente);
 ## restaurarlos cuesta un intento y tarda un instante.
 ## Recibe las reglas por parámetro (la clase real o el stub) y usa solo su API pública: campaign_report(), snapshot(), restore_snapshot() y el state de solo lectura.
 ## Independencia (V19): solo importa vocabularios y datos.
@@ -153,14 +153,23 @@ func _clear_checkpoints() -> void:
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(_checkpoint_path))
 
 ## Cuenta el intento y le da a `rules` las marcas del diario (con su etiqueta «anotado») y la ventaja de la experiencia (ninguna en R1: se muestra en el parte si la hubiera).
-func begin_attempt(rules: RefCounted) -> Dictionary:
-	attempts += 1
+## `count` falso (Q-208, QA ronda 2): prepara el intento (el diario de los anteriores llega a las reglas) sin contarlo; lo cuenta commit_attempt() cuando el jugador
+## juega de verdad (la primera orden o el final de la partida). Así entrar desde el menú y salir sin jugar no suma intentos.
+func begin_attempt(rules: RefCounted, count: bool = true) -> Dictionary:
+	if count:
+		attempts += 1
 	_cp_seen = {}
 	var marks := diary_marks()
 	if rules != null and rules.has_method("set_diary_marks"):
 		rules.call("set_diary_marks", marks)
+	if count:
+		save_progress()
+	return {"attempt": attempts + (0 if count else 1), "seed": world_seed(), "defeats_in_row": defeats_in_row, "marks": marks, "mercy_level": 0}
+
+## Cuenta el intento que begin_attempt(rules, false) dejó preparado.
+func commit_attempt() -> void:
+	attempts += 1
 	save_progress()
-	return {"attempt": attempts, "seed": world_seed(), "defeats_in_row": defeats_in_row, "marks": marks, "mercy_level": 0}
 
 func _medal_rank(medal: String) -> int:
 	return maxi(0, R.MEDALS.find(medal))
@@ -318,7 +327,8 @@ func _write_checkpoint(kind: String, rules: RefCounted) -> void:
 	if _write_atomic(_checkpoint_path, {"version": CHECKPOINT_VERSION, "points": points}):
 		_read_checkpoint_index()  # el índice dice lo mismo que el archivo: lo que se borró de ahí (la «salida» vieja) deja de ofrecerse (R-01)
 
-## Barato (se llama cada cuadro): guarda `posiciones` cuando las tres partidas esperan la señal (o a los 210 s sin señal) y `deposito` al tomar el tercer frente.
+## Barato (se llama cada cuadro): guarda `posiciones` cuando las tres partidas esperan la señal con tiempo para el golpe (Q-202: ya no «a los 210 s sin señal») y
+## `salida` al empezar la extracción.
 func checkpoint_tick(rules: RefCounted) -> void:
 	var state: Variant = rules.get("state")
 	if not (state is Dictionary) or (state as Dictionary).is_empty() or str(state.get("status", "")) != "playing":
@@ -334,7 +344,10 @@ func checkpoint_tick(rules: RefCounted) -> void:
 			for u in state.units:
 				if V.COMBAT_GROUPS.has(str(u.id)) and str(u.stage) == "waiting_signal":
 					ready += 1
-			if ready >= V.COMBAT_GROUPS.size() or t >= float(D.rules().time.checkpoint_positions_fallback_s):
+			# Q-202 (QA ronda 2): antes también se escribía «a los 210 s sin señal» aunque nadie hubiera llegado (derrota pasiva: las cinco partidas en la zona de
+			# partida a 56 s del alba, una derrota segura con la pista «te ahorrás la marcha» falsa). Ahora el control solo existe si deja una partida ganable: las tres
+			# partidas de combate en su puesto esperando la señal y todavía con tiempo para el golpe (antes de que el alba las descubra). La victoria exige los tres frentes.
+			if ready >= V.COMBAT_GROUPS.size() and t < float(D.rules().time.dawn_discovery_s) - float(D.rules().time.get("checkpoint_min_left_s", 30.0)):
 				_cp_seen["posiciones"] = gid
 				_write_checkpoint("posiciones", rules)
 	if str(state.phase) == "extraccion" and (not _cp_seen.has("salida") or str(_cp_seen.salida) != gid):

@@ -9,6 +9,7 @@ extends SceneTree
 ## Escribe solo en user:// y se niega a correr sin APPDATA aislado (export APPDATA="$TEMP/ap_iso_<pista>").
 
 const Fx = preload("res://tests/hx_fixtures.gd")
+const QA2 = preload("res://tests/hx_rules_qa2.gd")
 const V = preload("res://scripts/humahuaca/humahuaca_vocab.gd")
 const R = preload("res://scripts/humahuaca/rules/vocab_rules.gd")
 const Checks = preload("res://tests/hx_rules_checks.gd")
@@ -101,6 +102,7 @@ func _initialize() -> void:
 	_test_tower()
 	_test_reinforcement()
 	_test_loot_and_treatments()
+	QA2.new(self).run()  # QA ronda 2: Q-203 y Q-207 (tests/hx_rules_qa2.gd)
 	_test_outcomes()
 	_test_event_kinds()
 	_test_save_roundtrip()
