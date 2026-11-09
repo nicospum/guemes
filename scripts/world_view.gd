@@ -652,21 +652,25 @@ func _create_group(unit:Dictionary):
  var file="rider_1806" if scenario=="justine" else "rider_1817"
  if not mounted:file="dismounted_1806"
  var anims=[]
- for i in range(2 if quality=="baja" else 4):
-  var p=Vector3((i%2)*1.3-0.65,0,(i/2)*1.7-0.85)
-  var fig=_model(file,p,figures)
-  if file=="rider_1817":_recolor_poncho(fig,str(unit.id)=="guemes" and i==0)
-  if scenario=="norte":
-   # P1 ronda 2: realce de borde (luz de contorno celeste pálido + un piso mínimo de luz) para que las figuras propias no se pierdan
-   # en los valles en sombra. Un pase extra sin luz sobre 4 figuras por grupo: costo despreciable.
-   for mi in fig.find_children("*","MeshInstance3D",true,false):(mi as MeshInstance3D).material_overlay=_rim_mat()
-  var ap=fig.find_children("*","AnimationPlayer",true,false)
-  for player in ap:
-   var list=player.get_animation_list()
-   for anim in list:
-    if "trot" in anim or "walk" in anim:
-     player.get_animation(anim).loop_mode=Animation.LOOP_LINEAR
-     player.play(anim);player.seek(float(i)*0.14,true);player.pause();player.speed_scale=0.75;anims.append(player);break
+ # visual/r1 F3: la tropa sale de los hombres de diseño (NORTE_MEN_DISENO, tope 24 figuras). El jefe es una figura animada del GLB
+ # (con su trote) al frente y al centro; el resto va en un MultiMesh (un solo dibujo por pieza) formado en filas detrás de él.
+ var n=_group_count(unit)
+ var lead=_model(file,Vector3.ZERO,figures);lead.name="Jefe";lead.scale=Vector3.ONE*NORTE_FIG_SCALE
+ if file=="rider_1817":_recolor_poncho(lead,str(unit.id)=="guemes")
+ if scenario=="norte":
+  # P1 ronda 2: realce de borde (luz de contorno celeste pálido + un piso mínimo de luz) para que las figuras propias no se pierdan
+  # en los valles en sombra. Un pase extra sin luz; en F3 también sobre el MultiMesh de la tropa.
+  for mi in lead.find_children("*","MeshInstance3D",true,false):(mi as MeshInstance3D).material_overlay=_rim_mat()
+ for player in lead.find_children("*","AnimationPlayer",true,false):
+  var list=player.get_animation_list()
+  for anim in list:
+   if "trot" in anim or "walk" in anim:
+    player.get_animation(anim).loop_mode=Animation.LOOP_LINEAR
+    player.play(anim);player.pause();player.speed_scale=0.75;anims.append(player);break
+ var parts=_mm_parts(figures,file,maxi(n-1,1))
+ for p in parts:
+  if file=="rider_1817":p.mm.mesh=_poncho_mesh(p.mm.mesh,false)
+  if scenario=="norte":(p.mmi as GeometryInstance3D).material_overlay=_rim_mat()
  var ring=_ring(2.65,Looks.ORO_VIEJO,root)
  if scenario=="norte":
   # visual/r1 F1: aro de aliado fino a escala real (cinta de ~0,16 m que copia el relieve, 0,18 m sobre el suelo) y CON prueba de
@@ -677,7 +681,44 @@ func _create_group(unit:Dictionary):
  selected_rings[str(unit.id)]=ring
  var label=_world_label(str(unit.name),Vector3(0,4.0,0),Color("e9d4aa"),30,root)
  unit_labels[str(unit.id)]=label
- unit_nodes[str(unit.id)]={"root":root,"figures":figures,"mounted":mounted,"anims":anims,"last":root.position}
+ var entry={"root":root,"figures":figures,"mounted":mounted,"anims":anims,"last":root.position,"lead":lead,"parts":parts,"n":n,"lod_far":false,"ring_r":2.3}
+ unit_nodes[str(unit.id)]=entry
+ _layout_group_n(entry,str(unit.id),false)
+
+## visual/r1 F3: formación del Norte, en el marco local de `figures` (que ya gira hacia la marcha): jefe adelante y al centro, la tropa
+## en línea detrás (mismo trazado que la Justina, GLB 1817 a NORTE_FIG_SCALE). El conjunto se centra en el punto del grupo corrido
+## center_off hacia su sector; el aro (ring_r) lo abarca.
+func _layout_group_n(entry:Dictionary,id:String,moving:bool)->void:
+ var n:int=int(entry.n);var mounted:bool=bool(entry.mounted)
+ var m=maxi(n-1,1)
+ var sc=NORTE_FIG_SCALE;var sg=NORTE_FIG_SCALE*NORTE_GAP_K   # escala del modelo y de la separación
+ var gz=(CAV_GAP_Z if mounted else FOOT_GAP_Z)*sg
+ var ext=_form_extent(m,mounted,sg,0.0)
+ var z0=-(ext.y+gz)*0.5   # el jefe va una fila por delante del bloque
+ var gseed=id.hash()
+ var t=elapsed_visual
+ var far=bool(entry.get("lod_far",false))
+ var fig:Node3D=entry.figures
+ var base:Vector3=(entry.root as Node3D).position
+ # La tropa se corre hacia el centro del sector (center_off, en el mundo): ahí el relieve es llano; en el punto del grupo ya empieza la
+ # ladera y con 24 figuras la mitad quedaba detrás de una loma. La ficha y el rótulo siguen en el punto del grupo.
+ var co:Vector3=entry.get("center_off",Vector3.ZERO)
+ var col=co.rotated(Vector3.UP,-fig.rotation.y)
+ var lead:Node3D=entry.get("lead",null)
+ if is_instance_valid(lead):
+  var lw=base+co+Vector3(0,0,z0).rotated(Vector3.UP,fig.rotation.y)
+  lead.position=Vector3(col.x,terrain_height(lw.x,lw.z)-base.y,col.z+z0)
+ for i in range(m):
+  var f=_form_slot(i,m,mounted,sg,0.0,gseed)
+  var lp=Vector3(col.x+f.x,0.0,col.z+z0+gz+f.y)
+  # Cada figura apoya en su propio suelo (relieve quebrado): altura del terreno en su punto del mundo menos la del grupo.
+  var wp=base+lp.rotated(Vector3.UP,fig.rotation.y)
+  var gy=terrain_height(wp.x,wp.z)-base.y
+  var bob=0.07*absf(sin(t*7.0+float(i)*0.9)) if (moving and not far) else 0.0
+  var xf=Transform3D(Basis.from_euler(Vector3(0.0,f.z,0.0)).scaled_local(Vector3.ONE*sc),Vector3(lp.x,gy+bob*sc,lp.z))
+  for p in entry.parts:p.mm.set_instance_transform(i,xf*p.xf)
+ # Radio del aro: media diagonal de la huella (jefe incluido) + medio caballo y un margen.
+ entry["ring_r"]=sqrt(ext.x*ext.x+pow((ext.y+gz)*0.5,2.0))+(2.1 if mounted else 1.0)*sc
 
 var rim_mat:ShaderMaterial=null
 func _rim_mat()->ShaderMaterial:
@@ -739,32 +780,35 @@ func _ring_ribbon(color:Color,parent:Node3D,name_s:String)->MeshInstance3D:
 ## Solo la primera figura del grupo de Güemes conserva un granate oscuro (#5E1F1A) como acento de héroe (regla 4). Aspecto, no dato.
 var poncho_cache:Dictionary={}
 func _recolor_poncho(fig:Node3D,hero:bool)->void:
+ for mi in fig.find_children("*","MeshInstance3D",true,false):
+  if mi.mesh==null:continue
+  mi.mesh=_poncho_mesh(mi.mesh,hero)
+
+## visual/r1 F3: la reclasificación del poncho, por malla (antes dentro de _recolor_poncho), para usarla también en el MultiMesh de la tropa.
+func _poncho_mesh(src:Mesh,hero:bool)->Mesh:
  var brown=Color("705741").srgb_to_linear()
  var hero_c=Color("5e1f1a").srgb_to_linear()
  var sash=Color("8a7350").srgb_to_linear()
- for mi in fig.find_children("*","MeshInstance3D",true,false):
-  var src:Mesh=mi.mesh
-  if src==null:continue
-  var key=str(src.get_rid().get_id())+("|h" if hero else "|p")
-  if not poncho_cache.has(key):
-   var out=ArrayMesh.new()
-   for si in range(src.get_surface_count()):
-    var a=src.surface_get_arrays(si)
-    var mat=src.surface_get_material(si)
-    var nm=str(mat.resource_name) if mat!=null else ""
-    if a[Mesh.ARRAY_COLOR] is PackedColorArray and (nm.ends_with("wool") or nm.ends_with("linen")):
-     var cols:PackedColorArray=a[Mesh.ARRAY_COLOR]
-     for k in range(cols.size()):
-      var c=cols[k]
-      if c.r>0.1 and c.r>c.g*2.5 and c.r>c.b*2.5:
-       var t=(hero_c if hero else brown) if nm.ends_with("wool") else sash
-       var f=clampf(c.r/0.5,0.2,1.15)
-       cols[k]=Color(t.r*f,t.g*f,t.b*f,c.a)
-     a[Mesh.ARRAY_COLOR]=cols
-    out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,a)
-    out.surface_set_material(si,mat)
-   poncho_cache[key]=out
-  mi.mesh=poncho_cache[key]
+ var key=str(src.get_rid().get_id())+("|h" if hero else "|p")
+ if not poncho_cache.has(key):
+  var out=ArrayMesh.new()
+  for si in range(src.get_surface_count()):
+   var a=src.surface_get_arrays(si)
+   var mat=src.surface_get_material(si)
+   var nm=str(mat.resource_name) if mat!=null else ""
+   if a[Mesh.ARRAY_COLOR] is PackedColorArray and (nm.ends_with("wool") or nm.ends_with("linen")):
+    var cols:PackedColorArray=a[Mesh.ARRAY_COLOR]
+    for k in range(cols.size()):
+     var c=cols[k]
+     if c.r>0.1 and c.r>c.g*2.5 and c.r>c.b*2.5:
+      var t=(hero_c if hero else brown) if nm.ends_with("wool") else sash
+      var f=clampf(c.r/0.5,0.2,1.15)
+      cols[k]=Color(t.r*f,t.g*f,t.b*f,c.a)
+    a[Mesh.ARRAY_COLOR]=cols
+   out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,a)
+   out.surface_set_material(si,mat)
+  poncho_cache[key]=out
+ return poncho_cache[key]
 
 func update_state(delta:float):
  if justina:
@@ -819,19 +863,49 @@ func update_state(delta:float):
   if moving:
     entry.figures.rotation.y=lerp_angle(entry.figures.rotation.y,atan2(-movement.x,-movement.z),minf(1,delta*5))
   var animating=(str(u.stage)=="moving" and not u.path.is_empty()) if scenario=="justine" else dist>0.05
-  if entry.get("animating",false)!=animating:
-   entry["animating"]=animating
+  # visual/r1 F3: LOD de la tropa del Norte (misma regla que la Justina): de lejos, mitad de figuras, sin sombra ni trote del jefe.
+  var far_n=false
+  var cam_n=get_viewport().get_camera_3d()
+  if cam_n!=null and entry.has("parts"):
+   far_n=_lod_far_at(entry,cam_n.global_position.distance_to(root.global_position))
+   if far_n!=bool(entry.get("lod_far",false)):
+    entry["lod_far"]=far_n;_apply_fig_lod(entry);entry["relayout"]=true
+  var anim_on=animating and not far_n
+  if entry.get("animating",false)!=anim_on:
+   entry["animating"]=anim_on
    for ap in entry.anims:
     ap.speed_scale=0.75
-    if animating:ap.play()
+    if anim_on:ap.play()
     else:ap.pause()
+  if entry.has("parts"):
+   # Bajas y refuerzos cambian la cantidad de figuras; en marcha se rehace la formación (suelo y vaivén) y una vez más al parar.
+   var n_now=_group_count(u)
+   # Corrimiento hacia el centro del sector del grupo (0,8 del camino, hasta 4 m).
+   var co=Vector3.ZERO
+   var sec:Dictionary=rules.get_sector(str(u.get("sector_id",""))) if rules.has_method("get_sector") else {}
+   if not sec.is_empty():
+    co=Vector3(float(sec.x)-root.position.x,0.0,float(sec.z)-root.position.z)*0.8
+    if co.length()>4.0:co=co.normalized()*4.0
+   if co.distance_to(entry.get("center_off",Vector3.ZERO))>0.05:
+    entry["center_off"]=co;entry["relayout"]=true
+   if n_now!=int(entry.n):
+    for p in entry.parts:
+     p.mm.visible_instance_count=-1;p.mm.instance_count=maxi(n_now-1,1)
+    entry.n=n_now;_apply_fig_lod(entry);entry["relayout"]=true
+   if animating or bool(entry.get("relayout",false)) or bool(entry.get("was_moving",false))!=animating:
+    _layout_group_n(entry,id,animating)
+    entry["relayout"]=false
+   entry["was_moving"]=animating
   entry.last=goal
   root.visible=float(u.strength)>0.0
   if scenario=="norte":
    # Regla de color: aliado = aro celeste siempre visible; el elegido pasa a oro viejo.
    selected_rings[id].visible=true
    var sel_n=id==selected or selected=="all"
-   _conform_ring(selected_rings[id],root.position,2.3,0.2 if sel_n else 0.07)
+   # visual/r1 F3: el aro rodea la huella de la tropa (radio ring_r, centrado donde quedó la formación: center_off).
+   var co_r:Vector3=entry.get("center_off",Vector3.ZERO)
+   selected_rings[id].position=Vector3(co_r.x,0.0,co_r.z)
+   _conform_ring(selected_rings[id],root.position+co_r,float(entry.get("ring_r",2.3)),0.2 if sel_n else 0.07)
    var rm=_ring_mat_n(Looks.ORO_VIEJO if sel_n else Looks.CELESTE)
    if selected_rings[id].material_override!=rm:selected_rings[id].material_override=rm
   else:
@@ -961,6 +1035,32 @@ const SHIP_KEEL = 1.58
 const RIDER_SCALE = 0.82
 const FOOT_SCALE = 0.9
 const GROUP_BAND = 14.0
+## visual/r1 F3: tropa a escala real. Cada figura representa 3,5 hombres (regla 3–4) y un grupo muestra entre 6 y 24 figuras;
+## de ahí las pérdidas restan figuras en proporción a la fuerza. Las cifras de hombres son de DISEÑO (ver _fig_men): nada se muestra.
+const MEN_PER_FIGURE = 3.5
+const FIG_MIN = 6
+const FIG_MAX = 24
+## visual/r1 F3: separación de la tropa a escala 1 (se multiplica por la escala del modelo). Caballería más abierta que la infantería:
+## de hombro a hombro ~1,9 m entre jinetes (el caballo mide 1,07 m de ancho) y una fila cada largo de caballo (3,39 m) + 0,55 m;
+## a pie ~1,0 m de frente y 1,3 m de fondo. Diseño de lectura, no reglamento de época.
+const CAV_GAP_X = 1.9
+const CAV_GAP_Z = 3.94
+const FOOT_GAP_X = 1.0
+const FOOT_GAP_Z = 1.3
+## visual/r1 F3: LOD de figuras. Más allá de esta distancia de cámara (m, con ±20 m de histéresis) cada grupo dibuja la mitad de las
+## figuras (repartidas en toda la huella, no las de atrás), sin sombra y sin el vaivén de la marcha: a esa distancia miden 1–2 px.
+const FIG_LOD_FAR_M = 300.0
+const FIG_LOD_KEEP = 0.5
+## visual/r1 F3: hombres de DISEÑO del Norte (III). Son fuerzas de campaña abstractas (game_rules: «las agrupaciones, rutas y cifras
+## son una abstracción») y el juego no tiene cifra de efectivos. Güemes y Arias: orden de cientos de hombres (diseño) → con la regla
+## pasan de 24 figuras y se TOPAN en 24 (tope de lectura y rendimiento, no proporción real). Partida del valle: banda chica, 60 → 17.
+const NORTE_MEN_DISENO = {"guemes":400.0,"arias":300.0,"zavala":60.0}
+## visual/r1 F3: escala de las figuras del Norte. El III es un mapa de campaña (Salta–Jujuy, decenas de km, en ~21 m de mundo): ahí no
+## hay escala real posible y la figura ya era un símbolo. A escala 1 una tropa de 24 jinetes ocupa ~13 x 12 m y tapa el sector vecino
+## (Salta queda a ~10 m de Güemes y los grupos a ~12 m entre sí); a 0,55 y con filas cerradas (x0,88 la separación de la Justina, sin
+## que los caballos se toquen) entra en un aro de menos de 6 m. Diseño de lectura.
+const NORTE_FIG_SCALE = 0.55
+const NORTE_GAP_K = 0.88
 const DECK_Y = 3.9
 const DECK_REACH = 70.0
 const J_STAGE_TEXT = {"working":"trabaja","stumbling":"tropezó","dismounting":"desmonta","boarding":"aborda","routed":"dispersos","blocked":"bloqueado","rally":"reagrupa","lost":"perdido","waiting_tide":""}
@@ -2194,10 +2294,81 @@ func _ring_j(radius:float,color:Color,parent:Node3D,half_w:float=0.11)->MeshInst
  parent.add_child(n)
  return n
 
+## visual/r1 F3: figuras del grupo según sus hombres (antes 14 fijas a fuerza 100, sin relación con la tropa).
+## base = hombres / 3,5 entre 6 y 24; luego en proporción a la fuerza actual sobre la inicial (bajas y refuerzos), mínimo 2.
 func _group_count(u:Dictionary)->int:
- var n=clampi(roundi(float(u.strength)/100.0*14.0),2,14)
+ var base=clampi(roundi(_fig_men(u)/MEN_PER_FIGURE),FIG_MIN,FIG_MAX)
+ var s0=maxf(_strength0(str(u.get("id",""))),1.0)
+ var n=clampi(roundi(float(base)*float(u.get("strength",s0))/s0),2,FIG_MAX)
  if quality=="baja":n=maxi(2,n/2)
  return n
+
+## visual/r1 F3: hombres de cada grupo. Justina: forces.groups[id].men_design de justina_map.json (etiqueta diseno: el paquete da
+## «30, 50 o 60 jinetes» sin datos suficientes); si falta, headcount_hint × 3,5 o 35, también diseño. Norte: NORTE_MEN_DISENO.
+func _fig_men(u:Dictionary)->float:
+ var id=str(u.get("id",""))
+ if justina:
+  var fg:Dictionary=M.get("forces",{}).get("groups",{}).get(id,{})
+  if fg.has("men_design"):return float(fg.men_design)
+  if fg.has("headcount_hint"):return float(fg.headcount_hint)*MEN_PER_FIGURE
+  return 10.0*MEN_PER_FIGURE
+ return float(NORTE_MEN_DISENO.get(id,60.0))
+
+## Fuerza con la que arranca el grupo (Justina: groups[].strength del mapa, 100/70/60; Norte: 100). Los hombres de diseño valen a esa fuerza.
+func _strength0(id:String)->float:
+ if justina:
+  for g in M.get("groups",[]):
+   if str(g.get("id",""))==id:return float(g.get("strength",100.0))
+ return 100.0
+
+## visual/r1 F3: orden de dibujo de las figuras. La instancia i ocupa el puesto _lod_slot(i): primero los puestos pares y después los
+## impares, así el LOD (visible_instance_count = mitad) deja una tropa rala con la misma huella en vez de cortar las filas de atrás.
+func _lod_slot(i:int,n:int)->int:
+ var h=(n+1)/2
+ return 2*i if i<h else 2*(i-h)+1
+
+## Filas y columnas: quieta, en línea (frente ancho y poco fondo); en marcha, en columna (2–3 de frente a caballo, 3–4 a pie).
+func _form_dims(n:int,mounted:bool,column:bool)->Vector2i:
+ var lanes:int
+ if column:lanes=(2 if n<=12 else 3) if mounted else (3 if n<=15 else 4)
+ else:lanes=clampi(int(ceil(sqrt(float(n)*(2.0 if mounted else 2.5)))),2,8 if mounted else 10)
+ lanes=mini(lanes,n)
+ return Vector2i(lanes,int(ceil(float(n)/float(lanes))))
+
+func _slot_xy(s:int,n:int,mounted:bool,sc:float,column:bool)->Vector2:
+ var dims=_form_dims(n,mounted,column)
+ var row=s/dims.x;var lane=s%dims.x
+ var in_row=mini(dims.x,n-row*dims.x)   # la última fila, si queda corta, va centrada
+ var gx=(CAV_GAP_X if mounted else FOOT_GAP_X)*sc;var gz=(CAV_GAP_Z if mounted else FOOT_GAP_Z)*sc
+ return Vector2((float(lane)-float(in_row-1)*0.5)*gx,float(row)*gz)
+
+## Puesto de la instancia i: (de costado, hacia atrás, giro) en metros y radianes, mezclando línea (form_k 0) y columna (1),
+## con un leve desorden fijo por grupo (±0,2 m de costado, ±0,3 m de fondo, ±4°): tropa, no grilla.
+func _form_slot(i:int,n:int,mounted:bool,sc:float,form_k:float,gseed:int)->Vector3:
+ var s=_lod_slot(i,n)
+ var p=_slot_xy(s,n,mounted,sc,false).lerp(_slot_xy(s,n,mounted,sc,true),form_k)
+ var h1=fposmod(sin(float(s)*12.9898+float(gseed%977)*0.731)*43758.5453,1.0)
+ var h2=fposmod(sin(float(s)*78.233+float(gseed%613)*1.137)*24634.6345,1.0)
+ var h3=fposmod(sin(float(s)*39.347+float(gseed%331)*2.011)*13579.2468,1.0)
+ return Vector3(p.x+(h1-0.5)*0.4*sc,p.y+(h2-0.5)*0.6*sc,(h3-0.5)*0.14)
+
+## Huella de la formación: (semiancho, fondo) entre centros de figuras, ya mezclada entre línea y columna.
+func _form_extent(n:int,mounted:bool,sc:float,form_k:float)->Vector2:
+ var gx=(CAV_GAP_X if mounted else FOOT_GAP_X)*sc;var gz=(CAV_GAP_Z if mounted else FOOT_GAP_Z)*sc
+ var a=_form_dims(n,mounted,false);var b=_form_dims(n,mounted,true)
+ return Vector2(lerpf(float(a.x-1),float(b.x-1),form_k)*0.5*gx,lerpf(float(a.y-1),float(b.y-1),form_k)*gz)
+
+## Aplica el LOD del grupo (entry.lod_far) a sus MultiMesh: mitad de figuras visibles y sin sombra a lo lejos.
+func _apply_fig_lod(entry:Dictionary)->void:
+ var far=bool(entry.get("lod_far",false))
+ for p in entry.get("parts",[]):
+  var mm:MultiMesh=p.mm
+  mm.visible_instance_count=(int(ceil(float(mm.instance_count)*FIG_LOD_KEEP)) if far else -1)
+  (p.mmi as GeometryInstance3D).cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF if far else GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+
+## Histéresis del LOD: devuelve true si el grupo debe pasar a «lejos» (o seguir lejos) a la distancia d.
+func _lod_far_at(entry:Dictionary,d:float)->bool:
+ return d>(FIG_LOD_FAR_M-20.0 if bool(entry.get("lod_far",false)) else FIG_LOD_FAR_M+20.0)
 
 ## R6: reparto cromatico de jinetes y caballos (palette.riders / palette.mounts del JSON, Diseño: no son uniformes ni colores de bando medidos).
 ## Reclasifica el color de vertice del GLB (indigo, grana, pantalon, sombrero, camisa, pelaje) hacia la paleta del paquete, por grupo.
@@ -2291,7 +2462,7 @@ func _create_group_j(unit:Dictionary):
  var label=_label_j(_tag_glyph(tag)+" "+str(unit.name),Vector3(0,7.0,0),Color("e9d4aa"),30,root)
  unit_labels[id]=label
  _group_marker_j(id,root)
- unit_nodes[id]={"root":root,"figures":root,"mounted":mounted,"anims":[],"last":root.position,"parts":parts,"n":n,"yaw":-PI/2.0,"kind":"group","dirty":true,"pos2":Vector2(float(unit.x),float(unit.z)),"moving":false,"stage":""}
+ unit_nodes[id]={"root":root,"figures":root,"mounted":mounted,"anims":[],"last":root.position,"parts":parts,"n":n,"yaw":-PI/2.0,"kind":"group","dirty":true,"pos2":Vector2(float(unit.x),float(unit.z)),"moving":false,"stage":"","form_k":0.0,"lod_far":false,"foot":Vector2.ZERO}
 
 ## Paleta del paquete (04_paleta_diseno). Guion de lectura de cada grupo: color de DISEÑO para distinguir, NO es un estandarte histórico.
 const GROUP_PAL = {"guemes":["a88943","4c372b"],"arias":["d8cfb8","4c372b"],"zavala":["33475b","d8cfb8"]}
@@ -2304,7 +2475,8 @@ const J_RING_R = 8.0
 const J_TOKEN_PX = 14.0
 ## visual/r1 F1: el guion (asta de ~3,7 m) queda a tamaño real y se apaga más allá de esta distancia de cámara (antes crecía hasta x5,5).
 const J_GUION_FAR_M = 240.0
-var far_k:Dictionary={}   # R6: tamaño minimo en pantalla de las figuras de un grupo (simbolico: 1 hasta ~150 m de camara, hasta x3,4 a 600 m)
+# visual/r1 F3: se quitó far_k (agrandaba las figuras hasta x4,4 con la distancia): las figuras quedan a tamaño real y de lejos
+# manda la ficha de 14 px; el LOD (FIG_LOD_FAR_M) aliviana el dibujo en vez de agrandar.
 
 ## Ficha de lectura de tamaño fijo en pantalla (shaders/justina_token.gdshader). shape: 0 caballeria, 1 voluntarios, 2 reserva, 3 explorador, 4 buque.
 func _token_j(parent:Node3D,shape:int,color:Color,px:float,fade_a:float,fade_b:float,y:float,pulse:bool=false,drop:float=0.0)->MeshInstance3D:
@@ -2373,18 +2545,16 @@ func _update_markers_j(cam:Camera3D)->void:
   # visual/r1 F1: guion a tamaño real (~3,7 m), sin crecer con la distancia; de lejos se apaga (la ficha chica ya ubica al grupo).
   g.node.visible=d<J_GUION_FAR_M
   var gid=str(r.name).trim_prefix("Grupo_")
-  # Aro a escala real: solo acompaña la apertura de la formación (far_k, pendiente de F3) para seguir rodeando a las figuras.
-  var spread_k=lerpf(1.0,float(far_k.get(gid,1.0)),0.8)
   var sel_g=gid in selected_ids or gid==selected or selected=="all"
   g.ring.visible=not sel_g and not look_hide_overlays
   # El aro se centra en la huella real de la formación (las filas salen hacia atrás desde el punto del grupo) y la abarca.
+  # visual/r1 F3: radio = media diagonal de la huella real (entry.foot, que deja _layout_group_j) + medio cuerpo y un margen.
   if unit_nodes.has(gid):
    var e:Dictionary=unit_nodes[gid]
-   var nn:int=int(e.get("n",8));var mounted:bool=bool(e.get("mounted",true))
-   var lanes=clampi(int(ceil(sqrt(float(nn)*0.9))),1,4);var rows=int(ceil(float(nn)/float(lanes)))
-   var half_len=float(rows-1)*(2.5 if mounted else 1.5)*spread_k*0.5
-   var off=Vector3(0,0,half_len).rotated(Vector3.UP,float(e.get("yaw",0.0)))
-   var rad=maxf((GROUP_BAND if mounted else 9.0)*spread_k*0.5+1.0,half_len+1.5)
+   var mounted:bool=bool(e.get("mounted",true))
+   var ft:Vector2=e.get("foot",Vector2.ZERO)
+   var off=Vector3(0,0,ft.y*0.5).rotated(Vector3.UP,float(e.get("yaw",0.0)))
+   var rad=sqrt(ft.x*ft.x+ft.y*ft.y*0.25)+(1.9 if mounted else 1.0)
    var c=r.position+off
    for rg in [g.ring,selected_rings.get(gid,null)]:
     if rg==null or not (rg as Node3D).visible and rg!=g.ring:continue
@@ -2392,10 +2562,12 @@ func _update_markers_j(cam:Camera3D)->void:
     _conform_ring(rg,c,rad,0.07 if rg==g.ring else 0.2)
   label_far[gid]=d>230.0
   label_d[gid]=d
-  var fk=clampf(d/110.0,1.0,4.4)
-  if absf(fk-float(far_k.get(gid,1.0)))>0.06:
-   far_k[gid]=fk
-   if unit_nodes.has(gid):unit_nodes[gid].dirty=true
+  # visual/r1 F3: LOD de figuras (antes far_k: las agrandaba con la distancia).
+  if unit_nodes.has(gid):
+   var e2:Dictionary=unit_nodes[gid]
+   var far=_lod_far_at(e2,d)
+   if far!=bool(e2.get("lod_far",false)):
+    e2["lod_far"]=far;_apply_fig_lod(e2);e2.dirty=true
 
 # R5: fichas de grupos que quedan juntos se abren en abanico en pantalla (separacion en pixeles, no en metros), para no apilarse en un manchon.
 func _spread_tokens_j(cam:Camera3D)->void:
@@ -2491,9 +2663,12 @@ func _update_group_j(u:Dictionary,delta:float):
   for p in entry.parts:p.mmi.queue_free()
   entry.parts=_mm_parts(entry.root,"rider_1806" if mounted else "dismounted_1806",n,id)
   entry.mounted=mounted;entry.dirty=true;entry.n=n
+  _apply_fig_lod(entry)
  elif n!=entry.n:
-  for p in entry.parts:p.mm.instance_count=n
+  for p in entry.parts:
+   p.mm.visible_instance_count=-1;p.mm.instance_count=n
   entry.n=n;entry.dirty=true
+  _apply_fig_lod(entry)
  var root:Node3D=entry.root
  var cur=Vector2(float(u.x),float(u.z))
  var stage=str(u.get("stage",""))
@@ -2509,7 +2684,13 @@ func _update_group_j(u:Dictionary,delta:float):
  var bk0=float(entry.get("board_k",0.0))
  if absf(bk_t-bk0)>0.001:
   entry["board_k"]=move_toward(bk0,bk_t,delta/2.5);entry.dirty=true
- if root.visible and (changed or entry.dirty or moving or stage=="routed" or entry.moving!=moving):
+ # visual/r1 F3: en marcha la tropa se cierra en columna y al parar se abre en línea (~1,2 s de transición).
+ var fk0=float(entry.get("form_k",0.0));var fk1=1.0 if moving else 0.0
+ if absf(fk1-fk0)>0.001:
+  entry["form_k"]=move_toward(fk0,fk1,delta/1.2);entry.dirty=true
+ var far=bool(entry.get("lod_far",false))
+ # De lejos (LOD) no hay vaivén: solo se rehace la formación si el grupo se movió, giró o cambió.
+ if root.visible and (changed or entry.dirty or (moving and not far) or stage=="routed" or entry.moving!=moving):
   _layout_group_j(entry,u,moving,stage)
   entry.dirty=false
  entry.moving=moving;entry.stage=stage
@@ -2524,38 +2705,40 @@ func _update_group_j(u:Dictionary,delta:float):
 func _layout_group_j(entry:Dictionary,u:Dictionary,moving:bool,stage:String):
  var n:int=entry.n
  var mounted:bool=entry.mounted
- var lanes=clampi(int(ceil(sqrt(float(n)*0.9))),1,4)
- var band=GROUP_BAND if mounted else 9.0
- var step_along=2.5 if mounted else 1.5
- var spread=(2.4 if stage=="routed" else 1.0)*lerpf(1.0,float(far_k.get(str(u.id),1.0)),0.8)
+ # visual/r1 F3: formación de tropa a tamaño real (sin far_k): filas y columnas con leve desorden, de frente a la marcha
+ # (las filas salen hacia atrás desde el punto del grupo), caballería más abierta que la gente a pie; dispersos = huella x2,4.
+ var sc=RIDER_SCALE if mounted else FOOT_SCALE
+ var form_k:float=float(entry.get("form_k",0.0))
+ var spread=2.4 if stage=="routed" else 1.0
+ var far=bool(entry.get("lod_far",false))
+ var gseed=str(u.id).hash()
+ var dims=_form_dims(n,mounted,form_k>0.5)
  var yaw:float=entry.yaw
  var rootpos:Vector3=entry.root.position
  var t=elapsed_visual
- var fk:float=float(far_k.get(str(u.id),1.0))
- var sc=(RIDER_SCALE if mounted else FOOT_SCALE)*fk
+ var bk=float(entry.get("board_k",0.0))
+ var gi=maxi(unit_nodes.keys().find(str(u.id)),0)
  for i in range(n):
-  var row=i/lanes;var lane=i%lanes
-  var across=(float(lane)-float(lanes-1)*0.5)*band/float(lanes)*spread
-  var along=float(row)*step_along*spread
-  var off=Vector3(across,0,along).rotated(Vector3.UP,yaw)
+  var f=_form_slot(i,n,mounted,sc,form_k,gseed)
+  var off=Vector3(f.x*spread,0,f.y*spread).rotated(Vector3.UP,yaw)
   var wx=rootpos.x+off.x;var wz=rootpos.z+off.z
   var gy=_h(wx,wz)-rootpos.y
-  var bk=float(entry.get("board_k",0.0))
   if bk>0.0 and is_instance_valid(ship):
-   var gi=maxi(unit_nodes.keys().find(str(u.id)),0)
-   var loc=Vector3((float(lane)-float(lanes-1)*0.5)*0.30,DECK_Y,(float(gi%3)-1.0)*2.3+(float(row)-1.0)*0.28)
+   var s=_lod_slot(i,n);var row=s/dims.x;var lane=s%dims.x
+   var loc=Vector3((float(lane)-float(dims.x-1)*0.5)*0.30,DECK_Y,(float(gi%3)-1.0)*2.3+(float(row)-1.0)*0.28)
    var tw:Vector3=ship.global_transform*loc
    var smooth=bk*bk*(3.0-2.0*bk)
    off=Vector3(lerpf(off.x,tw.x-rootpos.x,smooth),0.0,lerpf(off.z,tw.z-rootpos.z,smooth))
    gy=lerpf(gy,tw.y-rootpos.y,smooth)+0.9*sin(smooth*PI)   # arco: trepan y saltan al casco
   var bob=0.0
   var pitch=0.0
-  if moving:
+  if moving and not far:
    bob=0.07*absf(sin(t*7.0+float(i)*0.9))
    if stage=="stumbling":pitch=0.18*sin(t*9.0+float(i))
-  var basis=Basis.from_euler(Vector3(pitch,yaw,0.0)).scaled_local(Vector3.ONE*sc)
+  var basis=Basis.from_euler(Vector3(pitch,yaw+f.z,0.0)).scaled_local(Vector3.ONE*sc)
   var xf=Transform3D(basis,Vector3(off.x,gy+bob,off.z))
   for p in entry.parts:p.mm.set_instance_transform(i,xf*p.xf)
+ entry["foot"]=_form_extent(n,mounted,sc,form_k)*spread
 
 func _update_label_j(id:String,u,stage:String,root:Node3D,h:float):
  var label:Label3D=unit_labels[id]

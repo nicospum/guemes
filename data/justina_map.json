@@ -2821,7 +2821,7 @@
   },
   "forces": {
     "tag": "diseno",
-    "note": "Conjuntos y composiciones. La 'fuerza' de cada grupo es un puntaje de juego, NO una nómina: el paquete dice que atacaron 30, 50 o 60 jinetes (sin datos suficientes) y que la cantidad se elige por escala de escena y se marca como diseño. headcount_hint = figuras a mostrar. Ronda 5: cada composición declara qué es documentado y qué reconstruido; las cifras de la investigación de apoyo (número de jinetes, parte de Concha del 15-ago) se ven solo por cita y no se muestran como dato.",
+    "note": "Conjuntos y composiciones. La 'fuerza' de cada grupo es un puntaje de juego, NO una nómina: el paquete dice que atacaron 30, 50 o 60 jinetes (sin datos suficientes) y que la cantidad se elige por escala de escena y se marca como diseño. headcount_hint = figuras a mostrar. visual/r1 F3: men_design = hombres de DISEÑO de cada grupo (no es nómina ni dato; no se muestra): las figuras salen de 1 figura cada 3,5 hombres, entre 6 y 24 por grupo (headcount_hint queda igual a ese resultado). Los dos grupos de caballería suman 60 (36 + 24), el valor más alto del rango «30, 50 o 60» que el paquete da sin datos suficientes; los voluntarios (28) son un grupo de diseño aparte. Ronda 5: cada composición declara qué es documentado y qué reconstruido; las cifras de la investigación de apoyo (número de jinetes, parte de Concha del 15-ago) se ven solo por cita y no se muestran como dato.",
     "groups": {
       "guemes": {
         "label": "Vanguardia de jinetes · Güemes (tradición)",
@@ -2833,7 +2833,9 @@
           "documentado": "cadete de Infantería de Buenos Aires, 21 años (11-ago); presencia el 12 sin datos suficientes"
         },
         "tag": "tradicion",
-        "headcount_hint": 14,
+        "headcount_hint": 10,
+        "men_design": 36,
+        "men_design_tag": "diseno",
         "mounted": true,
         "composition": [
           {
@@ -2854,7 +2856,9 @@
         "label": "Voluntarios de la ribera",
         "short_label": "Voluntarios",
         "tag": "diseno",
-        "headcount_hint": 12,
+        "headcount_hint": 8,
+        "men_design": 28,
+        "men_design_tag": "diseno",
         "mounted": true,
         "composition": [
           {
@@ -2870,7 +2874,9 @@
         "label": "Reserva de caballería de Pueyrredón",
         "short_label": "Reserva",
         "tag": "tradicion",
-        "headcount_hint": 10,
+        "headcount_hint": 7,
+        "men_design": 24,
+        "men_design_tag": "diseno",
         "mounted": true,
         "composition": [
           {
