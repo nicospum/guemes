@@ -241,7 +241,7 @@ func _run() -> void:
 	var plan: Array = [["primer_cuadro", _test_first_frame], ["camara", _test_camera], ["teclas", _test_reserved_keys], ["vista_previa", _test_preview_catches_up], ["acciones", _test_actions_and_preview],
 		["aviso", _test_alert_placement], ["ventanas", _test_dialogs], ["hud_guiado", _test_hud_guided_selection], ["recortes", _test_cut_probe_sanity],
 		["objetivo", _test_objective_by_phase], ["avisos_orden", _test_order_feedback], ["carga", _test_load_chip], ["avisos_pie", _test_alert_dedupe_and_tips],
-		["reintento", _test_retry_counts], ["reintento_sin_control", _test_retry_refusal], ["deshacer", _test_undo], ["sugerir_x2", _test_suggest_x2], ["primera_decision", _test_first_decision],
+		["reintento", _test_retry_counts], ["reintento_pasivo", _test_retry_passive], ["reintento_sin_control", _test_retry_refusal], ["deshacer", _test_undo], ["sugerir_x2", _test_suggest_x2], ["primera_decision", _test_first_decision],
 		["ciclo", _test_full_cycle], ["experto_pasivo", _test_expert_wins_passive_loses], ["guardado", _test_save_load], ["banderas", _test_cli_flags],
 		["desborde", _test_overflow_sizes], ["textos", _test_texts], ["key_table", _test_key_table]]
 	var ms_by_test := {}
@@ -1075,14 +1075,44 @@ func _test_retry_counts() -> void:
 	hx.qa_step(600.0)  # sin dar la señal amanece y se pierde: el parte ofrece reintentar desde las posiciones
 	suite.check(str(hx.qa_state().status) == "defeat", "reintento: sin la señal se pierde (%s)" % str(hx.qa_state().status))
 	var before := int(hx.progress.attempts)
+	hx.speed = 4.0  # el intento anterior iba a ×4
 	hx.retry("posiciones")
 	await _frames(2)
 	suite.check(int(hx.progress.attempts) == before + 1, "reintento: «Reintentar desde las posiciones» cuenta un solo intento (de %d a %d)" % [before, int(hx.progress.attempts)])
+	suite.check(bool(hx.paused) and is_equal_approx(float(hx.speed), 1.0), "Q-202: volver a las posiciones deja el juego en pausa y a velocidad normal (pausa %s, ×%.0f)" % [str(hx.paused), float(hx.speed)])
+	var u_ready := 0
+	for id in ["rodriguez", "portal", "arias"]:
+		if str((hx.rules.get_unit(id) as Dictionary).get("stage", "")) == "waiting_signal":
+			u_ready += 1
+	suite.check(u_ready == 3, "Q-202: y las tres partidas están en su puesto esperando la señal (%d de 3)" % u_ready)
 	suite.check(str(hx.qa_state().mode) == "play" and float(hx.qa_state().elapsed) > 60.0 and str(hx.qa_state().status) == "playing", "reintento: y deja la partida jugable en el instante guardado (%.0f s)" % float(hx.qa_state().elapsed))
 	var mid := int(hx.progress.attempts)
 	hx.retry("mismo_mundo")
 	await _frames(2)
 	suite.check(int(hx.progress.attempts) == mid + 1, "reintento: «Reintentar» (mismo mundo) también cuenta uno solo (de %d a %d)" % [mid, int(hx.progress.attempts)])
+	await _leave_level()
+
+
+## Q-202 (QA ronda 2): perder sin dar órdenes (derrota pasiva) no deja un punto de control «posiciones»: antes se escribía a los 210 s aunque nadie hubiera llegado
+## y el parte ofrecía una derrota segura.
+func _test_retry_passive() -> void:
+	if not suite.check(await _start_level({"skip_intro": true, "seed": 23}), "reintento pasivo: el nivel arranca"):
+		return
+	var wrote_at := -1.0
+	for i in range(90):
+		hx.qa_step(5.0)
+		var st: Variant = hx._checkpoint_state("posiciones")
+		if st is Dictionary and int((st as Dictionary).get("seed", -1)) == int(hx.qa_state().seed) and wrote_at < 0.0:
+			wrote_at = float(hx.qa_state().elapsed)
+		if str(hx.qa_state().status) != "playing":
+			break
+	suite.check(str(hx.qa_state().status) == "defeat", "reintento pasivo: sin órdenes se pierde (%s)" % str(hx.qa_state().status))
+	var offered := false
+	for o in hx.usable_retry_options():
+		if str(o.id) == "posiciones" and bool(o.available):
+			offered = true
+	await _frames(3)
+	suite.check(wrote_at < 0.0 and not offered and game.find_child("HxRetry_posiciones", true, false) == null, "Q-202: tras una derrota sin órdenes no se guarda ni se ofrece «Reintentar desde las posiciones» (guardado a los %.0f s)" % wrote_at)
 	await _leave_level()
 
 

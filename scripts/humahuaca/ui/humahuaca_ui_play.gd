@@ -1324,7 +1324,11 @@ func retry(kind: String) -> void:
 	if hud != null:
 		hud.visible_root(true)
 	if restored:
-		paused = false
+		# Q-202: volver a un punto de control deja el juego EN PAUSA y a velocidad normal (antes seguía corriendo a la velocidad del intento anterior, ×4):
+		# el jugador mira dónde quedó cada partida y sigue con Espacio
+		paused = true
+		speed = U.SPEEDS[0]
+		_toast(tx("report.checkpoint_paused", ""), "info", true)
 	if is_instance_valid(view) and view.has_method("update_state"):
 		view.call("update_state", 0.0)
 	if cam != null:

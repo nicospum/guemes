@@ -265,7 +265,8 @@
 			"facts_big": {"fronts": "%d de 3", "fronts_label": "Frentes tomados", "golpe": "%d de 100", "golpe_label": "Golpe", "losses": "%d %%", "losses_label": "Bajas", "time_label": "Tiempo de juego"},
 			"checkpoint_missing": "Ese punto de control ya no existe: elegí otra forma de reintentar.",
 			"checkpoint_other_world": "Ese punto de control es de un mundo anterior: elegí otra forma de reintentar.",
-			"checkpoint_failed": "No se pudo volver al punto de control (%s). Empezás de nuevo."
+			"checkpoint_failed": "No se pudo volver al punto de control (%s). Empezás de nuevo.",
+			"checkpoint_paused": "Volviste al punto de control. El juego está en pausa: mirá dónde quedó cada partida y seguí con Espacio."
 		},
 		"quit": {
 			"keep_going": "Volver al juego"
