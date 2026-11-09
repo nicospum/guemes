@@ -79,15 +79,15 @@ Los estados «abierto» de las tablas de arriba son los de la tanda 1. Verificad
 
 | ID | Nivel | Grav. | Observado | Resp. | Estado |
 |---|---|---|---|---|---|
-| Q-201 | II cámara | ALTO | El acercamiento automático se dispara con cada orden de la guía (32 deslizamientos en 5,8 min). | fix II | abierto |
-| Q-202 | II | MEDIO | «Reintentar desde las posiciones» sin órdenes restaura a 56 s del alba con el reloj a ×4. | fix II | abierto |
-| Q-203 | II | MEDIO | 36 de 62 órdenes de una victoria son «Destruir» repetido. | fix II | abierto |
-| Q-204 | II | MEDIO | Parcelas regadas como rectángulos lisos (placeholder); en el minimapa se confunden con objetivos. | fix II | abierto |
-| Q-205 | II | MEDIO | Construcción del nivel 1,57–2,06 s con ventana desde el menú (tope 1,5 s). | fix II | abierto |
-| Q-206 | II | MEDIO | HUD a 1280×720 tapa 29,9 % al inicio y 45,2 % en ataque. | fix II | abierto |
-| Q-207…210 | II | BAJO | Parte culpa la guardia equivocada; dos Esc salen sin confirmar; escala del minimapa; mañana sobreexpuesta. | fix II | abierto |
-| Q-101 | I | MEDIO | ×4 cae solo a ×1 doce veces por partida. | fix I/III | abierto |
-| Q-102…107 | I/III | BAJO | Espacio corre el reloj con decisión pendiente; parte de victoria no reabrible; HUD 1280; tarjeta recortada; aviso de fuga intermitente; autoguardado pisa F5. | fix I/III | abierto |
+| Q-201 | II cámara | ALTO | El acercamiento automático se dispara con cada orden de la guía (32 deslizamientos en 5,8 min). | fix II | cerrado (verificado en la certificación final) |
+| Q-202 | II | MEDIO | «Reintentar desde las posiciones» sin órdenes restaura a 56 s del alba con el reloj a ×4. | fix II | cerrado (verificado en la certificación final) |
+| Q-203 | II | MEDIO | 36 de 62 órdenes de una victoria son «Destruir» repetido. | fix II | cerrado (verificado en la certificación final) |
+| Q-204 | II | MEDIO | Parcelas regadas como rectángulos lisos (placeholder); en el minimapa se confunden con objetivos. | fix II | cerrado (verificado en la certificación final) |
+| Q-205 | II | MEDIO | Construcción del nivel 1,57–2,06 s con ventana desde el menú (tope 1,5 s). | fix II | cerrado (verificado en la certificación final) |
+| Q-206 | II | MEDIO | HUD a 1280×720 tapa 29,9 % al inicio y 45,2 % en ataque. | fix II | cerrado (verificado en la certificación final) |
+| Q-207…210 | II | BAJO | Parte culpa la guardia equivocada; dos Esc salen sin confirmar; escala del minimapa; mañana sobreexpuesta. | fix II | cerrado (verificado en la certificación final) |
+| Q-101 | I | MEDIO | ×4 cae solo a ×1 doce veces por partida. | fix I/III | cerrado (verificado en la certificación final) |
+| Q-102…107 | I/III | BAJO | Espacio corre el reloj con decisión pendiente; parte de victoria no reabrible; HUD 1280; tarjeta recortada; aviso de fuga intermitente; autoguardado pisa F5. | fix I/III | cerrado (verificado en la certificación final) |
 | Q-108 | evidencia | BAJO | Carpetas de evidencia fuera de Git borradas (ver incidente). | lead | mitigado: documentos clave versionados en `docs/equipo/` |
 
 ### Incidente 2026-11-08, 19:10–19:21
@@ -103,3 +103,4 @@ Fuera de cualquier acción registrada de los agentes de esta entrega se borraron
 | 2026-11-08 | 2 | Tanda 2: seis pistas en worktrees (P1 arte I/III y menú, P2 arte y cámara del II, P3 reglas del II, P4 interfaz y flujo I/III, P5 interfaz del II, P6 modelos) + rondas extra de P1 (2), P2 (3 y 4) y P4b. Integración sin conflictos en `equipo/integracion`. |
 | 2026-11-08 | 3 | Suites completas en verde salvo una falla intermitente real de `test_integration` (HUD encendido detrás de la pantalla de misión), corregida en `bdc9e71`. Build EXE de prueba: los tres niveles arrancan con 0 errores. |
 | 2026-11-08 | 4 | Incidente de borrado (ver arriba) y restauración. QA independiente ronda 2: II rechaza (Q-201), I/III aceptan con observaciones. Ronda de corrección lanzada (dos agentes en paralelo, II e I/III). |
+| 2026-11-09 | 5 | Corrección integrada (`e9bc055`), regresión del lead en verde, versión 0.5.0-preview1, EXE final. Certificación final de QA sobre `1d76157` + EXE: **APTO CON LIMITACIONES**. Q-302 (créditos del audio) y Q-303 (documentos de entrega) corregidos en documentación; Q-301, Q-304, Q-305, Q-306 quedan como BAJOS abiertos. |
