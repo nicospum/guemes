@@ -109,3 +109,12 @@ $PY -I -X utf8 tools/f5_terreno_relieve.py --tiles-dir <fuera_del_repo> --downlo
 ```
 
 Vistas previas: `10_texturas_iluminadas.png` (cada material con su normal y su oclusión, de cerca y de lejos), `20_hx_horizonte_dem_hillshade.png`, `21_hx_perfil_oeste_este.png` (DEM contra anillo procedural), `22_hx_lejano_dem_hillshade.png`, `30_norte_dem_hillshade.png`.
+
+## 7. Integración (9-nov-2026, rama `visual/r1`, sin commit)
+
+- **Horizonte de Humahuaca** (`humahuaca_gfx.gd`): `_ring_mesh` toma la altura de `hx_horizonte_copernicus.json` (bilineal) y, en el último 1,5 km de esa grilla y más allá, de `hx_lejano_copernicus90.json`; la fila 0 sigue siendo el borde del contexto (sin grietas). Cinco filas nuevas llegan a 29 km y las esquinas van en abanico (24 rumbos). Como `camera.far` es 9 km (interfaz) y la niebla ya es total a 3 km, de 4 km para afuera la distancia se comprime hasta 7,7 km **conservando el ángulo de elevación visto desde el pueblo** (ojo a 60 m): la silueta es la real, su distancia no. Sin los archivos vuelve el anillo procedural.
+- **Texturas de Humahuaca** (`shaders/humahuaca_terrain.gdshader`): dos `sampler2DArray` (albedo; normal + ORM + altura), los dos materiales de más peso por píxel mezclados por altura, roca de barranca triplanar, anti-repetición de Quilez (dos desfases por celda), la foto dividida por su color medio (último mipmap) multiplica el color de paleta de siempre (28 % de su croma), apagado de 110 a 200 m. `albedo_mode` sigue dando el color plano; en `baja` ni se cargan. Las importaciones de los JPG pasan a compresión de video con mipmaps (`Texture2DArray` se arma con `get_image()`, también en `--headless`); los PNG de 16 bits quedan con `importer="skip"`.
+- **Norte**: se adoptó el relieve real con el mapeo sugerido; cada pueblo se aplana a **su** altura (media en 2,8 m), no a 0,45 (con el relieve real eso cavaba pozos de hasta 11 m). Constante `NORTE_RELIEVE_REAL` para volver atrás. Texturas `norte_*` como grano de cerca (30 a 80 m) sobre la rampa del Norte.
+- **Justina**: grano `jn_*` por zona (playa, barro, pasto de ribera) con los mismos pesos del shader; la tosca de la barranca queda procedural; `terrain_height_at` sin cambios.
+- **Exportación**: `export_presets.cfg` suma `assets/terrain/*.json`.
+- **Pendiente de otras pistas**: créditos y BACKLOG B-028 (anotado en `docs/humahuaca/TEXTOS_REVISION.md`). V06 `panorama` baja de 0,61 a 0,58 (ya fallaba sin la tendencia): decisión de arte del horizonte real contra la foto de 1923.

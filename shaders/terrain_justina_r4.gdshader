@@ -12,6 +12,15 @@ varying float view_dist;
 uniform float color_gamma = 1.9;
 uniform float water_level = 1.65;
 uniform float level_high = 1.65;
+// visual/r1 F5: grano fotográfico de cerca por zona (Poly Haven, CC0): capas 0 arena húmeda (playa), 1 barro (bajo y orillas), 2 pasto de ribera (barranca
+// y campo); tex_data = normales OpenGL (0-2) y ORM (3-5). La foto se divide por su color medio: el color de zona sigue siendo el de siempre.
+// La tosca de la barranca queda procedural. La altura (marea, vados) es regla y no se toca.
+uniform sampler2DArray tex_albedo : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2DArray tex_data : hint_default_white, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform float tex_on = 0.0;
+uniform float tex_tile = 2.6;
+uniform float tex_near = 60.0;
+uniform float tex_far = 150.0;
 
 float track(vec2 p, float cx, float amp, float freq, float ph, float w){
 	float x = cx + amp * sin(p.y * freq + ph) + 0.35 * amp * sin(p.y * freq * 2.7 + ph * 1.9);
@@ -105,7 +114,37 @@ void fragment(){
 	c *= 1.0 + (grain - 0.5) * 0.16 * beach * wet;
 	c = mix(c, vec3(0.20, 0.19, 0.12), pud * 0.62);
 	c = mix(c, c * vec3(0.72, 0.68, 0.60), pud_rim * 0.5);
-	ALBEDO = pow(c, vec3(color_gamma)) * (0.94 + fine * 0.10);
-	ROUGHNESS = mix(mix(0.93, 0.35, wet * beach), 0.12, pud);
+	// visual/r1 F5: texturas por zona (los mismos pesos de playa, barro y pasto que arman el color)
+	float tk = tex_on * (1.0 - smoothstep(tex_near, tex_far, view_dist));
+	vec3 tex_grain = vec3(1.0);
+	float rough_t = 1.0;
+	if (tk > 0.002) {
+		float w_grass = veg * (1.0 - cliff);
+		float w_mud = beach * clamp(max(wet, pud) + (1.0 - smoothstep(-1.2, 1.6, hn)) * 0.6, 0.0, 1.0);
+		float w_sand = max(beach - w_mud, 0.0);
+		float ws = max(w_grass + w_mud + w_sand, 0.0001);
+		vec3 g = vec3(0.0);
+		vec3 tn = vec3(0.0);
+		float ro = 0.0;
+		for (int L = 0; L < 3; L++) {
+			float w = (L == 0 ? w_sand : (L == 1 ? w_mud : w_grass)) / ws;
+			if (w < 0.02) continue;
+			float a = float(L) * 2.1 + 0.6 * floor(big * 4.0);
+			mat2 rot = mat2(vec2(cos(a), sin(a)), vec2(-sin(a), cos(a)));
+			vec2 uv = rot * p / tex_tile + vec2(float(L) * 0.37, float(L) * 0.71);
+			g += texture(tex_albedo, vec3(uv, float(L))).rgb / max(textureLod(tex_albedo, vec3(0.5, 0.5, float(L)), 10.0).rgb, vec3(0.02)) * w;
+			vec3 nt = texture(tex_data, vec3(uv, float(L))).rgb * 2.0 - 1.0;
+			vec2 nxz = transpose(rot) * vec2(nt.x, -nt.y);
+			tn += vec3(nxz.x, 0.0, nxz.y) * w;
+			ro += texture(tex_data, vec3(uv, float(L) + 3.0)).g * w;
+		}
+		float gl = dot(g, vec3(0.299, 0.587, 0.114));
+		float k = tk * (1.0 - 0.8 * cliff) * clamp(ws, 0.0, 1.0);
+		tex_grain = mix(vec3(1.0), clamp(mix(vec3(gl), g, 0.3), vec3(0.35), vec3(1.9)), k);
+		NORMAL = normalize((VIEW_MATRIX * vec4(normalize(normalize(world_normal) + tn * k * 0.8), 0.0)).xyz);
+		rough_t = mix(1.0, clamp(ro + 0.1, 0.5, 1.1), k * (1.0 - wet));
+	}
+	ALBEDO = pow(c, vec3(color_gamma)) * (0.94 + fine * 0.10) * tex_grain;
+	ROUGHNESS = mix(mix(0.93, 0.35, wet * beach), 0.12, pud) * rough_t;
 	SPECULAR = mix(0.2, 0.5, wet);
 }

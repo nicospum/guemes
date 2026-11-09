@@ -1,7 +1,7 @@
 extends RefCounted
 ## Recursos gráficos compartidos de la vista del nivel «humahuaca» (pista visual): la paleta, los materiales (de shader y estándar), las mallas básicas y el
-## TERRENO CONTINUO: ventana jugable de 4 m (la grilla de `terrain.heightfield()`), contexto de 30 m (cuatro bandas pegadas a la ventana) y horizonte procedural
-## hasta ±8 km que comparte los vértices del borde del contexto. Los tres usan UN solo material (shaders/humahuaca_terrain.gdshader): sin grietas y sin discos.
+## TERRENO CONTINUO: ventana jugable de 4 m (la grilla de `terrain.heightfield()`), contexto de 30 m (cuatro bandas pegadas a la ventana) y horizonte
+## hasta ±8 km que comparte los vértices del borde del contexto (visual/r1 F5: relieve real de Copernicus; el procedural queda de respaldo). Los tres usan UN solo material (shaders/humahuaca_terrain.gdshader): sin grietas y sin discos.
 ## Reglas: colores solo por id de paleta; la altura es SIEMPRE la del terreno (`height_at` o su grilla), nunca una propia; sin `shader_globals`.
 ## Convenciones del mundo: +x este, +z sur, y = metros sobre el cero local. Las mallas se arman en coordenadas del mundo (el padre va en el origen).
 
@@ -16,6 +16,25 @@ const FLAT_H := 17.0
 const SKIRT_M := 3.0
 const RING_ROWS := [0.0, 30.0, 85.0, 180.0, 340.0, 620.0, 1050.0, 1750.0, 2900.0, 4500.0, 6800.0]
 const WORLD_RADIUS_M := 8000.0
+## visual/r1 F5: el horizonte sale del relieve real (Copernicus GLO-30 a 60 m hasta ±9 km, empalme exacto con el contexto, y GLO-90 a 250 m hasta ±30 km
+## para la silueta lejana: Hornocal y la sierra de Aguilar). Las filas de más allá de 6,8 km solo existen con el relieve real. Sin los archivos, el anillo
+## procedural de siempre (`ring_height`). Etiqueta: documentado como dato actual (DSM), razonado como suelo de 1817 (docs/humahuaca/F5_TERRENO.md).
+const HORIZON_JSON := "res://assets/terrain/humahuaca/hx_horizonte_copernicus.json"
+const FAR_JSON := "res://assets/terrain/humahuaca/hx_lejano_copernicus90.json"
+const RING_ROWS_REAL := [0.0, 30.0, 85.0, 180.0, 340.0, 620.0, 1050.0, 1750.0, 2900.0, 4500.0, 6800.0, 9500.0, 13000.0, 17500.0, 23000.0, 29000.0]
+const RING_CORNER_STEPS := 24  ## las esquinas del anillo van en abanico (antes una sola diagonal): la silueta lejana tiene muestras en todos los rumbos
+## La cámara corta a 9 km (`camera.far` es de la interfaz) y la niebla ya es total a 3 km: de `SKY_R0_M` para afuera la distancia se comprime hasta
+## `SKY_RMAX_M` conservando el ángulo de elevación visto desde el pueblo a `SKY_EYE_M` (la silueta es la real; su distancia no). Solo vista.
+const SKY_R0_M := 4000.0
+const SKY_RMAX_M := 7700.0
+const SKY_EYE_M := 60.0
+const SKY_BLEND_M := 1500.0  ## franja del borde de la grilla de 60 m en que se pasa a la de 250 m
+## visual/r1 F5: materiales fotográficos del suelo (Poly Haven, CC0; procedencia en assets/terrain/terrain_textures_manifest.json), en el orden de las capas
+## de los arreglos del shader. Cada uno trae albedo, normal (OpenGL), ORM y altura a 1K, importados con compresión de video y mipmaps.
+const TERRAIN_TEXTURES := ["hx_suelo_grava", "hx_ladera_grava", "hx_cauce_cantos", "hx_roca_ladera", "hx_pasto_seco", "hx_andenes_tierra"]
+const TERRAIN_TEX_DIR := "res://assets/terrain/humahuaca/"
+static var _tex_arrays: Array = []  ## [albedo, datos] ya armados (sobreviven entre construcciones); vacío si no se pudieron armar
+static var _relief_cache: Dictionary = {}  ## ruta → grilla {nx, nz, cell, ox, oz, h (m sobre el cero local)}; vacía si el archivo falta
 ## La cinta del río: paso de las muestras cerca de la ventana y lejos de ella, metros en que se apaga en cada punta recortada y metros de la ventana en que pasa del agua plana
 ## de un cauce tallado a la cinta apoyada sobre el suelo.
 const RIVER_STEP_WIN_M := 5.0
@@ -140,6 +159,12 @@ func _make_shader_materials() -> void:
 	terrain_mat.set_shader_parameter("contour_alpha", float(terrain_spec.get("contour_alpha", 0.09)))
 	terrain_mat.set_shader_parameter("detail", float(qcfg.get("shader_detail", 1.0)))
 	terrain_mat.set_shader_parameter("datum_m", float(terrain.get("datum_asl_m")) if terrain != null and terrain.get("datum_asl_m") != null else 2940.0)
+	# visual/r1 F5: texturas del suelo de cerca, salvo en «baja» (ni se cargan: el suelo queda de solo paleta, como antes)
+	var tex_arrays := _terrain_textures() if bool(qcfg.get("terrain_textures", quality != "baja")) else []
+	terrain_mat.set_shader_parameter("tex_on", 1.0 if tex_arrays.size() == 2 else 0.0)
+	if tex_arrays.size() == 2:
+		terrain_mat.set_shader_parameter("tex_albedo", tex_arrays[0])
+		terrain_mat.set_shader_parameter("tex_data", tex_arrays[1])
 	props_mat = _shader_material(PROPS_SHADER)
 	props_mat.set_shader_parameter("wet_darken", float((data.get("rain", {}) as Dictionary).get("wet_darken", 0.75)))
 	props_mat.set_shader_parameter("detail", float(qcfg.get("shader_detail", 1.0)))
@@ -168,6 +193,41 @@ func _make_shader_materials() -> void:
 		hull.grow_amount = 0.031  # = hull_w × 1,4 de las figuras del generador (humahuaca_units.gd)
 		glb.next_pass = hull
 	token_mats["aliado_glb"] = glb
+
+
+## visual/r1 F5: arma (una sola vez por sesión) los dos arreglos de texturas del suelo: albedo (6 capas) y datos (normal 0-5, ORM 6-11, altura 12-17).
+## Devuelve [] si falta algún archivo o si los formatos no coinciden; el shader sigue entonces con solo paleta.
+func _terrain_textures() -> Array:
+	if not _tex_arrays.is_empty():
+		return _tex_arrays
+	var albedo_paths: Array = []
+	var data_paths: Array = []
+	for kind in ["normal", "orm", "height"]:
+		for id in TERRAIN_TEXTURES:
+			data_paths.append(TERRAIN_TEX_DIR + "%s_%s.jpg" % [id, kind])
+	for id in TERRAIN_TEXTURES:
+		albedo_paths.append(TERRAIN_TEX_DIR + "%s_albedo.jpg" % id)
+	var a := texture_array(albedo_paths)
+	var d := texture_array(data_paths)
+	if a != null and d != null:
+		_tex_arrays = [a, d]
+	return _tex_arrays
+
+
+## visual/r1 F5: un Texture2DArray con las imágenes de esas texturas importadas (todas del mismo tamaño, formato y mipmaps), o null.
+static func texture_array(paths: Array) -> Texture2DArray:
+	var images: Array[Image] = []
+	for path in paths:
+		var tex: Texture2D = load(str(path)) as Texture2D if ResourceLoader.exists(str(path)) else null
+		var img: Image = tex.get_image() if tex != null else null
+		if img == null or img.is_empty():
+			return null
+		if not images.is_empty() and (img.get_size() != images[0].get_size() or img.get_format() != images[0].get_format() or img.has_mipmaps() != images[0].has_mipmaps()):
+			push_warning("texturas del suelo: %s no coincide con las demás" % str(path))
+			return null
+		images.append(img)
+	var arr := Texture2DArray.new()
+	return arr if arr.create_from_images(images) == OK else null
 
 
 ## Lluvia 0..1: oscurece y alisa el suelo, los edificios y el agua (CONTRATO 11.2: suelo ×0,75).
@@ -740,25 +800,38 @@ func build_terrain(root: Node3D) -> void:
 		seam_e[j * 2 + 1] = _lerp_poly(z_coarse, edge_e, z_fine[j])
 	triangles += _add_patch(root, "terreno_costura_este", PackedFloat32Array([win.end.x, e_out[0]]), z_fine, seam_e, 1.0)
 	var t_context := Time.get_ticks_usec()
-	# horizonte: un anillo que arranca en el perímetro del contexto y sigue hasta ±8 km con crestas y estratos
+	# horizonte: un anillo que arranca en el perímetro del contexto y sigue hasta ±8 km (visual/r1 F5: relieve real y, comprimida, la silueta hasta 30 km)
 	var top_x := _concat(_concat(xl_w, cxs), xl_e)
 	var left_z := z_coarse
 	var ring_pts := PackedVector2Array()
 	var ring_dir := PackedVector2Array()
+	var real_sky := not _relief_grid(HORIZON_JSON).is_empty()  # visual/r1 F5: con el relieve real las esquinas van en abanico
 	for i in range(top_x.size() - 1):  # borde norte, de oeste a este
+		if i == 0 and real_sky:
+			_corner_fan(ring_pts, ring_dir, Vector2(top_x[0], ctx.position.y), Vector2(-1.0, 0.0), Vector2(0.0, -1.0))
+			continue
 		ring_pts.append(Vector2(top_x[i], ctx.position.y))
 		ring_dir.append(Vector2(-1.0 if i == 0 else 0.0, -1.0))
 	for j in range(left_z.size() - 1):  # borde este, de norte a sur
+		if j == 0 and real_sky:
+			_corner_fan(ring_pts, ring_dir, Vector2(ctx.end.x, left_z[0]), Vector2(0.0, -1.0), Vector2(1.0, 0.0))
+			continue
 		ring_pts.append(Vector2(ctx.end.x, left_z[j]))
 		ring_dir.append(Vector2(1.0, -1.0 if j == 0 else 0.0))
 	for i in range(top_x.size() - 1, 0, -1):  # borde sur, de este a oeste
+		if i == top_x.size() - 1 and real_sky:
+			_corner_fan(ring_pts, ring_dir, Vector2(top_x[i], ctx.end.y), Vector2(1.0, 0.0), Vector2(0.0, 1.0))
+			continue
 		ring_pts.append(Vector2(top_x[i], ctx.end.y))
 		ring_dir.append(Vector2(1.0 if i == top_x.size() - 1 else 0.0, 1.0))
 	for j in range(left_z.size() - 1, 0, -1):  # borde oeste, de sur a norte
+		if j == left_z.size() - 1 and real_sky:
+			_corner_fan(ring_pts, ring_dir, Vector2(ctx.position.x, left_z[j]), Vector2(0.0, 1.0), Vector2(-1.0, 0.0))
+			continue
 		ring_pts.append(Vector2(ctx.position.x, left_z[j]))
 		ring_dir.append(Vector2(-1.0, 1.0 if j == left_z.size() - 1 else 0.0))
 	_terrain_node(root, "terreno_horizonte", _ring_mesh(ring_pts, ring_dir))
-	triangles += ring_pts.size() * (RING_ROWS.size() - 1) * 2
+	triangles += ring_pts.size() * ((RING_ROWS_REAL if real_sky else RING_ROWS).size() - 1) * 2
 	build_stats = {"triangulos": triangles, "ventana_ms": snappedf(float(t_window - t0) / 1000.0, 0.1), "contexto_ms": snappedf(float(t_context - t_window) / 1000.0, 0.1),
 		"horizonte_ms": snappedf(float(Time.get_ticks_usec() - t_context) / 1000.0, 0.1), "vertices_ventana": xs.size() * zs.size()}
 
@@ -776,9 +849,85 @@ func ring_height(x: float, z: float, base: float, ox: float, oz: float) -> float
 	return base + maxf(wall, valley) * edge_k
 
 
+## visual/r1 F5: una esquina del anillo en abanico (de la normal de un borde a la del otro, en `RING_CORNER_STEPS` pasos de igual ángulo).
+func _corner_fan(pts: PackedVector2Array, dirs: PackedVector2Array, corner: Vector2, from_dir: Vector2, to_dir: Vector2) -> void:
+	for s in range(RING_CORNER_STEPS + 1):
+		pts.append(corner)
+		dirs.append(Vector2.from_angle(lerp_angle(from_dir.angle(), to_dir.angle(), float(s) / float(RING_CORNER_STEPS))))
+
+
+## visual/r1 F5: una grilla de relieve de `assets/terrain/` (dm o m, sobre el mismo cero que el terreno), en caché entre construcciones. Vacía si falta.
+func _relief_grid(path: String) -> Dictionary:
+	if _relief_cache.has(path):
+		return _relief_cache[path]
+	var out := {}
+	var text := FileAccess.get_file_as_string(path) if FileAccess.file_exists(path) else ""
+	var parsed: Variant = JSON.parse_string(text) if text != "" else null
+	if parsed is Dictionary and (parsed as Dictionary).get("grid", null) is Dictionary and (parsed as Dictionary).get("h", null) is Array:
+		var g: Dictionary = parsed.grid
+		var meta: Dictionary = parsed.get("meta", {}) if parsed.get("meta", null) is Dictionary else {}
+		var src: Array = parsed.h
+		var nx := int(g.get("nx", 0))
+		var nz := int(g.get("nz", 0))
+		if nx >= 2 and nz >= 2 and src.size() == nx * nz:
+			var scale := 0.1 if str(meta.get("unit", "dm")) == "dm" else 1.0
+			var datum := float(terrain.get("datum_asl_m")) if terrain != null and terrain.get("datum_asl_m") != null else 2940.0
+			var shift := float(meta.get("datum_asl_m", datum)) - datum
+			var hs := PackedFloat32Array(src)
+			for k in range(hs.size()):
+				hs[k] = hs[k] * scale + shift
+			out = {"nx": nx, "nz": nz, "cell": float(g.get("cell_m", 60.0)), "ox": float(g.get("origin_x", 0.0)), "oz": float(g.get("origin_z", 0.0)), "h": hs}
+	_relief_cache[path] = out
+	return out
+
+
+static func _grid_bilerp(g: Dictionary, x: float, z: float) -> float:
+	var nx := int(g.nx)
+	var nz := int(g.nz)
+	var fx := clampf((x - float(g.ox)) / float(g.cell), 0.0, float(nx - 1))
+	var fz := clampf((z - float(g.oz)) / float(g.cell), 0.0, float(nz - 1))
+	var i := mini(int(fx), nx - 2)
+	var j := mini(int(fz), nz - 2)
+	var tx := fx - float(i)
+	var tz := fz - float(j)
+	var hs: PackedFloat32Array = g.h
+	var k := j * nx + i
+	return lerpf(lerpf(hs[k], hs[k + 1], tx), lerpf(hs[k + nx], hs[k + nx + 1], tx), tz)
+
+
+## visual/r1 F5: altura real del horizonte (m sobre el cero local): la grilla de 60 m y, en su último `SKY_BLEND_M` y más allá, la de 250 m.
+func sky_height(x: float, z: float) -> float:
+	var near := _relief_grid(HORIZON_JSON)
+	var far := _relief_grid(FAR_JSON)
+	var hn := _grid_bilerp(near, x, z)
+	if far.is_empty():
+		return hn
+	var x1 := float(near.ox) + float(near.cell) * float(int(near.nx) - 1)
+	var z1 := float(near.oz) + float(near.cell) * float(int(near.nz) - 1)
+	var inside := minf(minf(x - float(near.ox), x1 - x), minf(z - float(near.oz), z1 - z))
+	if inside >= SKY_BLEND_M:
+		return hn
+	return lerpf(_grid_bilerp(far, x, z), hn, clampf(inside / SKY_BLEND_M, 0.0, 1.0))
+
+
+## visual/r1 F5: dónde se dibuja un punto real del horizonte. Hasta `SKY_R0_M` del centro de la ventana, en su lugar; más allá la distancia se comprime
+## (derivada continua, nunca pasa de `SKY_RMAX_M`) y la altura se escala con ella alrededor del ojo: el ángulo con que se ve la cresta queda igual.
+func _sky_vertex(p: Vector2, height: float) -> Vector3:
+	var c := win.get_center()
+	var dist := p.distance_to(c)
+	if dist <= SKY_R0_M:
+		return Vector3(p.x, height, p.y)
+	var span := SKY_RMAX_M - SKY_R0_M
+	var drawn := SKY_R0_M + span * (1.0 - exp(-(dist - SKY_R0_M) / span))
+	var s := drawn / dist
+	return Vector3(c.x + (p.x - c.x) * s, SKY_EYE_M + (height - SKY_EYE_M) * s, c.y + (p.y - c.y) * s)
+
+
 func _ring_mesh(pts: PackedVector2Array, dirs: PackedVector2Array) -> ArrayMesh:
 	var count := pts.size()
-	var rows := RING_ROWS.size()
+	var real_sky := not _relief_grid(HORIZON_JSON).is_empty()
+	var ring_rows: Array = RING_ROWS_REAL if real_sky else RING_ROWS
+	var rows := ring_rows.size()
 	var verts := PackedVector3Array()
 	var normals := PackedVector3Array()
 	verts.resize(count * rows)
@@ -788,12 +937,17 @@ func _ring_mesh(pts: PackedVector2Array, dirs: PackedVector2Array) -> ArrayMesh:
 	for k in range(count):
 		base_h[k] = h(pts[k].x, pts[k].y)
 	for j in range(rows):
-		var r := float(RING_ROWS[j])
+		var r := float(ring_rows[j])
 		for k in range(count):
 			var p := pts[k] + dirs[k] * r
-			var ox := maxf(maxf(ctx.position.x - p.x, p.x - ctx.end.x), 0.0)
-			var oz := maxf(maxf(ctx.position.y - p.y, p.y - ctx.end.y), 0.0)
-			verts[j * count + k] = Vector3(p.x, base_h[k] if j == 0 else ring_height(p.x, p.y, base_h[k], ox, oz), p.y)
+			if j == 0:  # la primera fila es el borde del contexto: los mismos vértices, sin grieta
+				verts[k] = Vector3(p.x, base_h[k], p.y)
+			elif real_sky:
+				verts[j * count + k] = _sky_vertex(p, sky_height(p.x, p.y))
+			else:
+				var ox := maxf(maxf(ctx.position.x - p.x, p.x - ctx.end.x), 0.0)
+				var oz := maxf(maxf(ctx.position.y - p.y, p.y - ctx.end.y), 0.0)
+				verts[j * count + k] = Vector3(p.x, ring_height(p.x, p.y, base_h[k], ox, oz), p.y)
 	for j in range(rows):
 		for k in range(count):
 			var jm := maxi(j - 1, 0)

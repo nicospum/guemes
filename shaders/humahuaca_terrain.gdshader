@@ -31,6 +31,18 @@ uniform float detail = 1.0;          // 1 = calidad media y alta; 0,6 = baja (me
 uniform float contour_m = 5.0;
 uniform float contour_alpha = 0.09;
 uniform float datum_m = 2940.0;
+// visual/r1 F5: texturas fotográficas CC0 (Poly Haven, assets/terrain/humahuaca) en dos arreglos de seis capas, en el orden de TERRAIN_TEXTURES (humahuaca_gfx.gd):
+// 0 grava del suelo, 1 ladera pedregosa, 2 cantos del cauce, 3 roca de barranca, 4 pasto seco, 5 tierra de andenes. tex_data lleva la normal (0-5, OpenGL),
+// el ORM (6-11) y la altura (12-17). La textura NO pone el color: aporta el grano (luminancia relativa a su media) sobre el color de la paleta de siempre,
+// con un poco de su croma; de 110 a 200 m de la cámara se apaga y queda el suelo de solo paleta. En el render de albedo no participa.
+uniform sampler2DArray tex_albedo : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2DArray tex_data : hint_default_white, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform float tex_on = 0.0;            // 1 en media y alta con los archivos cargados; 0 en baja (sin muestras)
+uniform float tex_near_m = 110.0;
+uniform float tex_far_m = 200.0;
+uniform float tex_chroma = 0.28;       // cuánto del color propio de la foto pasa (el resto es la paleta)
+uniform float tex_normal = 1.0;
+const float TEX_TILE[6] = {2.6, 3.0, 2.8, 6.0, 2.4, 2.8};   // metros por repetición de cada material
 
 varying vec3 wpos;
 varying vec3 wnrm;
@@ -40,6 +52,46 @@ void vertex(){
 	wpos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	wnrm = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
 	vdist = length((MODELVIEW_MATRIX * vec4(VERTEX, 1.0)).xyz);
+}
+
+// visual/r1 F5: una capa con variación anti-repetición (dos desfases por celda de un ruido lento, mezclados según el contraste: técnica de Quilez). Los mismos
+// desfases y la misma mezcla para los cuatro mapas; gradientes explícitos para que el salto de desfase no marque costuras en los mipmaps.
+void tex_layer(float layer, vec2 uv, vec2 dx, vec2 dy, float kn, out vec3 alb, out vec3 nrm, out vec2 orm, out float hgt){
+	float k = kn * 8.0;
+	float i = floor(k);
+	float f = fract(k);
+	vec2 oa = fract(sin(vec2(3.1, 7.7) * i + layer) * 43.7);
+	vec2 ob = fract(sin(vec2(3.1, 7.7) * (i + 1.0) + layer) * 43.7);
+	vec3 a = textureGrad(tex_albedo, vec3(uv + oa, layer), dx, dy).rgb;
+	vec3 b = textureGrad(tex_albedo, vec3(uv + ob, layer), dx, dy).rgb;
+	float t = smoothstep(0.2, 0.8, f - 0.1 * dot(a - b, vec3(1.0)));
+	alb = mix(a, b, t);
+	nrm = mix(textureGrad(tex_data, vec3(uv + oa, layer), dx, dy).rgb, textureGrad(tex_data, vec3(uv + ob, layer), dx, dy).rgb, t) * 2.0 - 1.0;
+	orm = mix(textureGrad(tex_data, vec3(uv + oa, layer + 6.0), dx, dy).rg, textureGrad(tex_data, vec3(uv + ob, layer + 6.0), dx, dy).rg, t);
+	hgt = mix(textureGrad(tex_data, vec3(uv + oa, layer + 12.0), dx, dy).r, textureGrad(tex_data, vec3(uv + ob, layer + 12.0), dx, dy).r, t);
+}
+
+// visual/r1 F5: la roca de barranca va triplanar (sin estirarse en las paredes); una muestra por proyección y normales por «whiteout».
+void tex_rock(vec3 wp, vec3 wn, float kn, vec3 dpx, vec3 dpy, out vec3 alb, out vec3 nrm, out vec2 orm, out float hgt){
+	vec3 bw = pow(abs(wn), vec3(4.0));
+	bw /= max(bw.x + bw.y + bw.z, 0.0001);
+	float tile = 1.0 / TEX_TILE[3];
+	vec2 ux = wp.zy * tile; vec2 uy = wp.xz * tile; vec2 uz = wp.xy * tile;
+	vec3 ax = textureGrad(tex_albedo, vec3(ux, 3.0), dpx.zy * tile, dpy.zy * tile).rgb;
+	vec3 ay = textureGrad(tex_albedo, vec3(uy, 3.0), dpx.xz * tile, dpy.xz * tile).rgb;
+	vec3 az = textureGrad(tex_albedo, vec3(uz, 3.0), dpx.xy * tile, dpy.xy * tile).rgb;
+	alb = ax * bw.x + ay * bw.y + az * bw.z;
+	vec3 nx = textureGrad(tex_data, vec3(ux, 3.0), dpx.zy * tile, dpy.zy * tile).rgb * 2.0 - 1.0;
+	vec3 ny = textureGrad(tex_data, vec3(uy, 3.0), dpx.xz * tile, dpy.xz * tile).rgb * 2.0 - 1.0;
+	vec3 nz = textureGrad(tex_data, vec3(uz, 3.0), dpx.xy * tile, dpy.xy * tile).rgb * 2.0 - 1.0;
+	nx = vec3(nx.xy * tex_normal + wn.zy, abs(nx.z) * wn.x);
+	ny = vec3(vec2(ny.x, -ny.y) * tex_normal + wn.xz, abs(ny.z) * wn.y);
+	nz = vec3(nz.xy * tex_normal + wn.xy, abs(nz.z) * wn.z);
+	nrm = normalize(nx.zyx * bw.x + ny.xzy * bw.y + nz.xyz * bw.z);
+	vec4 o = textureGrad(tex_data, vec3(ux, 9.0), dpx.zy * tile, dpy.zy * tile) * bw.x + textureGrad(tex_data, vec3(uy, 9.0), dpx.xz * tile, dpy.xz * tile) * bw.y
+		+ textureGrad(tex_data, vec3(uz, 9.0), dpx.xy * tile, dpy.xy * tile) * bw.z;
+	orm = o.rg;
+	hgt = textureGrad(tex_data, vec3(uy, 15.0), dpx.xz * tile, dpy.xz * tile).r;
 }
 
 void fragment(){
@@ -123,6 +175,67 @@ void fragment(){
 	vec3 c = (c_suelo * w_suelo + c_sed * w_sed + c_piedra * w_piedra + c_churqui * w_chu + c_irr * w_irr + c_agua * w_agua + c_cam * w_cam + c_zanja * w_zanja) / total;
 	vec3 flat_c = (pal_suelo * w_suelo + pal_sedimento * w_sed + pal_piedra * w_piedra + pal_churqui * w_chu + pal_irrigada * w_irr + pal_agua * w_agua + pal_suelo * w_cam + pal_sedimento * w_zanja) / total;
 
+	// --- visual/r1 F5: texturas de cerca. Los pesos de capa de siempre eligen el material (los dos de más peso, mezclados por altura) ---------------------------
+	float tex_k = tex_on * (1.0 - smoothstep(tex_near_m, tex_far_m, vdist)) * (1.0 - albedo_mode);
+	vec3 tex_n = wnrm;
+	float tex_ao = 1.0;
+	float tex_rough = 0.95;
+	vec3 dpx = dFdx(wpos);
+	vec3 dpy = dFdy(wpos);
+	if (tex_k > 0.002) {
+		float cliff = smoothstep(0.22, 0.42, slope);
+		float mw[6] = {w_suelo + w_cam, w_piedra * (1.0 - cliff), w_sed + w_agua + w_zanja, w_piedra * cliff, w_chu, w_irr};
+		int i1 = 0;
+		for (int m = 1; m < 6; m++) { if (mw[m] > mw[i1]) { i1 = m; } }
+		int i2 = (i1 == 0) ? 1 : 0;
+		for (int m = 0; m < 6; m++) { if (m != i1 && mw[m] > mw[i2]) { i2 = m; } }
+		float wsum = max(mw[i1] + mw[i2], 0.0001);
+		float w1 = mw[i1] / wsum;
+		float w2 = mw[i2] / wsum;
+		float kn = hx_noise(p * 0.11 + 5.0);
+		vec3 a1; vec3 n1; vec2 o1; float h1;
+		vec3 a2 = vec3(0.5); vec3 n2 = vec3(0.0, 0.0, 1.0); vec2 o2 = vec2(1.0); float h2 = 0.5;
+		if (i1 == 3) {
+			tex_rock(wpos, wnrm, kn, dpx, dpy, a1, n1, o1, h1);
+		} else {
+			float t1 = 1.0 / TEX_TILE[i1];
+			tex_layer(float(i1), p * t1, dpx.xz * t1, dpy.xz * t1, kn, a1, n1, o1, h1);
+			n1 = normalize(vec3(n1.x * tex_normal + wnrm.x, abs(n1.z) * wnrm.y, -n1.y * tex_normal + wnrm.z));
+		}
+		if (w2 > 0.03) {
+			if (i2 == 3) {
+				tex_rock(wpos, wnrm, kn, dpx, dpy, a2, n2, o2, h2);
+			} else {
+				float t2 = 1.0 / TEX_TILE[i2];
+				tex_layer(float(i2), p * t2, dpx.xz * t2, dpy.xz * t2, kn, a2, n2, o2, h2);
+				n2 = normalize(vec3(n2.x * tex_normal + wnrm.x, abs(n2.z) * wnrm.y, -n2.y * tex_normal + wnrm.z));
+			}
+		} else {
+			w2 = 0.0;
+		}
+		// mezcla por altura: en el borde entre dos materiales asoma el que está más alto (piedras sobre la tierra, matas sobre la grava)
+		float depth = 0.25;
+		float ma = max(h1 + w1, h2 + w2) - depth;
+		float b1 = max(h1 + w1 - ma, 0.0);
+		float b2 = (w2 > 0.0) ? max(h2 + w2 - ma, 0.0) : 0.0;
+		float bs = max(b1 + b2, 0.0001);
+		b1 /= bs;
+		b2 /= bs;
+		// grano: la foto dividida por su propio color medio (el último mipmap), así el promedio sigue siendo el de la paleta
+		vec3 m1 = textureLod(tex_albedo, vec3(0.5, 0.5, float(i1)), 10.0).rgb;
+		vec3 m2 = textureLod(tex_albedo, vec3(0.5, 0.5, float(i2)), 10.0).rgb;
+		vec3 d1 = a1 / max(m1, vec3(0.02));
+		vec3 d2 = a2 / max(m2, vec3(0.02));
+		vec3 dd = d1 * b1 + d2 * b2;
+		float dl = dot(dd, vec3(0.299, 0.587, 0.114));
+		vec3 grain = clamp(mix(vec3(dl), dd, tex_chroma), vec3(0.25), vec3(2.2));
+		c *= mix(vec3(1.0), grain, tex_k);
+		tex_n = normalize(mix(wnrm, normalize(n1 * b1 + n2 * b2), tex_k));
+		vec2 oo = o1 * b1 + o2 * b2;
+		tex_ao = mix(1.0, oo.r, tex_k);
+		tex_rough = mix(0.95, clamp(oo.g, 0.45, 1.0), tex_k);
+	}
+
 	// --- relieve leído: sombreado de laderas y curvas de nivel sutiles -----------------------------------------------------------------------------------
 	float hh = asl / max(contour_m, 0.5);
 	float dist_line = abs(fract(hh + 0.5) - 0.5) * contour_m;
@@ -144,7 +257,8 @@ void fragment(){
 	float h0 = hx_noise(p * 1.1) * 0.6 + hx_noise(p * 3.7) * 0.4;
 	float hxp = hx_noise((p + vec2(e, 0.0)) * 1.1) * 0.6 + hx_noise((p + vec2(e, 0.0)) * 3.7) * 0.4;
 	float hzp = hx_noise((p + vec2(0.0, e)) * 1.1) * 0.6 + hx_noise((p + vec2(0.0, e)) * 3.7) * 0.4;
-	vec3 nw = normalize(wnrm + vec3(-(hxp - h0), 0.0, -(hzp - h0)) * (0.55 + 0.5 * stones) * bump_k * (1.0 - puddle));
+	vec3 nw = normalize(tex_n + vec3(-(hxp - h0), 0.0, -(hzp - h0)) * (0.55 + 0.5 * stones) * bump_k * (1.0 - puddle) * (1.0 - 0.75 * tex_k));  // F5: la textura trae su relieve
+	nw = normalize(mix(nw, wnrm, puddle));
 	NORMAL = normalize((VIEW_MATRIX * vec4(nw, 0.0)).xyz);
 
 	if (albedo_mode > 0.5) {
@@ -154,7 +268,9 @@ void fragment(){
 		SPECULAR = 0.0;
 	} else {
 		ALBEDO = c;
-		ROUGHNESS = mix(0.95, wet_rough + 0.12, wet) * mix(1.0, 0.45, puddle) * mix(1.0, 0.6, w_agua);
+		ROUGHNESS = mix(tex_rough, wet_rough + 0.12, wet) * mix(1.0, 0.45, puddle) * mix(1.0, 0.6, w_agua);
+		AO = tex_ao;
+		AO_LIGHT_AFFECT = 0.35;
 		SPECULAR = mix(0.12, 0.2, wet) + 0.2 * puddle;
 	}
 }

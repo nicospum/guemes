@@ -56,6 +56,12 @@ var look_vignette_enabled := true
 var look_vignette: CanvasLayer = null
 var north_terrain_mat: ShaderMaterial = null
 var north_map_rect := Rect2()
+## visual/r1 F5: relieve real del Norte (Copernicus GLO-90 sobre el mapa esquemático: cada sector sobre su pueblo, etiqueta razonado; docs/humahuaca/F5_TERRENO.md 3.2).
+## Con NORTE_RELIEVE_REAL en false vuelve el relieve de ruido de siempre. Solo vista: las reglas del Norte no leen alturas.
+const NORTE_RELIEVE_REAL := true
+const NORTE_RELIEF_JSON := "res://assets/terrain/norte/norte_relieve_copernicus90.json"
+var norte_relief: Dictionary = {}  ## {nx, nz, x0, z0, step, h (unidades de juego, ya con el mapeo vertical)}; vacío = relieve de ruido
+var norte_sector_h: Dictionary = {}  ## id de sector → altura a la que se aplana su pueblo
 
 func build(game_rules, quality_name = "media"):
  rules = game_rules
@@ -66,6 +72,8 @@ func build(game_rules, quality_name = "media"):
  terrain_noise.frequency = 0.052
  terrain_noise.fractal_octaves = 4
  decoration_rng.seed = 12081806
+ norte_relief = _norte_relief_load() if scenario == "norte" and NORTE_RELIEVE_REAL else {}
+ norte_sector_h.clear()
  # Justina a escala real: solo si Reglas ya expone el mapa del contrato (map_data). Si no, queda el escenario anterior.
  justina = scenario == "justine" and rules.has_method("map_data") and not rules.map_data().is_empty()
  _lighting()
@@ -410,6 +418,13 @@ func _lighting():
 
 func terrain_height(x: float, z: float) -> float:
  if scenario == "justine": return rules.terrain_height_at(x,z)
+ if not norte_relief.is_empty():
+  # visual/r1 F5: relieve real; cada pueblo se aplana a su propia altura (antes a 0,45), con la misma transición de 2,8 a 7 m
+  var hr = _norte_relief_h(x,z)
+  for s in rules.state.get("sectors",[]):
+   var d = Vector2(x,z).distance_to(Vector2(float(s.x),float(s.z)))
+   if d < 7.0: hr = lerpf(_norte_sector_base(s),hr,smoothstep(2.8,7.0,d))
+  return hr
  var ridge = abs(terrain_noise.get_noise_2d(x*0.8,z*0.7))
  var h = 0.4 + pow(ridge,1.4)*17.0
  h += maxf(0.0, absf(x)-28.0)*0.19
@@ -417,6 +432,75 @@ func terrain_height(x: float, z: float) -> float:
   var d = Vector2(x,z).distance_to(Vector2(float(s.x),float(s.z)))
   h = lerpf(0.45,h,smoothstep(2.8,7.0,d))
  return h
+
+## visual/r1 F5: lee la grilla del Norte (metros) y le aplica el mapeo vertical sugerido en su meta: 0,4 + 16,6·((h − 300)/4700)^0,65, el mismo rango
+## de 0,4 a 17 del relieve de ruido. Vacío si el archivo falta o no tiene la forma esperada.
+func _norte_relief_load() -> Dictionary:
+ if not FileAccess.file_exists(NORTE_RELIEF_JSON): return {}
+ var d = JSON.parse_string(FileAccess.get_file_as_string(NORTE_RELIEF_JSON))
+ if not (d is Dictionary) or not (d.get("grid") is Dictionary) or not (d.get("h") is Array): return {}
+ var g: Dictionary = d.grid
+ var nx = int(g.get("nx",0)); var nz = int(g.get("nz",0))
+ if nx < 2 or nz < 2 or (d.h as Array).size() != nx*nz: return {}
+ var hs = PackedFloat32Array(d.h)
+ for k in range(hs.size()):
+  hs[k] = 0.4 + 16.6*pow(clampf((hs[k]-300.0)/4700.0,0.0,1.0),0.65)
+ return {"nx":nx,"nz":nz,"x0":float(g.get("x0",-55.0)),"z0":float(g.get("z0",-45.0)),"step":float(g.get("step",0.5)),"h":hs}
+
+func _norte_relief_h(x: float, z: float) -> float:
+ var r = norte_relief
+ var fx = clampf((x-float(r.x0))/float(r.step),0.0,float(r.nx-1))
+ var fz = clampf((z-float(r.z0))/float(r.step),0.0,float(r.nz-1))
+ var i = mini(int(fx),int(r.nx)-2); var j = mini(int(fz),int(r.nz)-2)
+ var tx = fx-float(i); var tz = fz-float(j)
+ var hs: PackedFloat32Array = r.h
+ var k = j*int(r.nx)+i
+ return lerpf(lerpf(hs[k],hs[k+1],tx),lerpf(hs[k+int(r.nx)],hs[k+int(r.nx)+1],tx),tz)
+
+## visual/r1 F5: texturas fotográficas del suelo (Poly Haven, CC0; assets/terrain/terrain_textures_manifest.json) en dos arreglos: albedo (una capa por
+## material) y datos (normales OpenGL y después ORM). [] en calidad baja o si falta algo: el shader sigue con su color procedural de siempre.
+static var terrain_tex_cache: Dictionary = {}
+func _terrain_tex_arrays(dir: String, ids: Array) -> Array:
+ if quality == "baja": return []
+ var key = dir+"|"+",".join(PackedStringArray(ids))
+ if terrain_tex_cache.has(key): return terrain_tex_cache[key]
+ var alb: Array = []; var dat: Array = []
+ for id in ids: alb.append(dir+"%s_albedo.jpg" % id)
+ for kind in ["normal","orm"]:
+  for id in ids: dat.append(dir+"%s_%s.jpg" % [id,kind])
+ var a = _texture_array(alb); var d = _texture_array(dat)
+ var out: Array = [a,d] if a != null and d != null else []
+ terrain_tex_cache[key] = out
+ return out
+
+static func _texture_array(paths: Array) -> Texture2DArray:
+ var images: Array[Image] = []
+ for path in paths:
+  var tex: Texture2D = load(str(path)) as Texture2D if ResourceLoader.exists(str(path)) else null
+  var img: Image = tex.get_image() if tex != null else null
+  if img == null or img.is_empty(): return null
+  if not images.is_empty() and (img.get_size() != images[0].get_size() or img.get_format() != images[0].get_format() or img.has_mipmaps() != images[0].has_mipmaps()): return null
+  images.append(img)
+ var arr := Texture2DArray.new()
+ return arr if arr.create_from_images(images) == OK else null
+
+func _apply_terrain_textures(mat: ShaderMaterial, dir: String, ids: Array) -> void:
+ var t = _terrain_tex_arrays(dir,ids)
+ mat.set_shader_parameter("tex_on",1.0 if t.size() == 2 else 0.0)
+ if t.size() == 2:
+  mat.set_shader_parameter("tex_albedo",t[0]);mat.set_shader_parameter("tex_data",t[1])
+
+## visual/r1 F5: altura del llano de un pueblo: la media del relieve real en su círculo de 2,8 m (en caché).
+func _norte_sector_base(s: Dictionary) -> float:
+ var id = str(s.get("id",""))
+ if norte_sector_h.has(id): return norte_sector_h[id]
+ var c = Vector2(float(s.x),float(s.z))
+ var acc = _norte_relief_h(c.x,c.y); var n = 1.0
+ for k in range(12):
+  var q = c+Vector2(cos(TAU*float(k)/12.0),sin(TAU*float(k)/12.0))*2.8
+  acc += _norte_relief_h(q.x,q.y); n += 1.0
+ norte_sector_h[id] = acc/n
+ return norte_sector_h[id]
 
 func _ground():
  var st = SurfaceTool.new()
@@ -456,6 +540,8 @@ func _ground():
   mat.set_shader_parameter("map_min",north_map_rect.position)
   mat.set_shader_parameter("map_max",north_map_rect.end)
   north_terrain_mat=mat
+  # visual/r1 F5: pasto del Valle de Lerma, huella con pasto y camino de tierra (grano de cerca; el color sigue siendo la rampa del Norte)
+  _apply_terrain_textures(mat,"res://assets/terrain/norte/",["norte_pasto","norte_camino_pasto","norte_camino_tierra"])
  m.material_override = mat
  add_child(m)
  m.create_trimesh_collision()
@@ -1479,6 +1565,8 @@ func _terrain_j():
  terrain_mat.set_shader_parameter("color_gamma",2.6 if advanced_renderer else 1.9)
  terrain_mat.set_shader_parameter("water_level",level_m)
  terrain_mat.set_shader_parameter("level_high",level_high_m)
+ # visual/r1 F5: arena húmeda, barro y pasto de ribera por zona (grano de cerca; la altura sigue siendo la de Reglas)
+ _apply_terrain_textures(terrain_mat,"res://assets/terrain/justina/",["jn_arena_humeda","jn_barro","jn_pasto_ribera"])
  var arr=[];arr.resize(Mesh.ARRAY_MAX)
  arr[Mesh.ARRAY_VERTEX]=verts;arr[Mesh.ARRAY_NORMAL]=norms;arr[Mesh.ARRAY_COLOR]=cols;arr[Mesh.ARRAY_INDEX]=idx
  var mesh=ArrayMesh.new()

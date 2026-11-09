@@ -18,9 +18,18 @@ uniform float contour_alpha = 0.16;
 uniform float edge_m = 6.0;
 uniform vec2 map_min = vec2(-55.0, -45.0);
 uniform vec2 map_max = vec2(54.2, 45.0);
+// visual/r1 F5: grano fotográfico de cerca (Poly Haven, CC0): capas 0 pasto, 1 huella con pasto, 2 camino de tierra; tex_data = normales (0-2) y ORM (3-5).
+// La foto se divide por su color medio: el color sigue siendo la rampa del Norte; de tex_near a tex_far de la cámara se apaga.
+uniform sampler2DArray tex_albedo : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2DArray tex_data : hint_default_white, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform float tex_on = 0.0;
+uniform float tex_tile = 1.6;
+uniform float tex_near = 30.0;
+uniform float tex_far = 80.0;
+varying float view_dist;
 float hash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
 float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);}
-void vertex(){ world_pos=(MODEL_MATRIX*vec4(VERTEX,1.0)).xyz; world_normal=NORMAL; }
+void vertex(){ world_pos=(MODEL_MATRIX*vec4(VERTEX,1.0)).xyz; world_normal=NORMAL; view_dist=length((MODELVIEW_MATRIX*vec4(VERTEX,1.0)).xyz); }
 void fragment(){
  float n=noise(world_pos.xz*0.8)*0.65+noise(world_pos.xz*3.0)*0.35;
  float fine=noise(world_pos.xz*9.0);
@@ -47,6 +56,34 @@ void fragment(){
   // Borde del mapa: se funde a tinta en edge_m (el mapa no es una baldosa que flota).
   vec2 e2=min(world_pos.xz-map_min,map_max-world_pos.xz);
   float e=smoothstep(0.0,edge_m,min(e2.x,e2.y));
+  // visual/r1 F5: valle → pasto, ladera media → huella con pasto, pendiente fuerte → tierra; cada capa con su giro para que no se alineen las repeticiones
+  float tk=tex_on*(1.0-smoothstep(tex_near,tex_far,view_dist));
+  if (tk>0.002) {
+   vec3 wpn=normalize(world_normal);
+   wpn*=sign(wpn.y+1e-4);  // la malla del Norte puede venir con la normal hacia abajo (se dibujaba igual por cull_disabled)
+   float w0=1.0-smoothstep(0.15,0.45,t);
+   float w2=smoothstep(0.07,0.22,slope);
+   float w1=max(1.0-w0-w2,0.0);
+   w0*=1.0-w2;
+   float ws=max(w0+w1+w2,0.0001);
+   vec3 g=vec3(0.0); vec3 tn=vec3(0.0);
+   for (int L=0; L<3; L++) {
+    float w=(L==0?w0:(L==1?w1:w2))/ws;
+    if (w<0.02) continue;
+    float a=float(L)*2.1+0.4*floor(n*3.0);
+    mat2 rot=mat2(vec2(cos(a),sin(a)),vec2(-sin(a),cos(a)));
+    vec2 uv=rot*world_pos.xz/tex_tile+vec2(float(L)*0.37,float(L)*0.71);
+    vec3 al=texture(tex_albedo,vec3(uv,float(L))).rgb/max(textureLod(tex_albedo,vec3(0.5,0.5,float(L)),10.0).rgb,vec3(0.02));
+    g+=al*w;
+    vec3 nt=texture(tex_data,vec3(uv,float(L))).rgb*2.0-1.0;
+    nt.y=-nt.y;
+    vec2 nxz=transpose(rot)*nt.xy;
+    tn+=vec3(nxz.x,0.0,nxz.y)*w;
+   }
+   float gl=dot(g,vec3(0.299,0.587,0.114));
+   r*=mix(vec3(1.0),clamp(mix(vec3(gl),g,0.3),vec3(0.5),vec3(1.6)),tk*0.6);
+   NORMAL=normalize((VIEW_MATRIX*vec4(normalize(wpn+tn*tk*0.8),0.0)).xyz);
+  }
   ALBEDO=mix(ink_color,r,e);
   ROUGHNESS=0.93;
   SPECULAR=0.3;
