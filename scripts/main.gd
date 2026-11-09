@@ -2207,7 +2207,7 @@ func _step_speed(dir:int,wrap:bool=false):
  if i<0:i=0
  var n=i+dir
  if wrap:n=posmod(n,steps.size())
- speed=steps[clampi(n,0,steps.size()-1)]
+ speed=steps[clampi(n,0,steps.size()-1)];speed_restore=0.0  # elegir la velocidad cancela cualquier regreso pendiente
  _update_hud()
 
 # ---------- Interfaz de Justina ----------
@@ -2452,6 +2452,9 @@ func _compute_alerts()->Array:
  out.sort_custom(func(a,b):return (0 if str(a.level)=="crit" else 1)<(0 if str(b.level)=="crit" else 1))
  return out
 
+func _alert_is_critical(a:Dictionary)->bool:
+ return str(a.get("level",""))=="crit" and not bool(a.get("nopause",false))
+
 func _update_alerts():
  var list=_compute_alerts()
  for a in list:
@@ -2459,6 +2462,11 @@ func _update_alerts():
    alert_ids_seen[str(a.id)]=true
    if bool(settings.auto_pause) and not bool(a.get("nopause",false)) and not paused and not is_instance_valid(modal) and mode=="play":
     paused=true;pause_reason=str(a.short);pause_alert=[str(a.id),pause_reason];_sound("alert")
+   elif not bool(settings.auto_pause) and _alert_is_critical(a) and speed>1.0 and mode=="play":
+    # Q-101: sin pausa automática, solo un aviso crítico baja a ×1; la velocidad elegida vuelve sola cuando el aviso se resuelve.
+    if speed_restore<=1.0:speed_restore=speed
+    speed_restore_t=2.0;speed=1.0
+    _toast("Aviso crítico: el tiempo baja a ×1. Vuelve ×%d cuando se resuelva." % int(speed_restore),3.0,true,2)
  # P-005: si lo que pidió la pausa automática ya se resolvió (el contraataque se rechazó, la ventana pasó), el cartel de pausa no lo sigue
  # pidiendo: queda la pausa a secas («EN PAUSA» arriba) y el aviso del hecho, que es lo que pasó de verdad.
  if not pause_alert.is_empty() and not list.any(func(x):return str(x.id)==str(pause_alert[0])):
@@ -3940,7 +3948,7 @@ func _feel_tick(delta:float):
   if speed>1.0:speed_restore=0.0
   else:
    speed_restore_t-=delta
-   if speed_restore_t<=0.0 and _compute_alerts().is_empty():
+   if speed_restore_t<=0.0 and not _compute_alerts().any(_alert_is_critical):
     speed=speed_restore;speed_restore=0.0;_toast("Vuelve la velocidad ×%d." % int(speed),2.5,true,0)
  var want=speed==1.0 and auto_fast_cool<=0.0 and _calm_wait()
  if want!=auto_fast_on:
@@ -4452,10 +4460,10 @@ func _handle_events_j(events:Array):
    "ford":_juice("ford")
    "boarding":_sound("dismount")
    "signal":_sound("order")
-  # Los avisos de campo no dejan seguir a ×2/×4: se vuelve a ×1 para poder reaccionar (C19).
-  if event.has("field_event") and speed>1.0:
-   speed_restore=speed;speed_restore_t=8.0  # P-004: vuelve a la velocidad elegida 8 s después del último aviso
-   speed=1.0
+  # Q-101 (P-004): los avisos de campo (Liniers, el vecino, el río, voluntarios, el giro del intento, lo elegido) ya no bajan la velocidad:
+  # se leen en el cartel y la velocidad que eligió el jugador se conserva. Lo que pide reaccionar ya (contraataque, grupo disperso, decisión
+  # esperando, último esfuerzo) es un aviso crítico de _update_alerts: con «Pausa auto» detiene el reloj y al reanudar vuelve la misma
+  # velocidad; sin ella baja a ×1 hasta que el aviso se resuelve (C19, solo para lo crítico).
   if kind in ["shot","info","load","objective","shot_warning"]:continue
   var pr=int(KIND_PRIO.get(kind,1))
   if pr>=best_prio:best_prio=pr;best=event
