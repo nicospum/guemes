@@ -14,7 +14,7 @@ var report: Dictionary = {"suite": "main_scene_player_flow", "kind": "headless_s
 
 func _initialize() -> void:
 	# Hermetico: el perfil no puede arrastrar intentos, diario ni ajustes de otra corrida (la tarjeta inicial crece con los intentos).
-	for stale in ["campaign.json", "justina_progress.json", "humahuaca_progress.json", "humahuaca_checkpoint.json", "settings.cfg"]:
+	for stale in ["campaign.json", "justina_progress.json", "humahuaca_progress.json", "humahuaca_checkpoint.json", "settings.cfg", "save_norte_f5.json", "save_justine_f5.json"]:
 		if FileAccess.file_exists("user://" + stale):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path("user://" + stale))
 	call_deferred("_run")
@@ -58,6 +58,7 @@ func _run() -> void:
 	await _campana()
 	await _norte_por_humahuaca()
 	await _p4b()
+	await _qa_ronda2()
 	report.final_scenario = game.rules.state.scenario
 	report.final_status = game.rules.state.status
 	if is_instance_valid(game.audio_manager):
@@ -391,7 +392,7 @@ func _justina() -> void:
 	for i in range(40):
 		if float(game.rules.state.get("t", 0.0)) >= 260.0:
 			break
-		game._process(10.0)
+		_play_step(10.0)
 	game.paused = true
 	check(game.rules.water_level_m() < water_start, "The river drops while the scout works")
 	game.paused = false
@@ -405,7 +406,7 @@ func _justina() -> void:
 	game._aim_click(Vector2(330, 264), false)
 	check(game.aim == "" and game.rules.scouts()[0].stage != "idle", "The last click orders the probe")
 	for i in range(40):
-		game._process(10.0)
+		_play_step(10.0)
 		if game.rules.scouts()[0].stage == "idle":
 			break
 	game.paused = true
@@ -421,7 +422,7 @@ func _justina() -> void:
 	game._aim_click(Vector2(250, 264), false)
 	game.paused = false
 	for i in range(12):
-		game._process(5.0)
+		_play_step(5.0)
 		if int(game.rules.resources().balizas) < balizas0:
 			break
 	game.paused = true
@@ -431,7 +432,7 @@ func _justina() -> void:
 	game._do_action("signal_liniers")
 	game.paused = false
 	for i in range(30):
-		game._process(10.0)
+		_play_step(10.0)
 		if bool(game.rules.resources().advance_authorized):
 			break
 	check(bool(game.rules.resources().advance_authorized), "Signalling Liniers grants the advance order")
@@ -444,7 +445,7 @@ func _justina() -> void:
 	for i in range(80):
 		if bool(game.rules.action_availability("guemes", "board", game.rules.board_point()).ok):
 			break
-		game._process(5.0)
+		_play_step(5.0)
 	game.paused = true
 	game._update_hud()
 	await _frames(2)
@@ -464,7 +465,7 @@ func _justina() -> void:
 	check(ordered == 3, "Board is ordered for the three selected groups")
 	game.paused = false
 	for i in range(120):
-		game._process(10.0)
+		_play_step(10.0)
 		if game.rules.state.status != "playing":
 			break
 	game.paused = true
@@ -870,6 +871,200 @@ func _p4b() -> void:
 	var panel := game.modal.get_child(1) as Control
 	check(panel.size.y <= panel.get_combined_minimum_size().y + 10.0 and panel.size.y < 560.0, "P-019: «Consecuencias de la ronda» no deja espacio vacío abajo (alto %.0f)" % panel.size.y)
 	game._close_modal()
+
+# ------------------------------------------------------------------ corrección QA ronda 2 (Q-101, Q-102, Q-103, Q-104, Q-105, Q-107)
+func _qa_ronda2() -> void:
+	# Q-101: una partida de la Justina a ×4 con «Pausa auto»: ningún aviso de campo baja la velocidad; los avisos críticos pausan y al
+	# reanudar (Espacio) vuelve la velocidad elegida. Se juega con el _process real (1 s de juego por paso) y se deciden los mensajeros.
+	game.forced_seed = 1806
+	game._start_game("justine")
+	await _frames(2)
+	if is_instance_valid(game.modal): game._close_modal()
+	game.settings.auto_pause = true
+	game.settings["auto_fast"] = false
+	game.auto_start_pending = false
+	game.rules.issue_scout("scout_1", "probe", [Vector2(200, 264), Vector2(330, 264)])
+	game._set_speed(4.0)
+	game.paused = false
+	var fe0: int = (game.rules.state.events_done as Array).size()
+	var drops := 0
+	var resumes := 0
+	var resume_kept := 0
+	var choices := 0
+	var steps := 0
+	while str(game.rules.state.status) == "playing" and float(game.rules.state.elapsed) < 450.0 and steps < 1500:
+		steps += 1
+		if is_instance_valid(game.modal):
+			var pc: Dictionary = game.rules.state.get("pending_choice", {})
+			if game.modal.has_meta("choice") and not pc.is_empty():
+				game._choice_pick(str(pc.options[0].id))
+				choices += 1
+			else:
+				game._close_modal()
+			continue
+		if game.paused:
+			game._toggle_pause()  # Espacio: con una decisión pendiente la reabre; si no, reanuda
+			if not game.paused and not is_instance_valid(game.modal):
+				resumes += 1
+				if game.speed == 4.0: resume_kept += 1
+			continue
+		game._process(0.25)
+		if not game.paused and not is_instance_valid(game.modal) and game.speed != 4.0:
+			drops += 1
+		await process_frame
+	var fired: int = (game.rules.state.events_done as Array).size() - fe0
+	check(fired >= 7 and choices >= 1 and drops == 0, "Q-101: a ×4, %d avisos de campo y %d decisiones no bajan la velocidad (%d caídas; reloj %.0f s)" % [fired, choices, drops, float(game.rules.state.elapsed)])
+	check(resumes >= 1 and resume_kept == resumes, "Q-101: después de cada pausa automática, Espacio reanuda a la velocidad elegida (%d de %d)" % [resume_kept, resumes])
+	# Q-101 sin «Pausa auto»: solo un aviso crítico baja a ×1, y la velocidad elegida vuelve sola cuando el aviso se resuelve.
+	game.forced_seed = 1806
+	game._start_game("justine")
+	await _frames(2)
+	if is_instance_valid(game.modal): game._close_modal()
+	game.settings.auto_pause = false
+	game.auto_start_pending = false
+	game._set_speed(4.0)
+	game.paused = false
+	game._handle_events([{"kind": "liniers", "text": "Liniers: «Quedan seis minutos de plazo.»", "field_event": "liniers_3"}, {"kind": "tide", "text": "El río llegó a su mínimo.", "field_event": "rio_minimo"}])
+	check(game.speed == 4.0, "Q-101: sin pausa automática, un aviso de campo no baja la velocidad (×%d)" % int(game.speed))
+	var g: Dictionary = game.rules.get_unit("guemes")
+	g.stage = "boarding"
+	game.rules.state.ammo = 9
+	game.rules.state.counter.active = true
+	game.rules.state.counter.answered = false
+	game.rules.state.counter.until = float(game.rules.state.elapsed) + 12.0
+	game._select_ids(["guemes"])
+	game._update_hud()
+	check(game.speed == 1.0 and int(game.speed_restore) == 4 and not game.paused, "Q-101: sin pausa automática, el contraataque (aviso crítico) baja a ×1 y recuerda ×4")
+	game._do_boarding_action("repel")
+	if is_instance_valid(game.modal): game._close_modal()
+	game.paused = false
+	for k in range(16):
+		game._update_hud()
+		game._feel_tick(0.25)
+	check(game.speed == 4.0 and bool(game.rules.state.counter.answered), "Q-101: rechazado el contraataque, vuelve sola la velocidad elegida (×%d)" % int(game.speed))
+	game.rules.state.counter.active = false
+	g.stage = "ready"
+	# Q-102: con una decisión cerrada por Esc, Espacio la reabre y el reloj no corre (con y sin pausa automática)
+	for ap in [false, true]:
+		game.forced_seed = 1806
+		game._start_game("justine")
+		await _frames(2)
+		if is_instance_valid(game.modal): game._close_modal()
+		game.settings.auto_pause = ap
+		game.auto_start_pending = false
+		game._set_speed(4.0)
+		game.paused = false
+		var t_now := float(game.rules.state.elapsed)
+		game.rules.state.pending_choice = {"id": "prueba", "title": "Un mensajero", "default": "a", "until": t_now + 25.0, "options": [{"id": "a", "label": "Opción A"}]}
+		game._choice_dialog()
+		_key(KEY_ESCAPE)
+		game._update_hud()
+		check(game.paused and game.alert_btn.text == "Ver la decisión" and game.alert_label.text.find("reloj sigue detenido") >= 0, "Q-102 (pausa auto %s): Esc deja la decisión esperando con el reloj detenido" % str(ap))
+		_key(KEY_SPACE)
+		check(is_instance_valid(game.modal) and game.modal.has_meta("choice") and game.paused, "Q-102 (pausa auto %s): Espacio reabre la decisión en vez de largar el reloj" % str(ap))
+		_key(KEY_ESCAPE)
+		game.paused = false  # aunque algo suelte la pausa (la primera orden, un clic en «Reanudar»), el reloj no corre con la decisión pendiente
+		for k in range(12):
+			game._process(0.25)
+		check(is_equal_approx(float(game.rules.state.elapsed), t_now) and game.paused and game.mode_label.text.find("PAUSA") >= 0, "Q-102 (pausa auto %s): con la decisión pendiente el reloj no avanza (%.2f -> %.2f s) y la cabecera dice pausa" % [str(ap), t_now, float(game.rules.state.elapsed)])
+		game._alert_click()
+		check(is_instance_valid(game.modal) and game.modal.has_meta("choice"), "Q-102 (pausa auto %s): «Ver la decisión» la vuelve a abrir" % str(ap))
+		game._choice_pick("a")
+		game.paused = false
+		game._process(0.25)
+		check(float(game.rules.state.elapsed) > t_now and not game.paused and game.speed == 4.0, "Q-102 (pausa auto %s): elegida la opción, el reloj vuelve a correr a la velocidad elegida (×%d)" % [str(ap), int(game.speed)])
+	game.settings.auto_pause = false
+	# Q-103: Esc cierra el parte de victoria, pero se puede reabrir (P, Espacio, el botón de la cabecera, la pausa) y la pausa de una partida
+	# terminada no ofrece «Abandonar» ni «Seguir jugando».
+	game.forced_seed = 1806
+	game._start_game("justine")
+	await _frames(2)
+	if is_instance_valid(game.modal): game._close_modal()
+	game.rules._finish("victory", "La dotación se rinde. El buque queda capturado.", "capturado")
+	game._process(0.0)
+	await _frames(2)
+	check(is_instance_valid(game.modal) and _find_button("Seguir: Humahuaca") != null, "Q-103: el parte de victoria ofrece «Seguir: Humahuaca»")
+	_key(KEY_ESCAPE)
+	game._update_hud()
+	check(not is_instance_valid(game.modal) and game.pause_button.text.find("Ver el parte") >= 0 and game.reason_label.text.find("Ver el parte") >= 0, "Q-103: tras Esc, la cabecera y la línea «AHORA» ofrecen «Ver el parte» (botón: «%s»)" % game.pause_button.text)
+	_key(KEY_P)
+	check(is_instance_valid(game.modal) and _find_button("Seguir: Humahuaca") != null, "Q-103: P reabre el parte con «Seguir: Humahuaca»")
+	_key(KEY_ESCAPE)
+	_key(KEY_SPACE)
+	check(is_instance_valid(game.modal) and _find_button("Seguir: Humahuaca") != null, "Q-103: Espacio (y el botón «Ver el parte») también lo reabren")
+	_key(KEY_ESCAPE)
+	_key(KEY_ESCAPE)
+	var pm := _modal_text()
+	check(is_instance_valid(game.modal) and pm.find("Abandonar") < 0 and pm.find("Seguir jugando") < 0 and pm.find("Ver el parte") >= 0 and pm.find("Seguir: Humahuaca") >= 0, "Q-103: la pausa de una partida ganada ofrece «Ver el parte» y «Seguir: Humahuaca», sin «Abandonar»")
+	check(_press("Ver el parte"), "Q-103: el botón «Ver el parte» de la pausa responde")
+	check(is_instance_valid(game.modal) and _find_button("Seguir: Humahuaca") != null and _find_button("Rejugar") != null, "Q-103: «Ver el parte» de la pausa vuelve al parte de victoria")
+	game._close_modal()
+	# Q-105: la ficha 3 elegida durante el abordaje entra entera (sin «munici…») y el rótulo del paraje no queda detrás de «AGRUPACIONES»
+	for id in ["guemes", "arias", "zavala"]:
+		var u: Dictionary = game.rules.get_unit(id)
+		u.stage = "boarding"
+		u.fatigue = 30.0
+	game.rules.state.status = "playing"
+	game._select_ids(["zavala"])
+	game._update_hud()
+	await _frames(2)
+	game._update_hud()
+	var rb: Button = game.roster_buttons["zavala"]
+	var fnt := rb.get_theme_font("font")
+	var fs := rb.get_theme_font_size("font_size")
+	var widest := 0.0
+	for ln in rb.text.split("\n"): widest = maxf(widest, fnt.get_string_size(ln, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x)
+	check(widest <= rb.size.x - 16.0 + 2.0 and rb.text.find("munición") >= 0, "Q-105: la ficha 3 desplegada entra entera (%d <= %d px): %s" % [int(widest), int(rb.size.x - 16.0), rb.text.replace("\n", " / ")])
+	game.place_label.text = "Bajo el cursor: Agua turbia (sin reconocer)"
+	game.place_label.visible = true
+	await _frames(1)
+	check(not game.place_label.get_global_rect().intersects(game.roster_panel.get_global_rect()) and not game.place_label.get_global_rect().intersects(game.minimap_rect()), "Q-105: el rótulo del paraje no asoma detrás de «AGRUPACIONES» ni pisa el minimapa")
+	game.place_label.visible = false
+	# Q-104 (III): al empezar, las tres agrupaciones quedan fuera de la ayuda «Siguiente paso» y del panel inferior
+	game._start_game("norte")
+	game.jev.force_local = true
+	await _frames(4)
+	if is_instance_valid(game.modal): game._close_modal()
+	game._update_hud()
+	await _frames(1)
+	var band: Vector2 = game._norte_free_band()
+	var hidden := []
+	for u in game.rules.state.units:
+		var gx := float(u.x) - 3.3
+		var gz := float(u.z) + 2.8
+		var sp: Vector2 = game.camera.unproject_position(game.world.to_global(Vector3(gx, game.world.terrain_height(gx, gz), gz)))
+		if sp.y + 30.0 > band.y or sp.y - 40.0 < band.x: hidden.append("%s@%d" % [str(u.id), int(sp.y)])
+	check(hidden.is_empty() and game.hint_panel.visible, "Q-104: en el primer cuadro del III ninguna agrupación queda bajo «Siguiente paso» (franja %s; tapadas: %s)" % [str(band), str(hidden)])
+	# Q-107: el autoguardado de la ronda no pisa el F5; F9 carga el F5 y dice cuál cargó
+	game._campaign_order("protect")
+	_key(KEY_F5)
+	check(FileAccess.file_exists(game._manual_save_path("norte")) and FileAccess.file_exists(game._save_path("norte")), "Q-107: F5 guarda aparte el guardado del jugador")
+	game.resolution_remaining = 0.0
+	game._resolve_round()
+	for i in range(6):
+		await process_frame
+	game.resolution_remaining = 0.0
+	check(int(game.rules.state.round) == 2, "Q-107: la ronda se resolvió (ronda %d) y se autoguardó" % int(game.rules.state.round))
+	_key(KEY_F9)
+	for i in range(3):
+		await process_frame
+	check(int(game.rules.state.round) == 1 and game.toast_label.text.find("guardado F5") >= 0 and game.toast_label.text.find("ronda 1") >= 0, "Q-107: F9 vuelve al F5 (ronda 1), no al autoguardado, y lo dice: «%s»" % game.toast_label.text)
+	game._save_game(false)  # autoguardado (como el de cada ronda)
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(game._manual_save_path("norte")))
+	_key(KEY_F9)
+	for i in range(3):
+		await process_frame
+	check(game.toast_label.text.find("autoguardado") >= 0, "Q-107: sin F5, F9 carga el autoguardado y lo nombra: «%s»" % game.toast_label.text)
+
+## Un paso del reloj por el _process real. Q-102: con una decisión pendiente el reloj de la Justina queda detenido hasta que se elige, así
+## que el guion contesta como lo haría el plazo vencido (la opción por defecto, contada como «sin respuesta») y sigue.
+func _play_step(dt: float) -> void:
+	var pc: Dictionary = game.rules.state.get("pending_choice", {})
+	if not pc.is_empty() and str(game.rules.state.status) == "playing":
+		game.rules.resolve_choice(str(pc.get("default", pc.options[0].id)), true)
+		if is_instance_valid(game.modal) and game.modal.has_meta("choice"): game._close_modal()
+		game.paused = false
+	game._process(dt)
 
 func _frames(n: int) -> void:
 	for i in range(n):
