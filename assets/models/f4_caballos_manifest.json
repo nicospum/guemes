@@ -404,153 +404,31 @@
  },
  "jinete_criollo_1817": {
   "file": "jinete_criollo_1817.glb",
-  "bytes": 200740,
-  "triangles": 6359,
-  "animations": {},
-  "meshes": 1,
-  "surfaces": 9,
-  "materials": [
-   "F4 | ancla",
-   "F4 | wool",
-   "F4 | skin",
-   "F4 | coat",
-   "F4 | gloss",
-   "F4 | leather",
-   "F4 | metal",
-   "F4 | linen",
-   "F4 | wood"
-  ],
-  "textures": 0,
-  "bones": [],
-  "vertex_colors": true,
-  "godot_bounds": {
-   "min": [
-    -0.509,
-    -0.89,
-    -0.668
-   ],
-   "max": [
-    0.44,
-    1.145,
-    0.635
-   ]
-  },
-  "front": "Godot -Z",
-  "origin": "asiento (hueso silla del caballo)",
-  "sha256": "3fdf40ada660cb9357c35493898183f18fb78484f8c5a412a4e8b387b2ab6bfc",
-  "note": "Jinete de 1817 de tools/create_models.py (obra propia), sin caballo, sentado; origen = asiento. Se pone como hijo de un BoneAttachment3D en el hueso 'silla' del caballo (transformación identidad)."
+  "reemplazado_por": "tools/f5_personas.py (visual/r1 F5 parte A)",
+  "manifiesto": "f5_personas_manifest.json",
+  "sha256": "c5e0b42eb19ae8c93c9212f20279c7d85393c9010d9b79014c61c5f2383e968f",
+  "triangles": 4960
  },
  "jinete_criollo_1817_lod": {
   "file": "jinete_criollo_1817_lod.glb",
-  "bytes": 45328,
-  "triangles": 1084,
-  "animations": {},
-  "meshes": 1,
-  "surfaces": 9,
-  "materials": [
-   "F4 | ancla",
-   "F4 | wool",
-   "F4 | skin",
-   "F4 | coat",
-   "F4 | gloss",
-   "F4 | leather",
-   "F4 | metal",
-   "F4 | linen",
-   "F4 | wood"
-  ],
-  "textures": 0,
-  "bones": [],
-  "vertex_colors": true,
-  "godot_bounds": {
-   "min": [
-    -0.51,
-    -0.886,
-    -0.669
-   ],
-   "max": [
-    0.441,
-    1.145,
-    0.637
-   ]
-  },
-  "front": "Godot -Z",
-  "origin": "asiento (hueso silla del caballo)",
-  "sha256": "8a269c9da6934abd219b0f96d1012f6b945a54db0ab9da25a9c26ad9b0b6bb49",
-  "note": "Jinete de 1817 de tools/create_models.py (obra propia), sin caballo, sentado; origen = asiento. Se pone como hijo de un BoneAttachment3D en el hueso 'silla' del caballo (transformación identidad). LOD de tropa."
+  "reemplazado_por": "tools/f5_personas.py (visual/r1 F5 parte A)",
+  "manifiesto": "f5_personas_manifest.json",
+  "sha256": "01567e918a41c929e64ed7a4b09b90afbd07e4b9c920e2afcda9d83a1e5655a9",
+  "triangles": 981
  },
  "jinete_criollo_1806": {
   "file": "jinete_criollo_1806.glb",
-  "bytes": 212948,
-  "triangles": 6015,
-  "animations": {},
-  "meshes": 1,
-  "surfaces": 8,
-  "materials": [
-   "F4 | ancla",
-   "F4 | wool",
-   "F4 | skin",
-   "F4 | coat",
-   "F4 | gloss",
-   "F4 | linen",
-   "F4 | leather",
-   "F4 | metal"
-  ],
-  "textures": 0,
-  "bones": [],
-  "vertex_colors": true,
-  "godot_bounds": {
-   "min": [
-    -0.509,
-    -0.89,
-    -0.494
-   ],
-   "max": [
-    0.44,
-    1.19,
-    0.489
-   ]
-  },
-  "front": "Godot -Z",
-  "origin": "asiento (hueso silla del caballo)",
-  "sha256": "b2c40c5d65ea8ee01380be0f72250d3515b7e2bcad1e8860843b49e4aa5837ed",
-  "note": "Jinete de 1806 de tools/create_models.py (obra propia), sin caballo, sentado; origen = asiento. Se pone como hijo de un BoneAttachment3D en el hueso 'silla' del caballo (transformación identidad)."
+  "reemplazado_por": "tools/f5_personas.py (visual/r1 F5 parte A)",
+  "manifiesto": "f5_personas_manifest.json",
+  "sha256": "7088b57a1506cb994099278c3b299912db7417193c8d029dacc1cfde15898b54",
+  "triangles": 2512
  },
  "jinete_criollo_1806_lod": {
   "file": "jinete_criollo_1806_lod.glb",
-  "bytes": 45784,
-  "triangles": 1084,
-  "animations": {},
-  "meshes": 1,
-  "surfaces": 8,
-  "materials": [
-   "F4 | ancla",
-   "F4 | wool",
-   "F4 | skin",
-   "F4 | coat",
-   "F4 | gloss",
-   "F4 | linen",
-   "F4 | leather",
-   "F4 | metal"
-  ],
-  "textures": 0,
-  "bones": [],
-  "vertex_colors": true,
-  "godot_bounds": {
-   "min": [
-    -0.51,
-    -0.886,
-    -0.496
-   ],
-   "max": [
-    0.441,
-    1.19,
-    0.491
-   ]
-  },
-  "front": "Godot -Z",
-  "origin": "asiento (hueso silla del caballo)",
-  "sha256": "bd6bc3d465281216b606cbde1342d470ef0165879d141267ab51f8e1fe5e0b90",
-  "note": "Jinete de 1806 de tools/create_models.py (obra propia), sin caballo, sentado; origen = asiento. Se pone como hijo de un BoneAttachment3D en el hueso 'silla' del caballo (transformación identidad). LOD de tropa."
+  "reemplazado_por": "tools/f5_personas.py (visual/r1 F5 parte A)",
+  "manifiesto": "f5_personas_manifest.json",
+  "sha256": "fe64c7692d61d54147f4c405918dee56e11399c4eb09ae9ad56a2b6f63390bf1",
+  "triangles": 953
  },
  "_convenciones": {
   "unidad": "metro",

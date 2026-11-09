@@ -1,0 +1,1347 @@
+{
+ "_convenciones": {
+  "unidad": "metro",
+  "frente": "Godot -Z (Blender +Y)",
+  "arriba": "Godot +Y",
+  "fps": 24,
+  "fuente": "obra propia, tools/f5_personas.py (sin mallas ni texturas de terceros)",
+  "color": "COLOR_0 lineal = albedo final (con oclusión horneada); material «<F4|F5> | <rol> | <clase>»",
+  "jinete": {
+   "origen": "asiento = hueso 'silla' del caballo criollo (Godot (0, 1.5, 0) sobre el suelo)",
+   "asiento_godot": [
+    0.0,
+    1.5,
+    -0.0
+   ],
+   "tintes_que_reconoce_el_juego": "1817: poncho lana granate (0.31, 0.035, 0.026)x0.62 y pañuelo lino granate; 1806: casaca índigo, vueltas rojas, calzón lino blanco, sombrero negro (ver world_view._poncho_mesh/_tinted_mesh y humahuaca_units._rider_color)"
+  },
+  "persona": {
+   "origen": "suelo, entre los pies",
+   "huesos": [
+    "raiz",
+    "cadera",
+    "columna",
+    "pecho",
+    "cuello",
+    "cabeza",
+    "brazo_L",
+    "antebrazo_L",
+    "mano_L",
+    "brazo_R",
+    "antebrazo_R",
+    "mano_R",
+    "muslo_L",
+    "pierna_L",
+    "pie_L",
+    "muslo_R",
+    "pierna_R",
+    "pie_R"
+   ],
+   "lado_L": "-X de Blender = izquierda de la figura (Godot -X)",
+   "animaciones": {
+    "walk": {
+     "frames": 24,
+     "design_mps": 1.15
+    },
+    "run": {
+     "frames": 16,
+     "design_mps": 3.2
+    },
+    "idle": {
+     "frames": 96,
+     "design_mps": 0
+    }
+   },
+   "bucles": "idle, walk, run en el lugar (sin desplazamiento de raíz); loop_mode=1 en los .import"
+  },
+  "arma": {
+   "origen": "punto de agarre",
+   "eje": "Godot +Y (de la culata a la punta)"
+  },
+  "retinte": "por rol: cada rol es una superficie propia; color nuevo = tinte x (COLOR_0 / color base del rol) conserva la oclusión"
+ },
+ "jinete_criollo_1817": {
+  "file": "jinete_criollo_1817.glb",
+  "bytes": 139736,
+  "triangles": 4960,
+  "animations": {},
+  "meshes": 1,
+  "surfaces": 14,
+  "materials": [
+   "F4 | ancla",
+   "F4 | piel | skin",
+   "F4 | ojos | gloss",
+   "F4 | pelo | coat",
+   "F4 | sombrero | wool",
+   "F4 | cuero | leather",
+   "F4 | camisa | linen",
+   "F4 | chiripa | wool",
+   "F4 | tirador | leather",
+   "F4 | calzoncillo | linen",
+   "F4 | botas | leather",
+   "F4 | laton | metal",
+   "F4 | poncho | wool",
+   "F4 | panuelo | linen"
+  ],
+  "textures": 0,
+  "bones": [],
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -0.521,
+    -0.8,
+    -0.428
+   ],
+   "max": [
+    0.521,
+    0.884,
+    0.524
+   ]
+  },
+  "front": "Godot -Z",
+  "origin": "asiento (hueso silla del caballo)",
+  "sha256": "c5e0b42eb19ae8c93c9212f20279c7d85393c9010d9b79014c61c5f2383e968f",
+  "note": "Jinete de 1817 (paisano de las milicias gauchas): poncho, chiripá, calzoncillo cribado, botas de potro, sombrero; la mano izquierda en las riendas, la derecha lista para la tacuara (arma_tacuara.glb, aparte). Obra propia (tools/f5_personas.py), sin esqueleto; origen = asiento: hijo de un BoneAttachment3D en el hueso 'silla' del caballo criollo (transformación identidad). Vestuario: DISEÑO.",
+  "roles": [
+   "botas",
+   "calzoncillo",
+   "camisa",
+   "chiripa",
+   "cuero",
+   "laton",
+   "ojos",
+   "panuelo",
+   "pelo",
+   "piel",
+   "poncho",
+   "sombrero",
+   "tirador"
+  ],
+  "hand_R_seat_godot": [
+   0.405,
+   0.22,
+   -0.02
+  ],
+  "hand_L_seat_godot": [
+   -0.065,
+   0.165,
+   -0.3
+  ],
+  "hat_min_y_over_seat_m": 0.746,
+  "hat_max_y_over_seat_m": 0.884
+ },
+ "jinete_criollo_1817_lod": {
+  "file": "jinete_criollo_1817_lod.glb",
+  "bytes": 36624,
+  "triangles": 981,
+  "animations": {},
+  "meshes": 1,
+  "surfaces": 11,
+  "materials": [
+   "F4 | ancla",
+   "F4 | piel | skin",
+   "F4 | pelo | coat",
+   "F4 | sombrero | wool",
+   "F4 | camisa | linen",
+   "F4 | chiripa | wool",
+   "F4 | tirador | leather",
+   "F4 | calzoncillo | linen",
+   "F4 | botas | leather",
+   "F4 | poncho | wool",
+   "F4 | panuelo | linen"
+  ],
+  "textures": 0,
+  "bones": [],
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -0.492,
+    -0.797,
+    -0.423
+   ],
+   "max": [
+    0.51,
+    0.88,
+    0.523
+   ]
+  },
+  "front": "Godot -Z",
+  "origin": "asiento (hueso silla del caballo)",
+  "sha256": "01567e918a41c929e64ed7a4b09b90afbd07e4b9c920e2afcda9d83a1e5655a9",
+  "note": "Jinete de 1817 (paisano de las milicias gauchas): poncho, chiripá, calzoncillo cribado, botas de potro, sombrero; la mano izquierda en las riendas, la derecha lista para la tacuara (arma_tacuara.glb, aparte). Obra propia (tools/f5_personas.py), sin esqueleto; origen = asiento: hijo de un BoneAttachment3D en el hueso 'silla' del caballo criollo (transformación identidad). Vestuario: DISEÑO. LOD de tropa.",
+  "roles": [
+   "botas",
+   "calzoncillo",
+   "camisa",
+   "chiripa",
+   "panuelo",
+   "pelo",
+   "piel",
+   "poncho",
+   "sombrero",
+   "tirador"
+  ],
+  "hand_R_seat_godot": [
+   0.405,
+   0.22,
+   -0.02
+  ],
+  "hand_L_seat_godot": [
+   -0.065,
+   0.165,
+   -0.3
+  ],
+  "hat_min_y_over_seat_m": 0.756,
+  "hat_max_y_over_seat_m": 0.88
+ },
+ "jinete_criollo_1806": {
+  "file": "jinete_criollo_1806.glb",
+  "bytes": 82800,
+  "triangles": 2512,
+  "animations": {},
+  "meshes": 1,
+  "surfaces": 13,
+  "materials": [
+   "F4 | ancla",
+   "F4 | piel | skin",
+   "F4 | ojos | gloss",
+   "F4 | pelo | coat",
+   "F4 | sombrero | wool",
+   "F4 | vueltas | wool",
+   "F4 | casaca | wool",
+   "F4 | corbatin | wool",
+   "F4 | calzon | linen",
+   "F4 | botas | leather",
+   "F4 | correaje | linen",
+   "F4 | cuero | leather",
+   "F4 | laton | metal"
+  ],
+  "textures": 0,
+  "bones": [],
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -0.495,
+    -0.795,
+    -0.373
+   ],
+   "max": [
+    0.495,
+    0.93,
+    0.33
+   ]
+  },
+  "front": "Godot -Z",
+  "origin": "asiento (hueso silla del caballo)",
+  "sha256": "7088b57a1506cb994099278c3b299912db7417193c8d029dacc1cfde15898b54",
+  "note": "Jinete de 1806 (Justina): casaca azul con vueltas rojas, calzón blanco, botas, bicornio negro con escarapela roja lisa, bandolera y sable; sin bandera argentina, escarapela celeste y blanca ni «Infernales». Obra propia (tools/f5_personas.py), sin esqueleto; origen = asiento: hijo de un BoneAttachment3D en el hueso 'silla' del caballo criollo (transformación identidad). Vestuario: DISEÑO.",
+  "roles": [
+   "botas",
+   "calzon",
+   "casaca",
+   "corbatin",
+   "correaje",
+   "cuero",
+   "laton",
+   "ojos",
+   "pelo",
+   "piel",
+   "sombrero",
+   "vueltas"
+  ],
+  "hand_R_seat_godot": [
+   0.405,
+   0.22,
+   -0.02
+  ],
+  "hand_L_seat_godot": [
+   -0.065,
+   0.165,
+   -0.3
+  ],
+  "hat_min_y_over_seat_m": 0.715,
+  "hat_max_y_over_seat_m": 0.93
+ },
+ "jinete_criollo_1806_lod": {
+  "file": "jinete_criollo_1806_lod.glb",
+  "bytes": 40332,
+  "triangles": 953,
+  "animations": {},
+  "meshes": 1,
+  "surfaces": 12,
+  "materials": [
+   "F4 | ancla",
+   "F4 | piel | skin",
+   "F4 | pelo | coat",
+   "F4 | sombrero | wool",
+   "F4 | vueltas | wool",
+   "F4 | casaca | wool",
+   "F4 | corbatin | wool",
+   "F4 | calzon | linen",
+   "F4 | botas | leather",
+   "F4 | correaje | linen",
+   "F4 | cuero | leather",
+   "F4 | laton | metal"
+  ],
+  "textures": 0,
+  "bones": [],
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -0.481,
+    -0.792,
+    -0.373
+   ],
+   "max": [
+    0.495,
+    0.93,
+    0.33
+   ]
+  },
+  "front": "Godot -Z",
+  "origin": "asiento (hueso silla del caballo)",
+  "sha256": "fe64c7692d61d54147f4c405918dee56e11399c4eb09ae9ad56a2b6f63390bf1",
+  "note": "Jinete de 1806 (Justina): casaca azul con vueltas rojas, calzón blanco, botas, bicornio negro con escarapela roja lisa, bandolera y sable; sin bandera argentina, escarapela celeste y blanca ni «Infernales». Obra propia (tools/f5_personas.py), sin esqueleto; origen = asiento: hijo de un BoneAttachment3D en el hueso 'silla' del caballo criollo (transformación identidad). Vestuario: DISEÑO. LOD de tropa.",
+  "roles": [
+   "botas",
+   "calzon",
+   "casaca",
+   "corbatin",
+   "correaje",
+   "cuero",
+   "laton",
+   "pelo",
+   "piel",
+   "sombrero",
+   "vueltas"
+  ],
+  "hand_R_seat_godot": [
+   0.405,
+   0.22,
+   -0.02
+  ],
+  "hand_L_seat_godot": [
+   -0.065,
+   0.165,
+   -0.3
+  ],
+  "hat_min_y_over_seat_m": 0.715,
+  "hat_max_y_over_seat_m": 0.93
+ },
+ "persona_gaucho_1817": {
+  "file": "persona_gaucho_1817.glb",
+  "bytes": 351380,
+  "triangles": 5208,
+  "animations": {
+   "idle": 4,
+   "run": 0.667,
+   "walk": 1
+  },
+  "meshes": 1,
+  "surfaces": 16,
+  "materials": [
+   "F5 | ancla",
+   "F5 | piel | skin",
+   "F5 | ojos | gloss",
+   "F5 | pelo | coat",
+   "F5 | sombrero | wool",
+   "F5 | cuero | leather",
+   "F5 | camisa | linen",
+   "F5 | chiripa | wool",
+   "F5 | tirador | leather",
+   "F5 | calzoncillo | linen",
+   "F5 | botas | leather",
+   "F5 | laton | metal",
+   "F5 | cana | wood",
+   "F5 | metal | metal",
+   "F5 | poncho | wool",
+   "F5 | panuelo | linen"
+  ],
+  "textures": 0,
+  "bones": [
+   "raiz",
+   "cadera",
+   "columna",
+   "pecho",
+   "cuello",
+   "cabeza",
+   "brazo_L",
+   "antebrazo_L",
+   "mano_L",
+   "brazo_R",
+   "antebrazo_R",
+   "mano_R",
+   "muslo_L",
+   "pierna_L",
+   "pie_L",
+   "muslo_R",
+   "pierna_R",
+   "pie_R"
+  ],
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -0.338,
+    -0.004,
+    -0.325
+   ],
+   "max": [
+    0.554,
+    3.535,
+    0.221
+   ]
+  },
+  "front": "Godot -Z",
+  "origin": "suelo, entre los pies",
+  "sha256": "886d23fde4c1defff5f93882eda99fecc9f2f7639ee91ab18d1e9cf726981b06",
+  "note": "Paisano de las milicias gauchas, 1817, a pie, con tacuara. Obra propia (tools/f5_personas.py): geometría, poncho colgado por simulación propia, color con oclusión, esqueleto y ciclos por fórmula (diseño, no captura). Vestuario: DISEÑO plausible, no uniforme verificado.",
+  "roles": [
+   "botas",
+   "calzoncillo",
+   "camisa",
+   "cana",
+   "chiripa",
+   "cuero",
+   "laton",
+   "metal",
+   "ojos",
+   "panuelo",
+   "pelo",
+   "piel",
+   "poncho",
+   "sombrero",
+   "tirador"
+  ],
+  "height_m": 1.789,
+  "hand_R_godot": [
+   0.3,
+   0.98,
+   -0.15
+  ],
+  "hand_L_godot": [
+   -0.255,
+   0.87,
+   -0.07
+  ],
+  "anim": {
+   "walk": {
+    "frames": 24,
+    "seconds": 1.0,
+    "design_mps": 1.15,
+    "stride_m": 1.15,
+    "ankle_err_m": 0.0
+   },
+   "run": {
+    "frames": 16,
+    "seconds": 0.667,
+    "design_mps": 3.2,
+    "stride_m": 2.133,
+    "ankle_err_m": 0.0
+   },
+   "idle": {
+    "frames": 96,
+    "seconds": 4.0,
+    "design_mps": 0.0
+   }
+  }
+ },
+ "persona_gaucho_1817_lod": {
+  "file": "persona_gaucho_1817_lod.glb",
+  "bytes": 41124,
+  "triangles": 1053,
+  "animations": {},
+  "meshes": 1,
+  "surfaces": 14,
+  "materials": [
+   "F5 | ancla",
+   "F5 | piel | skin",
+   "F5 | pelo | coat",
+   "F5 | sombrero | wool",
+   "F5 | camisa | linen",
+   "F5 | chiripa | wool",
+   "F5 | tirador | leather",
+   "F5 | calzoncillo | linen",
+   "F5 | botas | leather",
+   "F5 | cana | wood",
+   "F5 | cuero | leather",
+   "F5 | metal | metal",
+   "F5 | poncho | wool",
+   "F5 | panuelo | linen"
+  ],
+  "textures": 0,
+  "bones": [],
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -0.296,
+    -0.002,
+    -0.332
+   ],
+   "max": [
+    0.565,
+    3.531,
+    0.221
+   ]
+  },
+  "front": "Godot -Z",
+  "origin": "suelo, entre los pies",
+  "sha256": "62f0fb772bab7f38ec082248ed1cb28a83de131a8b57952fdb031dad436664a3",
+  "note": "Paisano de las milicias gauchas, 1817, a pie, con tacuara. Obra propia (tools/f5_personas.py): geometría, poncho colgado por simulación propia, color con oclusión, esqueleto y ciclos por fórmula (diseño, no captura). Vestuario: DISEÑO plausible, no uniforme verificado. LOD de tropa: estático, pose de reposo.",
+  "roles": [
+   "botas",
+   "calzoncillo",
+   "camisa",
+   "cana",
+   "chiripa",
+   "cuero",
+   "metal",
+   "panuelo",
+   "pelo",
+   "piel",
+   "poncho",
+   "sombrero",
+   "tirador"
+  ],
+  "height_m": 1.785,
+  "hand_R_godot": [
+   0.3,
+   0.98,
+   -0.15
+  ],
+  "hand_L_godot": [
+   -0.255,
+   0.87,
+   -0.07
+  ]
+ },
+ "persona_gaucho_1817_carabina": {
+  "file": "persona_gaucho_1817_carabina.glb",
+  "bytes": 347712,
+  "triangles": 5088,
+  "animations": {
+   "idle": 4,
+   "run": 0.667,
+   "walk": 1
+  },
+  "meshes": 1,
+  "surfaces": 16,
+  "materials": [
+   "F5 | ancla",
+   "F5 | piel | skin",
+   "F5 | ojos | gloss",
+   "F5 | pelo | coat",
+   "F5 | sombrero | wool",
+   "F5 | cuero | leather",
+   "F5 | camisa | linen",
+   "F5 | chiripa | wool",
+   "F5 | tirador | leather",
+   "F5 | calzoncillo | linen",
+   "F5 | botas | leather",
+   "F5 | laton | metal",
+   "F5 | madera | wood",
+   "F5 | metal | metal",
+   "F5 | poncho | wool",
+   "F5 | panuelo | linen"
+  ],
+  "textures": 0,
+  "bones": [
+   "raiz",
+   "cadera",
+   "columna",
+   "pecho",
+   "cuello",
+   "cabeza",
+   "brazo_L",
+   "antebrazo_L",
+   "mano_L",
+   "brazo_R",
+   "antebrazo_R",
+   "mano_R",
+   "muslo_L",
+   "pierna_L",
+   "pie_L",
+   "muslo_R",
+   "pierna_R",
+   "pie_R"
+  ],
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -0.378,
+    -0.004,
+    -0.268
+   ],
+   "max": [
+    0.426,
+    1.788,
+    0.221
+   ]
+  },
+  "front": "Godot -Z",
+  "origin": "suelo, entre los pies",
+  "sha256": "25828496c11134513e69265af33adfe5acdc2e964688981c3705fcde200eaca0",
+  "note": "Paisano de las milicias gauchas, 1817, a pie, con carabina. Obra propia (tools/f5_personas.py): geometría, poncho colgado por simulación propia, color con oclusión, esqueleto y ciclos por fórmula (diseño, no captura). Vestuario: DISEÑO plausible, no uniforme verificado.",
+  "roles": [
+   "botas",
+   "calzoncillo",
+   "camisa",
+   "chiripa",
+   "cuero",
+   "laton",
+   "madera",
+   "metal",
+   "ojos",
+   "panuelo",
+   "pelo",
+   "piel",
+   "poncho",
+   "sombrero",
+   "tirador"
+  ],
+  "height_m": 1.789,
+  "hand_R_godot": [
+   0.29,
+   1.0,
+   -0.14
+  ],
+  "hand_L_godot": [
+   -0.255,
+   0.87,
+   -0.07
+  ],
+  "anim": {
+   "walk": {
+    "frames": 24,
+    "seconds": 1.0,
+    "design_mps": 1.15,
+    "stride_m": 1.15,
+    "ankle_err_m": 0.0
+   },
+   "run": {
+    "frames": 16,
+    "seconds": 0.667,
+    "design_mps": 3.2,
+    "stride_m": 2.133,
+    "ankle_err_m": 0.0
+   },
+   "idle": {
+    "frames": 96,
+    "seconds": 4.0,
+    "design_mps": 0.0
+   }
+  }
+ },
+ "persona_gaucho_1817_carabina_lod": {
+  "file": "persona_gaucho_1817_carabina_lod.glb",
+  "bytes": 40588,
+  "triangles": 1041,
+  "animations": {},
+  "meshes": 1,
+  "surfaces": 13,
+  "materials": [
+   "F5 | ancla",
+   "F5 | piel | skin",
+   "F5 | pelo | coat",
+   "F5 | sombrero | wool",
+   "F5 | camisa | linen",
+   "F5 | chiripa | wool",
+   "F5 | tirador | leather",
+   "F5 | calzoncillo | linen",
+   "F5 | botas | leather",
+   "F5 | madera | wood",
+   "F5 | metal | metal",
+   "F5 | poncho | wool",
+   "F5 | panuelo | linen"
+  ],
+  "textures": 0,
+  "bones": [],
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -0.367,
+    -0.002,
+    -0.256
+   ],
+   "max": [
+    0.43,
+    1.785,
+    0.221
+   ]
+  },
+  "front": "Godot -Z",
+  "origin": "suelo, entre los pies",
+  "sha256": "facb6b070239c3c582073624f5077f2be2e157eff7c8c9aea8a4da0c209a61c1",
+  "note": "Paisano de las milicias gauchas, 1817, a pie, con carabina. Obra propia (tools/f5_personas.py): geometría, poncho colgado por simulación propia, color con oclusión, esqueleto y ciclos por fórmula (diseño, no captura). Vestuario: DISEÑO plausible, no uniforme verificado. LOD de tropa: estático, pose de reposo.",
+  "roles": [
+   "botas",
+   "calzoncillo",
+   "camisa",
+   "chiripa",
+   "madera",
+   "metal",
+   "panuelo",
+   "pelo",
+   "piel",
+   "poncho",
+   "sombrero",
+   "tirador"
+  ],
+  "height_m": 1.785,
+  "hand_R_godot": [
+   0.29,
+   1.0,
+   -0.14
+  ],
+  "hand_L_godot": [
+   -0.255,
+   0.87,
+   -0.07
+  ]
+ },
+ "persona_voluntario_1806": {
+  "file": "persona_voluntario_1806.glb",
+  "bytes": 268024,
+  "triangles": 2644,
+  "animations": {
+   "idle": 4,
+   "run": 0.667,
+   "walk": 1
+  },
+  "meshes": 1,
+  "surfaces": 15,
+  "materials": [
+   "F5 | ancla",
+   "F5 | piel | skin",
+   "F5 | ojos | gloss",
+   "F5 | pelo | coat",
+   "F5 | sombrero | wool",
+   "F5 | vueltas | wool",
+   "F5 | casaca | wool",
+   "F5 | corbatin | wool",
+   "F5 | calzon | linen",
+   "F5 | botas | leather",
+   "F5 | correaje | linen",
+   "F5 | cuero | leather",
+   "F5 | laton | metal",
+   "F5 | madera | wood",
+   "F5 | metal | metal"
+  ],
+  "textures": 0,
+  "bones": [
+   "raiz",
+   "cadera",
+   "columna",
+   "pecho",
+   "cuello",
+   "cabeza",
+   "brazo_L",
+   "antebrazo_L",
+   "mano_L",
+   "brazo_R",
+   "antebrazo_R",
+   "mano_R",
+   "muslo_L",
+   "pierna_L",
+   "pie_L",
+   "muslo_R",
+   "pierna_R",
+   "pie_R"
+  ],
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -0.302,
+    0.0,
+    -0.218
+   ],
+   "max": [
+    0.303,
+    1.835,
+    0.217
+   ]
+  },
+  "front": "Godot -Z",
+  "origin": "suelo, entre los pies",
+  "sha256": "5cecbd52950fd2367b3e8239f6889f45a646af9f8ebdf268eaca369909f76d5b",
+  "note": "Voluntario de 1806 a pie (Justina): casaca azul, vueltas rojas, calzón blanco, bicornio. Obra propia (tools/f5_personas.py): geometría, poncho colgado por simulación propia, color con oclusión, esqueleto y ciclos por fórmula (diseño, no captura). Vestuario: DISEÑO plausible, no uniforme verificado.",
+  "roles": [
+   "botas",
+   "calzon",
+   "casaca",
+   "corbatin",
+   "correaje",
+   "cuero",
+   "laton",
+   "madera",
+   "metal",
+   "ojos",
+   "pelo",
+   "piel",
+   "sombrero",
+   "vueltas"
+  ],
+  "height_m": 1.835,
+  "hand_R_godot": [
+   0.25,
+   0.97,
+   -0.12
+  ],
+  "hand_L_godot": [
+   -0.25,
+   0.87,
+   -0.06
+  ],
+  "anim": {
+   "walk": {
+    "frames": 24,
+    "seconds": 1.0,
+    "design_mps": 1.15,
+    "stride_m": 1.15,
+    "ankle_err_m": 0.0
+   },
+   "run": {
+    "frames": 16,
+    "seconds": 0.667,
+    "design_mps": 3.2,
+    "stride_m": 2.133,
+    "ankle_err_m": 0.0
+   },
+   "idle": {
+    "frames": 96,
+    "seconds": 4.0,
+    "design_mps": 0.0
+   }
+  }
+ },
+ "persona_voluntario_1806_lod": {
+  "file": "persona_voluntario_1806_lod.glb",
+  "bytes": 44588,
+  "triangles": 1017,
+  "animations": {},
+  "meshes": 1,
+  "surfaces": 14,
+  "materials": [
+   "F5 | ancla",
+   "F5 | piel | skin",
+   "F5 | pelo | coat",
+   "F5 | sombrero | wool",
+   "F5 | vueltas | wool",
+   "F5 | casaca | wool",
+   "F5 | corbatin | wool",
+   "F5 | calzon | linen",
+   "F5 | botas | leather",
+   "F5 | correaje | linen",
+   "F5 | cuero | leather",
+   "F5 | laton | metal",
+   "F5 | madera | wood",
+   "F5 | metal | metal"
+  ],
+  "textures": 0,
+  "bones": [],
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -0.298,
+    0.001,
+    -0.214
+   ],
+   "max": [
+    0.301,
+    1.835,
+    0.217
+   ]
+  },
+  "front": "Godot -Z",
+  "origin": "suelo, entre los pies",
+  "sha256": "8d78712b7e937b14d17fff00f5ca4d017080b2caaa2158b3627776e700039d74",
+  "note": "Voluntario de 1806 a pie (Justina): casaca azul, vueltas rojas, calzón blanco, bicornio. Obra propia (tools/f5_personas.py): geometría, poncho colgado por simulación propia, color con oclusión, esqueleto y ciclos por fórmula (diseño, no captura). Vestuario: DISEÑO plausible, no uniforme verificado. LOD de tropa: estático, pose de reposo.",
+  "roles": [
+   "botas",
+   "calzon",
+   "casaca",
+   "corbatin",
+   "correaje",
+   "cuero",
+   "laton",
+   "madera",
+   "metal",
+   "pelo",
+   "piel",
+   "sombrero",
+   "vueltas"
+  ],
+  "height_m": 1.835,
+  "hand_R_godot": [
+   0.25,
+   0.97,
+   -0.12
+  ],
+  "hand_L_godot": [
+   -0.25,
+   0.87,
+   -0.06
+  ]
+ },
+ "persona_realista_1817": {
+  "file": "persona_realista_1817.glb",
+  "bytes": 257304,
+  "triangles": 2424,
+  "animations": {
+   "idle": 4,
+   "run": 0.667,
+   "walk": 1
+  },
+  "meshes": 1,
+  "surfaces": 16,
+  "materials": [
+   "F5 | ancla",
+   "F5 | piel | skin",
+   "F5 | ojos | gloss",
+   "F5 | pelo | coat",
+   "F5 | sombrero | wool",
+   "F5 | cuero | leather",
+   "F5 | laton | metal",
+   "F5 | borla | wool",
+   "F5 | chaqueta | wool",
+   "F5 | vueltas | wool",
+   "F5 | pantalon | wool",
+   "F5 | calzado | leather",
+   "F5 | correaje | linen",
+   "F5 | manta | wool",
+   "F5 | madera | wood",
+   "F5 | metal | metal"
+  ],
+  "textures": 0,
+  "bones": [
+   "raiz",
+   "cadera",
+   "columna",
+   "pecho",
+   "cuello",
+   "cabeza",
+   "brazo_L",
+   "antebrazo_L",
+   "mano_L",
+   "brazo_R",
+   "antebrazo_R",
+   "mano_R",
+   "muslo_L",
+   "pierna_L",
+   "pie_L",
+   "muslo_R",
+   "pierna_R",
+   "pie_R"
+  ],
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -0.291,
+    0.0,
+    -0.182
+   ],
+   "max": [
+    0.298,
+    2.838,
+    0.265
+   ]
+  },
+  "front": "Godot -Z",
+  "origin": "suelo, entre los pies",
+  "sha256": "667a6a0275b592b4d5a03443f18731201b11e888f2116c01d21603dd6cfb5adc",
+  "note": "Infante realista, 1817 (enemigo): chaqueta de bayeta, vueltas borgoña, chacó, fusil al hombro. Obra propia (tools/f5_personas.py): geometría, poncho colgado por simulación propia, color con oclusión, esqueleto y ciclos por fórmula (diseño, no captura). Vestuario: DISEÑO plausible, no uniforme verificado.",
+  "roles": [
+   "borla",
+   "calzado",
+   "chaqueta",
+   "correaje",
+   "cuero",
+   "laton",
+   "madera",
+   "manta",
+   "metal",
+   "ojos",
+   "pantalon",
+   "pelo",
+   "piel",
+   "sombrero",
+   "vueltas"
+  ],
+  "height_m": 1.886,
+  "hand_R_godot": [
+   0.25,
+   0.87,
+   -0.07
+  ],
+  "hand_L_godot": [
+   -0.205,
+   1.0,
+   -0.11
+  ],
+  "anim": {
+   "walk": {
+    "frames": 24,
+    "seconds": 1.0,
+    "design_mps": 1.15,
+    "stride_m": 1.15,
+    "ankle_err_m": 0.0
+   },
+   "run": {
+    "frames": 16,
+    "seconds": 0.667,
+    "design_mps": 3.2,
+    "stride_m": 2.133,
+    "ankle_err_m": 0.0
+   },
+   "idle": {
+    "frames": 96,
+    "seconds": 4.0,
+    "design_mps": 0.0
+   }
+  }
+ },
+ "persona_realista_1817_lod": {
+  "file": "persona_realista_1817_lod.glb",
+  "bytes": 43276,
+  "triangles": 1011,
+  "animations": {},
+  "meshes": 1,
+  "surfaces": 15,
+  "materials": [
+   "F5 | ancla",
+   "F5 | piel | skin",
+   "F5 | pelo | coat",
+   "F5 | sombrero | wool",
+   "F5 | cuero | leather",
+   "F5 | laton | metal",
+   "F5 | borla | wool",
+   "F5 | chaqueta | wool",
+   "F5 | vueltas | wool",
+   "F5 | pantalon | wool",
+   "F5 | calzado | leather",
+   "F5 | correaje | linen",
+   "F5 | manta | wool",
+   "F5 | madera | wood",
+   "F5 | metal | metal"
+  ],
+  "textures": 0,
+  "bones": [],
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -0.289,
+    0.001,
+    -0.175
+   ],
+   "max": [
+    0.298,
+    2.839,
+    0.26
+   ]
+  },
+  "front": "Godot -Z",
+  "origin": "suelo, entre los pies",
+  "sha256": "65fde6ecfeda59aa9138fe8ccd4f7fc3187923f9d9a296be4818446676ec1622",
+  "note": "Infante realista, 1817 (enemigo): chaqueta de bayeta, vueltas borgoña, chacó, fusil al hombro. Obra propia (tools/f5_personas.py): geometría, poncho colgado por simulación propia, color con oclusión, esqueleto y ciclos por fórmula (diseño, no captura). Vestuario: DISEÑO plausible, no uniforme verificado. LOD de tropa: estático, pose de reposo.",
+  "roles": [
+   "borla",
+   "calzado",
+   "chaqueta",
+   "correaje",
+   "cuero",
+   "laton",
+   "madera",
+   "manta",
+   "metal",
+   "pantalon",
+   "pelo",
+   "piel",
+   "sombrero",
+   "vueltas"
+  ],
+  "height_m": 1.886,
+  "hand_R_godot": [
+   0.25,
+   0.87,
+   -0.07
+  ],
+  "hand_L_godot": [
+   -0.205,
+   1.0,
+   -0.11
+  ]
+ },
+ "persona_arriero_1817": {
+  "file": "persona_arriero_1817.glb",
+  "bytes": 260364,
+  "triangles": 2718,
+  "animations": {
+   "idle": 4,
+   "run": 0.667,
+   "walk": 1
+  },
+  "meshes": 1,
+  "surfaces": 13,
+  "materials": [
+   "F5 | ancla",
+   "F5 | piel | skin",
+   "F5 | ojos | gloss",
+   "F5 | pelo | coat",
+   "F5 | sombrero | wool",
+   "F5 | cuero | leather",
+   "F5 | panuelo | linen",
+   "F5 | chaqueta | wool",
+   "F5 | faja | wool",
+   "F5 | pantalon | wool",
+   "F5 | calzoncillo | linen",
+   "F5 | calzado | leather",
+   "F5 | poncho | wool"
+  ],
+  "textures": 0,
+  "bones": [
+   "raiz",
+   "cadera",
+   "columna",
+   "pecho",
+   "cuello",
+   "cabeza",
+   "brazo_L",
+   "antebrazo_L",
+   "mano_L",
+   "brazo_R",
+   "antebrazo_R",
+   "mano_R",
+   "muslo_L",
+   "pierna_L",
+   "pie_L",
+   "muslo_R",
+   "pierna_R",
+   "pie_R"
+  ],
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -0.296,
+    -0.001,
+    -0.24
+   ],
+   "max": [
+    0.296,
+    1.766,
+    0.247
+   ]
+  },
+  "front": "Godot -Z",
+  "origin": "suelo, entre los pies",
+  "sha256": "fe41ce21ace623ec774721e22d364705f5c4abca2ac6bbd5c0004877dbbb6c39",
+  "note": "Arriero del norte, 1817: chaqueta corta, ojotas, poncho arrollado, rebenque. Obra propia (tools/f5_personas.py): geometría, poncho colgado por simulación propia, color con oclusión, esqueleto y ciclos por fórmula (diseño, no captura). Vestuario: DISEÑO plausible, no uniforme verificado.",
+  "roles": [
+   "calzado",
+   "calzoncillo",
+   "chaqueta",
+   "cuero",
+   "faja",
+   "ojos",
+   "pantalon",
+   "panuelo",
+   "pelo",
+   "piel",
+   "poncho",
+   "sombrero"
+  ],
+  "height_m": 1.766,
+  "hand_R_godot": [
+   0.245,
+   0.9,
+   -0.07
+  ],
+  "hand_L_godot": [
+   -0.25,
+   0.87,
+   -0.06
+  ],
+  "anim": {
+   "walk": {
+    "frames": 24,
+    "seconds": 1.0,
+    "design_mps": 1.15,
+    "stride_m": 1.15,
+    "ankle_err_m": 0.0
+   },
+   "run": {
+    "frames": 16,
+    "seconds": 0.667,
+    "design_mps": 3.2,
+    "stride_m": 2.133,
+    "ankle_err_m": 0.0
+   },
+   "idle": {
+    "frames": 96,
+    "seconds": 4.0,
+    "design_mps": 0.0
+   }
+  }
+ },
+ "persona_arriero_1817_lod": {
+  "file": "persona_arriero_1817_lod.glb",
+  "bytes": 38496,
+  "triangles": 969,
+  "animations": {},
+  "meshes": 1,
+  "surfaces": 12,
+  "materials": [
+   "F5 | ancla",
+   "F5 | piel | skin",
+   "F5 | pelo | coat",
+   "F5 | sombrero | wool",
+   "F5 | panuelo | linen",
+   "F5 | chaqueta | wool",
+   "F5 | faja | wool",
+   "F5 | pantalon | wool",
+   "F5 | calzoncillo | linen",
+   "F5 | calzado | leather",
+   "F5 | poncho | wool",
+   "F5 | cuero | leather"
+  ],
+  "textures": 0,
+  "bones": [],
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -0.292,
+    -0.001,
+    -0.248
+   ],
+   "max": [
+    0.293,
+    1.765,
+    0.248
+   ]
+  },
+  "front": "Godot -Z",
+  "origin": "suelo, entre los pies",
+  "sha256": "887ba4af20cd82568a6f7dd634fc91e964301b75c4d633202b571a081fc76fe7",
+  "note": "Arriero del norte, 1817: chaqueta corta, ojotas, poncho arrollado, rebenque. Obra propia (tools/f5_personas.py): geometría, poncho colgado por simulación propia, color con oclusión, esqueleto y ciclos por fórmula (diseño, no captura). Vestuario: DISEÑO plausible, no uniforme verificado. LOD de tropa: estático, pose de reposo.",
+  "roles": [
+   "calzado",
+   "calzoncillo",
+   "chaqueta",
+   "cuero",
+   "faja",
+   "pantalon",
+   "panuelo",
+   "pelo",
+   "piel",
+   "poncho",
+   "sombrero"
+  ],
+  "height_m": 1.765,
+  "hand_R_godot": [
+   0.245,
+   0.9,
+   -0.07
+  ],
+  "hand_L_godot": [
+   -0.25,
+   0.87,
+   -0.06
+  ]
+ },
+ "arma_tacuara": {
+  "file": "arma_tacuara.glb",
+  "bytes": 10884,
+  "triangles": 264,
+  "animations": {},
+  "meshes": 1,
+  "surfaces": 4,
+  "materials": [
+   "F5 | ancla",
+   "F5 | cana | wood",
+   "F5 | cuero | leather",
+   "F5 | metal | metal"
+  ],
+  "textures": 0,
+  "bones": [],
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -0.02,
+    -1.05,
+    -0.017
+   ],
+   "max": [
+    0.02,
+    2.57,
+    0.017
+   ]
+  },
+  "front": "Godot -Z",
+  "origin": "punto de agarre de la mano",
+  "sha256": "b99012118472f96a959b34fa1125f8757504af99699bdeee28b277abfb95746b",
+  "note": "Tacuara (caña con hoja atada), 3,3 m; origen = agarre, la punta hacia +Y de Godot. Obra propia."
+ },
+ "arma_carabina": {
+  "file": "arma_carabina.glb",
+  "bytes": 8224,
+  "triangles": 144,
+  "animations": {},
+  "meshes": 1,
+  "surfaces": 4,
+  "materials": [
+   "F5 | ancla",
+   "F5 | madera | wood",
+   "F5 | metal | metal",
+   "F5 | laton | metal"
+  ],
+  "textures": 0,
+  "bones": [],
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -0.048,
+    -0.3,
+    -0.03
+   ],
+   "max": [
+    0.048,
+    0.68,
+    0.03
+   ]
+  },
+  "front": "Godot -Z",
+  "origin": "punto de agarre de la mano",
+  "sha256": "8d0114e414d484806cc16748085767a8daf281d345c8439e69a1f75050569a97",
+  "note": "Carabina (tercerola) de chispa; origen = garganta de la caja, boca hacia +Y. Obra propia."
+ },
+ "arma_fusil": {
+  "file": "arma_fusil.glb",
+  "bytes": 8448,
+  "triangles": 184,
+  "animations": {},
+  "meshes": 1,
+  "surfaces": 3,
+  "materials": [
+   "F5 | ancla",
+   "F5 | madera | wood",
+   "F5 | metal | metal"
+  ],
+  "textures": 0,
+  "bones": [],
+  "vertex_colors": true,
+  "godot_bounds": {
+   "min": [
+    -0.026,
+    0.0,
+    -0.052
+   ],
+   "max": [
+    0.025,
+    1.86,
+    0.052
+   ]
+  },
+  "front": "Godot -Z",
+  "origin": "punto de agarre de la mano",
+  "sha256": "26a7aa3753fe60fc874c3f157c841fe950d19a9524d35e64c0f3916ba52927e7",
+  "note": "Fusil de chispa con bayoneta; origen = talón de la culata, boca hacia +Y. Obra propia."
+ }
+}

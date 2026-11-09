@@ -43,7 +43,9 @@ def _arg(name, default=None):
 
 SRC = Path(_arg("--src", str(ROOT.parent / "materiales-privados" / "f4_caballos" / "fuentes" / "riggedHorse.blend")))
 OUT = Path(_arg("--out", str(ROOT / "assets" / "models")))
-ONLY = (_arg("--only") or "caballo,jinete").split(",")
+# visual/r1 F5: los jinete_criollo_*.glb los hace ahora tools/f5_personas.py; «jinete» acá regenera los viejos de F4
+# (create_models) y pisaría los nuevos: solo a pedido explícito.
+ONLY = (_arg("--only") or "caballo").split(",")
 FPS = 24
 WITHERS = 1.45
 SEAT = Vector((0.0, 0.0, 1.50))          # punto del asiento (cima del cojinillo); Godot (0, 1.50, 0)
