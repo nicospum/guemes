@@ -7,7 +7,7 @@
   "engine": "Godot 4.7.2 stable ed1daf0bf",
   "native_windows_tested": true,
   "native_windows_human_playtest": false,
-  "windows_exe_smoke_test": "pendiente de la build final",
+  "windows_exe_smoke_test": "EXE 0.5.0-preview1 (SHA-256 98804d52…b4fb04): modos --qa=justine/humahuaca/norte y 12 benchmarks con 0 errores y 0 fugas; teclas y clics reales hasta el I y el II (QA final, 2026-11-09)",
   "jev_live_tested": false,
   "audio_audible_tested": false,
   "verification": "docs/equipo/DICTAMEN_QA.md"

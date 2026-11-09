@@ -30,13 +30,13 @@ Cadena I → II → III por el botón principal del parte y pantalla final de ca
 
 ## 6. Errores corregidos (resumen)
 
-III negro tras el II (estado filtrado entre niveles); balance del II roto por el relieve real (una ruta pasaba sobre la batería); interfaz del II un 25 % más grande viniendo de la Justina; menú recortado tras el III; puertas de la posta cerradas para la navegación; Ctrl+Z que deshacía órdenes ajenas; arrastre pegado; puntos de control fantasma; `height_at(NaN)` con errores; epílogo mal atribuido (H03); 31 fallas documentadas por la revisión en la nube (32/32 pasan); HUD encendido detrás de la pantalla de misión; error de script al salir con el teclado; aviso de fuga por la carga en hilo del precalentado; textos truncados (16 → 0). Lista completa con causa y prueba: `BACKLOG.md` y los informes de pista `P1…P6`.
+III negro tras el II (estado filtrado entre niveles); balance del II roto por el relieve real (una ruta pasaba sobre la batería); interfaz del II un 25 % más grande viniendo de la Justina; menú recortado tras el III; puertas de la posta cerradas para la navegación; Ctrl+Z que deshacía órdenes ajenas; arrastre pegado; puntos de control fantasma; `height_at(NaN)` con errores; epílogo mal atribuido (H03); 31 fallas documentadas por la revisión en la nube (32/32 pasan); HUD encendido detrás de la pantalla de misión; error de script al salir con el teclado; aviso de fuga por la carga en hilo del precalentado; textos truncados (16 → 0 en las 14 pantallas auditadas; queda un recorte en el III a 1280×720, Q-304). Lista completa con causa y prueba: `BACKLOG.md` y los informes de pista `P1…P6`.
 
 ## 7. Pruebas y dictamen
 
-**Dictamen de QA independiente: APTO CON LIMITACIONES** (Windows 11 x64). Detalle, cifras, criterios y limitaciones: `DICTAMEN_QA.md`. En corto: 0 fallas en todas las suites (≈ 3 470 comprobaciones), 32/32 en la revisión de la nube, `ui_qa` sin fallas, recorrido completo menú → I → II → III → final dos veces seguidas con perfil limpio por la interfaz real, derrota y reintento en los tres, EXE probado por sus modos automáticos y con teclas reales, 0 errores de script. No se probó: personas reales jugando, audio audible, Jev vivo, otras máquinas.
+**Dictamen de QA independiente: APTO COMO CANDIDATO DE PUBLICACIÓN en las plataformas probadas** (Windows 11 x64, 1280×720 y 1440×900; en `1d76157` fue «con limitaciones» por créditos y documentos, ya corregidos). Detalle, cifras, criterios y limitaciones: `DICTAMEN_QA.md`. En corto: 0 fallas en todas las suites (≈ 3 470 comprobaciones), 32/32 en la revisión de la nube, `ui_qa` sin fallas, recorrido completo menú → I → II → III → final dos veces seguidas con perfil limpio por la interfaz real, derrota y reintento en los tres, EXE probado por sus modos automáticos y con teclas reales, 0 errores de script. No se probó: personas reales jugando, audio audible, Jev vivo, otras máquinas.
 
-Capturas antes/después versionadas (livianas) en `docs/equipo/capturas/` (la «antes» del Norte en `base_vs_despues_..._30` sale negra por el bug T-001 de la herramienta de entonces; el Norte de antes entrado directo se ve en `../qa-equipo/antes/antes_31_norte_directo.png`). Evidencia completa, videos y registros fuera de Git en `../qa-equipo/qa_final/` y `../qa-equipo/qa_ronda2/`.
+Capturas antes/después versionadas (livianas) en `docs/equipo/capturas/` (la «antes» del Norte en `base_vs_despues_..._30` muestra el mundo del II en lugar del Norte por el bug T-001 de la herramienta de entonces; el Norte de antes entrado directo se ve en `../qa-equipo/antes/antes_31_norte_directo.png`). Evidencia completa, videos y registros fuera de Git en `../qa-equipo/qa_final/` y `../qa-equipo/qa_ronda2/`.
 
 ## 8. Herramientas usadas realmente
 
@@ -52,7 +52,8 @@ REA (inventario del EXE de preview5: confirmó que el nivel II nunca se había e
 ## 10. Incidente y pendientes reales
 
 - Incidente del 2026-11-08 19:10–19:21: borrado externo de `../respaldos/`, `../qa-equipo/` y `evidence/`; restaurado lo restaurable (ver `BACKLOG.md`).
-- Prueba con personas reales (diversión, claridad, duración).
+- Prueba con personas reales (diversión, claridad, duración) y escucha del audio.
+- BAJOS abiertos: Q-301 (aviso de fuga en suites sin ventana), Q-304 (recorte en el III a 1280×720), Q-305 (paneo por borde, por confirmar), Q-306 (1,3–1,6 s del clic al briefing del II).
 - Jev en vivo, con permiso y presupuesto del usuario.
 - Figuras y casas con texturas PBR cuando haya Blender ejecutable (`create_models.py --only hx_*`).
 - Balance fino del II (quien sigue la guía gana con bronce).
