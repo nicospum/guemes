@@ -952,6 +952,7 @@ func _qa_ronda2() -> void:
 		if is_instance_valid(game.modal): game._close_modal()
 		game.settings.auto_pause = ap
 		game.auto_start_pending = false
+		game._set_speed(4.0)
 		game.paused = false
 		var t_now := float(game.rules.state.elapsed)
 		game.rules.state.pending_choice = {"id": "prueba", "title": "Un mensajero", "default": "a", "until": t_now + 25.0, "options": [{"id": "a", "label": "Opción A"}]}
@@ -971,7 +972,7 @@ func _qa_ronda2() -> void:
 		game._choice_pick("a")
 		game.paused = false
 		game._process(0.25)
-		check(float(game.rules.state.elapsed) > t_now and not game.paused, "Q-102 (pausa auto %s): elegida la opción, el reloj vuelve a correr" % str(ap))
+		check(float(game.rules.state.elapsed) > t_now and not game.paused and game.speed == 4.0, "Q-102 (pausa auto %s): elegida la opción, el reloj vuelve a correr a la velocidad elegida (×%d)" % [str(ap), int(game.speed)])
 	game.settings.auto_pause = false
 	# Q-103: Esc cierra el parte de victoria, pero se puede reabrir (P, Espacio, el botón de la cabecera, la pausa) y la pausa de una partida
 	# terminada no ofrece «Abandonar» ni «Seguir jugando».

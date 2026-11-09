@@ -2532,7 +2532,8 @@ func _compute_alerts()->Array:
  return out
 
 func _alert_is_critical(a:Dictionary)->bool:
- return str(a.get("level",""))=="crit" and not bool(a.get("nopause",false))
+ # La decisión esperando no cuenta: con ella el reloj ya está detenido (Q-102) y bajar la velocidad solo obligaba a reponerla después.
+ return str(a.get("level",""))=="crit" and not bool(a.get("nopause",false)) and str(a.get("id",""))!="choice_wait"
 
 func _update_alerts():
  var list=_compute_alerts()
@@ -3423,6 +3424,12 @@ func _fit_bottom_width():
  if not wide and is_instance_valid(pace_label) and pace_label.visible:wide=true
  var left=12.0+_mm_size().x+8.0
  bottom_panel.offset_left=left;bottom_panel.offset_right=left+(660.0 if wide else 0.0)
+ # Ningún botón de acción queda más angosto que su texto (con la bandeja ajustada, «▲ Pedir carga a Liniers» se cortaba: 110 > 106 px).
+ for b in action_buttons.values():
+  if not is_instance_valid(b) or not b.visible:continue
+  var f=b.get_theme_font("font");var fs=b.get_theme_font_size("font_size");var tw=0.0
+  for ln in b.text.split("\n"):tw=maxf(tw,f.get_string_size(ln,HORIZONTAL_ALIGNMENT_LEFT,-1,fs).x)
+  b.custom_minimum_size.x=maxf(122.0,ceilf(tw)+18.0)
 
 # D-07: la fila «con riesgo» (retirar, distraer con fuego, cargar sin orden) no sirve antes de que el vado ceda o haya alguien en marcha.
 func _risk_row_open()->bool:
