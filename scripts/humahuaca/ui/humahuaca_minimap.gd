@@ -1,6 +1,6 @@
 extends Control
 ## Minimapa del nivel «humahuaca» (CONTRATO 3.5): el relieve que arma la vista (norte arriba, sin unidades) con las agrupaciones, los tres frentes,
-## el cuadro de la cámara, la brújula (la N gira con la guiñada) y la escala gráfica de la vista. Un clic o un arrastre mueve la cámara. M lo agranda.
+## el cuadro de la cámara, la brújula (la N gira con la guiñada) y la escala gráfica DEL MINIMAPA (Q-209), las parcelas regadas como sembrados y los frentes como rombos (Q-204). Un clic o un arrastre mueve la cámara. M lo agranda.
 ## Cada agrupación se distingue por la forma y no solo por el color: las partidas y la reserva son círculos, los reconocedores triángulos y el arreo
 ## un cuadrado. No decide nada: lee el controlador (`ui`).
 ## Paleta nocturna (V-06): el relieve que entrega la vista es diurno (beige); acá se lo pasa por un sombreador que lo lleva a tinta violácea con los trazos claros
@@ -73,6 +73,9 @@ func setup(controller: Node, config: Dictionary, font_in: Font) -> void:
 	mat.set_shader_parameter("line_gain", float((night as Dictionary).get("line_gain", 0.55)) if night is Dictionary else 0.55)
 	_tex_rect.material = mat
 	add_child(_tex_rect)
+	var rules_json: Variant = V.load_json(V.RULES_PATH)
+	if rules_json is Dictionary and (rules_json as Dictionary).get("time", null) is Dictionary:
+		_times = (rules_json as Dictionary).time
 	_ink = Control.new()
 	_ink.name = "HxMinimapInk"
 	_ink.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -181,6 +184,8 @@ func _draw_ink() -> void:
 	var rs: Variant = ui.call("render_state_cached") if ui.has_method("render_state_cached") else ui.get("rules").call("render_state")
 	var rsd: Dictionary = rs if rs is Dictionary else {}
 	_update_camera_cache()
+	_update_night()
+	_draw_parcels()
 	_draw_fronts(rsd)
 	_draw_frustum()
 	_draw_units(rsd)
@@ -215,8 +220,10 @@ func _draw_fronts(rs: Dictionary) -> void:
 		var p := _to_map(Vector2(float(d.get("x", 0.0)), float(d.get("z", 0.0))))
 		var taken := str(d.get("state", "")) == "tomado"
 		var col := _color("front_taken", Kit.GOOD) if taken else _color("front", Kit.ROYAL)
-		_ink.draw_rect(Rect2(p - Vector2(4.0, 4.0), Vector2(8.0, 8.0)), col, true)
-		_ink.draw_rect(Rect2(p - Vector2(4.0, 4.0), Vector2(8.0, 8.0)), Kit.ROYAL_BORDER, false, 1.5)
+		# Q-204: los frentes son rombos con borde de oro (antes cuadrados de 8 px, la misma forma que las parcelas regadas en el relieve)
+		var dia := PackedVector2Array([p + Vector2(0.0, -6.5), p + Vector2(6.5, 0.0), p + Vector2(0.0, 6.5), p + Vector2(-6.5, 0.0)])
+		_ink.draw_colored_polygon(dia, col)
+		_ink.draw_polyline(PackedVector2Array([dia[0], dia[1], dia[2], dia[3], dia[0]]), _color("front_ring", Kit.GOLD), 1.6, true)
 
 
 func _draw_frustum() -> void:
@@ -273,16 +280,33 @@ func _draw_compass() -> void:
 	drawn_text_chars += 1
 
 
-func _draw_scale() -> void:
-	var mpp := _mpp
+## Q-209 (QA ronda 2): la barra decía «50 m» con la escala de la VISTA 3D (metros por píxel de la cámara) dibujada sobre el minimapa, donde esa barra medía unos 300 m.
+## Ahora mide el minimapa: los metros por píxel salen de world_to_map (lo que ocupa el mapa entero en el recuadro) y se elige el tramo redondo que entra en ≤ 90 px.
+func minimap_m_per_px() -> float:
+	var a := _to_map(Vector2(0.0, 0.0))
+	var b := _to_map(Vector2(100.0, 0.0))
+	var px := a.distance_to(b)
+	return 100.0 / px if px > 0.001 else -1.0
+
+
+func scale_bar() -> Dictionary:
+	var mpp := minimap_m_per_px()
 	if mpp <= 0.0:
-		return
+		return {}
 	var steps: Variant = cfg.get("scale_steps_m", [50, 100, 200, 500])
 	var chosen := float((steps as Array)[0]) if steps is Array and not (steps as Array).is_empty() else 50.0
-	for s in steps:
-		if float(s) / mpp / maxf(float(ui.get("ui_scale")), 0.01) <= 100.0:
-			chosen = float(s)
-	var px := minf(chosen / mpp / maxf(float(ui.get("ui_scale")), 0.01), 120.0)  # la escala es la de la vista 3D, en píxeles lógicos del lienzo (los mismos que usa meters_per_pixel)
+	for st in steps:
+		if float(st) / mpp <= 90.0:
+			chosen = float(st)
+	return {"m": chosen, "px": chosen / mpp, "m_por_px": mpp}
+
+
+func _draw_scale() -> void:
+	var bar := scale_bar()
+	if bar.is_empty():
+		return
+	var chosen := float(bar.m)
+	var px := float(bar.px)
 	var y := size.y - 16.0
 	var x0 := 10.0
 	var shade := Color(Kit.INK_NIGHT, 0.95)
@@ -295,6 +319,65 @@ func _draw_scale() -> void:
 	_ink.draw_string_outline(font, Vector2(x0 + px + 6.0, y + 4.0), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, 3, shade)
 	_ink.draw_string(font, Vector2(x0 + px + 6.0, y + 4.0), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Kit.PAPER)
 	drawn_text_chars += label.length()
+
+
+## Q-204: las parcelas regadas en el minimapa son sembrados (relleno verde claro translúcido con hileras y borde punteado), no cuadrados oscuros como los marcadores.
+var _parcel_polys: Array = []
+var _parcel_key := ""
+
+func _draw_parcels() -> void:
+	var view: Variant = ui.get("view")
+	if view == null or not view.has_method("parcel_polys"):
+		return
+	var key := "%dx%d" % [int(size.x), int(size.y)]
+	if key != _parcel_key:
+		_parcel_key = key
+		_parcel_polys = []
+		for poly in view.call("parcel_polys"):
+			var mp := PackedVector2Array()
+			for q in poly:
+				mp.append(_to_map(q as Vector2))
+			_parcel_polys.append(mp)
+	var fill := _color("parcel", Color("8FA35E"))
+	var rows := _color("parcel_rows", Color("C9C27E"))
+	for mp in _parcel_polys:
+		var poly := mp as PackedVector2Array
+		if poly.size() < 3:
+			continue
+		_ink.draw_colored_polygon(poly, Color(fill, 0.42))
+		var bb := Rect2(poly[0], Vector2.ZERO)
+		for q in poly:
+			bb = bb.expand(q)
+		var y := bb.position.y + 1.5
+		while y < bb.end.y - 0.5:
+			_ink.draw_line(Vector2(bb.position.x + 1.0, y), Vector2(bb.end.x - 1.0, y), Color(rows, 0.75), 1.0)
+			y += 2.5
+		_ink.draw_dashed_line(Vector2(bb.position.x, bb.position.y), Vector2(bb.end.x, bb.position.y), Color(_color("parcel_water", Color("9CC3C9")), 0.95), 1.2, 2.0)
+		_ink.draw_dashed_line(Vector2(bb.position.x, bb.position.y), Vector2(bb.position.x, bb.end.y), Color(_color("parcel_water", Color("9CC3C9")), 0.95), 1.2, 2.0)
+
+
+## Q-210: el relieve se pasaba siempre a la tinta nocturna, también de día (minimapa de noche sobre la escena de mañana). La fuerza de la tinta sigue a la hora:
+## entera de noche, se aclara del alba al día (`night.day_strength` de día).
+var night_k := 1.0
+
+func _update_night() -> void:
+	if _tex_rect == null or not (_tex_rect.material is ShaderMaterial):
+		return
+	var night: Variant = cfg.get("night", {})
+	var full := float((night as Dictionary).get("strength", 1.0)) if night is Dictionary else 1.0
+	var day := float((night as Dictionary).get("day_strength", 0.25)) if night is Dictionary else 0.25
+	var k := 1.0
+	var r: Variant = ui.get("rules")
+	if r != null and r.has_method("light_k"):
+		k = 1.0 - clampf(float(r.call("light_k")), 0.0, 1.0)
+	elif r != null and (r.get("state") is Dictionary) and not (r.get("state") as Dictionary).is_empty():
+		var t := float((r.get("state") as Dictionary).get("elapsed", 0.0))
+		k = 1.0 - smoothstep(float(_times.get("alba_start_s", 270.0)), float(_times.get("day_full_s", 420.0)), t)
+	night_k = k
+	(_tex_rect.material as ShaderMaterial).set_shader_parameter("strength", lerpf(day, full, k))
+
+
+var _times: Dictionary = {}
 
 
 func _gui_input(event: InputEvent) -> void:

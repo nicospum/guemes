@@ -143,6 +143,7 @@ func _draw_front_labels(cam: Camera3D) -> void:
 	var tags: Dictionary = ui.get("source_tags")
 	var rules: Variant = ui.get("rules")
 	var placed: Array = []
+	var tokens := _token_rects(cam)
 	for fid in V.OBJECTIVES:
 		var p: Vector2 = ui.call("landmark_pos", str(fid))
 		var s: Variant = _world_to_screen(cam, p, 9.0)
@@ -153,15 +154,50 @@ func _draw_front_labels(cam: Camera3D) -> void:
 			continue
 		var text: String = str((info as Dictionary).get("text", ""))
 		var taken := bool((info as Dictionary).get("taken", false))
-		var pos: Vector2 = (s as Vector2) + Vector2(-20.0, 26.0)
 		var color := Kit.GOOD if taken else Kit.PAPER
+		# Q-210 (QA ronda 2): el rótulo del frente iba siempre debajo del hito y se encimaba con las fichas paradas ahí («Batería» sobre la 3 y la 4); ahora prueba
+		# debajo, más abajo, a la izquierda y a la derecha, y usa el primer lugar que no pisa una ficha (ni su número) ni otro rótulo
+		var w := _text_w(text, 14)
+		var cands: Array = [Vector2(-20.0, 26.0), Vector2(-20.0, 54.0), Vector2(-w - 30.0, 6.0), Vector2(30.0, 6.0), Vector2(-w * 0.5, 80.0)]
+		var pos: Vector2 = (s as Vector2) + (cands[0] as Vector2)
+		for c in cands:
+			var try_pos: Vector2 = (s as Vector2) + (c as Vector2)
+			var r := Rect2(try_pos - Vector2(0.0, 14.0), Vector2(w, 18.0)).grow(2.0)
+			var hit := false
+			for o in tokens + placed:
+				if r.intersects(o as Rect2):
+					hit = true
+					break
+			if not hit:
+				pos = try_pos
+				break
 		var rect := _text(pos, text, 14, color)
-		for other in placed:
-			if rect.intersects(other):
-				rect = _text(pos + Vector2(0.0, -18.0), text, 14, color)
 		placed.append(rect)
 	if rules == null or tags.is_empty():
 		return
+
+
+func _text_w(text: String, font_px: int) -> float:
+	if _font == null:
+		_font = ui.call("font") if ui != null else ThemeDB.fallback_font
+	return _font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_px).x
+
+
+## Lo que ocupa en pantalla cada ficha con su número encima (para que los rótulos no la pisen).
+func _token_rects(cam: Camera3D) -> Array:
+	var out: Array = []
+	var rs: Variant = ui.call("render_state_cached")
+	if not (rs is Dictionary):
+		return out
+	var fig_h := 85.0 / maxf(float(ui.call("screen_scale")), 0.05)
+	for u in (rs as Dictionary).get("units", []):
+		var d := u as Dictionary
+		if str(d.get("stage", "")) == "exited":
+			continue
+		var base: Variant = _world_to_screen(cam, Vector2(float(d.get("x", 0.0)), float(d.get("z", 0.0))), 0.0)
+		if base is Vector2:
+			out.append(Rect2((base as Vector2) + Vector2(-26.0, -fig_h - 16.0), Vector2(52.0, fig_h + 26.0)))
+	return out
 
 
 ## El número de cada agrupación (su tecla) junto a su ficha, encima de ella: lo dibuja la interfaz para que quede pegado a la figura y fuera del HUD.

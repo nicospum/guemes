@@ -56,29 +56,29 @@
 		},
 		"alba": {
 			"time_of_day": 0.5,
-			"sun": {"elevation_deg": 8.0, "azimuth_deg": 82.0, "color": "lino_crudo", "gain": 1.0, "tint": "oro_laton", "tint_mix": 0.4, "energy": 1.7, "shadows": true},
-			"ambient": {"color": "celeste_produccion", "gain": 0.95, "tint": "agua_turbia", "tint_mix": 0.3, "energy": 0.55},
+			"sun": {"elevation_deg": 8.0, "azimuth_deg": 82.0, "color": "lino_crudo", "gain": 1.0, "tint": "oro_laton", "tint_mix": 0.4, "energy": 1.35, "shadows": true},
+			"ambient": {"color": "celeste_produccion", "gain": 0.95, "tint": "agua_turbia", "tint_mix": 0.3, "energy": 0.46},
 			"sky": {"top": "azul_elegido", "top_gain": 1.0, "horizon": "paja", "horizon_gain": 1.1, "horizon_tint": "grana_analogia", "horizon_tint_mix": 0.35, "ground": "sedimento_humedo", "ground_gain": 0.7},
 			"fog": {"color": "cal_envejecida", "gain": 0.9, "tint": "grana_analogia", "tint_mix": 0.18, "density": 0.00012, "depth_max": 0.55, "aerial": 0.5},
-			"exposure": 0.95,
+			"exposure": 0.84,
 			"fire": 0.35,
 			"ground_warmth": 0.35,
-			"grade": {"contrast": 1.14, "saturation": 0.95, "shadows": [0.04, 0.03, 0.07], "mids": [0.5, 0.48, 0.47], "highlights": [1.0, 0.95, 0.86]},
+			"grade": {"contrast": 1.22, "saturation": 0.92, "shadows": [0.04, 0.03, 0.07], "mids": [0.5, 0.48, 0.47], "highlights": [1.0, 0.95, 0.86]},
 			"tag": "diseno",
 			"source": "sol a 6° o 7°, cálido sin saturar (lino y 40 % de oro, I-R1.0-3), sombras largas y horizonte rosado (diseño 11.2)"
 		},
 		"dia": {
 			"time_of_day": 1.0,
-			"sun": {"elevation_deg": 36.0, "azimuth_deg": 68.0, "color": "blanco_textil", "gain": 1.0, "energy": 1.4, "shadows": true},
-			"ambient": {"color": "cal_envejecida", "gain": 1.0, "energy": 0.6},
+			"sun": {"elevation_deg": 36.0, "azimuth_deg": 68.0, "color": "blanco_textil", "gain": 1.0, "energy": 1.15, "shadows": true},
+			"ambient": {"color": "cal_envejecida", "gain": 1.0, "energy": 0.48},
 			"sky": {"top": "celeste_produccion", "top_gain": 0.95, "horizon": "cal_envejecida", "horizon_gain": 1.0, "ground": "suelo_seco", "ground_gain": 0.9},
 			"fog": {"color": "cal_envejecida", "gain": 0.95, "density": 0.00003, "depth_max": 0.35, "aerial": 0.5},
-			"exposure": 1.0,
+			"exposure": 0.86,
 			"fire": 0.12,
 			"ground_warmth": 0.1,
-			"grade": {"contrast": 1.06, "saturation": 1.0, "shadows": [0.02, 0.02, 0.04], "mids": [0.5, 0.5, 0.5], "highlights": [1.0, 0.98, 0.95]},
+			"grade": {"contrast": 1.18, "saturation": 0.92, "shadows": [0.02, 0.02, 0.04], "mids": [0.5, 0.5, 0.5], "highlights": [1.0, 0.98, 0.95]},
 			"tag": "diseno",
-			"source": "sol a 35° (diseño 11.2); valores de partida a calibrar"
+			"source": "sol a 35° (diseño 11.2); valores de partida a calibrar; Q-210: menos sol y exposición, más contraste"
 		}
 	},
 	"models": {

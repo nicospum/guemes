@@ -372,6 +372,7 @@ func build_features(root: Node3D) -> void:
 				gfx.strip(root, line, maxf(float(f.get("width_m", 5.0)), 2.0), float(spec_c.get("raise_m", 0.09)), gfx.mat(str(spec_c.get("color", "suelo_seco")), 0.95, float(spec_c.get("gain", 1.12))), false, false, "camino_%d" % roads, 4.0, true)
 				roads += 1
 	content_counts["caminos"] = roads
+	build_parcels(root)
 
 
 ## T-007 (mitad de la vista): los huecos entre dos tapias (extremos de tapias distintas a 2,5 a 10 m) se dibujan según lo que dice la navegación en su centro, así que
@@ -745,3 +746,123 @@ func line_samples(line: PackedVector2Array, step: float) -> Array:
 			t += step
 		carry = length - (t - step)
 	return out
+
+
+## Q-204 (QA ronda 2): las parcelas regadas (`parcela`, diseño) se dibujaban solo con el color liso del regadío en el suelo: rectángulos verde oscuro, la mancha más
+## oscura del cuadro de noche, que se leían como un marcador sin terminar. Ahora cada parcela es un cultivo: tierra húmeda de fondo, camellones en hileras a lo largo
+## del lado mayor, agrupados en tres tablones de cultivos distintos (maíz, alfalfa y rastrojo, con tono propio y un poco de variación por hilera), la acequia que la
+## riega por la cabecera y un costado (agua entre dos bordos claros) y un bordo de tierra alrededor. Todo sale de la paleta (sin HEX) y va en UNA malla por parcela
+## con el material de los objetos (colores por vértice), sobre la malla dibujada del suelo. Parámetros: humahuaca_visual.json → props.parcela.
+func build_parcels(root: Node3D) -> void:
+	if _terrain == null or not _terrain.has_method("features"):
+		return
+	var spec: Dictionary = (gfx.data.get("props", {}) as Dictionary).get("parcela", {})
+	var row_w := float(spec.get("row_width_m", 1.5))
+	var row_gap := float(spec.get("row_spacing_m", 3.2))
+	var seg_m := float(spec.get("segment_m", 5.0))
+	var raise := float(spec.get("raise_m", 0.12))
+	# cada tablón: [color, ganancia, mezcla, cuánto de la mezcla, cuántos tramos faltan (0 a 1)]: maíz, alfalfa y rastrojo con matas sueltas
+	var crops: Array = spec.get("crops", [["vegetacion_irrigada", 1.38, "paja", 0.2, 0.04], ["vegetacion_irrigada", 1.15, "churqui", 0.4, 0.0], ["paja", 0.95, "suelo_seco", 0.3, 0.22]])
+	var count := 0
+	for f in _terrain.call("features", "parcela"):
+		if not (f is Dictionary):
+			continue
+		var poly: PackedVector2Array = gfx.pts(f.get("poly", f.get("pts", [])))
+		if poly.size() < 3:
+			continue
+		var mb = gen.builder()
+		var bb := Rect2(poly[0], Vector2.ZERO)
+		for q in poly:
+			bb = bb.expand(q)
+		# el borde del regadío en el sombreador del suelo es irregular (± 4,5 m): la tierra de la parcela y sus bordos se dibujan 3,5 m más afuera para taparlo
+		var grow := float(spec.get("grow_m", 3.5))
+		var grown: Array = Geometry2D.offset_polygon(poly, grow)
+		var outer: PackedVector2Array = grown[0] if not grown.is_empty() else poly
+		var obb := bb.grow(grow)
+		var rng := RandomNumberGenerator.new()
+		rng.seed = hash(str(f.get("id", count)))
+		var along_x := bb.size.x >= bb.size.y  # las hileras corren a lo largo del lado mayor
+		var length := bb.size.x if along_x else bb.size.y
+		var depth := bb.size.y if along_x else bb.size.x
+		# fondo: tierra húmeda entre los surcos (más clara y parda que el verde liso de antes)
+		var soil: Color = gfx.pc(str(spec.get("soil", "sedimento_humedo"))).lerp(gfx.pc("suelo_seco"), float(spec.get("soil_mix", 0.45)))  # tierra húmeda y removida, no una mancha negra
+		_ground_patch(mb, obb, outer, seg_m, raise * 0.4, soil)
+		# camellones en tres tablones
+		var rows := maxi(1, int(floor((depth - 4.0) / row_gap)))
+		var per_crop := maxi(1, int(ceil(float(rows) / float(maxi(crops.size(), 1)))))
+		for r in range(rows):
+			var crop: Array = crops[mini(r / per_crop, crops.size() - 1)]
+			var tone: Color = gfx.pc(str(crop[0]), float(crop[1])).lerp(gfx.pc(str(crop[2])), float(crop[3]))
+			tone = tone.darkened(rng.randf() * 0.08) if rng.randf() < 0.5 else tone.lightened(rng.randf() * 0.06)
+			var off := 2.0 + row_gap * (float(r) + 0.5)
+			var a := (Vector2(bb.position.x + 1.5, bb.position.y + off) if along_x else Vector2(bb.position.x + off, bb.position.y + 1.5))
+			var b := (Vector2(bb.end.x - 1.5, bb.position.y + off) if along_x else Vector2(bb.position.x + off, bb.end.y - 1.5))
+			_ribbon(mb, a, b, row_w, seg_m, raise, tone, poly, rng, float(crop[4]) if crop.size() > 4 else 0.0)
+		# la acequia por la cabecera (oeste o norte) y el costado norte (u oeste), con sus bordos; un bordo de tierra por los otros dos lados
+		var water: Color = gfx.pc(str(spec.get("water", "agua_turbia")), float(spec.get("water_gain", 1.12)))
+		var bank: Color = gfx.pc(str(spec.get("bank", "suelo_seco")), float(spec.get("bank_gain", 0.95)))
+		var c00 := obb.position
+		var c10 := Vector2(obb.end.x, obb.position.y)
+		var c01 := Vector2(obb.position.x, obb.end.y)
+		var c11 := obb.end
+		for side in [[c00, c10], [c00, c01]]:
+			_ribbon(mb, side[0], side[1], 2.4, seg_m, raise * 0.6, bank, PackedVector2Array())
+			_ribbon(mb, side[0], side[1], 1.0, seg_m, raise * 0.9, water, PackedVector2Array())
+		for side in [[c10, c11], [c01, c11]]:
+			_ribbon(mb, side[0], side[1], 1.2, seg_m, raise * 0.8, bank.darkened(0.12), PackedVector2Array())
+		var mi := _mesh_node(root, "parcela_%s" % str(f.get("id", count)), mb.build(), false)
+		mi.set_meta("parcela", true)
+		count += 1
+	content_counts["parcelas"] = count
+
+
+## Una cinta recta de `a` a `b` (ancho `width`) en tramos de `seg_m` sobre la malla dibujada del suelo, más `raise`. Si `inside` trae un polígono, solo los tramos con
+## el centro adentro.
+func _ribbon(mb, a: Vector2, b: Vector2, width: float, seg_m: float, raise: float, col: Color, inside: PackedVector2Array, rng: RandomNumberGenerator = null, skip: float = 0.0) -> void:
+	var dir := (b - a)
+	var n := maxi(1, int(ceil(dir.length() / maxf(seg_m, 0.5))))
+	var side := Vector2(-dir.y, dir.x).normalized() * width * 0.5
+	for k in range(n):
+		var p0 := a.lerp(b, float(k) / float(n))
+		var p1 := a.lerp(b, float(k + 1) / float(n))
+		if not inside.is_empty() and not Geometry2D.is_point_in_polygon((p0 + p1) * 0.5, inside):
+			continue
+		var c := col
+		if rng != null:
+			if skip > 0.0 and rng.randf() < skip:
+				continue  # el rastrojo tiene claros
+			c = col.darkened(rng.randf() * 0.1) if rng.randf() < 0.5 else col.lightened(rng.randf() * 0.07)  # cada tramo con su tono: no es una franja impresa
+		var q0 := p0 + side
+		var q1 := p1 + side
+		var q2 := p1 - side
+		var q3 := p0 - side
+		var v0 := Vector3(q0.x, gfx.rendered_h(q0.x, q0.y) + raise, q0.y)
+		var v1 := Vector3(q1.x, gfx.rendered_h(q1.x, q1.y) + raise, q1.y)
+		var v2 := Vector3(q2.x, gfx.rendered_h(q2.x, q2.y) + raise, q2.y)
+		var v3 := Vector3(q3.x, gfx.rendered_h(q3.x, q3.y) + raise, q3.y)
+		_up_quad(mb, v0, v1, v2, v3, c)
+
+
+## Un cuadrilátero con la cara hacia arriba sea cual sea el orden en que llegan los vértices.
+func _up_quad(mb, v0: Vector3, v1: Vector3, v2: Vector3, v3: Vector3, col: Color) -> void:
+	var up := (v1 - v0).cross(v2 - v0).y
+	if up > 0.0:
+		mb.quad(v0, v1, v2, v3, col)
+	else:
+		mb.quad(v0, v3, v2, v1, col)
+
+
+## El fondo de la parcela: una grilla de `seg_m` sobre el suelo dibujado, solo las celdas con el centro dentro del polígono.
+func _ground_patch(mb, bb: Rect2, poly: PackedVector2Array, seg_m: float, raise: float, col: Color) -> void:
+	var nx := maxi(1, int(ceil(bb.size.x / seg_m)))
+	var nz := maxi(1, int(ceil(bb.size.y / seg_m)))
+	for i in range(nx):
+		for j in range(nz):
+			var x0 := bb.position.x + bb.size.x * float(i) / float(nx)
+			var x1 := bb.position.x + bb.size.x * float(i + 1) / float(nx)
+			var z0 := bb.position.y + bb.size.y * float(j) / float(nz)
+			var z1 := bb.position.y + bb.size.y * float(j + 1) / float(nz)
+			if not Geometry2D.is_point_in_polygon(Vector2((x0 + x1) * 0.5, (z0 + z1) * 0.5), poly):
+				continue
+			_up_quad(mb, Vector3(x0, gfx.rendered_h(x0, z0) + raise, z0), Vector3(x1, gfx.rendered_h(x1, z0) + raise, z0),
+				Vector3(x1, gfx.rendered_h(x1, z1) + raise, z1), Vector3(x0, gfx.rendered_h(x0, z1) + raise, z1), col)
