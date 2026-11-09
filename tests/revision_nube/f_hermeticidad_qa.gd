@@ -87,7 +87,7 @@ func _run() -> void:
 	game.settings.auto_pause = false
 	if is_instance_valid(game.audio_manager):
 		game.audio_manager.set_muted(true)
-	# 1. Una corrida "anterior" de la herramienta: el nivel en modo QA pasa el segundo 210 (punto de control «posiciones» de respaldo) y guarda una vez.
+	# 1. Una corrida "anterior" de la herramienta: el nivel en modo QA, con las tres partidas en su puesto (punto de control «posiciones»), pasa el segundo 215 y guarda una vez.
 	game.qa_mode = true
 	game._start_humahuaca({"qa": true, "skip_intro": true})
 	await _frames(4)
@@ -95,6 +95,9 @@ func _run() -> void:
 	if not check(game.mode == "hx" and is_instance_valid(hx), "el nivel arranca en modo QA"):
 		_finish()
 		return
+	# QA ronda 2 (Q-202): «posiciones» ya no se escribe a los 210 s sin nadie en su puesto; se mandan las tres partidas a su puesto para que el control exista
+	for id in ["rodriguez", "portal", "arias"]:
+		hx.orders.issue(id, "position")
 	var guard := 0
 	while float(hx.qa_state().elapsed) < 215.0 and str(hx.qa_state().status) == "playing" and guard < 60:
 		hx.qa_step(10.0)
