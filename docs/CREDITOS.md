@@ -73,9 +73,9 @@ Archivos: `assets/models/caballo_criollo_{zaino,alazan,tordillo,overo}.glb` y `.
 
 Descargas revisadas y **no usadas** (inventario en el informe de F4): «Horse» de 8tibGames (CC0), «3D Horse (rigged, lacking textures)» de _canyon (CC-BY 3.0), «Horse lowpoly» de jjmoser (CC-BY 3.0), «Horse of spring» de lancelot_gao (CC-BY 3.0, `horse.blend` y `horse-export-fbx.zip`), «Blender horse rig Alex» de Wayne Dixon/waylow (CC-BY 3.0; trae un script Python embebido que no se ejecutó) y «Horse drawn carriage» (`WOZ.blend`) de Lotnik (CC0, sin texturas).
 
-## visual/r1 F5 · terreno: texturas de suelo y relieve real (2026-11-09, assets sin integrar)
+## visual/r1 F5 · terreno: texturas de suelo y relieve real (2026-11-09, integrados en los tres niveles)
 
-Detalle, plan de integración y riesgos: `docs/humahuaca/F5_TERRENO.md`. Nada de esto lo usa el juego todavía.
+Detalle, plan de integración y riesgos: `docs/humahuaca/F5_TERRENO.md`. Integrados en los tres niveles desde `d4e1ead`.
 
 **Texturas PBR de suelo: Poly Haven, CC0 1.0** (https://polyhaven.com/license: todo el sitio es CC0; no exige crédito, se acredita igual). Bajadas de la API oficial (`api.polyhaven.com`) con `tools/f5_terreno_texturas.py`, MD5 verificado contra la API; re-codificadas a JPG 1K sin metadatos (única modificación). URL, MD5 y SHA-256 de cada original y de cada archivo del repo: `assets/terrain/terrain_textures_manifest.json`. Autores (según Poly Haven):
 
@@ -103,11 +103,11 @@ Son fotos de otros lugares del mundo: representan el material, no el paisaje de 
 
 Producto **modificado** (mosaico, filtro, remuestreo, recorte; en el Norte, además, deformado para que cada sector caiga sobre su pueblo). Es un modelo de superficie actual, no el suelo de 1817. Este proyecto no tiene aval de Copernicus, la Unión Europea, la ESA, el DLR ni Airbus. Las teselas no están en Git.
 
-## visual/r1 F5 parte B · casas del territorio (2026-11-09, solo assets)
+## visual/r1 F5 parte B · casas del territorio (2026-11-09, integradas en los tres niveles)
 
 **Obra propia, sin material de terceros.** `tools/f5_casas.py` (Blender 4.4.3 en línea de comandos) arma toda la geometría y el color por vértice (adobe, cal, torta, paja, teja, madera, piedra; variación, suciedad y oclusión calculadas en el script). No se descargó ni se usó ningún modelo, textura o imagen ajena. Archivos: `assets/models/casa_*.glb`, `casa_*_lod.glb` y `assets/models/f5_casas_manifest.json`; misma licencia que el resto del proyecto. Las fuentes consultadas para decidir los tipos (Paterlini, Villavicencio y Rega sobre la arquitectura popular de la Quebrada; ficha de la Casa de Arias Rengel de la Comisión Nacional de Monumentos; Vidal, S24) solo se citan en `docs/historia/CASAS_F5.md`: no se incorporó nada de ellas al juego. Las vistas previas usan el caballo `caballo_criollo_zaino_lod.glb` del proyecto (F4).
 
-## visual/r1 F5 parte A · personas: jinetes y figuras a pie (2026-11-09, solo assets)
+## visual/r1 F5 parte A · personas: jinetes y figuras a pie (2026-11-09, integradas en los tres niveles)
 
 **Obra propia, sin material de terceros.** `tools/f5_personas.py` (Blender 4.4.3 en línea de comandos) arma toda la geometría (tubos por secciones, tornos, elipsoides y cajas propios), el poncho (a pie: simulación de tela propia por posiciones con choque contra el cuerpo; montado: caída por rayos propia sobre el cuerpo y el caballo criollo de F4), el color por vértice con oclusión calculada en el script, el esqueleto de 18 huesos y los ciclos `idle`, `walk` y `run` (claves por fórmula con cinemática inversa de dos huesos; **no** captura de movimiento). El único insumo externo es el GLB propio `caballo_criollo_zaino.glb` (F4), usado como sólido de choque y oclusión del jinete. Vestuario y colores: **diseño** plausible (poncho, chiripá, calzoncillo cribado, botas de potro, sombrero; casaca azul con vueltas rojas y bicornio en 1806; chaqueta de bayeta con vueltas borgoña, chacó y correajes en el realista), no uniformes verificados de ningún cuerpo; sin bandera argentina, escarapela celeste y blanca ni «Infernales» en 1806, sin cruz de Borgoña ni bandera española.
 
