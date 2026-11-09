@@ -311,6 +311,12 @@ func _test_first_frame() -> void:
 				for gid in V.GROUPS:
 					if not included.has(str(gid)):
 						included.append(str(gid))
+			if str((h as Dictionary).get("unit", "")) != "" and not included.has(str(h.unit)):  # visual/r1 F2: el preset cercano exige una partida suelta (los reconocedores)
+				included.append(str(h.unit))
+		var hard_objs: Array = []  # visual/r1 F2: los objetivos que el preset exige como duros, con su margen
+		for h in hx.cam.preset(str(fit.get("preset", ""))).get("hard", []):
+			if V.OBJECTIVES.has(str((h as Dictionary).get("landmark", ""))):
+				hard_objs.append(h)
 		var covered: Array = []
 		var edge_in := 100.0
 		var visible := 0
@@ -331,7 +337,14 @@ func _test_first_frame() -> void:
 			var sp: Vector2 = _world_to_screen(p.x, p.y)
 			obj_min = minf(obj_min, 100.0 * minf(minf(sp.x, view_rect.size.x - sp.x) / view_rect.size.x, minf(sp.y, view_rect.size.y - sp.y) / view_rect.size.y))
 		suite.check(covered.is_empty(), "%dx%d: ninguna ficha dentro del cuadro queda bajo el HUD%s: %s" % [size.x, size.y, note, str(covered)])
-		suite.check(obj_min >= 10.0, "%dx%d: los tres objetivos quedan a ≥ 10 %% del borde (mínimo %.1f %%; V02)" % [size.x, size.y, obj_min])
+		# visual/r1 F2 (revierte V02 de R1 a propósito): con la cámara a 150–180 m solo se exigen los objetivos que el preset pide como duros; los tres a 10 % se informan
+		var hard_min := 100.0
+		for h in hard_objs:
+			var hp: Vector2 = hx.landmark_pos(str(h.landmark))
+			var hs: Vector2 = _world_to_screen(hp.x, hp.y)
+			hard_min = minf(hard_min, 100.0 * minf(minf(hs.x, view_rect.size.x - hs.x) / view_rect.size.x, minf(hs.y, view_rect.size.y - hs.y) / view_rect.size.y) - float(h.get("margin_pct", 0.0)))
+		suite.check(not hard_objs.is_empty() and hard_min >= -0.5, "%dx%d: visual/r1 F2: los objetivos que exige el encuadre inicial (%d) quedan a la vista con su margen (holgura mínima %.1f %%)" % [size.x, size.y, hard_objs.size(), hard_min])
+		suite.extra["v02_tres_objetivos_min_pct_%dx%d" % [size.x, size.y]] = snappedf(obj_min, 0.1)
 		suite.check(included.has("reconocedores") and edge_in >= 2.0, "%dx%d: las partidas que el encuadre incluye (%s) quedan a ≥ 2 %% del borde con su anillo a la vista (mínimo %.1f %%), y los reconocedores, la primera que se usa, están entre ellas" % [size.x, size.y, str(included), edge_in])
 		suite.extra["borde_min_%dx%d" % [size.x, size.y]] = snappedf(edge_in, 0.1)
 		suite.extra["encuadre_%dx%d" % [size.x, size.y]] = {"preset": str(fit.get("preset", "")), "distancia_m": fit.get("dist", 0.0), "partidas_dentro_del_cuadro": visible, "incluidas": included}
@@ -366,7 +379,7 @@ func _test_camera() -> void:
 	suite.check(absf(g.x) <= 0.02 and absf(g.y - 1.0) <= 0.02, "cámara: con rumbo 180° la mirada va al sur (0, 1) (%s)" % str(g))
 	hx.qa_set_camera(Vector2(318, 350), 5.0, 40.0, 45.0)
 	var min_m: float = hx.cam.min_dist()  # 30 m desde data/humahuaca_camera.json (antes 40: el usuario pidió poder acercar más con la rueda)
-	suite.check(is_equal_approx(float(hx.qa_state().camera.dist), min_m) and min_m >= 25.0 and min_m <= 40.0, "cámara: el zoom no baja del mínimo de la cámara, entre 25 y 40 m (%.0f m: %s)" % [min_m, str(hx.qa_state().camera.dist)])
+	suite.check(is_equal_approx(float(hx.qa_state().camera.dist), min_m) and min_m >= 15.0 and min_m <= 20.0, "cámara: el zoom no baja del mínimo de la cámara, entre 15 y 20 m (visual/r1 F2; %.0f m: %s)" % [min_m, str(hx.qa_state().camera.dist)])
 	hx.qa_set_camera(Vector2(318, 350), 5000.0, 40.0, 45.0)
 	suite.check(float(hx.qa_state().camera.dist) <= 900.0, "cámara: el zoom no pasa de 900 m (%s)" % str(hx.qa_state().camera.dist))
 	hx.qa_set_camera(Vector2(-5000, 9000), 300.0, 50.0, 0.0)
@@ -502,6 +515,9 @@ func _test_preview_catches_up() -> void:
 		return
 	await _key(KEY_4)
 	await _key(KEY_R)
+	hx.cam.cancel_approach()
+	hx.qa_set_camera(Vector2(350.0, 470.0), 470.0, 52.0, 325.0)  # visual/r1 F2: el cuadro de antes (470 m), para que un punto fuera del mapa caiga en la pantalla
+	await _frames(1)
 	hx.orders.aim_move(_world_to_screen(-80.0, 300.0))
 	suite.check(str(hx.orders.plan.get("reason", "")).find("fuera del mapa") >= 0, "vista previa: un punto de afuera del mapa dice que queda afuera (%s)" % str(hx.orders.plan.get("reason", "")))
 	hx.orders.aim_move(_world_to_screen(318.0, 350.0))
@@ -538,6 +554,10 @@ func _test_actions_and_preview() -> void:
 	suite.check(_issued_actions().has("recon") and not bool(hx.qa_state().aiming), "acciones: el clic confirma «Reconocer» y deja de apuntar")
 	# mover: G, una parada con Mayús y el destino; la vista previa de ruta dice metros, tiempo y riesgo
 	await _key(KEY_1)
+	# visual/r1 F2: con la cámara cerca los puntos de la ruta pueden quedar fuera del cuadro; se los encuadra (la cámara no es lo que se prueba acá)
+	hx.cam.cancel_approach()
+	hx.qa_set_camera(Vector2(190.0, 440.0), 300.0, 45.0, 325.0)
+	await _frames(2)
 	await _key(KEY_G)
 	await _mouse_move(_world_to_screen(200.0, 420.0))
 	await _frames(8)
@@ -623,6 +643,8 @@ func _test_alert_placement() -> void:
 	var sigue: Rect2 = h.place_alert([_blocker(derecha)])
 	suite.check(not sigue.intersects(_blocker(derecha)), "aviso: sale del lugar tapado y no vuelve a uno ocupado")
 	h.place_alert([])
+	hx.qa_set_camera(Vector2(330.0, 470.0), 470.0, 45.0, 325.0)  # visual/r1 F2: de lejos, para que las cinco fichas y los tres frentes estén delante de la cámara
+	await _frames(2)
 	var avoid: Array = hx.avoid_rects()
 	suite.check(avoid.size() >= 8, "aviso: el controlador entrega un rectángulo por ficha y por frente (%d)" % avoid.size())
 	await _leave_level()
@@ -956,6 +978,9 @@ func _test_order_feedback() -> void:
 	m = str(hx.qa_state().motive)
 	suite.check(m.find("el arreo") >= 0 and m.find("tecla 5") >= 0, "avisos de orden: «Cargar» con Rodríguez dice que lo hace el arreo, con su tecla (%s)" % m)
 	# las paradas fuera del mapa no se suman a la ruta; las de adentro, sí
+	hx.cam.cancel_approach()
+	hx.qa_set_camera(Vector2(350.0, 470.0), 470.0, 52.0, 325.0)  # visual/r1 F2: el cuadro de antes (470 m), para que un punto fuera del mapa caiga en la pantalla
+	await _frames(1)
 	var before: int = hx.orders.waypoints.size()
 	suite.check(not hx.orders.context_order(_world_to_screen(-80.0, 300.0), true, false, false) and hx.orders.waypoints.size() == before, "avisos de orden: Mayús + clic derecho fuera del mapa no suma una parada")
 	suite.check(str(hx.qa_state().motive).find("fuera del mapa") >= 0, "avisos de orden: y dice por qué (%s)" % str(hx.qa_state().motive))

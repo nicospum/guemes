@@ -2,13 +2,26 @@
 	"contract": 1,
 	"nota": "Parámetros de la cámara del nivel «humahuaca» (dueña: ui_feel; pedido del usuario del 2-11-2026: «la cámara está demasiado lejos, se ve todo muy chico»). Los lee scripts/humahuaca/ui/humahuaca_camera.gd al arrancar: «camera» pisa las claves de la sección camera de humahuaca_ui.json; «initial_frame» decide el encuadre inicial (fit_initial: el preset activo dice qué puntos tienen que entrar y con qué margen al borde, en % del lado); «follow», el seguimiento de una ficha. Cifras por tamaño de ventana y criterio: docs/humahuaca/CAMARA.md; se miden en tests/test_hx_camera.gd.",
 	"camera": {
-		"min_distance_m": 30
+		"min_distance_m": 18,
+		"nota_r1": "visual/r1 F2: zoom mínimo 18 m (antes 30); el máximo (900 m, humahuaca_ui.json) sigue mostrando el mapa entero."
 	},
 	"initial_frame": {
-		"preset": "partidas_y_objetivos",
+		"preset": "cercano_r1",
 		"above_head_px": 92,
 		"below_px": 46,
 		"presets": {
+			"cercano_r1": {
+				"nota": "visual/r1 F2 (plan aprobado por el usuario): la cámara arranca cerca, a unos 165 m (167 m a 1280 × 720 y 1920 × 1080; en la ventana mínima de 1024 × 640 el HUD tapa más y queda más lejos; min_distance_m y max_distance_m del preset son piso y tope), mirando al este-noreste (rumbo 60°, 36°) desde atrás de los reconocedores hacia la batería: la primera partida que se usa y el primer objetivo (el primer «siguiente paso» de la guía) quedan a la vista, con el pueblo al fondo si entra. Las otras partidas y objetivos entran si cuesta poco; si no, se llega con las teclas 1 a 5, el minimapa o la rueda. Revierte a propósito la lectura de V02 de R1 y P2 (los tres objetivos y la zona de partida a 10 % del borde), que dejaba la cámara a 300–470 m y todo chico.",
+				"yaw_deg": 60,
+				"pitch_deg": 36,
+				"min_distance_m": 150,
+				"max_distance_m": 200,
+				"hard": [
+					{"unit": "reconocedores", "margin_pct": 5},
+					{"landmark": "bateria", "margin_pct": 3}
+				],
+				"soft": {"landmarks": ["cuartel"], "margin_pct": 3, "max_distance_m": 185}
+			},
 			"partidas_y_objetivos": {
 				"nota": "Pista de arte (P2, tanda 2): las cinco partidas y los tres objetivos en el primer cuadro, con la cámara más baja (42°, la inclinación del cuadro inicial de humahuaca_visual.json) para ganar profundidad. Los objetivos a 10 % o más del borde (V02) y las partidas enteras dentro de la banda libre entre la cabecera y el dock. Más lejos que pueblo_zona_al_borde (que dejaba cuatro partidas fuera) y más cerca que completo; las fichas miden 64 a 72 px reales a cualquier zoom, así que se leen igual.",
 				"hard": [
@@ -73,15 +86,17 @@
 	},
 	"zoom_tilt": {
 		"enabled": true,
-		"far_m": 460,
-		"near_m": 60,
+		"far_m": 150,
+		"near_m": 25,
 		"near_pitch_deg": 20,
+		"nota_r1": "visual/r1 F2: con el cuadro inicial a 150–180 m (antes 470) el acostado empieza en 150 m (antes 460) y llega a near_pitch_deg en 25 m (antes 60): el zoom mínimo bajó a 18 m.",
 		"nota": "Pista de arte (P2): al acercar con la rueda por debajo de far_m la cámara se va acostando (curva cuadrática: unos 24° a 240 m) hasta near_pitch_deg en near_m, para que de cerca se vean el horizonte y los cerros de la quebrada; al alejarse vuelve a la inclinación de juego (la inicial o la que eligió el jugador lejos). Inclinar a mano la desactiva hasta volver a alejarse."
 	},
 	"approach": {
 		"enabled": true,
-		"dist_m": 240,
-		"wide_dist_m": 300,
+		"dist_m": 140,
+		"wide_dist_m": 200,
+		"nota_r1": "visual/r1 F2: acercamiento a 140 m (antes 240) y «lejos» desde 200 m (antes 300), acorde con el cuadro inicial nuevo.",
 		"visible_margin_pct": 4,
 		"duration_s": 0.9,
 		"cooldown_s": 7.0,

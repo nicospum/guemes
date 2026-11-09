@@ -485,7 +485,20 @@ func fit_with(cam3: Camera3D, start: Dictionary, hud: Dictionary, preset_name: S
 				hi = mid
 			else:
 				lo = mid
+	# visual/r1 F2: un preset puede poner un TOPE a la distancia (`max_distance_m`): si los duros no entran más cerca, la cámara se queda en el tope centrada sobre ellos
+	# (los que no entran quedan fuera; `capped` lo dice). Así el primer cuadro queda a 150–180 m aunque las cinco partidas pidan más.
+	# Y un PISO (`min_distance_m`): si los duros entran más cerca, la cámara no baja de ahí (el primer cuadro muestra algo de contexto alrededor).
+	var capped := false
+	var cap_m := float(spec.get("max_distance_m", 0.0))
+	if cap_m > 0.0 and (not hard_ok or hi > cap_m):
+		hi = clampf(cap_m, min_dist(), max_dist())
+		capped = true
+	var floor_m := float(spec.get("min_distance_m", 0.0))
+	if hard_ok and floor_m > hi:
+		hi = clampf(floor_m, min_dist(), max_dist())
 	var found := _place(cam3, hi, pitch, yaw, hard, hard, band, size, t0)
+	if capped:
+		hard_ok = bool(found.ok)
 	var d_hard := float(found.dist)
 	var result := found
 	# 2) los blandos: todos, si cuesta poco…
@@ -535,7 +548,7 @@ func fit_with(cam3: Camera3D, start: Dictionary, hud: Dictionary, preset_name: S
 	out["dist"] = float(result.dist)
 	out["pitch_deg"] = pitch
 	out["yaw_deg"] = yaw
-	last_fit = {"preset": preset_name, "dist": snappedf(float(result.dist), 0.1), "target": [snappedf((result.target as Vector2).x, 0.1), snappedf((result.target as Vector2).y, 0.1)], "hard_ok": hard_ok,
+	last_fit = {"preset": preset_name, "capped": capped, "dist": snappedf(float(result.dist), 0.1), "target": [snappedf((result.target as Vector2).x, 0.1), snappedf((result.target as Vector2).y, 0.1)], "hard_ok": hard_ok,
 		"soft_in": soft_in, "soft_out": soft_out, "a_medio_tapar": _half_hidden(cam3, soft, band, size), "corrimiento_px": snappedf(shifted, 0.1), "size": [size.x, size.y],
 		"band": [snappedf(float(band.top), 0.1), snappedf(float(band.bottom), 0.1)], "duros": hard.size(), "blandos": soft.size(),
 		"hud_band": [snappedf(float(hud.get("top_px", 0.0)), 0.1), snappedf(size.y - float(hud.get("bottom_px", 0.0)), 0.1)]}

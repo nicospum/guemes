@@ -106,7 +106,7 @@ func _node_bounds(root: Node3D) -> AABB:
 	var first := true
 	for mi in root.find_children("*", "MeshInstance3D", true, false):
 		var m := mi as MeshInstance3D
-		if m.mesh == null:
+		if m.mesh == null or str(m.name) in ["anillo", "borde", "seleccion"]:  # visual/r1 F1: los anillos del suelo (de radio real) no son parte de la silueta
 			continue
 		var b := m.global_transform * m.get_aabb()
 		box = b if first else box.merge(b)
@@ -612,7 +612,9 @@ func _test_camera_order() -> void:
 	root.add_child(view)
 	shell.queue_free()
 	await process_frame
-	_ck(scale_after_frames.is_equal_approx(wanted) and wanted.y > 4.7, "I-R1.0-3 tras un cuadro con el orden real (update_state con la cámara del menú y la del juego después) la ficha ya tiene la escala de la cámara del juego (%.2f contra %.2f)" % [scale_after_frames.y, wanted.y])
+	# visual/r1 F1: las fichas ya no crecen con la distancia; con cualquier orden de cámaras su escala es la fija de units.marks.figure_scale
+	var fig := float(((visual.get("units", {}) as Dictionary).get("marks", {}) as Dictionary).get("figure_scale", 1.0))
+	_ck(scale_after_frames.is_equal_approx(wanted) and (label != "real" or is_equal_approx(wanted.y, fig)), "I-R1.0-3 / visual/r1 F1 tras un cuadro con el orden real (cámara del menú y la del juego después) la ficha tiene la escala fija %.2f (%.2f contra %.2f)" % [fig, scale_after_frames.y, wanted.y])
 	_frame_camera(cam, f)
 
 
@@ -624,28 +626,26 @@ func _test_archetypes_grayscale() -> void:
 		return
 	_frame_camera(cam, view.initial_frame(cam))
 	view.update_state(0.016)
-	var raw_scale := cam.get_viewport().get_screen_transform().get_scale().y
-	var scale_px := raw_scale if raw_scale >= 0.2 else 1.0  # sin ventana real la escala de pantalla no existe: la vista toma 1
-	var short: Array = []
-	var min_px := 46.0 if label == "real" else 40.0
-	for id in V.GROUPS:  # alto parado de la figura (de la base a la cima de sus piezas), proyectado, en píxeles de la pantalla
-		var node_h: Node3D = view.unit_nodes[id]
-		if not Rect2(Vector2.ZERO, cam.get_viewport().get_visible_rect().size).has_point(cam.unproject_position(node_h.global_position)):
-			continue  # con los datos reales alguna partida cae fuera del cuadro inicial (que solo exige los objetivos y la zona)
-		var base_y := cam.unproject_position(node_h.global_position).y
-		var top_world := node_h.global_position.y
-		for part in node_h.find_children("*", "MeshInstance3D", true, false):
-			if not (str(part.name) in ["anillo", "borde", "seleccion"]):
-				top_world = maxf(top_world, ((part as MeshInstance3D).global_transform * (part as MeshInstance3D).get_aabb()).end.y)
-		var h_px := absf(base_y - cam.unproject_position(Vector3(node_h.global_position.x, top_world, node_h.global_position.z)).y) * scale_px
-		if h_px < min_px:
-			short.append("%s %.0f px" % [id, h_px])
-	_ck(short.is_empty(), "TR-098 con el cuadro inicial cada ficha mide ≥ %.0f px de alto en pantalla (V03 pide ≥ 48 reales; el stub queda en ≈ 42 en el borde inferior)%s" % [min_px, "" if short.is_empty() else ": " + str(short)])
+	# visual/r1 F1 (revierte V03 de R1 a propósito, plan aprobado por el usuario): las fichas van a escala real y no se estiran hasta ≥ 48 px; de lejos se las
+	# encuentra por la marca chica y el rótulo de la interfaz. En la vista real: escala = units.marks.figure_scale y el anillo del suelo prueba profundidad.
+	if label == "real":
+		var fig := float(((visual.get("units", {}) as Dictionary).get("marks", {}) as Dictionary).get("figure_scale", 1.0))
+		var off: Array = []
+		var depth_ok := true
+		for id in V.GROUPS:
+			var node_s: Node3D = view.unit_nodes[id]
+			if not node_s.scale.is_equal_approx(Vector3.ONE * fig):
+				off.append("%s %.2f" % [id, node_s.scale.y])
+			var ring_mi := node_s.get_node_or_null("anillo") as MeshInstance3D
+			var mat := ring_mi.material_override as BaseMaterial3D if ring_mi != null else null
+			depth_ok = depth_ok and mat != null and not mat.no_depth_test and ring_mi.mesh != null
+		_ck(off.is_empty(), "visual/r1 F1 con el cuadro inicial cada ficha tiene la escala fija %.2f (no crece con la distancia)%s" % [fig, "" if off.is_empty() else ": " + str(off)])
+		_ck(depth_ok, "visual/r1 F1 el anillo de bando de cada ficha está armado y respeta la profundidad (lo tapan los edificios)")
 	var dims := {}
 	for id in V.GROUPS:
 		var node_i: Node3D = view.unit_nodes[id]
 		var box := _node_bounds(node_i)
-		# medidas nominales: sin el crecimiento que las lleva a ≥ 48 px de pantalla (ancho y alto crecen distinto)
+		# medidas nominales (dividido por la escala de la ficha)
 		dims[id] = Vector2(maxf(box.size.x, box.size.z) / maxf(node_i.scale.x, 0.001), (box.end.y - node_i.global_position.y) / maxf(node_i.scale.y, 0.001))
 	var distinct := true
 	var worst := 9.0
@@ -662,10 +662,11 @@ func _test_archetypes_grayscale() -> void:
 	for id in V.GROUPS:
 		shapes[str((tokens.get(id, {}) as Dictionary).get("shape", ""))] = true
 	_ck(shapes.size() == 5 and shapes.keys().all(func(k): return VV.TOKEN_SHAPES.has(k)), "TR-098 cada agrupación tiene su forma propia del vocabulario (%s)" % str(shapes.keys()))
-	var big := true
-	for id in V.GROUPS:
-		big = big and float((tokens.get(id, {}) as Dictionary).get("min_px", 0.0)) >= 48.0
-	_ck(big, "TR-098 todas las fichas piden ≥ 48 px de alto en pantalla")
+	# visual/r1 F1: el anillo de bando es fino y de radio real (no el estirón a 48–72 px de R1 y P2)
+	var marks: Dictionary = (visual.get("units", {}) as Dictionary).get("marks", {})
+	var r_m := float(marks.get("ring_radius_m", 0.0))
+	var w_m := float(marks.get("ring_width_m", 9.0))
+	_ck(label != "real" or (r_m >= 1.0 and r_m <= 5.0 and w_m > 0.0 and w_m <= 0.6), "visual/r1 F1 units.marks: anillo de radio real (%.1f m, entre 1 y 5) y fino (%.2f m, ≤ 0,6)" % [r_m, w_m])
 	var node: Node3D = view.unit_nodes["rodriguez"]
 	_ck(node.get_child_count() >= 8 and not (node.get_child(0) is Sprite3D), "TR-098 la ficha es una figura de varias piezas, no un disco ni una imagen plana")
 
@@ -920,10 +921,10 @@ func _test_token_px_any_camera() -> void:
 					if not (str(part.name) in ["anillo", "borde", "seleccion"]):
 						top_world = maxf(top_world, ((part as MeshInstance3D).global_transform * (part as MeshInstance3D).get_aabb()).end.y)
 				var h_px := absf(base.y - cam.unproject_position(Vector3(node.global_position.x, top_world, node.global_position.z)).y) * scale_px
-				if h_px < 47.0:
-					short.append("%s %.1f px" % [id, h_px])
-
-			_ck(seen >= 1 and short.is_empty(), "V03 con la cámara «%s»%s las %d fichas que entran en el cuadro miden ≥ 47 px de alto%s" % [key, " (objetivo corrido)" if shifted else "", seen, "" if short.is_empty() else ": " + str(short)])
+				if h_px <= 0.5 or not node.scale.is_equal_approx(Vector3.ONE * float(((visual.get("units", {}) as Dictionary).get("marks", {}) as Dictionary).get("figure_scale", 1.0))):
+					short.append("%s %.1f px (escala %.2f)" % [id, h_px, node.scale.y])
+			# visual/r1 F1: con cualquier cámara la ficha conserva su escala fija (antes se exigían ≥ 47 px, el estirón que se revirtió a propósito)
+			_ck(seen >= 1 and short.is_empty(), "visual/r1 F1 con la cámara «%s»%s las %d fichas que entran en el cuadro conservan su escala fija y se dibujan%s" % [key, " (objetivo corrido)" if shifted else "", seen, "" if short.is_empty() else ": " + str(short)])
 	# casi cenital (78°): de arriba no se ve la altura de una figura, así que la ficha se achica y el estirón queda acotado (nada de trazos largos hacia el nadir)
 	_frame_camera(cam, {"yaw_deg": 90.0, "pitch_deg": 78.0, "distance": 330.0, "target": centroid})
 	view.update_state(0.016)
@@ -1321,7 +1322,7 @@ func _test_probes_and_scales() -> void:
 			worst_diff = maxf(worst_diff, absf(rect.size.y - absf(base.y - top.y)))
 			lowest_px = minf(lowest_px, rect.size.y * scale_y)
 	_ck(fichas == 5 and consistent, "B-034 cada sonda trae «on_screen» y coincide con que su rectángulo caiga entero dentro del cuadro (%d fichas)" % fichas)
-	_ck(worst_diff <= 1.0 and lowest_px >= 47.5, "B-026 el rectángulo de la ficha mide el alto dibujado (a ≤ 1 px) y por la escala de la ventana da ≥ 48 px (la más baja: %.1f px)" % lowest_px)
+	_ck(worst_diff <= 1.0 and lowest_px > 0.0, "B-026 el rectángulo de la ficha mide el alto dibujado (a ≤ 1 px; visual/r1 F1: ya no se exige ≥ 48 px, la más baja mide %.1f px)" % lowest_px)
 	var looking_away := {"target": Vector3(350.0, 20.0, 470.0), "distance": 300.0, "pitch_deg": 35.0, "yaw_deg": 145.0}  # mira al sudeste: las partidas quedan detrás de la cámara
 	_frame_camera(cam, looking_away)
 	view.update_state(0.016)

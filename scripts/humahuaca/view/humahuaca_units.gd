@@ -3,8 +3,13 @@ extends RefCounted
 ##   rodriguez = jinete de poncho y sombrero de ala ancha sobre su caballo · portal = infante de camisa y gorra con fusil · arias = infante con el banderín de mando
 ##   (marcador de interfaz, nunca una bandera) · reconocedores = dos figuras agachadas con poncho · arreo = mula con aparejo y bultos.
 ## Las figuras salen del generador procedural (humahuaca_gen.gd, ADDENDA A-01), con contorno oscuro (`negro_textil`) y sin uniformar: la ropa de cada una es una
-## variante de las de `humahuaca_visual.json: units`. Las fichas son de TAMAÑO FIJO EN PANTALLA (≥ 48 px de alto a cualquier zoom: se las estira hasta ese alto).
-## El bando lo dan el anillo del suelo y el contorno, no el color de la ropa.
+## variante de las de `humahuaca_visual.json: units`.
+## visual/r1 F1: las fichas van a ESCALA REAL (sin crecer con la distancia, `units.marks.figure_scale`); el bando lo da un anillo fino sobre el suelo, de radio real
+## (`units.marks.ring_radius_m`), que copia el relieve y respeta la profundidad (los edificios lo tapan). Para encontrarlas lejos está la marca chica en pantalla
+## (12 a 16 px) y el rótulo de una línea que dibuja la interfaz (humahuaca_overlay.gd). Antes (R1 y P2) se las estiraba hasta 48 a 72 px y el anillo llegaba a
+## decenas de metros: se revirtió a propósito (plan visual/r1, aprobado por el usuario).
+## F3 (pendiente): la formación por cantidad de hombres. `men` de cada agrupación está en data/humahuaca_rules.json (groups.<id>.men: 48, 52, 50, 2 y 6); se
+## enchufa en build_tokens/_token_parts (repetir la figura en una formación) y en `_ring_radius` (el radio del anillo según la huella de la formación).
 
 const V = preload("res://scripts/humahuaca/humahuaca_vocab.gd")
 const Gen = preload("res://scripts/humahuaca/view/humahuaca_gen.gd")
@@ -12,6 +17,9 @@ const Gen = preload("res://scripts/humahuaca/view/humahuaca_gen.gd")
 const MAX_THINGS := 48
 const ALERT_SHADER := "res://shaders/humahuaca_alert_ring.gdshader"
 const MAX_STRETCH := 4.6
+## visual/r1 F1: medidas del anillo de bando y de la selección si humahuaca_visual.json no trae `units.marks`.
+const MARK_DEFAULTS := {"figure_scale": 1.0, "ring_radius_m": 2.4, "ring_width_m": 0.3, "ring_edge_m": 0.18, "ring_lift_m": 0.22, "selection_gap_m": 0.9,
+	"selection_width_m": 0.5, "segments": 40, "rebuild_m": 0.75, "label_font_px": 13}
 const LOOT_COLOR := {"polvora": "madera_oscura", "canones": "hierro", "fusiles": "madera_oscura", "viveres": "lana_natural", "plata": "oro_laton"}
 ## Ganancia de los anillos de bando para llegar a la regla de color común (DIRECCION_DE_ARTE 2.1) sin sumar HEX a la paleta de 24: celeste aliado ≈ #8DB8D6,
 ## rojo enemigo ≈ #B8433A, hueso neutral ≈ #BFB6A3.
@@ -27,6 +35,7 @@ var scaled: Array = []  ## [{node, cat, base, px, min}]: lo que crece hasta ocup
 var part_counts: Dictionary = {}  ## partes y triángulos de cada ficha (informe de QA)
 
 var _enemy_meshes: Dictionary = {}
+var _ring_mats: Dictionary = {}
 var _loot_meshes: Dictionary = {}
 
 
@@ -55,20 +64,18 @@ func build_tokens(root_tokens: Node3D, root_labels: Node3D) -> void:
 		var dims := _token_parts(root, str(spec.get("shape", "infante_fusil")), spec, variants, index)
 		var base_h: float = dims.x
 		var ring_color := str(spec.get("ring_color", "celeste_produccion"))
-		var ring_r: float = clampf(dims.y, 0.3 * base_h, 0.62 * base_h)  # el anillo del bando no pasa de la mitad del alto de la ficha: así no domina la pantalla una figura ancha y baja
-		var disc: MeshInstance3D = gfx.inst(root, gfx.cyl_mesh(ring_r + 0.45, ring_r + 0.45, 0.04, 24), Vector3(0.0, 0.06, 0.0), gfx.flat_mat("negro_textil", 0.5), Vector3.ZERO, false)
-		disc.name = "base"  # disco de tinta bajo la ficha: la separa del suelo claro del alba y del barro oscuro de la noche (DIRECCION_DE_ARTE B3)
-		var ring: MeshInstance3D = gfx.flat_ring(root, ring_r, 0.24, ring_color)
-		ring.material_override = gfx.flat_mat(ring_color, 1.0, false, RING_GAIN.get(ring_color, 1.0))
-		ring.name = "anillo"
-		gfx.flat_ring(root, ring_r + 0.22, 0.09, str(spec.get("ring_border_color", "blanco_textil"))).name = "borde"
-		var selection: MeshInstance3D = gfx.flat_ring(root, ring_r + 1.1, 0.4, "oro_laton")
-		selection.name = "seleccion"
+		# visual/r1 F1: sin disco de tinta ni anillos que crecen con la distancia. Un anillo fino de radio real sobre el suelo (con filete oscuro por fuera, para el
+		# suelo claro del alba) y la selección en oro, un poco más afuera. Son `top_level`: no giran con la ficha y copian el relieve (se rearman al moverse).
+		var ring_r := _ring_radius(id)
+		var edge := _ground_ring_node(root, "borde", ring_r, mark("ring_width_m") + 2.0 * mark("ring_edge_m"), mark("ring_lift_m") - 0.03,
+			_ring_mat("negro_textil", 1.0, 0.75, 1))
+		var ring := _ground_ring_node(root, "anillo", ring_r, mark("ring_width_m"), mark("ring_lift_m"), _ring_mat(ring_color, RING_GAIN.get(ring_color, 1.0), 1.0, 2))
+		var selection := _ground_ring_node(root, "seleccion", ring_r + mark("selection_gap_m"), mark("selection_width_m"), mark("ring_lift_m") + 0.02, _ring_mat("oro_laton", 1.25, 1.0, 3))
 		selection.visible = false
 		var alert := MeshInstance3D.new()  # el aviso de detección (pedido de P3): un aro ámbar que se vacía mientras corre la cuenta del centinela
 		alert.name = "aviso"
 		var quad := QuadMesh.new()
-		quad.size = Vector2.ONE * (ring_r + 2.1) * 2.0
+		quad.size = Vector2.ONE * (ring_r + 1.6) * 2.0  # visual/r1 F1: a escala real, apenas más afuera que la selección
 		alert.mesh = quad
 		alert.material_override = _alert_material()
 		alert.rotation_degrees = Vector3(-90.0, 0.0, 0.0)
@@ -76,21 +83,25 @@ func build_tokens(root_tokens: Node3D, root_labels: Node3D) -> void:
 		alert.visible = false
 		root_tokens.add_child(alert)  # al lado de la ficha, no dentro: no cuenta en su silueta ni en sus medidas
 		unit_nodes[id] = root
-		var label := Label3D.new()
+		var label := Label3D.new()  # visual/r1 F1: rótulo de una línea («1 Rodríguez»), chico; en el juego lo reemplaza el de la interfaz (capa «labels» apagada)
 		label.name = "etiqueta_" + id
-		label.text = str(spec.get("glyph", str(index + 1)))
-		label.font_size = 56
+		var short := str(spec.get("label", ""))
+		label.text = str(spec.get("glyph", str(index + 1))) + ("  " + short if short != "" else "")
+		label.font_size = int(mark("label_font_px")) * 2
 		label.pixel_size = 0.0006
 		label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		label.fixed_size = true
-		label.no_depth_test = true
+		label.no_depth_test = true  # el rótulo es de pantalla: se lee aunque la figura quede detrás de una casa
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		label.offset = Vector2(14.0, 0.0)
 		label.modulate = gfx.pc("blanco_textil")
 		label.outline_modulate = gfx.pc("negro_textil")
-		label.outline_size = 10
+		label.outline_size = 6
 		label.visible = false
 		root_labels.add_child(label)
 		unit_labels[id] = label
-		tokens[id] = {"root": root, "base_h": base_h, "px": float(spec.get("min_px", 60)), "ring": ring, "ring_color": ring_color, "selection": selection, "alert": alert, "alert_max": 0.0}
+		tokens[id] = {"root": root, "base_h": base_h, "ring": ring, "edge": edge, "ring_color": ring_color, "selection": selection, "alert": alert, "alert_max": 0.0,
+			"ring_at": Vector3(INF, INF, INF)}
 
 
 func _variant_of(spec: Dictionary, variants: Array, index: int, fallback_shirt: String) -> Dictionary:
@@ -171,6 +182,94 @@ func _crouched_pair(body: String, spec: Dictionary, variants: Array, index: int,
 	for key in merged:
 		out[key] = (merged[key] as Object).call("build", hw)
 	return out
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# visual/r1 F1: anillo de bando a escala real, pegado al relieve
+
+## Una medida de `units.marks` (humahuaca_visual.json) o su valor por defecto.
+func mark(key: String) -> float:
+	var cfg: Variant = (gfx.data.get("units", {}) as Dictionary).get("marks", {}) if gfx != null else {}
+	var v: Variant = (cfg as Dictionary).get(key, MARK_DEFAULTS.get(key, 0.0)) if cfg is Dictionary else MARK_DEFAULTS.get(key, 0.0)
+	return float(v) if (typeof(v) == TYPE_INT or typeof(v) == TYPE_FLOAT) else float(MARK_DEFAULTS.get(key, 0.0))
+
+
+## El radio del anillo de una agrupación en metros. F3 lo hará depender de la huella de la formación (groups.<id>.men de humahuaca_rules.json).
+func _ring_radius(id: String) -> float:
+	var spec: Dictionary = (gfx.data.get("tokens", {}) as Dictionary).get(id, {})
+	return float(spec.get("ring_radius_m", mark("ring_radius_m")))
+
+
+## Material del anillo: plano, sin sombra, con prueba de profundidad (lo tapan los edificios) y sin descarte de caras (el relieve lo puede dar vuelta).
+func _ring_mat(color_id: String, gain: float, alpha: float, priority: int) -> StandardMaterial3D:
+	var key := "%s|%.2f|%.2f|%d" % [color_id, gain, alpha, priority]
+	if not _ring_mats.has(key):
+		var m := StandardMaterial3D.new()
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.cull_mode = BaseMaterial3D.CULL_DISABLED
+		var c: Color = gfx.pc(color_id, gain)
+		m.albedo_color = Color(c.r, c.g, c.b, alpha)
+		if alpha < 1.0:
+			m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		m.render_priority = priority
+		_ring_mats[key] = m
+	return _ring_mats[key]
+
+
+## Un anillo hijo de la ficha pero `top_level` (no gira con ella); guarda su radio, ancho y alzada para rearmarlo al moverse.
+func _ground_ring_node(root: Node3D, node_name: String, radius: float, width: float, lift: float, material: Material) -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	mi.name = node_name
+	mi.top_level = true
+	mi.material_override = material
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.set_meta("ring", Vector3(radius, width, lift))
+	root.add_child(mi)
+	return mi
+
+
+## La malla de un anillo plano de `radius` m y `width` m de ancho centrado en `center`, con cada vértice a `lift` m sobre la malla dibujada del suelo (relativa a center.y).
+func _ground_ring_mesh(center: Vector3, radius: float, width: float, lift: float) -> ArrayMesh:
+	var segs := maxi(int(mark("segments")), 12)
+	var verts := PackedVector3Array()
+	var normals := PackedVector3Array()
+	var idx := PackedInt32Array()
+	for i in range(segs + 1):
+		var a := TAU * float(i) / float(segs)
+		var d := Vector2(cos(a), sin(a))
+		for r in [maxf(radius - width * 0.5, 0.02), radius + width * 0.5]:
+			var x := center.x + d.x * float(r)
+			var z := center.z + d.y * float(r)
+			verts.append(Vector3(d.x * float(r), gfx.rendered_h(x, z) + lift - center.y, d.y * float(r)))
+			normals.append(Vector3.UP)
+	for i in range(segs):
+		var k := i * 2
+		idx.append_array(PackedInt32Array([k, k + 2, k + 1, k + 1, k + 2, k + 3]))
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = verts
+	arrays[Mesh.ARRAY_NORMAL] = normals
+	arrays[Mesh.ARRAY_INDEX] = idx
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	return mesh
+
+
+## Ubica los anillos de una ficha en su pie y, si se corrió más de `rebuild_m` desde la última vez, los rearma con el relieve de su lugar nuevo.
+func _place_rings(id: String) -> void:
+	var info: Dictionary = tokens[id]
+	var root: Node3D = info.root
+	var at := root.position
+	var rebuild := (info.ring_at as Vector3).distance_to(at) > mark("rebuild_m")
+	for key in ["edge", "ring", "selection"]:
+		var mi: MeshInstance3D = info[key]
+		var spec: Vector3 = mi.get_meta("ring", Vector3(2.0, 0.3, 0.2))
+		if rebuild:
+			mi.mesh = _ground_ring_mesh(at, spec.x, spec.y, spec.z)
+		# `top_level`: su posición ya es la del mundo. Entre dos rearmados se lo corre solo en el plano, a la altura con la que se armó la malla
+		mi.position = at if rebuild else Vector3(at.x, (info.ring_at as Vector3).y, at.z)
+	if rebuild:
+		info["ring_at"] = at
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -273,6 +372,7 @@ func sync_poses(state: Dictionary) -> bool:
 		if absf(node.position.x - x) > 0.0005 or absf(node.position.z - z) > 0.0005 or absf(node.rotation.y - yaw) > 0.0005:
 			node.position = Vector3(x, gfx.rendered_h(x, z), z)  # el pie apoya en la malla que se dibuja (en `baja` la ventana tiene un vértice cada 8 m y se aparta hasta ≈ 0,25 m de `height_at`)
 			node.rotation.y = yaw
+			_place_rings(str(u.id))  # visual/r1 F1
 			moved = true
 	return moved
 
@@ -317,7 +417,7 @@ func sync_units(state: Dictionary, labels_on: bool) -> void:
 		(unit_labels[id] as Label3D).visible = not gone and labels_on
 		var info: Dictionary = tokens[id]
 		var ring_id := "rojo_reservado" if bool(u.get("detected", false)) else str(info.ring_color)
-		(info.ring as MeshInstance3D).material_override = gfx.flat_mat(ring_id, 1.0, false, float(RING_GAIN.get(ring_id, 1.0)))
+		(info.ring as MeshInstance3D).material_override = _ring_mat(ring_id, float(RING_GAIN.get(ring_id, 1.0)), 1.0, 2)  # visual/r1 F1: descubierta = rojo, como antes
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -325,12 +425,15 @@ func sync_units(state: Dictionary, labels_on: bool) -> void:
 
 ## Píxeles reales por píxel lógico (la ventana escala el área de 1 440 × 900): los tamaños en píxeles del JSON son los de la pantalla.
 func update_scales(host: Node, cam: Camera3D) -> void:
+	# visual/r1 F1: las fichas ya no crecen con la distancia: escala fija (`units.marks.figure_scale`, 1 = tamaño real). El rótulo va sobre la cabeza.
+	var fig := maxf(mark("figure_scale"), 0.1)
 	for id in tokens:
 		var info: Dictionary = tokens[id]
 		var root: Node3D = info.root
-		var factor := upright_scale(host, cam, root.global_position if root.is_inside_tree() else root.position, float(info.px), float(info.base_h), 1.0)
-		root.scale = factor
-		(unit_labels[id] as Label3D).position = root.position + Vector3(0.0, (float(info.base_h) + 1.5) * factor.y, 0.0)
+		root.scale = Vector3.ONE * fig
+		(unit_labels[id] as Label3D).position = root.position + Vector3(0.0, float(info.base_h) * fig + 0.6, 0.0)
+		if (info.ring_at as Vector3).x == INF:
+			_place_rings(str(id))
 	var alive: Array = []
 	for entry in scaled:
 		if not is_instance_valid(entry.node):
@@ -379,4 +482,4 @@ func update_selection(selected: Array, time_s: float) -> void:
 		var sel: MeshInstance3D = tokens[id].selection
 		sel.visible = selected.has(id)
 		if sel.visible:
-			sel.scale = Vector3(pulse, 0.12, pulse)
+			sel.scale = Vector3(pulse, 1.0, pulse)  # visual/r1 F1: el anillo ya es plano y pegado al suelo (antes un toro aplastado)

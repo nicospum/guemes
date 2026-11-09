@@ -183,57 +183,101 @@ func _text_w(text: String, font_px: int) -> float:
 	return _font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_px).x
 
 
-## Lo que ocupa en pantalla cada ficha con su número encima (para que los rótulos no la pisen).
-func _token_rects(cam: Camera3D) -> Array:
+## visual/r1 F1: la marca de cada agrupación en pantalla. Las fichas van a escala real (de lejos miden pocos píxeles), así que se las encuentra por una marca CHICA
+## (un punto de 14 px reales con filete oscuro, sobre la cabeza) y un rótulo de una línea al lado («1  Rodríguez»). Antes era un círculo de 26 px con el número,
+## 85 px por encima del pie de una figura estirada. Marca: celeste propia, hueso el arreo, rojo si la descubrieron, ámbar mientras el centinela cuenta; elegida =
+## aro de oro alrededor y rótulo en oro. Devuelve [{id, center, r, sel, color, text, label_pos, label_rect, body}] en coordenadas locales de la interfaz.
+const MARK_REAL_PX := 14.0
+const MARK_HEAD_M := 2.9  # la cabeza del jinete (la figura más alta) más un poco: la marca va justo encima de todas
+const LABEL_FONT := 13
+
+
+func token_marks() -> Array:
 	var out: Array = []
+	if ui == null:
+		return out
 	var rs: Variant = ui.call("render_state_cached")
 	if not (rs is Dictionary):
 		return out
-	var fig_h := 85.0 / maxf(float(ui.call("screen_scale")), 0.05)
-	for u in (rs as Dictionary).get("units", []):
-		var d := u as Dictionary
-		if str(d.get("stage", "")) == "exited":
-			continue
-		var base: Variant = _world_to_screen(cam, Vector2(float(d.get("x", 0.0)), float(d.get("z", 0.0))), 0.0)
-		if base is Vector2:
-			out.append(Rect2((base as Vector2) + Vector2(-26.0, -fig_h - 16.0), Vector2(52.0, fig_h + 26.0)))
-	return out
-
-
-## El número de cada agrupación (su tecla) junto a su ficha, encima de ella: lo dibuja la interfaz para que quede pegado a la figura y fuera del HUD.
-func _draw_token_labels(cam: Camera3D) -> void:
-	var rules: Variant = ui.get("rules")
-	var rs: Variant = ui.call("render_state_cached")
-	if not (rs is Dictionary):
-		return
 	var total_scale := maxf(float(ui.call("screen_scale")), 0.05)
-	var fig_h := 85.0 / total_scale  # las fichas miden de 64 a 85 px reales (pista de arte P2): el número va un poco más arriba de su cabeza
+	var r := MARK_REAL_PX * 0.5 / total_scale
 	var selected: Array = ui.get("selected")
 	var local_rect := Rect2(Vector2.ZERO, size)
 	var header_bottom := float(ui.call("layout_num", ["margin"], 12.0)) + float(ui.call("layout_num", ["header_h"], 46.0)) + 4.0
+	var hud: Variant = ui.get("hud")
+	var shorts: Dictionary = hud.get("short_by_id") if hud != null and hud.get("short_by_id") is Dictionary else {}
+	var pinned: Array = []  # las marcas de fichas fuera de cuadro, pegadas al borde: si dos caen juntas, la segunda se corre hacia arriba
 	for u in (rs as Dictionary).get("units", []):
 		var d := u as Dictionary
 		if str(d.get("stage", "")) == "exited":
 			continue
 		var id := str(d.get("id", ""))
-		var base: Variant = _world_to_screen(cam, Vector2(float(d.get("x", 0.0)), float(d.get("z", 0.0))), 0.0)
-		if not (base is Vector2):
+		var xz := Vector2(float(d.get("x", 0.0)), float(d.get("z", 0.0)))
+		var foot: Variant = _world_to_screen(null, xz, 0.0)
+		var head: Variant = _world_to_screen(null, xz, MARK_HEAD_M)
+		if not (foot is Vector2 and head is Vector2):
 			continue
-		var center: Vector2 = (base as Vector2) + Vector2(0.0, -fig_h)
-		center.y = maxf(center.y, header_bottom + 12.0)
-		if not local_rect.grow(-6.0).has_point(center):
-			center = Vector2(clampf(center.x, 14.0, size.x - 14.0), clampf(center.y, header_bottom + 12.0, size.y - 180.0))
-		var is_sel := selected.has(id)
-		var fill := Kit.NEUTRAL if id == "arreo" else Kit.PATRIOT
-		draw_circle(center, 13.0, Color(0.05, 0.07, 0.04, 0.92))
-		draw_arc(center, 13.0, 0.0, TAU, 28, Kit.GOLD if is_sel else fill, 3.0 if is_sel else 2.0, true)
-		var label := str(V.GROUPS.find(id) + 1)
-		if _font == null:
-			_font = ui.call("font")
-		var w := _font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x
-		draw_string(_font, center + Vector2(-w * 0.5, 6.0), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Kit.PAPER)
-		drawn_text_chars += label.length()
-		drawn_labels.append({"text": label, "rect": Rect2(center - Vector2(13.0, 13.0), Vector2(26.0, 26.0))})
+		var center: Vector2 = (head as Vector2) + Vector2(0.0, -r - 3.0)
+		var clamped := false
+		if center.y < header_bottom + r or not local_rect.grow(-6.0).has_point(center):
+			center = Vector2(clampf(center.x, r + 6.0, size.x - r - 6.0), clampf(center.y, header_bottom + r, size.y - 180.0))
+			clamped = true
+			for other in pinned:
+				if (other as Vector2).distance_to(center) < 2.0 * r + float(LABEL_FONT) + 4.0:
+					center.y -= 2.0 * r + float(LABEL_FONT) + 6.0
+			pinned.append(center)
+		var color := Kit.NEUTRAL if id == "arreo" else Kit.PATRIOT
+		if bool(d.get("detected", false)):
+			color = Kit.ENEMY
+		elif float(d.get("spotted_s", 0.0)) > 0.01:
+			color = Kit.AMBER
+		var key := str(V.GROUPS.find(id) + 1)
+		var text := "%s  %s" % [key, str(shorts.get(id, ""))] if str(shorts.get(id, "")) != "" else key
+		var w := _text_w(text, LABEL_FONT)
+		var label_pos := center + Vector2(r + 5.0, float(LABEL_FONT) * 0.36)
+		if label_pos.x + w > size.x - 6.0:  # pegada al borde derecho: el rótulo va a la izquierda de la marca
+			label_pos.x = center.x - r - 5.0 - w
+		var label_rect := Rect2(label_pos - Vector2(0.0, float(LABEL_FONT)), Vector2(w, float(LABEL_FONT) + 4.0))
+		var body := Rect2(center - Vector2(r + 3.0, r + 3.0), Vector2(2.0 * r + 6.0, maxf((foot as Vector2).y - center.y, 0.0) + r + 6.0)) if not clamped else Rect2(center - Vector2(r + 3.0, r + 3.0), Vector2(2.0 * r + 6.0, 2.0 * r + 6.0))
+		out.append({"id": id, "center": center, "r": r, "sel": selected.has(id), "color": color, "text": text, "label_pos": label_pos, "label_rect": label_rect, "body": body})
+	return out
+
+
+## Lo que ocupa en pantalla cada ficha con su marca y su rótulo (para que los rótulos de los frentes y los avisos no la pisen).
+func _token_rects(_cam: Camera3D) -> Array:
+	var out: Array = []
+	for m in token_marks():
+		out.append((m.body as Rect2).merge(m.label_rect as Rect2))
+	return out
+
+
+## visual/r1 F1: la marca chica y el rótulo de una línea de cada agrupación (lo dibuja la interfaz para que quede pegado a la figura y fuera del HUD). Los rótulos no
+## se pisan: van primero los de las elegidas y uno que caería sobre otro ya dibujado se omite (la marca siempre se dibuja).
+func _draw_token_labels(_cam: Camera3D) -> void:
+	var marks := token_marks()
+	marks.sort_custom(func(a, b): return bool(a.sel) and not bool(b.sel))
+	var placed: Array = []
+	var dots: Array = []
+	for m in marks:
+		dots.append(Rect2((m.center as Vector2) - Vector2(float(m.r), float(m.r)), Vector2(2.0 * float(m.r), 2.0 * float(m.r))))
+	for m in marks:
+		var c: Vector2 = m.center
+		var r := float(m.r)
+		if bool(m.sel):
+			draw_arc(c, r + 3.5, 0.0, TAU, 24, Kit.GOLD_LIGHT, 2.5, true)
+		draw_circle(c, r + 1.5, Color(0.05, 0.07, 0.04, 0.92))
+		draw_circle(c, r, m.color)
+	for m in marks:
+		var lr: Rect2 = m.label_rect
+		var hit := false
+		for o in placed + dots:  # ni sobre otro rótulo ni sobre la marca de otra ficha
+			if lr.grow(2.0).intersects(o as Rect2):
+				hit = true
+				break
+		if hit:
+			continue
+		_text(m.label_pos, str(m.text), LABEL_FONT, Kit.GOLD_LIGHT if bool(m.sel) else Kit.PAPER)
+		placed.append(lr)
 
 
 func _draw_orders(cam: Camera3D) -> void:

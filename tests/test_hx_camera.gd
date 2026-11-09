@@ -22,7 +22,8 @@ const SPAWN_IDS := ["spawn_rodriguez", "spawn_portal", "spawn_arias", "spawn_rec
 const TOWN_IDS := ["templo", "plaza", "bateria", "cuartel", "posta", "corral_posta"]
 const BUILDING_IDS := ["bateria", "cuartel", "posta", "torre_casa_cura", "torre_templo", "polvorin", "parque", "corral_posta"]
 const V02_MARGIN_PCT := 10.0  # QA_NIVEL2 v1.5, V02: los tres objetivos (y la zona de partida, si el preset la exige) a ≥ 10 % del borde; la herramienta de QA marca on_screen con 5 %
-const TOKEN_MIN_PX := 48.0  # V03
+const TOKEN_MIN_PX := 48.0  # V03 de R1 (visual/r1 F1 lo revirtió a propósito: las fichas van a escala real; se informa, no se exige)
+const R1_INITIAL_M := Vector2(150.0, 180.0)  # visual/r1 F2: el cuadro inicial a 150–180 m (plan aprobado por el usuario)
 const TOKEN_GOAL_PX := 64.0  # el pedido del usuario; las fichas son de tamaño fijo en píxeles (humahuaca_visual.json: tokens.*.min_px), así que se informa, no se exige acá
 const ZOOM_NOTCH := 0.86  # ui.camera.zoom_step
 
@@ -269,14 +270,22 @@ func _measure_initial(size: Vector2i) -> void:
 	entry["peor_margen_objetivos_pct"] = snappedf(worst_obj, 0.1)
 	entry["zona_partida_on_screen_5"] = float(margins.zona_partida) >= 5.0  # la regla de _initial_frame_report (on_screen a 5 %)
 	suite.check(bool(entry.fits_vista), "%s: initial_frame().fits de la vista es verdadero" % label)
-	suite.check(worst_obj >= V02_MARGIN_PCT, "%s: V02: los tres objetivos a ≥ %.0f %% del borde (peor %.1f %%: %s)" % [label, V02_MARGIN_PCT, worst_obj, str(margins)])
 	var fit: Dictionary = hx.cam.last_fit.duplicate(true) if "last_fit" in hx.cam else {}
+	# visual/r1 F2 (revierte V02 de R1 a propósito): la cámara arranca a 150–180 m; los objetivos que el preset pide como duros entran con su margen (lo mide el
+	# chequeo de los duros de abajo) y los demás se informan. V02 (los tres a 10 %) queda para una enmienda del QA (BACKLOG).
+	var dist_now := float(hx.qa_state().camera.dist)
+	var far_ok := R1_INITIAL_M.y + (20.0 if size.x < 1280 else 0.0)  # en la ventana mínima (1024 × 640) el HUD tapa más: se tolera hasta 200 m
+	suite.check(dist_now >= R1_INITIAL_M.x - 0.5 and dist_now <= far_ok + 0.5, "%s: visual/r1 F2: el cuadro inicial está a %.0f–%.0f m (%.1f m)" % [label, R1_INITIAL_M.x, far_ok, dist_now])
+	entry["v02_tres_objetivos_a_10_pct"] = worst_obj >= V02_MARGIN_PCT
 	var hard_ids: Array = []
 	var zona_hard := false
 	var units_hard := false  # el preset de la pista de arte (P2) exige las cinco partidas en el cuadro (P-006 del playtest)
+	var recon_hard := false  # visual/r1 F2: el preset cercano exige a los reconocedores (la primera partida que se usa)
 	for h in hx.cam.preset(str(fit.get("preset", ""))).get("hard", []):
 		if bool((h as Dictionary).get("units", false)):
 			units_hard = true
+		if str((h as Dictionary).get("unit", "")) == "reconocedores":
+			recon_hard = true
 		if (h as Dictionary).has("landmark"):
 			hard_ids.append(str(h.landmark))
 			if str(h.landmark) == "zona_partida":
@@ -306,7 +315,7 @@ func _measure_initial(size: Vector2i) -> void:
 	var soft_in: Array = fit.get("soft_in", [])
 	var soft_short: Array = []
 	for id in soft_in:
-		if float(units.get(str(id), -1.0)) < 2.0:
+		if V.GROUPS.has(str(id)) and float(units.get(str(id), -1.0)) < 2.0:  # visual/r1 F2: los blandos pueden ser hitos (el cuartel); acá se miden las partidas
 			soft_short.append(str(id))
 	suite.check(soft_short.is_empty(), "%s: las partidas que el encuadre da por incluidas (%s) quedan a ≥ 2 %% del borde (%s)" % [label, str(soft_in), str(soft_short)])
 	if units_hard:
@@ -315,14 +324,14 @@ func _measure_initial(size: Vector2i) -> void:
 			worst_unit = minf(worst_unit, float(units.get(id, -1000.0)))
 		suite.check(visible == V.GROUPS.size() and worst_unit >= 2.0, "%s: P-006: las cinco partidas entran en el primer cuadro, a ≥ 2 %% del borde (%d de 5; peor %.1f %%)" % [label, visible, worst_unit])
 	if size.x >= 1280:
-		suite.check(soft_in.has("reconocedores") or zona_hard or units_hard, "%s: los reconocedores (la partida que se usa primero) o la zona de partida entera quedan a la vista (incluidas: %s)" % [label, str(soft_in)])
+		suite.check(soft_in.has("reconocedores") or zona_hard or units_hard or recon_hard, "%s: los reconocedores (la partida que se usa primero) o la zona de partida entera quedan a la vista (incluidas: %s)" % [label, str(soft_in)])
 	# el templo y la plaza, a la vista
 	var town_pts := {}
 	for id in ["templo", "plaza"]:
 		var p: Vector2 = hx.landmark_pos(id)
 		town_pts[id] = snappedf(_margin_pct(_ground(p.x, p.y), size), 0.1)
 	entry["margen_pueblo_pct"] = town_pts
-	suite.check(float(town_pts.templo) >= 5.0 and float(town_pts.plaza) >= 5.0, "%s: el templo y la plaza quedan a la vista (≥ 5 %% del borde: templo %.1f %%, plaza %.1f %%)" % [label, float(town_pts.templo), float(town_pts.plaza)])
+	entry["templo_y_plaza_a_la_vista"] = float(town_pts.templo) >= 5.0 and float(town_pts.plaza) >= 5.0  # visual/r1 F2: se informa (de cerca el pueblo puede quedar al fondo o fuera)
 	# fichas (V03) y edificios
 	var tokens := _token_px()
 	entry["ficha_px"] = tokens
@@ -331,8 +340,7 @@ func _measure_initial(size: Vector2i) -> void:
 		lowest = minf(lowest, float(tokens[id]))
 	entry["ficha_min_px"] = snappedf(lowest, 0.1) if tokens.size() > 0 else 0.0
 	entry["ficha_objetivo_64px_cumplido"] = tokens.size() == V.GROUPS.size() and lowest >= TOKEN_GOAL_PX
-	if size == Vector2i(1280, 720):
-		suite.check(tokens.size() == V.GROUPS.size() and lowest >= TOKEN_MIN_PX, "%s: V03: las cinco fichas de pie miden ≥ %.0f px reales de alto con el zoom inicial (la más baja %.1f px)" % [label, TOKEN_MIN_PX, lowest])
+	entry["ficha_v03_48px_cumplido"] = tokens.size() == V.GROUPS.size() and lowest >= TOKEN_MIN_PX  # visual/r1 F1: se informa (escala real; las encuentra la marca de la interfaz)
 	entry["edificio_px"] = _building_px()
 	# metros por píxel en la plaza (vertical, con la profundidad de ese punto) y la fracción del cuadro que ocupan el pueblo y los tres objetivos
 	var plaza: Vector2 = hx.landmark_pos("plaza")
@@ -347,7 +355,7 @@ func _measure_initial(size: Vector2i) -> void:
 		frame_pts.append(hx.landmark_pos(id))
 	entry["objetivos_y_partidas"] = _hull_pct(frame_pts, size)
 	entry["ajuste"] = hx.cam.last_fit.duplicate(true) if "last_fit" in hx.cam else {}
-	suite.check(float(entry.pueblo.area_pct) > 1.0, "%s: el pueblo ocupa una fracción medible del cuadro (%.1f %%; caja %.0f %% × %.0f %%)" % [label, float(entry.pueblo.area_pct), float(entry.pueblo.ancho_pct), float(entry.pueblo.alto_pct)])
+	suite.check(float(entry.pueblo.area_pct) > 0.0, "%s: el pueblo ocupa una fracción medible del cuadro (%.1f %%; caja %.0f %% × %.0f %%)" % [label, float(entry.pueblo.area_pct), float(entry.pueblo.ancho_pct), float(entry.pueblo.alto_pct)])
 	entry["presets"] = await _measure_presets(size)
 	by_size[label] = entry
 
@@ -414,9 +422,10 @@ func _test_zoom(size: Vector2i) -> void:
 		d = maxf(d * ZOOM_NOTCH, min_m)
 		notches += 1
 	var zoom := {"inicial_m": snappedf(start, 0.1), "minimo_m": snappedf(min_m, 0.1), "maximo_m": snappedf(max_m, 0.1), "pasos_de_rueda_hasta_el_minimo": notches}
-	# el punto del suelo bajo el cursor no se mueve al acercar: cinco pasos de rueda sobre la plaza
-	var plaza: Vector2 = hx.landmark_pos("plaza")
-	var cursor := _cam().unproject_position(_ground(plaza.x, plaza.y))
+	# el punto del suelo bajo el cursor no se mueve al acercar: cinco pasos de rueda sobre los reconocedores (visual/r1 F2: con la cámara cerca la plaza puede quedar
+	# fuera del primer cuadro; los reconocedores siempre están, los exige el preset)
+	var recon_xz := _unit_pos("reconocedores")
+	var cursor := _cam().unproject_position(_ground(recon_xz.x, recon_xz.y))
 	var before: Variant = hx.ground_from_screen(cursor)
 	var worst := 0.0
 	for i in range(5):
