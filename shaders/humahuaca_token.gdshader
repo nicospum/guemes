@@ -1,5 +1,7 @@
 shader_type spatial;
-render_mode cull_back, specular_schlick_ggx;
+render_mode cull_disabled, specular_schlick_ggx;
+// visual/r1 F5: dos caras (antes cull_back). El poncho de las figuras de a pie de 1817 es una tela colgada de una sola capa: con cull_back, mirado por detrás o por
+// debajo se veía a través de él la camisa y el contorno de tinta. Las figuras cerradas del generador no cambian (su cara de atrás queda tapada por la de adelante).
 // Fichas y defensores del nivel «Humahuaca» (pista visual, P2): el color sale del color de vértice (sRGB de la paleta, como en el generador) con dos ayudas de
 // lectura que no dependen de la luz de la escena, porque una figura de poncho oscuro sobre el suelo mojado de noche se perdía (DIRECCION_DE_ARTE B3):
 //   · `self_light`: una parte del color se ve siempre (la ficha es información, no decorado), sin llegar a parecer pintada encima;

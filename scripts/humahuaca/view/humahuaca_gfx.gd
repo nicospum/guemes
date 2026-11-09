@@ -182,17 +182,20 @@ func _make_shader_materials() -> void:
 		token_mats[side[0]] = tm
 	# visual/r1 F4: el mismo material de ficha aliada para los GLB del caballo criollo y del jinete (color de vértice lineal), con el contorno de tinta como pasada
 	# extra (el casco inflado que el generador arma a mano: acá lo infla el material, también sobre la malla con esqueleto)
-	var glb := (token_mats["aliado"] as ShaderMaterial).duplicate() as ShaderMaterial
-	glb.set_shader_parameter("vertex_linear", 1.0)
-	if bool(qcfg.get("outlines", true)):
-		var hull := StandardMaterial3D.new()
-		hull.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		hull.albedo_color = pc("negro_textil")
-		hull.cull_mode = BaseMaterial3D.CULL_FRONT
-		hull.grow = true
-		hull.grow_amount = 0.031  # = hull_w × 1,4 de las figuras del generador (humahuaca_units.gd)
-		glb.next_pass = hull
-	token_mats["aliado_glb"] = glb
+	# visual/r1 F5: lo mismo para los defensores realistas de a pie (persona_realista_1817.glb): el material de ficha enemiga con color de vértice lineal y un contorno
+	# más grueso, como el casco de las figuras enemigas del generador (hull_w × 1,8)
+	for pair in [["aliado", "aliado_glb", 0.031], ["enemigo", "enemigo_glb", 0.04]]:  # 0,031 = hull_w × 1,4 de las figuras del generador (humahuaca_units.gd)
+		var glb := (token_mats[pair[0]] as ShaderMaterial).duplicate() as ShaderMaterial
+		glb.set_shader_parameter("vertex_linear", 1.0)
+		if bool(qcfg.get("outlines", true)):
+			var hull := StandardMaterial3D.new()
+			hull.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			hull.albedo_color = pc("negro_textil")
+			hull.cull_mode = BaseMaterial3D.CULL_FRONT
+			hull.grow = true
+			hull.grow_amount = float(pair[2])
+			glb.next_pass = hull
+		token_mats[pair[1]] = glb
 
 
 ## visual/r1 F5: arma (una sola vez por sesión) los dos arreglos de texturas del suelo: albedo (6 capas) y datos (normal 0-5, ORM 6-11, altura 12-17).
@@ -1323,8 +1326,9 @@ func circle(center: Vector2, radius: float, segments: int = 40) -> PackedVector2
 
 
 ## Un parche que sigue el relieve bajo el hito `node` (rectángulo `w × d` o, con `r` > 0, círculo), a `raise` m del suelo.
-func patch(node: Node3D, w: float, d: float, r: float, raise: float, material: Material) -> MeshInstance3D:
-	var cell := clampf(maxf(w, d) / 10.0, 2.0, 8.0)
+## visual/r1 F5: con `oval` el parche es la elipse inscripta en w × d, con celdas más finas (el piso del corral redondo de pirca).
+func patch(node: Node3D, w: float, d: float, r: float, raise: float, material: Material, oval: bool = false) -> MeshInstance3D:
+	var cell := clampf(maxf(w, d) / 10.0, 2.0, 8.0) if not oval else clampf(maxf(w, d) / 24.0, 0.6, 8.0)
 	var nx := maxi(int(ceil(w / cell)), 1)
 	var nz := maxi(int(ceil(d / cell)), 1)
 	var verts := PackedVector3Array()
@@ -1340,6 +1344,8 @@ func patch(node: Node3D, w: float, d: float, r: float, raise: float, material: M
 	for j in range(nz):
 		for i in range(nx):
 			if r > 0.0 and Vector2(-w * 0.5 + w * (float(i) + 0.5) / float(nx), -d * 0.5 + d * (float(j) + 0.5) / float(nz)).length() > r:
+				continue
+			if oval and Vector2(-1.0 + 2.0 * (float(i) + 0.5) / float(nx), -1.0 + 2.0 * (float(j) + 0.5) / float(nz)).length() > 1.0:
 				continue
 			var a := j * (nx + 1) + i
 			indices.append_array(PackedInt32Array([a, a + 1, a + nx + 1, a + 1, a + nx + 2, a + nx + 1]))

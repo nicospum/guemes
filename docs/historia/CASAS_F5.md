@@ -75,3 +75,24 @@ Todos los GLB nuevos usan las mismas convenciones que los que reemplazan (metros
 5. **Teja de lejos.** Con luz rasante la teja pardo-terracota puede leerse rojiza; si el QA la confunde con el rojo del enemigo en el Norte, bajar su saturación en `HEX`.
 6. **La paja de las ramadas** es una losa con franjas de color: de cerca (≤ 20 m) se ve lisa.
 7. **Fuentes.** PVR describe la arquitectura popular actual; CNM-AR es una ficha de una sola casa de Salta; UQ y la página de Yatasto no se cotejaron. Nada de esto prueba el aspecto de un edificio de 1806 o 1817: por eso todo el kit es razonado o diseño.
+
+## Integración en el nivel II (9-nov-2026, visual/r1 F5, sin commit)
+
+Lo que hace hoy el juego con el kit en Humahuaca (`data/humahuaca_visual.json: models`, `scripts/humahuaca/view/humahuaca_buildings.gd`). Las etiquetas de arriba no cambian: los tipos son razonados y las medidas, el reparto y las puertas con lumbre son diseño.
+
+| Clave | Modelo | Dónde |
+|---|---|---|
+| `casa_adobe` | `casa_torta_a` | núcleo, lotes de menos de 9,5 m de frente |
+| `casa_rancho`, `casa_galeria` | `casa_rancho_c`, `casa_galeria_a` | núcleo (variantes de los lotes chicos) |
+| `casa_adobe_grande` | `casa_torta_b` | núcleo (lotes chicos y grandes) |
+| `casa_patio` | `casa_patio_a` | núcleo, lotes de 9,5 m o más |
+| `casa_posta` | `casa_posta_a` | casa de posta contra el muro norte del patio (`_build_posta`) |
+| `capilla` | `casa_capilla_a` | el templo (`_build_landmark`, ajuste uniforme; la portada con lumbre va en la puerta del manifiesto) |
+| `tapia` | `casa_tapia_adobe_a` | módulos de 4 m de las tapias del terreno |
+| `pirca` | `casa_tapia_pirca_c` | anotada; no hay pirca en el nivel todavía |
+| `corral` | `casa_corral_pirca_a` | corral de la posta, con su piso de tierra pisoteada |
+
+- **Riesgo 1 (la caja incluye galerías, palenques y tapias de patio): resuelto con dos reglas.** (a) Cada lote del núcleo elige, entre las variantes de `models.nucleo`, la que menos se deforma (con la posición como desempate) y `house_fit` no la estira más de 1,2 veces en un sentido que en el otro, sin pasarse del lote; el frente queda sobre la calle. (b) La casa de posta va sin deformar, a la escala que le da el largo de su huella (0,9 a 1,15), con el fondo contra el muro norte: antes se la aplastaba a 6 m de fondo.
+- **Riesgo 2 (puertas):** la lumbre del núcleo, de la posta y de la capilla va en la puerta del manifiesto (`models.nucleo.puertas`), ya no en la de la casa procedural.
+- **Riesgo 4 (contraste medido):** V06 con `hx_qa_tour.gd --no-bot` a 1280 × 720 y `qa_imagen.py legible`: edificio–suelo 9,9 → 12,2 de noche y 9,3 → 12,9 al alba (piso 12; de noche varió de 12,1 a 12,6 entre corridas). Los tres pares son el polvorín, el parque de artillería y el corral; el kit sumó las tapias y la casa de posta más oscuras, y además el piso del patio de la posta pasó a un poco más claro (diseño) y el corral recuperó su piso de tierra. El corral de pirca sigue casi sin contraste en su par (≈ 2): la pirca sola no se lee desde 470 m.
+- Los `hx_*.glb` de la pista P6 quedan en la carpeta como respaldo (cambiar la ruta en `models` los vuelve a poner); si falta un archivo del kit, la vista usa el generador procedural.

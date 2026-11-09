@@ -22,6 +22,13 @@ extends RefCounted
 ## lineal: lo dibuja el mismo material de ficha (luz propia, borde de bando, modo albedo y curva de la hora) con `vertex_linear`. El jinete se recolorea a la
 ## paleta como la figura del generador (poncho = abrigo de la variante oscurecido, sombrero, pañuelo de acento): el granate del modelo no se lee como enemigo.
 ## Si los GLB faltan (o `units.horse.enabled` es falso), vuelve el jinete del generador. Mula y arrieros siguen siendo del generador (no hay mula nueva).
+## visual/r1 F5: las figuras de a pie dejan de ser los conos del generador y pasan a los modelos propios de 1817 (assets/models/persona_*.glb, tools/f5_personas.py:
+## 18 huesos, reposo, paso y carrera en el lugar; `units.a_pie` de humahuaca_visual.json): infantería propia (Portal, Arias y los de a pie de Rodríguez) y reconocedores
+## como paisanos de las milicias con carabina o tacuara, los conductores del arreo como arrieros y los defensores como infantes realistas. La jefa de cada formación es
+## el modelo con esqueleto, que anda por su velocidad real (como el caballo de F4); la tropa y los defensores, la versión liviana quieta en MultiMesh. Se retiñen por
+## pieza (cada pieza es una superficie con su rol: poncho, camisa, sombrero, pañuelo, chaqueta…) a la ropa de la variante, conservando la oclusión horneada, y se
+## dibujan con el material de ficha de color lineal (luz propia, borde de bando, modo albedo y curva de la hora). El jinete usa la tacuara suelta (arma_tacuara.glb)
+## en la mano. Si faltan los GLB (o `units.a_pie.enabled` es falso), vuelven las figuras del generador, que queda como respaldo. La mula sigue siendo del generador.
 
 const V = preload("res://scripts/humahuaca/humahuaca_vocab.gd")
 const Gen = preload("res://scripts/humahuaca/view/humahuaca_gen.gd")
@@ -54,7 +61,19 @@ const HORSE_DEFAULTS := {"enabled": true, "dir": "assets/models", "horse": "caba
 	"idle_below_mps": 0.25, "gaits": [{"anim": "walk", "natural_mps": 1.6, "up_to_mps": 2.4}, {"anim": "trot", "natural_mps": 3.3, "up_to_mps": 6.0}, {"anim": "gallop", "natural_mps": 7.0, "up_to_mps": 1000.0}],
 	"hysteresis_mps": 0.2, "speed_scale_min": 0.6, "speed_scale_max": 2.4, "blend_s": 0.3, "sample_s": 0.25}
 ## visual/r1 F4: tonos de referencia (lineales) del jinete de 1817 que se recolorean: el granate del poncho (lana) y del pañuelo (lino), y el sombrero gris oscuro.
-const RIDER_REF := {"poncho_r": 0.31, "panuelo_r": 0.3373, "sombrero_l": 0.019, "sombrero_y_m": 0.95}
+## visual/r1 F5: el sombrero del jinete nuevo va de 0,75 a 0,88 m sobre el asiento (manifiesto de personas): el corte baja de 0,95 a 0,72; además se lo reconoce por su
+## pieza («sombrero»), y el corte por altura queda solo para un GLB sin roles.
+const RIDER_REF := {"poncho_r": 0.31, "panuelo_r": 0.3373, "sombrero_l": 0.019, "sombrero_y_m": 0.72}
+## visual/r1 F5: `units.a_pie` de humahuaca_visual.json si falta (diseño). El paso natural y la carrera salen del manifiesto de las figuras (design_mps).
+const FOOT_DEFAULTS := {"enabled": true, "dir": "assets/models", "full": "%s.glb", "lod": "%s_lod.glb",
+	"modelos": {"tacuara": "persona_gaucho_1817", "carabina": "persona_gaucho_1817_carabina", "arriero": "persona_arriero_1817", "realista": "persona_realista_1817"},
+	"por_figura": {"infante": "carabina", "a_pie": "tacuara", "arriero": "arriero", "infante_fusil": "carabina", "infante_banderin": "carabina", "reconocedor_de_pie": "tacuara", "reconocedor_2": "carabina"},
+	"defensores": {"centinela": "realista", "guardia": "realista", "fusilero": "realista", "refuerzo": "realista", "artillero": "realista", "mensajero": "arriero"},
+	"ropa_realista": {"chaqueta": "lana_natural", "pantalon": "lana_parda", "vueltas": "borgona_hipotetica", "manta": "lana_parda", "sombrero": "negro_textil"},
+	"ropa_mensajero": {"chaqueta": "lana_parda", "poncho": "lana_parda", "sombrero": "lana_parda", "panuelo": "borgona_hipotetica"},
+	"idle_below_mps": 0.25, "gaits": [{"anim": "walk", "natural_mps": 1.15, "up_to_mps": 2.2}, {"anim": "run", "natural_mps": 3.2, "up_to_mps": 1000.0}],
+	"hysteresis_mps": 0.2, "speed_scale_min": 0.6, "speed_scale_max": 1.8, "blend_s": 0.25, "sample_s": 0.25,
+	"lanza": "arma_tacuara.glb", "lanza_agarre_m": [0.405, 0.22, -0.02], "lanza_inclinacion_deg": 8.0}
 const ENEMY_ARCHETYPE :={"centinela": "realista_1817", "guardia": "realista_1817", "artillero": "artillero", "fusilero": "realista_1817", "mensajero": "poncho_sombrero", "refuerzo": "realista_1817"}
 
 var gfx
@@ -73,6 +92,9 @@ var _glb: Dictionary = {}  ## visual/r1 F4: escenas y mallas de los GLB del caba
 var _troop_meshes: Dictionary = {}  ## visual/r1 F4: «pelaje|variante» → malla unida caballo + jinete de tropa
 var _rider_meshes: Dictionary = {}  ## visual/r1 F4: jinete recoloreado por variante
 var _pending_horse: Dictionary = {}  ## visual/r1 F4: el caballo de la jefa recién armado (build_tokens lo guarda en su ficha)
+var _pending_foot: Dictionary = {}  ## visual/r1 F5: las figuras de a pie con esqueleto de la jefa recién armadas (build_tokens las guarda en su ficha)
+var _persona_meshes: Dictionary = {}  ## visual/r1 F5: figura de a pie liviana retinteada (modelo|papel|ropa|material) → malla unida
+var _skinned_copies: Dictionary = {}  ## visual/r1 F5: malla con esqueleto retinteada (malla|ropa) → copia
 
 
 func setup(gfx_ref) -> void:
@@ -98,6 +120,7 @@ func build_tokens(root_tokens: Node3D, root_labels: Node3D) -> void:
 		root.visible = false
 		root_tokens.add_child(root)
 		_pending_horse = {}
+		_pending_foot = {}
 		var dims := _token_parts(root, str(spec.get("shape", "infante_fusil")), spec, variants, index)
 		var base_h: float = dims.x
 		var form := _build_formation(root, id, spec, variants, index, dims.y)  # visual/r1 F3
@@ -141,6 +164,9 @@ func build_tokens(root_tokens: Node3D, root_labels: Node3D) -> void:
 		tokens[id] = {"root": root, "base_h": base_h, "ring": ring, "edge": edge, "ring_color": ring_color, "selection": selection, "alert": alert, "alert_max": 0.0,
 			"ring_at": Vector3(INF, INF, INF), "ring_r": ring_r, "formation": form.batches, "strength_f": 1.0, "far": false, "moved_ms": -100000, "stepping": false}
 		formation_report[id]["radio_anillo_m"] = snappedf(ring_r, 0.01)
+		if not _pending_foot.is_empty():  # visual/r1 F5: la jefa de a pie es el modelo con esqueleto y andares
+			tokens[id]["foot"] = _pending_foot
+			formation_report[id]["figura_a_pie"] = str(_pending_foot.get("modelos", ""))
 		if not _pending_horse.is_empty():  # visual/r1 F4: la jefa va en el caballo criollo con andares
 			tokens[id]["horse"] = _pending_horse
 			formation_report[id]["caballo"] = "criollo, pelaje %s; tropa: %s" % [str(hcfg("leader_coat")), ", ".join(PackedStringArray(_troop_coats_of(id)))]
@@ -167,15 +193,32 @@ func _token_parts(root: Node3D, shape: String, spec: Dictionary, variants: Array
 				return _leader_horse(root, v)
 			parts = gen.rider(v, hw)
 		"infante_fusil":
-			parts = gen.figure("camisa_gorra", _variant_of(spec, variants, index, body if body in ["lino_crudo", "lana_natural"] else "lino_crudo"), "de_pie", hw)
+			var shirt := body if body in ["lino_crudo", "lana_natural"] else "lino_crudo"
+			if _foot_model(shape) != "":  # visual/r1 F5: el paisano de 1817 con carabina, con esqueleto y andares
+				return _foot_token(root, [[_foot_model(shape), "paisano", _variant_of(spec, variants, index, shirt), Transform3D.IDENTITY]])
+			parts = gen.figure("camisa_gorra", _variant_of(spec, variants, index, shirt), "de_pie", hw)
 		"infante_banderin":
+			if _foot_model(shape) != "":  # visual/r1 F5: ídem, con el banderín de mando (marcador de interfaz) al lado
+				_add_pennant(root, str(spec.get("accent_color", "celeste_produccion")), vmat)
+				return _foot_token(root, [[_foot_model(shape), "paisano", _variant_of(spec, variants, index, "lana_natural"), Transform3D.IDENTITY]])
 			parts = gen.figure("camisa_gorra", _variant_of(spec, variants, index, "lana_natural"), "de_pie", hw)
 			_add_pennant(root, str(spec.get("accent_color", "celeste_produccion")), vmat)
 		"agachados":
+			if _foot_model("reconocedor_de_pie") != "" and _foot_model("reconocedor_2") != "":  # visual/r1 F5: los dos baqueanos, de pie (no hay pose agachada en el modelo)
+				var pair: Array = []
+				for k in range(2):
+					var v: Dictionary = _variant_of(spec, variants, index + k + 1, "")
+					v["abrigo"] = "lana_natural" if k == 0 else body
+					v["sombrero"] = "madera_oscura"
+					pair.append([_foot_model("reconocedor_de_pie" if k == 0 else "reconocedor_2"), "paisano", v,
+						Transform3D(Basis(Vector3.UP, deg_to_rad(-12.0 + 30.0 * float(k))), Vector3(-0.75 + 1.5 * float(k), 0.0, -0.6 * float(k)))])
+				return _foot_token(root, pair)
 			parts = _crouched_pair(body, spec, variants, index, hw)
 		"mula_cargada":
 			parts = gen.mule(hw)
 		_:
+			if _foot_model("a_pie") != "":
+				return _foot_token(root, [[_foot_model("a_pie"), "paisano", _variant_of(spec, variants, index, ""), Transform3D.IDENTITY]])
 			parts = gen.figure("poncho_sombrero", _variant_of(spec, variants, index, ""), "de_pie", hw)
 	var lo := Vector3(1.0e9, 1.0e9, 1.0e9)
 	var hi := Vector3(-1.0e9, -1.0e9, -1.0e9)
@@ -423,10 +466,14 @@ func _formation_mesh(type: String, spec: Dictionary, variants: Array, vi: int) -
 		"mula":
 			parts = gen.mule(hw)
 		"infante":
+			if _foot_model(type) != "":  # visual/r1 F5: el paisano con carabina, versión liviana quieta
+				return _persona_mesh(_foot_model(type), "paisano", _variant_of(spec, variants, vi, ""), true, gfx.token_mat("aliado_glb"))
 			parts = gen.figure("camisa_gorra", _variant_of(spec, variants, vi, ""), "de_pie", hw)
 		_:  # a pie y arrieros: poncho y sombrero
 			var v2: Dictionary = gen.variant_for(vi, variants).duplicate()
 			v2["acento"] = ""
+			if _foot_model(type) != "":  # visual/r1 F5: el paisano con tacuara (a pie) o el arriero (arreo)
+				return _persona_mesh(_foot_model(type), "arriero" if type == "arriero" else "paisano", v2, true, gfx.token_mat("aliado_glb"))
 			parts = gen.figure("poncho_sombrero", v2, "de_pie", hw)
 	return _merged(parts, gfx.token_mat("aliado"))
 
@@ -571,7 +618,11 @@ func _rider_color(c: Color, at: Vector3, mname: String, targets: Dictionary) -> 
 	var garnet := c.r > 0.03 and c.r > c.g * 2.5 and c.r > c.b * 2.5
 	var t: Color
 	var f := 1.0
-	if mname.ends_with("wool") and garnet:
+	var role := _role_of(mname)  # visual/r1 F5: el jinete nuevo trae una pieza por rol («F4 | sombrero | wool»)
+	if role == "sombrero" or (role == "" and mname.ends_with("wool") and not garnet and at.y > float(RIDER_REF.sombrero_y_m)):
+		t = targets.sombrero
+		f = clampf((c.r + c.g + c.b) / 3.0 / float(RIDER_REF.sombrero_l), 0.3, 1.3)
+	elif mname.ends_with("wool") and garnet:
 		t = targets.poncho
 		f = clampf(c.r / float(RIDER_REF.poncho_r), 0.2, 1.15)
 	elif mname.ends_with("linen") and garnet:
@@ -589,6 +640,14 @@ func _rider_color(c: Color, at: Vector3, mname: String, targets: Dictionary) -> 
 ## reconocedores y la del jinete del generador (que la llevaba terciada): diseño. Sube la silueta a ≈ 3,5 m sin ensanchar la huella, y la distingue de la pareja de
 ## reconocedores, que medía casi lo mismo en planta y en alto (TR-098). El generador da color sRGB: se lo pasa a lineal como el de los GLB.
 func _append_lance(xf: Transform3D, into: Dictionary) -> void:
+	# visual/r1 F5: la tacuara del modelo (arma_tacuara.glb: origen en el agarre, la punta hacia +Y) en la mano derecha del jinete nuevo, que está a (0,405; 0,22;
+	# −0,02) m del asiento (manifiesto de personas, hand_R_seat_godot), con la punta un poco hacia adelante. Si falta el GLB, la caña del generador de antes.
+	var lance: Mesh = _scene_mesh("res://%s/%s" % [str(pcfg("dir")), str(pcfg("lanza"))])
+	if lance != null:
+		var g: Variant = pcfg("lanza_agarre_m")
+		var grip := Vector3(float(g[0]), float(g[1]), float(g[2])) if g is Array and (g as Array).size() == 3 else Vector3(0.405, 0.22, -0.02)
+		_append_glb(lance, xf * Transform3D(Basis(Vector3.RIGHT, -deg_to_rad(float(pcfg("lanza_inclinacion_deg")))), grip), {}, into)
+		return
 	var mb = gen.builder()
 	mb.beam(Vector3(0.47, -0.62, 0.16), Vector3(0.5, 1.78, -0.2), 0.045, gfx.pc("madera_oscura", 1.15))
 	mb.cyl_between(Vector3(0.5, 1.78, -0.2), Vector3(0.505, 2.0, -0.235), 0.055, 0.0, 6, gfx.pc("hierro", 1.3))
@@ -708,17 +767,31 @@ func update_gait(id: String, now_s: float) -> void:
 	var h: Dictionary = info.get("horse", {})
 	if h.is_empty() or h.player == null:
 		return
-	var player: AnimationPlayer = h.player
+	_drive_gait(info, h, [h.player], now_s, hcfg)
+
+
+## visual/r1 F5: lo mismo para la jefa de a pie (las figuras con esqueleto de la ficha): reposo, paso (natural 1,15 m/s) o carrera (3,2 m/s) con `units.a_pie`.
+func update_foot_gait(id: String, now_s: float) -> void:
+	var info: Dictionary = tokens.get(id, {})
+	var h: Dictionary = info.get("foot", {})
+	if h.is_empty() or (h.get("players", []) as Array).is_empty():
+		return
+	_drive_gait(info, h, h.players, now_s, pcfg)
+
+
+## El andar de las animaciones `players` de una ficha (caballo o figuras de a pie) según su velocidad sobre el suelo, con los cortes y cadencias de `cfg` (hcfg o pcfg).
+func _drive_gait(info: Dictionary, h: Dictionary, players: Array, now_s: float, cfg: Callable) -> void:
 	var root: Node3D = info.root
 	var live := root.visible and not bool(info.far)
-	if player.active != live:
-		player.active = live
+	for p in players:
+		if (p as AnimationPlayer).active != live:
+			(p as AnimationPlayer).active = live
 	if float(h.t) < 0.0 or (h.at as Vector3).x == INF:
 		h["t"] = now_s
 		h["at"] = root.position
 		return
 	var dt := now_s - float(h.t)
-	if dt < float(hcfg("sample_s")):
+	if dt < float(cfg.call("sample_s")):
 		return
 	var d := Vector2(root.position.x - (h.at as Vector3).x, root.position.z - (h.at as Vector3).z).length()
 	h["t"] = now_s
@@ -731,12 +804,12 @@ func update_gait(id: String, now_s: float) -> void:
 	if speed < 0.08:
 		speed = 0.0
 		h["speed"] = 0.0
-	var gaits: Array = hcfg("gaits")
-	var hyst := float(hcfg("hysteresis_mps"))
+	var gaits: Array = cfg.call("gaits")
+	var hyst := float(cfg.call("hysteresis_mps"))
 	var cur := str(h.gait)
 	var cur_i := -1
 	var want_i := -1  # -1 = reposo
-	if speed >= float(hcfg("idle_below_mps")):
+	if speed >= float(cfg.call("idle_below_mps")):
 		want_i = gaits.size() - 1
 		for i in range(gaits.size()):
 			if str((gaits[i] as Dictionary).anim) == cur:
@@ -749,17 +822,20 @@ func update_gait(id: String, now_s: float) -> void:
 				cur_i = i
 	if want_i != cur_i:  # histéresis: cerca del corte entre los dos andares se queda el que ya corre
 		var lo_i := mini(want_i, cur_i)
-		var cut := float(hcfg("idle_below_mps")) if lo_i < 0 else float((gaits[lo_i] as Dictionary).up_to_mps)
+		var cut := float(cfg.call("idle_below_mps")) if lo_i < 0 else float((gaits[lo_i] as Dictionary).up_to_mps)
 		if absf(speed - cut) < hyst * 0.5 and absi(want_i - cur_i) == 1:
 			want_i = cur_i
 	var want := "idle" if want_i < 0 else str((gaits[want_i] as Dictionary).anim)
 	var natural := 1.0 if want_i < 0 else float((gaits[want_i] as Dictionary).natural_mps)
-	var sc := 1.0 if want == "idle" else clampf(speed / maxf(natural, 0.01), float(hcfg("speed_scale_min")), float(hcfg("speed_scale_max")))
+	var sc := 1.0 if want == "idle" else clampf(speed / maxf(natural, 0.01), float(cfg.call("speed_scale_min")), float(cfg.call("speed_scale_max")))
 	h["scale"] = sc
-	if want != cur and player.has_animation(want):
-		player.play(want, float(hcfg("blend_s")))
+	if want != cur:
+		for p in players:
+			if (p as AnimationPlayer).has_animation(want):
+				(p as AnimationPlayer).play(want, float(cfg.call("blend_s")))
 		h["gait"] = want
-	player.speed_scale = sc
+	for p in players:
+		(p as AnimationPlayer).speed_scale = sc
 
 
 ## Los pelajes de la tropa montada de `id`, uno por figura (para el informe).
@@ -778,6 +854,237 @@ func horse_gait(id: String) -> Dictionary:
 	if h.is_empty():
 		return {}
 	return {"andar": str(h.gait), "velocidad_mps": snappedf(float(h.speed), 0.01), "cadencia": snappedf(float(h.scale), 0.01), "activo": h.player != null and (h.player as AnimationPlayer).active}
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# visual/r1 F5: figuras de a pie de los modelos propios (assets/models/persona_*.glb, manifiesto f5_personas_manifest.json)
+
+## Una medida de `units.a_pie` (humahuaca_visual.json) o su valor por defecto.
+func pcfg(key: String) -> Variant:
+	var cfg: Variant = (gfx.data.get("units", {}) as Dictionary).get("a_pie", {}) if gfx != null else {}
+	if cfg is Dictionary and (cfg as Dictionary).has(key):
+		return (cfg as Dictionary)[key]
+	return FOOT_DEFAULTS.get(key)
+
+
+## El nombre base del modelo de a pie (sin «.glb») que usa el papel `role` de la tabla `table` (`por_figura` o `defensores`), o "" si la figura de a pie está apagada
+## o falta su GLB completo o su LOD: quien lo pide vuelve a la figura del generador.
+func _foot_model(role: String, table: String = "por_figura") -> String:
+	if not bool(pcfg("enabled")):
+		return ""
+	var t: Variant = pcfg(table)
+	var models: Variant = pcfg("modelos")
+	var kind := str((t as Dictionary).get(role, "")) if t is Dictionary else ""
+	var base := str((models as Dictionary).get(kind, "")) if models is Dictionary and kind != "" else ""
+	if base == "":
+		return ""
+	if _scene_mesh(_foot_path(base, false)) == null or _scene_mesh(_foot_path(base, true)) == null:
+		return ""
+	return base
+
+
+func _foot_path(base: String, lod: bool) -> String:
+	return "res://%s/%s" % [str(pcfg("dir")), str(pcfg("lod" if lod else "full")) % base]
+
+
+## La escena de un GLB por ruta completa (cargada una vez; null si no está).
+func _scene_at(path: String) -> PackedScene:
+	if not _glb.has(path):
+		_glb[path] = load(path) as PackedScene if ResourceLoader.exists(path) else null
+	return _glb[path]
+
+
+## La malla (la primera) de un GLB por ruta completa, o null.
+func _scene_mesh(path: String) -> Mesh:
+	var key := "malla|" + path
+	if not _glb.has(key):
+		var scene := _scene_at(path)
+		var mesh: Mesh = null
+		if scene != null:
+			var n := scene.instantiate()
+			for mi in n.find_children("*", "MeshInstance3D", true, false):
+				mesh = (mi as MeshInstance3D).mesh
+				break
+			n.free()
+		_glb[key] = mesh
+	return _glb[key]
+
+
+## El rol de una superficie de los modelos F4/F5 por el nombre de su material («F5 | poncho | wool» → «poncho»); "" si el nombre no trae roles.
+func _role_of(mname: String) -> String:
+	var bits := mname.split("|")
+	return bits[1].strip_edges() if bits.size() >= 3 else ""
+
+
+## Los colores (lineales) por pieza de una figura de a pie de papel `kind` con la ropa `v` (la de las variantes de `units.variants`): el paisano lleva el poncho del
+## abrigo, la camisa, el sombrero oscurecido y, si la variante trae acento, el pañuelo; el arriero, la chaqueta del abrigo y el poncho arrollado más oscuro; el realista y
+## el mensajero, la ropa fija de `units.a_pie` (las vueltas borgoña son el código de color del enemigo). Lo que no figura queda como en el modelo.
+func _foot_targets(kind: String, v: Dictionary) -> Dictionary:
+	var out := {}
+	if kind == "realista" or kind == "mensajero":
+		var ropa: Variant = pcfg("ropa_realista" if kind == "realista" else "ropa_mensajero")
+		if ropa is Dictionary:
+			for role in ropa:
+				out[str(role)] = gfx.pc(str(ropa[role])).srgb_to_linear()
+		return out
+	var coat: Color = gfx.pc(str(v.get("abrigo", "lana_parda")))
+	if kind == "arriero":
+		out["chaqueta"] = coat.srgb_to_linear()
+		out["poncho"] = coat.darkened(0.3).srgb_to_linear()
+	else:
+		out["poncho"] = coat.srgb_to_linear()
+		out["camisa"] = gfx.pc(str(v.get("camisa", "lino_crudo"))).srgb_to_linear()
+	out["sombrero"] = gfx.pc(str(v.get("sombrero", "madera_oscura"))).darkened(0.2).srgb_to_linear()
+	if str(v.get("acento", "")) != "":
+		out["panuelo"] = gfx.pc(str(v.acento)).srgb_to_linear()
+	return out
+
+
+## Los colores de una superficie de rol con el tinte `t`: color nuevo = tinte × (color / color base del rol), canal por canal (la convención del manifiesto de personas;
+## conserva la oclusión horneada y las guardas y franjas del poncho). El color base es la mediana de la superficie (la guarda y la franja son minoría).
+func _retint(cols: PackedColorArray, t: Color) -> PackedColorArray:
+	if cols.is_empty():
+		return cols
+	var rs := PackedFloat32Array()
+	var gs := PackedFloat32Array()
+	var bs := PackedFloat32Array()
+	for c in cols:
+		rs.append(c.r)
+		gs.append(c.g)
+		bs.append(c.b)
+	rs.sort()
+	gs.sort()
+	bs.sort()
+	var mid := cols.size() / 2
+	var base := Color(maxf(rs[mid], 0.004), maxf(gs[mid], 0.004), maxf(bs[mid], 0.004))
+	var out := PackedColorArray()
+	out.resize(cols.size())
+	for k in range(cols.size()):
+		var c: Color = cols[k]
+		out[k] = Color(t.r * clampf(c.r / base.r, 0.25, 1.6), t.g * clampf(c.g / base.g, 0.25, 1.6), t.b * clampf(c.b / base.b, 0.25, 1.6), c.a)
+	return out
+
+
+## Una figura de a pie liviana (el LOD quieto si `lod`) del modelo `base`, retinteada para el papel `kind` con la ropa `v`, en UNA superficie con el material `mat`
+## (lo que dibuja el MultiMesh de la tropa o el defensor): sin el ancla de 2 mm del exportador.
+func _persona_mesh(base: String, kind: String, v: Dictionary, lod: bool, mat: Material) -> ArrayMesh:
+	var key := "%s|%s|%s|%s|%s|%s|%s|%d" % [base, kind, str(v.get("abrigo", "")), str(v.get("camisa", "")), str(v.get("sombrero", "")), str(v.get("acento", "")), str(lod), mat.get_instance_id()]
+	if _persona_meshes.has(key):
+		return _persona_meshes[key]
+	var targets := _foot_targets(kind, v)
+	var into := _new_arrays()
+	var scene := _scene_at(_foot_path(base, lod))
+	var n := scene.instantiate()
+	for mi_node in n.find_children("*", "MeshInstance3D", true, false):
+		var mi := mi_node as MeshInstance3D
+		var xf := Transform3D.IDENTITY
+		var cur: Node = mi
+		while cur != null and cur != n:
+			if cur is Node3D:
+				xf = (cur as Node3D).transform * xf
+			cur = cur.get_parent()
+		var mesh := mi.mesh
+		for si in range(mesh.get_surface_count()):
+			var smat := mesh.surface_get_material(si)
+			var mname := str(smat.resource_name) if smat != null else ""
+			if mname.ends_with("ancla"):
+				continue
+			var a := mesh.surface_get_arrays(si)
+			var verts: PackedVector3Array = a[Mesh.ARRAY_VERTEX]
+			var normals: PackedVector3Array = a[Mesh.ARRAY_NORMAL] if a[Mesh.ARRAY_NORMAL] is PackedVector3Array else PackedVector3Array()
+			var cols: PackedColorArray = a[Mesh.ARRAY_COLOR] if a[Mesh.ARRAY_COLOR] is PackedColorArray else PackedColorArray()
+			var role := _role_of(mname)
+			if targets.has(role):
+				cols = _retint(cols, targets[role])
+			var first: int = (into.v as PackedVector3Array).size()
+			for k in range(verts.size()):
+				into.v.append(xf * verts[k])
+				into.n.append((xf.basis * normals[k]).normalized() if k < normals.size() else Vector3.UP)
+				into.c.append(cols[k] if k < cols.size() else Color(0.2, 0.2, 0.2))
+			var idx: PackedInt32Array = a[Mesh.ARRAY_INDEX] if a[Mesh.ARRAY_INDEX] is PackedInt32Array else PackedInt32Array()
+			if idx.is_empty():
+				for k in range(verts.size()):
+					into.i.append(first + k)
+			else:
+				for k in idx:
+					into.i.append(first + k)
+	n.free()
+	var out := _arrays_mesh(into, mat)
+	_persona_meshes[key] = out
+	return out
+
+
+## Una copia de la malla con esqueleto `mesh` con los colores de cada pieza retinteados a `targets` (mismos huesos y pesos: la sigue moviendo el esqueleto del GLB).
+func _skinned_copy(mesh: Mesh, targets: Dictionary, key: String) -> Mesh:
+	if targets.is_empty():
+		return mesh
+	var ck := "%d|%s" % [mesh.get_instance_id(), key]
+	if _skinned_copies.has(ck):
+		return _skinned_copies[ck]
+	var out := ArrayMesh.new()
+	for si in range(mesh.get_surface_count()):
+		var a := mesh.surface_get_arrays(si)
+		var smat := mesh.surface_get_material(si)
+		var role := _role_of(str(smat.resource_name) if smat != null else "")
+		if targets.has(role) and a[Mesh.ARRAY_COLOR] is PackedColorArray:
+			a[Mesh.ARRAY_COLOR] = _retint(a[Mesh.ARRAY_COLOR], targets[role])
+		out.add_surface_from_arrays(mesh.surface_get_primitive_type(si), a, [], {}, mesh.surface_get_format(si) & Mesh.ARRAY_FLAG_USE_8_BONE_WEIGHTS)
+		out.surface_set_material(si, smat)
+	_skinned_copies[ck] = out
+	return out
+
+
+## La figura jefa de a pie de una ficha: cada entrada de `list` = [modelo base, papel, ropa, transformación] es una figura con esqueleto (el GLB completo) retinteada,
+## con el material de ficha de color lineal y en reposo (cada una con la animación corrida, así la pareja de reconocedores no respira a la par). Guarda en
+## `_pending_foot` sus AnimationPlayer (build_tokens los pasa a la ficha y animate los mueve por la velocidad). Devuelve (alto nominal, radio del anillo) como _token_parts.
+func _foot_token(root: Node3D, list: Array) -> Vector2:
+	var mat: Material = gfx.token_mat("aliado_glb")
+	var lo := Vector3(1.0e9, 1.0e9, 1.0e9)
+	var hi := Vector3(-1.0e9, -1.0e9, -1.0e9)
+	var triangles := 0
+	var players: Array = []
+	var names: Array = []
+	for k in range(list.size()):
+		var entry: Array = list[k]
+		var v: Dictionary = entry[2]
+		var targets := _foot_targets(str(entry[1]), v)
+		var fig := _scene_at(_foot_path(str(entry[0]), false)).instantiate() as Node3D
+		fig.name = "figura" if list.size() == 1 else "figura_%d" % k
+		fig.transform = entry[3]
+		root.add_child(fig)
+		names.append(str(entry[0]))
+		var tkey := "%s|%s|%s|%s|%s" % [str(entry[1]), str(v.get("abrigo", "")), str(v.get("camisa", "")), str(v.get("sombrero", "")), str(v.get("acento", ""))]
+		for mi in fig.find_children("*", "MeshInstance3D", true, false):
+			var m := mi as MeshInstance3D
+			m.mesh = _skinned_copy(m.mesh, targets, tkey)
+			m.material_override = mat
+			m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			var box: AABB = (entry[3] as Transform3D) * m.mesh.get_aabb()
+			lo = Vector3(minf(lo.x, box.position.x), minf(lo.y, box.position.y), minf(lo.z, box.position.z))
+			hi = Vector3(maxf(hi.x, box.end.x), maxf(hi.y, box.end.y), maxf(hi.z, box.end.z))
+			for si in range(m.mesh.get_surface_count()):
+				triangles += m.mesh.surface_get_array_index_len(si) / 3
+		var found := fig.find_children("*", "AnimationPlayer", true, false)
+		if not found.is_empty():
+			var player := found[0] as AnimationPlayer
+			if player.has_animation("idle"):
+				player.play("idle")
+				player.seek(1.3 * float(k + 1), true)
+			players.append(player)
+	_pending_foot = {"players": players, "gait": "idle", "speed": 0.0, "at": Vector3(INF, INF, INF), "t": -1.0, "scale": 1.0, "modelos": ", ".join(PackedStringArray(names))}
+	part_counts[str(root.name)] = {"partes": list.size(), "triangulos": triangles}
+	var radius := maxf(maxf(absf(lo.x), absf(hi.x)), maxf(absf(lo.z), absf(hi.z)))
+	return Vector2(hi.y, radius + 0.35)
+
+
+## {andar, velocidad m/s, cadencia} de la jefa de a pie de `id` (vacío si no tiene): para las pruebas y el informe.
+func foot_gait(id: String) -> Dictionary:
+	var h: Dictionary = (tokens.get(id, {}) as Dictionary).get("foot", {})
+	if h.is_empty():
+		return {}
+	var players: Array = h.get("players", [])
+	return {"andar": str(h.gait), "velocidad_mps": snappedf(float(h.speed), 0.01), "cadencia": snappedf(float(h.scale), 0.01), "figuras": players.size(),
+		"activo": not players.is_empty() and (players[0] as AnimationPlayer).active}
 
 
 ## El radio del anillo de una agrupación (encierra su formación), en metros: lo usa el picking de la vista.
@@ -839,6 +1146,8 @@ func animate(time_s: float) -> void:
 		var info: Dictionary = tokens[id]
 		if info.has("horse"):
 			update_gait(str(id), float(Time.get_ticks_usec()) / 1.0e6)  # visual/r1 F4: el andar de la jefa por su velocidad real
+		if info.has("foot"):
+			update_foot_gait(str(id), float(Time.get_ticks_usec()) / 1.0e6)  # visual/r1 F5: ídem, la jefa de a pie
 		var stepping := now - int(info.moved_ms) < 300 and not bool(info.far) and (info.root as Node3D).visible
 		if not stepping and not bool(info.stepping):
 			continue
@@ -966,6 +1275,12 @@ func register_scaled(node: Node3D, category: String, base: float, px: float, min
 
 
 func _enemy_mesh(kind: String) -> ArrayMesh:
+	if not _enemy_meshes.has(kind) and _foot_model(kind, "defensores") != "":
+		# visual/r1 F5: el infante realista de 1817 (o el arriero para el mensajero), versión liviana quieta, retinteado con `units.a_pie.ropa_realista` (o
+		# `ropa_mensajero`) y con el material de ficha enemiga de color lineal (lleva su contorno como pasada extra: la malla sale marcada con «glb»)
+		var mesh := _persona_mesh(_foot_model(kind, "defensores"), "mensajero" if kind == "mensajero" else "realista", {}, true, gfx.token_mat("enemigo_glb"))
+		mesh.set_meta("glb", true)
+		_enemy_meshes[kind] = mesh
 	if not _enemy_meshes.has(kind):
 		var arch := str(ENEMY_ARCHETYPE.get(kind, "realista_1817"))
 		var v := {"camisa": "lana_natural", "abrigo": "lana_parda", "sombrero": "lana_parda", "acento": "borgona_hipotetica"}
@@ -1007,9 +1322,10 @@ func sync_things(root: Node3D, category: String, list: Array) -> int:
 		if category == "enemy":
 			var mi := MeshInstance3D.new()
 			mi.mesh = _enemy_mesh(kind)
-			mi.set_surface_override_material(0, gfx.token_mat("enemigo"))
-			if mi.mesh.get_surface_count() > 1:
-				mi.set_surface_override_material(1, gfx.outline_mat())
+			if not mi.mesh.has_meta("glb"):  # visual/r1 F5: la figura del modelo ya trae su material (enemigo_glb, con el contorno)
+				mi.set_surface_override_material(0, gfx.token_mat("enemigo"))
+				if mi.mesh.get_surface_count() > 1:
+					mi.set_surface_override_material(1, gfx.outline_mat())
 			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			holder.add_child(mi)
 			# regla de color: el enemigo es ROJO (anillo rojo con filete de tinta y disco oscuro debajo), más vivo si está alertado.

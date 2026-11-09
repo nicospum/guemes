@@ -1455,6 +1455,8 @@ func _test_formations() -> void:
 	_ck(str(view.pick_unit(cam, edge_screen)) == "portal", "visual/r1 F3 un clic sobre la figura del borde de la formación (a %.0f px de la jefa) elige a Portal" % edge_screen.distance_to(leader_screen))
 	# 6b) visual/r1 F4: Rodríguez monta el caballo criollo (jefa con esqueleto y andares, jinete en el hueso «silla») y la tropa montada va en MultiMesh por pelaje
 	_test_horses(u)
+	# 6c) visual/r1 F5: figuras de a pie de 1817 (jefa con esqueleto y andares, tropa liviana en MultiMesh) y casas del kit sin deformar
+	_test_foot_and_houses(u)
 	# 7) defensores a escala real (antes crecían hasta 28 px)
 	var dressed: RefCounted = Vis.DressedRules.new(Fx.rules_stub(1817, 1, {"skip_intro": true, "phase": "ataque"}), "ataque")
 	view.build(dressed, "media")
@@ -1465,12 +1467,62 @@ func _test_formations() -> void:
 	for e in view.get_node("Defensores").get_children():
 		grown += 0 if (e as Node3D).scale.is_equal_approx(Vector3.ONE) else 1
 	_ck(view.get_node("Defensores").get_child_count() >= 8 and grown == 0, "visual/r1 F3 los defensores van a escala real (%d de %d agrandados)" % [grown, view.get_node("Defensores").get_child_count()])
+	var glb_enemies := 0
+	for e in view.get_node("Defensores").get_children():
+		for mi in (e as Node).get_children():
+			if mi is MeshInstance3D and (mi as MeshInstance3D).mesh != null and (mi as MeshInstance3D).mesh.surface_get_material(0) == view.units.gfx.token_mat("enemigo_glb"):
+				glb_enemies += 1
+	_ck(glb_enemies >= 8, "visual/r1 F5 los defensores son el infante realista de 1817 con el material de ficha enemiga de color lineal (%d)" % glb_enemies)
 	suite.extra["formaciones"] = report.duplicate(true)
 	view.free()
 	view = null
 	cam.free()
 	cam = null
 	await process_frame
+
+## visual/r1 F5: figuras de a pie de 1817 (jefa con esqueleto y andares, tropa liviana con material lineal), tacuara del jinete en la mano y casas del kit sin deformar.
+func _test_foot_and_houses(u) -> void:
+	var node: Node3D = view.unit_nodes["portal"]
+	var fig := node.get_node_or_null("figura") as Node3D
+	var players: Array = fig.find_children("*", "AnimationPlayer", true, false) if fig != null else []
+	var anims_ok := not players.is_empty() and ["idle", "walk", "run"].all(func(a): return (players[0] as AnimationPlayer).has_animation(a))
+	var glb_mat: ShaderMaterial = u.gfx.token_mat("aliado_glb")
+	var mats_ok := fig != null and (fig.find_children("*", "MeshInstance3D", true, false) as Array).all(func(mi): return (mi as MeshInstance3D).material_override == glb_mat)
+	_ck(fig != null and not fig.find_children("*", "Skeleton3D", true, false).is_empty() and anims_ok and mats_ok, "visual/r1 F5 la jefa de Portal es el paisano de 1817 con esqueleto, reposo, paso y carrera, y el material de ficha de color lineal")
+	var troop_ok := true
+	for id in ["portal", "arias", "rodriguez", "arreo"]:
+		for batch in (u.tokens[id].formation as Array):
+			var mmi := batch.mmi as MultiMeshInstance3D
+			if str(mmi.name).begins_with("formacion_infante") or str(mmi.name).begins_with("formacion_a_pie") or str(mmi.name).begins_with("formacion_arriero"):
+				troop_ok = troop_ok and mmi.multimesh.mesh.surface_get_material(0) == glb_mat
+	_ck(troop_ok, "visual/r1 F5 la tropa de a pie y los arrieros son la versión liviana de los modelos de 1817, con el material de ficha de color lineal")
+	var start := node.position; var gaits := {}; var t := 2000.0
+	for case in [["quieto", 0.0], ["paso", 1.0], ["carrera", 3.2], ["parado", 0.0]]:
+		for k in range(10):
+			t += 0.3
+			node.position += Vector3(float(case[1]) * 0.3, 0.0, 0.0)
+			u.update_foot_gait("portal", t)
+		gaits[case[0]] = u.foot_gait("portal")
+	node.position = start
+	var expect := {"quieto": "idle", "paso": "walk", "carrera": "run", "parado": "idle"}
+	var gait_ok := expect.keys().all(func(k): return str((gaits[k] as Dictionary).get("andar", "")) == str(expect[k]))
+	_ck(gait_ok and absf(float((gaits.paso as Dictionary).get("cadencia", 0.0)) - 1.0 / 1.15) < 0.1, "visual/r1 F5 la jefa de a pie anda según la velocidad: quieta reposo, 1 m/s paso (cadencia ≈ 0,87), 3,2 m/s carrera (%s)" % str(gaits))
+	suite.extra["andares_a_pie"] = gaits
+	var horse := view.unit_nodes["rodriguez"].get_node_or_null("caballo") as Node3D
+	var rider: MeshInstance3D = null
+	if horse != null:
+		var seat := horse.find_children("silla", "BoneAttachment3D", true, false)
+		rider = (seat[0] as Node).get_node_or_null("jinete") as MeshInstance3D if not seat.is_empty() else null
+	_ck(rider != null and rider.mesh.get_aabb().end.y > 2.4, "visual/r1 F5 el jinete lleva la tacuara del modelo en la mano (punta a %.2f m sobre el asiento)" % (rider.mesh.get_aabb().end.y if rider != null else 0.0))
+	var kinds := 0; var worst := 1.0
+	for mmi in view.find_children("casas_modelo_*", "MultiMeshInstance3D", true, false):
+		kinds += 1
+		var mm := (mmi as MultiMeshInstance3D).multimesh
+		for i in range(mm.instance_count):
+			var b := mm.get_instance_transform(i).basis
+			worst = maxf(worst, maxf(b.x.length(), b.z.length()) / maxf(minf(b.x.length(), b.z.length()), 0.001))
+	_ck(kinds >= 3 and worst <= 1.2 + 0.001, "visual/r1 F5 el núcleo usa %d casas del kit y ninguna se estira más de 1,2 veces en un sentido que en el otro (peor %.3f)" % [kinds, worst])
+
 
 ## visual/r1 F4: el caballo criollo y el jinete de 1817 en la formación de Rodríguez: la jefa, su jinete, el material, los pelajes de la tropa y el andar por velocidad.
 func _test_horses(u) -> void:

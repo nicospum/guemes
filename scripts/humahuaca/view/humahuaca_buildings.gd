@@ -149,6 +149,8 @@ func _build_landmark(root: Node3D, lm: Dictionary) -> void:
 		mi.mesh = gfx.model(model_key).mesh
 		mi.transform = gfx.model_fit(model_key, w, d, hgt if bool(spec.get("model_fit_height", true)) else -1.0, str(spec.get("model_fit", "")) == "uniforme")
 		node.add_child(mi)
+		if builder == "corral":  # visual/r1 F5: el piso pisoteado del corral, como el del corral procedural (con el modelo se había perdido): la pirca sola no se lee desde lejos
+			gfx.patch(node, w * 0.94, d * 0.94, 0.0, 0.1, gfx.mat(str(spec.get("floor_color", "sedimento_humedo")), 0.95, float(spec.get("floor_gain", 0.85))), true).name = "piso"
 		if model_key == "capilla":  # la portada de la capilla con lumbre (velas): la capilla se reconoce de noche desde la distancia de juego
 			var box: AABB = gfx.model(model_key).aabb
 			var door := MeshInstance3D.new()
@@ -157,7 +159,10 @@ func _build_landmark(root: Node3D, lm: Dictionary) -> void:
 			dm.size = Vector3(1.5, 2.3, 0.1)
 			door.mesh = dm
 			door.material_override = gfx.night_glow_mat()
-			door.transform = mi.transform * Transform3D(Basis.IDENTITY, Vector3(box.get_center().x, box.position.y + 1.3, box.position.z - 0.06))
+			# visual/r1 F5: la portada real de la capilla del kit (manifiesto de casas); la caja de casa_capilla_a incluye contrafuertes y escalón por delante de la puerta
+			var at: Variant = door_of(model_key)
+			var door_at: Vector3 = (at as Vector3) + Vector3(0.0, 0.0, -0.06) if at is Vector3 else Vector3(box.get_center().x, box.position.y + 1.3, box.position.z - 0.06)
+			door.transform = mi.transform * Transform3D(Basis.IDENTITY, door_at)
 			door.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			node.add_child(door)
 		return
@@ -221,18 +226,45 @@ func _build_landmark(root: Node3D, lm: Dictionary) -> void:
 
 ## El patio de la posta: tierra apisonada, la casa de posta contra el muro norte, carretas y bultos. Sin muros propios.
 func _build_posta(node: Node3D, mb, w: float, d: float) -> void:
-	gfx.patch(node, w - 1.0, d - 1.0, 0.0, 0.1, gfx.mat("suelo_seco", 0.95, 1.07)).name = "patio"
+	# visual/r1 F5: el piso de tierra apisonada y barrida del patio, un poco más claro que el campo de afuera (ganancia 1,07 → 1,15, diseño): con las tapias y la casa de
+	# posta del kit, más oscuras, el patio y el parque de artillería se recortan del suelo a la distancia de juego (B-062 c, V06)
+	gfx.patch(node, w - 1.0, d - 1.0, 0.0, 0.1, gfx.mat("suelo_seco", 0.95, 1.15)).name = "patio"
 	var house_w := w * 0.62
+	# visual/r1 F5: la casa de posta del kit (cuerpo largo de cuatro cuartos con galería de horcones y palenque, `models.casa_posta`). Su caja mide 15,2 × 9,2 m con la
+	# galería y el palenque: estirarla a 6 m de fondo la aplastaba a dos tercios (CASAS_F5, riesgo 1). Va sin deformar, a la escala que le da el largo de la huella
+	# (entre 0,9 y 1,15), con el fondo contra el muro norte del patio. Si falta, la casa grande de antes con model_fit; si falta también, la procedural.
+	var posta_key := "casa_posta" if not gfx.model("casa_posta").is_empty() else "casa_adobe_grande"
+	var house_d := 6.0
+	var k_posta := 1.0
+	if posta_key == "casa_posta":
+		var pbox: AABB = gfx.model(posta_key).aabb
+		k_posta = clampf(house_w / maxf(pbox.size.x, 0.01), 0.9, 1.15)
+		house_d = pbox.size.z * k_posta
 	mb.push()
-	mb.move(Vector3(-w * 0.5 + house_w * 0.5 + 1.8, 0.0, -d * 0.5 + 3.4))
-	if gfx.model("casa_adobe_grande").is_empty():
+	mb.move(Vector3(-w * 0.5 + house_w * 0.5 + 1.8, 0.0, -d * 0.5 + (0.6 + house_d * 0.5 if posta_key == "casa_posta" else 3.4)))
+	if gfx.model(posta_key).is_empty():
 		gen.add_house(mb, house_w, 4.6, 3.0, 1, 1.0, 0.2)
-	else:  # la casa de posta con su ramada (modelo de la pista P6), con el frente hacia el patio (+Z)
+	else:  # la casa de posta con su galería (o la ramada del modelo de P6), con el frente hacia el patio (+Z)
 		var house := MeshInstance3D.new()
 		house.name = "casa_de_posta"
-		house.mesh = gfx.model("casa_adobe_grande").mesh
-		house.transform = mb.xf * Transform3D(Basis(Vector3.UP, PI), Vector3.ZERO) * gfx.model_fit("casa_adobe_grande", house_w, 6.0)
+		house.mesh = gfx.model(posta_key).mesh
+		var fit: Transform3D = gfx.model_fit(posta_key, house_w, 6.0)
+		if posta_key == "casa_posta":
+			var box: AABB = gfx.model(posta_key).aabb
+			fit = Transform3D(Basis.from_scale(Vector3.ONE * k_posta), Vector3.ZERO) * Transform3D(Basis.IDENTITY, Vector3(-box.get_center().x, -box.position.y, -box.get_center().z))
+		house.transform = mb.xf * Transform3D(Basis(Vector3.UP, PI), Vector3.ZERO) * fit
 		node.add_child(house)
+		var door: Variant = door_of(posta_key)
+		if door is Vector3:  # visual/r1 F5: una puerta de la posta con lumbre, hacia el patio
+			var glow := MeshInstance3D.new()
+			glow.name = "puerta_con_lumbre"
+			var gm := BoxMesh.new()
+			gm.size = Vector3(0.84, 1.7, 0.1)
+			glow.mesh = gm
+			glow.material_override = gfx.night_glow_mat()
+			glow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			glow.transform = house.transform * Transform3D(Basis.IDENTITY, (door as Vector3) + Vector3(0.0, 0.0, -0.05))
+			node.add_child(glow)
 	mb.pop()
 	mb.push()
 	mb.move(Vector3(w * 0.5 - 7.0, 0.0, d * 0.5 - 6.5))
@@ -536,20 +568,97 @@ func build_nucleo(root: Node3D) -> void:
 
 ## Una casa del núcleo en `mb.xf`: con el modelo GLB de `models.casa_adobe` (o `casa_adobe_grande` si mide 9,5 m o más de frente) si existe; si no, el generador
 ## procedural (el respaldo de siempre). El modelo mira a −Z, igual que la puerta de la casa procedural, y se lo estira a la huella conservando su proporción de alto.
+## visual/r1 F5: con el kit de edificios del territorio cada lote elige entre varias casas (`models.nucleo`: torta, rancho de torta, galería de horcones, dos cuerpos,
+## patio) y se ajusta con house_fit (sin aplastar la galería ni el patio). Tipos razonados (PVR: adobe, torta, patios), medidas y detalles de diseño (CASAS_F5.md).
 func _add_house(mb, w: float, d: float, h: float, style: int, door_z: float, tone: float) -> void:
 	var o: Vector3 = mb.xf.origin
-	if posmod(int(o.x * 7.0 + o.z * 13.0), 20) < 9 and w >= 4.0:  # casi la mitad de las casas tiene lumbre en la puerta (aspecto de diseño, sin datos)
-		_lit.append(mb.xf * Transform3D(Basis.IDENTITY, Vector3(w * 0.18, 1.0, signf(door_z) * (d * 0.5 + 0.12))))
-		if w >= 6.0:  # y una ventanita con lumbre al otro lado de la puerta
-			_lit.append(mb.xf * Transform3D(Basis.from_scale(Vector3(0.4, 0.36, 1.0)), Vector3(-w * 0.26, 1.55, signf(door_z) * (d * 0.5 + 0.12))))
-	var key :="casa_adobe_grande" if w >= 9.5 and not gfx.model("casa_adobe_grande").is_empty() else "casa_adobe"
-	if gfx.model(key).is_empty():
+	var lit := posmod(int(o.x * 7.0 + o.z * 13.0), 20) < 9 and w >= 4.0  # casi la mitad de las casas tiene lumbre en la puerta (aspecto de diseño, sin datos)
+	var key := _house_variant(w, d, o)  # visual/r1 F5: la variante del kit que menos se deforma en este lote
+	if key == "":  # sin modelos: la casa procedural de siempre (el respaldo), con su puerta y su ventanita
+		if lit:
+			_lit.append(mb.xf * Transform3D(Basis.IDENTITY, Vector3(w * 0.18, 1.0, signf(door_z) * (d * 0.5 + 0.12))))
+			if w >= 6.0:  # y una ventanita con lumbre al otro lado de la puerta
+				_lit.append(mb.xf * Transform3D(Basis.from_scale(Vector3(0.4, 0.36, 1.0)), Vector3(-w * 0.26, 1.55, signf(door_z) * (d * 0.5 + 0.12))))
 		gen.add_house(mb, w, d, h, style, door_z, tone)
 		return
 	var flip := Basis(Vector3.UP, PI) if door_z > 0.0 else Basis.IDENTITY  # la puerta procedural de door_z > 0 mira a +Z
 	if not _model_xf.has(key):
 		_model_xf[key] = []
-	(_model_xf[key] as Array).append(mb.xf * Transform3D(flip, Vector3.ZERO) * gfx.model_fit(key, w, d))
+	var xf: Transform3D = mb.xf * Transform3D(flip, Vector3.ZERO) * house_fit(key, w, d, door_z < 0.0)
+	(_model_xf[key] as Array).append(xf)
+	if lit:  # visual/r1 F5: la lumbre va en la puerta real del modelo (manifiesto de casas), no en la de la casa procedural
+		var door: Variant = door_of(key)
+		if door is Vector3:
+			_lit.append(xf * Transform3D(Basis.from_scale(Vector3(0.42, 0.85, 1.0)), (door as Vector3) + Vector3(0.0, 0.0, -0.05)))
+
+
+## visual/r1 F5: `models.nucleo` de humahuaca_visual.json (variantes del núcleo, estirón máximo y puertas con lumbre).
+func _nucleo_cfg() -> Dictionary:
+	var models: Variant = gfx.data.get("models", {})
+	var cfg: Variant = (models as Dictionary).get("nucleo", {}) if models is Dictionary else {}
+	return cfg if cfg is Dictionary else {}
+
+
+## visual/r1 F5: la puerta (centro, en coordenadas del modelo sin escalar) del modelo `key` según `models.nucleo.puertas`, o null.
+func door_of(key: String) -> Variant:
+	var doors: Variant = _nucleo_cfg().get("puertas", {})
+	var door: Variant = (doors as Dictionary).get(key, null) if doors is Dictionary else null
+	if door is Array and (door as Array).size() == 3:
+		return Vector3(float(door[0]), float(door[1]), float(door[2]))
+	return null
+
+
+## visual/r1 F5: la clave del modelo de una casa del núcleo de `w` × `d` m en `o`: entre las variantes del kit que existen (`models.nucleo.chicas`, o `grandes` desde
+## `corte_m` de frente, como antes casa_adobe y casa_adobe_grande), las que menos se deforman en el lote (dentro de `holgura` de la mejor) y, entre ellas, una por la
+## posición (regla fija: el pueblo sale siempre igual). "" si no hay ningún modelo (vuelve la casa procedural).
+func _house_variant(w: float, d: float, o: Vector3) -> String:
+	var cfg := _nucleo_cfg()
+	var group := "grandes" if w >= float(cfg.get("corte_m", 9.5)) else "chicas"
+	var keys: Array = cfg.get(group, []) if cfg.get(group, null) is Array else []
+	if keys.is_empty():
+		keys = ["casa_adobe_grande", "casa_adobe"] if group == "grandes" else ["casa_adobe"]
+	var scored: Array = []
+	var best := INF
+	for k in keys:
+		var m: Dictionary = gfx.model(str(k))
+		if m.is_empty():
+			continue
+		var box: AABB = m.aabb
+		var kx := w / maxf(box.size.x, 0.01)
+		var kz := d / maxf(box.size.z, 0.01)
+		var s := absf(log(kx)) + absf(log(kz)) + 0.6 * absf(log(kx / kz))  # cuánto hay que estirarla (o achicarla) y cuánto se deformaría
+		scored.append([str(k), s])
+		best = minf(best, s)
+	var near: Array = []
+	for entry in scored:
+		if float(entry[1]) <= best + float(cfg.get("holgura", 0.35)):
+			near.append(entry[0])
+	if near.is_empty():
+		return "casa_adobe" if not gfx.model("casa_adobe").is_empty() else ""
+	return str(near[posmod(int(o.x * 3.0) * 31 + int(o.z * 3.0) * 17, near.size())])
+
+
+## visual/r1 F5: la transformación que lleva la casa `key` a un lote de `w` × `d` m sin girarla (el frente sigue a −Z) y, a diferencia de model_fit, sin deformarla de más:
+## la caja del kit incluye galerías, aleros, cántaros y tapias de patio (CASAS_F5, riesgo 1) y estirarla a la huella dejaba el cuerpo aplastado o angosto. Ningún sentido
+## se estira más de `max_estiron` veces el otro (el que sobra queda más corto que el lote, nunca más largo: no pisa a la vecina) y el alto va entre `alto_min` y `alto_max`
+## de su tamaño real. Con `front` el frente del modelo se apoya en el frente del lote (sobre la calle) en vez de quedar centrado.
+func house_fit(key: String, w: float, d: float, front: bool) -> Transform3D:
+	var m: Dictionary = gfx.model(key)
+	if m.is_empty():
+		return Transform3D.IDENTITY
+	var cfg := _nucleo_cfg()
+	var box: AABB = m.aabb
+	var kx := w / maxf(box.size.x, 0.01)
+	var kz := d / maxf(box.size.z, 0.01)
+	var lim := maxf(float(cfg.get("max_estiron", 1.2)), 1.0)
+	var kmin := minf(kx, kz)
+	kx = minf(kx, kmin * lim)
+	kz = minf(kz, kmin * lim)
+	var ky := clampf((kx + kz) * 0.5, float(cfg.get("alto_min", 0.85)), float(cfg.get("alto_max", 1.2)))
+	var shift_z := -(d - box.size.z * kz) * 0.5 if front else 0.0
+	var center := box.get_center()
+	var pre := Transform3D(Basis.IDENTITY, Vector3(-center.x, -box.position.y, -center.z))  # centrado y apoyado en el suelo
+	return Transform3D(Basis.from_scale(Vector3(kx, ky, kz)), Vector3(0.0, 0.0, shift_z)) * pre
 
 
 
