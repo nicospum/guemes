@@ -398,6 +398,8 @@ func qa_run() -> void:
 		_save_shot(dir.path_join("vista_%s_sin_ui.png" % str(id)))
 		qa_set_ui_visible(true)
 		var probes: Variant = view.call("probes", main.camera) if view.has_method("probes") else []
+		if probes is Array:
+			probes = (probes as Array) + _mark_probes()  # QA enmienda 6 (V06): la marca de cada agrupación y un pedazo de fondo a su lado
 		(report.views as Dictionary)[str(id)] = {"probes": probes, "must_show": d.get("must_show", [])}
 	if is_instance_valid(view):
 		view.call("set_time_override", -1.0, -1.0)
@@ -417,7 +419,10 @@ func _save_shot(path: String) -> void:
 		image.save_png(path)
 
 
-## ¿Entran los tres objetivos y la zona de partida en el cuadro inicial, con su margen? (V02)
+## El cuadro inicial para V02. QA enmienda 6 (visual/r1 F2): la cámara arranca a 150–200 m (preset `cercano_r1`) y lo que tiene que verse son los reconocedores y la
+## batería (el primer «siguiente paso»), a ≥ 10 % del borde y fuera del HUD; el cuartel y la posta pueden quedar fuera, y se llega a ellos por las tarjetas de frente y el
+## minimapa. Cada punto trae `on_screen` (≥ 5 % del borde, la regla de siempre), `margen_pct` (el menor de los cuatro bordes, en % del lado; −1000 si queda detrás de
+## la cámara) y `bajo_hud`; `camara` trae la distancia y el preset; `fits` sigue siendo el de la sugerencia de la vista (ya no decide el encuadre).
 func _initial_frame_report() -> Dictionary:
 	var out := {"fits": false, "targets": []}
 	var camera := camera3d()
@@ -426,12 +431,61 @@ func _initial_frame_report() -> Dictionary:
 	var f := initial_frame()
 	out["fits"] = bool(f.fits)
 	var size := main.get_viewport().get_visible_rect().size
+	var hud_r: Dictionary = hud.rects() if hud != null else {}
+	var points := {}
 	for id in ["bateria", "cuartel", "posta", "zona_partida"]:
-		var p := landmark_pos(str(id))
+		points[str(id)] = landmark_pos(str(id))
+	var recon: Variant = rules.get_unit("reconocedores") if rules != null else null
+	if recon is Dictionary:
+		points["reconocedores"] = Vector2(float((recon as Dictionary).get("x", 0.0)), float((recon as Dictionary).get("z", 0.0)))
+	for id in points:
+		var p: Vector2 = points[id]
 		var v := Vector3(p.x, ground_height(p.x, p.y), p.y)
+		var behind := camera.is_position_behind(v)
 		var s := camera.unproject_position(v)
-		var on_screen := not camera.is_position_behind(v) and s.x >= size.x * 0.05 and s.x <= size.x * 0.95 and s.y >= size.y * 0.05 and s.y <= size.y * 0.95
-		(out.targets as Array).append({"id": str(id), "x": snappedf(s.x, 0.1), "y": snappedf(s.y, 0.1), "on_screen": on_screen})
+		var on_screen := not behind and s.x >= size.x * 0.05 and s.x <= size.x * 0.95 and s.y >= size.y * 0.05 and s.y <= size.y * 0.95
+		var margin := -1000.0 if behind else 100.0 * minf(minf(s.x, size.x - s.x) / size.x, minf(s.y, size.y - s.y) / size.y)
+		var under: Array = []
+		for key in ["header", "fronts", "dock"]:
+			if not behind and hud_r.get(key, null) is Rect2 and (hud_r[key] as Rect2).has_point(s):
+				under.append(key)
+		(out.targets as Array).append({"id": str(id), "x": snappedf(s.x, 0.1), "y": snappedf(s.y, 0.1), "on_screen": on_screen, "margen_pct": snappedf(margin, 0.1), "bajo_hud": under})
+	var fit: Dictionary = cam.last_fit if cam != null else {}
+	out["camara"] = {"dist_m": snappedf(cam.dist, 0.1) if cam != null else 0.0, "preset": str(fit.get("preset", "")), "pitch_deg": snappedf(cam.pitch_deg, 0.1) if cam != null else 0.0}
+	var cards := 0
+	if hud != null:
+		for fid in V.OBJECTIVES:
+			if hud.front_cards.has(fid) and (hud.front_cards[fid].panel as Control).is_visible_in_tree():
+				cards += 1
+	out["tarjetas_de_frente"] = cards
+	out["minimapa"] = minimap != null and minimap.is_visible_in_tree()
+	return out
+
+
+## V06 (QA enmienda 6): por cada marca de agrupación de la interfaz (visual/r1 F1), un probe `marca` (la marca de 14 px con su filete) y un `fondo_marca` del mismo tamaño
+## justo encima (o debajo, si arriba está el HUD o el borde), en las mismas coordenadas que `view.probes()`. qa_imagen.py legible mide con ellos el ΔL* marca–fondo.
+func _mark_probes() -> Array:
+	var out: Array = []
+	if overlay == null or not overlay.has_method("token_marks"):
+		return out
+	var xf: Transform2D = (overlay as Control).get_global_transform()
+	var k := xf.get_scale().y
+	var vis := Rect2(Vector2.ZERO, main.get_viewport().get_visible_rect().size)
+	var hud_r: Dictionary = hud.rects() if hud != null else {}
+	for m in overlay.token_marks():
+		var c: Vector2 = xf * ((m as Dictionary).center as Vector2)
+		var r := (float((m as Dictionary).r) + 1.5) * k
+		var mark := Rect2(c - Vector2(r, r), Vector2(2.0 * r, 2.0 * r))
+		var bg := Rect2(c - Vector2(r, 4.0 * r), Vector2(2.0 * r, 2.0 * r))
+		var blocked := not vis.encloses(bg)
+		for key in ["header", "fronts", "dock"]:
+			if hud_r.get(key, null) is Rect2 and (hud_r[key] as Rect2).intersects(bg):
+				blocked = true
+		if blocked:
+			bg = Rect2(c + Vector2(-r, 2.0 * r), Vector2(2.0 * r, 2.0 * r))
+		var mid := "marca_" + str((m as Dictionary).id)
+		out.append({"kind": "marca", "id": mid, "rect": [snappedf(mark.position.x, 0.1), snappedf(mark.position.y, 0.1), snappedf(mark.size.x, 0.1), snappedf(mark.size.y, 0.1)], "on_screen": vis.encloses(mark)})
+		out.append({"kind": "fondo_marca", "id": mid, "rect": [snappedf(bg.position.x, 0.1), snappedf(bg.position.y, 0.1), snappedf(bg.size.x, 0.1), snappedf(bg.size.y, 0.1)], "on_screen": vis.encloses(bg)})
 	return out
 
 

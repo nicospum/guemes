@@ -1,5 +1,16 @@
 # Cámara del nivel «Humahuaca»: el encuadre inicial, medido
 
+> **Estado actual (visual/r1 F2, `c018110`; QA enmienda 6 del 9-nov-2026).** El preset activo es **`cercano_r1`** (`data/humahuaca_camera.json`): rumbo 60°, inclinación 36°, distancia entre **150 y 200 m** (piso y tope del preset); exige a los **reconocedores** (5 % de margen) y a la **batería** (3 %) y prueba sumar el cuartel si la cámara no pasa de 185 m. El zoom mínimo bajó a **18 m** (el máximo sigue en 900 m) y el acercamiento con la segunda pulsación de la tecla va a **140 m**. Las fichas ya no son de tamaño fijo en píxeles: van **a escala real** (`humahuaca_visual.json: units.marks.figure_scale` = 1) y se las encuentra por la marca de 14 px y el rótulo de la interfaz. Medido con `tests/test_hx_camera.gd` (sin ventana, 9-nov-2026):
+>
+> | Ventana | Distancia (m) | Objetivo (x, z) | Batería / Cuartel / Posta (% del borde) | Reconocedores (%) | Centro de la zona (%) | Templo (px) | Batería (px) |
+> |---|---|---|---|---|---|---|---|
+> | 1024 × 640 | 190,3 | (257, 439) | 23,5 / 17,9 / 4,6 | 30,3 | −76 (fuera) | 38 × 29 | 90 × 42 |
+> | 1280 × 720 | 166,6 | (257, 440) | 20,8 / 15,6 / 2,3 | 27,0 | −128 (fuera) | 46 × 35 | 113 × 49 |
+> | 1920 × 1080 | 167,8 | (264, 436) | 22,5 / 16,7 / 2,9 | 21,6 | −158 (fuera) | 70 × 53 | 173 × 78 |
+> | 2560 × 1440 | 167,8 | (264, 436) | 22,5 / 16,7 / 2,9 | 21,6 | −158 (fuera) | 93 × 71 | 231 × 104 |
+>
+> La posta queda en el borde de arriba, debajo de la cabecera, y la zona de partida y cuatro de las cinco partidas quedan fuera del primer cuadro: se llega a ellas con las tarjetas de frente, el minimapa y las teclas 1 a 5. Así lo pide ahora V02 de `docs/QA_NIVEL2.md` (enmienda 6): cámara a 150–200 m, reconocedores y batería a ≥ 10 % del borde y fuera del HUD, y los otros objetivos a un clic de su tarjeta. **Lo que sigue (secciones 1 a 8) es la historia del 2-nov-2026**, con el preset `pueblo_zona_al_borde` y las fichas de tamaño fijo: ya no describe la cámara inicial.
+
 Dueña: `ui_feel`. Rama `hx-camara-nube` (2 de noviembre de 2026), a partir de `humahuaca-r1` (`333a657`). Pedido del usuario, prioridad uno de R2a: miró las capturas y dijo que **la cámara está demasiado lejos: se ve todo muy chico (fichas, edificios, el pueblo)**.
 
 Este documento junta lo que se midió **sin pantalla ni GPU**: `tests/test_hx_camera.gd` arranca la escena real sin ventana, fija el tamaño de la ventana a 1024 × 640, 1280 × 720, 1920 × 1080 y 2560 × 1440 y proyecta con `Camera3D.unproject_position` (no hace falta dibujar). Todas las cifras en píxeles son **píxeles reales de la ventana**; el margen al borde es el menor de los cuatro bordes, en % del lado. Nadie pudo mirar el resultado con una ventana real: la sección 7 dice qué tiene que mirar quien sí pueda.

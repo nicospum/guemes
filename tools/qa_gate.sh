@@ -872,7 +872,7 @@ EOF
       fi
     fi
   fi
-  # lo que solo se ve por la escena real (VP-13, B-024): fichas ≥ 48 px, el alba sin naranja saturado y los anillos de visibilidad sin cruces
+  # lo que solo se ve por la escena real (VP-13, B-024): fichas a escala real (QA enmienda 6; antes ≥ 48 px), el alba sin naranja saturado y los anillos de visibilidad sin cruces
   if [ -f "$SRC/tools/vis_humahuaca.sh" ]; then
     out="$LOGD/vis_flow"; mkdir -p "$out"
     run_proc 360 "$LOGD/vis_flow.log" env TIMEOUT=300 bash "$SRC/tools/vis_humahuaca.sh" "$out" 1280x720 --no-views --flow=aproximacion,ataque@300,extraccion@321

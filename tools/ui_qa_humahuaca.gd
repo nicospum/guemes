@@ -8,6 +8,9 @@ extends SceneTree
 ## Imprime «UI_QA {json}» y escribe ui_qa_report.json en --out junto con las capturas. No es una partida humana ni una prueba con teclado físico.
 ## Pase 2 de R1: el parte vuelve del Diario (H-R1-2) y una partida guiada eligiendo fichas con las teclas 1 a 5 mide que ningún panel del HUD pise a otro y que el
 ## «siguiente paso» entre en dos líneas (H-R1-7), en el recorrido completo y en el de desborde (1024 × 640, 1920 × 1080 y 2560 × 1440).
+## QA enmienda 6 (9-nov-2026, visual/r1 F1–F3): V02 mide la cámara inicial a 150–200 m con los reconocedores y la batería a ≥ 10 % del borde y los otros objetivos a un clic
+## de su tarjeta (notes.v02_*); V03 mide la marca de 12 a 16 px y el rótulo de cada agrupación y las figuras a escala real (notes.v03_*; el alto de las figuras queda en
+## notes.token_px como informe); C03 cuenta los rótulos de las agrupaciones aparte del texto de juego (notes.caracteres_desglose_t0).
 
 const V = preload("res://scripts/humahuaca/humahuaca_vocab.gd")
 const Kit = preload("res://scripts/humahuaca/ui/humahuaca_ui_kit.gd")
@@ -570,36 +573,207 @@ func _diary_roundtrip(label: String, shot_name: String = "") -> void:
 	notes["parte_diario_vuelve_" + label.to_lower().replace(" ", "_")] = back_by_click and back_by_esc
 
 
-## Qué tan cerca del borde del cuadro queda la ficha más pegada (porcentaje del ancho o del alto, el menor) y si alguna queda bajo el HUD.
+## Qué tan cerca del borde del cuadro queda la ficha más pegada (porcentaje del ancho o del alto, el menor; negativo = fuera del cuadro), cuáles de las que están DENTRO
+## del cuadro quedan bajo el HUD y el margen de las que el encuadre inicial incluye (QA enmienda 6: las duras del preset y las blandas que entraron, `hx.cam.last_fit`).
 func _token_margins(rects: Dictionary) -> Dictionary:
 	var vp := _viewport_rect().size
 	var edge_min := 100.0
 	var covered: Array = []
+	var included := _included_groups()
+	var inc_margin := {}
+	var inc_min := 100.0
 	for id in V.GROUPS:
 		var u: Dictionary = hx.rules.get_unit(str(id))
+		var w := Vector3(float(u.x), float(hx.ground_height(float(u.x), float(u.z))), float(u.z))
 		var s := _screen_of(float(u.x), float(u.z))
-		edge_min = minf(edge_min, 100.0 * minf(minf(s.x, vp.x - s.x) / vp.x, minf(s.y, vp.y - s.y) / vp.y))
+		var m := -1000.0 if game.camera.is_position_behind(w) else 100.0 * minf(minf(s.x, vp.x - s.x) / vp.x, minf(s.y, vp.y - s.y) / vp.y)
+		edge_min = minf(edge_min, m)
+		if included.has(str(id)):
+			inc_margin[str(id)] = snappedf(m, 0.1)
+			inc_min = minf(inc_min, m)
+		if m < 0.0:
+			continue
 		for key in ["header", "fronts", "dock"]:
 			if (rects[key] as Rect2).has_point(s):
 				covered.append("%s bajo %s" % [str(id), key])
-	return {"borde_min_pct": snappedf(edge_min, 0.1), "tapadas": covered}
+	return {"borde_min_pct": snappedf(edge_min, 0.1), "tapadas": covered, "incluidas": inc_margin, "borde_incluidas_min_pct": snappedf(inc_min, 0.1)}
 
 
-## Si hay un aviso a la vista, queda dentro del cuadro y no tapa ninguna ficha (el cuerpo de cada una: unos 48 px de ancho y 60 px sobre su base).
+## Las partidas que el encuadre inicial da por incluidas: las que el preset exige como duras (`unit`/`units`) y las blandas que entraron (`soft_in`).
+func _included_groups() -> Array:
+	var out: Array = []
+	var fit: Dictionary = hx.cam.last_fit if "last_fit" in hx.cam else {}
+	for h in hx.cam.preset(str(fit.get("preset", ""))).get("hard", []):
+		if bool((h as Dictionary).get("units", false)):
+			for gid in V.GROUPS:
+				if not out.has(str(gid)):
+					out.append(str(gid))
+		if V.GROUPS.has(str((h as Dictionary).get("unit", ""))) and not out.has(str(h.unit)):
+			out.append(str(h.unit))
+	for id in fit.get("soft_in", []):
+		if V.GROUPS.has(str(id)) and not out.has(str(id)):
+			out.append(str(id))
+	return out
+
+
+## Las marcas de las agrupaciones (visual/r1 F1) en coordenadas del cuadro lógico (las mismas que `hud.rects()`), con su diámetro y la letra del rótulo en píxeles REALES.
+func _marks_logical() -> Array:
+	var out: Array = []
+	if hx.overlay == null or not hx.overlay.has_method("token_marks"):
+		return out
+	var xf: Transform2D = (hx.overlay as Control).get_global_transform()
+	var k := xf.get_scale().y
+	var real := root.get_final_transform().get_scale().y
+	var drawn := {}
+	for lab in hx.overlay.drawn_labels:
+		drawn[str((lab as Dictionary).text)] = true
+	for m in hx.overlay.token_marks():
+		var d := m as Dictionary
+		var lr: Rect2 = d.label_rect
+		var body: Rect2 = d.body
+		out.append({"id": str(d.id), "center": xf * (d.center as Vector2), "diametro_px": snappedf(2.0 * float(d.r) * k * real, 0.1), "sel": bool(d.sel), "text": str(d.text),
+			"rotulo_dibujado": drawn.has(str(d.text)), "letra_px": snappedf(maxf(lr.size.y - 4.0, 0.0) * k * real, 0.1),
+			"zona": Rect2(xf * body.position, body.size * k).merge(Rect2(xf * lr.position, lr.size * k))})
+	return out
+
+
+## V03 (QA enmienda 6): cada agrupación en juego tiene su marca de 12 a 16 px reales, dentro del cuadro y fuera de la cabecera, los frentes, el dock y el minimapa (si la
+## agrupación está fuera del cuadro o detrás del HUD, la marca se pega al borde libre: es el indicador de borde); ≥ 4 de 5 rótulos dibujados, de una línea y con letra de
+## ≥ 10 px reales; las figuras a escala real (`units.marks.figure_scale` = 1 y la escala de cada nodo igual a esa).
+func _check_v03(label: String) -> void:
+	var rects: Dictionary = hx.hud.rects()
+	var hud_rects := {"cabecera": rects.header, "frentes": rects.fronts, "dock": rects.dock}
+	if hx.minimap != null and hx.minimap.is_visible_in_tree():
+		hud_rects["minimapa"] = Kit.rect_of(hx.minimap)
+	var vp := _viewport_rect()
+	var marks := _marks_logical()
+	var alive: Array = []
+	for id in V.GROUPS:
+		if str(hx.rules.get_unit(str(id)).get("stage", "")) != "exited":
+			alive.append(str(id))
+	var bad_size: Array = []
+	var hidden: Array = []
+	var small_font: Array = []
+	var labels := 0
+	var seen: Array = []
+	for m in marks:
+		seen.append(str(m.id))
+		if float(m.diametro_px) < 12.0 or float(m.diametro_px) > 16.0:
+			bad_size.append("%s %.1f px" % [str(m.id), float(m.diametro_px)])
+		var c: Vector2 = m.center
+		if not vp.has_point(c):
+			hidden.append("%s fuera del cuadro" % str(m.id))
+		for key in hud_rects:
+			if (hud_rects[key] as Rect2).has_point(c):
+				hidden.append("%s bajo %s" % [str(m.id), key])
+		if bool(m.rotulo_dibujado):
+			labels += 1
+			if float(m.letra_px) < 10.0:
+				small_font.append("%s %.1f px" % [str(m.id), float(m.letra_px)])
+	var missing: Array = alive.filter(func(id): return not seen.has(id))
+	var fig := float(((V.load_json(V.VISUAL_PATH).get("units", {}) as Dictionary).get("marks", {}) as Dictionary).get("figure_scale", -1.0))
+	var off_scale: Array = []
+	if is_instance_valid(hx.view) and "unit_nodes" in hx.view:
+		for id in V.GROUPS:
+			if hx.view.unit_nodes.has(id) and not (hx.view.unit_nodes[id] as Node3D).scale.is_equal_approx(Vector3.ONE):
+				off_scale.append("%s %.2f" % [str(id), (hx.view.unit_nodes[id] as Node3D).scale.y])
+	var tag := label.to_lower().replace(" ", "_")
+	notes["v03_" + tag] = {"marcas": marks.map(func(m): return {"id": m.id, "diametro_px": m.diametro_px, "rotulo": m.text if bool(m.rotulo_dibujado) else "", "letra_px": m.letra_px, "x": snappedf((m.center as Vector2).x, 0.1), "y": snappedf((m.center as Vector2).y, 0.1)}),
+		"rotulos_dibujados": labels, "figure_scale": fig, "fuera_de_escala": off_scale}
+	check(missing.is_empty() and bad_size.is_empty(), "%s: V03: cada agrupación en juego tiene su marca de 12 a 16 px reales (faltan %s; fuera de medida %s)" % [label, str(missing), str(bad_size)])
+	check(hidden.is_empty(), "%s: V03: ninguna marca queda fuera del cuadro ni bajo el HUD; las de las agrupaciones de afuera se pegan al borde libre (%s)" % [label, str(hidden)])
+	check(labels >= mini(4, alive.size()) and small_font.is_empty(), "%s: V03: ≥ 4 rótulos de una línea dibujados, con letra de ≥ 10 px reales (%d; letra chica: %s)" % [label, labels, str(small_font)])
+	check(is_equal_approx(fig, 1.0) and off_scale.is_empty(), "%s: V03: las figuras van a escala real (figure_scale %.2f; fuera de escala: %s)" % [label, fig, str(off_scale)])
+
+
+## V03 (QA enmienda 6): la agrupación elegida se distingue: su marca lleva el aro de oro y su rótulo se dibuja siempre.
+func _check_selected_mark(label: String, id: String) -> void:
+	var found := {}
+	for m in _marks_logical():
+		if str(m.id) == id:
+			found = m
+	check(not found.is_empty() and bool(found.sel) and bool(found.rotulo_dibujado), "%s: V03: la elegida (%s) tiene su marca con el aro de oro y el rótulo dibujado (%s)" % [label, id, str(found.get("text", "sin marca"))])
+
+
+## C03 (QA enmienda 6): los rótulos de las agrupaciones dibujados en este cuadro (se cuentan aparte del texto de juego).
+func _group_label_chars() -> Dictionary:
+	var drawn: Array = []
+	var longest := 0
+	var n := 0
+	for m in _marks_logical():
+		if bool(m.rotulo_dibujado):
+			drawn.append(str(m.text))
+			n += str(m.text).length()
+			longest = maxi(longest, str(m.text).length())
+	return {"chars": n, "count": drawn.size(), "max_len": longest, "rotulos": drawn}
+
+
+## V02 (QA enmienda 6): la cámara inicial a 150–200 m; los reconocedores y la batería (el primer «siguiente paso») a ≥ 10 % del borde y fuera de la cabecera, los frentes
+## y el dock; las tres tarjetas de frente y el minimapa a la vista, y un clic en cada tarjeta deja ese objetivo en pantalla a ≥ 5 % del borde. Deja la cámara como estaba.
+func _check_v02(label: String) -> void:
+	var vp := _viewport_rect().size
+	var rects: Dictionary = hx.hud.rects()
+	var dist := float(hx.qa_state().camera.dist)
+	var u: Dictionary = hx.rules.get_unit("reconocedores")
+	var bat: Vector2 = hx.landmark_pos("bateria")
+	var firsts := {"reconocedores": Vector2(float(u.x), float(u.z)), "bateria": bat}
+	var margin := {}
+	var under: Array = []
+	for id in firsts:
+		var p: Vector2 = firsts[id]
+		margin[id] = snappedf(_margin_of(p, vp), 0.1)
+		var s := _screen_of(p.x, p.y)
+		for key in ["header", "fronts", "dock"]:
+			if (rects[key] as Rect2).has_point(s):
+				under.append("%s bajo %s" % [str(id), key])
+	var cards := 0
+	for fid in V.OBJECTIVES:
+		if hx.hud.front_cards.has(fid) and (hx.hud.front_cards[fid].panel as Control).is_visible_in_tree():
+			cards += 1
+	var mini_ok: bool = hx.minimap != null and hx.minimap.is_visible_in_tree() and _inside(Kit.rect_of(hx.minimap))
+	var reach := {}
+	var cam0: Dictionary = hx.qa_state().camera
+	for fid in V.OBJECTIVES:
+		if not hx.hud.front_cards.has(fid):
+			continue
+		await _click(Kit.rect_of(hx.hud.front_cards[fid].panel as Control).get_center())
+		await _frames(6)
+		reach[fid] = snappedf(_margin_of(hx.landmark_pos(fid), vp), 0.1)
+	hx.qa_set_camera(Vector2(float(cam0.target[0]), float(cam0.target[1])), float(cam0.dist), float(cam0.pitch_deg), float(cam0.yaw_deg))
+	await _frames(4)
+	var reached: Array = reach.keys().filter(func(k): return float(reach[k]) >= 5.0)
+	notes["v02_" + label.to_lower().replace(" ", "_")] = {"distancia_m": snappedf(dist, 0.1), "margen_pct": margin, "bajo_hud": under, "tarjetas_de_frente": cards, "minimapa": mini_ok,
+		"margen_tras_clic_en_la_tarjeta_pct": reach, "alcanzables": reached.size()}
+	check(dist >= 149.5 and dist <= 200.5, "%s: V02: la cámara inicial está a 150–200 m (%.1f m)" % [label, dist])
+	check(float(margin.reconocedores) >= 10.0 and float(margin.bateria) >= 10.0 and under.is_empty(), "%s: V02: los reconocedores y la batería a ≥ 10 %% del borde y fuera del HUD (%s; bajo el HUD: %s)" % [label, str(margin), str(under)])
+	check(cards == V.OBJECTIVES.size() and mini_ok, "%s: V02: las tres tarjetas de frente y el minimapa a la vista (%d tarjetas; minimapa %s)" % [label, cards, str(mini_ok)])
+	check(reached.size() == V.OBJECTIVES.size(), "%s: V02: un clic en cada tarjeta de frente deja ese objetivo a ≥ 5 %% del borde (%s)" % [label, str(reach)])
+
+
+## Margen al borde del cuadro (en % del lado, el menor de los cuatro) de un punto del suelo; −1000 si queda detrás de la cámara.
+func _margin_of(p: Vector2, vp: Vector2) -> float:
+	var w := Vector3(p.x, float(hx.ground_height(p.x, p.y)), p.y)
+	if game.camera.is_position_behind(w):
+		return -1000.0
+	var s: Vector2 = game.camera.unproject_position(w)
+	return 100.0 * minf(minf(s.x, vp.x - s.x) / vp.x, minf(s.y, vp.y - s.y) / vp.y)
+
+
+## Si hay un aviso a la vista, queda dentro del cuadro y no tapa ninguna ficha. QA enmienda 6: lo que no hay que tapar es lo que la interfaz dibuja de cada agrupación
+## (la marca, el rótulo y la columna de la marca al pie, `overlay.token_marks()`), no la caja de 48 × 70 px de la figura estirada de R1.
 func _check_alert_free(label: String) -> void:
 	var a: Rect2 = hx.hud.rects().get("alerta", Rect2())
 	if a.size.x <= 0.0:
 		notes["aviso_" + label] = "sin aviso en esta captura"
 		return
 	var covered: Array = []
-	for id in V.GROUPS:
-		var u: Dictionary = hx.rules.get_unit(str(id))
-		if str(u.get("stage", "")) == "exited":
-			continue
-		var base := _screen_of(float(u.x), float(u.z))
-		if Rect2(base - Vector2(24.0, 60.0), Vector2(48.0, 70.0)).intersects(a):
-			covered.append(str(id))
-	notes["aviso_" + label] = {"rect": [snappedf(a.position.x, 0.1), snappedf(a.position.y, 0.1), snappedf(a.size.x, 0.1), snappedf(a.size.y, 0.1)], "tapa": covered}
+	var zones := {}
+	for m in _marks_logical():
+		if (m.zona as Rect2).intersects(a):
+			covered.append(str(m.id))
+			var z: Rect2 = m.zona
+			zones[str(m.id)] = [snappedf(z.position.x, 0.1), snappedf(z.position.y, 0.1), snappedf(z.size.x, 0.1), snappedf(z.size.y, 0.1)]
+	notes["aviso_" + label] = {"rect": [snappedf(a.position.x, 0.1), snappedf(a.position.y, 0.1), snappedf(a.size.x, 0.1), snappedf(a.size.y, 0.1)], "tapa": covered, "zonas_tapadas": zones}
 	check(_inside(a) and covered.is_empty(), "%s: el aviso queda dentro del cuadro y no tapa ninguna ficha (%s)" % [label, str(covered)])
 
 
@@ -737,39 +911,36 @@ func _cycle_full() -> void:
 	var rects: Dictionary = hx.hud.rects()
 	notes["rects_inicio"] = _capture_rects()  # en píxeles de la captura; las de «hx-hud» (las que usa V05) quedan en notes.rects
 	check(int(q.visible_controls) <= 5, "Primer cuadro: ≤ 5 controles accionables (%d)" % int(q.visible_controls))
-	check(int(q.text_chars_juego) <= 400, "Primer cuadro: ≤ 400 caracteres de texto de juego (%d; con el aviso de capas en su versión mínima, %d)" % [int(q.text_chars_juego), int(q.text_chars)])
+	# C03 (QA enmienda 6): los rótulos de las agrupaciones (tecla y nombre junto a la marca de 14 px, visual/r1 F1) son nombres sobre el mapa, como antes lo era el
+	# número solo: se cuentan aparte, con su propio tope (≤ 5 rótulos de una línea y ≤ 18 caracteres cada uno); el resto (HUD, rutas y minimapa) sigue con ≤ 400.
+	var group_labels := _group_label_chars()
+	var game_chars := int(q.text_chars_juego) - int(group_labels.chars)
+	notes["caracteres_desglose_t0"] = {"hud": int(hx.hud.text_chars(false)), "sobre_el_mapa": int(hx.overlay.drawn_text_chars), "minimapa": int(hx.minimap.drawn_text_chars) if hx.minimap != null else 0,
+		"rotulos_de_agrupaciones": group_labels, "texto_de_juego_sin_rotulos": game_chars}
+	check(game_chars <= 400, "Primer cuadro: ≤ 400 caracteres de texto de juego sin contar los rótulos de las agrupaciones (%d; con ellos %d; con el aviso de capas en su versión mínima, %d)" % [game_chars, int(q.text_chars_juego), int(q.text_chars)])
+	check(int(group_labels.count) <= V.GROUPS.size() and int(group_labels.max_len) <= 18, "Primer cuadro: los rótulos de las agrupaciones son ≤ 5, de una línea y de ≤ 18 caracteres (%s)" % str(group_labels.rotulos))
 	check(hits.is_empty(), "Primer cuadro: 0 términos de la lista negra (%s)" % str(hits))
 	check(bool(q.paused) and hx.hud.clock_l.text == "‖ EN PAUSA", "Primer cuadro: el indicador dice «‖ EN PAUSA»")
 	check(hx.hud.next_text_l.text != "" and hx.hud.next_btn.visible and hx.hud.objective_l.text != "", "Primer cuadro: una línea de objetivo y un solo «siguiente paso» con su botón")
 	_check_overflow("Primer cuadro")
 	_measure_contrast(img, "inicio")
-	var token_px := _token_px()
-	notes["token_px"] = token_px
-	if root.size.y == 720:  # V03: cada ficha de pie mide 48 px reales o más con el zoom por defecto a 1280 × 720
-		var low: Array = token_px.filter(func(t): return float(t.h) < 48.0)
-		check(token_px.size() == V.GROUPS.size() and low.is_empty(), "Primer cuadro: las cinco fichas miden 48 px reales de alto o más (%s)" % str(token_px.map(func(t): return "%s %.1f" % [str(t.id), float(t.h)])))
-	# ninguna ficha queda bajo el HUD y todas a ≥ 5 % del borde (con el rumbo que fija el contrato)
-	var covered: Array = []
-	var edge_min := 100.0
-	for id in V.GROUPS:
-		var u: Dictionary = hx.rules.get_unit(str(id))
-		var s := _screen_of(float(u.x), float(u.z))
-		var vp := _viewport_rect().size
-		edge_min = minf(edge_min, 100.0 * minf(minf(s.x, vp.x - s.x) / vp.x, minf(s.y, vp.y - s.y) / vp.y))
-		for key in ["header", "fronts", "dock"]:
-			if (rects[key] as Rect2).has_point(s):
-				covered.append("%s bajo %s" % [str(id), key])
-	check(covered.is_empty(), "Primer cuadro: ninguna ficha queda bajo el HUD (%s)" % str(covered))
-	notes["borde_min_pct"] = snappedf(edge_min, 0.1)
-	# P-006 (ronda 2 de P2): las cinco partidas en el primer cuadro con su anillo entero, como en el chequeo de desborde
-	check(edge_min >= 5.5, "Primer cuadro: las cinco partidas a ≥ 5,5 %% del borde, con su anillo entero a la vista (mínimo %.1f %%)" % edge_min)
-	if root.size.y == 720:  # el pedido del usuario: ninguna ficha propia por debajo de 64 px reales con el zoom por defecto
-		var under64: Array = token_px.filter(func(t): return float(t.h) < 64.0)
-		check(token_px.size() == V.GROUPS.size() and under64.is_empty(), "Primer cuadro: las cinco fichas miden 64 px reales o más (%s)" % str(under64))
+	# V03 (QA enmienda 6): las figuras van a escala real (su alto en píxeles se informa, no se exige); a las agrupaciones se las encuentra por la marca y el rótulo
+	notes["token_px"] = _token_px()
+	_check_v03("Primer cuadro")
+	# las partidas que el encuadre incluye (las que pide el preset y las blandas que entraron) a ≥ 2 % del borde, y ninguna ficha DENTRO del cuadro bajo el HUD
+	# (QA enmienda 6: antes eran las cinco a ≥ 5,5 %, P-006 de la ronda 2 de P2; con la cámara a 150–200 m las de afuera se encuentran por su marca pegada al borde)
+	var margins := _token_margins(rects)
+	notes["borde_min_pct"] = margins.borde_min_pct
+	notes["borde_incluidas"] = margins.incluidas
+	check((margins.tapadas as Array).is_empty(), "Primer cuadro: ninguna ficha dentro del cuadro queda bajo el HUD (%s)" % str(margins.tapadas))
+	check(not (margins.incluidas as Dictionary).is_empty() and float(margins.borde_incluidas_min_pct) >= 2.0, "Primer cuadro: las partidas que el encuadre incluye quedan a ≥ 2 %% del borde (%s)" % str(margins.incluidas))
+	# V02 (QA enmienda 6): la cámara cerca, lo primero que hay que usar a la vista y los otros objetivos a un clic
+	await _check_v02("Primer cuadro")
 	# --- seleccionar, apuntar con vista previa y dar la orden con el mouse ---
 	await _key(KEY_4)
 	await _frames(3)
 	check(hx.qa_state().selected == ["reconocedores"], "Órdenes: la tecla 4 elige a los reconocedores")
+	_check_selected_mark("Órdenes", "reconocedores")
 	await _key(KEY_R)
 	var bat := _screen_of(318.0, 350.0)
 	await _move(bat)
@@ -791,6 +962,10 @@ func _cycle_full() -> void:
 	await _frames(4)
 	check(int(hx.qa_state().orders) == 1 and not bool(hx.qa_state().paused), "Órdenes: el clic confirma y la primera orden pone en marcha el reloj")
 	await _key(KEY_1)
+	# QA enmienda 6: con la cámara inicial a 150–200 m el punto (200, 430) puede quedar fuera del cuadro; se lo encuadra como en test_hx_flow (acá no se prueba la cámara)
+	hx.cam.cancel_approach()
+	hx.qa_set_camera(Vector2(190.0, 440.0), 300.0, 45.0, 325.0)
+	await _frames(3)
 	await _click(_screen_of(200.0, 430.0), MOUSE_BUTTON_RIGHT)
 	await _frames(3)
 	check(int(hx.qa_state().orders) == 2, "Órdenes: el clic derecho manda a la partida elegida al punto del mapa")
@@ -965,15 +1140,21 @@ func _cycle_overflow() -> void:
 	var margins := _token_margins(hx.hud.rects())
 	notes["borde_min_pct"] = margins.borde_min_pct
 	notes["fichas_bajo_hud"] = margins.tapadas
-	check((margins.tapadas as Array).is_empty() and float(margins.borde_min_pct) >= 5.5, "Primer cuadro: ninguna ficha bajo el HUD y todas a ≥ 5,5 %% del borde, con su anillo entero a la vista (mínimo %.1f %%; bajo el HUD: %s)" % [float(margins.borde_min_pct), str(margins.tapadas)])
+	notes["borde_incluidas"] = margins.incluidas
+	# QA enmienda 6: ninguna ficha DENTRO del cuadro bajo el HUD y las partidas que el encuadre incluye a ≥ 2 % del borde (antes: las cinco a ≥ 5,5 %)
+	check((margins.tapadas as Array).is_empty() and not (margins.incluidas as Dictionary).is_empty() and float(margins.borde_incluidas_min_pct) >= 2.0, "Primer cuadro: ninguna ficha dentro del cuadro bajo el HUD y las que el encuadre incluye a ≥ 2 %% del borde (%s; bajo el HUD: %s)" % [str(margins.incluidas), str(margins.tapadas)])
+	_check_v03("Primer cuadro")
+	await _check_v02("Primer cuadro")
 	notes["controles_t0"] = int(hx.qa_state().visible_controls)
 	notes["caracteres_t0"] = int(hx.qa_state().text_chars)
 	notes["rects_inicio"] = _capture_rects()
 	_measure_contrast(img, "inicio")
-	# Q-201 (QA ronda 2): elegir una partida que ya está a la vista NO mueve la cámara; la segunda pulsación de su tecla la lleva hasta ella, acercándose (≈ 240 m) y
-	# acostándose hacia el horizonte (el pedido del usuario de ver más cerca, ahora a voluntad)
+	# Q-201 (QA ronda 2): elegir una partida que ya está a la vista NO mueve la cámara; la segunda pulsación de su tecla la lleva hasta ella, acercándose y acostándose
+	# hacia el horizonte. QA enmienda 6: con la cámara inicial a 150–200 m la partida que siempre está a la vista es la de los reconocedores (la exige el encuadre), y el
+	# acercamiento va a `approach.dist_m` de data/humahuaca_camera.json (140 m desde visual/r1 F2; antes 240), por debajo de la inclinación inicial.
 	var d0 := float(hx.qa_state().camera.dist)
-	var pick := "arreo" if not (hx.qa_state().selected as Array).has("arreo") else "reconocedores"
+	var p0 := float(hx.qa_state().camera.pitch_deg)
+	var pick := "reconocedores" if not (hx.qa_state().selected as Array).has("reconocedores") else "arreo"
 	var pick_key := KEY_5 if pick == "arreo" else KEY_4
 	var cam_before: Dictionary = hx.qa_state().camera
 	await _key(pick_key)
@@ -991,7 +1172,8 @@ func _cycle_overflow() -> void:
 	var u_pick: Dictionary = hx.rules.get_unit(pick)
 	var gap := Vector2(float(cam_after.target[0]), float(cam_after.target[1])).distance_to(Vector2(float(u_pick.x), float(u_pick.z)))
 	notes["acercamiento"] = {"partida": pick, "desde_m": snappedf(d0, 0.1), "hasta_m": snappedf(float(cam_after.dist), 0.1), "inclinacion": snappedf(float(cam_after.pitch_deg), 0.1), "a_la_ficha_m": snappedf(gap, 0.1), "primera_pulsacion_quieta": still}
-	check(float(cam_after.dist) >= 215.0 and float(cam_after.dist) <= 265.0 and float(cam_after.pitch_deg) <= 32.0 and gap <= 6.0, "Acercamiento: la segunda pulsación de la tecla lleva la cámara a la partida a 220–260 m, acostada (≤ 32°) y centrada en ella (%s)" % str(notes.acercamiento))
+	var want_m := float((V.load_json("res://data/humahuaca_camera.json").get("approach", {}) as Dictionary).get("dist_m", 140.0))
+	check(absf(float(cam_after.dist) - want_m) <= 20.0 and float(cam_after.pitch_deg) <= p0 - 1.0 and gap <= 6.0, "Acercamiento: la segunda pulsación de la tecla lleva la cámara a la partida a %.0f ± 20 m, más acostada que al empezar (< %.0f°) y centrada en ella (%s)" % [want_m, p0, str(notes.acercamiento)])
 	await _shot("hx-acercamiento")
 	_check_overflow("Acercamiento")
 	hx.reset_camera()

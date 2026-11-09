@@ -458,7 +458,7 @@ func _image_stats(img: Image) -> Dictionary:
 
 
 ## Los umbrales del hallazgo I-R1.0-3 sobre las medidas de un cuadro de juego: el alba (luz entre la noche y el día) no se pasa de «naranja saturado» y los trazos
-## de visibilidad no se cruzan. La ficha de un cuadro de la escena real mide lo que pide V03 (≥ 48 px reales).
+## de visibilidad no se cruzan. El alto de las fichas se informa (QA enmienda 6: van a escala real; V03 mide la marca y el rótulo de la interfaz, en ui_qa_humahuaca).
 func _judge_stats(key: String, stats: Dictionary) -> void:
 	var tod := float(stats.get("tod", -1.0))
 	if tod >= 0.2 and tod <= 0.9:
@@ -466,11 +466,7 @@ func _judge_stats(key: String, stats: Dictionary) -> void:
 		_check(float(stats.get("sat_media", 1.0)) <= 0.42, "%s: la saturación media del cuadro es de %.3f (tope 0,42)" % [key, float(stats.get("sat_media", 1.0))])
 	if stats.has("anillos_dibujados_dentro_de_otros_m"):
 		_check(float(stats.anillos_dibujados_dentro_de_otros_m) <= 5.0, "%s: los trazos de visibilidad no se cruzan (%.1f m de trazo dentro de otro círculo; tope 5 m)" % [key, float(stats.anillos_dibujados_dentro_de_otros_m)])
-	var tokens: Variant = stats.get("fichas", null)
-	if tokens is Dictionary:
-		for id in tokens:
-			if bool(tokens[id].en_pantalla):
-				_check(float(tokens[id].alto_px) >= 48.0, "%s: la ficha de %s mide %.1f px reales de alto en la escena real (V03 pide ≥ 48)" % [key, id, float(tokens[id].alto_px)])
+	# QA enmienda 6 (visual/r1 F1): el alto de las fichas (stats.fichas) queda como informe; antes se exigía ≥ 48 px reales (V03 de R1)
 
 
 ## La opacidad con que la vista dibuja los anillos de visibilidad (la vista que no sabe de eso los dibujaba siempre a 0,5).
@@ -673,7 +669,10 @@ func _token_heights() -> void:
 		var inside := Rect2(Vector2.ZERO, root.get_visible_rect().size).has_point(base_px)  # con los datos reales alguna partida cae fuera del cuadro inicial
 		token_px[id] = {"en_pantalla": inside, "alto": snappedf(absf(base_px.y - top_px.y) * screen_scale, 0.1), "escala": snappedf(node.scale.y, 0.01), "cima_m": snappedf(top - node.global_position.y, 0.01),
 			"distancia_m": snappedf(cam.global_position.distance_to(node.global_position), 0.1)}
-		_check(not inside or float(token_px[id].alto) >= (48.0 if str(report.get("view_script", "")).ends_with("humahuaca_view.gd") else 40.0), "la ficha de %s mide %.1f px reales de alto con el cuadro inicial (V03 pide ≥ 48; el stub llega a ≈ 42 en el borde inferior)" % [id, float(token_px[id].alto)])
+		if str(report.get("view_script", "")).ends_with("humahuaca_view.gd"):  # QA enmienda 6 (visual/r1 F1): a escala real; el alto en píxeles se informa
+			_check(is_equal_approx(float(node.scale.y), 1.0), "la ficha de %s va a escala real (escala %.2f; alto %.1f px reales, se informa)" % [id, float(node.scale.y), float(token_px[id].alto)])
+		else:
+			_check(not inside or float(token_px[id].alto) >= 40.0, "la ficha de %s mide %.1f px reales de alto con el cuadro inicial (el stub llega a ≈ 42 en el borde inferior)" % [id, float(token_px[id].alto)])
 	report["token_px"] = token_px
 	report["screen_scale"] = snappedf(screen_scale, 0.001)
 

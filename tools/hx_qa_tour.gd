@@ -5,7 +5,10 @@ extends SceneTree
 ##   vista_<id>.png y vista_<id>_sin_ui.png de las 7 vistas canónicas, más humahuaca-inicio.png y qa_report.json (lo escribe qa_run() del controlador, el mismo
 ##   que corre `--qa=humahuaca`); calib_inicial.png, calib_patio_posta.png y calib_grupos.png en render de albedo (set_albedo_mode), sin interfaz ni lluvia ni
 ##   fogonazos y con la cámara a 40° o más; limite_n/s/e/o.png con la cámara en el borde del mundo; hoja_fichas.png (5 celdas iguales en una fila, fondo liso,
-##   fichas al tamaño real de pantalla de 1280 × 720); scene_names.txt (nodos de la vista y rutas de recursos).
+##   una figura de cada agrupación a escala de 1280 × 720 con la cámara a SHEET_DIST_M; QA enmienda 6: las figuras van a escala real y con la cámara inicial, a 150–200 m,
+##   miden ≈ 10 px, así que la hoja se toma de cerca); scene_names.txt (nodos de la vista y rutas de recursos).
+## QA enmienda 6 (9-nov-2026, visual/r1 F1–F3): el cuadro inicial ya no exige las cinco fichas a la vista (V02: los reconocedores y la batería); `marcas` informa la
+## marca de 14 px y el rótulo de cada agrupación (V03) y `token_px` queda como informe del alto de las figuras.
 ## A qa_report.json le suma: schema, size_px, scene_build_ms, frame_ms_mean y frame_ms_p95 (intervalos de pared de 120 cuadros: con vsync activado no son el
 ## presupuesto del benchmark; usar --disable-vsync), templo_aabb_h_m, token_px, views.<id>.horizon_y, capas, controles visibles, límites, calibración y, salvo
 ## --no-bot, el arco de un bot que sigue el «siguiente paso» por la escena real (bot) y, medido sobre ese arco, jerga (palabras de la lista negra de humahuaca_ui.json en
@@ -28,6 +31,7 @@ const V = preload("res://scripts/humahuaca/humahuaca_vocab.gd")
 const VV = preload("res://scripts/humahuaca/view/vocab_view.gd")
 const SHEET_BG := Color(1.0, 0.0, 1.0)  # fondo liso de la hoja de fichas: ningún color de la paleta se le parece
 const SHEET_CELL := 160
+const SHEET_DIST_M := 40.0  # QA enmienda 6 (V03): distancia de la cámara para la hoja de fichas (a escala real, una figura de 1,8 m mide ≈ 38 px a 1280 × 720)
 const DIFF_MIN := 0.08  # suma de diferencias por canal (0 a 3) a partir de la cual un píxel es de la ficha
 const ACTION_VIEWS := {
 	"grupos_en_accion": {"sufijo": "torre_dispara", "momento": "la torre dispara y al menos tres agrupaciones están a 100 m o menos del punto al que mira la vista, o la torre ya lleva 90 s disparando (M05: alba, lluvia floja, torre disparando)"},
@@ -218,8 +222,10 @@ func _run() -> void:
 		if str((p as Dictionary).get("kind", "")) == "ficha":
 			var rr: Array = (p as Dictionary).rect
 			token_px.append({"id": str(p.id), "w": snappedf(float(rr[2]) * scale_y, 0.1), "h": snappedf(float(rr[3]) * scale_y, 0.1)})
-	report["token_px"] = token_px
-	check(token_px.size() == V.GROUPS.size(), "Cuadro inicial: las 5 fichas a la vista (%d)" % token_px.size())
+	report["token_px"] = token_px  # QA enmienda 6: informe (las figuras van a escala real); lo que se exige es la marca y el rótulo (V03) y los reconocedores a la vista (V02)
+	check(token_px.any(func(t): return str(t.id) == "reconocedores"), "Cuadro inicial: los reconocedores (la primera partida que se usa) a la vista (%s)" % str(token_px.map(func(t): return str(t.id))))
+	report["marcas"] = _marks_report()
+	check((report.marcas as Array).size() >= 1 and (report.marcas as Array).all(func(m): return float(m.diametro_px) >= 12.0 and float(m.diametro_px) <= 16.0), "Cuadro inicial: las marcas de las agrupaciones miden 12 a 16 px reales (%s)" % str((report.marcas as Array).map(func(m): return "%s %.1f" % [str(m.id), float(m.diametro_px)])))
 	var temple: Variant = hx.view.buildings.lm_nodes.get("templo", null) if hx.view.buildings != null else null
 	if temple is Node3D:
 		report["templo_aabb_h_m"] = snappedf(_node_bounds(temple as Node3D).size.y, 0.01)
@@ -340,6 +346,23 @@ func _limits() -> Array:
 	return out
 
 
+## QA enmienda 6 (V03): la marca de cada agrupación (overlay.token_marks) con su diámetro en píxeles REALES, el centro en píxeles lógicos y si el rótulo se dibujó.
+func _marks_report() -> Array:
+	var out: Array = []
+	if hx.overlay == null or not hx.overlay.has_method("token_marks"):
+		return out
+	var xf: Transform2D = (hx.overlay as Control).get_global_transform()
+	var real := root.get_final_transform().get_scale().y
+	var drawn := {}
+	for lab in hx.overlay.drawn_labels:
+		drawn[str((lab as Dictionary).text)] = true
+	for m in hx.overlay.token_marks():
+		var c: Vector2 = xf * ((m as Dictionary).center as Vector2)
+		out.append({"id": str(m.id), "diametro_px": snappedf(2.0 * float(m.r) * xf.get_scale().y * real, 0.1), "x_logico": snappedf(c.x, 0.1), "y_logico": snappedf(c.y, 0.1),
+			"rotulo": str(m.text) if drawn.has(str(m.text)) else ""})
+	return out
+
+
 # ---------------------------------------------------------------------------------------------------------------------
 # Hoja de fichas (V03): cada ficha recortada por diferencia entre el cuadro con y sin la capa de fichas, sobre fondo liso y a escala de 1280 × 720
 
@@ -347,7 +370,9 @@ func _token_sheet() -> Dictionary:
 	var info := {"celdas": 0, "alto_px": {}}
 	hx.qa_set_ui_visible(false)
 	hx.view.call("set_time_override", 0.9, 0.0)
-	var pose: Dictionary = hx.initial_pose()  # el zoom por defecto; cada ficha se centra en el cuadro para que ni el borde ni otra ficha la recorten
+	var pose: Dictionary = hx.initial_pose()  # el rumbo y la inclinación iniciales; cada ficha se centra en el cuadro para que ni el borde ni otra ficha la recorten
+	pose["dist"] = SHEET_DIST_M  # QA enmienda 6: de cerca (a escala real, desde la cámara inicial las figuras miden ≈ 10 px)
+	info["distancia_m"] = SHEET_DIST_M
 	var camera: Camera3D = game.camera
 	var fichas := hx.view.get_node_or_null("Fichas") as Node3D
 	var anillos := hx.view.get_node_or_null("Anillos") as Node3D
@@ -383,7 +408,7 @@ func _token_sheet() -> Dictionary:
 				rect = Rect2(float(rr[0]), float(rr[1]), float(rr[2]), float(rr[3]))
 		if rect.size == Vector2.ZERO:
 			continue
-		var grown := rect.grow(maxf(24.0, rect.size.y * 0.75))  # holgado: la ficha de los reconocedores (agachados) es más ancha que su rectángulo
+		var grown := rect.grow(maxf(24.0, rect.size.y * 0.75))  # holgado: la ficha de los reconocedores (agachados) es más ancha que su rectángulo; de la formación queda la figura más grande
 		var area := Rect2i(Vector2i(grown.position * k), Vector2i(grown.size * k)).intersection(Rect2i(Vector2i.ZERO, with_img.get_size()))
 		var token := _cut_token(with_img, bare_img, area)
 		if token == null:
