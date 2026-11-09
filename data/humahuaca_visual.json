@@ -65,7 +65,7 @@
 			"ground_warmth": 0.12,
 			"grade": {"contrast": 1.22, "saturation": 0.85, "shadows": [0.04, 0.03, 0.07], "mids": [0.5, 0.48, 0.47], "highlights": [1.0, 0.95, 0.86]},
 			"tag": "diseno",
-			"source": "sol a 6° o 7°, cálido sin saturar (lino y 40 % de oro, I-R1.0-3), sombras largas y horizonte rosado (diseño 11.2); visual/r1 F6: menos ground_warmth y saturación con las texturas PBR de F5"
+			"source": "sol a 6° o 7°, cálido sin saturar (lino y 40 % de oro, I-R1.0-3), sombras largas y horizonte rosado (diseño 11.2)"
 		},
 		"dia": {
 			"time_of_day": 1.0,
@@ -78,7 +78,7 @@
 			"ground_warmth": 0.0,
 			"grade": {"contrast": 1.18, "saturation": 0.86, "shadows": [0.02, 0.02, 0.04], "mids": [0.5, 0.5, 0.5], "highlights": [1.0, 0.98, 0.95]},
 			"tag": "diseno",
-			"source": "sol a 35° (diseño 11.2); valores de partida a calibrar; Q-210: menos sol y exposición, más contraste; visual/r1 F6: saturación ajustada para texturas PBR de F5"
+			"source": "sol a 35° (diseño 11.2); valores de partida a calibrar; Q-210: menos sol y exposición, más contraste"
 		}
 	},
 	"models": {
