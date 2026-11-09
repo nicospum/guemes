@@ -1103,6 +1103,7 @@ func _unhandled_input(event):
 
 func _toggle_pause():
  if rules.state.scenario=="norte":_resolve_round();return
+ if _j_finished():_outcome_dialog_again();return  # Q-103: con el intento terminado, Espacio y el botón de la cabecera reabren el parte
  # Q-102: con una decisión esperando, Espacio (o «Reanudar») la reabre en vez de largar el reloj: el aviso dice que el reloj sigue
  # detenido hasta que elijas, y así es.
  if _choice_waiting():
@@ -2412,6 +2413,7 @@ func _update_mode_ui():
  pause_banner.text=txt;pause_banner.visible=not txt.is_empty() and not (is_instance_valid(alert_panel) and alert_panel.visible)
  pause_button.text="▶  Reanudar" if paused else "‖  Pausar"
  if float(st.elapsed)<0.5 and paused:pause_button.text="▶  Iniciar"
+ if str(st.status)!="playing":pause_button.text="Ver el parte"
  for sp in speed_buttons:speed_buttons[sp].set_pressed_no_signal(int(speed)==int(sp))
  autopause_button.text=("☑ " if bool(settings.auto_pause) else "☐ ")+"Pausa auto"
  autopause_button.add_theme_stylebox_override("normal",_cm_style("ap_on",Color(0.13,0.10,0.20),Color("7a5bb5"),1,5,3) if bool(settings.auto_pause) else _cm_style("ap_off",Color(0.14,0.15,0.15),Color("5c4a2e"),1,5,3))
@@ -2512,7 +2514,7 @@ func _alert_click():
 
 func _next_step()->Dictionary:
  var st=rules.state
- if str(st.status)!="playing":return {"action":"","text":"El intento terminó: mirá el parte."}
+ if str(st.status)!="playing":return {"action":"","text":"El intento terminó: «Ver el parte» (P) lo vuelve a abrir."}
  if bool(st.counter.active) and not bool(st.counter.answered):return {"action":"repel","text":"¡Contraataque! Apretá «Rechazar» (coma) con un grupo que aborda."}
  var res=rules.resources()
  var ph=_phase()
@@ -4165,6 +4167,7 @@ func _draw_timeline():
 
 func _toggle_report():
  if is_instance_valid(modal):_close_modal()
+ elif _j_finished():_outcome_dialog_again()  # Q-103: P reabre el parte del intento terminado
  else:_report_dialog(false)
 
 # ---------- Dibujo sobre la vista 3D ----------
@@ -5066,7 +5069,7 @@ func _defeat_dialog(r:Dictionary):
   retry_btn=_button(row,"Reintentar (mismo mapa)",func():_retry(false),56);retry_btn.add_theme_font_size_override("font_size",20);retry_btn.custom_minimum_size.x=280
   _primary_style(retry_btn)
  retry_btn.tooltip_text="Vuelve a empezar con el mismo fondo del río: los pozos y vados están donde los anotaste."
- _juice("defeat");_sound("defeat")
+ if not outcome_reopen:_juice("defeat");_sound("defeat")
 
 func _confirm_new_river():
  var box=_open_modal("¿Probar otro mapa?",640,_scroll_h(260.0,40.0))
@@ -5075,9 +5078,17 @@ func _confirm_new_river():
  var no=_button(row,"Seguir con este mapa",func():_close_modal();_outcome_dialog_again(),50);no.size_flags_horizontal=Control.SIZE_EXPAND_FILL;_primary_style(no)
  _button(row,"Sí, mapa nuevo",func():_retry(true),50)
 
+var outcome_reopen:=false
 func _outcome_dialog_again():
+ if is_instance_valid(modal):_close_modal()
+ outcome_reopen=true
  if str(rules.state.status)=="victory":_victory_dialog(last_attempt_report)
  elif str(rules.state.status)!="playing":_defeat_dialog(last_attempt_report)
+ outcome_reopen=false
+
+# Q-103: con el intento de la Justina terminado, el parte se puede volver a abrir (P, Espacio, el botón de la cabecera o la pausa).
+func _j_finished()->bool:
+ return mode=="play" and _is_j() and str(rules.state.get("status","playing"))!="playing" and outcome_shown
 
 func _victory_dialog(r:Dictionary):
  # P4b: parte a pantalla completa con la composición de la misión: medalla dibujada, qué lograste, desbloqueo, cifras, cita con fuente y el
@@ -5121,6 +5132,7 @@ func _victory_dialog(r:Dictionary):
  var go=_button(row,"Seguir: Humahuaca (nivel II)",func():_start_game("humahuaca"),56);go.custom_minimum_size.x=300;go.add_theme_font_size_override("font_size",20)
  go.tooltip_text="Nivel II: el golpe de Arias en Humahuaca, 1 de marzo de 1817. Después sigue el III, Sostener el norte."
  _primary_style(go)
+ if outcome_reopen:return  # Q-103: al reabrir el parte no se repiten el festejo ni el paneo al buque
  _juice("victory")
  _victory_beat()
 
@@ -5225,6 +5237,7 @@ func _intro_close():
  _close_modal();_update_hud()
 
 func _pause_menu():
+ if _j_finished():_pause_menu_finished();return
  var box=_open_modal("Pausa",560,_scroll_h(560.0,40.0))
  var go=_button(box,"Seguir jugando",_close_modal,46);go.add_theme_font_size_override("font_size",18)
  for spec in [["Diario del Bañado",_diary_dialog],["Parte de campaña (P)",_partial_report],["Guardar (F5)",_save_game],["Ajustes",_settings_dialog],["Ayuda (F1)",_briefing_dialog]]:
@@ -5236,6 +5249,22 @@ func _pause_menu():
  var ab=_button(box,"Abandonar: retirada general",_abandon,38)
  ab.add_theme_stylebox_override("normal",_cm_style("act_danger",Color("2c1d14"),Color("d9903a"),2,10,4));ab.add_theme_color_override("font_color",Color("f0d6b0"))
  ab.tooltip_text="Pide confirmación y termina el intento como derrota."
+
+# Q-103: sobre un intento terminado la pausa no ofrece «Seguir jugando» ni «Abandonar»: reabre el parte y, si se ganó, sigue al II.
+func _pause_menu_finished():
+ var won=str(rules.state.status)=="victory"
+ var box=_open_modal("Intento terminado",560,_scroll_h(420.0,40.0))
+ _label(box,"La Justina: "+("buque tomado." if won else "el intento no alcanzó."),15,GOLD_LIGHT if won else Color("d9903a")).autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+ var vp=_button(box,"Ver el parte (P)",_outcome_dialog_again,46);vp.add_theme_font_size_override("font_size",18)
+ if won:
+  var go=_button(box,"Seguir: Humahuaca (nivel II)",func():_start_game("humahuaca"),46);go.add_theme_font_size_override("font_size",18);_primary_style(go)
+ else:
+  _primary_style(vp)
+ for spec in [["Diario del Bañado",_diary_dialog],["Ajustes",_settings_dialog],["Ayuda (F1)",_briefing_dialog]]:
+  _button(box,str(spec[0]),spec[1],40)
+ _spacer(box,10)
+ _button(box,"Jugar otro intento",_confirm_restart,38)
+ _button(box,"Volver al menú",_return_menu,38)
 
 func _partial_report():
  _report_dialog(false)
