@@ -1226,10 +1226,13 @@ func _frame_norte_units():
   var box=_norte_free_band()
   var ys=[]
   for u in rules.state.units:
-   # El mismo punto al que la vista lleva la ficha (world_view.update_state: sector corrido -3,3 / +2,8), no el de este cuadro,
-   # que todavía se está deslizando desde el centro.
-   var gx=float(u.x)-3.3;var gz=float(u.z)+2.8
-   var gp=world.to_global(Vector3(gx,float(world.terrain_height(gx,gz)) if world.has_method("terrain_height") else 0.0,gz))
+   # El mismo punto al que la vista lleva la ficha (world_view.norte_group_point: el campamento de la tropa en su sector; visual/r1
+   # F3b, antes el sector corrido -3,3 / +2,8), no el de este cuadro, que todavía se está deslizando desde el centro.
+   var gp:Vector3
+   if world.has_method("norte_group_point"):gp=world.to_global(world.norte_group_point(u))
+   else:
+    var gx=float(u.x)-3.3;var gz=float(u.z)+2.8
+    gp=world.to_global(Vector3(gx,float(world.terrain_height(gx,gz)) if world.has_method("terrain_height") else 0.0,gz))
    if camera.is_position_behind(gp):continue
    ys.append(camera.unproject_position(gp).y)
   if ys.is_empty():return

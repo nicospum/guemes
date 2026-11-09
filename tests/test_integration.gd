@@ -1031,9 +1031,9 @@ func _qa_ronda2() -> void:
 	var band: Vector2 = game._norte_free_band()
 	var hidden := []
 	for u in game.rules.state.units:
-		var gx := float(u.x) - 3.3
-		var gz := float(u.z) + 2.8
-		var sp: Vector2 = game.camera.unproject_position(game.world.to_global(Vector3(gx, game.world.terrain_height(gx, gz), gz)))
+		# visual/r1 F3b: el punto de la tropa es su campamento en el sector (world_view.norte_group_point), no el corrimiento fijo de antes.
+		var gw: Vector3 = game.world.norte_group_point(u)
+		var sp: Vector2 = game.camera.unproject_position(game.world.to_global(gw))
 		if sp.y + 30.0 > band.y or sp.y - 40.0 < band.x: hidden.append("%s@%d" % [str(u.id), int(sp.y)])
 	check(hidden.is_empty() and game.hint_panel.visible, "Q-104: en el primer cuadro del III ninguna agrupación queda bajo «Siguiente paso» (franja %s; tapadas: %s)" % [str(band), str(hidden)])
 	# Q-107: el autoguardado de la ronda no pisa el F5; F9 carga el F5 y dice cuál cargó

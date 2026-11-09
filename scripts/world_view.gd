@@ -298,6 +298,10 @@ func _glb_ok(model_name:String)->bool:
 func _inst_glb(model_name:String,xf:Transform3D):
  if not glb_batches.has(model_name):glb_batches[model_name]=[]
  glb_batches[model_name].append(xf)
+ # visual/r1 F3b: en el Norte, árboles y rocas (solo decoración, sin significado de mapa) quedan anotados para poder apartarlos
+ # de la huella de una tropa (_update_norte_deco). Casas, iglesia y caminos no se tocan.
+ if scenario=="norte" and model_name in NORTE_DECO_MODELS:
+  norte_deco.append({"m":model_name,"i":glb_batches[model_name].size()-1,"p":Vector2(xf.origin.x,xf.origin.z)})
 
 # Variacion de color por instancia (ronda 2): paredes de lino/cal con distinta edad, techos de teja apagada; evita "cubos blancos con techo rojo identicos".
 func _glb_variation(model_name:String,pos:Vector3)->Color:
@@ -326,6 +330,9 @@ func _flush_glb_batches():
    mmi.name="LoteGLB_"+model_name
    mmi.multimesh=mm
    (batch_parent if batch_parent!=null else self).add_child(mmi)
+   if scenario=="norte" and model_name in NORTE_DECO_MODELS:
+    if not glb_live.has(model_name):glb_live[model_name]={"xfs":xfs.duplicate(),"mms":[]}
+    glb_live[model_name].mms.append({"mm":mm,"pxf":part.xf})
  glb_batches.clear()
 
 func _lighting():
@@ -670,24 +677,29 @@ func _create_group(unit:Dictionary):
  var parts=_mm_parts(figures,file,maxi(n-1,1))
  for p in parts:
   if file=="rider_1817":p.mm.mesh=_poncho_mesh(p.mm.mesh,false)
+  # visual/r1 F3b (costo): la tropa usa una malla estática con niveles de detalle (_lod_mesh) y no proyecta sombra; el jefe sí.
+  p.mm.mesh=_lod_mesh(p.mm.mesh)
+  (p.mmi as GeometryInstance3D).cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
   if scenario=="norte":(p.mmi as GeometryInstance3D).material_overlay=_rim_mat()
  var ring=_ring(2.65,Looks.ORO_VIEJO,root)
  if scenario=="norte":
   # visual/r1 F1: aro de aliado fino a escala real (cinta de ~0,16 m que copia el relieve, 0,18 m sobre el suelo) y CON prueba de
   # profundidad: una loma lo tapa como taparía a la tropa. Reemplaza el toro grueso dibujado encima de todo (P1 ronda 2).
   ring.mesh=null;ring.position.y=0.0;ring.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+  # visual/r1 F3b: el aro deja de copiar el relieve (en las laderas del III se volvía una mancha deforme) y pasa a ser un anillo
+  # plano a la altura media de la tropa (_norte_ring), que se lee como elipse limpia; lo que tapa una loma queda como fantasma.
   # visual/r1 F1: ficha de pantalla chica (14 px, la misma de la Justina; silueta por tipo) que aparece al alejar la cámara.
   _token_j(root,int(TOKEN_SHAPES.get(str(unit.id),0)),Looks.CELESTE,J_TOKEN_PX,40.0,80.0,1.0,false,0.0)
  selected_rings[str(unit.id)]=ring
  var label=_world_label(str(unit.name),Vector3(0,4.0,0),Color("e9d4aa"),30,root)
  unit_labels[str(unit.id)]=label
- var entry={"root":root,"figures":figures,"mounted":mounted,"anims":anims,"last":root.position,"lead":lead,"parts":parts,"n":n,"lod_far":false,"ring_r":2.3}
+ var entry={"root":root,"figures":figures,"mounted":mounted,"anims":anims,"last":root.position,"lead":lead,"parts":parts,"n":n,"lod_far":false,"ring_r":2.3,"no_shadow":true}
  unit_nodes[str(unit.id)]=entry
  _layout_group_n(entry,str(unit.id),false)
 
 ## visual/r1 F3: formación del Norte, en el marco local de `figures` (que ya gira hacia la marcha): jefe adelante y al centro, la tropa
-## en línea detrás (mismo trazado que la Justina, GLB 1817 a NORTE_FIG_SCALE). El conjunto se centra en el punto del grupo corrido
-## center_off hacia su sector; el aro (ring_r) lo abarca.
+## en línea detrás (mismo trazado que la Justina, GLB 1817 a NORTE_FIG_SCALE). visual/r1 F3b: el conjunto se centra en el punto de la
+## vista (root), que ya es el campamento de la tropa (norte_camp): ficha, rótulo, aro y selección quedan sobre las figuras.
 func _layout_group_n(entry:Dictionary,id:String,moving:bool)->void:
  var n:int=int(entry.n);var mounted:bool=bool(entry.mounted)
  var m=maxi(n-1,1)
@@ -700,25 +712,25 @@ func _layout_group_n(entry:Dictionary,id:String,moving:bool)->void:
  var far=bool(entry.get("lod_far",false))
  var fig:Node3D=entry.figures
  var base:Vector3=(entry.root as Node3D).position
- # La tropa se corre hacia el centro del sector (center_off, en el mundo): ahí el relieve es llano; en el punto del grupo ya empieza la
- # ladera y con 24 figuras la mitad quedaba detrás de una loma. La ficha y el rótulo siguen en el punto del grupo.
- var co:Vector3=entry.get("center_off",Vector3.ZERO)
- var col=co.rotated(Vector3.UP,-fig.rotation.y)
  var lead:Node3D=entry.get("lead",null)
+ var hsum=0.0
  if is_instance_valid(lead):
-  var lw=base+co+Vector3(0,0,z0).rotated(Vector3.UP,fig.rotation.y)
-  lead.position=Vector3(col.x,terrain_height(lw.x,lw.z)-base.y,col.z+z0)
+  var lw=base+Vector3(0,0,z0).rotated(Vector3.UP,fig.rotation.y)
+  lead.position=Vector3(0.0,terrain_height(lw.x,lw.z)-base.y,z0)
+  hsum+=lead.position.y
  for i in range(m):
   var f=_form_slot(i,m,mounted,sg,0.0,gseed)
-  var lp=Vector3(col.x+f.x,0.0,col.z+z0+gz+f.y)
+  var lp=Vector3(f.x,0.0,z0+gz+f.y)
   # Cada figura apoya en su propio suelo (relieve quebrado): altura del terreno en su punto del mundo menos la del grupo.
   var wp=base+lp.rotated(Vector3.UP,fig.rotation.y)
   var gy=terrain_height(wp.x,wp.z)-base.y
+  hsum+=gy
   var bob=0.07*absf(sin(t*7.0+float(i)*0.9)) if (moving and not far) else 0.0
   var xf=Transform3D(Basis.from_euler(Vector3(0.0,f.z,0.0)).scaled_local(Vector3.ONE*sc),Vector3(lp.x,gy+bob*sc,lp.z))
   for p in entry.parts:p.mm.set_instance_transform(i,xf*p.xf)
  # Radio del aro: media diagonal de la huella (jefe incluido) + medio caballo y un margen.
  entry["ring_r"]=sqrt(ext.x*ext.x+pow((ext.y+gz)*0.5,2.0))+(2.1 if mounted else 1.0)*sc
+ entry["ring_y"]=hsum/float(m+1)   # altura media de la tropa sobre el punto del grupo (para el aro plano)
 
 var rim_mat:ShaderMaterial=null
 func _rim_mat()->ShaderMaterial:
@@ -736,16 +748,132 @@ void fragment(){
   rim_mat=ShaderMaterial.new();rim_mat.shader=sh
  return rim_mat
 
+## visual/r1 F3b: aro plano del Norte. Una corona de 48 tramos en el plano horizontal (malla en caché por radio y ancho), puesta
+## a la altura media de la tropa + 0,25 m: en pantalla es siempre una elipse limpia aunque la tropa esté en una ladera.
+var flat_ring_cache:Dictionary={}
+func _norte_ring(mi:MeshInstance3D,r:float,half_w:float,y:float)->void:
+ var key="%.2f|%.3f" % [r,half_w]
+ if str(mi.get_meta("flat_key",""))!=key:
+  if not flat_ring_cache.has(key):
+   var st=SurfaceTool.new();st.begin(Mesh.PRIMITIVE_TRIANGLE_STRIP)
+   for i in range(49):
+    var a=TAU*float(i)/48.0;var dir=Vector3(cos(a),0.0,sin(a))
+    st.add_vertex(dir*(r-half_w));st.add_vertex(dir*(r+half_w))
+   flat_ring_cache[key]=st.commit()
+  mi.mesh=flat_ring_cache[key];mi.set_meta("flat_key",key)
+ mi.position=Vector3(0.0,y+0.25,0.0)
+
+## visual/r1 F3b: campamento de la tropa en su sector (punto de la vista; las reglas siguen usando el sector). Entre 24 lugares
+## alrededor del pueblo, a 6–9 m y más cerca de él que de otro pueblo, elige el de relieve más parejo dentro de la huella y menos tapado desde la cámara inicial
+## (yaw −0,17, inclinación 0,91), lejos de las casas y rótulos de todos los sectores y del puesto realista (+4 m al este del
+## sector). Si hay más de un grupo en el mismo sector, cada uno toma otro lugar (slot). Determinista y en caché.
+const NORTE_CAMP_R = 4.6
+var norte_camp_cache:Dictionary={}
+func norte_camp(sector_id:String,slot:int)->Vector2:
+ var key=sector_id+"|"+str(slot)
+ if norte_camp_cache.has(key):return norte_camp_cache[key]
+ var sec:Dictionary=rules.get_sector(sector_id) if rules.has_method("get_sector") else {}
+ if sec.is_empty():return Vector2(INF,INF)
+ var c0=Vector2(float(sec.x),float(sec.z))
+ var taken:Array=[]
+ for k in range(slot):taken.append(norte_camp(sector_id,k))
+ var avoid:Array=[]
+ for s2 in rules.state.get("sectors",[]):
+  avoid.append(Vector2(float(s2.x),float(s2.z)));avoid.append(Vector2(float(s2.x)+4.0,float(s2.z)))
+ var best=c0+Vector2(-3.3,2.8);var best_cost=INF
+ for r in [6.0,7.0,8.0,9.0]:
+  for ai in range(24):
+   var a=TAU*float(ai)/24.0
+   var c=c0+Vector2(cos(a),sin(a))*r
+   if absf(c.x)>44.0 or absf(c.y)>34.0:continue
+   var bad=false
+   for q in avoid:
+    if c.distance_to(q)<NORTE_CAMP_R+1.6:bad=true;break
+   for t in taken:
+    if c.distance_to(t)<NORTE_CAMP_R*2.0+0.8:bad=true;break
+   # Que se lea como parte de SU pueblo: más cerca de su sector que de cualquier otro (con 1,5 m de margen).
+   for s3 in rules.state.get("sectors",[]):
+    if str(s3.id)!=sector_id and c.distance_to(Vector2(float(s3.x),float(s3.z)))<c.distance_to(c0)+1.5:bad=true;break
+   if bad:continue
+   var hs:Array=[]
+   for k in range(13):
+    var q2=c if k==0 else c+Vector2(cos(TAU*float(k)/6.0),sin(TAU*float(k)/6.0))*(NORTE_CAMP_R*(0.5 if k<=6 else 1.0))
+    hs.append(terrain_height(q2.x,q2.y))
+   var hmin:float=hs.min();var hmax:float=hs.max()
+   var occl=0
+   var to_cam=Vector2(sin(-0.17),cos(-0.17));var rise=tan(0.91)
+   for k in range(7):
+    var q3=c if k==0 else c+Vector2(cos(TAU*float(k)/6.0),sin(TAU*float(k)/6.0))*NORTE_CAMP_R*0.7
+    var h0=terrain_height(q3.x,q3.y)+0.8
+    for step in range(1,26):
+     var pp=q3+to_cam*float(step)
+     if terrain_height(pp.x,pp.y)>h0+rise*float(step):occl+=1;break
+   var cost=(hmax-hmin)+float(occl)*1.5+r*0.35
+   # Lejos del lado de los otros pueblos, donde acampan sus tropas (sin esto Güemes en Lerma y Arias en Jujuy se pisaban los aros).
+   for s4 in rules.state.get("sectors",[]):
+    if str(s4.id)!=sector_id:cost+=0.6*maxf(0.0,16.0-c.distance_to(Vector2(float(s4.x),float(s4.z))))
+   if cost<best_cost:best_cost=cost;best=c
+ norte_camp_cache[key]=best
+ return best
+
+## Punto de la vista para un grupo del Norte (también lo usa main.gd para encuadrar): su campamento en el sector, según cuántos
+## grupos anteriores comparten ese sector.
+func norte_group_point(u:Dictionary)->Vector3:
+ var sid=str(u.get("sector_id",""))
+ var slot=0
+ for o in rules.state.units:
+  if o==u or str(o.id)==str(u.id):break
+  if str(o.get("sector_id",""))==sid and float(o.get("strength",0.0))>0.0:slot+=1
+ var c=norte_camp(sid,slot) if sid!="" else Vector2(INF,INF)
+ if not is_finite(c.x):c=Vector2(float(u.x)-3.3,float(u.z)+2.8)
+ return Vector3(c.x,terrain_height(c.x,c.y),c.y)
+
+## visual/r1 F3b: árboles y rocas decorativos del Norte dentro de la huella de una tropa (+0,8 m) se apartan (escala ~0 en su lote)
+## y vuelven cuando la tropa se va. Solo decoración: casas, caminos y marcas de sector no se tocan.
+const NORTE_DECO_MODELS = ["tree_algarrobo","tree_cardon","rock_cluster"]
+var norte_deco:Array=[]
+var glb_live:Dictionary={}
+var norte_deco_hidden:Dictionary={}
+var norte_deco_sig:=""
+func _update_norte_deco()->void:
+ if norte_deco.is_empty():return
+ var zones:Array=[]
+ var sig=""
+ for id in unit_nodes:
+  var e:Dictionary=unit_nodes[id]
+  var r:Node3D=e.root
+  if not r.visible:continue
+  zones.append(Vector3(r.position.x,r.position.z,float(e.get("ring_r",2.3))+0.8))
+  sig+="%d,%d,%d;" % [roundi(r.position.x*4.0),roundi(r.position.z*4.0),roundi(float(e.get("ring_r",2.3))*4.0)]
+ if sig==norte_deco_sig:return
+ norte_deco_sig=sig
+ var want:Dictionary={}
+ for d in norte_deco:
+  for z in zones:
+   if (d.p as Vector2).distance_to(Vector2(z.x,z.y))<z.z:want[str(d.m)+"#"+str(d.i)]=d;break
+ for k in norte_deco_hidden.keys():
+  if not want.has(k):_deco_set(norte_deco_hidden[k],false);norte_deco_hidden.erase(k)
+ for k in want:
+  if not norte_deco_hidden.has(k):_deco_set(want[k],true);norte_deco_hidden[k]=want[k]
+
+func _deco_set(d:Dictionary,hidden:bool)->void:
+ var live:Dictionary=glb_live.get(str(d.m),{})
+ if live.is_empty():return
+ var xf:Transform3D=live.xfs[int(d.i)]
+ if hidden:xf=Transform3D(Basis.from_scale(Vector3.ONE*0.001),xf.origin)
+ for p in live.mms:(p.mm as MultiMesh).set_instance_transform(int(d.i),xf*p.pxf)
+
 func _ring_mat_n(c:Color)->StandardMaterial3D:
  var key="ring_n"+c.to_html()
  if ring_mat_cache.has(key):return ring_mat_cache[key]
  var m=StandardMaterial3D.new();m.albedo_color=c;m.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
  # visual/r1 F1: el aro respeta la profundidad (antes no_depth_test=true y prioridad 2: se veía entero a través de las lomas).
- # En este relieve tan quebrado la parte tapada por una loma queda como un fantasma tenue (segunda pasada al 22 %), no a pleno.
+ # En este relieve tan quebrado la parte tapada por una loma queda como un fantasma tenue (segunda pasada; F3b: 40 %, antes 22 %, para
+# que el aro plano se siga leyendo entero donde la ladera lo corta), no a pleno.
  m.no_depth_test=false;m.disable_fog=true;m.cull_mode=BaseMaterial3D.CULL_DISABLED
  m.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA;m.albedo_color.a=0.92
  var ghost=StandardMaterial3D.new();ghost.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED;ghost.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA
- ghost.albedo_color=Color(c.r,c.g,c.b,0.22);ghost.no_depth_test=true;ghost.disable_fog=true;ghost.cull_mode=BaseMaterial3D.CULL_DISABLED;ghost.render_priority=-1
+ ghost.albedo_color=Color(c.r,c.g,c.b,0.4);ghost.no_depth_test=true;ghost.disable_fog=true;ghost.cull_mode=BaseMaterial3D.CULL_DISABLED;ghost.render_priority=-1
  m.next_pass=ghost
  ring_mat_cache[key]=m
  return m
@@ -783,6 +911,23 @@ func _recolor_poncho(fig:Node3D,hero:bool)->void:
  for mi in fig.find_children("*","MeshInstance3D",true,false):
   if mi.mesh==null:continue
   mi.mesh=_poncho_mesh(mi.mesh,hero)
+
+## visual/r1 F3b: copia estática de una malla del GLB (sin huesos: el MultiMesh la dibuja en pose de reposo) con niveles de detalle
+## generados en tiempo de carga (ImporterMesh.generate_lods); el motor baja de detalle solo según el tamaño en pantalla. En caché.
+var lod_mesh_cache:Dictionary={}
+func _lod_mesh(src:Mesh)->Mesh:
+ var key=src.get_rid().get_id()
+ if lod_mesh_cache.has(key):return lod_mesh_cache[key]
+ var im=ImporterMesh.new()
+ for si in range(src.get_surface_count()):
+  var a=src.surface_get_arrays(si)
+  a[Mesh.ARRAY_BONES]=null;a[Mesh.ARRAY_WEIGHTS]=null
+  im.add_surface(Mesh.PRIMITIVE_TRIANGLES,a,[],{},src.surface_get_material(si))
+ im.generate_lods(25.0,60.0,[])
+ var out:Mesh=im.get_mesh()
+ if out==null or out.get_surface_count()==0:out=src
+ lod_mesh_cache[key]=out
+ return out
 
 ## visual/r1 F3: la reclasificación del poncho, por malla (antes dentro de _recolor_poncho), para usarla también en el MultiMesh de la tropa.
 func _poncho_mesh(src:Mesh,hero:bool)->Mesh:
@@ -843,7 +988,9 @@ func update_state(delta:float):
   if str(u.get("stage","")) in ["boarding","capturing","captured"]:h=maxf(h,0.2)
   var goal=Vector3(float(u.x),h,float(u.z))
   if scenario=="norte":
-   goal.x-=3.3;goal.z+=2.8;goal.y=terrain_height(goal.x,goal.z)
+   # visual/r1 F3b: la vista lleva la tropa a su campamento en el sector (norte_group_point): el lugar más parejo y visible
+   # cerca del pueblo, sin pisar casas ni rótulos (antes un corrimiento fijo -3,3 / +2,8 que caía en laderas y detrás de lomas).
+   goal=norte_group_point(u)
   if scenario=="justine" and str(u.stage) in ["boarding","dismounting"]:
    goal.z+=float(rules.state.units.find(u)-1)*2.7
   var nearby=false
@@ -880,14 +1027,6 @@ func update_state(delta:float):
   if entry.has("parts"):
    # Bajas y refuerzos cambian la cantidad de figuras; en marcha se rehace la formación (suelo y vaivén) y una vez más al parar.
    var n_now=_group_count(u)
-   # Corrimiento hacia el centro del sector del grupo (0,8 del camino, hasta 4 m).
-   var co=Vector3.ZERO
-   var sec:Dictionary=rules.get_sector(str(u.get("sector_id",""))) if rules.has_method("get_sector") else {}
-   if not sec.is_empty():
-    co=Vector3(float(sec.x)-root.position.x,0.0,float(sec.z)-root.position.z)*0.8
-    if co.length()>4.0:co=co.normalized()*4.0
-   if co.distance_to(entry.get("center_off",Vector3.ZERO))>0.05:
-    entry["center_off"]=co;entry["relayout"]=true
    if n_now!=int(entry.n):
     for p in entry.parts:
      p.mm.visible_instance_count=-1;p.mm.instance_count=maxi(n_now-1,1)
@@ -902,10 +1041,8 @@ func update_state(delta:float):
    # Regla de color: aliado = aro celeste siempre visible; el elegido pasa a oro viejo.
    selected_rings[id].visible=true
    var sel_n=id==selected or selected=="all"
-   # visual/r1 F3: el aro rodea la huella de la tropa (radio ring_r, centrado donde quedó la formación: center_off).
-   var co_r:Vector3=entry.get("center_off",Vector3.ZERO)
-   selected_rings[id].position=Vector3(co_r.x,0.0,co_r.z)
-   _conform_ring(selected_rings[id],root.position+co_r,float(entry.get("ring_r",2.3)),0.2 if sel_n else 0.07)
+   # visual/r1 F3b: aro plano (elipse limpia en pantalla) del radio de la huella, a la altura media de la tropa.
+   _norte_ring(selected_rings[id],float(entry.get("ring_r",2.3)),0.2 if sel_n else 0.07,float(entry.get("ring_y",0.0)))
    var rm=_ring_mat_n(Looks.ORO_VIEJO if sel_n else Looks.CELESTE)
    if selected_rings[id].material_override!=rm:selected_rings[id].material_override=rm
   else:
@@ -920,6 +1057,7 @@ func update_state(delta:float):
   unit_labels[id].position.y=4.0+(float(index)*2.1 if nearby else 0.0)
   unit_labels[id].modulate=Color("f1d290") if id==selected else Color("ddd7bf")
  if scenario=="norte":
+  _update_norte_deco()
   for sector in rules.state.sectors:
    var entry=sector_nodes.get(str(sector.id),{})
    if entry.is_empty():continue
@@ -2364,7 +2502,7 @@ func _apply_fig_lod(entry:Dictionary)->void:
  for p in entry.get("parts",[]):
   var mm:MultiMesh=p.mm
   mm.visible_instance_count=(int(ceil(float(mm.instance_count)*FIG_LOD_KEEP)) if far else -1)
-  (p.mmi as GeometryInstance3D).cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF if far else GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+  (p.mmi as GeometryInstance3D).cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF if (far or bool(entry.get("no_shadow",false))) else GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 
 ## Histéresis del LOD: devuelve true si el grupo debe pasar a «lejos» (o seguir lejos) a la distancia d.
 func _lod_far_at(entry:Dictionary,d:float)->bool:
