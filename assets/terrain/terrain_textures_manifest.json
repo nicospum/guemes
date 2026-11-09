@@ -1,0 +1,959 @@
+{
+ "contract": "f5_terreno_texturas",
+ "version": 1,
+ "builder": "tools/f5_terreno_texturas.py",
+ "credits_ref": "docs/CREDITOS.md (visual/r1 F5 · terreno)",
+ "godot_notes": "albedo sRGB; normal OpenGL (+Y, la de Godot); orm = R oclusión, G rugosidad, B metal (ORM de Godot); height gris 0..1 relativo (no metros), para mezclar capas por altura",
+ "materials": [
+  {
+   "id": "hx_suelo_grava",
+   "place": "humahuaca",
+   "role": "suelo seco base: arena gruesa con grava dispersa (Namaqualand, semidesierto)",
+   "source": "Poly Haven",
+   "source_id": "gravelly_sand",
+   "name": "Gravelly Sand",
+   "authors": {
+    "Dario Barresi": "All"
+   },
+   "page": "https://polyhaven.com/a/gravelly_sand",
+   "license": "CC0 1.0",
+   "license_url": "https://polyhaven.com/license",
+   "real_size_cm": [
+    2480.0000190734863,
+    2480.0000190734863
+   ],
+   "resolution": "1k",
+   "tag": "razonado",
+   "modification": "re-codificado a JPG calidad 88 (normal 80) sin metadatos; desplazamiento a gris de 8 bits",
+   "files": [
+    {
+     "map": "albedo",
+     "path": "assets/terrain/humahuaca/hx_suelo_grava_albedo.jpg",
+     "bytes": 390315,
+     "sha256": "4045f93863119ecf2711ce7cb5b83dd1d28c173361e528b66f05b0f8c63bd484",
+     "pixels": [
+      1024,
+      1024
+     ],
+     "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/gravelly_sand/gravelly_sand_diff_1k.jpg",
+     "source_bytes": 1062525,
+     "source_md5": "16b7593a26ce1bd43f1d95e61dc25f05",
+     "source_sha256": "bc1624594ce807f04eaa023f6f9df93ffefd20904570cd46ca302b954ef80eec"
+    },
+    {
+     "map": "normal",
+     "path": "assets/terrain/humahuaca/hx_suelo_grava_normal.jpg",
+     "bytes": 498652,
+     "sha256": "92292def261f4cfb1eeca69e46012596a950c46bdba8922b23fb7c8a38366d52",
+     "pixels": [
+      1024,
+      1024
+     ],
+     "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/gravelly_sand/gravelly_sand_nor_gl_1k.jpg",
+     "source_bytes": 1387739,
+     "source_md5": "92053a3e135c938def2dc974c76e3763",
+     "source_sha256": "7ccb08525d46520a6d00262f4f73483b3569cc6cbc2908da069f033290d1c2f8"
+    },
+    {
+     "map": "orm",
+     "path": "assets/terrain/humahuaca/hx_suelo_grava_orm.jpg",
+     "bytes": 291033,
+     "sha256": "341664e3d570054f001a0ffd28a20b82c53bd82c7fb0d2f51c2fcb65ad043dd5",
+     "pixels": [
+      1024,
+      1024
+     ],
+     "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/gravelly_sand/gravelly_sand_arm_1k.jpg",
+     "source_bytes": 826170,
+     "source_md5": "03d07b3466ad0219fb06dc6b8abf0e54",
+     "source_sha256": "24ae423af3a5ca6ba78fc02fc5257d0270888fb1e60996c761ee110994c6ed6b"
+    },
+    {
+     "map": "height",
+     "path": "assets/terrain/humahuaca/hx_suelo_grava_height.jpg",
+     "bytes": 211213,
+     "sha256": "9bd58db5efe77e19aa8371a85867ad88ce8b4a03344f13e7199a4b26215e1555",
+     "pixels": [
+      1024,
+      1024
+     ],
+     "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/gravelly_sand/gravelly_sand_disp_1k.png",
+     "source_bytes": 1694619,
+     "source_md5": "592e4c98c6d4ccc821547f5fb9e1e11b",
+     "source_sha256": "93805cebcf5e360140ae2583167a6e64102c53dc48ee3ba52997ac3bb1191f52"
+    }
+   ]
+  },
+  {
+   "id": "hx_ladera_grava",
+   "place": "humahuaca",
+   "role": "ladera y conos de deyección: suelo pedregoso gris pardo con plantas ralas",
+   "source": "Poly Haven",
+   "source_id": "rock_ground_02",
+   "name": "Rock Ground 02",
+   "authors": {
+    "Rob Tuytel": "All"
+   },
+   "page": "https://polyhaven.com/a/rock_ground_02",
+   "license": "CC0 1.0",
+   "license_url": "https://polyhaven.com/license",
+   "real_size_cm": [
+    3000,
+    3000
+   ],
+   "resolution": "1k",
+   "tag": "razonado",
+   "modification": "re-codificado a JPG calidad 88 (normal 80) sin metadatos; desplazamiento a gris de 8 bits",
+   "files": [
+    {
+     "map": "albedo",
+     "path": "assets/terrain/humahuaca/hx_ladera_grava_albedo.jpg",
+     "bytes": 464433,
+     "sha256": "65a8e1c1659ba3fbf6fb06469fdc50f7680518371b6b00ddbb7ce6d88f8306a3",
+     "pixels": [
+      1024,
+      1024
+     ],
+     "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rock_ground_02/rock_ground_02_diff_1k.jpg",
+     "source_bytes": 872985,
+     "source_md5": "3820a229d3cb7a625f8e31a5b41c26df",
+     "source_sha256": "b3ea55a57b73f89de3ee43cc37f074b3a9fb8bca7301776139be0c5469564a11"
+    },
+    {
+     "map": "normal",
+     "path": "assets/terrain/humahuaca/hx_ladera_grava_normal.jpg",
+     "bytes": 633891,
+     "sha256": "2cdf251f870b31a920817b8dde480110ef26dc53c2dd03f842adbe5c514b98bc",
+     "pixels": [
+      1024,
+      1024
+     ],
+     "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rock_ground_02/rock_ground_02_nor_gl_1k.jpg",
+     "source_bytes": 1380865,
+     "source_md5": "11c91ded28ff24b887602a87c825dc14",
+     "source_sha256": "2dbdc55716072d03d409dbd1f9ee9517d1210d2463e26e92bb0a12b81738e564"
+    },
+    {
+     "map": "orm",
+     "path": "assets/terrain/humahuaca/hx_ladera_grava_orm.jpg",
+     "bytes": 478334,
+     "sha256": "e9afd04b15ec5868452e1217ebd814e52314435dcb2806b53308c61f1e073ae2",
+     "pixels": [
+      1024,
+      1024
+     ],
+     "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rock_ground_02/rock_ground_02_arm_1k.jpg",
+     "source_bytes": 335500,
+     "source_md5": "f00a928ac93cda266bac8596795b523b",
+     "source_sha256": "967ef2cf461484337464b28c800d1869fcfe6f7ae617e83427a5d9ec047db54e"
+    },
+    {
+     "map": "height",
+     "path": "assets/terrain/humahuaca/hx_ladera_grava_height.jpg",
+     "bytes": 202401,
+     "sha256": "97530596a74bf866b7ecae93eb165c541428e2a1b832f6306d5e8a547f6253ac",
+     "pixels": [
+      1024,
+      1024
+     ],
+     "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/rock_ground_02/rock_ground_02_disp_1k.png",
+     "source_bytes": 2177180,
+     "source_md5": "aad4335afeecd44bb0a34fd7c1c2a065",
+     "source_sha256": "2e1c5a14f652a820045ceee86abff70728ab78a8aa7a4c3af7a59d67ca6b6199"
+    }
+   ]
+  },
+  {
+   "id": "hx_cauce_cantos",
+   "place": "humahuaca",
+   "role": "lecho seco del Río Grande: cantos rodados",
+   "source": "Poly Haven",
+   "source_id": "dry_river_pebbles",
+   "name": "Dry River Pebbles",
+   "authors": {
+    "Amal Kumar": "All"
+   },
+   "page": "https://polyhaven.com/a/dry_river_pebbles",
+   "license": "CC0 1.0",
+   "license_url": "https://polyhaven.com/license",
+   "real_size_cm": [
+    2000.9167194366455,
+    2000.917911529541
+   ],
+   "resolution": "1k",
+   "tag": "razonado",
+   "modification": "re-codificado a JPG calidad 88 (normal 80) sin metadatos; desplazamiento a gris de 8 bits",
+   "files": [
+    {
+     "map": "albedo",
+     "path": "assets/terrain/humahuaca/hx_cauce_cantos_albedo.jpg",
+     "bytes": 314034,
+     "sha256": "4e12895e26cb3125ec9c374406ce4f7bfb69da26641646a2ab2be932fbbddda0",
+     "pixels": [
+      1024,
+      1024
+     ],
+     "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/dry_river_pebbles/dry_river_pebbles_diff_1k.jpg",
+     "source_bytes": 876327,
+     "source_md5": "970ed34655bdf437d6016b130742668f",
+     "source_sha256": "fee6e37afda0396857e0b7ae79fb7eaf3aa40eab71fba0cbb66d43f258f564a6"
+    },
+    {
+     "map": "normal",
+     "path": "assets/terrain/humahuaca/hx_cauce_cantos_normal.jpg",
+     "bytes": 399056,
+     "sha256": "9270f5093fe57fa70a86647de1045e58099445c52a32df8b1f6970d9b3ff1533",
+     "pixels": [
+      1024,
+      1024
+     ],
+     "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/dry_river_pebbles/dry_river_pebbles_nor_gl_1k.jpg",
+     "source_bytes": 1137689,
+     "source_md5": "309cc625d2f3834f281720bdd1d8cdbe",
+     "source_sha256": "6e266f6cde5ed79b103533bd14bb4a29fbb5966c00782790bd5db41d12ab4e97"
+    },
+    {
+     "map": "orm",
+     "path": "assets/terrain/humahuaca/hx_cauce_cantos_orm.jpg",
+     "bytes": 332442,
+     "sha256": "0a8060fdd16c32209ab8a18dacef5916fa2a721cad710b744d16d4d8cddeebed",
+     "pixels": [
+      1024,
+      1024
+     ],
+     "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/dry_river_pebbles/dry_river_pebbles_arm_1k.jpg",
+     "source_bytes": 795617,
+     "source_md5": "7be441f0617574d89171b51e0a50cf1d",
+     "source_sha256": "325d28a518b0dd302191aac834174e8abfe0ac77ccadd806f4d1f83007260434"
+    },
+    {
+     "map": "height",
+     "path": "assets/terrain/humahuaca/hx_cauce_cantos_height.jpg",
+     "bytes": 134636,
+     "sha256": "c57276180a6c017d0c296de08155fcc4964997306489b8ed003a275a80f6d21b",
+     "pixels": [
+      1024,
+      1024
+     ],
+     "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/dry_river_pebbles/dry_river_pebbles_disp_1k.png",
+     "source_bytes": 1656068,
+     "source_md5": "4ac0e5c29b7687b0ee4fa36954376964",
+     "source_sha256": "c37ab0e073991795e56aac89bc9a54ef1109cfa9dedc10b9a54d1f88b2f83bdd"
+    }
+   ]
+  },
+  {
+   "id": "hx_roca_ladera",
+   "place": "humahuaca",
+   "role": "barrancas y pendientes fuertes: roca sedimentaria estratificada (Namaqualand)",
+   "source": "Poly Haven",
+   "source_id": "cliff_side",
+   "name": "Cliff Side",
+   "authors": {
+    "James Ray Cock": "Photography",
+    "Jenelle van Heerden": "Processing",
+    "Dario Barresi": "Photography"
+   },
+   "page": "https://polyhaven.com/a/cliff_side",
+   "license": "CC0 1.0",
+   "license_url": "https://polyhaven.com/license",
+   "real_size_cm": [
+    1830.0000429153442,
+    1830.0000429153442
+   ],
+   "resolution": "1k",
+   "tag": "razonado",
+   "modification": "re-codificado a JPG calidad 88 (normal 80) sin metadatos; desplazamiento a gris de 8 bits",
+   "files": [
+    {
+     "map": "albedo",
+     "path": "assets/terrain/humahuaca/hx_roca_ladera_albedo.jpg",
+     "bytes": 274433,
+     "sha256": "0aa79db46ea6d4a4c4c1d30cbcbfc594b54753b783a26729700d927273b60f71",
+     "pixels": [
+      1024,
+      1024
+     ],
+     "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/cliff_side/cliff_side_diff_1k.jpg",
+     "source_bytes": 859756,
+     "source_md5": "a64986e5f858e4f8df30f0394ededd78",
+     "source_sha256": "5c6858541108fc34e5726ecf4d8d942d6301155c489e7341619260f2909570c5"
+    },
+    {
+     "map": "normal",
+     "path": "assets/terrain/humahuaca/hx_roca_ladera_normal.jpg",
+     "bytes": 332526,
+     "sha256": "6fe157efb8bad51637853a01706aa24525583245d36332e95c33121d7e0575ff",
+     "pixels": [
+      1024,
+      1024
+     ],
+     "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/cliff_side/cliff_side_nor_gl_1k.jpg",
+     "source_bytes": 1007837,
+     "source_md5": "604fd4101fe5ad92181c22b96ed795c5",
+     "source_sha256": "28583860810a7d6d8ffddeaaff463408fc580338fd5a92c67b058207e75375a3"
+    },
+    {
+     "map": "orm",
+     "path": "assets/terrain/humahuaca/hx_roca_ladera_orm.jpg",
+     "bytes": 178012,
+     "sha256": "efe5facd816cf04582dc9d0684d0264963b7f9eb553e5dd01db753811701000d",
+     "pixels": [
+      1024,
+      1024
+     ],
+     "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/cliff_side/cliff_side_arm_1k.jpg",
+     "source_bytes": 551350,
+     "source_md5": "acfd75dad2fcf906652d6209cd6c4af1",
+     "source_sha256": "6ec77eadb99d00a0a0e68ae40b09e4cc4931941ada1114e5a4d9dd94e8a046dd"
+    },
+    {
+     "map": "height",
+     "path": "assets/terrain/humahuaca/hx_roca_ladera_height.jpg",
+     "bytes": 74377,
+     "sha256": "04660be70e202507c2ea9c8e0bd8265e795925fe4e6ffc321f0aa863ef1758b7",
+     "pixels": [
+      1024,
+      1024
+     ],
+     "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/cliff_side/cliff_side_disp_1k.png",
+     "source_bytes": 1486936,
+     "source_md5": "ecdbafe9ac0a18d08217385236f70470",
+     "source_sha256": "2861630bab9f8a17014915ff624be83281185b04ff3f4b64a123db60d5e160d3"
+    }
+   ]
+  },
+  {
+   "id": "hx_pasto_seco",
+   "place": "humahuaca",
+   "role": "churqui / pasto seco sobre tierra: matorral bajo y sus claros",
+   "source": "Poly Haven",
+   "source_id": "grass_ground",
+   "name": "Grass Ground",
+   "authors": {
+    "Charlotte Baglioni": "All"
+   },
+   "page": "https://polyhaven.com/a/grass_ground",
+   "license": "CC0 1.0",
+   "license_url": "https://polyhaven.com/license",
+   "real_size_cm": [
+    2509.999990463257,
+    2509.999990463257
+   ],
+   "resolution": "1k",
+   "tag": "razonado",
+   "modification": "re-codificado a JPG calidad 88 (normal 80) sin metadatos; desplazamiento a gris de 8 bits",
+   "files": [
+    {
+     "map": "albedo",
+     "path": "assets/terrain/humahuaca/hx_pasto_seco_albedo.jpg",
+     "bytes": 282618,
+     "sha256": "f4a0a478f4a1885964b9b96a0f3b777b26919aea300e75ea82db0391de65b7f7",
+     "pixels": [
+      1024,
+      1024
+     ],
+     "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/grass_ground/grass_ground_diff_1k.jpg",
+     "source_bytes": 876584,
+     "source_md5": "299047258586c762735b7284d3c662c3",
+     "source_sha256": "a79cc5ed65af0f80261b39a383b64a8c5272c5144d724deb43dbc29f0e4cd19b"
+    },
+    {
+     "map": "normal",
+     "path": "assets/terrain/humahuaca/hx_pasto_seco_normal.jpg",
+     "bytes": 443244,
+     "sha256": "2d088b20fe3bc758ebe2dddd0ca7bbe200defa64b757c185057f9976e1e68407",
+     "pixels": [
+      1024,
+      1024
+     ],
+     "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/grass_ground/grass_ground_nor_gl_1k.jpg",
+     "source_bytes": 1310516,
+     "source_md5": "d518c5b2af6f2c0297bc807b351f511f",
+     "source_sha256": "7000e2ccd479bb7b66dcdf4faef7b47554324566886314ca620cbf03e274e826"
+    },
+    {
+     "map": "orm",
+     "path": "assets/terrain/humahuaca/hx_pasto_seco_orm.jpg",
+     "bytes": 330540,
+     "sha256": "abb462ed1c3b88fdcde1fef68b7d0c1c2f46b77555c222ee188a7b8fd9b62668",
+     "pixels": [
+      1024,
+      1024
+     ],
+     "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/grass_ground/grass_ground_arm_1k.jpg",
+     "source_bytes": 896135,
+     "source_md5": "e0499d084eaddc110671ebfee26bd941",
+     "source_sha256": "b8c13e5972827dda6465fc98bbb8b3a0e67215bf8e864c729072fc9c1cc502ef"
+    },
+    {
+     "map": "height",
+     "path": "assets/terrain/humahuaca/hx_pasto_seco_height.jpg",
+     "bytes": 315927,
+     "sha256": "301695e30786d7f2258488c29a19dd6e2e7f0b4b1b2a107f2106cfc14144e1f9",
+     "pixels": [
+      1024,
+      1024
+     ],
+     "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/grass_ground/grass_ground_disp_1k.png",
+     "source_bytes": 1897975,
+     "source_md5": "c26729d66abbb9b402b605f200974a09",
+     "source_sha256": "919a6fe7abe0cc966b3f8f6a3f529b13326ea91fa1d172f6e22497dc358b48d8"
+    }
+   ]
+  },
+  {
+   "id": "hx_andenes_tierra",
+   "place": "humahuaca",
+   "role": "rastrojos y andenes de cultivo irrigados: tierra arada",
+   "source": "Poly Haven",
+   "source_id": "farm_soil",
+   "name": "Farm Soil",
+   "authors": {
+    "Amal Kumar": "All"
+   },
+   "page": "https://polyhaven.com/a/farm_soil",
+   "license": "CC0 1.0",
+   "license_url": "https://polyhaven.com/license",
+   "real_size_cm": [
+    1999.9992847442627,
+    2000.000238418579
+   ],
+   "resolution": "1k",
+   "tag": "razonado",
+   "modification": "re-codificado a JPG calidad 88 (normal 80) sin metadatos; desplazamiento a gris de 8 bits",
+   "files": [
+    {
+     "map": "albedo",
+     "path": "assets/terrain/humahuaca/hx_andenes_tierra_albedo.jpg",
+     "bytes": 221522,
+     "sha256": "727b49ff2e4cf62dd1dfd79f69b26499731954324146625bdab0eaac6df05ea1",
+     "pixels": [
+      1024,
+      1024
+     ],
+     "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/farm_soil/farm_soil_diff_1k.jpg",
+     "source_bytes": 735837,
+     "source_md5": "29fad1e29469e644759032c3ade249fa",
+     "source_sha256": "bfa2850109d1018ecb25342d9f17a5a81e826f7c67edfcaa7c878b60e62cc010"
+    },
+    {
+     "map": "normal",
+     "path": "assets/terrain/humahuaca/hx_andenes_tierra_normal.jpg",
+     "bytes": 606935,
+     "sha256": "9a3f879c6b99b6d7e17dbb328f01592311afa125936f916ce8a3e721b6059de3",
+     "pixels": [
+      1024,
+      1024
+     ],
+     "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/farm_soil/farm_soil_nor_gl_1k.jpg",
+     "source_bytes": 1541114,
+     "source_md5": "e0afe5e537ed2869ddd4d0cfe1b529b5",
+     "source_sha256": "d67b68bf19c1176af28b19cbc55e13365ef4653faa7a00650fe9ffed5e03b35a"
+    },
+    {
+     "map": "orm",
+     "path": "assets/terrain/humahuaca/hx_andenes_tierra_orm.jpg",
+     "bytes": 422186,
+     "sha256": "0c332beaa9e55385124b752db3f85ded7e08307e57c9f14a4fbf411393e7f71b",
+     "pixels": [
+      1024,
+      1024
+     ],
+     "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/farm_soil/farm_soil_arm_1k.jpg",
+     "source_bytes": 1008744,
+     "source_md5": "3d2efa4faa31d28deb0a35643af09774",
+     "source_sha256": "77612d6d3ebd9229843d1e277c87a5f63583d5cbfa9e92a79f39730b8ac468a5"
+    },
+    {
+     "map": "height",
+     "path": "assets/terrain/humahuaca/hx_andenes_tierra_height.jpg",
+     "bytes": 213645,
+     "sha256": "ae0d67aa4c80f8ceca31fb1909985ad57125fc74c224a5136f8ec34bf4920a66",
+     "pixels": [
+      1024,
+      1024
+     ],
+     "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/farm_soil/farm_soil_disp_1k.png",
+     "source_bytes": 1781725,
+     "source_md5": "8746ff03547156fe37dcee9b77f5e8b5",
+     "source_sha256": "3fbe7f063f21c6cc816984c43c230e79b328f7d24d1d9524178192bebe4291db"
+    }
+   ]
+  },
+  {
+   "id": "norte_pasto",
+   "place": "norte",
+   "role": "pasto ralo verde del valle templado",
+   "source": "Poly Haven",
+   "source_id": "sparse_grass",
+   "name": "Sparse Grass",
+   "authors": {
+    "Amal Kumar": "All"
+   },
+   "page": "https://polyhaven.com/a/sparse_grass",
+   "license": "CC0 1.0",
+   "license_url": "https://polyhaven.com/license",
+   "real_size_cm": [
+    2000,
+    2000
+   ],
+   "resolution": "1k",
+   "tag": "razonado",
+   "modification": "re-codificado a JPG calidad 88 (normal 80) sin metadatos; desplazamiento a gris de 8 bits",
+   "files": [
+    {
+     "map": "albedo",
+     "path": "assets/terrain/norte/norte_pasto_albedo.jpg",
+     "bytes": 301957,
+     "sha256": "fb4ad48510beeb293a5d4149d7ef3b101f0b80974a9fe3432e6144570d88dcee",
+     "pixels": [
+      1024,
+      1024
+     ],
+     "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/sparse_grass/sparse_grass_diff_1k.jpg",
+     "source_bytes": 955945,
+     "source_md5": "5d0aba796e1b5882555161c16b10ee9d",
+     "source_sha256": "ae94f2b34597b9108eefd88217f55eccaec6d6b382e858a478ee92df90e66617"
+    },
+    {
+     "map": "normal",
+     "path": "assets/terrain/norte/norte_pasto_normal.jpg",
+     "bytes": 532792,
+     "sha256": "90550330e4c5c4ef9d82562cd19bc58f651917dddfadfc32b229e1adeac0734b",
+     "pixels": [
+      1024,
+      1024
+     ],
+     "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/sparse_grass/sparse_grass_nor_gl_1k.jpg",
+     "source_bytes": 1440314,
+     "source_md5": "3307e6ce47413c6b4e85885d4b8ae932",
+     "source_sha256": "1c840a24807346ddaaf94a5057aee4078fcec3a4cd84bfe45da7d3b480ef460b"
+    },
+    {
+     "map": "orm",
+     "path": "assets/terrain/norte/norte_pasto_orm.jpg",
+     "bytes": 402185,
+     "sha256": "1beffe21ec8c54b6fad41af9eff818b2c9b0f91ced8b85b11e089fa5feac0bf2",
+     "pixels": [
+      1024,
+      1024
+     ],
+     "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/sparse_grass/sparse_grass_arm_1k.jpg",
+     "source_bytes": 978007,
+     "source_md5": "e14c82e03d13fb472315d74a28196c89",
+     "source_sha256": "209f6793060a176272ace42cabab21fdf21fe963f79267988320614b374414a8"
+    },
+    {
+     "map": "height",
+     "path": "assets/terrain/norte/norte_pasto_height.jpg",
+     "bytes": 280331,
+     "sha256": "f8f9c9fd872bea5b30d99628fc1bc4141ad3181dad5ad8eeba6487cf0ceb0af7",
+     "pixels": [
+      1024,
+      1024
+     ],
+     "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/sparse_grass/sparse_grass_disp_1k.png",
+     "source_bytes": 1870802,
+     "source_md5": "1970b1a8fd8a79e80f01c00f3450ae0f",
+     "source_sha256": "5922c7018521317c5b5ba6875431baf8578d11165662acd76e718015554d5364"
+    }
+   ]
+  },
+  {
+   "id": "norte_camino_pasto",
+   "place": "norte",
+   "role": "huella rural entre pasto",
+   "source": "Poly Haven",
+   "source_id": "grass_path_2",
+   "name": "Grass Path 2",
+   "authors": {
+    "Rob Tuytel": "All"
+   },
+   "page": "https://polyhaven.com/a/grass_path_2",
+   "license": "CC0 1.0",
+   "license_url": "https://polyhaven.com/license",
+   "real_size_cm": [
+    1000,
+    1000
+   ],
+   "resolution": "1k",
+   "tag": "razonado",
+   "modification": "re-codificado a JPG calidad 88 (normal 80) sin metadatos; desplazamiento a gris de 8 bits",
+   "files": [
+    {
+     "map": "albedo",
+     "path": "assets/terrain/norte/norte_camino_pasto_albedo.jpg",
+     "bytes": 368215,
+     "sha256": "3524f8fdc01491cbe87bda42267266958a3f4e443ac6aa6db0a7c952c711bfe2",
+     "pixels": [
+      1024,
+      1024
+     ],
+     "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/grass_path_2/grass_path_2_diff_1k.jpg",
+     "source_bytes": 716010,
+     "source_md5": "48cebe95af233211c9469a9bfe2f42f2",
+     "source_sha256": "7f30b163739435c11f500f3818c7bb4922bab5f2734cc9ba6dd36817f0c9a8ab"
+    },
+    {
+     "map": "normal",
+     "path": "assets/terrain/norte/norte_camino_pasto_normal.jpg",
+     "bytes": 386231,
+     "sha256": "466e23891b5e9a919d27e97b084d02661b993bf109c6a3b8cdeabeb3fbd28574",
+     "pixels": [
+      1024,
+      1024
+     ],
+     "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/grass_path_2/grass_path_2_nor_gl_1k.jpg",
+     "source_bytes": 831959,
+     "source_md5": "aa04d930b6af2bd7e3252e31776822bd",
+     "source_sha256": "4f6e911619d4c79a6bc340a64eac1e5fcbae8e54ea2674ed1892f6a9a1dfb5fa"
+    },
+    {
+     "map": "orm",
+     "path": "assets/terrain/norte/norte_camino_pasto_orm.jpg",
+     "bytes": 287784,
+     "sha256": "939e6922b0bc126396749d582adf0061771a1445f8ac12e7b522c7c6973aeefa",
+     "pixels": [
+      1024,
+      1024
+     ],
+     "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/grass_path_2/grass_path_2_arm_1k.jpg",
+     "source_bytes": 201977,
+     "source_md5": "707c614eee91685bebb8af64cb74dc08",
+     "source_sha256": "0fd19818f13c18ef2c3621bc91a3aeda9262a964ffed0bb20611980fceb09fe3"
+    },
+    {
+     "map": "height",
+     "path": "assets/terrain/norte/norte_camino_pasto_height.jpg",
+     "bytes": 114021,
+     "sha256": "b721bdc5124db488add949590b26f20923e3841fd0fdf7f9b4104be9268f84b3",
+     "pixels": [
+      1024,
+      1024
+     ],
+     "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/grass_path_2/grass_path_2_disp_1k.png",
+     "source_bytes": 1945062,
+     "source_md5": "9cecab9a5cde12937cbe1fad9c6cbb99",
+     "source_sha256": "458ea1f2c8cffbc72cde24ae49d8ee63109fa15a6da427c3bb059f5f229047d5"
+    }
+   ]
+  },
+  {
+   "id": "norte_camino_tierra",
+   "place": "norte",
+   "role": "camino de tierra compactada con piedras",
+   "source": "Poly Haven",
+   "source_id": "brown_mud_02",
+   "name": "Brown Mud 02",
+   "authors": {
+    "Rob Tuytel": "All"
+   },
+   "page": "https://polyhaven.com/a/brown_mud_02",
+   "license": "CC0 1.0",
+   "license_url": "https://polyhaven.com/license",
+   "real_size_cm": [
+    1299.996018409729,
+    1299.996018409729
+   ],
+   "resolution": "1k",
+   "tag": "razonado",
+   "modification": "re-codificado a JPG calidad 88 (normal 80) sin metadatos; desplazamiento a gris de 8 bits",
+   "files": [
+    {
+     "map": "albedo",
+     "path": "assets/terrain/norte/norte_camino_tierra_albedo.jpg",
+     "bytes": 270777,
+     "sha256": "feea3193113a0b8f640998e1e9fa6c7a92083ec1e7e5e74f2f26231401260400",
+     "pixels": [
+      1024,
+      1024
+     ],
+     "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/brown_mud_02/brown_mud_02_diff_1k.jpg",
+     "source_bytes": 527741,
+     "source_md5": "c3842f023e11a08c8cf521c947ce08c8",
+     "source_sha256": "058b6f12493305ec6b47cb5ea77f013c9e7e58216b34af3700a3d3d7d821732d"
+    },
+    {
+     "map": "normal",
+     "path": "assets/terrain/norte/norte_camino_tierra_normal.jpg",
+     "bytes": 647952,
+     "sha256": "100af240f57c49de313af1a806c90a363e28cff7b9b6fe8bc1583777f83e3ef3",
+     "pixels": [
+      1024,
+      1024
+     ],
+     "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/brown_mud_02/brown_mud_02_nor_gl_1k.jpg",
+     "source_bytes": 1397011,
+     "source_md5": "880720109b4fe95652137b2243e41ca4",
+     "source_sha256": "9ca6f68d25599c98ba5e594df221f5653d93faceda1ba26a0babb1143e8c615f"
+    },
+    {
+     "map": "orm",
+     "path": "assets/terrain/norte/norte_camino_tierra_orm.jpg",
+     "bytes": 366097,
+     "sha256": "18a550877c0eb85f1e6f8bfce2abbefdfe3795187fc87ff8d17505ed2ce9ba54",
+     "pixels": [
+      1024,
+      1024
+     ],
+     "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/brown_mud_02/brown_mud_02_arm_1k.jpg",
+     "source_bytes": 261722,
+     "source_md5": "286d4937781fe2b10c563106a2d6b817",
+     "source_sha256": "e747ee8ea4e3ca38aaa20acea1524b242c0b500abb93772c5a31aca112259f09"
+    },
+    {
+     "map": "height",
+     "path": "assets/terrain/norte/norte_camino_tierra_height.jpg",
+     "bytes": 119933,
+     "sha256": "5e3d2ec6f125fc03678c6bc3bd687e9cb7a79d9bcef4c24d4ea009846a5d8605",
+     "pixels": [
+      1024,
+      1024
+     ],
+     "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/brown_mud_02/brown_mud_02_disp_1k.png",
+     "source_bytes": 576580,
+     "source_md5": "fdec96574f0d5986320e99d0d63e592c",
+     "source_sha256": "01e010e2d230f93ab4686b52d588bb74837f4e97d5dfae49f910225bfe57d7bb"
+    }
+   ]
+  },
+  {
+   "id": "jn_arena_humeda",
+   "place": "justina",
+   "role": "playa de arena húmeda de la ribera",
+   "source": "Poly Haven",
+   "source_id": "damp_sand",
+   "name": "Damp Sand",
+   "authors": {
+    "eye-candy.xyz": "All"
+   },
+   "page": "https://polyhaven.com/a/damp_sand",
+   "license": "CC0 1.0",
+   "license_url": "https://polyhaven.com/license",
+   "real_size_cm": [
+    2039.9997234344482,
+    2039.9997234344482
+   ],
+   "resolution": "1k",
+   "tag": "razonado",
+   "modification": "re-codificado a JPG calidad 88 (normal 80) sin metadatos; desplazamiento a gris de 8 bits",
+   "files": [
+    {
+     "map": "albedo",
+     "path": "assets/terrain/justina/jn_arena_humeda_albedo.jpg",
+     "bytes": 308071,
+     "sha256": "3ccff436590286ee72eb183e0604f46f957c1f9f395ff560cb7f62d6cb6bf243",
+     "pixels": [
+      1024,
+      1024
+     ],
+     "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/damp_sand/damp_sand_diff_1k.jpg",
+     "source_bytes": 900798,
+     "source_md5": "fd55de6d79f938dbf5cc0f5e1f473c6c",
+     "source_sha256": "3b26e6033205d4c774bb8c48bda8081b5a369e01ac701a0dcaa7ddc1f484f1de"
+    },
+    {
+     "map": "normal",
+     "path": "assets/terrain/justina/jn_arena_humeda_normal.jpg",
+     "bytes": 405225,
+     "sha256": "eb9820225c0562ef977d9453fba4831be84cec51d44e6ea43f58264a2deb271e",
+     "pixels": [
+      1024,
+      1024
+     ],
+     "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/damp_sand/damp_sand_nor_gl_1k.jpg",
+     "source_bytes": 1223062,
+     "source_md5": "34ebe3c750a0cc4324db74e597872522",
+     "source_sha256": "1bda846d2361eeba2938700e68771711a29880299da61733bd2bcdd7af83c1f4"
+    },
+    {
+     "map": "orm",
+     "path": "assets/terrain/justina/jn_arena_humeda_orm.jpg",
+     "bytes": 187505,
+     "sha256": "3af2849dc59503f9a8eb88d773b6ab2b1d2c8488908cb6e3efc910e10cfa417f",
+     "pixels": [
+      1024,
+      1024
+     ],
+     "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/damp_sand/damp_sand_arm_1k.jpg",
+     "source_bytes": 657410,
+     "source_md5": "c4653c6996f55d919bf89fe3f21920de",
+     "source_sha256": "a54ba44a05381a87b4506c6e75d92e096b11cb45c5d7d052957b1d36eee4aef9"
+    },
+    {
+     "map": "height",
+     "path": "assets/terrain/justina/jn_arena_humeda_height.jpg",
+     "bytes": 141704,
+     "sha256": "cb26eedc21d37e13a016cc67c6a6dd0583ef6c5c48cca22f2623b2504d3443f3",
+     "pixels": [
+      1024,
+      1024
+     ],
+     "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/damp_sand/damp_sand_disp_1k.png",
+     "source_bytes": 2394845,
+     "source_md5": "17c8cc81450eda5bb54de5f0b8fc09c0",
+     "source_sha256": "b3afa50234a25420c0e014d4f6541c9add55fb5eb0c1177ea118701ebd567825"
+    }
+   ]
+  },
+  {
+   "id": "jn_barro",
+   "place": "justina",
+   "role": "barro de la costa y del bajo (pisadas, sin huellas de ruedas)",
+   "source": "Poly Haven",
+   "source_id": "brown_mud_03",
+   "name": "Brown Mud 03",
+   "authors": {
+    "Rob Tuytel": "All"
+   },
+   "page": "https://polyhaven.com/a/brown_mud_03",
+   "license": "CC0 1.0",
+   "license_url": "https://polyhaven.com/license",
+   "real_size_cm": [
+    1299.996018409729,
+    1299.996018409729
+   ],
+   "resolution": "1k",
+   "tag": "razonado",
+   "modification": "re-codificado a JPG calidad 88 (normal 80) sin metadatos; desplazamiento a gris de 8 bits",
+   "files": [
+    {
+     "map": "albedo",
+     "path": "assets/terrain/justina/jn_barro_albedo.jpg",
+     "bytes": 270705,
+     "sha256": "5c7df577ef117438bd1d0e48b4a543e60959185fe2a33a70a485f2603b927ef9",
+     "pixels": [
+      1024,
+      1024
+     ],
+     "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/brown_mud_03/brown_mud_03_diff_1k.jpg",
+     "source_bytes": 526262,
+     "source_md5": "b99d14c26debf660457b9497f2facec6",
+     "source_sha256": "6da4fbd6fc5d21044dcbdbd96e098fb464ed544b42c982e72ce8ccd1d53686c5"
+    },
+    {
+     "map": "normal",
+     "path": "assets/terrain/justina/jn_barro_normal.jpg",
+     "bytes": 563413,
+     "sha256": "50b80e39e1319c2441fac913b2e4bd0f80821449cd6fab0b7e6dfe048411fbb8",
+     "pixels": [
+      1024,
+      1024
+     ],
+     "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/brown_mud_03/brown_mud_03_nor_gl_1k.jpg",
+     "source_bytes": 1229474,
+     "source_md5": "97e4449786551a25c69587a864be6eb3",
+     "source_sha256": "b53758dbc93f1ab3ad2884ca07a217dd90450e6a70d055f34573573668812a2a"
+    },
+    {
+     "map": "orm",
+     "path": "assets/terrain/justina/jn_barro_orm.jpg",
+     "bytes": 382210,
+     "sha256": "f86cc329afd6b60cc62e247f83de0107aa13f9d76b9f53d864ada689fd9df09e",
+     "pixels": [
+      1024,
+      1024
+     ],
+     "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/brown_mud_03/brown_mud_03_arm_1k.jpg",
+     "source_bytes": 277655,
+     "source_md5": "7b38c1d97fc073b4128982314b27af27",
+     "source_sha256": "5ccf63481d1e10893d389a55280c764034e218de173dd6a40610f1b111e06249"
+    },
+    {
+     "map": "height",
+     "path": "assets/terrain/justina/jn_barro_height.jpg",
+     "bytes": 110235,
+     "sha256": "b6f2ce909ed6f2b0f9bfba7209a4bff44b76792185f6a52586e88417812bdc21",
+     "pixels": [
+      1024,
+      1024
+     ],
+     "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/brown_mud_03/brown_mud_03_disp_1k.png",
+     "source_bytes": 2261996,
+     "source_md5": "4ef9dba74889c947dc77894d4138e2c0",
+     "source_sha256": "f2809248e8e11a6a43f89570732396e0c47be4d0b471312c400dfd19447bfcce"
+    }
+   ]
+  },
+  {
+   "id": "jn_pasto_ribera",
+   "place": "justina",
+   "role": "pasto de la barranca y del bajo",
+   "source": "Poly Haven",
+   "source_id": "leafy_grass",
+   "name": "Leafy Grass",
+   "authors": {
+    "Charlotte Baglioni": "All"
+   },
+   "page": "https://polyhaven.com/a/leafy_grass",
+   "license": "CC0 1.0",
+   "license_url": "https://polyhaven.com/license",
+   "real_size_cm": [
+    2000,
+    2000
+   ],
+   "resolution": "1k",
+   "tag": "razonado",
+   "modification": "re-codificado a JPG calidad 88 (normal 80) sin metadatos; desplazamiento a gris de 8 bits",
+   "files": [
+    {
+     "map": "albedo",
+     "path": "assets/terrain/justina/jn_pasto_ribera_albedo.jpg",
+     "bytes": 438481,
+     "sha256": "e67437fb3b6267bf4c59e2d10870c5a7d27c4a9f8fe1930b7861dd7ec123785c",
+     "pixels": [
+      1024,
+      1024
+     ],
+     "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/leafy_grass/leafy_grass_diff_1k.jpg",
+     "source_bytes": 1195394,
+     "source_md5": "0dbc071e91d6905edfcfbe8eb785a1ab",
+     "source_sha256": "cfa40bc9d9417d1852db8753a8d5917f110c40101179f63543c382e39bc05e4a"
+    },
+    {
+     "map": "normal",
+     "path": "assets/terrain/justina/jn_pasto_ribera_normal.jpg",
+     "bytes": 553833,
+     "sha256": "81486921ece197994ce2dc442577cc84f564945b2984fb5be3fb269286ebb587",
+     "pixels": [
+      1024,
+      1024
+     ],
+     "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/leafy_grass/leafy_grass_nor_gl_1k.jpg",
+     "source_bytes": 1466049,
+     "source_md5": "8279e096e204ea326d57a318869f99df",
+     "source_sha256": "832328216adc0a7e1f70a31d5ee48c9ab7f2152d83816122736cf42ac4b2ebd6"
+    },
+    {
+     "map": "orm",
+     "path": "assets/terrain/justina/jn_pasto_ribera_orm.jpg",
+     "bytes": 422281,
+     "sha256": "ccad84c87267bee562ae24d9d9cc3261ef34d970af86a59c954782e12dcadb11",
+     "pixels": [
+      1024,
+      1024
+     ],
+     "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/leafy_grass/leafy_grass_arm_1k.jpg",
+     "source_bytes": 1010081,
+     "source_md5": "44fb4e40ef0f3425a7d1a14bc328e4d8",
+     "source_sha256": "95432451cb2693794459fe7ea339ea9ffdb5959c40373740f80a4aa1703f089d"
+    },
+    {
+     "map": "height",
+     "path": "assets/terrain/justina/jn_pasto_ribera_height.jpg",
+     "bytes": 323174,
+     "sha256": "53c084b888903362b52771038dcbe4f624d1a07d31325176d208478b88f1b568",
+     "pixels": [
+      1024,
+      1024
+     ],
+     "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/leafy_grass/leafy_grass_disp_1k.png",
+     "source_bytes": 1896460,
+     "source_md5": "9c38b0ae5af703060e010f96f03a5e3d",
+     "source_sha256": "6e77cbd0c745bf02700dc235ac107083be788c23ac1d8a9d86e56863eecbc537"
+    }
+   ]
+  }
+ ]
+}

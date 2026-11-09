@@ -70,3 +70,33 @@ Obra propia del proyecto: 32 WAV en `assets/audio/humahuaca/` (44,1 kHz, mono, 1
 Archivos: `assets/models/caballo_criollo_{zaino,alazan,tordillo,overo}.glb` y `..._lod.glb`, `assets/models/jinete_criollo_{1806,1817}.glb` y `..._lod.glb`, `assets/models/f4_caballos_manifest.json`. Misma licencia que el resto del proyecto para la parte propia; la malla base es CC0.
 
 Descargas revisadas y **no usadas** (inventario en el informe de F4): «Horse» de 8tibGames (CC0), «3D Horse (rigged, lacking textures)» de _canyon (CC-BY 3.0), «Horse lowpoly» de jjmoser (CC-BY 3.0), «Horse of spring» de lancelot_gao (CC-BY 3.0, `horse.blend` y `horse-export-fbx.zip`), «Blender horse rig Alex» de Wayne Dixon/waylow (CC-BY 3.0; trae un script Python embebido que no se ejecutó) y «Horse drawn carriage» (`WOZ.blend`) de Lotnik (CC0, sin texturas).
+
+## visual/r1 F5 · terreno: texturas de suelo y relieve real (2026-11-09, assets sin integrar)
+
+Detalle, plan de integración y riesgos: `docs/humahuaca/F5_TERRENO.md`. Nada de esto lo usa el juego todavía.
+
+**Texturas PBR de suelo: Poly Haven, CC0 1.0** (https://polyhaven.com/license: todo el sitio es CC0; no exige crédito, se acredita igual). Bajadas de la API oficial (`api.polyhaven.com`) con `tools/f5_terreno_texturas.py`, MD5 verificado contra la API; re-codificadas a JPG 1K sin metadatos (única modificación). URL, MD5 y SHA-256 de cada original y de cada archivo del repo: `assets/terrain/terrain_textures_manifest.json`. Autores (según Poly Haven):
+
+| Archivos (`assets/terrain/…`) | Asset | Autores |
+|---|---|---|
+| `humahuaca/hx_suelo_grava_*` | Gravelly Sand (`gravelly_sand`) | Dario Barresi |
+| `humahuaca/hx_ladera_grava_*` | Rock Ground 02 (`rock_ground_02`) | Rob Tuytel |
+| `humahuaca/hx_cauce_cantos_*` | Dry River Pebbles (`dry_river_pebbles`) | Amal Kumar |
+| `humahuaca/hx_roca_ladera_*` | Cliff Side (`cliff_side`) | James Ray Cock y Dario Barresi (foto), Jenelle van Heerden (proceso) |
+| `humahuaca/hx_pasto_seco_*` | Grass Ground (`grass_ground`) | Charlotte Baglioni |
+| `humahuaca/hx_andenes_tierra_*` | Farm Soil (`farm_soil`) | Amal Kumar |
+| `norte/norte_pasto_*` | Sparse Grass (`sparse_grass`) | Amal Kumar |
+| `norte/norte_camino_pasto_*` | Grass Path 2 (`grass_path_2`) | Rob Tuytel |
+| `norte/norte_camino_tierra_*` | Brown Mud 02 (`brown_mud_02`) | Rob Tuytel |
+| `justina/jn_arena_humeda_*` | Damp Sand (`damp_sand`) | eye-candy.xyz |
+| `justina/jn_barro_*` | Brown Mud 03 (`brown_mud_03`) | Rob Tuytel |
+| `justina/jn_pasto_ribera_*` | Leafy Grass (`leafy_grass`) | Charlotte Baglioni |
+
+Son fotos de otros lugares del mundo: representan el material, no el paisaje de 1806–1817 (etiqueta `razonado`).
+
+**Relieve: Copernicus DEM GLO-30 y GLO-90** (bucket público de AWS `copernicus-dem-30m` / `copernicus-dem-90m`, release 2021), con `tools/f5_terreno_relieve.py`. Licencias «COP-DEM-GLO-30-F» y «COP-DEM-GLO-90-F Full, Free & Open», cotejadas en el PDF oficial `copernicus_contributing_mission_data_access_v2_cop_dem_licenses.pdf` (dataspace.copernicus.eu, SHA-256 `bb4a01dcd7f61acefa81c9ccd76af975e12096158169acf0d7b5c44c26c8701f`): reproducción, distribución, comunicación al público y modificación permitidas con estos avisos (Art. 6 b y c), que acompañan a los archivos:
+
+- `assets/terrain/humahuaca/hx_horizonte_copernicus.json` y `_16bit.png` (tesela `Copernicus_DSM_COG_10_S24_00_W066_00_DEM.tif`, 39 438 103 B, SHA-256 `1b38c9054683f2ea927915ffc9f81e664f919cf13a6cbb4e93a1bd637301f97f`, la de ADDENDA A-02): *produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved.* — *The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30.*
+- `assets/terrain/humahuaca/hx_lejano_copernicus90.json` y `_16bit.png` (GLO-90 S23 y S24 W066) y `assets/terrain/norte/norte_relieve_copernicus90.json` y `_16bit.png` (42 teselas GLO-90 S21–S27 × W063–W068; URL, tamaño y SHA-256 de cada una en `assets/terrain/terrain_relief_manifest.json`): *produced using Copernicus WorldDEM™-90 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved.* — *The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM™-90.*
+
+Producto **modificado** (mosaico, filtro, remuestreo, recorte; en el Norte, además, deformado para que cada sector caiga sobre su pueblo). Es un modelo de superficie actual, no el suelo de 1817. Este proyecto no tiene aval de Copernicus, la Unión Europea, la ESA, el DLR ni Airbus. Las teselas no están en Git.

@@ -1,0 +1,629 @@
+{
+ "contract": "f5_terreno_relieve",
+ "version": 1,
+ "builder": "tools/f5_terreno_relieve.py",
+ "license": {
+  "glo30": "Licence for Copernicus DEM instance COP-DEM-GLO-30-F Global 30m Full, Free & Open (Art. 4 y 6)",
+  "glo90": "Licence for COP-DEM-GLO-90-F Global 90m Full, Free & Open (Art. 4 y 6)",
+  "pdf": "https://dataspace.copernicus.eu/sites/default/files/media/files/2025-06/copernicus_contributing_mission_data_access_v2_cop_dem_licenses.pdf",
+  "pdf_sha256": "bb4a01dcd7f61acefa81c9ccd76af975e12096158169acf0d7b5c44c26c8701f",
+  "checked": "2026-11-09",
+  "notice_glo30": "produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved",
+  "notice_glo90": "produced using Copernicus WorldDEM™-90 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved",
+  "disclaimer_glo30": "The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30",
+  "disclaimer_glo90": "The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM™-90"
+ },
+ "credits_ref": "docs/CREDITOS.md (visual/r1 F5 · terreno)",
+ "humahuaca_horizonte": {
+  "tile": {
+   "file": "Copernicus_DSM_COG_10_S24_00_W066_00_DEM.tif",
+   "url": "https://copernicus-dem-30m.s3.amazonaws.com/Copernicus_DSM_COG_10_S24_00_W066_00_DEM/Copernicus_DSM_COG_10_S24_00_W066_00_DEM.tif",
+   "bytes": 39438103,
+   "sha256": "1b38c9054683f2ea927915ffc9f81e664f919cf13a6cbb4e93a1bd637301f97f",
+   "dataset": "COP-DEM GLO-30 (AWS copernicus-dem-30m, release 2021)"
+  },
+  "seam_check_vs_context": {
+   "nodes": 11011,
+   "max_abs_dm": 0,
+   "mean_abs_dm": 0.0,
+   "equal_nodes": 11011
+  },
+  "rise_from_context_edge": {
+   "oeste": {
+    "500": {
+     "dem_m": 25.1,
+     "procedural_medio_m": 156.0
+    },
+    "1000": {
+     "dem_m": 71.1,
+     "procedural_medio_m": 503.2
+    },
+    "2000": {
+     "dem_m": 134.3,
+     "procedural_medio_m": 915.0
+    },
+    "4000": {
+     "dem_m": 247.0,
+     "procedural_medio_m": 915.0
+    },
+    "6800": {
+     "dem_m": 595.5,
+     "procedural_medio_m": 915.0
+    }
+   },
+   "este": {
+    "500": {
+     "dem_m": 23.1,
+     "procedural_medio_m": 156.0
+    },
+    "1000": {
+     "dem_m": 36.2,
+     "procedural_medio_m": 503.2
+    },
+    "2000": {
+     "dem_m": 60.0,
+     "procedural_medio_m": 915.0
+    },
+    "4000": {
+     "dem_m": 115.5,
+     "procedural_medio_m": 915.0
+    },
+    "6800": {
+     "dem_m": 245.3,
+     "procedural_medio_m": 915.0
+    }
+   },
+   "norte": {
+    "500": {
+     "dem_m": -10.9,
+     "procedural_medio_m": 11.0
+    },
+    "1000": {
+     "dem_m": 15.6,
+     "procedural_medio_m": 39.2
+    },
+    "2000": {
+     "dem_m": 104.8,
+     "procedural_medio_m": 117.6
+    },
+    "4000": {
+     "dem_m": 274.5,
+     "procedural_medio_m": 243.9
+    },
+    "6800": {
+     "dem_m": 245.7,
+     "procedural_medio_m": 275.0
+    }
+   },
+   "sur": {
+    "500": {
+     "dem_m": -2.1,
+     "procedural_medio_m": 11.0
+    },
+    "1000": {
+     "dem_m": -3.2,
+     "procedural_medio_m": 39.2
+    },
+    "2000": {
+     "dem_m": 1.4,
+     "procedural_medio_m": 117.6
+    },
+    "4000": {
+     "dem_m": -38.1,
+     "procedural_medio_m": 243.9
+    },
+    "6800": {
+     "dem_m": -23.0,
+     "procedural_medio_m": 275.0
+    }
+   }
+  },
+  "files": [
+   {
+    "path": "assets/terrain/humahuaca/hx_horizonte_copernicus.json",
+    "bytes": 441579,
+    "sha256": "63478a2137864bac98d8751e44da70844f0582a642ac46b76cabd95bbc7ab90d"
+   },
+   {
+    "path": "assets/terrain/humahuaca/hx_horizonte_copernicus_16bit.png",
+    "bytes": 112889,
+    "sha256": "9576b4514a1f8c089655d010dbe8bc45e81a033a4f1af0bb9f7a5f74ed58a66f"
+   }
+  ],
+  "grid": {
+   "nx": 301,
+   "nz": 301,
+   "cell_m": 60.0,
+   "origin_x": -8550.0,
+   "origin_z": -8675.0
+  },
+  "range_m": [
+   2842.4,
+   3996.4
+  ],
+  "lejano": {
+   "tiles": [
+    {
+     "file": "Copernicus_DSM_COG_30_S23_00_W066_00_DEM.tif",
+     "url": "https://copernicus-dem-90m.s3.amazonaws.com/Copernicus_DSM_COG_30_S23_00_W066_00_DEM/Copernicus_DSM_COG_30_S23_00_W066_00_DEM.tif",
+     "bytes": 4633276,
+     "sha256": "7d091f036717e911305149ad43058a76a8d6226d675ffb9cd14d2e1129914b15",
+     "dataset": "COP-DEM GLO-90 (AWS copernicus-dem-90m, release 2021)"
+    },
+    {
+     "file": "Copernicus_DSM_COG_30_S24_00_W066_00_DEM.tif",
+     "url": "https://copernicus-dem-90m.s3.amazonaws.com/Copernicus_DSM_COG_30_S24_00_W066_00_DEM/Copernicus_DSM_COG_30_S24_00_W066_00_DEM.tif",
+     "bytes": 4822988,
+     "sha256": "4358135c8fede5b78ad3728653255577c8a47e4bacb8eb5e1755b8b5c85825c9",
+     "dataset": "COP-DEM GLO-90 (AWS copernicus-dem-90m, release 2021)"
+    }
+   ],
+   "grid": {
+    "nx": 241,
+    "nz": 241,
+    "cell_m": 250.0,
+    "origin_x": -29550.0,
+    "origin_z": -29675.0
+   },
+   "range_m": {
+    "min_m": 2516.2,
+    "max_m": 5111.1
+   },
+   "files": [
+    {
+     "path": "assets/terrain/humahuaca/hx_lejano_copernicus90.json",
+     "bytes": 309371,
+     "sha256": "56bb6400b269e0ae48b9c8ea29b651dea47a081b3a520adcbf544964f9917f80"
+    },
+    {
+     "path": "assets/terrain/humahuaca/hx_lejano_copernicus90_16bit.png",
+     "bytes": 90076,
+     "sha256": "ac78f13a9603c1c7888eb97605571dc7cd4c4448967e66845a02e1543c426d18"
+    }
+   ]
+  }
+ },
+ "norte": {
+  "tiles": [
+   {
+    "file": "Copernicus_DSM_COG_30_S21_00_W068_00_DEM.tif",
+    "url": "https://copernicus-dem-90m.s3.amazonaws.com/Copernicus_DSM_COG_30_S21_00_W068_00_DEM/Copernicus_DSM_COG_30_S21_00_W068_00_DEM.tif",
+    "bytes": 2091363,
+    "sha256": "c36a6affca2ed38fa2cf3bd1b7f55a555621a0e76667a2a7bfed63f40b717aa5",
+    "dataset": "COP-DEM GLO-90 (AWS copernicus-dem-90m, release 2021)"
+   },
+   {
+    "file": "Copernicus_DSM_COG_30_S21_00_W067_00_DEM.tif",
+    "url": "https://copernicus-dem-90m.s3.amazonaws.com/Copernicus_DSM_COG_30_S21_00_W067_00_DEM/Copernicus_DSM_COG_30_S21_00_W067_00_DEM.tif",
+    "bytes": 4527053,
+    "sha256": "b9563315c9cfa53a375ec84288a08b16cc8eb0a24bb67089a111620759e2ca47",
+    "dataset": "COP-DEM GLO-90 (AWS copernicus-dem-90m, release 2021)"
+   },
+   {
+    "file": "Copernicus_DSM_COG_30_S21_00_W066_00_DEM.tif",
+    "url": "https://copernicus-dem-90m.s3.amazonaws.com/Copernicus_DSM_COG_30_S21_00_W066_00_DEM/Copernicus_DSM_COG_30_S21_00_W066_00_DEM.tif",
+    "bytes": 5054299,
+    "sha256": "2de15b36bce36a60a0cc60b19b7ec6180b6ba545389b10ad291f2af273488259",
+    "dataset": "COP-DEM GLO-90 (AWS copernicus-dem-90m, release 2021)"
+   },
+   {
+    "file": "Copernicus_DSM_COG_30_S21_00_W065_00_DEM.tif",
+    "url": "https://copernicus-dem-90m.s3.amazonaws.com/Copernicus_DSM_COG_30_S21_00_W065_00_DEM/Copernicus_DSM_COG_30_S21_00_W065_00_DEM.tif",
+    "bytes": 5343290,
+    "sha256": "188e3efa9d49c4eb8b7daee55d0928726d98cb687f057b64384e942b19066a95",
+    "dataset": "COP-DEM GLO-90 (AWS copernicus-dem-90m, release 2021)"
+   },
+   {
+    "file": "Copernicus_DSM_COG_30_S21_00_W064_00_DEM.tif",
+    "url": "https://copernicus-dem-90m.s3.amazonaws.com/Copernicus_DSM_COG_30_S21_00_W064_00_DEM/Copernicus_DSM_COG_30_S21_00_W064_00_DEM.tif",
+    "bytes": 5294390,
+    "sha256": "2a2797bdbedbb165cedf9b0432fe30efc8d97b3bfb326a49fc3d8e27318bc10a",
+    "dataset": "COP-DEM GLO-90 (AWS copernicus-dem-90m, release 2021)"
+   },
+   {
+    "file": "Copernicus_DSM_COG_30_S21_00_W063_00_DEM.tif",
+    "url": "https://copernicus-dem-90m.s3.amazonaws.com/Copernicus_DSM_COG_30_S21_00_W063_00_DEM/Copernicus_DSM_COG_30_S21_00_W063_00_DEM.tif",
+    "bytes": 4490187,
+    "sha256": "01a407f36dc8ff50b61872c8e964b38a212668e71d5ec26f6d18706d6c868a33",
+    "dataset": "COP-DEM GLO-90 (AWS copernicus-dem-90m, release 2021)"
+   },
+   {
+    "file": "Copernicus_DSM_COG_30_S22_00_W068_00_DEM.tif",
+    "url": "https://copernicus-dem-90m.s3.amazonaws.com/Copernicus_DSM_COG_30_S22_00_W068_00_DEM/Copernicus_DSM_COG_30_S22_00_W068_00_DEM.tif",
+    "bytes": 4381716,
+    "sha256": "78b517028c8a5a5918db30f1c9034b3c98c440f726fe5ec602ab959ba7ec0f30",
+    "dataset": "COP-DEM GLO-90 (AWS copernicus-dem-90m, release 2021)"
+   },
+   {
+    "file": "Copernicus_DSM_COG_30_S22_00_W067_00_DEM.tif",
+    "url": "https://copernicus-dem-90m.s3.amazonaws.com/Copernicus_DSM_COG_30_S22_00_W067_00_DEM/Copernicus_DSM_COG_30_S22_00_W067_00_DEM.tif",
+    "bytes": 4635595,
+    "sha256": "7ae68ffceaa630c51a82221cfeb0b795ebc625903e2aa80417b53e0c987a8b15",
+    "dataset": "COP-DEM GLO-90 (AWS copernicus-dem-90m, release 2021)"
+   },
+   {
+    "file": "Copernicus_DSM_COG_30_S22_00_W066_00_DEM.tif",
+    "url": "https://copernicus-dem-90m.s3.amazonaws.com/Copernicus_DSM_COG_30_S22_00_W066_00_DEM/Copernicus_DSM_COG_30_S22_00_W066_00_DEM.tif",
+    "bytes": 4939603,
+    "sha256": "7b86bd846cc4055c0b48a48f9a4389e8bdde2ca9a774ecbdf2571030b8a5ff25",
+    "dataset": "COP-DEM GLO-90 (AWS copernicus-dem-90m, release 2021)"
+   },
+   {
+    "file": "Copernicus_DSM_COG_30_S22_00_W065_00_DEM.tif",
+    "url": "https://copernicus-dem-90m.s3.amazonaws.com/Copernicus_DSM_COG_30_S22_00_W065_00_DEM/Copernicus_DSM_COG_30_S22_00_W065_00_DEM.tif",
+    "bytes": 5303799,
+    "sha256": "34e51e9c97c97b1d022bb7e0d2a9b9958d8fd3b8a0d75b6375c844e923aca838",
+    "dataset": "COP-DEM GLO-90 (AWS copernicus-dem-90m, release 2021)"
+   },
+   {
+    "file": "Copernicus_DSM_COG_30_S22_00_W064_00_DEM.tif",
+    "url": "https://copernicus-dem-90m.s3.amazonaws.com/Copernicus_DSM_COG_30_S22_00_W064_00_DEM/Copernicus_DSM_COG_30_S22_00_W064_00_DEM.tif",
+    "bytes": 5198376,
+    "sha256": "672df953163fcb2fc2da2d4c744b108101344612ffac6fbfd7f4db7bb337c0f8",
+    "dataset": "COP-DEM GLO-90 (AWS copernicus-dem-90m, release 2021)"
+   },
+   {
+    "file": "Copernicus_DSM_COG_30_S22_00_W063_00_DEM.tif",
+    "url": "https://copernicus-dem-90m.s3.amazonaws.com/Copernicus_DSM_COG_30_S22_00_W063_00_DEM/Copernicus_DSM_COG_30_S22_00_W063_00_DEM.tif",
+    "bytes": 4426261,
+    "sha256": "16ccf821d909086250582588404a35601584a520a76da22af612781364bb567e",
+    "dataset": "COP-DEM GLO-90 (AWS copernicus-dem-90m, release 2021)"
+   },
+   {
+    "file": "Copernicus_DSM_COG_30_S23_00_W068_00_DEM.tif",
+    "url": "https://copernicus-dem-90m.s3.amazonaws.com/Copernicus_DSM_COG_30_S23_00_W068_00_DEM/Copernicus_DSM_COG_30_S23_00_W068_00_DEM.tif",
+    "bytes": 4406682,
+    "sha256": "4b46e4f705bea300bdf7227e1719307c6005d09dfd82283fff6020849ecc096a",
+    "dataset": "COP-DEM GLO-90 (AWS copernicus-dem-90m, release 2021)"
+   },
+   {
+    "file": "Copernicus_DSM_COG_30_S23_00_W067_00_DEM.tif",
+    "url": "https://copernicus-dem-90m.s3.amazonaws.com/Copernicus_DSM_COG_30_S23_00_W067_00_DEM/Copernicus_DSM_COG_30_S23_00_W067_00_DEM.tif",
+    "bytes": 4573591,
+    "sha256": "016eb2d946f6df96ca5a1c62dd365fafa499d61a6c4ed2c98e2c03d325e66400",
+    "dataset": "COP-DEM GLO-90 (AWS copernicus-dem-90m, release 2021)"
+   },
+   {
+    "file": "Copernicus_DSM_COG_30_S23_00_W066_00_DEM.tif",
+    "url": "https://copernicus-dem-90m.s3.amazonaws.com/Copernicus_DSM_COG_30_S23_00_W066_00_DEM/Copernicus_DSM_COG_30_S23_00_W066_00_DEM.tif",
+    "bytes": 4633276,
+    "sha256": "7d091f036717e911305149ad43058a76a8d6226d675ffb9cd14d2e1129914b15",
+    "dataset": "COP-DEM GLO-90 (AWS copernicus-dem-90m, release 2021)"
+   },
+   {
+    "file": "Copernicus_DSM_COG_30_S23_00_W065_00_DEM.tif",
+    "url": "https://copernicus-dem-90m.s3.amazonaws.com/Copernicus_DSM_COG_30_S23_00_W065_00_DEM/Copernicus_DSM_COG_30_S23_00_W065_00_DEM.tif",
+    "bytes": 5451258,
+    "sha256": "ef9dff0214fc1c29d8805e38a02196518d05dd52db36b8d07087555dc798ee77",
+    "dataset": "COP-DEM GLO-90 (AWS copernicus-dem-90m, release 2021)"
+   },
+   {
+    "file": "Copernicus_DSM_COG_30_S23_00_W064_00_DEM.tif",
+    "url": "https://copernicus-dem-90m.s3.amazonaws.com/Copernicus_DSM_COG_30_S23_00_W064_00_DEM/Copernicus_DSM_COG_30_S23_00_W064_00_DEM.tif",
+    "bytes": 4780113,
+    "sha256": "93c670f43e6b6f4c5af4d90a63107cdb8fa97f722fcd44121cda1b56d1b271a6",
+    "dataset": "COP-DEM GLO-90 (AWS copernicus-dem-90m, release 2021)"
+   },
+   {
+    "file": "Copernicus_DSM_COG_30_S23_00_W063_00_DEM.tif",
+    "url": "https://copernicus-dem-90m.s3.amazonaws.com/Copernicus_DSM_COG_30_S23_00_W063_00_DEM/Copernicus_DSM_COG_30_S23_00_W063_00_DEM.tif",
+    "bytes": 4626002,
+    "sha256": "25eabf21daba21c659a5d88bb5f845b648ebc545b053426e68e3fb0fbe491ccb",
+    "dataset": "COP-DEM GLO-90 (AWS copernicus-dem-90m, release 2021)"
+   },
+   {
+    "file": "Copernicus_DSM_COG_30_S24_00_W068_00_DEM.tif",
+    "url": "https://copernicus-dem-90m.s3.amazonaws.com/Copernicus_DSM_COG_30_S24_00_W068_00_DEM/Copernicus_DSM_COG_30_S24_00_W068_00_DEM.tif",
+    "bytes": 4423898,
+    "sha256": "3ef33286a55cdf8e4ad83aadb3e1d5679c9dadf78076a376b0c9551687a5cae7",
+    "dataset": "COP-DEM GLO-90 (AWS copernicus-dem-90m, release 2021)"
+   },
+   {
+    "file": "Copernicus_DSM_COG_30_S24_00_W067_00_DEM.tif",
+    "url": "https://copernicus-dem-90m.s3.amazonaws.com/Copernicus_DSM_COG_30_S24_00_W067_00_DEM/Copernicus_DSM_COG_30_S24_00_W067_00_DEM.tif",
+    "bytes": 4437280,
+    "sha256": "88ddaef42b7bbac6c1d7fe4e8a796d99eee0cd4d16624e8ccb390dff2628a754",
+    "dataset": "COP-DEM GLO-90 (AWS copernicus-dem-90m, release 2021)"
+   },
+   {
+    "file": "Copernicus_DSM_COG_30_S24_00_W066_00_DEM.tif",
+    "url": "https://copernicus-dem-90m.s3.amazonaws.com/Copernicus_DSM_COG_30_S24_00_W066_00_DEM/Copernicus_DSM_COG_30_S24_00_W066_00_DEM.tif",
+    "bytes": 4822988,
+    "sha256": "4358135c8fede5b78ad3728653255577c8a47e4bacb8eb5e1755b8b5c85825c9",
+    "dataset": "COP-DEM GLO-90 (AWS copernicus-dem-90m, release 2021)"
+   },
+   {
+    "file": "Copernicus_DSM_COG_30_S24_00_W065_00_DEM.tif",
+    "url": "https://copernicus-dem-90m.s3.amazonaws.com/Copernicus_DSM_COG_30_S24_00_W065_00_DEM/Copernicus_DSM_COG_30_S24_00_W065_00_DEM.tif",
+    "bytes": 5122988,
+    "sha256": "02e38fcf578dc52d6cc5e9400b6d06cf8de92f82ebe3de9af5ea800062701024",
+    "dataset": "COP-DEM GLO-90 (AWS copernicus-dem-90m, release 2021)"
+   },
+   {
+    "file": "Copernicus_DSM_COG_30_S24_00_W064_00_DEM.tif",
+    "url": "https://copernicus-dem-90m.s3.amazonaws.com/Copernicus_DSM_COG_30_S24_00_W064_00_DEM/Copernicus_DSM_COG_30_S24_00_W064_00_DEM.tif",
+    "bytes": 4645008,
+    "sha256": "9718b2f8f220243dbdf500c2913d8a8c6f737bbfe9ca63982c35db24d5cd3cd2",
+    "dataset": "COP-DEM GLO-90 (AWS copernicus-dem-90m, release 2021)"
+   },
+   {
+    "file": "Copernicus_DSM_COG_30_S24_00_W063_00_DEM.tif",
+    "url": "https://copernicus-dem-90m.s3.amazonaws.com/Copernicus_DSM_COG_30_S24_00_W063_00_DEM/Copernicus_DSM_COG_30_S24_00_W063_00_DEM.tif",
+    "bytes": 4702096,
+    "sha256": "14bac229a9230d92f2e5fc1a77dc4e1ae1609dc02d41c1f1fa34f9c5692c61b8",
+    "dataset": "COP-DEM GLO-90 (AWS copernicus-dem-90m, release 2021)"
+   },
+   {
+    "file": "Copernicus_DSM_COG_30_S25_00_W068_00_DEM.tif",
+    "url": "https://copernicus-dem-90m.s3.amazonaws.com/Copernicus_DSM_COG_30_S25_00_W068_00_DEM/Copernicus_DSM_COG_30_S25_00_W068_00_DEM.tif",
+    "bytes": 4273510,
+    "sha256": "f273d04d9bc73ef0c9660082e732169ebac4551249401f2959b430b3a69c5816",
+    "dataset": "COP-DEM GLO-90 (AWS copernicus-dem-90m, release 2021)"
+   },
+   {
+    "file": "Copernicus_DSM_COG_30_S25_00_W067_00_DEM.tif",
+    "url": "https://copernicus-dem-90m.s3.amazonaws.com/Copernicus_DSM_COG_30_S25_00_W067_00_DEM/Copernicus_DSM_COG_30_S25_00_W067_00_DEM.tif",
+    "bytes": 4661141,
+    "sha256": "8b6a068fe4164d8d4f6ac67a0c5ce56be82ca3d60af3ea70ad85eea58c392a7b",
+    "dataset": "COP-DEM GLO-90 (AWS copernicus-dem-90m, release 2021)"
+   },
+   {
+    "file": "Copernicus_DSM_COG_30_S25_00_W066_00_DEM.tif",
+    "url": "https://copernicus-dem-90m.s3.amazonaws.com/Copernicus_DSM_COG_30_S25_00_W066_00_DEM/Copernicus_DSM_COG_30_S25_00_W066_00_DEM.tif",
+    "bytes": 5013865,
+    "sha256": "f3d00860b8caa267cd9c0700b40fc3589374730e6386529a7c9e7ad5c9da70e6",
+    "dataset": "COP-DEM GLO-90 (AWS copernicus-dem-90m, release 2021)"
+   },
+   {
+    "file": "Copernicus_DSM_COG_30_S25_00_W065_00_DEM.tif",
+    "url": "https://copernicus-dem-90m.s3.amazonaws.com/Copernicus_DSM_COG_30_S25_00_W065_00_DEM/Copernicus_DSM_COG_30_S25_00_W065_00_DEM.tif",
+    "bytes": 5092361,
+    "sha256": "2491bdae1143d36682ef712875fb6fdc5b421c7f1d7f22c31dded9c5d1bc9d5c",
+    "dataset": "COP-DEM GLO-90 (AWS copernicus-dem-90m, release 2021)"
+   },
+   {
+    "file": "Copernicus_DSM_COG_30_S25_00_W064_00_DEM.tif",
+    "url": "https://copernicus-dem-90m.s3.amazonaws.com/Copernicus_DSM_COG_30_S25_00_W064_00_DEM/Copernicus_DSM_COG_30_S25_00_W064_00_DEM.tif",
+    "bytes": 4490841,
+    "sha256": "4a31042dd96fde98d1b81a05d5634d677c8fbf2a09013e33aed64ccf27c47182",
+    "dataset": "COP-DEM GLO-90 (AWS copernicus-dem-90m, release 2021)"
+   },
+   {
+    "file": "Copernicus_DSM_COG_30_S25_00_W063_00_DEM.tif",
+    "url": "https://copernicus-dem-90m.s3.amazonaws.com/Copernicus_DSM_COG_30_S25_00_W063_00_DEM/Copernicus_DSM_COG_30_S25_00_W063_00_DEM.tif",
+    "bytes": 4588380,
+    "sha256": "9a04350a882066d559295c1088cb369a85237a8e22cc1a1ffc6352d4a73cb290",
+    "dataset": "COP-DEM GLO-90 (AWS copernicus-dem-90m, release 2021)"
+   },
+   {
+    "file": "Copernicus_DSM_COG_30_S26_00_W068_00_DEM.tif",
+    "url": "https://copernicus-dem-90m.s3.amazonaws.com/Copernicus_DSM_COG_30_S26_00_W068_00_DEM/Copernicus_DSM_COG_30_S26_00_W068_00_DEM.tif",
+    "bytes": 4491738,
+    "sha256": "7518907cb17be1cb15b55cbec186e09f5006fbe9e54e47c7ab08008a4ff60ebb",
+    "dataset": "COP-DEM GLO-90 (AWS copernicus-dem-90m, release 2021)"
+   },
+   {
+    "file": "Copernicus_DSM_COG_30_S26_00_W067_00_DEM.tif",
+    "url": "https://copernicus-dem-90m.s3.amazonaws.com/Copernicus_DSM_COG_30_S26_00_W067_00_DEM/Copernicus_DSM_COG_30_S26_00_W067_00_DEM.tif",
+    "bytes": 4767354,
+    "sha256": "6e018b7b8a5f4c140b1ee956bf309519b934fa486f78aee5e78dc980481a79f4",
+    "dataset": "COP-DEM GLO-90 (AWS copernicus-dem-90m, release 2021)"
+   },
+   {
+    "file": "Copernicus_DSM_COG_30_S26_00_W066_00_DEM.tif",
+    "url": "https://copernicus-dem-90m.s3.amazonaws.com/Copernicus_DSM_COG_30_S26_00_W066_00_DEM/Copernicus_DSM_COG_30_S26_00_W066_00_DEM.tif",
+    "bytes": 5126691,
+    "sha256": "454d1929bf937c357c9427b6b3e0b166a60f38ced257c4f6b2efc6a3ee56299b",
+    "dataset": "COP-DEM GLO-90 (AWS copernicus-dem-90m, release 2021)"
+   },
+   {
+    "file": "Copernicus_DSM_COG_30_S26_00_W065_00_DEM.tif",
+    "url": "https://copernicus-dem-90m.s3.amazonaws.com/Copernicus_DSM_COG_30_S26_00_W065_00_DEM/Copernicus_DSM_COG_30_S26_00_W065_00_DEM.tif",
+    "bytes": 4808226,
+    "sha256": "6425d826e5108995ff5984aa6f33a2ea90ae78838dcc87d1285e2f09617be4c7",
+    "dataset": "COP-DEM GLO-90 (AWS copernicus-dem-90m, release 2021)"
+   },
+   {
+    "file": "Copernicus_DSM_COG_30_S26_00_W064_00_DEM.tif",
+    "url": "https://copernicus-dem-90m.s3.amazonaws.com/Copernicus_DSM_COG_30_S26_00_W064_00_DEM/Copernicus_DSM_COG_30_S26_00_W064_00_DEM.tif",
+    "bytes": 4405149,
+    "sha256": "edb06b00638343b345248fb2bcab4b44685de99bff94c382bc006ac447da6e1b",
+    "dataset": "COP-DEM GLO-90 (AWS copernicus-dem-90m, release 2021)"
+   },
+   {
+    "file": "Copernicus_DSM_COG_30_S26_00_W063_00_DEM.tif",
+    "url": "https://copernicus-dem-90m.s3.amazonaws.com/Copernicus_DSM_COG_30_S26_00_W063_00_DEM/Copernicus_DSM_COG_30_S26_00_W063_00_DEM.tif",
+    "bytes": 4490174,
+    "sha256": "bd977ac40f61283150c594de01183db7eb334c2d124da234bc27a00e010b893c",
+    "dataset": "COP-DEM GLO-90 (AWS copernicus-dem-90m, release 2021)"
+   },
+   {
+    "file": "Copernicus_DSM_COG_30_S27_00_W068_00_DEM.tif",
+    "url": "https://copernicus-dem-90m.s3.amazonaws.com/Copernicus_DSM_COG_30_S27_00_W068_00_DEM/Copernicus_DSM_COG_30_S27_00_W068_00_DEM.tif",
+    "bytes": 4616791,
+    "sha256": "53ea261a5bf745dfed1eac1de8a55c4c1b2acea95e24629f05794e33526d5377",
+    "dataset": "COP-DEM GLO-90 (AWS copernicus-dem-90m, release 2021)"
+   },
+   {
+    "file": "Copernicus_DSM_COG_30_S27_00_W067_00_DEM.tif",
+    "url": "https://copernicus-dem-90m.s3.amazonaws.com/Copernicus_DSM_COG_30_S27_00_W067_00_DEM/Copernicus_DSM_COG_30_S27_00_W067_00_DEM.tif",
+    "bytes": 4740355,
+    "sha256": "cb2a27f48864123824c02226dbb5b06eb1c5c0146991814a45474d5d80c190b5",
+    "dataset": "COP-DEM GLO-90 (AWS copernicus-dem-90m, release 2021)"
+   },
+   {
+    "file": "Copernicus_DSM_COG_30_S27_00_W066_00_DEM.tif",
+    "url": "https://copernicus-dem-90m.s3.amazonaws.com/Copernicus_DSM_COG_30_S27_00_W066_00_DEM/Copernicus_DSM_COG_30_S27_00_W066_00_DEM.tif",
+    "bytes": 5050124,
+    "sha256": "d4536cafa486116ee8883febf33f86054a03d4f1b4bc48e4b29cbb16916793f3",
+    "dataset": "COP-DEM GLO-90 (AWS copernicus-dem-90m, release 2021)"
+   },
+   {
+    "file": "Copernicus_DSM_COG_30_S27_00_W065_00_DEM.tif",
+    "url": "https://copernicus-dem-90m.s3.amazonaws.com/Copernicus_DSM_COG_30_S27_00_W065_00_DEM/Copernicus_DSM_COG_30_S27_00_W065_00_DEM.tif",
+    "bytes": 4685760,
+    "sha256": "25a284ff60386ba55fe35776060900af559ee5a2ffe231d1aae169f0a2108948",
+    "dataset": "COP-DEM GLO-90 (AWS copernicus-dem-90m, release 2021)"
+   },
+   {
+    "file": "Copernicus_DSM_COG_30_S27_00_W064_00_DEM.tif",
+    "url": "https://copernicus-dem-90m.s3.amazonaws.com/Copernicus_DSM_COG_30_S27_00_W064_00_DEM/Copernicus_DSM_COG_30_S27_00_W064_00_DEM.tif",
+    "bytes": 4526722,
+    "sha256": "b7a25fa1552ee429216907cdfd0ab50a30cf5c9aaff42abe67e8733e633cfed5",
+    "dataset": "COP-DEM GLO-90 (AWS copernicus-dem-90m, release 2021)"
+   },
+   {
+    "file": "Copernicus_DSM_COG_30_S27_00_W063_00_DEM.tif",
+    "url": "https://copernicus-dem-90m.s3.amazonaws.com/Copernicus_DSM_COG_30_S27_00_W063_00_DEM/Copernicus_DSM_COG_30_S27_00_W063_00_DEM.tif",
+    "bytes": 4545317,
+    "sha256": "e99752b05cce38327d6f3fdbab0000b7c6bab9e5ddfada338b03816268df6fe9",
+    "dataset": "COP-DEM GLO-90 (AWS copernicus-dem-90m, release 2021)"
+   }
+  ],
+  "sectors": [
+   {
+    "sector": "humahuaca",
+    "pueblo": "Humahuaca",
+    "x": 5,
+    "z": -27,
+    "lon": -65.35,
+    "lat": -23.205,
+    "h_m": 2987
+   },
+   {
+    "sector": "quebrada",
+    "pueblo": "Tilcara (centro de la Quebrada)",
+    "x": -1,
+    "z": -21,
+    "lon": -65.396,
+    "lat": -23.577,
+    "h_m": 2579
+   },
+   {
+    "sector": "jujuy",
+    "pueblo": "San Salvador de Jujuy",
+    "x": 1,
+    "z": -13,
+    "lon": -65.2995,
+    "lat": -24.1858,
+    "h_m": 1277
+   },
+   {
+    "sector": "salta",
+    "pueblo": "Salta",
+    "x": 0,
+    "z": 8,
+    "lon": -65.4232,
+    "lat": -24.7829,
+    "h_m": 1197
+   },
+   {
+    "sector": "lerma",
+    "pueblo": "Cerrillos (Valle de Lerma)",
+    "x": -7,
+    "z": 6,
+    "lon": -65.4867,
+    "lat": -24.8966,
+    "h_m": 1256
+   },
+   {
+    "sector": "chicoana",
+    "pueblo": "Chicoana",
+    "x": -9,
+    "z": 18,
+    "lon": -65.534,
+    "lat": -25.1006,
+    "h_m": 1251
+   },
+   {
+    "sector": "oran",
+    "pueblo": "San Ramón de la Nueva Orán",
+    "x": 23,
+    "z": -12,
+    "lon": -64.326,
+    "lat": -23.1371,
+    "h_m": 356
+   },
+   {
+    "sector": "rosario",
+    "pueblo": "Rosario de la Frontera",
+    "x": 8,
+    "z": 22,
+    "lon": -64.9706,
+    "lat": -25.797,
+    "h_m": 786
+   }
+  ],
+  "affine_residuals": [
+   {
+    "sector": "humahuaca",
+    "pueblo": "Humahuaca",
+    "affine_err_km": 14.2
+   },
+   {
+    "sector": "quebrada",
+    "pueblo": "Tilcara (centro de la Quebrada)",
+    "affine_err_km": 5.5
+   },
+   {
+    "sector": "jujuy",
+    "pueblo": "San Salvador de Jujuy",
+    "affine_err_km": 34.4
+   },
+   {
+    "sector": "salta",
+    "pueblo": "Salta",
+    "affine_err_km": 16.8
+   },
+   {
+    "sector": "lerma",
+    "pueblo": "Cerrillos (Valle de Lerma)",
+    "affine_err_km": 9.0
+   },
+   {
+    "sector": "chicoana",
+    "pueblo": "Chicoana",
+    "affine_err_km": 45.3
+   },
+   {
+    "sector": "oran",
+    "pueblo": "San Ramón de la Nueva Orán",
+    "affine_err_km": 39.5
+   },
+   {
+    "sector": "rosario",
+    "pueblo": "Rosario de la Frontera",
+    "affine_err_km": 50.4
+   }
+  ],
+  "range_m": [
+   188,
+   5809
+  ],
+  "geo_bbox": [
+   -67.418,
+   -26.996,
+   -62.783,
+   -20.788
+  ],
+  "grid": {
+   "nx": 221,
+   "nz": 181,
+   "x0": -55.0,
+   "z0": -45.0,
+   "step": 0.5
+  },
+  "files": [
+   {
+    "path": "assets/terrain/norte/norte_relieve_copernicus90.json",
+    "bytes": 188078,
+    "sha256": "b1ba7d57589484dd28248b1ebef7b2f87efe9c4d3061f738459326e8751f8c75"
+   },
+   {
+    "path": "assets/terrain/norte/norte_relieve_copernicus90_16bit.png",
+    "bytes": 48630,
+    "sha256": "1caba58cf13bd91540859f8ef24fadf9a7408cf13352c19207b98935f8d764ec"
+   }
+  ]
+ }
+}
