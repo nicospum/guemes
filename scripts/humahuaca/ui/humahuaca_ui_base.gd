@@ -373,10 +373,9 @@ func tower_state() -> Dictionary:
 
 func _build_layers() -> void:
 	for id in U.LAYER_IDS:
-		# Q-205: con la vista diferida detrás del briefing, el script de la vista (≈ 200 ms de compilación la primera vez, con gfx, edificios, fichas y efectos)
-		# se carga en un hilo mientras se lee el briefing; ensure_view() lo recoge
-		if str(id) == "view" and not _force.has("view") and has_method("_wants_deferred_view") and bool(call("_wants_deferred_view")) \
-				and ResourceLoader.load_threaded_request(str(LAYER_PATHS.view[0]), "Script") == OK:
+		# Q-205 / Q-301 (visual/r1 F6): con la vista diferida detrás del briefing, el script de la vista se carga recién en ensure_view() (el cuadro después de dibujar el
+		# briefing) en el hilo principal: ResourceLoader.load_threaded_request dejaba 1 RefCounted interno sin liberar al salir en las suites sin ventana (salida_limpia).
+		if str(id) == "view" and not _force.has("view") and has_method("_wants_deferred_view") and bool(call("_wants_deferred_view")):
 			_view_thread_path = str(LAYER_PATHS.view[0])
 			_scripts[id] = null
 			layers[id] = "real"
@@ -454,19 +453,14 @@ func _make_rules(layer_script: Script) -> RefCounted:
 	return made_rules
 
 
-## Recoge el script de la vista cargado en un hilo (espera si todavía no terminó); si no sirve, la versión mínima.
+## Carga el script de la vista diferida detrás del briefing; si no sirve, la versión mínima.
 func _collect_view_script() -> void:
 	if _view_thread_path == "":
 		return
-	var res: Resource = ResourceLoader.load_threaded_get(_view_thread_path)
 	_view_thread_path = ""
-	if res is Script and (res as Script).can_instantiate():
-		_scripts["view"] = res
-		layers["view"] = "real"
-	else:
-		var picked := _pick_layer("view")
-		_scripts["view"] = picked.script
-		layers["view"] = picked.kind
+	var picked := _pick_layer("view")
+	_scripts["view"] = picked.script
+	layers["view"] = picked.kind
 
 
 func _build_view() -> void:
