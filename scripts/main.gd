@@ -642,7 +642,9 @@ func _start_game(scenario_name:String):
  if scenario_name=="justine":
   _refresh_minimap();_apply_camera()
   if not qa_mode and not benchmark_mode:_intro_card()
- else:_toast(("Ya viviste esa noche en Humahuaca: acá es una operación más de la campaña. " if bool(_hx_progress().get("won",false)) else "")+"Elegí tu primera orden. Podés explorar la cámara antes de avanzar.",9)
+ else:
+  _toast(("Ya viviste esa noche en Humahuaca: acá es una operación más de la campaña. " if bool(_hx_progress().get("won",false)) else "")+"Elegí tu primera orden. Podés explorar la cámara antes de avanzar.",9)
+  _frame_norte_units()
  scene_build_ms=Time.get_ticks_msec()-build_start
 
 # Nivel «humahuaca»: lo maneja un controlador hijo con sus propias reglas y vista; nunca pasa por `rules`, `_is_j()` ni mode=="play".
@@ -1191,6 +1193,49 @@ func _load_game(scenario_name:String):
  _set_vignette(0.30)
  _rebuild_world();_build_hud();_update_hud();_toast("Partida recuperada. Las órdenes pendientes conservan su estado.",5)
  if rules.state.scenario=="justine":_refresh_minimap()
+ else:_frame_norte_units()
+
+# Q-104 (III): el encuadre inicial deja las tres agrupaciones entre la franja de avisos de arriba y la ayuda «Siguiente paso» de abajo.
+# Con la cámara fija en (1, 0, 4) la agrupación 3 quedaba debajo del panel y solo asomaba «3 100 %». Se espera un cuadro para que los
+# paneles tengan su alto, se proyectan las fichas y se corre la cámara (o se aleja, si no entran) hasta que ninguna quede tapada.
+func _frame_norte_units():
+ for i in range(2):await get_tree().process_frame
+ if mode!="play" or _is_j() or not is_instance_valid(world) or not is_instance_valid(camera):return
+ var view=get_viewport().get_visible_rect().size
+ for k in range(24):
+  _apply_camera()
+  var box=_norte_free_band()
+  var ys=[]
+  for u in rules.state.units:
+   # El mismo punto al que la vista lleva la ficha (world_view.update_state: sector corrido -3,3 / +2,8), no el de este cuadro,
+   # que todavía se está deslizando desde el centro.
+   var gx=float(u.x)-3.3;var gz=float(u.z)+2.8
+   var gp=world.to_global(Vector3(gx,float(world.terrain_height(gx,gz)) if world.has_method("terrain_height") else 0.0,gz))
+   if camera.is_position_behind(gp):continue
+   ys.append(camera.unproject_position(gp).y)
+  if ys.is_empty():return
+  var lo=float(ys.min())-48.0;var hi=float(ys.max())+36.0
+  if lo>=box.x and hi<=box.y:return
+  if hi-lo>box.y-box.x:camera_distance=minf(camera_distance*1.06,160.0);continue
+  var shift=(hi-box.y) if hi>box.y else (lo-box.x)  # >0: las fichas tienen que subir en pantalla
+  var back=Vector3(sin(camera_yaw),0.0,cos(camera_yaw))  # hacia el pie de la pantalla
+  camera_target+=back*shift*camera_distance*1.08/view.y
+  camera_target.x=clampf(camera_target.x,-40,40);camera_target.z=clampf(camera_target.z,-32,32)
+ _apply_camera()
+
+# Franja vertical libre del III (en píxeles lógicos): debajo de la cabecera y del aviso de arriba, encima de la ayuda «Siguiente paso»
+# (aunque todavía no esté a la vista: aparece enseguida) y del panel inferior.
+func _norte_free_band()->Vector2:
+ var view=get_viewport().get_visible_rect().size
+ var top=130.0;var bottom=view.y
+ for pnl in hud_panels:
+  if not is_instance_valid(pnl) or not pnl.is_visible_in_tree():continue
+  var r:Rect2=pnl.get_global_rect()
+  if r.size.x>=view.x*0.3 and r.position.y>view.y*0.45:bottom=minf(bottom,r.position.y-6.0)  # los paneles angostos de los costados no tapan el centro
+ if is_instance_valid(hint_panel) and is_instance_valid(bottom_panel):
+  # la ayuda se apoya 8 px sobre el panel inferior (_update_hud); con dos renglones mide ~57 px
+  bottom=minf(bottom,bottom_panel.get_global_rect().position.y-8.0-maxf(hint_panel.get_global_rect().size.y,62.0)-6.0)
+ return Vector2(top,bottom)
 
 func _return_menu():
  if mode=="hx":_stop_humahuaca()
@@ -2239,7 +2284,7 @@ func _mm_size()->Vector2:
  # Más grande que el mínimo del JSON: 300x173 lógicos (360 px a 1080p); 600x347 al ampliar, con la proporción del mapa 900x520.
  var mine=Vector2(520,300) if mm_big else Vector2(300,173)
  if get_viewport().get_visible_rect().size.y<800.0:
-  mine=Vector2(440,254) if mm_big else Vector2(260,150)
+  mine=Vector2(440,254) if mm_big else Vector2(250,144)  # Q-104: 250×144 a 720p (el piso de legibilidad de ui_qa es 230 px; la leyenda se ajusta)
   return mine
  return Vector2(maxf(float(a[0]),mine.x),maxf(float(a[1]),mine.y))
 
@@ -2294,11 +2339,12 @@ func _build_hud_j():
  alert_panel.visible=false
  hint_panel=_panel(top_stack,Vector2.ZERO,Vector2(660,0),Color(0.075,0.063,0.098,0.93),Color("5c4a2e"),7)
  var tv=_vbox(hint_panel,4)
- tutorial_label=_label(tv,"",13,Color("f4e9c8"));tutorial_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+ # Q-104: los botones del tutorial van en el mismo renglón que el texto (antes, un renglón propio debajo): la guía ocupa ~17 px menos de alto.
  var tb=_hbox(tv,6)
- tut_skip_btn=_button(tb,"Saltar paso ▸",_tut_skip,24);_compact(tut_skip_btn,6,2);tut_skip_btn.add_theme_font_size_override("font_size",12)
- tut_close_btn=_button(tb,"Cerrar tutorial",_tut_close,24);_compact(tut_close_btn,6,2);tut_close_btn.add_theme_font_size_override("font_size",12)
- var tl=_label(tb,"F1 o ? abre la ayuda completa",11,MUTED);tl.size_flags_vertical=Control.SIZE_SHRINK_CENTER;tut_hint_label=tl
+ tutorial_label=_label(tb,"",13,Color("f4e9c8"));tutorial_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;tutorial_label.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+ tut_skip_btn=_button(tb,"Saltar paso ▸",_tut_skip,24);_compact(tut_skip_btn,6,2);tut_skip_btn.add_theme_font_size_override("font_size",12);tut_skip_btn.size_flags_vertical=Control.SIZE_SHRINK_CENTER
+ tut_close_btn=_button(tb,"Cerrar tutorial",_tut_close,24);_compact(tut_close_btn,6,2);tut_close_btn.add_theme_font_size_override("font_size",12);tut_close_btn.size_flags_vertical=Control.SIZE_SHRINK_CENTER
+ var tl=_label(tv,"F1 o ? abre la ayuda completa",11,MUTED);tut_hint_label=tl
  hint_panel.visible=false
  # Panel de la derecha: objetivo, captura, río, tiempos, recursos y riesgo del sondeo
  right_panel=_panel(ui,Vector2.ZERO,Vector2(256,0),Color(0.086,0.075,0.110,0.86),Color("5c4a2e"),8);hud_panels.append(right_panel);_anchor(right_panel,1,0,1,0,-268,54,-12,54)
@@ -3072,11 +3118,19 @@ func _draw_map_widget():
  var lg=[[Color("5e5a45"),"barranca"],[Color("c8b88a"),"orilla"],[Color("4a5d63"),"agua"],[Color("6fb8a6"),"medido"],[Color("e8a0a0"),"sin medir"]]
  var lx=6.0;var ly=msz.y-16.0
  w.draw_rect(Rect2(0,ly-3,msz.x,19),Color(0.03,0.06,0.07,0.6))
+ # Q-104: con el minimapa compacto de 720p la leyenda achica letra y separación para que «sin medir» entre entera
+ var lfs=10;var gap=17.0
+ var tsum=0.0
+ for e in lg:tsum+=font.get_string_size(str(e[1]),HORIZONTAL_ALIGNMENT_LEFT,-1,lfs).x
+ if 6.0+tsum+gap*lg.size()>msz.x:
+  lfs=9;tsum=0.0
+  for e in lg:tsum+=font.get_string_size(str(e[1]),HORIZONTAL_ALIGNMENT_LEFT,-1,lfs).x
+  gap=clampf((msz.x-8.0-tsum)/float(lg.size()),13.0,17.0)
  for e in lg:
   w.draw_rect(Rect2(lx,ly+2,9,9),e[0]);w.draw_rect(Rect2(lx,ly+2,9,9),Color(0,0,0,0.5),false,1.0)
-  var tw=font.get_string_size(str(e[1]),HORIZONTAL_ALIGNMENT_LEFT,-1,10).x
-  w.draw_string(font,Vector2(lx+12,ly+11),str(e[1]),HORIZONTAL_ALIGNMENT_LEFT,-1,10,Color("ece3cf"))
-  lx+=tw+17.0
+  var tw=font.get_string_size(str(e[1]),HORIZONTAL_ALIGNMENT_LEFT,-1,lfs).x
+  w.draw_string(font,Vector2(lx+12,ly+11),str(e[1]),HORIZONTAL_ALIGNMENT_LEFT,-1,lfs,Color("ece3cf"))
+  lx+=tw+gap
  # grupos y exploradores
  for id in ALL_ACTORS:
   var a=_actor(id)
@@ -3314,6 +3368,15 @@ func _first_frame_focus():
  for pid in pace_buttons:
   if is_instance_valid(pace_buttons[pid]):pace_buttons[pid].visible=groups_sel
  if is_instance_valid(pace_label):pace_label.visible=groups_sel
+
+# Q-104 (I): la bandeja inferior conservaba su ancho fijo de 660 aunque mostrara tres botones. Sin la ficha de la selección ni la línea
+# «AHORA», se ajusta al ancho de sus botones (el contenedor no baja de su tamaño mínimo); con texto vuelve a 660.
+func _fit_bottom_width():
+ if not is_instance_valid(bottom_panel) or not is_instance_valid(map_widget):return
+ var wide=(is_instance_valid(sel_info) and sel_info.visible) or (is_instance_valid(reason_label) and reason_label.visible)
+ if not wide and is_instance_valid(pace_label) and pace_label.visible:wide=true
+ var left=12.0+_mm_size().x+8.0
+ bottom_panel.offset_left=left;bottom_panel.offset_right=left+(660.0 if wide else 0.0)
 
 # D-07: la fila «con riesgo» (retirar, distraer con fuego, cargar sin orden) no sirve antes de que el vado ceda o haya alguien en marcha.
 func _risk_row_open()->bool:
@@ -3925,6 +3988,7 @@ Buque: próxima descarga en [b]%d s[/b]" % [int(res.ammo),int(res.ammo_max),int(
  log_label.text=""
  _tut_update()
  _first_frame_focus()
+ _fit_bottom_width()
  tutorial_label.text=_tutorial_j() if bool(settings.tutorial) else ""
  last_hint_text=tutorial_label.text
  # Un solo mensaje a la vez: el aviso crítico manda; un cartel importante tapa la guía mientras dura.
