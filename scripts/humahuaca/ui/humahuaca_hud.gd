@@ -77,6 +77,9 @@ var vignette: ColorRect  # la viñeta común (0,32 en juego): debajo de todo el 
 var _action_sig := ""
 var _action_buttons: Dictionary = {}
 var _alert_data: Dictionary = {}
+var _alert_outer: Control = null  ## Q-206: la tarjeta de aviso pone el botón a la derecha del texto si es ancha (≥ layout.alert_inline_min_w, 480 px) o debajo si es angosta
+var _alert_col: Control = null
+var _alert_btn_box: Control = null
 var _alert_slot := "centro"
 
 
@@ -151,7 +154,9 @@ func _build_header() -> void:
 	hs.border_width_bottom = 1
 	hs.border_color = Kit.FILET
 	header.add_theme_stylebox_override("panel", hs)
-	_anchor(header, 0.0, 0.0, 1.0, 0.0, m, m, -m, m + _num(["header_h"], 46.0))
+	# Q-206 (QA ronda 2): la cabecera era una franja de punta a punta (≈ 6 % del cuadro a 1280 × 720 con mapa vacío en el medio); ahora mide lo que su contenido
+	# (ancho 0 con anclas a la izquierda: el contenedor crece hasta su mínimo), con los mismos datos y botones
+	_anchor(header, 0.0, 0.0, 0.0, 0.0, m, m, m, m + _num(["header_h"], 46.0))
 	header.custom_minimum_size.y = _num(["header_h"], 46.0)
 	var row := Kit.hbox(header, 14)
 	row.alignment = BoxContainer.ALIGNMENT_BEGIN
@@ -181,7 +186,7 @@ func _build_header() -> void:
 		b.tooltip_text = _t("time.speed_tip")
 		b.pressed.connect(func(): _fire("speed", i))
 		btn_speed.append(b)
-	Kit.spacer(row, true)
+	Kit.spacer(row, false, _num(["header_gap"], 22.0))
 	var phase_box := Kit.vbox(row, 0)
 	phase_box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	phase_l = Kit.label(phase_box, "", fs, Kit.PAPER)
@@ -197,7 +202,7 @@ func _build_header() -> void:
 	dawn_bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	dawn_bar.tooltip_text = _t("hud.dawn_tip")
 	dawn_bar.mouse_filter = Control.MOUSE_FILTER_PASS
-	Kit.spacer(row, true)
+	Kit.spacer(row, false, _num(["header_gap"], 22.0))
 	var sys := Kit.hbox(row, 6)
 	sys.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	btn_help = Kit.button(sys, _t("hud.help", "?"), fs, "normal", "sistema")
@@ -452,14 +457,22 @@ func _build_alert() -> void:
 	var top := m + _num(["header_h"], 46.0) + gap + _vec("fronts_card", Vector2(212.0, 56.0)).y + gap
 	_anchor(alert_panel, 0.0, 0.0, 0.0, 0.0, 0.0, top, w, top + 1.0)  # el lugar lo elige place_alert; la altura la da el contenido
 	alert_panel.grow_vertical = Control.GROW_DIRECTION_END
-	var col := Kit.vbox(alert_panel, 3)
+	# Q-206 (QA ronda 2): el botón y la cuenta van a la derecha del texto, no debajo: la tarjeta es más ancha y bastante más baja (a 1280 × 720 tapaba 6 % del
+	# cuadro en el ataque); el texto es el mismo
+	var outer := Kit.hbox(alert_panel, 12)
+	var col := Kit.vbox(outer, 3)
+	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	alert_title_l = Kit.label(col, "", int(_num(["font", "body"], 15.0)) + 1, Kit.WARN_TEXT, true)
 	alert_text_l = Kit.label(col, "", int(_num(["font", "small"], 13.0)), Kit.WARN_TEXT, true)
-	var row := Kit.hbox(col, 10)
+	var row := Kit.vbox(outer, 4)
+	row.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_alert_outer = outer
+	_alert_col = col
+	_alert_btn_box = row
 	alert_btn = Kit.button(row, "", int(_num(["font", "body"], 15.0)), "primary", "accion:alerta")
 	alert_btn.name = "HxAlertButton"
 	alert_btn.pressed.connect(func(): _fire("alert"))
-	alert_count_l = Kit.label(row, "", int(_num(["font", "small"], 13.0)), Kit.WARN_TEXT)
+	alert_count_l = Kit.label(row, "", int(_num(["font", "small"], 13.0)), Kit.WARN_TEXT, false, HORIZONTAL_ALIGNMENT_CENTER)
 	alert_count_l.clip_text = false
 	alert_panel.visible = false
 
@@ -508,6 +521,7 @@ func refresh(hs: Dictionary, ctx: Dictionary) -> void:
 	_refresh_alert(ctx)
 	_refresh_toast(ctx)
 	_refresh_warn(ctx)
+	_fit_bar()
 
 
 func _dict(v: Variant) -> Dictionary:
@@ -732,6 +746,26 @@ func _refresh_actions(ctx: Dictionary) -> void:
 	actions_box.move_child(pace_box, actions_box.get_child_count() - 1)
 
 
+## Q-206: la barra de órdenes ocupaba todo el ancho de la columna aunque sus botones llenaran la mitad; ahora mide lo que sus botones (y los ritmos, al apuntar), con
+## un mínimo para que el motivo no quede en una columna angosta, y nunca más que la columna. Los botones no cambian de lugar: la barra crece a la derecha.
+func _fit_bar() -> void:
+	if bar == null or actions_box == null:
+		return
+	var w := 0.0
+	var n := 0
+	for child in actions_box.get_children():
+		var c := child as Control
+		if c != null and c.visible:
+			w += c.get_combined_minimum_size().x
+			n += 1
+	var sep := float(actions_box.get_theme_constant("h_separation"))
+	var pad := 26.0
+	var want := clampf(w + sep * float(maxi(n - 1, 0)) + pad, _num(["bar_min_w"], 420.0), maxf(bottom_width(), 200.0))
+	bar.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	if absf(bar.custom_minimum_size.x - want) > 0.5:
+		bar.custom_minimum_size.x = want
+
+
 func _refresh_groups(hs: Dictionary, ctx: Dictionary) -> void:
 	var list: Variant = hs.get("grupos", [])
 	if not (list is Array):
@@ -855,6 +889,7 @@ func _alert_slot_rect(slot: String, w: float, h: float) -> Rect2:
 func place_alert(avoid: Array) -> Rect2:
 	var w := minf(_num(["alert_w"], 520.0), maxf(root.size.x - 2.0 * _num(["margin"], 12.0), 200.0))
 	w = minf(w, maxf(root.size.x * _num(["alert_w_max_pct"], 0.4), 360.0))  # en ventanas chicas el aviso es más angosto: así entra entre las fichas sin taparlas
+	_alert_layout(w)
 	var h := alert_panel.size.y if alert_panel.size.y > 24.0 else 96.0
 	var order: Array = [_alert_slot]
 	for slot in ALERT_SLOTS:
@@ -882,11 +917,28 @@ func place_alert(avoid: Array) -> Rect2:
 	return rect
 
 
+func _alert_layout(w: float) -> void:
+	if _alert_btn_box == null:
+		return
+	var inline := w >= _num(["alert_inline_min_w"], 480.0)
+	var want: Control = _alert_outer if inline else _alert_col
+	if _alert_btn_box.get_parent() != want:
+		_alert_btn_box.get_parent().remove_child(_alert_btn_box)
+		want.add_child(_alert_btn_box)
+		(_alert_btn_box as BoxContainer).alignment = BoxContainer.ALIGNMENT_CENTER if inline else BoxContainer.ALIGNMENT_BEGIN
+		alert_panel.reset_size()
+
+
 func _refresh_toast(ctx: Dictionary) -> void:
 	var t := _dict(ctx.get("toast"))
 	toast_panel.visible = not t.is_empty() and str(t.get("text", "")) != ""
 	if toast_panel.visible:
 		toast_l.text = str(t.get("text", ""))
+		# Q-206: el aviso de pie mide lo que su frase en una línea (entre toast_w y el ancho de la columna): «¡Fuego! La descarga…» ya no ocupa dos líneas de 440 px
+		var font: Font = toast_l.get_theme_font("font")
+		var fsz := toast_l.get_theme_font_size("font_size")
+		var text_w := font.get_string_size(toast_l.text, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x if font != null else 0.0
+		toast_panel.custom_minimum_size.x = clampf(text_w + 30.0, _num(["toast_w"], 440.0), maxf(bottom_width() - 8.0, _num(["toast_w"], 440.0)))
 		var level := str(t.get("level", "info"))
 		toast_panel.add_theme_stylebox_override("panel", Kit.style(Kit.PANEL_SOLID, Kit.AMBER if level != "info" else Kit.PANEL_BORDER, 1, Kit.RADIUS, 12.0, 5.0))
 	_sync_notices()

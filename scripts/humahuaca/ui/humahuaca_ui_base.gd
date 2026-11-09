@@ -87,6 +87,8 @@ var _ended := false
 var _end_delay := 0.0
 var _rec: Dictionary = {}
 var _auto_start := true
+var _view_thread_path := ""  ## Q-205: el script de la vista que se está cargando en un hilo ("" si ninguno)
+var _attempt_pending := false  ## Q-208: el intento de esta entrada desde el menú todavía no se contó (nadie dio una orden)
 var _auto_resume := 0.0
 var _paused_before_dialog := true
 var _confirm_back := ""  # a dónde vuelve «No» de una confirmación: "" al menú de pausa (retirada) o "juego" (destruir sin que lo pida el siguiente paso)
@@ -377,6 +379,14 @@ func tower_state() -> Dictionary:
 
 func _build_layers() -> void:
 	for id in U.LAYER_IDS:
+		# Q-205: con la vista diferida detrás del briefing, el script de la vista (≈ 200 ms de compilación la primera vez, con gfx, edificios, fichas y efectos)
+		# se carga en un hilo mientras se lee el briefing; ensure_view() lo recoge
+		if str(id) == "view" and not _force.has("view") and has_method("_wants_deferred_view") and bool(call("_wants_deferred_view")) \
+				and ResourceLoader.load_threaded_request(str(LAYER_PATHS.view[0]), "Script") == OK:
+			_view_thread_path = str(LAYER_PATHS.view[0])
+			_scripts[id] = null
+			layers[id] = "real"
+			continue
 		var picked := _pick_layer(str(id))
 		_scripts[id] = picked.script
 		layers[id] = picked.kind
@@ -450,7 +460,23 @@ func _make_rules(layer_script: Script) -> RefCounted:
 	return made_rules
 
 
+## Recoge el script de la vista cargado en un hilo (espera si todavía no terminó); si no sirve, la versión mínima.
+func _collect_view_script() -> void:
+	if _view_thread_path == "":
+		return
+	var res: Resource = ResourceLoader.load_threaded_get(_view_thread_path)
+	_view_thread_path = ""
+	if res is Script and (res as Script).can_instantiate():
+		_scripts["view"] = res
+		layers["view"] = "real"
+	else:
+		var picked := _pick_layer("view")
+		_scripts["view"] = picked.script
+		layers["view"] = picked.kind
+
+
 func _build_view() -> void:
+	_collect_view_script()
 	if is_instance_valid(view):
 		view.queue_free()
 	view = null
@@ -603,7 +629,20 @@ func _begin_game() -> void:
 	if bool(_opts.get("load", false)) and _try_load_save():
 		_auto_start = false
 		return
-	_new_attempt({}, true, false)
+	# Q-208: el intento de una entrada desde el menú se prepara (diario a las reglas) pero se cuenta recién con la primera orden o al terminar la partida
+	_new_attempt({}, false, false)
+	if progress != null and progress.has_method("commit_attempt"):
+		progress.call("begin_attempt", rules, false)
+		_attempt_pending = true
+	elif progress != null and progress.has_method("begin_attempt"):
+		progress.call("begin_attempt", rules)
+
+
+## Cuenta el intento preparado si todavía no se contó (primera orden o final de la partida).
+func commit_attempt() -> void:
+	if _attempt_pending and progress != null and progress.has_method("commit_attempt"):
+		progress.call("commit_attempt")
+	_attempt_pending = false
 
 
 func _find_group_fronts() -> void:
@@ -668,6 +707,7 @@ func _new_attempt(extra: Dictionary = {}, count_attempt: bool = false, rebuild_v
 	new_opts.merge(extra, true)
 	rules.call("new_game", _seed, _attempt, new_opts)
 	if count_attempt and progress != null and progress.has_method("begin_attempt"):
+		_attempt_pending = false
 		progress.call("begin_attempt", rules)
 	if _start_phase != "" or bool(new_opts.get("skip_intro", false)) and new_opts.has("phase"):
 		_auto_start = false

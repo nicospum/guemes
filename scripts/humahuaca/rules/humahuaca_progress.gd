@@ -153,14 +153,23 @@ func _clear_checkpoints() -> void:
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(_checkpoint_path))
 
 ## Cuenta el intento y le da a `rules` las marcas del diario (con su etiqueta «anotado») y la ventaja de la experiencia (ninguna en R1: se muestra en el parte si la hubiera).
-func begin_attempt(rules: RefCounted) -> Dictionary:
-	attempts += 1
+## `count` falso (Q-208, QA ronda 2): prepara el intento (el diario de los anteriores llega a las reglas) sin contarlo; lo cuenta commit_attempt() cuando el jugador
+## juega de verdad (la primera orden o el final de la partida). Así entrar desde el menú y salir sin jugar no suma intentos.
+func begin_attempt(rules: RefCounted, count: bool = true) -> Dictionary:
+	if count:
+		attempts += 1
 	_cp_seen = {}
 	var marks := diary_marks()
 	if rules != null and rules.has_method("set_diary_marks"):
 		rules.call("set_diary_marks", marks)
+	if count:
+		save_progress()
+	return {"attempt": attempts + (0 if count else 1), "seed": world_seed(), "defeats_in_row": defeats_in_row, "marks": marks, "mercy_level": 0}
+
+## Cuenta el intento que begin_attempt(rules, false) dejó preparado.
+func commit_attempt() -> void:
+	attempts += 1
 	save_progress()
-	return {"attempt": attempts, "seed": world_seed(), "defeats_in_row": defeats_in_row, "marks": marks, "mercy_level": 0}
 
 func _medal_rank(medal: String) -> int:
 	return maxi(0, R.MEDALS.find(medal))

@@ -202,7 +202,7 @@
 				"Llevá cada partida a su puesto de ataque: elegila con las teclas 1 a 5 y usá «A su puesto».",
 				"Da la señal cuando haya partidas en sus puestos: atacar a oscuras cuesta, pero esperar la luz también.",
 				"Atacá los tres frentes a la vez y socorré a la partida que más sufre.",
-				"Con el depósito tomado, cargá el arreo; lo que no entre en las mulas, destruilo.",
+				"Con el depósito tomado, cargá el arreo; lo que no entre en las mulas, destruilo: la orden de destruir sigue sola con lo que quede cerca.",
 				"Sacá la carga por el vado, al este, antes de que llegue el refuerzo."
 			],
 			"keys_title": "Teclas",
@@ -213,6 +213,7 @@
 				"Fuerza y fatiga: la barra de arriba es la gente en pie y la de abajo, el cansancio. Marchar rápido y atacar cansan.",
 				"Ruido (●○○ a ●●●): cuánto se oye a la partida. A la carrera se oye más; en silencio, casi nada.",
 				"Oscuridad: de noche se apunta peor y cuesta coordinar a las partidas lejanas.",
+				"Sembrados con acequia (en el minimapa, verdes con rayas): el barro del riego frena la marcha; rodealos si hay apuro.",
 				"Desvelo: desde las 4:30 la guardia se va despertando sola y la sorpresa vale menos cuanto más esperás.",
 				"Atacar a fondo (Ctrl) pega más fuerte pero cuesta más bajas; con cautela es al revés."
 			],
@@ -408,7 +409,7 @@
 		}
 	},
 	"minimap": {
-		"default_size_px": [260, 188],
+		"default_size_px": [216, 156],
 		"large_size_px": [520, 376],
 		"refresh_s": 2,
 		"colors": {
@@ -432,7 +433,7 @@
 		"margin": 12,
 		"gap": 8,
 		"header_h": 46,
-		"fronts_card": [212, 56],
+		"fronts_card": [198, 56],
 		"dock_h": 136,
 		"next_h": 42,
 		"next_min_w": 300,
@@ -440,8 +441,9 @@
 		"notice_gap": 4,
 		"group_card": [142, 58],
 		"toast_w": 440,
-		"alert_w": 520,
-		"dock_max_w": 920,
+		"alert_w": 600,
+		"dock_max_w": 760,
+		"header_gap": 16,
 		"vignette": {"play": 0.30, "screens": 0.55},
 		"font": {"title": 17, "body": 15, "small": 13, "tiny": 12},
 		"modal": {"max_w": 940, "pad": 22},

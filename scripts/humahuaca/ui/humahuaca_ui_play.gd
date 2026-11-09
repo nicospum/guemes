@@ -290,7 +290,10 @@ func _escape() -> void:
 	if orders != null and (orders.aiming() or not orders.waypoints.is_empty()):
 		orders.cancel_aim()
 		return
-	if order_count == 0 and _elapsed() < _ui_num("hud_limits", "esc_menu_free_s", 20.0) and _playing():
+	# Q-208 (QA ronda 2): sin órdenes y en los primeros 20 s, Esc salía al menú sin preguntar; como Esc también salta la apertura (y Espacio el briefing), dos Esc al
+	# empezar sacaban del nivel y había que volver a pasar por el briefing. En el recorrido del jugador (con briefing) Esc ahora siempre abre la pausa, que tiene
+	# «Volver al menú»; la salida rápida queda solo para las entradas sin briefing (la bandera de pruebas skip_intro, PoC-11).
+	if _skip_intro and order_count == 0 and _elapsed() < _ui_num("hud_limits", "esc_menu_free_s", 20.0) and _playing():
 		exited.emit("menu")
 		return
 	open_pause_menu()
@@ -421,6 +424,7 @@ func refresh_hud_now() -> void:
 
 func on_order_ok(actor: String, action: String) -> void:
 	order_count += 1
+	commit_attempt()
 	if first_order_s < 0.0:
 		first_order_s = _elapsed()
 	if _auto_start:
@@ -1003,6 +1007,8 @@ func _open_first_screen() -> void:
 
 
 func _start_play_after_briefing(skip_opening_now: bool) -> void:
+	if has_method("ensure_view"):
+		call("ensure_view")  # Q-205: si el jugador apretó «Empezar» antes de que la vista diferida se armara
 	dialogs.close()
 	if skip_opening_now or cam == null:
 		mode = "play"
@@ -1210,6 +1216,7 @@ func _check_end(delayed: bool) -> void:
 	_auto_resume = 0.0
 	if orders != null:
 		orders.cancel_aim()
+	commit_attempt()  # Q-208: una partida que terminó (aun sin órdenes, por el reloj) es un intento
 	if progress != null and progress.has_method("record_result"):
 		var rec: Variant = progress.call("record_result", rules)
 		_rec = rec if rec is Dictionary else {}
