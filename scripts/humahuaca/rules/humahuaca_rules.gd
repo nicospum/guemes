@@ -478,8 +478,10 @@ func _step_alert(t: float) -> void:
 	_step_messenger(t)
 	_step_spread(t)
 	if not bool(al.signaled) and (al.pre_signal as Array).size() >= V.OBJECTIVES.size() and str(state.status) == "playing":
-		var last := str((al.pre_signal as Array)[(al.pre_signal as Array).size() - 1])
-		_finish("defeat", "descubiertos", {"frente": last})
+		## Q-207 (QA ronda 2): el parte nombra al frente que DIO LA VOZ (el primero en alarma antes de la señal), no al último al que le llegó: con la guardia atenta la voz
+		## corre y el último suele ser la posta aunque a los reconocedores los vieran en la batería
+		var first := str((al.pre_signal as Array)[0])
+		_finish("defeat", "descubiertos", {"frente": first})
 
 func _noise_of(u: Dictionary, env: Dictionary) -> float:
 	var st := str(u.stage)
@@ -1034,8 +1036,17 @@ func _finish(status: String, cause_id: String, ctx: Dictionary = {}) -> void:
 		out.title = str(c.titulo)
 		out.cause = D.fmt(str(c.texto), vars)
 		out.advice = str(c.consejo)
+		if cause_id == "descubiertos" and c.has("consejo_reconocedores") and _seen_recon(str(ctx.get("frente", ""))):
+			out.advice = str(c.consejo_reconocedores)  # Q-207: la voz la dio un centinela que vio a los reconocedores: el consejo es retirarlos con el aviso
 	state.outcome = out
 	_event(status, str(out.cause), {"strong": true})
+
+## ¿La alarma de `fid` antes de la señal salió de ver a los reconocedores? (el aviso «reconocedores vistos» o una detección de ellos en ese frente, en el diario de la partida)
+func _seen_recon(fid: String) -> bool:
+	for e in state.log:
+		if str(e.get("unit", "")) == "reconocedores" and (str(e.get("kind", "")) == "warning" or str(e.get("kind", "")) == "detected") and (fid == "" or str(e.get("objective", "")) == fid):
+			return true
+	return false
 
 func _finalize_loot() -> void:
 	var l: Dictionary = state.loot

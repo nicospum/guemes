@@ -102,6 +102,7 @@ func _initialize() -> void:
 	_test_reinforcement()
 	_test_loot_and_treatments()
 	_test_destroy_chain()
+	_test_discovered_blame()
 	_test_outcomes()
 	_test_event_kinds()
 	_test_save_roundtrip()
@@ -1195,6 +1196,31 @@ func _test_destroy_chain() -> void:
 	ck(worst_orders <= 8, "Q-203: el obediente da como mucho 8 órdenes de destruir con la cadena (peor: %d)" % worst_orders)
 	ck(worst_drop <= 2.0, "Q-203: la cadena no baja el golpe del obediente más de 2 puntos (peor baja: %.2f)" % worst_drop)
 	ck(all_won, "Q-203: donde el obediente ganaba sin la cadena, gana con la cadena (%s)" % str(rows))
+
+
+## Q-207 (QA ronda 2): con la guardia atenta, reconocer la batería y no retirar a los reconocedores con el aviso pierde por «descubiertos»; el parte tiene que nombrar
+## al frente que dio la voz (la batería, aunque la voz corra después a los otros) y el consejo tiene que hablar de retirarlos con el aviso.
+func _test_discovered_blame() -> void:
+	if not real_only():
+		return
+	var sd := -1
+	for cand in [13, 3, 5, 17]:
+		var probe := new_rules(cand, {})
+		if str(probe.state.world.guardia) == "atenta":
+			sd = cand
+			break
+	if not ck(sd > 0, "Q-207: hay una semilla con guardia atenta"):
+		return
+	var r := new_rules(sd, {})
+	order(r, "reconocedores", "recon", hito("bateria"))
+	run_until(r, func(): return str(r.state.status) != "playing", 400.0, 0.5)
+	var out: Dictionary = r.state.outcome
+	var place := str(cfg.objectives.bateria.place)
+	var first := str((r.state.alarm.pre_signal as Array)[0]) if not (r.state.alarm.pre_signal as Array).is_empty() else ""
+	suite.extra["descubiertos_q207"] = {"semilla": sd, "estado": str(r.state.status), "causa": str(out.get("cause_id", "")), "texto": str(out.get("cause", "")), "consejo": str(out.get("advice", "")), "primero_en_alarma": first}
+	ck(str(r.state.status) == "defeat" and str(out.get("cause_id", "")) == "descubiertos" and first == "bateria", "Q-207: quedarse tras el aviso pierde por «descubiertos» y la batería fue la primera en dar la voz (%s, %s)" % [str(out.get("cause_id", "")), first])
+	ck(place.to_lower() in str(out.get("cause", "")).to_lower(), "Q-207: el «Qué pasó» nombra al frente que dio la voz (%s): «%s»" % [place, str(out.get("cause", ""))])
+	ck("aviso" in str(out.get("advice", "")).to_lower() and "reconocedores" in str(out.get("advice", "")).to_lower(), "Q-207: el consejo habla de retirar a los reconocedores con el aviso: «%s»" % str(out.get("advice", "")))
 
 
 func _test_outcomes() -> void:
