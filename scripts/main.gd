@@ -504,8 +504,8 @@ func _menu():
 
 # ---------- P4b · precalentado de los sombreadores del nivel II (pedido del lead, medido por P2) ----------
 # En una instalación nueva, la primera entrada al II compilaba sus sombreadores dentro de la construcción del nivel (≈ 1 550 ms contra el tope de
-# 1 500). Medido: cargarlos no alcanza (la compilación ocurre al dibujarlos por primera vez). Por eso, al abrir el juego, se cargan en un hilo
-# aparte y después se dibujan todos juntos un par de cuadros en cuadritos de 2 cm pegados a la cámara: la compilación queda hecha (y en la
+# 1 500). Medido: cargarlos no alcanza (la compilación ocurre al dibujarlos por primera vez). Por eso, al abrir el juego, se cargan (en el hilo
+# principal desde Q-106) y después se dibujan todos juntos un par de cuadros en cuadritos de 2 cm pegados a la cámara: la compilación queda hecha (y en la
 # caché de disco) y el II recibe las mismas instancias ya compiladas (caché de ResourceLoader). El tirón de esa compilación (≈ 80 ms por
 # sombreador) queda detrás de un velo de tinta que se desvanece: el menú no se traba con el jugador mirando. Solo la primera vez por sesión.
 const HX_PREWARM_SHADERS=["res://shaders/humahuaca_terrain.gdshader","res://shaders/humahuaca_props.gdshader","res://shaders/humahuaca_water.gdshader","res://shaders/humahuaca_token.gdshader","res://shaders/humahuaca_alert_ring.gdshader","res://shaders/humahuaca_rain.gdshader"]
@@ -513,29 +513,31 @@ var hx_prewarm_done:=false
 var hx_prewarm_finished:=false
 var hx_prewarm_keep:Array=[]
 var hx_prewarm_draw:=true
-
+# Q-106: antes los seis sombreadores se pedían con ResourceLoader.load_threaded_request. Esa carga en hilo dejaba de vez en cuando un
+# objeto interno del cargador sin liberar al cerrar el juego («1 ObjectDB instance was leaked at exit», un RefCounted con cuenta 0):
+# 5 de 20 benchmarks con --verbose, también retirando cada resultado con load_threaded_get y al salir; 0 de 10 sin precalentado y 0 de 10
+# cargándolos en el hilo principal. Son seis archivos de texto: cargarlos acá cuesta pocos milisegundos (se mide con --verbose) y queda
+# detrás del velo; lo caro, la compilación al dibujarlos, sigue igual (cuadritos pegados a la cámara).
 func _hx_prewarm():
  if hx_prewarm_done:return
  hx_prewarm_done=true
  var veil_layer=CanvasLayer.new();veil_layer.layer=20;add_child(veil_layer)
  var veil=ColorRect.new();veil.color=INK;veil.mouse_filter=Control.MOUSE_FILTER_IGNORE;veil.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);veil_layer.add_child(veil)
  # Velo liso, sin texto: las pruebas del menú miden sus rótulos y un rótulo de pantalla completa las confundiría (test_hx_smoke 4.1).
- var pending=[]
- for path in HX_PREWARM_SHADERS:
-  if ResourceLoader.exists(path) and ResourceLoader.load_threaded_request(path,"Shader")==OK:pending.append(path)
- var guard=0
- while guard<600 and pending.any(func(pp):return ResourceLoader.load_threaded_get_status(pp)==ResourceLoader.THREAD_LOAD_IN_PROGRESS):
-  guard+=1;await get_tree().process_frame
+ await get_tree().process_frame  # el velo se dibuja antes de cargar
+ if not is_inside_tree():return
+ var t0=Time.get_ticks_usec()
  var quads=[]
- for path in pending:
-  if ResourceLoader.load_threaded_get_status(path)!=ResourceLoader.THREAD_LOAD_LOADED:continue
-  var sh=ResourceLoader.load_threaded_get(path)
+ for path in HX_PREWARM_SHADERS:
+  if not ResourceLoader.exists(path):continue
+  var sh=load(path)
   if not (sh is Shader):continue
   hx_prewarm_keep.append(sh)
   if not hx_prewarm_draw or not is_instance_valid(camera) or mode!="menu":continue
   var mi=MeshInstance3D.new();var q=QuadMesh.new();q.size=Vector2(0.02,0.02);mi.mesh=q
   var mat=ShaderMaterial.new();mat.shader=sh;mi.material_override=mat;mi.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
   camera.add_child(mi);mi.position=Vector3(0.002*quads.size(),0,-maxf(camera.near*4.0,0.2));quads.append(mi)
+ if OS.is_stdout_verbose():print("HX_PREWARM carga de %d sombreadores: %.1f ms" % [hx_prewarm_keep.size(),(Time.get_ticks_usec()-t0)/1000.0])
  for i in range(3):await get_tree().process_frame
  for mi in quads:
   if is_instance_valid(mi):mi.queue_free()
