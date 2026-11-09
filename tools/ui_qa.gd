@@ -616,7 +616,8 @@ func _run() -> void:
 	# En una vista baja (720p, 1280x720 logicos) los mismos paneles son una fraccion mayor de la pantalla: el limite es 40 % con 900 logicos de alto y 55 % de ocupacion con menos de 800 (la interfaz no se encoge: se prefiere letra legible).
 	var free_min := 60.0 if root.get_visible_rect().size.y >= 800.0 else 40.0
 	check(float(notes["justina_free_con_ayuda"].free_pct) >= free_min, "Justina: la interfaz deja libre al menos %s %% de la vista (libre %s %%)" % [str(free_min), str(notes["justina_free_con_ayuda"].free_pct)])
-	check(float(notes["justina_free_con_ayuda"].free_pct) >= (75.0 if root.get_visible_rect().size.y >= 800.0 else 70.0), "P4 V-05: el HUD de la Justina tapa <= 25 %% (<= 30 %% con menos de 800 de alto); libre %s %%" % str(notes["justina_free_con_ayuda"].free_pct))
+	# Q-104 (QA ronda 2): el tope de 25 %% rige también con menos de 800 de alto (antes se aceptaba 30 %% a 1280x720).
+	check(float(notes["justina_free_con_ayuda"].free_pct) >= 75.0, "P4 V-05 / Q-104: el HUD de la Justina tapa <= 25 %% en todas las resoluciones; libre %s %%" % str(notes["justina_free_con_ayuda"].free_pct))
 	check(not game.mm_bar.visible and not game.speed_buttons[2].visible and not game.reason_label.visible and game.hint_panel.visible, "P4 D-07: primer cuadro con un solo mensaje (la guía); lo que todavía no sirve queda plegado")
 	# Tiempo real con pausa, evidente desde el primer cuadro
 	check(game.mode_label.text.find("PAUSA") >= 0 and game.hint_panel.visible and game.tutorial_label.text.find("Espacio") >= 0 and not game.pause_banner.visible, "Justina: la pausa se anuncia (indicador) y la guia dice como arrancar el reloj, sin cartel duplicado")
@@ -829,6 +830,20 @@ func _run() -> void:
 	check(game.top_stack.get_global_rect().end.x <= root.get_visible_rect().size.x and game.top_stack.get_global_rect().position.x >= 0.0, "R7: la pila central de avisos entra a lo ancho")
 	_justina_layout("Justina aviso")
 	await _shot("justina-aviso-contraataque")
+	# Q-105 (QA ronda 2): la ficha 3 elegida durante el abordaje entra entera y el rótulo del paraje no asoma detrás de «AGRUPACIONES»
+	game._select_ids(["zavala"])
+	game._update_hud()
+	await _frames(4)
+	var rb3: Button = game.roster_buttons["zavala"]
+	var w3 := 0.0
+	for ln in rb3.text.split("\n"): w3 = maxf(w3, rb3.get_theme_font("font").get_string_size(ln, HORIZONTAL_ALIGNMENT_LEFT, -1, rb3.get_theme_font_size("font_size")).x)
+	notes["q105_ficha3"] = {"texto": rb3.text, "ancho_texto": w3, "ancho_boton": rb3.size.x}
+	check(w3 <= rb3.size.x - 16.0 + 2.0, "Q-105: la ficha 3 desplegada entra entera (%d <= %d px)" % [int(w3), int(rb3.size.x - 16.0)])
+	game.hover_mouse = root.get_visible_rect().size * Vector2(0.55, 0.62)
+	game._update_place()
+	await _frames(2)
+	check(not game.place_label.visible or not game.place_label.get_global_rect().intersects(game.roster_panel.get_global_rect()), "Q-105: el rótulo del paraje no queda detrás del panel «AGRUPACIONES»")
+	game._select_ids(["guemes"])
 	boarder.stage = stage_backup
 	game.tut_step = 0
 	game.rules.state.counter = counter_backup
@@ -896,6 +911,17 @@ func _run() -> void:
 	await _frames(50)
 	await _shot("norte-inicio")
 	_layout_checks("Norte")
+	# Q-104 (QA ronda 2): en el primer cuadro del III ninguna agrupación queda debajo de la ayuda «Siguiente paso» ni del panel inferior
+	var n_cover := []
+	for nid in game.world.unit_nodes:
+		var nroot = game.world.unit_nodes[nid].get("root")
+		if not (nroot is Node3D): continue
+		var nsp: Vector2 = game.camera.unproject_position(nroot.global_position)
+		var nring := Rect2(nsp - Vector2(28, 22), Vector2(56, 44))
+		for pr in [game.hint_panel, game.bottom_panel]:
+			if is_instance_valid(pr) and pr.is_visible_in_tree() and (pr as Control).get_global_rect().intersects(nring): n_cover.append(str(nid))
+	notes["q104_norte_tapadas"] = n_cover
+	check(n_cover.is_empty() and game.hint_panel.visible, "Q-104: al empezar el III las tres agrupaciones se ven (tapadas: %s)" % str(n_cover))
 	notes["norte_free_con_ayuda"] = _free_area()
 	game.hint_timer = 0.0
 	game._update_hud()
