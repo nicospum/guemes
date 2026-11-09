@@ -47,11 +47,11 @@ const FIGURE_RADIUS := {"jinete": 2.3, "a_pie": 0.55, "infante": 0.85, "mula": 1
 ## visual/r1 F4: radio en planta del caballo criollo con su jinete (sin lanza): 1,46 m de la nariz al centro, 0,51 m de estribo, con el giro del desorden (≤ 9°).
 const HORSE_FIGURE_RADIUS := 1.6
 ## visual/r1 F4: `units.horse` de humahuaca_visual.json si falta (diseño). Velocidades naturales de cada andar medidas sobre las animaciones del GLB (barrido del
-## casco apoyado / tiempo de apoyo): paso ≈ 0,9 m/s, trote ≈ 2 m/s, galope ≈ 4 m/s; los cortes van entre medio (en escala geométrica, corridos un poco hacia el andar
-## más lento) y con histéresis para que no titile.
+## casco apoyado / tiempo de apoyo). visual/r1 F4b: con el tranco corregido en tools/f4_caballos.py, paso 1,6 m/s, trote 3,3 m/s, galope 7 m/s (antes 0,9, 2 y 4);
+## los cortes van entre medio y con histéresis para que no titile; el trote llega a 6 m/s para que el trote montado de las reglas (5,5) no se vea al galope.
 const HORSE_DEFAULTS := {"enabled": true, "dir": "assets/models", "horse": "caballo_criollo_%s.glb", "horse_lod": "caballo_criollo_%s_lod.glb", "rider": "jinete_criollo_1817.glb",
 	"rider_lod": "jinete_criollo_1817_lod.glb", "seat_bone": "silla", "seat_y_m": 1.5, "leader_coat": "zaino", "troop_coats": ["zaino", "alazan", "zaino", "alazan", "tordillo", "zaino", "alazan", "overo"],
-	"idle_below_mps": 0.25, "gaits": [{"anim": "walk", "natural_mps": 0.9, "up_to_mps": 1.4}, {"anim": "trot", "natural_mps": 2.0, "up_to_mps": 3.4}, {"anim": "gallop", "natural_mps": 4.0, "up_to_mps": 1000.0}],
+	"idle_below_mps": 0.25, "gaits": [{"anim": "walk", "natural_mps": 1.6, "up_to_mps": 2.4}, {"anim": "trot", "natural_mps": 3.3, "up_to_mps": 6.0}, {"anim": "gallop", "natural_mps": 7.0, "up_to_mps": 1000.0}],
 	"hysteresis_mps": 0.2, "speed_scale_min": 0.6, "speed_scale_max": 2.4, "blend_s": 0.3, "sample_s": 0.25}
 ## visual/r1 F4: tonos de referencia (lineales) del jinete de 1817 que se recolorean: el granate del poncho (lana) y del pañuelo (lino), y el sombrero gris oscuro.
 const RIDER_REF := {"poncho_r": 0.31, "panuelo_r": 0.3373, "sombrero_l": 0.019, "sombrero_y_m": 0.95}

@@ -743,6 +743,10 @@ func _layout_group_n(entry:Dictionary,id:String,moving:bool)->void:
  entry["ring_r"]=sqrt(ext.x*ext.x+pow((ext.y+gz)*0.5,2.0))+(1.4 if mounted else 1.0)*sc
  entry["ring_y"]=hsum/float(m+1)   # altura media de la tropa sobre el punto del grupo (para el aro plano)
 
+## visual/r1 F4b: el realce era demasiado: con fuerza 0,62, exponente 2,2 y piso 0,035, visto de arriba casi toda la figura quedaba
+## en el borde y la tropa se leía gris pálida y rosada (celeste sumado al alazán y al poncho). Ahora es un filo fino (exponente 4,5,
+## fuerza 0,30, piso 0,008): el caballo conserva su pelaje y el jinete su poncho, y la silueta sigue despegada del valle en sombra.
+## abs(): las caras de la malla de tropa unida pueden traer la normal invertida; así no se encienden enteras.
 var rim_mat:ShaderMaterial=null
 func _rim_mat()->ShaderMaterial:
  if rim_mat==null:
@@ -750,10 +754,10 @@ func _rim_mat()->ShaderMaterial:
   sh.code="""shader_type spatial;
 render_mode unshaded, blend_add, depth_draw_never, cull_back, shadows_disabled, fog_disabled;
 uniform vec4 rim_color : source_color = vec4(0.66, 0.80, 0.90, 1.0);
-uniform float strength = 0.62;
-uniform float lift = 0.035;
+uniform float strength = 0.30;
+uniform float lift = 0.008;
 void fragment(){
-	float f = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 2.2);
+	float f = pow(1.0 - clamp(abs(dot(NORMAL, VIEW)), 0.0, 1.0), 4.5);
 	ALBEDO = rim_color.rgb * (lift + f * strength);
 }"""
   rim_mat=ShaderMaterial.new();rim_mat.shader=sh
@@ -1208,6 +1212,8 @@ const HORSE_COAT_W = [0.46,0.34,0.12,0.08]
 const RIDER_SEAT = Vector3(0.0,1.5,0.0)
 ## visual/r1 F4: velocidad (m/s, a escala 1) a la que cada andar del jefe pisa sin patinar; el andar sale de la velocidad real del
 ## grupo (y del paso pedido: C/T/G) y speed_scale = velocidad en pantalla / la del andar. Umbrales con histéresis entre andares.
+## visual/r1 F4b: medidas sobre los GLB con el tranco corregido (barrido del casco apoyado / tiempo de apoyo): paso 1,60, trote 3,30,
+## galope 7,00 m/s. Antes las animaciones daban ~0,9 / 2 / 4 y con estos valores los cascos patinaban (iban al doble de su tranco).
 const GAIT_MPS = {"walk":1.6,"trot":3.3,"gallop":7.0}
 const GAIT_UP = {"walk":2.5,"trot":5.2}
 const GAIT_DOWN = {"walk":2.1,"trot":4.6}

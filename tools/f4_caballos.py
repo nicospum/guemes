@@ -2,6 +2,7 @@
 
     blender -b --disable-autoexec --factory-startup --python tools/f4_caballos.py -- \
         --src ../materiales-privados/f4_caballos/fuentes/riggedHorse.blend [--only caballo,jinete] [--out assets/models]
+        [--coats zaino,alazan] [--diag]   (--diag: imprime los cuadros donde el casco no sigue su trayectoria)
 
 Fuente de la malla del caballo (unica pieza de terceros): «Rigged Horse», modelo de Lyndon Daniels («Realtime Ranchers
 3D model pack») con esqueleto de ChadM, OpenGameArt, licencia CC0 (https://opengameart.org/content/rigged-horse).
@@ -48,11 +49,13 @@ WITHERS = 1.45
 SEAT = Vector((0.0, 0.0, 1.50))          # punto del asiento (cima del cojinillo); Godot (0, 1.50, 0)
 REPORT = {}
 
-# Pelajes (sRGB). Etiqueta «diseño»: aproximaciones de lectura, no mediciones. Las bases de zaino y alazán son las de
-# data/justina_map.json -> palette.mounts.
+# Pelajes (sRGB). Etiqueta «diseño»: aproximaciones de lectura, no mediciones. La base del zaino es la de
+# data/justina_map.json -> palette.mounts. visual/r1 F4b (diseño): el alazán deja la base #8A5A3A de ese mismo mapa
+# (de noche, en Humahuaca, se leía rojizo, casi rosado, y se podía confundir con el rojo del enemigo): ahora es un alazán
+# tostado, más pardo y menos saturado (tono 24° -> 28°, saturación 0,58 -> 0,47), que sigue más claro y cálido que el zaino.
 COATS = {
     "zaino":    {"base": "#4A3A2D", "points": "#17120E", "mane": "#120E0B", "muzzle": "#241C16", "hoof": "#2A231D"},
-    "alazan":   {"base": "#8A5A3A", "points": None,      "mane": "#6E4428", "muzzle": "#4E3424", "hoof": "#3A3027",
+    "alazan":   {"base": "#785A40", "points": None,      "mane": "#5C4230", "muzzle": "#4A3729", "hoof": "#3A3027",
                  "star": True, "socks": ["HL"]},
     "tordillo": {"base": "#9A958B", "points": "#5E5A54", "mane": "#C9C5BC", "muzzle": "#3E3B37", "hoof": "#3A3530",
                  "dapple": "#6F6B64"},
@@ -612,13 +615,23 @@ def recado(bvh, lod=False):
 
 
 # --------------------------------------------------------------------------------------
-# Andares: claves propias por fórmula (diseño, no captura). Patas con fase, factor de apoyo y flexión en el vuelo.
+# Andares: claves propias por fórmula (diseño, no captura).
+# visual/r1 F4b: el casco ya no sale de ángulos sueltos sino de una trayectoria: en el apoyo el casco queda en el suelo y
+# retrocede a la velocidad del andar (barrido = velocidad · apoyo · ciclo); en el vuelo vuelve adelante alzándose. Los
+# ángulos de cada articulación se resuelven acá con cinemática inversa numérica (mínimos cuadrados amortiguados) sobre el
+# esqueleto y los pesos reales del casco, y se guardan como claves de rotación: el GLB no lleva IK. Así el tranco es el de
+# un caballo de 1,45 m (antes, la mitad) y ningún casco baja del suelo (antes, hasta 9 a 13 cm en el paso y el galope).
 # --------------------------------------------------------------------------------------
 GAITS = {
-    # nombre: (cuadros, fases FL FR HL HR, apoyo, amplitud, sube-baja, cabeceo, vueltas de sube-baja por ciclo)
-    "walk":   (26, {"HL": 0.0, "FL": .25, "HR": .5, "FR": .75}, .64, .30, .018, .05, 2),
-    "trot":   (18, {"FL": 0.0, "HR": 0.0, "FR": .5, "HL": .5}, .48, .36, .035, .03, 2),
-    "gallop": (14, {"HL": 0.0, "HR": .12, "FL": .40, "FR": .52}, .38, .52, .06, .09, 1),
+    # nombre: (cuadros, fases (desfase de cada pata; apoya cuando (t + desfase) mod 1 = 0), apoyo, velocidad m/s de diseño,
+    #          alzada delante y detrás (m), sube-baja (m), cabeceo (rad), vueltas de sube-baja por ciclo, centro del apoyo
+    #          delante y detrás respecto del casco en reposo (m), baja del cuerpo (m))
+    # Velocidades objetivo (visual/r1 F4b, diseño, órdenes de magnitud de un caballo de 1,45 m de cruz): paso ≈ 1,6,
+    # trote ≈ 3,3, galope ≈ 7 m/s; medidas sobre el GLB dan 1,60 / 3,30 / 7,00. Orden de pisadas: paso LH LF RH RF; trote en diagonales; galope transverso a la izquierda
+    # (HR HL FR FL) con un tiempo de suspensión.
+    "walk":   (26, {"HL": 0.0, "FL": .75, "HR": .5, "FR": .25}, .58, 1.6, (.13, .13), .022, .03, 2, (.18, -.14), .03),
+    "trot":   (18, {"FL": 0.0, "HR": 0.0, "FR": .5, "HL": .5}, .37, 3.3, (.30, .25), .035, .025, 2, (.19, -.18), .04),
+    "gallop": (14, {"HR": 0.0, "HL": .86, "FR": .64, "FL": .50}, .27, 7.0, (.30, .22), .05, .07, 1, (.17, -.12), .05),
 }
 
 
@@ -632,20 +645,128 @@ def key(rig, bone, frame, rot=None, loc=None):
         pb.keyframe_insert("location", frame=frame, group=bone)
 
 
-def leg_angles(leg, ph, duty, amp):
+def _rx(a):
+    c, s = math.cos(a), math.sin(a)
+    return np.array([[1, 0, 0, 0], [0, c, -s, 0], [0, s, c, 0], [0, 0, 0, 1.0]])
+
+
+def _rz(a):
+    c, s = math.cos(a), math.sin(a)
+    return np.array([[c, -s, 0, 0], [s, c, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1.0]])
+
+
+def _tr(v):
+    m = np.eye(4)
+    m[:3, 3] = v
+    return m
+
+
+class LegIK:
+    """visual/r1 F4b: cinemática directa e inversa de una pata, con el mismo esqueleto y los mismos pesos que exporta el GLB.
+    Variables: rotación X local de sup, inf, caña y cuartilla (como las claves) y un corrimiento del hombro o la cadera hacia
+    adelante o atrás (la escápula y la pelvis acompañan el tranco; tope ±8 cm). Medidas del casco = las de la prueba: centro
+    del casco en Y y punto más bajo en Z."""
+    LIMITS = {"F": [(-1.2, 1.2), (-.10, 1.6), (-2.0, .02), (-1.6, .40)], "H": [(-1.2, 1.2), (-1.6, .35), (-.35, 2.0), (-1.6, .40)]}
+
+    def __init__(self, rig, mesh, leg):
+        self.leg = leg
+        self.A = {b.name: np.array(b.matrix_local) for b in rig.data.bones}
+        self.Ai = {k: np.linalg.inv(v) for k, v in self.A.items()}
+        self.bones = [f"{leg}_{s}" for s in SEG]
+        self.parent = "cuerpo" if leg[0] == "F" else "grupa"
+        hx, hy = LEGS[leg][4][0], LEGS[leg][4][1]
+        co = verts_np(mesh)
+        # todo el casco y la corona (hasta 14 cm; el posterior de la malla es largo, de la pinza a los talones) para que
+        # ningún punto baje del suelo al rodar sobre la pinza; el centro se mide con la suela (z < 5 cm), como la prueba
+        sel = np.where((co[:, 2] < .14) & (np.abs(co[:, 0] - hx) < .13) & (co[:, 0] * hx > 0)
+                       & (np.abs(co[:, 1] - hy) < (.16 if leg[0] == "F" else .24)))[0]
+        self.sole = co[sel, 2] < .05
+        gname = {g.index: g.name for g in mesh.vertex_groups}
+        self.v = np.c_[co[sel], np.ones(len(sel))]
+        self.w = np.zeros((len(sel), len(self.bones)))
+        for r, vi in enumerate(sel):
+            ws = sorted(((g.weight, gname[g.group]) for g in mesh.data.vertices[vi].groups if g.weight > 1e-5), reverse=True)[:4]
+            tot = sum(w for w, _ in ws)
+            for w, nm in ws:
+                if nm in self.bones:
+                    self.w[r, self.bones.index(nm)] += w / tot
+        # los pesos fuera de la pata (casi nulos en el casco) se reparten en la caña
+        self.w[:, 2] += 1 - self.w.sum(1)
+        self.y_rest = float(co[sel, 1][self.sole].mean())
+        self.slide_axis = self.A[self.bones[0]][:3, :3].T @ np.array([0, 1.0, 0])
+
+    def body(self, bob, pitch, yaw=0.0):
+        W_raiz = self.A["raiz"] @ _tr((0, 0, bob))
+        W_c = W_raiz @ self.Ai["raiz"] @ self.A["cuerpo"] @ _rx(pitch) @ _rz(yaw)
+        return W_c if self.parent == "cuerpo" else W_c @ self.Ai["cuerpo"] @ self.A["grupa"]
+
+    def hoof(self, Wp, x):
+        W = Wp @ self.Ai[self.parent]
+        acc = np.zeros((len(self.v), 4))
+        for i, b in enumerate(self.bones):
+            P = _rx(x[i])
+            if i == 0:
+                P = _tr(self.slide_axis * x[4]) @ P
+            W = W @ self.A[b] @ P if i == 0 else W @ self.Ai[self.bones[i - 1]] @ self.A[b] @ P
+            acc += self.w[:, i:i + 1] * (self.v @ (W @ self.Ai[b]).T)
+        return acc[:, :3]
+
+    def solve(self, Wp, pitch, ty, tz, pref, wpref, flat, wflat, x0):
+        lo = self.LIMITS[self.leg[0]]
+
+        def res(x):
+            p = self.hoof(Wp, x)
+            zmin = -np.log(np.exp(-600 * (p[:, 2] - p[:, 2].min())).sum()) / 600 + p[:, 2].min()
+            r = [40 * (p[self.sole, 1].mean() - ty), 40 * (zmin - tz)]
+            r += [wpref[i] * (x[i] - pref[i]) for i in range(4)]
+            r.append(wflat * (pitch + x[0] + x[1] + x[2] + x[3] - flat))
+            r.append(1.2 * x[4])
+            r += [30 * max(0.0, lo[i][0] - x[i]) + 30 * max(0.0, x[i] - lo[i][1]) for i in range(4)]
+            r.append(60 * max(0.0, abs(x[4]) - .08))
+            return np.array(r)
+        x = np.array(x0, float)
+        lam = 1e-3
+        r = res(x)
+        for _ in range(60):
+            J = np.empty((len(r), 5))
+            for j in range(5):
+                d = np.zeros(5)
+                d[j] = 1e-5
+                J[:, j] = (res(x + d) - r) / 1e-5
+            H = J.T @ J
+            step = np.linalg.solve(H + lam * np.diag(np.diag(H) + 1e-9), -J.T @ r)
+            r2 = res(x + step)
+            if r2 @ r2 < r @ r:
+                x, r, lam = x + step, r2, lam * .4
+                if np.abs(step).max() < 1e-6:
+                    break
+            else:
+                lam *= 5
+        p = self.hoof(Wp, x)
+        return x, float(p[self.sole, 1].mean() - ty), float(p[:, 2].min())
+
+
+def _swing_pref(leg, f):
+    """Flexión buscada en el vuelo (f = 0 en el suelo, 1 en lo más alto): rodilla doblada atrás adelante, corvejón detrás."""
+    if leg[0] == "F":
+        return [0.0, .55 * f, -1.35 * f, -.65 * f]
+    return [0.0, -.55 * f, .85 * f, -.65 * f]
+
+
+def gait_targets(leg, ph, duty, stride, v, period, y_c, lift):
+    """Trayectoria del casco (centro en Y, punto más bajo en Z), en el marco del caballo (que avanza a v)."""
     if ph < duty:
         t = ph / duty
-        a = amp * (1 - 2 * t)
-        f = 0.0
-        st = math.sin(math.pi * t)
-    else:
-        t = (ph - duty) / (1 - duty)
-        a = -amp + 2 * amp * (.5 - .5 * math.cos(math.pi * t))
-        f = math.sin(math.pi * t)
-        st = 0.0
-    if leg[0] == "F":
-        return [a - .15 * f, .45 * f, -1.35 * f, -.55 * f + .18 * st]
-    return [a * .85 + .30 * f, -.75 * f, 1.05 * f, -.55 * f + .15 * st]
+        return y_c + stride / 2 - stride * t, .004, t, 0.0
+    s = (ph - duty) / (1 - duty)
+    # sale casi derecho hacia adelante (que la mano no espere al posterior que viene a pisar su huella) y llega
+    # retrocediendo un poco (retracción del vuelo: el casco toca el suelo casi sin velocidad respecto de él)
+    m0, m1 = -.05 * v * (1 - duty) * period, -.3 * v * (1 - duty) * period
+    y0 = y_c - stride / 2
+    y = y0 + stride * (3 * s * s - 2 * s ** 3) + m0 * (s - 2 * s * s + s ** 3) + m1 * (s ** 3 - s * s)
+    sk = s ** (.6 if leg[0] == "F" else .8)   # se alzan antes de llegar a la mitad (las manos, más: doblan la rodilla al salir)
+    z = .004 + lift * math.sin(math.pi * sk)
+    return y, z, 1.0, math.sin(math.pi * sk)
 
 
 def new_action(rig, name):
@@ -655,21 +776,76 @@ def new_action(rig, name):
     return act
 
 
-def animate(rig):
+GAIT_REPORT = {}
+
+
+def animate(rig, mesh):
     rig.animation_data_create()
-    for name, (n, phases, duty, amp, bob, pitch, nb) in GAITS.items():
+    iks = {leg: LegIK(rig, mesh, leg) for leg in LEGS}
+    for name, (n, phases, duty, v, lifts, bob, pitch, nb, centers, drop) in GAITS.items():
         act = new_action(rig, name)
-        for f in range(n + 1):
+        period = n / FPS
+        stride = v * duty * period            # barrido del casco apoyado
+        # sube-baja: en el trote el cuerpo baja a mitad del apoyo; en el paso sube sobre la pata de apoyo; en el galope
+        # sube en la suspensión. Cabeceo: el galope levanta la cabeza al empujar los posteriores y la baja al caer las manos.
+        if name == "gallop":
+            last_off = phases["FL"]
+            g_up = ((1 - last_off) + duty + 1.0) / 2 % 1.0   # mitad de la suspensión
+        else:
+            g_up = duty / 2 + (.25 if name == "trot" else 0.0)
+        x_prev = {leg: np.zeros(5) for leg in LEGS}
+        worst = {"err_y_m": 0.0, "min_z_m": 1.0, "stance_max_z_m": 0.0, "slide_m": 0.0}
+        sols = []
+        for f in range(2 * n):   # dos vueltas: la segunda arranca de la primera y el bucle cierra sin salto
+            if f == n:
+                sols = []
+                worst = {"err_y_m": 0.0, "min_z_m": 1.0, "stance_max_z_m": 0.0, "slide_m": 0.0}
             g = (f % n) / n
-            for leg, off in phases.items():
-                ang = leg_angles(leg, (g + off) % 1.0, duty, amp)
-                for s, a in zip(SEG, ang):
-                    key(rig, f"{leg}_{s}", f, rot=(a, 0, 0))
             w = 2 * math.pi * g
-            # cuerpo: cabeceo (el galope más) y algo de rolido en los andares de dos tiempos; sube-baja en la raíz
-            # (hueso horizontal con Z local = Z del mundo). Sin desplazamiento: el avance lo pone el juego.
-            key(rig, "cuerpo", f, loc=(0, 0, 0), rot=(pitch * math.sin(w), 0, .02 * math.sin(w) if nb == 2 else 0))
-            key(rig, "raiz", f, loc=(0, 0, bob * math.cos(nb * w)), rot=(0, 0, 0))
+            p_body = pitch * (math.cos(w - 2 * math.pi * .2) if name == "gallop" else math.sin(w))
+            yaw = .015 * math.sin(w) if nb == 2 else 0.0
+            z_body = -drop + bob * math.cos(nb * (w - 2 * math.pi * g_up))
+            fr = {"pitch": p_body, "yaw": yaw, "z": z_body, "legs": {}}
+            for leg, off in phases.items():
+                ik = iks[leg]
+                ph = (g + off) % 1.0
+                y_c = ik.y_rest + centers[0 if leg[0] == "F" else 1]
+                ty, tz, t, fl = gait_targets(leg, ph, duty, stride, v, period, y_c, lifts[0 if leg[0] == "F" else 1])
+                stance = ph < duty
+                if stance:   # apoyo: pata derecha, casco plano; al final el talón se despega (el casco rueda sobre la pinza)
+                    pref, wpref = [0.0, 0.0, 0.0, .15], [.05, .8, 1.5, .25]
+                    flat, wflat = -.5 * smoothstep(.72, 1.0, t), 3.0
+                else:
+                    pref, wpref = _swing_pref(leg, fl), [.05, .5, .5, .5]
+                    flat, wflat = 0.0, 0.0
+                Wp = ik.body(z_body, p_body, yaw)
+                x, ey, zmin = ik.solve(Wp, p_body, ty, tz, pref, wpref, flat, wflat, x_prev[leg])
+                x_prev[leg] = x
+                fr["legs"][leg] = x
+                worst["min_z_m"] = min(worst["min_z_m"], zmin)
+                worst["slide_m"] = max(worst["slide_m"], abs(float(x[4])))
+                if f >= n and (abs(zmin - tz) > .012 or abs(ey) > .02) and "--diag" in ARGV:
+                    print("DIAG", name, leg, "t=%.2f" % t, "ey=%.3f z=%.3f" % (ey, zmin), np.round(x, 2))
+                if stance:
+                    worst["err_y_m"] = max(worst["err_y_m"], abs(ey))
+                    worst["stance_max_z_m"] = max(worst["stance_max_z_m"], zmin)
+            sols.append(fr)
+        GAIT_REPORT[name] = {"stride_m": round(stride, 3), "design_mps": v, **{k: round(val, 4) for k, val in worst.items()}}
+        print("ANDAR", name, json.dumps(GAIT_REPORT[name]))
+        for f in range(n + 1):
+            fr = sols[f % n]
+            g = (f % n) / n
+            w = 2 * math.pi * g
+            for leg, x in fr["legs"].items():
+                for i, s in enumerate(SEG):
+                    if i == 0:
+                        key(rig, f"{leg}_{s}", f, rot=(float(x[0]), 0, 0), loc=tuple(iks[leg].slide_axis * float(x[4])))
+                    else:
+                        key(rig, f"{leg}_{s}", f, rot=(float(x[i]), 0, 0))
+            # cuerpo: cabeceo y algo de giro en los andares de dos tiempos; sube-baja en la raíz (hueso horizontal con
+            # Z local = Z del mundo). Sin desplazamiento: el avance lo pone el juego.
+            key(rig, "cuerpo", f, loc=(0, 0, 0), rot=(fr["pitch"], 0, fr["yaw"]))
+            key(rig, "raiz", f, loc=(0, 0, fr["z"]), rot=(0, 0, 0))
             key(rig, "cuello", f, rot=(-pitch * 1.2 * math.sin(w + .6) - (.10 if name == "gallop" else 0), 0, 0))
             key(rig, "cuello2", f, rot=(-pitch * .6 * math.sin(w + 1.0), 0, 0))
             key(rig, "cabeza", f, rot=(pitch * .5 * math.sin(w + 1.2), 0, 0))
@@ -681,7 +857,7 @@ def animate(rig):
     act = new_action(rig, "idle")
     for f in range(0, n + 1, 4):
         w = 2 * math.pi * f / n
-        key(rig, "raiz", f, loc=(0, 0, .004 * math.sin(4 * w)))
+        key(rig, "raiz", f, loc=(0, 0, .004 + .004 * math.sin(4 * w)))   # visual/r1 F4b: +4 mm, ningún casco bajo el suelo
         key(rig, "cuerpo", f, loc=(0, 0, 0), rot=(0, 0, 0))
         key(rig, "cuello", f, rot=(-.10 - .07 * (.5 - .5 * math.cos(w)), 0, .04 * math.sin(w)))
         key(rig, "cuello2", f, rot=(-.03 * (.5 - .5 * math.cos(w)), 0, .03 * math.sin(w)))
@@ -690,7 +866,7 @@ def animate(rig):
         key(rig, "cola2", f, rot=(0, 0, .18 * math.sin(3 * w - .7) * (.5 + .5 * math.sin(w))))
         for leg in LEGS:
             rest = leg == "HR"
-            key(rig, f"{leg}_sup", f, rot=(.06 if rest else 0, 0, 0))
+            key(rig, f"{leg}_sup", f, rot=(.06 if rest else 0, 0, 0), loc=(0, 0, 0))
             key(rig, f"{leg}_inf", f, rot=(-.10 if rest else 0, 0, 0))
             key(rig, f"{leg}_cana", f, rot=(.12 if rest else 0, 0, 0))
             key(rig, f"{leg}_cuartilla", f, rot=(-.25 if rest else 0, 0, 0))
@@ -836,7 +1012,7 @@ def build_horse(coat, lod):
     merged = join(objs, f"caballo_criollo_{coat}")
     for m in list(merged.modifiers)[1:]:
         merged.modifiers.remove(m)
-    animate(rig)
+    animate(rig, merged)
     export(f"caballo_criollo_{coat}", note, anims=("idle", "walk", "trot", "gallop"))
 
 

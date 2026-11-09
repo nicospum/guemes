@@ -58,18 +58,18 @@
   "godot_bounds": {
    "min": [
     -0.386,
-    -0.006,
+    -0.036,
     -1.46
    ],
    "max": [
-    0.382,
-    1.678,
-    1.047
+    0.383,
+    1.615,
+    1.087
    ]
   },
   "front": "Godot -Z",
   "origin": "suelo, centro entre los cascos",
-  "sha256": "4d34ad866af4114dfb6446c3cbc64d59bf0dd7c440b7257100942b16e901cebb",
+  "sha256": "2307a2dbf0a8789f08ce09342ecd3983a62d71a3a6ee8829aca439cade577ebc",
   "note": "Caballo criollo, pelaje zaino (diseño). Malla del cuerpo: «Rigged Horse» de Lyndon Daniels/ChadM (OpenGameArt, CC0), reescalada a 1,45 m de cruz; esqueleto, pesos, crin tusada, cola, recado, cabezada, pelaje y andares propios."
  },
  "caballo_criollo_zaino_lod": {
@@ -157,18 +157,18 @@
   "godot_bounds": {
    "min": [
     -0.386,
-    -0.006,
+    -0.036,
     -1.46
    ],
    "max": [
-    0.382,
-    1.678,
-    1.047
+    0.383,
+    1.615,
+    1.087
    ]
   },
   "front": "Godot -Z",
   "origin": "suelo, centro entre los cascos",
-  "sha256": "081036d83f8ef793cbf8645c3245d98d635628cce6eaa3ba9cf47cfe25cab0e4",
+  "sha256": "ea2ef4f56eb6d9d64ef8c2c90051bae2db7a6ae089f58654169484eb45950fec",
   "note": "Caballo criollo, pelaje alazan (diseño). Malla del cuerpo: «Rigged Horse» de Lyndon Daniels/ChadM (OpenGameArt, CC0), reescalada a 1,45 m de cruz; esqueleto, pesos, crin tusada, cola, recado, cabezada, pelaje y andares propios."
  },
  "caballo_criollo_alazan_lod": {
@@ -201,7 +201,7 @@
   },
   "front": "Godot -Z",
   "origin": "suelo, centro entre los cascos",
-  "sha256": "c96ff34d530ccc16586c440e4c18fcae364805b1bf234b5e3d4316769c3e0040",
+  "sha256": "398b259c85b42f150bd8a2d41f00d3425290189281a772345c0d2e019eef5e12",
   "note": "Caballo criollo, pelaje alazan (diseño). Malla del cuerpo: «Rigged Horse» de Lyndon Daniels/ChadM (OpenGameArt, CC0), reescalada a 1,45 m de cruz; esqueleto, pesos, crin tusada, cola, recado, cabezada, pelaje y andares propios. LOD de tropa: estático, pose de reposo."
  },
  "caballo_criollo_tordillo": {
@@ -256,18 +256,18 @@
   "godot_bounds": {
    "min": [
     -0.386,
-    -0.006,
+    -0.036,
     -1.46
    ],
    "max": [
-    0.382,
-    1.678,
-    1.047
+    0.383,
+    1.615,
+    1.087
    ]
   },
   "front": "Godot -Z",
   "origin": "suelo, centro entre los cascos",
-  "sha256": "8e3ba90ed933a53f1991a7ce770555299566b54a44c43fffb174632c3b8910de",
+  "sha256": "be0f1628bc5949440d679749d043a197c79a9dd76610a6157d1467e4dbf7fe66",
   "note": "Caballo criollo, pelaje tordillo (diseño). Malla del cuerpo: «Rigged Horse» de Lyndon Daniels/ChadM (OpenGameArt, CC0), reescalada a 1,45 m de cruz; esqueleto, pesos, crin tusada, cola, recado, cabezada, pelaje y andares propios."
  },
  "caballo_criollo_tordillo_lod": {
@@ -355,18 +355,18 @@
   "godot_bounds": {
    "min": [
     -0.386,
-    -0.006,
+    -0.036,
     -1.46
    ],
    "max": [
-    0.382,
-    1.678,
-    1.047
+    0.383,
+    1.615,
+    1.087
    ]
   },
   "front": "Godot -Z",
   "origin": "suelo, centro entre los cascos",
-  "sha256": "4369a1f78f24463ea8d9a0673268ec6e3924bc0c5d226025784a4476f4b649ef",
+  "sha256": "d0d8a19f5f4072717f848e48610befe482710507b0de1fee4424f1efec78bd77",
   "note": "Caballo criollo, pelaje overo (diseño). Malla del cuerpo: «Rigged Horse» de Lyndon Daniels/ChadM (OpenGameArt, CC0), reescalada a 1,45 m de cruz; esqueleto, pesos, crin tusada, cola, recado, cabezada, pelaje y andares propios."
  },
  "caballo_criollo_overo_lod": {

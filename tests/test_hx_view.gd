@@ -1528,5 +1528,11 @@ func _test_horses(u) -> void:
 	for k in expect:
 		gait_ok = gait_ok and str((gaits[k] as Dictionary).get("andar", "")) == str(expect[k])
 	var trot_scale := float((gaits.marcha as Dictionary).get("cadencia", 0.0))
-	_ck(gait_ok and absf(trot_scale - 3.2 / 2.0) < 0.1, "visual/r1 F4 el andar sigue la velocidad: quieto reposo, 1 m/s paso, 3,2 m/s trote (cadencia %.2f ≈ 1,6), 8,5 m/s galope (%s)" % [trot_scale, str(gaits)])
+	# visual/r1 F4b: la cadencia esperada sale de la velocidad natural del trote en la configuración (3,3 m/s con el tranco corregido, antes 2)
+	var trot_nat := 0.0
+	for gd in u.hcfg("gaits"):
+		if str((gd as Dictionary).anim) == "trot":
+			trot_nat = float((gd as Dictionary).natural_mps)
+	_ck(gait_ok and trot_nat > 0.0 and absf(trot_scale - 3.2 / trot_nat) < 0.1, "visual/r1 F4 el andar sigue la velocidad: quieto reposo, 1 m/s paso, 3,2 m/s trote (cadencia %.2f ≈ %.2f), 8,5 m/s galope (%s)" % [trot_scale, 3.2 / maxf(trot_nat, 0.01), str(gaits)])
+	_ck(trot_scale <= 1.3, "visual/r1 F4b B-063: con el tranco corregido la marcha de las reglas (3,2 m/s) se ve al trote con cadencia ≤ 1,3 (%.2f)" % trot_scale)
 	suite.extra["andares_caballo"] = gaits
