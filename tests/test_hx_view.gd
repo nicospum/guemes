@@ -1453,6 +1453,8 @@ func _test_formations() -> void:
 	var edge_screen := cam.unproject_position(portal.global_transform * (far_fig + Vector3(0.0, 0.9, 0.0)))
 	var leader_screen := cam.unproject_position(portal.global_position)
 	_ck(str(view.pick_unit(cam, edge_screen)) == "portal", "visual/r1 F3 un clic sobre la figura del borde de la formación (a %.0f px de la jefa) elige a Portal" % edge_screen.distance_to(leader_screen))
+	# 6b) visual/r1 F4: Rodríguez monta el caballo criollo (jefa con esqueleto y andares, jinete en el hueso «silla») y la tropa montada va en MultiMesh por pelaje
+	_test_horses(u)
 	# 7) defensores a escala real (antes crecían hasta 28 px)
 	var dressed: RefCounted = Vis.DressedRules.new(Fx.rules_stub(1817, 1, {"skip_intro": true, "phase": "ataque"}), "ataque")
 	view.build(dressed, "media")
@@ -1469,3 +1471,62 @@ func _test_formations() -> void:
 	cam.free()
 	cam = null
 	await process_frame
+
+## visual/r1 F4: el caballo criollo y el jinete de 1817 en la formación de Rodríguez: la jefa, su jinete, el material, los pelajes de la tropa y el andar por velocidad.
+func _test_horses(u) -> void:
+	var node: Node3D = view.unit_nodes["rodriguez"]
+	var horse := node.get_node_or_null("caballo") as Node3D
+	if not _ck(horse != null and u.horses_on(), "visual/r1 F4 la jefa de Rodríguez es el caballo criollo de los modelos propios"):
+		return
+	var sk := horse.find_children("*", "Skeleton3D", true, false)
+	var players := horse.find_children("*", "AnimationPlayer", true, false)
+	var anims_ok := not players.is_empty() and ["idle", "walk", "trot", "gallop"].all(func(a): return (players[0] as AnimationPlayer).has_animation(a))
+	_ck(not sk.is_empty() and (sk[0] as Skeleton3D).find_bone("silla") >= 0 and anims_ok, "visual/r1 F4 la jefa trae esqueleto con el hueso «silla» y los cuatro andares (idle, walk, trot, gallop)")
+	var seat := horse.find_children("silla", "BoneAttachment3D", true, false)
+	var rider := (seat[0] as Node).get_node_or_null("jinete") as MeshInstance3D if not seat.is_empty() else null
+	_ck(rider != null and str((seat[0] as BoneAttachment3D).bone_name) == "silla" and rider.transform.is_equal_approx(Transform3D.IDENTITY), "visual/r1 F4 el jinete va en un BoneAttachment3D del hueso «silla» con transformación identidad")
+	# el material: el de ficha aliada con color de vértice lineal (luz propia, borde de bando, modo albedo) y el contorno de tinta como segunda pasada
+	var glb_mat: ShaderMaterial = u.gfx.token_mat("aliado_glb")
+	var mats_ok := glb_mat != null and float(glb_mat.get_shader_parameter("vertex_linear")) == 1.0 and glb_mat.shader == (u.gfx.token_mat("aliado") as ShaderMaterial).shader
+	for mi in horse.find_children("*", "MeshInstance3D", true, false):
+		var m := mi as MeshInstance3D
+		mats_ok = mats_ok and (m.material_override == glb_mat or (m.material_override == null and m.mesh.surface_get_material(0) == glb_mat))
+	_ck(mats_ok, "visual/r1 F4 caballo y jinete usan el material de ficha (color de vértice lineal) y no los materiales del GLB")
+	view.set_albedo_mode(true)
+	var albedo_on := float(glb_mat.get_shader_parameter("albedo_mode")) == 1.0
+	view.set_albedo_mode(false)
+	_ck(albedo_on and float(glb_mat.get_shader_parameter("albedo_mode")) == 0.0, "visual/r1 F4 el modo albedo del QA también aplana el caballo y el jinete")
+	# el granate del modelo (poncho y pañuelo) se recoloreó a la paleta: ninguna parte del jinete se lee roja de enemigo
+	var red := 0
+	if rider != null:
+		for c in (rider.mesh.surface_get_arrays(0)[Mesh.ARRAY_COLOR] as PackedColorArray):
+			if c.r > 0.1 and c.r > c.g * 2.5 and c.r > c.b * 2.5:
+				red += 1
+	_ck(rider != null and red == 0, "visual/r1 F4 el poncho y el pañuelo granates del jinete van a la ropa de la paleta (%d vértices rojos)" % red)
+	# la tropa montada: MultiMesh por pelaje y ropa, sobre todo zainos y alazanes (la jefa es zaina)
+	var coats: Array = u._troop_coats_of("rodriguez")
+	var common := 1 + coats.filter(func(c): return str(c) in ["zaino", "alazan"]).size()
+	var mounted := 0
+	for batch in (u.tokens["rodriguez"].formation as Array):
+		if str(batch.get("coat", "")) != "":
+			mounted += (batch.base as Array).size()
+	_ck(mounted == 4 and coats.size() == 4 and common * 2 > coats.size() + 1, "visual/r1 F4 los 4 jinetes de tropa van en caballos de pelajes mezclados, sobre todo zainos y alazanes (%s)" % str(coats))
+	_ck(float(u.ring_radius("rodriguez")) < 7.6, "visual/r1 F4 con el caballo criollo (más corto y angosto, sin la lanza terciada) la huella de Rodríguez se achica (anillo de %.2f m; en F3, 7,6 m)" % float(u.ring_radius("rodriguez")))
+	# el andar por la velocidad real sobre el suelo, con la cadencia ajustada (se le pasa el reloj para no esperar)
+	var start := node.position
+	var gaits := {}
+	var t := 1000.0
+	for case in [["quieto", 0.0], ["paso", 1.0], ["marcha", 3.2], ["galope", 8.5], ["parado", 0.0]]:
+		for k in range(10):
+			t += 0.3
+			node.position += Vector3(float(case[1]) * 0.3, 0.0, 0.0)
+			u.update_gait("rodriguez", t)
+		gaits[case[0]] = u.horse_gait("rodriguez")
+	node.position = start
+	var expect := {"quieto": "idle", "paso": "walk", "marcha": "trot", "galope": "gallop", "parado": "idle"}
+	var gait_ok := true
+	for k in expect:
+		gait_ok = gait_ok and str((gaits[k] as Dictionary).get("andar", "")) == str(expect[k])
+	var trot_scale := float((gaits.marcha as Dictionary).get("cadencia", 0.0))
+	_ck(gait_ok and absf(trot_scale - 3.2 / 2.0) < 0.1, "visual/r1 F4 el andar sigue la velocidad: quieto reposo, 1 m/s paso, 3,2 m/s trote (cadencia %.2f ≈ 1,6), 8,5 m/s galope (%s)" % [trot_scale, str(gaits)])
+	suite.extra["andares_caballo"] = gaits

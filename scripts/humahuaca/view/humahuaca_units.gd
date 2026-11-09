@@ -15,6 +15,13 @@ extends RefCounted
 ## con las reglas). Si algún día render_state trae `men`, manda ese. Rodríguez: jinetes en la proporción caballos / hombres (16 de 48) y el resto a pie; el arreo:
 ## arrieros adelante y una mula cada `mule_load_kg` de carga propia. Con menos fuerza (`strength_pct`) se ven menos figuras (las de atrás); lejos (> `far_m`) se ve la
 ## mitad y no hay paso. El anillo del suelo encierra la huella real de la formación.
+## visual/r1 F4: los jinetes de Rodríguez montan el CABALLO CRIOLLO de los modelos propios (assets/models/caballo_criollo_<pelaje>.glb, 1,45 m de cruz) con el jinete de
+## 1817 (jinete_criollo_1817.glb). La jefa: caballo con esqueleto y andares (idle, walk, trot, gallop) elegidos por la velocidad real sobre el suelo, con la cadencia
+## ajustada para que los cascos casi no patinen, y el jinete en un BoneAttachment3D del hueso «silla». La tropa: el caballo de tropa (sin esqueleto) y el jinete de
+## tropa unidos en una malla, en MultiMesh por pelaje y ropa (pelajes mezclados por regla fija, sobre todo zainos y alazanes). El color de vértice de los GLB es
+## lineal: lo dibuja el mismo material de ficha (luz propia, borde de bando, modo albedo y curva de la hora) con `vertex_linear`. El jinete se recolorea a la
+## paleta como la figura del generador (poncho = abrigo de la variante oscurecido, sombrero, pañuelo de acento): el granate del modelo no se lee como enemigo.
+## Si los GLB faltan (o `units.horse.enabled` es falso), vuelve el jinete del generador. Mula y arrieros siguen siendo del generador (no hay mula nueva).
 
 const V = preload("res://scripts/humahuaca/humahuaca_vocab.gd")
 const Gen = preload("res://scripts/humahuaca/view/humahuaca_gen.gd")
@@ -37,6 +44,17 @@ const FORMATION_DEFAULTS := {"men_per_figure": 3.5, "min_figures": 6, "max_figur
 const FORMATION_MEN_FALLBACK := {"rodriguez": {"men": 48, "horses": 16}, "portal": {"men": 52}, "arias": {"men": 50}, "reconocedores": {"men": 2}, "arreo": {"men": 6, "capacity_kg": 600}}
 ## visual/r1 F3: radio en planta (m) de cada tipo de figura, para que el anillo encierre la huella (el jinete incluye la lanza terciada).
 const FIGURE_RADIUS := {"jinete": 2.3, "a_pie": 0.55, "infante": 0.85, "mula": 1.35, "arriero": 0.55}
+## visual/r1 F4: radio en planta del caballo criollo con su jinete (sin lanza): 1,46 m de la nariz al centro, 0,51 m de estribo, con el giro del desorden (≤ 9°).
+const HORSE_FIGURE_RADIUS := 1.6
+## visual/r1 F4: `units.horse` de humahuaca_visual.json si falta (diseño). Velocidades naturales de cada andar medidas sobre las animaciones del GLB (barrido del
+## casco apoyado / tiempo de apoyo): paso ≈ 0,9 m/s, trote ≈ 2 m/s, galope ≈ 4 m/s; los cortes van entre medio (en escala geométrica, corridos un poco hacia el andar
+## más lento) y con histéresis para que no titile.
+const HORSE_DEFAULTS := {"enabled": true, "dir": "assets/models", "horse": "caballo_criollo_%s.glb", "horse_lod": "caballo_criollo_%s_lod.glb", "rider": "jinete_criollo_1817.glb",
+	"rider_lod": "jinete_criollo_1817_lod.glb", "seat_bone": "silla", "seat_y_m": 1.5, "leader_coat": "zaino", "troop_coats": ["zaino", "alazan", "zaino", "alazan", "tordillo", "zaino", "alazan", "overo"],
+	"idle_below_mps": 0.25, "gaits": [{"anim": "walk", "natural_mps": 0.9, "up_to_mps": 1.4}, {"anim": "trot", "natural_mps": 2.0, "up_to_mps": 3.4}, {"anim": "gallop", "natural_mps": 4.0, "up_to_mps": 1000.0}],
+	"hysteresis_mps": 0.2, "speed_scale_min": 0.6, "speed_scale_max": 2.4, "blend_s": 0.3, "sample_s": 0.25}
+## visual/r1 F4: tonos de referencia (lineales) del jinete de 1817 que se recolorean: el granate del poncho (lana) y del pañuelo (lino), y el sombrero gris oscuro.
+const RIDER_REF := {"poncho_r": 0.31, "panuelo_r": 0.3373, "sombrero_l": 0.019, "sombrero_y_m": 0.95}
 const ENEMY_ARCHETYPE :={"centinela": "realista_1817", "guardia": "realista_1817", "artillero": "artillero", "fusilero": "realista_1817", "mensajero": "poncho_sombrero", "refuerzo": "realista_1817"}
 
 var gfx
@@ -51,6 +69,10 @@ var formation_report: Dictionary = {}  ## visual/r1 F3: {id: {hombres, figuras, 
 var _enemy_meshes: Dictionary = {}
 var _ring_mats: Dictionary = {}
 var _loot_meshes: Dictionary = {}
+var _glb: Dictionary = {}  ## visual/r1 F4: escenas y mallas de los GLB del caballo y del jinete (ruta → recurso; null si falta)
+var _troop_meshes: Dictionary = {}  ## visual/r1 F4: «pelaje|variante» → malla unida caballo + jinete de tropa
+var _rider_meshes: Dictionary = {}  ## visual/r1 F4: jinete recoloreado por variante
+var _pending_horse: Dictionary = {}  ## visual/r1 F4: el caballo de la jefa recién armado (build_tokens lo guarda en su ficha)
 
 
 func setup(gfx_ref) -> void:
@@ -75,6 +97,7 @@ func build_tokens(root_tokens: Node3D, root_labels: Node3D) -> void:
 		root.name = "ficha_" + id
 		root.visible = false
 		root_tokens.add_child(root)
+		_pending_horse = {}
 		var dims := _token_parts(root, str(spec.get("shape", "infante_fusil")), spec, variants, index)
 		var base_h: float = dims.x
 		var form := _build_formation(root, id, spec, variants, index, dims.y)  # visual/r1 F3
@@ -118,6 +141,9 @@ func build_tokens(root_tokens: Node3D, root_labels: Node3D) -> void:
 		tokens[id] = {"root": root, "base_h": base_h, "ring": ring, "edge": edge, "ring_color": ring_color, "selection": selection, "alert": alert, "alert_max": 0.0,
 			"ring_at": Vector3(INF, INF, INF), "ring_r": ring_r, "formation": form.batches, "strength_f": 1.0, "far": false, "moved_ms": -100000, "stepping": false}
 		formation_report[id]["radio_anillo_m"] = snappedf(ring_r, 0.01)
+		if not _pending_horse.is_empty():  # visual/r1 F4: la jefa va en el caballo criollo con andares
+			tokens[id]["horse"] = _pending_horse
+			formation_report[id]["caballo"] = "criollo, pelaje %s; tropa: %s" % [str(hcfg("leader_coat")), ", ".join(PackedStringArray(_troop_coats_of(id)))]
 
 
 func _variant_of(spec: Dictionary, variants: Array, index: int, fallback_shirt: String) -> Dictionary:
@@ -137,6 +163,8 @@ func _token_parts(root: Node3D, shape: String, spec: Dictionary, variants: Array
 	match shape:
 		"jinete":
 			var v := {"camisa": "lino_crudo", "abrigo": body, "sombrero": "madera_oscura", "acento": ""}
+			if horses_on():  # visual/r1 F4: el caballo criollo con esqueleto y el jinete de 1817
+				return _leader_horse(root, v)
 			parts = gen.rider(v, hw)
 		"infante_fusil":
 			parts = gen.figure("camisa_gorra", _variant_of(spec, variants, index, body if body in ["lino_crudo", "lana_natural"] else "lino_crudo"), "de_pie", hw)
@@ -337,7 +365,7 @@ func _build_formation(root: Node3D, id: String, spec: Dictionary, variants: Arra
 	var by_type: Dictionary = {}
 	for slot in slots:
 		var at: Vector2 = (slot.at as Vector2) + shift + Vector2(rng.randf_range(-jit, jit), rng.randf_range(-jit, jit))
-		radius = maxf(radius, at.length() + float(FIGURE_RADIUS.get(str(slot.type), 0.6)))
+		radius = maxf(radius, at.length() + _figure_radius(str(slot.type)))
 		if not by_type.has(str(slot.type)):
 			by_type[str(slot.type)] = []
 		(by_type[str(slot.type)] as Array).append(Transform3D(Basis(Vector3.UP, deg_to_rad(rng.randf_range(-jit_deg, jit_deg))), Vector3(at.x, 0.0, at.y)))
@@ -347,13 +375,23 @@ func _build_formation(root: Node3D, id: String, spec: Dictionary, variants: Arra
 		var list: Array = by_type[type]
 		list.sort_custom(func(a, b): return (a as Transform3D).origin.z < (b as Transform3D).origin.z)  # de adelante (−Z) hacia atrás
 		var kinds := 1 if str(type) == "mula" else maxi(int(fcfg("variants")), 1)
-		for v in range(kinds):
-			var base: Array = []
-			for k in range(v, list.size(), kinds):
-				base.append(list[k])
-			if base.is_empty():
-				continue
-			var mesh := _formation_mesh(str(type), spec, variants, index + v + 1)
+		# visual/r1 F4: un lote por variante de ropa (como en F3) y, si van a caballo, también por pelaje: la figura k lleva la ropa k % variantes y el pelaje
+		# troop_coats[(k + 1) % n] (regla fija: la misma formación sale siempre igual)
+		var coats: Array = hcfg("troop_coats") if str(type) == "jinete" and horses_on() else []
+		var groups: Dictionary = {}
+		var order: Array = []
+		for k in range(list.size()):
+			var coat := str(coats[(k + 1) % coats.size()]) if not coats.is_empty() else ""
+			var key := "%s|%d" % [coat, k % kinds]
+			if not groups.has(key):
+				groups[key] = {"v": k % kinds, "coat": coat, "base": []}
+				order.append(key)
+			(groups[key].base as Array).append(list[k])
+		for key in order:
+			var v := int(groups[key].v)
+			var coat_k := str(groups[key].coat)
+			var base: Array = groups[key].base
+			var mesh := _troop_horse_mesh(coat_k, gen.variant_for(index + v + 1, variants)) if coat_k != "" else _formation_mesh(str(type), spec, variants, index + v + 1)
 			var mm := MultiMesh.new()
 			mm.transform_format = MultiMesh.TRANSFORM_3D
 			mm.mesh = mesh
@@ -361,12 +399,12 @@ func _build_formation(root: Node3D, id: String, spec: Dictionary, variants: Arra
 			for k in range(base.size()):
 				mm.set_instance_transform(k, base[k])
 			var mmi := MultiMeshInstance3D.new()
-			mmi.name = "formacion_%s_%d" % [str(type), v]
+			mmi.name = "formacion_%s_%d" % [str(type), v] + ("_" + coat_k if coat_k != "" else "")
 			mmi.multimesh = mm
 			mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			root.add_child(mmi)
 			triangles += base.size() * (mesh.surface_get_arrays(0)[Mesh.ARRAY_INDEX] as PackedInt32Array).size() / 3
-			batches.append({"mmi": mmi, "base": base, "ground": base.duplicate(), "bob": fcfg("step_bob_m") * (1.6 if str(type) in ["jinete", "mula"] else 1.0)})
+			batches.append({"mmi": mmi, "base": base, "ground": base.duplicate(), "bob": fcfg("step_bob_m") * (1.6 if str(type) in ["jinete", "mula"] else 1.0), "coat": coat_k})
 	formation_report[id]["triangulos_formacion"] = triangles
 	formation_report[id]["lotes"] = batches.size()
 	return {"batches": batches, "radius_m": radius + 0.3}
@@ -439,6 +477,309 @@ func _merged(parts: Dictionary, material: Material) -> ArrayMesh:
 	return mesh
 
 
+# ---------------------------------------------------------------------------------------------------------------------
+# visual/r1 F4: caballo criollo y jinete de 1817 (GLB de assets/models, manifiesto f4_caballos_manifest.json)
+
+## Una medida de `units.horse` (humahuaca_visual.json) o su valor por defecto.
+func hcfg(key: String) -> Variant:
+	var cfg: Variant = (gfx.data.get("units", {}) as Dictionary).get("horse", {}) if gfx != null else {}
+	if cfg is Dictionary and (cfg as Dictionary).has(key):
+		return (cfg as Dictionary)[key]
+	return HORSE_DEFAULTS.get(key)
+
+
+## Verdadero si los jinetes van en el caballo criollo: `units.horse.enabled` y los cuatro GLB que hacen falta (jefa y tropa) están.
+func horses_on() -> bool:
+	if not bool(hcfg("enabled")):
+		return false
+	var coat := str(hcfg("leader_coat"))
+	return _glb_mesh(str(hcfg("horse")) % coat) != null and _glb_mesh(str(hcfg("horse_lod")) % coat) != null and _glb_mesh(str(hcfg("rider"))) != null \
+		and _glb_mesh(str(hcfg("rider_lod"))) != null
+
+
+## Radio en planta de una figura de la formación de tipo `type` (para que el anillo encierre la huella).
+func _figure_radius(type: String) -> float:
+	if type == "jinete" and horses_on():
+		return HORSE_FIGURE_RADIUS
+	return float(FIGURE_RADIUS.get(type, 0.6))
+
+
+## La escena de un GLB de `units.horse.dir` (cargada una vez; null si no está).
+func _glb_scene(file: String) -> PackedScene:
+	var path := "res://%s/%s" % [str(hcfg("dir")), file]
+	if not _glb.has(path):
+		_glb[path] = load(path) as PackedScene if ResourceLoader.exists(path) else null
+	return _glb[path]
+
+
+## La malla (la primera) de un GLB: la del caballo de tropa o la del jinete. null si falta.
+func _glb_mesh(file: String) -> Mesh:
+	var key := "malla|" + file
+	if not _glb.has(key):
+		var scene := _glb_scene(file)
+		var mesh: Mesh = null
+		if scene != null:
+			var n := scene.instantiate()
+			for mi in n.find_children("*", "MeshInstance3D", true, false):
+				mesh = (mi as MeshInstance3D).mesh
+				break
+			n.free()
+		_glb[key] = mesh
+	return _glb[key]
+
+
+## Los colores (lineales) a los que va el jinete con la ropa `v`, como la figura de poncho y sombrero del generador: poncho = abrigo oscurecido 0,46, sombrero =
+## sombrero oscurecido 0,2, pañuelo = acento (azul elegido si la variante no trae). Lo demás del jinete (piel, botas, correas, botones) queda como en el modelo.
+func _rider_targets(v: Dictionary) -> Dictionary:
+	var accent := str(v.get("acento", ""))
+	return {"poncho": gfx.pc(str(v.get("abrigo", "lana_parda"))).darkened(0.46).srgb_to_linear(),
+		"sombrero": gfx.pc(str(v.get("sombrero", "madera_oscura"))).darkened(0.2).srgb_to_linear(),
+		"panuelo": gfx.pc(accent if accent != "" else "azul_elegido").srgb_to_linear()}
+
+
+## Agrega a `into` ({v, n, c, i}) las superficies de `mesh` (sin el «ancla» de 2 mm que el exportador pone primera) con `xf` aplicado. Si `targets` no está vacío
+## es el jinete: el granate de la lana (poncho) y del lino (pañuelo) y el gris del sombrero se llevan a la paleta conservando el sombreado de cada vértice.
+func _append_glb(mesh: Mesh, xf: Transform3D, targets: Dictionary, into: Dictionary) -> void:
+	for si in range(mesh.get_surface_count()):
+		var mat := mesh.surface_get_material(si)
+		var mname := str(mat.resource_name) if mat != null else ""
+		if mname.ends_with("ancla"):
+			continue
+		var a := mesh.surface_get_arrays(si)
+		var verts: PackedVector3Array = a[Mesh.ARRAY_VERTEX]
+		var normals: PackedVector3Array = a[Mesh.ARRAY_NORMAL]
+		var cols: PackedColorArray = a[Mesh.ARRAY_COLOR] if a[Mesh.ARRAY_COLOR] is PackedColorArray else PackedColorArray()
+		var base: int = (into.v as PackedVector3Array).size()
+		for k in range(verts.size()):
+			var c: Color = cols[k] if k < cols.size() else Color(0.5, 0.5, 0.5)
+			if not targets.is_empty():
+				c = _rider_color(c, verts[k], mname, targets)
+			into.v.append(xf * verts[k])
+			into.n.append((xf.basis * normals[k]).normalized() if k < normals.size() else Vector3.UP)
+			into.c.append(c)
+		var idx: PackedInt32Array = a[Mesh.ARRAY_INDEX] if a[Mesh.ARRAY_INDEX] is PackedInt32Array else PackedInt32Array()
+		if idx.is_empty():
+			for k in range(verts.size()):
+				into.i.append(base + k)
+		else:
+			for k in idx:
+				into.i.append(base + k)
+
+
+## El color de un vértice del jinete con la ropa de la variante (ver _rider_targets). `at` = posición relativa al asiento.
+func _rider_color(c: Color, at: Vector3, mname: String, targets: Dictionary) -> Color:
+	var garnet := c.r > 0.03 and c.r > c.g * 2.5 and c.r > c.b * 2.5
+	var t: Color
+	var f := 1.0
+	if mname.ends_with("wool") and garnet:
+		t = targets.poncho
+		f = clampf(c.r / float(RIDER_REF.poncho_r), 0.2, 1.15)
+	elif mname.ends_with("linen") and garnet:
+		t = targets.panuelo
+		f = clampf(c.r / float(RIDER_REF.panuelo_r), 0.2, 1.15)
+	elif mname.ends_with("wool") and at.y > float(RIDER_REF.sombrero_y_m):
+		t = targets.sombrero
+		f = clampf((c.r + c.g + c.b) / 3.0 / float(RIDER_REF.sombrero_l), 0.3, 1.3)
+	else:
+		return c
+	return Color(t.r * f, t.g * f, t.b * f, c.a)
+
+
+## La tacuara (caña con punta de hierro) que lleva el jinete, parada junto al estribo derecho y apenas inclinada hacia adelante, como la del baqueano de los
+## reconocedores y la del jinete del generador (que la llevaba terciada): diseño. Sube la silueta a ≈ 3,5 m sin ensanchar la huella, y la distingue de la pareja de
+## reconocedores, que medía casi lo mismo en planta y en alto (TR-098). El generador da color sRGB: se lo pasa a lineal como el de los GLB.
+func _append_lance(xf: Transform3D, into: Dictionary) -> void:
+	var mb = gen.builder()
+	mb.beam(Vector3(0.47, -0.62, 0.16), Vector3(0.5, 1.78, -0.2), 0.045, gfx.pc("madera_oscura", 1.15))
+	mb.cyl_between(Vector3(0.5, 1.78, -0.2), Vector3(0.505, 2.0, -0.235), 0.055, 0.0, 6, gfx.pc("hierro", 1.3))
+	var m: ArrayMesh = mb.build(0.0)
+	var a := m.surface_get_arrays(0)
+	var cols: PackedColorArray = a[Mesh.ARRAY_COLOR]
+	for k in range(cols.size()):
+		cols[k] = cols[k].srgb_to_linear()
+	var verts: PackedVector3Array = a[Mesh.ARRAY_VERTEX]
+	var normals: PackedVector3Array = a[Mesh.ARRAY_NORMAL]
+	var base: int = (into.v as PackedVector3Array).size()
+	for k in range(verts.size()):
+		into.v.append(xf * verts[k])
+		into.n.append((xf.basis * normals[k]).normalized())
+		into.c.append(cols[k])
+	for k in (a[Mesh.ARRAY_INDEX] as PackedInt32Array):
+		into.i.append(base + k)
+
+
+func _arrays_mesh(into: Dictionary, material: Material) -> ArrayMesh:
+	var arrays: Array = []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = into.v
+	arrays[Mesh.ARRAY_NORMAL] = into.n
+	arrays[Mesh.ARRAY_COLOR] = into.c
+	arrays[Mesh.ARRAY_INDEX] = into.i
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	mesh.surface_set_material(0, material)
+	return mesh
+
+
+func _new_arrays() -> Dictionary:
+	return {"v": PackedVector3Array(), "n": PackedVector3Array(), "c": PackedColorArray(), "i": PackedInt32Array()}
+
+
+## El jinete de 1817 (`lod` = el de tropa) con la ropa `v`, en una sola superficie con el material de ficha de los GLB. Origen = asiento.
+func _rider_mesh(v: Dictionary, lod: bool) -> ArrayMesh:
+	var key := "%s|%s|%s|%s" % [str(v.get("abrigo", "")), str(v.get("sombrero", "")), str(v.get("acento", "")), str(lod)]
+	if not _rider_meshes.has(key):
+		var into := _new_arrays()
+		_append_glb(_glb_mesh(str(hcfg("rider_lod" if lod else "rider"))), Transform3D.IDENTITY, _rider_targets(v), into)
+		_append_lance(Transform3D.IDENTITY, into)
+		_rider_meshes[key] = _arrays_mesh(into, gfx.token_mat("aliado_glb"))
+	return _rider_meshes[key]
+
+
+## Una figura de la tropa montada: el caballo de tropa de pelaje `coat` y el jinete de tropa con la ropa `variant` a la altura del asiento, en UNA malla (el MultiMesh
+## dibuja una sola). Es lo mismo que el caballo × Transform3D(Basis(), (0, asiento, 0)) del jinete, sin un segundo MultiMesh que haya que mantener a la par.
+func _troop_horse_mesh(coat: String, variant: Dictionary) -> ArrayMesh:
+	var v := variant.duplicate()
+	v["sombrero"] = "madera_oscura"  # como la tropa montada del generador
+	v["acento"] = ""
+	var key := "%s|%s|%s" % [coat, str(v.get("abrigo", "")), str(v.get("sombrero", ""))]
+	if not _troop_meshes.has(key):
+		var into := _new_arrays()
+		_append_glb(_glb_mesh(str(hcfg("horse_lod")) % coat), Transform3D.IDENTITY, {}, into)
+		var seat := Transform3D(Basis(), Vector3(0.0, float(hcfg("seat_y_m")), 0.0))
+		_append_glb(_glb_mesh(str(hcfg("rider_lod"))), seat, _rider_targets(v), into)
+		_append_lance(seat, into)
+		_troop_meshes[key] = _arrays_mesh(into, gfx.token_mat("aliado_glb"))
+	return _troop_meshes[key]
+
+
+## La figura jefa de Rodríguez: el caballo criollo con esqueleto (pelaje `units.horse.leader_coat`) y el jinete de 1817 con la ropa `v` en un BoneAttachment3D del
+## hueso «silla» (transformación identidad: el origen del jinete es el asiento). Arranca en reposo (idle). Devuelve (alto nominal, radio del anillo) como _token_parts.
+func _leader_horse(root: Node3D, v: Dictionary) -> Vector2:
+	var mat: Material = gfx.token_mat("aliado_glb")
+	var horse := _glb_scene(str(hcfg("horse")) % str(hcfg("leader_coat"))).instantiate() as Node3D
+	horse.name = "caballo"
+	root.add_child(horse)
+	var lo := Vector3(1.0e9, 1.0e9, 1.0e9)
+	var hi := Vector3(-1.0e9, -1.0e9, -1.0e9)
+	var triangles := 0
+	for mi in horse.find_children("*", "MeshInstance3D", true, false):
+		var m := mi as MeshInstance3D
+		m.material_override = mat
+		m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		var box := m.mesh.get_aabb()
+		lo = Vector3(minf(lo.x, box.position.x), minf(lo.y, box.position.y), minf(lo.z, box.position.z))
+		hi = Vector3(maxf(hi.x, box.end.x), maxf(hi.y, box.end.y), maxf(hi.z, box.end.z))
+		for si in range(m.mesh.get_surface_count()):
+			triangles += m.mesh.surface_get_array_index_len(si) / 3
+	var skeletons := horse.find_children("*", "Skeleton3D", true, false)
+	var rider := MeshInstance3D.new()
+	rider.name = "jinete"
+	rider.mesh = _rider_mesh(v, false)
+	rider.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	if not skeletons.is_empty():
+		var seat := BoneAttachment3D.new()
+		seat.name = "silla"
+		seat.bone_name = str(hcfg("seat_bone"))
+		(skeletons[0] as Skeleton3D).add_child(seat)
+		seat.add_child(rider)
+	else:
+		rider.position = Vector3(0.0, float(hcfg("seat_y_m")), 0.0)
+		horse.add_child(rider)
+	var rbox := rider.mesh.get_aabb()
+	hi.y = maxf(hi.y, float(hcfg("seat_y_m")) + rbox.end.y)
+	triangles += rider.mesh.surface_get_array_index_len(0) / 3
+	var players := horse.find_children("*", "AnimationPlayer", true, false)
+	var player: AnimationPlayer = players[0] if not players.is_empty() else null
+	if player != null and player.has_animation("idle"):
+		player.play("idle")
+	_pending_horse = {"player": player, "gait": "idle", "speed": 0.0, "at": Vector3(INF, INF, INF), "t": -1.0, "scale": 1.0}
+	part_counts[str(root.name)] = {"partes": 2, "triangulos": triangles}
+	var radius := maxf(maxf(absf(lo.x), absf(hi.x)), maxf(absf(lo.z), absf(hi.z)))
+	return Vector2(hi.y, radius + 0.35)
+
+
+## El andar de la jefa a caballo de la agrupación `id` según su velocidad real sobre el suelo, medida cada `sample_s` segundos (`now_s` = reloj real, en segundos;
+## pasarlo permite probarlo sin esperar). Debajo de `idle_below_mps`, reposo; si no, el primer andar cuyo `up_to_mps` alcanza la velocidad, con histéresis, y la
+## cadencia = velocidad / velocidad natural del andar (entre speed_scale_min y speed_scale_max: más allá los cascos patinan un poco). Un salto de más de 40 m/s (la
+## ficha se reubicó) no cuenta. De lejos (> far_m) o con la ficha oculta la animación se detiene (no se ve y cuesta).
+func update_gait(id: String, now_s: float) -> void:
+	var info: Dictionary = tokens.get(id, {})
+	var h: Dictionary = info.get("horse", {})
+	if h.is_empty() or h.player == null:
+		return
+	var player: AnimationPlayer = h.player
+	var root: Node3D = info.root
+	var live := root.visible and not bool(info.far)
+	if player.active != live:
+		player.active = live
+	if float(h.t) < 0.0 or (h.at as Vector3).x == INF:
+		h["t"] = now_s
+		h["at"] = root.position
+		return
+	var dt := now_s - float(h.t)
+	if dt < float(hcfg("sample_s")):
+		return
+	var d := Vector2(root.position.x - (h.at as Vector3).x, root.position.z - (h.at as Vector3).z).length()
+	h["t"] = now_s
+	h["at"] = root.position
+	var v := d / maxf(dt, 0.001)
+	if v > 40.0:
+		return
+	h["speed"] = lerpf(float(h.speed), v, 0.6)  # suavizado: las reglas mueven la ficha a saltos chicos y desparejos entre cuadros
+	var speed := float(h.speed)
+	if speed < 0.08:
+		speed = 0.0
+		h["speed"] = 0.0
+	var gaits: Array = hcfg("gaits")
+	var hyst := float(hcfg("hysteresis_mps"))
+	var cur := str(h.gait)
+	var cur_i := -1
+	var want_i := -1  # -1 = reposo
+	if speed >= float(hcfg("idle_below_mps")):
+		want_i = gaits.size() - 1
+		for i in range(gaits.size()):
+			if str((gaits[i] as Dictionary).anim) == cur:
+				cur_i = i
+			if speed <= float((gaits[i] as Dictionary).up_to_mps) and want_i == gaits.size() - 1 and i < gaits.size() - 1:
+				want_i = i
+	else:
+		for i in range(gaits.size()):
+			if str((gaits[i] as Dictionary).anim) == cur:
+				cur_i = i
+	if want_i != cur_i:  # histéresis: cerca del corte entre los dos andares se queda el que ya corre
+		var lo_i := mini(want_i, cur_i)
+		var cut := float(hcfg("idle_below_mps")) if lo_i < 0 else float((gaits[lo_i] as Dictionary).up_to_mps)
+		if absf(speed - cut) < hyst * 0.5 and absi(want_i - cur_i) == 1:
+			want_i = cur_i
+	var want := "idle" if want_i < 0 else str((gaits[want_i] as Dictionary).anim)
+	var natural := 1.0 if want_i < 0 else float((gaits[want_i] as Dictionary).natural_mps)
+	var sc := 1.0 if want == "idle" else clampf(speed / maxf(natural, 0.01), float(hcfg("speed_scale_min")), float(hcfg("speed_scale_max")))
+	h["scale"] = sc
+	if want != cur and player.has_animation(want):
+		player.play(want, float(hcfg("blend_s")))
+		h["gait"] = want
+	player.speed_scale = sc
+
+
+## Los pelajes de la tropa montada de `id`, uno por figura (para el informe).
+func _troop_coats_of(id: String) -> Array:
+	var out: Array = []
+	for batch in (tokens.get(id, {}) as Dictionary).get("formation", []):
+		if str(batch.get("coat", "")) != "":
+			for k in range((batch.base as Array).size()):
+				out.append(str(batch.coat))
+	return out
+
+
+## {andar, velocidad m/s, cadencia} de la jefa a caballo de `id` (vacío si no va a caballo): para las pruebas y el informe.
+func horse_gait(id: String) -> Dictionary:
+	var h: Dictionary = (tokens.get(id, {}) as Dictionary).get("horse", {})
+	if h.is_empty():
+		return {}
+	return {"andar": str(h.gait), "velocidad_mps": snappedf(float(h.speed), 0.01), "cadencia": snappedf(float(h.scale), 0.01), "activo": h.player != null and (h.player as AnimationPlayer).active}
+
+
 ## El radio del anillo de una agrupación (encierra su formación), en metros: lo usa el picking de la vista.
 func ring_radius(id: String) -> float:
 	return float((tokens.get(id, {}) as Dictionary).get("ring_r", _ring_radius(id)))
@@ -496,6 +837,8 @@ func animate(time_s: float) -> void:
 	var hz := fcfg("step_hz")
 	for id in tokens:
 		var info: Dictionary = tokens[id]
+		if info.has("horse"):
+			update_gait(str(id), float(Time.get_ticks_usec()) / 1.0e6)  # visual/r1 F4: el andar de la jefa por su velocidad real
 		var stepping := now - int(info.moved_ms) < 300 and not bool(info.far) and (info.root as Node3D).visible
 		if not stepping and not bool(info.stepping):
 			continue

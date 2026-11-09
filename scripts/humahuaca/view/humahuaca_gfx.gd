@@ -155,6 +155,19 @@ func _make_shader_materials() -> void:
 		tm.set_shader_parameter("rim_amount", float(spec.get("rim_amount", 0.55)))
 		tm.set_shader_parameter("self_light", float(spec.get("self_light", 0.22)))
 		token_mats[side[0]] = tm
+	# visual/r1 F4: el mismo material de ficha aliada para los GLB del caballo criollo y del jinete (color de vértice lineal), con el contorno de tinta como pasada
+	# extra (el casco inflado que el generador arma a mano: acá lo infla el material, también sobre la malla con esqueleto)
+	var glb := (token_mats["aliado"] as ShaderMaterial).duplicate() as ShaderMaterial
+	glb.set_shader_parameter("vertex_linear", 1.0)
+	if bool(qcfg.get("outlines", true)):
+		var hull := StandardMaterial3D.new()
+		hull.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		hull.albedo_color = pc("negro_textil")
+		hull.cull_mode = BaseMaterial3D.CULL_FRONT
+		hull.grow = true
+		hull.grow_amount = 0.031  # = hull_w × 1,4 de las figuras del generador (humahuaca_units.gd)
+		glb.next_pass = hull
+	token_mats["aliado_glb"] = glb
 
 
 ## Lluvia 0..1: oscurece y alisa el suelo, los edificios y el agua (CONTRATO 11.2: suelo ×0,75).

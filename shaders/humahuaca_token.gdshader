@@ -10,10 +10,14 @@ uniform vec3 rim_color : source_color = vec3(0.55, 0.72, 0.84);
 uniform float rim_amount : hint_range(0.0, 2.0) = 0.55;
 uniform float rim_power = 2.6;
 uniform float albedo_mode = 0.0;
+// visual/r1 F4: los GLB del caballo criollo y del jinete traen el color de vértice LINEAL (COLOR_0 de glTF); el generador lo pone en sRGB. 1 = ya es lineal.
+uniform float vertex_linear = 0.0;
 
 void fragment(){
 	vec3 base = COLOR.rgb;
-	base = mix(base / 12.92, pow((base + 0.055) / 1.055, vec3(2.4)), step(0.04045, base));  // sRGB → lineal
+	if (vertex_linear < 0.5) {
+		base = mix(base / 12.92, pow((base + 0.055) / 1.055, vec3(2.4)), step(0.04045, base));  // sRGB → lineal
+	}
 	if (albedo_mode > 0.5) {
 		ALBEDO = vec3(0.0);
 		EMISSION = base;

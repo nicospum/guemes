@@ -216,11 +216,18 @@ func token_marks() -> Array:
 		var xz := Vector2(float(d.get("x", 0.0)), float(d.get("z", 0.0)))
 		var foot: Variant = _world_to_screen(null, xz, 0.0)
 		var head: Variant = _world_to_screen(null, xz, MARK_HEAD_M)
+		var behind := false
 		if not (foot is Vector2 and head is Vector2):
-			continue
-		var center: Vector2 = (head as Vector2) + Vector2(0.0, -r - 3.0)
+			# visual/r1 F4 (BACKLOG B-062 a): detrás de la cámara ui_point no la proyecta; la marca va igual, pegada al borde en la dirección en que está
+			var edge: Variant = _behind_edge(xz, Rect2(Vector2(r + 6.0, header_bottom + r), Vector2(size.x - 2.0 * r - 12.0, size.y - 180.0 - header_bottom - r)))
+			if not (edge is Vector2):
+				continue
+			foot = edge
+			head = edge
+			behind = true
+		var center: Vector2 = (head as Vector2) + (Vector2.ZERO if behind else Vector2(0.0, -r - 3.0))
 		var clamped := false
-		if center.y < header_bottom + r or not local_rect.grow(-6.0).has_point(center):
+		if behind or center.y < header_bottom + r or not local_rect.grow(-6.0).has_point(center):
 			center = Vector2(clampf(center.x, r + 6.0, size.x - r - 6.0), clampf(center.y, header_bottom + r, size.y - 180.0))
 			clamped = true
 			for other in pinned:
@@ -242,6 +249,27 @@ func token_marks() -> Array:
 		var body := Rect2(center - Vector2(r + 3.0, r + 3.0), Vector2(2.0 * r + 6.0, maxf((foot as Vector2).y - center.y, 0.0) + r + 6.0)) if not clamped else Rect2(center - Vector2(r + 3.0, r + 3.0), Vector2(2.0 * r + 6.0, 2.0 * r + 6.0))
 		out.append({"id": id, "center": center, "r": r, "sel": selected.has(id), "color": color, "text": text, "label_pos": label_pos, "label_rect": label_rect, "body": body})
 	return out
+
+
+## visual/r1 F4 (BACKLOG B-062 a): para una agrupación que quedó detrás de la cámara, el punto del borde de `free` (coordenadas locales) en la dirección en que está,
+## vista desde el centro de la pantalla: su posición en el espacio de la cámara (x a la derecha, y arriba) da esa dirección aunque no se la pueda proyectar.
+func _behind_edge(xz: Vector2, free: Rect2) -> Variant:
+	var cam_v: Variant = ui.call("camera3d")
+	if not (cam_v is Camera3D) or not (cam_v as Camera3D).is_inside_tree() or free.size.x <= 0.0 or free.size.y <= 0.0:
+		return null
+	var cam3 := cam_v as Camera3D
+	var local := cam3.global_transform.affine_inverse() * Vector3(xz.x, float(ui.call("ground_height", xz.x, xz.y)), xz.y)
+	var dir := Vector2(local.x, -local.y)
+	if dir.length() < 0.001:
+		dir = Vector2(0.0, 1.0)
+	dir = dir.normalized()
+	var mid := free.get_center()
+	var t := INF
+	if absf(dir.x) > 0.0001:
+		t = minf(t, (free.size.x * 0.5) / absf(dir.x))
+	if absf(dir.y) > 0.0001:
+		t = minf(t, (free.size.y * 0.5) / absf(dir.y))
+	return mid + dir * t
 
 
 ## Lo que ocupa en pantalla cada ficha con su marca y su rótulo (para que los rótulos de los frentes y los avisos no la pisen).

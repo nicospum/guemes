@@ -890,7 +890,11 @@ func place_alert(avoid: Array) -> Rect2:
 	var w := minf(_num(["alert_w"], 520.0), maxf(root.size.x - 2.0 * _num(["margin"], 12.0), 200.0))
 	w = minf(w, maxf(root.size.x * _num(["alert_w_max_pct"], 0.4), 360.0))  # en ventanas chicas el aviso es más angosto: así entra entre las fichas sin taparlas
 	_alert_layout(w)
-	var h := alert_panel.size.y if alert_panel.size.y > 24.0 else 96.0
+	# visual/r1 F4 (BACKLOG B-062 b): el aviso se dibuja con el ancho mínimo de su contenido si es mayor que `w` (a 1280 × 720 medía 640 de 576): se busca el
+	# lugar con el rectángulo que de verdad ocupa, si no el lugar «libre» quedaba encima de la marca y el rótulo de la agrupación de al lado
+	var min_size := alert_panel.get_combined_minimum_size()
+	w = maxf(w, min_size.x)
+	var h := maxf(alert_panel.size.y if alert_panel.size.y > 24.0 else 96.0, min_size.y)
 	var order: Array = [_alert_slot]
 	for slot in ALERT_SLOTS:
 		if slot != _alert_slot:
@@ -910,6 +914,27 @@ func place_alert(avoid: Array) -> Rect2:
 			break
 	_alert_slot = best
 	var rect := _alert_slot_rect(best, w, h)
+	if least > 0.0:
+		# visual/r1 F4 (BACKLOG B-062 b): los tres lugares tapan algo (las marcas a escala real quedan repartidas por arriba del cuadro): se prueba correr el aviso de a
+		# octavos a lo ancho y un poco más abajo (sin bajar de la mitad del cuadro); gana el primero libre, si no el que menos tapa
+		var m := _num(["margin"], 12.0)
+		var span := maxf(root.size.x - 2.0 * m - w, 0.0)
+		for row in range(4):
+			for col in range(9):
+				var r2 := Rect2(Vector2(m + span * float(col) / 8.0, rect.position.y + float(row) * (h * 0.5 + 8.0)), Vector2(w, h))
+				if r2.end.y > root.size.y * 0.55:
+					continue
+				var c2 := 0.0
+				for a in avoid:
+					var inter2 := r2.intersection(a as Rect2)
+					c2 += inter2.size.x * inter2.size.y
+				if c2 < least - 0.5:
+					least = c2
+					rect = r2
+				if least <= 0.0:
+					break
+			if least <= 0.0:
+				break
 	alert_panel.offset_left = rect.position.x
 	alert_panel.offset_right = rect.position.x + w
 	alert_panel.offset_top = rect.position.y
