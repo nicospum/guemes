@@ -1082,7 +1082,7 @@ func _unhandled_input(event):
    KEY_BRACKETRIGHT:_step_sector(1)
    KEY_F1:_controls_dialog()
    KEY_F5:_save_game()
-   KEY_F9:_load_game(str(rules.state.scenario))
+   KEY_F9:_load_game(str(rules.state.scenario),true)
    KEY_R:_confirm_restart()
    KEY_H:_history_dialog()
  if event is InputEventMouseButton:
@@ -1162,6 +1162,19 @@ func _sound(sound_name):
 func _save_path(scenario_name:String)->String:
  return "user://"+("qa_" if qa_mode else "")+"save_"+scenario_name+".json"
 
+# Q-107: el F5 del jugador se guarda también aparte; el autoguardado (cada ronda del III, al volver al menú) solo escribe el guardado
+# de «Continuar» y ya no pisa el F5. F9 carga el F5 si existe y el aviso dice cuál cargó.
+func _manual_save_path(scenario_name:String)->String:
+ return "user://"+("qa_" if qa_mode else "")+"save_"+scenario_name+"_f5.json"
+
+func _loaded_label(kind:String)->String:
+ var st=rules.state
+ var where=("ronda %d · %s" % [int(st.get("round",1)),str(st.get("date",""))]) if str(st.get("scenario",""))=="norte" else ("reloj en %s" % _clock(float(st.get("elapsed",0.0))))
+ match kind:
+  "f5":return "Cargaste tu guardado F5 (%s)." % where
+  "auto":return "Cargaste el autoguardado (%s): no había un guardado F5." % where
+  _:return "Partida recuperada (%s)." % where
+
 func _save_game(notify_user=true):
  if mode!="play":return
  if not notify_user and str(rules.state.status)!="playing":return
@@ -1169,17 +1182,21 @@ func _save_game(notify_user=true):
   if notify_user:_toast("Esperá la resolución de la ronda para guardar.",3)
   return
  var error=rules.save_game(_save_path(str(rules.state.scenario)))
+ if error==OK and notify_user:error=rules.save_game(_manual_save_path(str(rules.state.scenario)))
  if error==OK:
   settings.last_save=str(rules.state.scenario);_save_settings()
-  if notify_user:_toast("Partida guardada. F9 permite continuar desde este punto.",4)
+  if notify_user:_toast("Partida guardada. F9 vuelve a este punto (el autoguardado de cada ronda no lo pisa).",4)
  elif notify_user:_toast("No se pudo guardar la partida ("+str(error)+").",4,false)
 
-func _load_game(scenario_name:String):
+func _load_game(scenario_name:String,prefer_manual:bool=false):
  if scenario_name=="humahuaca":_start_humahuaca({"load":true});return  # el controlador lee su propio guardado; rules.load_game solo conoce justine y norte
  var was_hx=mode=="hx"
  if was_hx:_stop_humahuaca();mode="menu"  # T-001: cargar la Justina o el Norte con el II vivo lo libera primero
  jev.invalidate();pending_round=false
- var result=rules.load_game(_save_path(scenario_name))
+ var kind="auto" if prefer_manual else "last"
+ var path=_save_path(scenario_name)
+ if prefer_manual and FileAccess.file_exists(_manual_save_path(scenario_name)):path=_manual_save_path(scenario_name);kind="f5"
+ var result=rules.load_game(path)
  if not result.ok:
   if was_hx:_menu()  # la interfaz del II ya no está: el aviso sale sobre el menú
   if scenario_name=="justine":_load_rejected_dialog(str(result.reason))
@@ -1193,7 +1210,7 @@ func _load_game(scenario_name:String):
  camera.far=4000.0 if rules.state.scenario=="justine" else 400.0
  if rules.state.scenario=="justine":_reset_camera_j()
  _set_vignette(0.30)
- _rebuild_world();_build_hud();_update_hud();_toast("Partida recuperada. Las órdenes pendientes conservan su estado.",5)
+ _rebuild_world();_build_hud();_update_hud();_toast(_loaded_label(kind)+" Las órdenes pendientes conservan su estado.",6)
  if rules.state.scenario=="justine":_refresh_minimap()
  else:_frame_norte_units()
 
@@ -1255,7 +1272,7 @@ func _do_restart():
 func _confirm_restart():
  if mode!="play":return
  var box=_open_modal("¿Reiniciar el escenario?",640,300)
- _rich(box,"Se descarta el progreso actual y el escenario vuelve a empezar. El guardado hecho con F5 no se borra hasta que guardes de nuevo (o termine un autoguardado).",17)
+ _rich(box,"Se descarta el progreso actual y el escenario vuelve a empezar. El guardado hecho con F5 se conserva hasta que guardes de nuevo: el autoguardado no lo pisa.",17)
  var row=_hbox(box)
  _button(row,"Sí, reiniciar",_do_restart,40)
  _button(row,"No, seguir jugando",_close_modal,40)
@@ -3870,7 +3887,7 @@ func _j_input(event):
    KEY_C:_set_pace("walk")
    KEY_ENTER,KEY_KP_ENTER:_confirm_key()
    KEY_F5:_save_game()
-   KEY_F9:_load_game("justine")
+   KEY_F9:_load_game("justine",true)
    _:
     for action in ACTION_KEYS:
      if ACTION_KEYS[action]==k:
