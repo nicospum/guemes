@@ -203,6 +203,20 @@ var hover_timer = 0.0
 var cam_goal_active = false
 var cam_goal_target = Vector3.ZERO
 var cam_goal_distance = 78.0
+# visual/r1 paneo: paneo de apertura de la Justina. Arranca mostrando el buque (el objetivo) y planea hasta el encuadre inicial
+# de las tropas. Corre una sola vez por partida empezada desde el menú, con el reloj detenido; cualquier tecla, clic o rueda lo saltea.
+# Las pruebas y herramientas lo apagan con game.opening_pan=false; además se apaga solo en --headless y bajo --script.
+var opening_pan := true
+var pan_pending := false  # se pidió el paneo: arranca cuando se cierra la pantalla de misión
+var pan_t := -1.0  # segundos de paneo transcurridos; <0 = sin paneo en curso
+var pan_from_t := Vector3.ZERO
+var pan_from_d := 180.0
+var pan_to_t := Vector3.ZERO
+var pan_to_d := 165.0
+const PAN_SHIP_M = 180.0  # visual/r1 paneo: distancia del primer cuadro, sobre el buque
+const PAN_HOLD_S = 0.7  # visual/r1 paneo: quieto sobre el buque
+const PAN_GLIDE_S = 2.8  # visual/r1 paneo: planeo con aceleración y frenado suaves hasta las tropas
+const PAN_ARC_M = 45.0  # visual/r1 paneo: a mitad de camino la cámara se aleja un poco para dar contexto
 var confirm_action = ""
 var confirm_timer = 0.0
 var dec_regex: RegEx
@@ -284,6 +298,8 @@ func _ready():
   if arg.begins_with("--scenario="):auto_scenario=arg.trim_prefix("--scenario=")
   if arg.begins_with("--benchmark="):benchmark_mode=true;auto_scenario=arg.trim_prefix("--benchmark=")
   if arg.begins_with("--quality="):benchmark_quality=arg.trim_prefix("--quality=")
+ # visual/r1 paneo: sin ventana (--headless) o con un guion de pruebas (--script) no hay paneo; un guion que lo quiera lo prende después.
+ if DisplayServer.get_name()=="headless" or OS.get_cmdline_args().has("--script"):opening_pan=false
  if benchmark_mode:
   call_deferred("_benchmark_run",auto_scenario)
  elif qa_mode:
@@ -430,6 +446,7 @@ func _menu():
  _sync_north_unlock()
  # T-003: el modo cambia ANTES de reponer la escala; si no, el size_changed que dispara corre _fit_ui_scale con mode=="play" (Justina) y la vuelve a 1,25.
  jev.invalidate();pending_round=false;mode="menu";paused=true;outcome_shown=false;shake=0.0;flash_alpha=0.0
+ pan_pending=false;pan_t=-1.0  # visual/r1 paneo: volver al menú corta el paneo de apertura
  get_window().content_scale_factor=1.0
  # T-004: el Norte baja el plano lejano a 400 m; el menú vuelve siempre al de arranque (4000 m) y a la misma óptica.
  if is_instance_valid(camera):camera.far=4000.0;camera.fov=46.0;camera.current=true
@@ -621,6 +638,7 @@ func _button_at(parent,text_value,pos,size_v,fn):
 
 func _start_game(scenario_name:String):
  if scenario_name=="humahuaca":_start_humahuaca();return  # GameRules.new_game() convertiría cualquier nombre desconocido en "justine"
+ var from_menu=mode=="menu"  # visual/r1 paneo: solo se pasea la cámara al entrar desde el menú (no al reintentar ni al cargar)
  _drop_unplayed_attempt()
  _stop_humahuaca()  # T-001: cambiar de nivel siempre libera el II (su ambiente, su sol, su lluvia y su cámara); no hace nada si no está vivo
  var build_start=Time.get_ticks_msec()
@@ -642,6 +660,8 @@ func _start_game(scenario_name:String):
   info_open=true  # el objetivo y el estado quedan siempre a la vista; el detalle técnico va plegado en «Detalles»
  _rebuild_world();_build_hud();_update_hud()
  if scenario_name=="justine":
+  # visual/r1 paneo: con la pantalla de misión abierta, de fondo se ve el buque; al cerrarla la cámara planea hasta las tropas.
+  if from_menu and opening_pan and not qa_mode and not benchmark_mode:_opening_pan_setup()
   _refresh_minimap();_apply_camera()
   if not qa_mode and not benchmark_mode:_intro_card()
  else:
@@ -977,7 +997,9 @@ func _process(delta):
  if mode=="menu":menu_clock+=delta;camera_yaw=menu_yaw0+0.04*sin(menu_clock*TAU/30.0)
  if mode=="hx":return  # H8/hook-10: la cámara del nivel «humahuaca» es del controlador; _apply_camera() la pisaba cada cuadro con la pose de la Justina, entre el _process de la vista y el del controlador (H-R1-1)
  if qa_mode and mode=="play" and frame_samples.size()<240:frame_samples.append(delta*1000)
- if mode=="play" and not is_instance_valid(modal):_camera_keys(delta)
+ if mode=="play" and not is_instance_valid(modal):
+  if pan_pending or pan_t>=0.0:_opening_pan_step(delta)  # visual/r1 paneo: durante el paneo no hay paneo ni giro manual
+  else:_camera_keys(delta)
  _camera_goal_step(delta)
  _apply_camera()
  # Q-102: una decisión pendiente detiene el reloj aunque su ventana esté cerrada (Esc) y aunque la pausa automática esté apagada.
@@ -1047,6 +1069,11 @@ func _camera_keys(delta):
  if Input.is_physical_key_pressed(KEY_E):camera_yaw-=delta*0.8
 
 func _input(event):
+ # visual/r1 paneo: cualquier tecla, clic o rueda saltea el paneo de apertura y deja el encuadre final; el evento no hace nada más
+ # (así Espacio no arranca el reloj ni un clic da una orden sin querer).
+ if (pan_pending or pan_t>=0.0) and mode=="play" and not is_instance_valid(modal):
+  if (event is InputEventKey and event.pressed and not event.echo) or (event is InputEventMouseButton and event.pressed):
+   _opening_pan_end();get_viewport().set_input_as_handled();return
  if event is InputEventMouseMotion:hover_mouse=event.position
  elif event is InputEventMouseButton and not event.pressed and mode=="play" and is_instance_valid(world) and _is_j():_j_release(event)
 
@@ -2123,6 +2150,7 @@ func _sel_scouts()->Array:
  return out
 
 func _reset_camera_j():
+ pan_pending=false;pan_t=-1.0  # visual/r1 paneo: cargar, reintentar o volver al cruce no repiten el paneo de apertura
  cam_cfg=_jmap().get("camera",{})
  camera_pitch=deg_to_rad(float(cam_cfg.get("pitch_deg_default",55.0)))
  camera_yaw=0.0
@@ -2144,6 +2172,35 @@ func _reset_camera_j():
  for q in pts:r=r.expand(q)
  _fit_rect(r.grow(22.0),false)  # encuadre más cerrado: tropas y buque más grandes (el resto se ve con 0 o el minimapa)
  cam_goal_active=false
+
+# visual/r1 paneo: guarda el encuadre inicial (ya puesto por _reset_camera_j) como destino y lleva la cámara al buque.
+func _opening_pan_setup():
+ if not is_instance_valid(world):return
+ pan_to_t=camera_target;pan_to_d=camera_distance
+ var sp=rules.ship_position()
+ pan_from_t=world.clamp_camera_target(Vector3(sp.x,0.0,sp.y))
+ pan_from_d=clampf(PAN_SHIP_M,float(cam_cfg.get("min_distance_m",18.0)),float(cam_cfg.get("max_distance_m",900.0)))
+ camera_target=pan_from_t;camera_distance=pan_from_d;cam_goal_active=false
+ pan_pending=true;pan_t=-1.0
+
+# visual/r1 paneo: un cuadro del paneo. Quieto sobre el buque, después planeo con aceleración y frenado suaves y un leve
+# alejamiento a mitad de camino. Si el reloj llegara a correr (no debería: arranca detenido), se corta y queda el encuadre final.
+func _opening_pan_step(delta:float):
+ if not _is_j() or not is_instance_valid(world) or not paused or str(rules.state.status)!="playing":_opening_pan_end();return
+ if pan_pending:pan_pending=false;pan_t=0.0
+ pan_t+=delta
+ var k=clampf((pan_t-PAN_HOLD_S)/PAN_GLIDE_S,0.0,1.0)
+ if k>=1.0:_opening_pan_end();return
+ var e=k*k*k*(k*(k*6.0-15.0)+10.0)  # smootherstep: arranque y llegada sin tirón
+ camera_target=pan_from_t.lerp(pan_to_t,e)
+ camera_distance=lerpf(pan_from_d,pan_to_d,e)+PAN_ARC_M*sin(PI*e)
+ cam_goal_active=false
+
+func _opening_pan_end():
+ if not (pan_pending or pan_t>=0.0):return
+ pan_pending=false;pan_t=-1.0
+ camera_target=pan_to_t;camera_distance=pan_to_d;cam_goal_active=false
+ if is_instance_valid(camera) and is_instance_valid(world) and _is_j():_apply_camera()
 
 # Encuadra un rectángulo del mundo (centro, distancia y inclinación) de modo que sus cuatro esquinas entren
 # en la pantalla, sin pasar el máximo de zoom. Con smooth=true el movimiento es suave.

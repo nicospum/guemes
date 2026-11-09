@@ -36,6 +36,7 @@ func _run() -> void:
 	root.add_child(game)
 	await process_frame
 	game.settings.auto_pause = false  # los guiones automaticos no pueden esperar a que el jugador reanude
+	game.opening_pan = false  # visual/r1 paneo: sin paneo de apertura, el guion mide el encuadre inicial tal cual
 	check(game.mode == "menu", "Opening the delivery reaches scenario selection")
 	check(_find_button("EL RÍO OFRECE") != null, "Menu offers the Justina scenario")
 	check(_find_button("SOSTENER EL NORTE") != null, "Menu offers the northern scenario")
@@ -58,6 +59,7 @@ func _run() -> void:
 	await _campana()
 	await _norte_por_humahuaca()
 	await _p4b()
+	await _paneo()
 	await _qa_ronda2()
 	report.final_scenario = game.rules.state.scenario
 	report.final_status = game.rules.state.status
@@ -874,6 +876,52 @@ func _p4b() -> void:
 	game._close_modal()
 
 # ------------------------------------------------------------------ corrección QA ronda 2 (Q-101, Q-102, Q-103, Q-104, Q-105, Q-107)
+# visual/r1 paneo: el paneo de apertura de la Justina (en el resto de la prueba queda apagado con opening_pan=false).
+func _paneo() -> void:
+	game.forced_seed = 1806
+	game.opening_pan = true
+	game._menu()
+	await _frames(1)
+	game._start_game("justine")
+	await _frames(1)
+	var sp: Vector2 = game.rules.ship_position()
+	var c0: Vector3 = game.camera_target
+	check(game.pan_pending and Vector2(c0.x, c0.z).distance_to(sp) < 40.0 and game.camera_distance <= 200.0, "Paneo: con la pantalla de misión abierta la cámara muestra el buque (a %.0f m)" % game.camera_distance)
+	var to_t: Vector3 = game.pan_to_t
+	var to_d: float = game.pan_to_d
+	check(to_d <= 200.0 and Vector2(to_t.x, to_t.z).distance_to(sp) > 150.0, "Paneo: el destino es el encuadre inicial de las tropas (%.0f m)" % to_d)
+	game._close_modal()
+	await _frames(4)
+	check(game.pan_t > 0.0 and game.paused and float(game.rules.state.elapsed) == 0.0, "Paneo: corre con el reloj detenido")
+	var ev := InputEventKey.new()
+	ev.keycode = KEY_SPACE
+	ev.physical_keycode = KEY_SPACE
+	ev.pressed = true
+	game._input(ev)
+	await _frames(1)
+	check(game.pan_t < 0.0 and not game.pan_pending and game.camera_target.distance_to(to_t) < 0.01 and absf(game.camera_distance - to_d) < 0.01, "Paneo: una tecla lo saltea y deja el encuadre inicial")
+	check(game.paused and float(game.rules.state.elapsed) == 0.0, "Paneo: la tecla que lo saltea no arranca el reloj")
+	# Sin tocar nada termina solo, exactamente en el encuadre inicial.
+	game._menu()
+	await _frames(1)
+	game._start_game("justine")
+	await _frames(1)
+	game._close_modal()
+	var t0 := Time.get_ticks_msec()
+	while (game.pan_pending or game.pan_t >= 0.0) and Time.get_ticks_msec() - t0 < 8000:
+		await process_frame
+	check(game.pan_t < 0.0 and game.camera_target.distance_to(to_t) < 0.01 and absf(game.camera_distance - to_d) < 0.01 and game.camera_distance <= 200.0, "Paneo: termina solo en el encuadre inicial (%.1f s)" % ((Time.get_ticks_msec() - t0) / 1000.0))
+	check(game.paused and float(game.rules.state.elapsed) == 0.0, "Paneo: no consume tiempo de juego")
+	# Reintentar no lo repite.
+	game._retry(false)
+	await _frames(1)
+	if is_instance_valid(game.modal): game._close_modal()
+	await _frames(2)
+	check(not game.pan_pending and game.pan_t < 0.0 and game.camera_target.distance_to(to_t) < 0.01, "Paneo: reintentar no lo repite")
+	game.opening_pan = false
+	game._menu()
+	await _frames(1)
+
 func _qa_ronda2() -> void:
 	# Q-101: una partida de la Justina a ×4 con «Pausa auto»: ningún aviso de campo baja la velocidad; los avisos críticos pausan y al
 	# reanudar (Espacio) vuelve la velocidad elegida. Se juega con el _process real (1 s de juego por paso) y se deciden los mensajeros.

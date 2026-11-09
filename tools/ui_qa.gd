@@ -545,6 +545,7 @@ func _run() -> void:
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(out_dir))
 	game = (load("res://scenes/main.tscn") as PackedScene).instantiate()
 	root.add_child(game)
+	game.opening_pan = false  # visual/r1 paneo: sin paneo de apertura, el guion mide el encuadre inicial tal cual
 	await _frames(20)
 	await _apply_size()
 	notes["viewport_logico"] = [root.get_visible_rect().size.x, root.get_visible_rect().size.y]

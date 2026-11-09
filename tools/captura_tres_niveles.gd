@@ -37,6 +37,7 @@ func _run() -> void:
 	DirAccess.make_dir_recursive_absolute(out_dir)
 	game = (load("res://scenes/main.tscn") as PackedScene).instantiate()
 	root.add_child(game)
+	game.opening_pan = false  # visual/r1 paneo: sin paneo de apertura, el guion mide el encuadre inicial tal cual
 	await _secs(2.0)
 	await _shot("00_menu")
 	# Nivel I

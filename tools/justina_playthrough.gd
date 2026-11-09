@@ -63,6 +63,7 @@ func _play(policy: String, seed_value: int = 1806) -> Dictionary:
 	root.add_child(game)
 	await process_frame
 	game.settings.auto_pause = false  # el guion avanza el tiempo por su cuenta y no espera la reanudacion manual
+	game.opening_pan = false  # visual/r1 paneo: sin paneo de apertura, el guion mide el encuadre inicial tal cual
 	game.settings["auto_fast"] = false  # la espera acelerada (x2 sola) es de la interfaz; el guion lleva su propio reloj
 	game.jev.force_local = true
 	game.forced_seed=1806
@@ -471,6 +472,7 @@ func _play_ui() -> Dictionary:
 	root.add_child(game)
 	await process_frame
 	game.settings.auto_pause = false  # el guion avanza el tiempo por su cuenta y no espera la reanudacion manual
+	game.opening_pan = false  # visual/r1 paneo: sin paneo de apertura, el guion mide el encuadre inicial tal cual
 	game.settings["auto_fast"] = false  # la espera acelerada (x2 sola) es de la interfaz; el guion lleva su propio reloj
 	game.jev.force_local = true
 	game.forced_seed = ui_seed  # mundo fijo (el progreso guardado manda en el juego real, no en la prueba)
