@@ -209,7 +209,8 @@ func _build_landmark(root: Node3D, lm: Dictionary) -> void:
 				var world_pts := PackedVector2Array()
 				for q in rect:
 					world_pts.append(Vector2(node.position.x, node.position.z) + q)
-				gfx.strip(root, world_pts, 1.6, 0.3, gfx.flat_mat(color_id, 0.55), true, false, "borde_" + id)
+				# visual/r1 F3: el borde era de 1,6 m y opacidad 0,55, la línea más fuerte del cuadro a ~167 m; ahora más fino y tenue (sigue marcando la zona)
+				gfx.strip(root, world_pts, float(spec.get("outline_width_m", 1.6)), 0.3, gfx.flat_mat(color_id, float(spec.get("outline_alpha", 0.55))), true, false, "borde_" + id)
 		"mojon":  # un mojón de piedra con un anillo de color que sigue el relieve (acceso, salida, entrada)
 			gfx.inst(node, gfx.cyl_mesh(0.4, 1.2, 2.0, 8), Vector3(0.0, 0.8, 0.0), gfx.mat(color_id), Vector3.ZERO, true)
 			gfx.strip(root, gfx.circle(Vector2(node.position.x, node.position.z), maxf(float(fp.r), 4.0)), 1.6, 0.25, gfx.flat_mat(str(spec.get("ring_color", "oro_laton")), 0.9), true)

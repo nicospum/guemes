@@ -66,6 +66,7 @@ func _run() -> void:
 		await _test_terrain_rendered()
 		await _test_units_follow_rules()
 		await _test_probes_and_scales()
+		await _test_formations()
 	_ck(suite.elapsed_ms() < 30000, "test_hx_view corre en poco tiempo (objetivo < 30 s): %d ms" % suite.elapsed_ms())
 	suite.require_floor(int(FLOOR_BY_ROUND.get(suite.round_id, 25)))
 	suite.finish(self)
@@ -1343,6 +1344,126 @@ func _test_probes_and_scales() -> void:
 	view.update_state(0.016)
 	view._process(0.016)
 	_ck(view.scale_updates == n0 + 1, "B-047 con la cámara movida la escala se mide una vez, aunque lleguen update_state y el _process de la vista (%d mediciones)" % (view.scale_updates - n0))
+	view.free()
+	view = null
+	cam.free()
+	cam = null
+	await process_frame
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# visual/r1 F3 · formaciones según la cantidad de hombres (MultiMesh), anillo que encierra la huella, menos figuras con menos fuerza o de lejos, defensores a escala real
+
+func _test_formations() -> void:
+	var script := Fx.load_script(view_path)
+	if script == null:
+		return
+	cam = _make_camera(root)
+	view = script.new()
+	root.add_child(view)
+	view.build(rules, "media")
+	_frame_camera(cam, view.initial_frame(cam))
+	view.update_state(0.016)
+	var u = view.units
+	# 1) la copia de hombres de la vista (la vista solo lee su JSON y render_state) coincide con las reglas y va etiquetada diseño
+	var groups: Dictionary = V.load_json(V.RULES_PATH).get("groups", {})
+	var copy: Dictionary = ((visual.get("units", {}) as Dictionary).get("formation", {}) as Dictionary).get("groups", {})
+	var off: Array = []
+	for id in V.GROUPS:
+		var g: Dictionary = groups.get(id, {})
+		var c: Dictionary = copy.get(id, {})
+		if int(c.get("men", -1)) != int(g.get("men", -2)) or int(c.get("horses", 0)) != int(g.get("horses", 0)) or not is_equal_approx(float(c.get("capacity_kg", 0.0)), float(g.get("capacity_kg", 0.0))) or str(c.get("tag", "")) != "diseno" or str(c.get("source", "")) == "":
+			off.append(id)
+	_ck(off.is_empty(), "visual/r1 F3 units.formation.groups copia hombres, caballos y carga de las reglas, con etiqueta diseño y fuente%s" % ("" if off.is_empty() else ": difiere " + str(off)))
+	# 2) la regla: una figura cada 3 o 4 hombres, entre 6 y 24, nunca más figuras que hombres (el arreo cuenta mulas y arrieros); el MultiMesh trae las que no dibuja la jefa
+	var bad: Array = []
+	var report: Dictionary = u.formation_report
+	for id in V.GROUPS:
+		var r: Dictionary = report.get(id, {})
+		var men := int(r.get("hombres", 0))
+		var figures := int(r.get("figuras", 0))
+		var people := figures - int(r.get("mulas", 0))
+		var instances := 0
+		for batch in (u.tokens[id].formation as Array):
+			instances += ((batch.mmi as MultiMeshInstance3D).multimesh).instance_count
+		var leader := 2 if id == "reconocedores" else 1
+		var ok := people <= men and figures <= 24 and instances == figures - leader and (figures >= 6 or figures == men)
+		if id != "arreo":
+			ok = ok and (men < 6 or (float(men) / float(figures) >= 3.0 and float(men) / float(figures) <= 4.0))
+		if not ok:
+			bad.append("%s %d hombres → %d figuras, %d en MultiMesh" % [id, men, figures, instances])
+	_ck(bad.is_empty(), "visual/r1 F3 cada agrupación es una formación de una figura cada 3 o 4 hombres (6 a 24, nunca más que los hombres)%s" % ("" if bad.is_empty() else ": " + str(bad)))
+	_ck(int((report.get("rodriguez", {}) as Dictionary).get("jinetes", 0)) == 5 and int((report.get("rodriguez", {}) as Dictionary).get("a_pie", 0)) == 9, "visual/r1 F3 Rodríguez: jinetes en la proporción de caballos (16 de 48) y el resto a pie (%s)" % str(report.get("rodriguez", {})))
+	# 3) el anillo encierra la huella de cada formación
+	var outside: Array = []
+	for id in V.GROUPS:
+		var ring_r := float(u.ring_radius(id))
+		for batch in (u.tokens[id].formation as Array):
+			for xf in (batch.base as Array):
+				if Vector2((xf as Transform3D).origin.x, (xf as Transform3D).origin.z).length() + 0.5 > ring_r:
+					outside.append(id)
+	_ck(outside.is_empty(), "visual/r1 F3 el anillo de bando de cada ficha encierra todas las figuras de su formación%s" % ("" if outside.is_empty() else ": se salen de " + str(outside)))
+	# 3b) cada figura apoya en el suelo dibujado de su lugar (no a la altura del pie de la jefa)
+	var worst_dy := 0.0
+	for id in V.GROUPS:
+		var node_g: Node3D = view.unit_nodes[id]
+		for batch in (u.tokens[id].formation as Array):
+			for xf in (batch.ground as Array):
+				var w: Vector3 = node_g.position + Basis(Vector3.UP, node_g.rotation.y) * ((xf as Transform3D).origin * node_g.scale.x)
+				worst_dy = maxf(worst_dy, absf(w.y - float(u.gfx.rendered_h(w.x, w.z))))
+	_ck(worst_dy < 0.02, "visual/r1 F3 cada figura de la formación apoya en el relieve de su lugar (peor desvío %.3f m)" % worst_dy)
+	# 4) de cerca se ven todas; de lejos (> far_m) parte; con la mitad de la fuerza, la mitad (se van las de atrás)
+	var portal: Node3D = view.unit_nodes["portal"]
+	var total := int(report.portal.figuras) - 1
+	_frame_camera(cam, {"target": portal.global_position, "distance": 90.0, "pitch_deg": 45.0, "yaw_deg": 0.0})
+	view.call("_update_scales")
+	var near_n: int = u.formation_visible("portal")
+	_frame_camera(cam, {"target": portal.global_position, "distance": 700.0, "pitch_deg": 45.0, "yaw_deg": 0.0})
+	view.call("_update_scales")
+	var far_n: int = u.formation_visible("portal")
+	_ck(near_n == total and far_n > 0 and far_n < total, "visual/r1 F3 de cerca se ven las %d figuras de Portal y a 700 m menos (%d): el resto lo dice la marca de la interfaz" % [near_n, far_n])
+	_frame_camera(cam, {"target": portal.global_position, "distance": 90.0, "pitch_deg": 45.0, "yaw_deg": 0.0})
+	view.call("_update_scales")
+	var st: Dictionary = rules.render_state().duplicate(true)
+	for d in st.get("units", []):
+		if str(d.get("id", "")) == "portal":
+			d["strength_pct"] = 50.0
+	u.sync_units(st, true)
+	var half_n: int = u.formation_visible("portal")
+	for d in st.get("units", []):
+		d["strength_pct"] = 100.0
+	u.sync_units(st, true)
+	_ck(half_n >= int(floor(total * 0.4)) and half_n <= int(ceil(total * 0.6)) + 1 and u.formation_visible("portal") == total, "visual/r1 F3 con la mitad de la fuerza se ven %d de %d figuras y al recuperarla vuelven todas" % [half_n, total])
+	# 5) el paso: con la ficha recién movida y cerca las figuras suben y bajan; quieta, vuelven a su lugar
+	u.tokens["portal"]["moved_ms"] = Time.get_ticks_msec()
+	u.animate(1.3)
+	var lifted := float(u.tokens["portal"].get("step_lift_m", 0.0)) > 0.001
+	u.tokens["portal"]["moved_ms"] = -100000
+	u.animate(1.4)
+	var back := float(u.tokens["portal"].get("step_lift_m", 1.0)) == 0.0 and not bool(u.tokens["portal"].stepping)
+	_ck(lifted and back, "visual/r1 F3 la formación que marcha da el paso y al pararse vuelve a su lugar (sube: %s, vuelve: %s)" % [str(lifted), str(back)])
+	# 6) picking: un clic sobre la figura del borde de la formación (más allá de los 55 px de la jefa) elige la agrupación
+	_frame_camera(cam, {"target": portal.global_position, "distance": 40.0, "pitch_deg": 45.0, "yaw_deg": 0.0})
+	view.call("_update_scales")
+	var far_fig := Vector3.ZERO
+	for batch in (u.tokens["portal"].formation as Array):
+		for xf in (batch.base as Array):
+			if (xf as Transform3D).origin.length() > far_fig.length():
+				far_fig = (xf as Transform3D).origin
+	var edge_screen := cam.unproject_position(portal.global_transform * (far_fig + Vector3(0.0, 0.9, 0.0)))
+	var leader_screen := cam.unproject_position(portal.global_position)
+	_ck(str(view.pick_unit(cam, edge_screen)) == "portal", "visual/r1 F3 un clic sobre la figura del borde de la formación (a %.0f px de la jefa) elige a Portal" % edge_screen.distance_to(leader_screen))
+	# 7) defensores a escala real (antes crecían hasta 28 px)
+	var dressed: RefCounted = Vis.DressedRules.new(Fx.rules_stub(1817, 1, {"skip_intro": true, "phase": "ataque"}), "ataque")
+	view.build(dressed, "media")
+	_frame_camera(cam, view.initial_frame(cam))
+	view.update_state(0.016)
+	view.call("_update_scales")
+	var grown := 0
+	for e in view.get_node("Defensores").get_children():
+		grown += 0 if (e as Node3D).scale.is_equal_approx(Vector3.ONE) else 1
+	_ck(view.get_node("Defensores").get_child_count() >= 8 and grown == 0, "visual/r1 F3 los defensores van a escala real (%d de %d agrandados)" % [grown, view.get_node("Defensores").get_child_count()])
+	suite.extra["formaciones"] = report.duplicate(true)
 	view.free()
 	view = null
 	cam.free()

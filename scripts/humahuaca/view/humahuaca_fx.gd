@@ -14,7 +14,7 @@ const VV = preload("res://scripts/humahuaca/view/vocab_view.gd")
 ## dice el panel), rojo de enemigo cuando la guardia da la alarma o se pelea, celeste aliado cuando es nuestro.
 const STATE_RING := {"guardado": "oro_laton", "alertado": "oro_laton", "en_alarma": "rojo_reservado", "asaltado": "rojo_reservado", "tomado": "celeste_produccion"}
 const LIGHT_HEIGHT := {"brasero": 1.4, "ventana": 2.6, "candil": 2.0, "fogata": 0.9}
-const RING_DEFAULTS := {"visibilidad": {"alpha": 0.55, "fade_from_m": 70.0, "fade_to_m": 180.0, "width_px": 2.0, "color": "celeste_produccion"},
+const RING_DEFAULTS := {"visibilidad": {"alpha": 0.3, "fade_from_m": 70.0, "fade_to_m": 180.0, "width_px": 1.25, "color": "celeste_produccion"},  # visual/r1 F3: más tenue
 	"objetivo": {"alpha": 0.9, "width_px": 4.0}}
 const RAIN_SHADER := "res://shaders/humahuaca_rain.gdshader"
 ## Cuánto se tiene que correr una agrupación (o cambiar su radio) y cada cuánto como mínimo se rearman los círculos de visibilidad que la siguen.
@@ -330,7 +330,8 @@ func ring_width_m(px: float) -> float:
 		return px * 0.55
 	var forward := -cam.global_transform.basis.z
 	var reach := maxf((cam.global_position.y - gfx.FLAT_H) / maxf(-forward.y, 0.08), 5.0)
-	return clampf(px / gfx.screen_scale(host) * gfx.meters_per_px_at(cam, cam.global_position + forward * reach), 0.3, 8.0)
+	# visual/r1 F3: el piso baja de 0,3 a 0,12 m: con la cámara a ~167 m el trazo de 1,25 px de los círculos de visibilidad quedaba clavado en 0,3 m (≈ 2 px)
+	return clampf(px / gfx.screen_scale(host) * gfx.meters_per_px_at(cam, cam.global_position + forward * reach), 0.12, 8.0)
 
 
 ## Cubo (en pasos de ×1,3) del ancho que hoy piden los trazos: los anillos se rearman solo cuando cambia, no en cada cuadro.

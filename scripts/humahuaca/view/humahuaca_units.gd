@@ -8,8 +8,13 @@ extends RefCounted
 ## (`units.marks.ring_radius_m`), que copia el relieve y respeta la profundidad (los edificios lo tapan). Para encontrarlas lejos está la marca chica en pantalla
 ## (12 a 16 px) y el rótulo de una línea que dibuja la interfaz (humahuaca_overlay.gd). Antes (R1 y P2) se las estiraba hasta 48 a 72 px y el anillo llegaba a
 ## decenas de metros: se revirtió a propósito (plan visual/r1, aprobado por el usuario).
-## F3 (pendiente): la formación por cantidad de hombres. `men` de cada agrupación está en data/humahuaca_rules.json (groups.<id>.men: 48, 52, 50, 2 y 6); se
-## enchufa en build_tokens/_token_parts (repetir la figura en una formación) y en `_ring_radius` (el radio del anillo según la huella de la formación).
+## visual/r1 F3: cada agrupación es una FORMACIÓN según su cantidad de hombres: una figura cada 3 o 4 hombres, entre 6 y 24 y nunca más figuras que hombres
+## (`units.formation` de humahuaca_visual.json). La figura «jefe» (la silueta de siempre, con sus piezas de malla) queda en el centro de la ficha; el resto va en
+## MultiMesh (un MultiMeshInstance3D por tipo y variante de ropa), en filas y columnas que miran hacia donde marcha, con un desorden chico. La vista solo puede leer
+## render_state y su propio JSON (CONTRATO 3.4), así que `men` es una COPIA de groups.<id>.men de las reglas, etiquetada diseño (una prueba de test_hx_view la compara
+## con las reglas). Si algún día render_state trae `men`, manda ese. Rodríguez: jinetes en la proporción caballos / hombres (16 de 48) y el resto a pie; el arreo:
+## arrieros adelante y una mula cada `mule_load_kg` de carga propia. Con menos fuerza (`strength_pct`) se ven menos figuras (las de atrás); lejos (> `far_m`) se ve la
+## mitad y no hay paso. El anillo del suelo encierra la huella real de la formación.
 
 const V = preload("res://scripts/humahuaca/humahuaca_vocab.gd")
 const Gen = preload("res://scripts/humahuaca/view/humahuaca_gen.gd")
@@ -24,6 +29,14 @@ const LOOT_COLOR := {"polvora": "madera_oscura", "canones": "hierro", "fusiles":
 ## Ganancia de los anillos de bando para llegar a la regla de color común (DIRECCION_DE_ARTE 2.1) sin sumar HEX a la paleta de 24: celeste aliado ≈ #8DB8D6,
 ## rojo enemigo ≈ #B8433A, hueso neutral ≈ #BFB6A3.
 const RING_GAIN := {"celeste_produccion": 1.1, "rojo_reservado": 1.2, "lana_natural": 0.93}
+## visual/r1 F3: valores de la formación si humahuaca_visual.json no trae `units.formation` (todos de diseño).
+const FORMATION_DEFAULTS := {"men_per_figure": 3.5, "min_figures": 6, "max_figures": 24, "foot_gap_m": 1.3, "foot_depth_m": 1.6, "foot_cols": 4, "horse_gap_m": 2.4,
+	"horse_depth_m": 3.6, "horse_cols": 3, "mule_gap_m": 1.9, "mule_depth_m": 2.9, "mule_cols": 2, "block_gap_m": 1.4, "jitter_m": 0.22, "jitter_deg": 9.0, "variants": 3,
+	"far_m": 300.0, "far_keep": 0.5, "mule_load_kg": 100.0, "step_bob_m": 0.05, "step_hz": 1.8}
+## visual/r1 F3: hombres de cada agrupación si el JSON no los trae: valor de DISEÑO de la vista (los mismos números que las reglas a la fecha), se informa como tal.
+const FORMATION_MEN_FALLBACK := {"rodriguez": {"men": 48, "horses": 16}, "portal": {"men": 52}, "arias": {"men": 50}, "reconocedores": {"men": 2}, "arreo": {"men": 6, "capacity_kg": 600}}
+## visual/r1 F3: radio en planta (m) de cada tipo de figura, para que el anillo encierre la huella (el jinete incluye la lanza terciada).
+const FIGURE_RADIUS := {"jinete": 2.3, "a_pie": 0.55, "infante": 0.85, "mula": 1.35, "arriero": 0.55}
 const ENEMY_ARCHETYPE :={"centinela": "realista_1817", "guardia": "realista_1817", "artillero": "artillero", "fusilero": "realista_1817", "mensajero": "poncho_sombrero", "refuerzo": "realista_1817"}
 
 var gfx
@@ -34,6 +47,7 @@ var unit_labels: Dictionary = {}
 var scaled: Array = []  ## [{node, cat, base, px, min}]: lo que crece hasta ocupar `px` píxeles de pantalla (fichas aparte)
 var part_counts: Dictionary = {}  ## partes y triángulos de cada ficha (informe de QA)
 
+var formation_report: Dictionary = {}  ## visual/r1 F3: {id: {hombres, figuras, jinetes, a_pie, mulas, arrieros, etiqueta, fuente, radio_m}} (informe de QA)
 var _enemy_meshes: Dictionary = {}
 var _ring_mats: Dictionary = {}
 var _loot_meshes: Dictionary = {}
@@ -63,10 +77,11 @@ func build_tokens(root_tokens: Node3D, root_labels: Node3D) -> void:
 		root_tokens.add_child(root)
 		var dims := _token_parts(root, str(spec.get("shape", "infante_fusil")), spec, variants, index)
 		var base_h: float = dims.x
+		var form := _build_formation(root, id, spec, variants, index, dims.y)  # visual/r1 F3
 		var ring_color := str(spec.get("ring_color", "celeste_produccion"))
 		# visual/r1 F1: sin disco de tinta ni anillos que crecen con la distancia. Un anillo fino de radio real sobre el suelo (con filete oscuro por fuera, para el
 		# suelo claro del alba) y la selección en oro, un poco más afuera. Son `top_level`: no giran con la ficha y copian el relieve (se rearman al moverse).
-		var ring_r := _ring_radius(id)
+		var ring_r := maxf(_ring_radius(id), float(form.radius_m))  # visual/r1 F3: el anillo encierra la huella de la formación
 		var edge := _ground_ring_node(root, "borde", ring_r, mark("ring_width_m") + 2.0 * mark("ring_edge_m"), mark("ring_lift_m") - 0.03,
 			_ring_mat("negro_textil", 1.0, 0.75, 1))
 		var ring := _ground_ring_node(root, "anillo", ring_r, mark("ring_width_m"), mark("ring_lift_m"), _ring_mat(ring_color, RING_GAIN.get(ring_color, 1.0), 1.0, 2))
@@ -101,7 +116,8 @@ func build_tokens(root_tokens: Node3D, root_labels: Node3D) -> void:
 		root_labels.add_child(label)
 		unit_labels[id] = label
 		tokens[id] = {"root": root, "base_h": base_h, "ring": ring, "edge": edge, "ring_color": ring_color, "selection": selection, "alert": alert, "alert_max": 0.0,
-			"ring_at": Vector3(INF, INF, INF)}
+			"ring_at": Vector3(INF, INF, INF), "ring_r": ring_r, "formation": form.batches, "strength_f": 1.0, "far": false, "moved_ms": -100000, "stepping": false}
+		formation_report[id]["radio_anillo_m"] = snappedf(ring_r, 0.01)
 
 
 func _variant_of(spec: Dictionary, variants: Array, index: int, fallback_shirt: String) -> Dictionary:
@@ -182,6 +198,322 @@ func _crouched_pair(body: String, spec: Dictionary, variants: Array, index: int,
 	for key in merged:
 		out[key] = (merged[key] as Object).call("build", hw)
 	return out
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# visual/r1 F3: formación según la cantidad de hombres
+
+## Una medida de `units.formation` (humahuaca_visual.json) o su valor por defecto.
+func fcfg(key: String) -> float:
+	var cfg: Variant = (gfx.data.get("units", {}) as Dictionary).get("formation", {}) if gfx != null else {}
+	var v: Variant = (cfg as Dictionary).get(key, FORMATION_DEFAULTS.get(key, 0.0)) if cfg is Dictionary else FORMATION_DEFAULTS.get(key, 0.0)
+	return float(v) if (typeof(v) == TYPE_INT or typeof(v) == TYPE_FLOAT) else float(FORMATION_DEFAULTS.get(key, 0.0))
+
+
+## Hombres (y caballos o carga propia) de una agrupación, con su etiqueta y su fuente: lo de `units.formation.groups` o, si falta, el valor de diseño de la vista.
+func group_men(id: String) -> Dictionary:
+	var cfg: Variant = (gfx.data.get("units", {}) as Dictionary).get("formation", {}) if gfx != null else {}
+	var groups: Variant = (cfg as Dictionary).get("groups", {}) if cfg is Dictionary else {}
+	if groups is Dictionary and (groups as Dictionary).get(id, null) is Dictionary and ((groups as Dictionary)[id] as Dictionary).has("men"):
+		var g: Dictionary = (groups as Dictionary)[id]
+		return {"men": int(g.men), "horses": int(g.get("horses", 0)), "capacity_kg": float(g.get("capacity_kg", 0.0)), "tag": str(g.get("tag", "diseno")),
+			"source": str(g.get("source", ""))}
+	var f: Dictionary = FORMATION_MEN_FALLBACK.get(id, {"men": 0})
+	return {"men": int(f.get("men", 0)), "horses": int(f.get("horses", 0)), "capacity_kg": float(f.get("capacity_kg", 0.0)), "tag": "diseno",
+		"source": "valor de diseño de la vista: faltaba en los datos"}
+
+
+## Cuántas figuras de cada tipo lleva la formación de una agrupación de silueta `shape` con los hombres de `g`. Regla: round(hombres / men_per_figure) entre
+## min_figures y max_figures, sin pasar nunca de los hombres (los dos reconocedores son dos figuras, no seis). El arreo: un arriero cada 3 o 4 hombres y una mula
+## cada `mule_load_kg` de su carga propia. `leader` = las figuras que ya dibuja la ficha con sus piezas (la pareja de reconocedores cuenta dos).
+func formation_counts(shape: String, g: Dictionary) -> Dictionary:
+	var men := maxi(int(g.get("men", 0)), 0)
+	var per := maxf(fcfg("men_per_figure"), 1.0)
+	var lo := mini(int(fcfg("min_figures")), men)
+	var hi := maxi(mini(int(fcfg("max_figures")), men), lo)
+	var out := {"figures": 1, "leader": 1, "jinetes": 0, "a_pie": 0, "infantes": 0, "mulas": 0, "arrieros": 0}
+	if shape == "mula_cargada":
+		var drivers := clampi(roundi(float(men) / per), mini(1, men), men)
+		var mules := clampi(roundi(float(g.get("capacity_kg", 0.0)) / maxf(fcfg("mule_load_kg"), 1.0)), 1, int(fcfg("max_figures")))
+		out.mulas = mules
+		out.arrieros = drivers
+		out.figures = mules + drivers
+		return out
+	var figures := maxi(clampi(roundi(float(men) / per), lo, hi), 1)
+	out.figures = figures
+	match shape:
+		"jinete":
+			var horses := int(g.get("horses", 0))
+			var riders := clampi(roundi(float(figures) * float(horses) / float(maxi(men, 1))), 1, figures) if horses > 0 else figures
+			out.jinetes = riders
+			out.a_pie = figures - riders
+		"agachados":
+			out.leader = mini(2, figures)
+			out.a_pie = figures - int(out.leader)
+		_:
+			out.infantes = figures
+	return out
+
+
+## Posiciones en el plano de la ficha (frente hacia −Z) de bloques puestos uno detrás de otro, cada uno en filas de `cols` con separación lateral `gap` y de fondo
+## `depth`; la última fila de un bloque va centrada. `blocks` = [{type, n, cols, gap, depth}] de adelante hacia atrás. Devuelve [{type, at: Vector2(x, z)}] centrado.
+func formation_layout(blocks: Array) -> Array:
+	var out: Array = []
+	var z := 0.0
+	var prev_depth := 0.0
+	for b in blocks:
+		var n := int(b.n)
+		if n <= 0:
+			continue
+		var cols := maxi(int(b.cols), 1)
+		var depth := float(b.depth)
+		if not out.is_empty():
+			z += maxf(prev_depth, depth) * 0.5 + fcfg("block_gap_m")
+		var rows := int(ceil(float(n) / float(cols)))
+		for r in range(rows):
+			var in_row := mini(cols, n - r * cols)
+			for c in range(in_row):
+				out.append({"type": str(b.type), "at": Vector2((float(c) - float(in_row - 1) * 0.5) * float(b.gap), z + float(r) * depth)})
+		z += float(rows - 1) * depth
+		prev_depth = depth
+	if out.is_empty():
+		return out
+	var lo := Vector2(INF, INF)
+	var hi := Vector2(-INF, -INF)
+	for slot in out:
+		lo = Vector2(minf(lo.x, slot.at.x), minf(lo.y, slot.at.y))
+		hi = Vector2(maxf(hi.x, slot.at.x), maxf(hi.y, slot.at.y))
+	var mid := (lo + hi) * 0.5
+	for slot in out:
+		slot.at = (slot.at as Vector2) - mid
+	return out
+
+
+## Arma bajo `root` las figuras de la formación que no son la ficha jefe: un MultiMeshInstance3D por tipo y variante de ropa. La jefa queda en el origen (se
+## quita de la grilla el lugar de su tipo más cercano al centro y se corre todo para que caiga ahí). Devuelve {batches: [{mmi, base: [Transform3D], bob}], radius_m}:
+## cada lote de adelante hacia atrás, así los primeros que se ocultan con menos fuerza o de lejos son los de atrás. `leader_r` = radio de la ficha jefe.
+func _build_formation(root: Node3D, id: String, spec: Dictionary, variants: Array, index: int, leader_r: float) -> Dictionary:
+	var shape := str(spec.get("shape", "infante_fusil"))
+	var g := group_men(id)
+	var n := formation_counts(shape, g)
+	formation_report[id] = {"hombres": int(g.men), "figuras": int(n.figures), "jinetes": int(n.jinetes), "a_pie": int(n.a_pie), "infantes": int(n.infantes),
+		"mulas": int(n.mulas), "arrieros": int(n.arrieros), "etiqueta": str(g.tag), "fuente": str(g.source)}
+	var foot_gap := fcfg("foot_gap_m")
+	var foot_depth := fcfg("foot_depth_m")
+	var foot_cols := int(fcfg("foot_cols"))
+	var blocks: Array = []
+	var leader_type := ""
+	match shape:
+		"jinete":  # los jinetes adelante, más abiertos; los de a pie detrás
+			blocks = [{"type": "jinete", "n": n.jinetes, "cols": int(fcfg("horse_cols")), "gap": fcfg("horse_gap_m"), "depth": fcfg("horse_depth_m")},
+				{"type": "a_pie", "n": n.a_pie, "cols": foot_cols, "gap": foot_gap, "depth": foot_depth}]
+			leader_type = "jinete"
+		"mula_cargada":  # los arrieros adelante y la recua de dos en fondo
+			blocks = [{"type": "arriero", "n": n.arrieros, "cols": mini(2, maxi(int(n.arrieros), 1)), "gap": foot_gap * 1.4, "depth": foot_depth},
+				{"type": "mula", "n": n.mulas, "cols": int(fcfg("mule_cols")), "gap": fcfg("mule_gap_m"), "depth": fcfg("mule_depth_m")}]
+			leader_type = "mula"
+		"agachados":  # la pareja de la ficha ya son los dos hombres; si hubiera más, van detrás
+			blocks = [{"type": "a_pie", "n": n.a_pie, "cols": foot_cols, "gap": foot_gap, "depth": foot_depth}]
+		_:
+			blocks = [{"type": "infante", "n": n.infantes, "cols": foot_cols, "gap": foot_gap, "depth": foot_depth}]
+			leader_type = "infante"
+	var slots := formation_layout(blocks)
+	var shift := Vector2(0.0, 2.6) if leader_type == "" else Vector2.ZERO
+	if leader_type != "":
+		var best := -1
+		var best_d := INF
+		for i in range(slots.size()):
+			if str(slots[i].type) == leader_type and (slots[i].at as Vector2).length() < best_d:
+				best_d = (slots[i].at as Vector2).length()
+				best = i
+		if best >= 0:
+			shift = -(slots[best].at as Vector2)
+			slots.remove_at(best)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash("formacion_" + id)
+	var jit := fcfg("jitter_m")
+	var jit_deg := fcfg("jitter_deg")
+	var radius := leader_r
+	var by_type: Dictionary = {}
+	for slot in slots:
+		var at: Vector2 = (slot.at as Vector2) + shift + Vector2(rng.randf_range(-jit, jit), rng.randf_range(-jit, jit))
+		radius = maxf(radius, at.length() + float(FIGURE_RADIUS.get(str(slot.type), 0.6)))
+		if not by_type.has(str(slot.type)):
+			by_type[str(slot.type)] = []
+		(by_type[str(slot.type)] as Array).append(Transform3D(Basis(Vector3.UP, deg_to_rad(rng.randf_range(-jit_deg, jit_deg))), Vector3(at.x, 0.0, at.y)))
+	var batches: Array = []
+	var triangles := 0
+	for type in by_type:
+		var list: Array = by_type[type]
+		list.sort_custom(func(a, b): return (a as Transform3D).origin.z < (b as Transform3D).origin.z)  # de adelante (−Z) hacia atrás
+		var kinds := 1 if str(type) == "mula" else maxi(int(fcfg("variants")), 1)
+		for v in range(kinds):
+			var base: Array = []
+			for k in range(v, list.size(), kinds):
+				base.append(list[k])
+			if base.is_empty():
+				continue
+			var mesh := _formation_mesh(str(type), spec, variants, index + v + 1)
+			var mm := MultiMesh.new()
+			mm.transform_format = MultiMesh.TRANSFORM_3D
+			mm.mesh = mesh
+			mm.instance_count = base.size()
+			for k in range(base.size()):
+				mm.set_instance_transform(k, base[k])
+			var mmi := MultiMeshInstance3D.new()
+			mmi.name = "formacion_%s_%d" % [str(type), v]
+			mmi.multimesh = mm
+			mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			root.add_child(mmi)
+			triangles += base.size() * (mesh.surface_get_arrays(0)[Mesh.ARRAY_INDEX] as PackedInt32Array).size() / 3
+			batches.append({"mmi": mmi, "base": base, "ground": base.duplicate(), "bob": fcfg("step_bob_m") * (1.6 if str(type) in ["jinete", "mula"] else 1.0)})
+	formation_report[id]["triangulos_formacion"] = triangles
+	formation_report[id]["lotes"] = batches.size()
+	return {"batches": batches, "radius_m": radius + 0.3}
+
+
+## La malla de UNA figura de la formación (las partes unidas: el MultiMesh dibuja una sola malla), con la ropa de la variante `vi`.
+func _formation_mesh(type: String, spec: Dictionary, variants: Array, vi: int) -> ArrayMesh:
+	var hw := hull_w() * 1.4
+	var parts: Dictionary = {}
+	match type:
+		"jinete":
+			var v: Dictionary = gen.variant_for(vi, variants).duplicate()
+			v["sombrero"] = "madera_oscura"
+			v["acento"] = ""
+			parts = gen.rider(v, hw)
+		"mula":
+			parts = gen.mule(hw)
+		"infante":
+			parts = gen.figure("camisa_gorra", _variant_of(spec, variants, vi, ""), "de_pie", hw)
+		_:  # a pie y arrieros: poncho y sombrero
+			var v2: Dictionary = gen.variant_for(vi, variants).duplicate()
+			v2["acento"] = ""
+			parts = gen.figure("poncho_sombrero", v2, "de_pie", hw)
+	return _merged(parts, gfx.token_mat("aliado"))
+
+
+## Une las partes {nombre: ArrayMesh} de una figura en una malla de dos superficies (la figura y su casco de contorno) con sus materiales puestos.
+func _merged(parts: Dictionary, material: Material) -> ArrayMesh:
+	var bv := PackedVector3Array()
+	var bn := PackedVector3Array()
+	var bc := PackedColorArray()
+	var bi := PackedInt32Array()
+	var hv := PackedVector3Array()
+	var hn := PackedVector3Array()
+	var hi := PackedInt32Array()
+	for key in parts:
+		var m: ArrayMesh = parts[key]
+		if m.get_surface_count() > 0:
+			var a := m.surface_get_arrays(0)
+			var base := bv.size()
+			bv.append_array(a[Mesh.ARRAY_VERTEX])
+			bn.append_array(a[Mesh.ARRAY_NORMAL])
+			bc.append_array(a[Mesh.ARRAY_COLOR])
+			for i in (a[Mesh.ARRAY_INDEX] as PackedInt32Array):
+				bi.append(base + i)
+		if m.get_surface_count() > 1:
+			var h := m.surface_get_arrays(1)
+			var hbase := hv.size()
+			hv.append_array(h[Mesh.ARRAY_VERTEX])
+			hn.append_array(h[Mesh.ARRAY_NORMAL])
+			for i in (h[Mesh.ARRAY_INDEX] as PackedInt32Array):
+				hi.append(hbase + i)
+	var mesh := ArrayMesh.new()
+	var arrays: Array = []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = bv
+	arrays[Mesh.ARRAY_NORMAL] = bn
+	arrays[Mesh.ARRAY_COLOR] = bc
+	arrays[Mesh.ARRAY_INDEX] = bi
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	mesh.surface_set_material(0, material)
+	if not hv.is_empty():
+		var hull: Array = []
+		hull.resize(Mesh.ARRAY_MAX)
+		hull[Mesh.ARRAY_VERTEX] = hv
+		hull[Mesh.ARRAY_NORMAL] = hn
+		hull[Mesh.ARRAY_INDEX] = hi
+		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, hull)
+		mesh.surface_set_material(1, gfx.outline_mat())
+	return mesh
+
+
+## El radio del anillo de una agrupación (encierra su formación), en metros: lo usa el picking de la vista.
+func ring_radius(id: String) -> float:
+	return float((tokens.get(id, {}) as Dictionary).get("ring_r", _ring_radius(id)))
+
+
+## Cuántas figuras de la formación se ven: todas con fuerza plena y cerca; con menos fuerza, en proporción (se van las de atrás); lejos (> far_m), `far_keep` de ellas.
+func _apply_formation_count(id: String) -> void:
+	var info: Dictionary = tokens[id]
+	var f := clampf(float(info.strength_f), 0.0, 1.0) * (fcfg("far_keep") if bool(info.far) else 1.0)
+	for batch in info.formation:
+		var mm: MultiMesh = (batch.mmi as MultiMeshInstance3D).multimesh
+		var total: int = (batch.base as Array).size()
+		mm.visible_instance_count = -1 if f >= 0.999 else clampi(int(ceil(float(total) * f)), 0, total)
+
+
+## Apoya cada figura de la formación en el suelo dibujado de su lugar (la ficha está a la altura del pie de la jefa: en una ladera las de los costados quedaban
+## flotando o enterradas hasta ≈ 0,7 m). Se rehace solo si la ficha se corrió más de `units.marks.rebuild_m` o giró más de ≈ 2°, como los anillos.
+func _ground_formation(id: String) -> void:
+	var info: Dictionary = tokens[id]
+	var root: Node3D = info.root
+	var at := root.position
+	var yaw := root.rotation.y
+	if (info.get("ground_at", Vector3(INF, INF, INF)) as Vector3).distance_to(at) < mark("rebuild_m") and absf(yaw - float(info.get("ground_yaw", 0.0))) < 0.035:
+		return
+	info["ground_at"] = at
+	info["ground_yaw"] = yaw
+	var basis := Basis(Vector3.UP, yaw)
+	var k_scale := maxf(root.scale.x, 0.01)
+	for batch in info.formation:
+		var mm: MultiMesh = (batch.mmi as MultiMeshInstance3D).multimesh
+		var ground: Array = []
+		for xf in (batch.base as Array):
+			var t: Transform3D = xf
+			var w: Vector3 = at + basis * (t.origin * k_scale)
+			t.origin.y = (float(gfx.rendered_h(w.x, w.z)) - at.y) / k_scale
+			ground.append(t)
+		batch["ground"] = ground
+		if not bool(info.get("stepping", false)):
+			for k in range(ground.size()):
+				mm.set_instance_transform(k, ground[k])
+
+
+## Cuántas figuras de la formación se ven ahora (para las pruebas y el informe).
+func formation_visible(id: String) -> int:
+	var count := 0
+	for batch in (tokens.get(id, {}) as Dictionary).get("formation", []):
+		var mm: MultiMesh = (batch.mmi as MultiMeshInstance3D).multimesh
+		count += mm.instance_count if mm.visible_instance_count < 0 else mm.visible_instance_count
+	return count
+
+
+## El paso de marcha: mientras la agrupación se movió hace poco y está cerca (≤ far_m), cada figura sube y baja un poco, desfasada. Al pararse vuelve a su lugar.
+func animate(time_s: float) -> void:
+	var now := Time.get_ticks_msec()
+	var hz := fcfg("step_hz")
+	for id in tokens:
+		var info: Dictionary = tokens[id]
+		var stepping := now - int(info.moved_ms) < 300 and not bool(info.far) and (info.root as Node3D).visible
+		if not stepping and not bool(info.stepping):
+			continue
+		info["stepping"] = stepping
+		var lift_max := 0.0
+		for batch in info.formation:
+			var mm: MultiMesh = (batch.mmi as MultiMeshInstance3D).multimesh
+			var base: Array = batch.base
+			var shown := base.size() if mm.visible_instance_count < 0 else mm.visible_instance_count
+			var ground: Array = batch.ground
+			for k in range(shown):
+				var xf: Transform3D = ground[k] if k < ground.size() else base[k]
+				if stepping:
+					var lift := float(batch.bob) * absf(sin(time_s * hz * PI + float(k) * 1.7))
+					xf.origin.y += lift
+					lift_max = maxf(lift_max, lift)
+				mm.set_instance_transform(k, xf)
+		info["step_lift_m"] = lift_max  # lo último que subió alguna figura (las pruebas sin ventana no pueden leer el MultiMesh de vuelta)
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -273,7 +605,7 @@ func _place_rings(id: String) -> void:
 
 
 # ---------------------------------------------------------------------------------------------------------------------
-# Defensores y botín: figuras chicas que crecen hasta un mínimo de píxeles
+# Defensores y botín (visual/r1 F3: a escala real, como las fichas; las luces siguen creciendo hasta su mínimo de píxeles)
 
 func clear_category(root: Node, category: String) -> void:
 	for child in root.get_children():
@@ -337,22 +669,22 @@ func sync_things(root: Node3D, category: String, list: Array) -> int:
 				mi.set_surface_override_material(1, gfx.outline_mat())
 			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			holder.add_child(mi)
-			# regla de color: el enemigo es ROJO (anillo rojo con filete de tinta y disco oscuro debajo), más vivo si está alertado
-			gfx.inst(holder, gfx.cyl_mesh(1.75, 1.75, 0.04, 16), Vector3(0.0, 0.05, 0.0), gfx.flat_mat("negro_textil", 0.5), Vector3.ZERO, false).name = "base"
+			# regla de color: el enemigo es ROJO (anillo rojo con filete de tinta y disco oscuro debajo), más vivo si está alertado.
+			# visual/r1 F3: a ESCALA REAL como las fichas propias (antes crecía hasta 28 px con la distancia): anillo fino de 1,1 m; de lejos lo encuentra la marca roja
+			# chica que dibuja la interfaz (humahuaca_overlay.gd)
+			gfx.inst(holder, gfx.cyl_mesh(1.0, 1.0, 0.04, 16), Vector3(0.0, 0.05, 0.0), gfx.flat_mat("negro_textil", 0.4), Vector3.ZERO, false).name = "base"
 			var alert := float(e.get("alert", 0.0)) > 0.5
-			gfx.flat_ring(holder, 1.5, 0.45, "rojo_reservado", 1.0).material_override = gfx.flat_mat("rojo_reservado", 1.0, false, 1.35 if alert else 1.1)
-			gfx.flat_ring(holder, 1.72, 0.2, "negro_textil", 0.9).name = "borde"
+			gfx.flat_ring(holder, 1.1, 0.24, "rojo_reservado", 1.0).material_override = gfx.flat_mat("rojo_reservado", 1.0, false, 1.35 if alert else 1.1)
+			gfx.flat_ring(holder, 1.26, 0.1, "negro_textil", 0.9).name = "borde"
 			if bool(e.get("firing", false)):
-				gfx.inst(holder, gfx.sphere_mesh(0.5), Vector3(0.0, 1.6, -0.9), gfx.flat_mat("oro_laton", 1.0, true, 1.4), Vector3.ZERO, false)
-			register_scaled(holder, category, 1.9, float(gfx.qcfg.get("enemy_min_px", 14)))
+				gfx.inst(holder, gfx.sphere_mesh(0.35), Vector3(0.0, 1.5, -0.6), gfx.flat_mat("oro_laton", 1.0, true, 1.4), Vector3.ZERO, false)
 		else:
 			holder.position += Vector3(float(count % 3) * 1.5, 0.0, float(count % 2) * 1.5)
 			var li := MeshInstance3D.new()
 			li.mesh = _loot_mesh(kind)
 			li.material_override = gfx.props_mat
 			li.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-			holder.add_child(li)
-			register_scaled(holder, category, 0.8, 10.0)
+			holder.add_child(li)  # visual/r1 F3: a escala real (antes crecía hasta 10 px); la interfaz le pone una marca chica
 	return count
 
 
@@ -373,6 +705,9 @@ func sync_poses(state: Dictionary) -> bool:
 			node.position = Vector3(x, gfx.rendered_h(x, z), z)  # el pie apoya en la malla que se dibuja (en `baja` la ventana tiene un vértice cada 8 m y se aparta hasta ≈ 0,25 m de `height_at`)
 			node.rotation.y = yaw
 			_place_rings(str(u.id))  # visual/r1 F1
+			if tokens.has(str(u.id)):
+				tokens[str(u.id)]["moved_ms"] = Time.get_ticks_msec()  # visual/r1 F3: el paso de la formación (animate)
+				_ground_formation(str(u.id))  # visual/r1 F3: cada figura apoya en el relieve de su lugar
 			moved = true
 	return moved
 
@@ -418,6 +753,14 @@ func sync_units(state: Dictionary, labels_on: bool) -> void:
 		var info: Dictionary = tokens[id]
 		var ring_id := "rojo_reservado" if bool(u.get("detected", false)) else str(info.ring_color)
 		(info.ring as MeshInstance3D).material_override = _ring_mat(ring_id, float(RING_GAIN.get(ring_id, 1.0)), 1.0, 2)  # visual/r1 F1: descubierta = rojo, como antes
+		# visual/r1 F3: con menos fuerza se ven menos figuras; si render_state trae `men` (hoy no), también cuenta la proporción contra los hombres del armado
+		var strength_f := clampf(float(u.get("strength_pct", 100.0)) / 100.0, 0.0, 1.0)
+		var built := int((formation_report.get(id, {}) as Dictionary).get("hombres", 0))
+		if u.has("men") and built > 0:
+			strength_f = minf(strength_f, clampf(float(u.men) / float(built), 0.0, 1.0))
+		if absf(strength_f - float(info.strength_f)) > 0.001:
+			info["strength_f"] = strength_f
+			_apply_formation_count(id)
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -434,6 +777,11 @@ func update_scales(host: Node, cam: Camera3D) -> void:
 		(unit_labels[id] as Label3D).position = root.position + Vector3(0.0, float(info.base_h) * fig + 0.6, 0.0)
 		if (info.ring_at as Vector3).x == INF:
 			_place_rings(str(id))
+		# visual/r1 F3: de lejos (> far_m de la cámara) se ve parte de la formación y no hay paso
+		var far := cam != null and cam.is_inside_tree() and cam.global_position.distance_to(root.global_position if root.is_inside_tree() else root.position) > fcfg("far_m")
+		if far != bool(info.far):
+			info["far"] = far
+			_apply_formation_count(str(id))
 	var alive: Array = []
 	for entry in scaled:
 		if not is_instance_valid(entry.node):

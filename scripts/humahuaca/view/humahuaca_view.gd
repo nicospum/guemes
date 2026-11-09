@@ -132,7 +132,7 @@ func build(rules: RefCounted, quality: String = "media") -> void:
 	update_state(0.0)
 	build_ms = float(Time.get_ticks_usec() - started) / 1000.0
 	content_report = {"terreno": gfx.build_stats, "triangulos_edificios_y_vegetacion": buildings.triangle_count, "contenido": buildings.content_counts.duplicate(),
-		"casas": buildings.house_count, "fichas": units.part_counts.duplicate(), "luces_reales": fxm.omni_count}
+		"casas": buildings.house_count, "fichas": units.part_counts.duplicate(), "luces_reales": fxm.omni_count, "formaciones": units.formation_report.duplicate(true)}
 	minimap_changed.emit()
 
 
@@ -214,6 +214,7 @@ func update_state(delta: float) -> void:
 	fxm.update_fx(delta)
 	fxm.animate_lights(delta)
 	units.update_selection(selected_ids, _time)
+	units.animate(_time)  # visual/r1 F3: el paso de las formaciones que marchan
 
 
 ## Lo que depende de la cámara se recalcula también acá: el controlador llama a `update_state` ANTES de ubicar la cámara de ese cuadro (main la deja donde la quería el
@@ -666,11 +667,17 @@ func _unit_ids_on_screen(camera: Camera3D) -> Array:
 
 
 ## La agrupación cuya figura (el segmento de la base a la cima en pantalla) queda a ≤ 55 px de `pos`; si hay varias, la más cercana.
+## visual/r1 F3: también vale un clic dentro de la huella de su formación (el círculo de su anillo en pantalla), que de cerca es más ancha que 55 px.
 func pick_unit(camera: Camera3D, pos: Vector2) -> String:
 	var best := ""
 	var best_d := PICK_UNIT_PX
 	for trio in _unit_ids_on_screen(camera):
 		var d := Geometry2D.get_closest_point_to_segment(pos, trio[1], trio[2]).distance_to(pos)
+		var foot: Vector3 = (units.tokens[str(trio[0])].root as Node3D).position
+		var side: Vector3 = camera.global_transform.basis.x * float(units.ring_radius(str(trio[0])))
+		if not camera.is_position_behind(foot + side):
+			var ring_px := camera.unproject_position(foot + side).distance_to(trio[1] as Vector2)
+			d = minf(d, maxf((trio[1] as Vector2).distance_to(pos) - ring_px, 0.0) + 0.5)  # dentro de la huella cuenta como casi encima (la figura gana si está más cerca)
 		if d <= best_d:
 			best_d = d
 			best = str(trio[0])

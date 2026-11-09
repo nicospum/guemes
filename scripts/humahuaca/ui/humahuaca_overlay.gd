@@ -131,6 +131,7 @@ func _draw() -> void:
 	if bool(ui.get("hide_world_overlay")):
 		return
 	_draw_front_labels(cam)
+	_draw_thing_marks(cam)  # visual/r1 F3
 	_draw_token_labels(cam)
 	_draw_tower(cam)
 	_draw_orders(cam)
@@ -278,6 +279,45 @@ func _draw_token_labels(_cam: Camera3D) -> void:
 			continue
 		_text(m.label_pos, str(m.text), LABEL_FONT, Kit.GOLD_LIGHT if bool(m.sel) else Kit.PAPER)
 		placed.append(lr)
+
+
+## visual/r1 F3: los defensores y el botín van a escala real (antes crecían hasta 28 y 10 px con la distancia), así que de lejos se los encuentra por una marca
+## chica, como a las fichas: un rombo rojo de 9 px reales con filete oscuro sobre cada defensor (más grande si está alertado: el color nunca va solo) y un cuadradito
+## hueso de 6 px sobre cada bulto de botín ABANDONADO en el camino (el que sigue en su depósito ya lo marca el anillo del objetivo: con marca propia ensuciaba los
+## rótulos «Batería» y «Cuartel»). La torre tiene su propio anillo de recarga.
+const ENEMY_MARK_PX := 9.0
+const LOOT_MARK_PX := 6.0
+const THING_MARK_LIFT_M := 2.4
+
+
+func _draw_thing_marks(_cam: Camera3D) -> void:
+	var rs: Variant = ui.call("render_state_cached")
+	if not (rs is Dictionary):
+		return
+	var k := maxf(float(ui.call("screen_scale")), 0.05)
+	var header_bottom := float(ui.call("layout_num", ["margin"], 12.0)) + float(ui.call("layout_num", ["header_h"], 46.0)) + 4.0
+	var area := Rect2(Vector2(0.0, header_bottom), Vector2(size.x, maxf(size.y - header_bottom, 0.0)))
+	var ink := Color(0.05, 0.07, 0.04, 0.92)
+	for e in (rs as Dictionary).get("enemies", []):
+		if not (e is Dictionary) or str((e as Dictionary).get("kind", "")) == "torre":
+			continue
+		var s: Variant = _world_to_screen(null, Vector2(float(e.get("x", 0.0)), float(e.get("z", 0.0))), THING_MARK_LIFT_M)
+		if not (s is Vector2) or not area.has_point(s as Vector2):
+			continue
+		var r := ENEMY_MARK_PX * (1.3 if float(e.get("alert", 0.0)) > 0.5 else 1.0) * 0.5 / k
+		var c: Vector2 = (s as Vector2) + Vector2(0.0, -r - 2.0)
+		var rim := r + 1.5
+		draw_colored_polygon(PackedVector2Array([c + Vector2(0.0, -rim), c + Vector2(rim, 0.0), c + Vector2(0.0, rim), c + Vector2(-rim, 0.0)]), ink)
+		draw_colored_polygon(PackedVector2Array([c + Vector2(0.0, -r), c + Vector2(r, 0.0), c + Vector2(0.0, r), c + Vector2(-r, 0.0)]), Kit.ENEMY)
+	for l in (rs as Dictionary).get("loot", []):
+		if not (l is Dictionary) or str((l as Dictionary).get("state", "")) != "abandonado":
+			continue
+		var s2: Variant = _world_to_screen(null, Vector2(float(l.get("x", 0.0)), float(l.get("z", 0.0))), 1.2)
+		if not (s2 is Vector2) or not area.has_point(s2 as Vector2):
+			continue
+		var h := LOOT_MARK_PX * 0.5 / k
+		draw_rect(Rect2((s2 as Vector2) - Vector2(h + 1.5, h + 1.5), Vector2(2.0 * h + 3.0, 2.0 * h + 3.0)), ink, true)
+		draw_rect(Rect2((s2 as Vector2) - Vector2(h, h), Vector2(2.0 * h, 2.0 * h)), Kit.NEUTRAL, true)
 
 
 func _draw_orders(cam: Camera3D) -> void:
