@@ -1,10 +1,10 @@
 # Entrega «visual/r1 2026-11-09» — Güemes 0.5.0-preview2 (sobre 0.5.0-preview1)
 
-Rama `visual/r1` (sin push; `origin/main` en `e0fd223`). Punto de recuperación previo a `visual/r1`: rama `respaldo/pre-visual-r1-2026-11-09` (= `main` en `e0fd223`) y `../respaldos/pre-visual-r1-2026-11-09.bundle`. EXE: `../entregas/0.5.0-preview2/PatriaGuemes_0.5.0-preview2.exe` (`156 007 576` bytes, SHA-256 `a2b0fb9b96f787837c1917d7642109ebaa4f8f688f3be9c3b99c075750ec06ce` en `SHA256.txt`, construido desde el commit de código `896fba5`). Dictamen de QA: `docs/equipo/DICTAMEN_QA.md`.
+`origin/main` está en `7e896e3` (subida a GitHub el 2026-11-09 a las 14:38; hasta entonces estaba en `e0fd223`). El commit que trae este texto es posterior, vive en `visual/r1` y solo cambia `docs/equipo/`. Punto de recuperación previo a `visual/r1`: rama `respaldo/pre-visual-r1-2026-11-09` (= `main` en `e0fd223`) y `../respaldos/pre-visual-r1-2026-11-09.bundle`. EXE: `../entregas/0.5.0-preview2/PatriaGuemes_0.5.0-preview2.exe` (`156 007 576` bytes, SHA-256 `a2b0fb9b96f787837c1917d7642109ebaa4f8f688f3be9c3b99c075750ec06ce` en `SHA256.txt`, construido desde el commit de código `896fba5`). Dictamen de QA: `docs/equipo/DICTAMEN_QA.md`.
 
 ## 0. Qué suma 0.5.0-preview2 (`visual/r1`, fases F0 a F7)
 
-- **F1 · Marcas sutiles y rótulos de una línea en los tres niveles:** reemplaza los discos grandes y anillos que crecían con la distancia por un aro fino sobre el terreno, una marca de 12–16 px (14 px en juego) y un rótulo de una línea que se ensancha al nombre completo de la agrupación elegida y se pega al borde libre cuando la partida queda fuera de cámara o detrás del HUD.
+- **F1 · Marcas sutiles y rótulos de una línea en los tres niveles:** reemplaza los discos grandes y anillos que crecían con la distancia por un aro fino sobre el terreno, una marca de 12–16 px (14 px en juego) y un rótulo de una línea que se ensancha al nombre completo de la agrupación elegida. En Humahuaca el rótulo se pega al borde libre cuando la partida queda fuera de cámara o detrás del HUD; en la Justina, una partida fuera de cámara no deja marca en el borde (Q-309).
 - **F2 · Cámara cercana y paneo inicial en la Justina:** encuadre inicial cercano (~165–190 m en Justina y Humahuaca, ~60 m en el Norte, zoom mínimo 15–20 m). En la Justina, al entrar desde el menú la cámara muestra el buque («Objetivo: el buque») y planea en 3,5 s hasta las tropas sin consumir tiempo de juego (cualquier tecla, clic o rueda lo saltea).
 - **F3 · Formaciones a escala real según la dotación:** cada agrupación dibuja una figura cada 3–4 hombres (6 a 24 figuras en MultiMesh, sin agrandarse con la distancia y con LOD lejano). En Humahuaca se atenúan los círculos blancos de visión y en `humahuaca_declutter.gd` las agrupaciones que coinciden en el mismo punto se reparten lado a lado en la vista.
 - **F4 · Caballos criollos animados (`tools/f4_caballos.py`):** malla base CC0 («Rigged Horse» de Lyndon Daniels / ChadM), esqueleto de 25 huesos, recado criollo, cuatro pelajes (zaino, alazán tostado, tordillo, overo) y andares `idle`, `walk`, `trot` y `gallop` por cinemática inversa sincronizados con la velocidad real.
@@ -13,10 +13,12 @@ Rama `visual/r1` (sin push; `origin/main` en `e0fd223`). Punto de recuperación 
   - **Kit de 26 casas (`tools/f5_casas.py`, `docs/historia/CASAS_F5.md`):** casas de torta, ranchos de paja, galerías de horcones, casas de patio y zaguán, pulperías, postas, capillas con espadaña o torre, corrales de pirca y casas encaladas del Retiro de 1806 (con su `_lod.glb`). Paredes encaladas de Humahuaca con manchas de cal, grano, chorreaduras y zócalo de barro (`shaders/humahuaca_muro.gdshader`).
   - **Terreno y relieve (`tools/f5_terreno_*.py`):** 12 materiales fotográficos CC0 de Poly Haven (6 en Humahuaca, 3 en el Norte, 3 en la Justina) y relieve real de Copernicus GLO-30/90 para el horizonte de ±29 km de Humahuaca y la campaña del Norte.
 - **F6 · Cierre, pulido visual y prueba de Jev en vivo:**
-  - **Jev en vivo (`4e1a094`, `tools/jev_vivo.gd`, `docs/JEV.md`):** consulta autenticada real a TypeSafe (`jev-1.14.0`, decisión «buscar víveres» en 330 ms aplicada a la ronda 1 → 2 del Norte) y prueba de recuperación local por timeout (50 ms).
+  - **Jev en vivo (`4e1a094`, `tools/jev_vivo.gd`, `docs/JEV.md`):** consulta autenticada real a TypeSafe (`jev-1.14.0`, decisión «buscar víveres» en 330 ms aplicada a la ronda 1 → 2 del Norte) y prueba de recuperación local por tiempo agotado (presupuesto de 50 ms; tardó 95 ms).
   - **Justina y Norte (`638186a`):** cabecera centrada, chips que no recortan nombres (cierra Q-304), rótulos de mapa que esquivan avisos, minimapa legible a 1024×640, «Buque ▸» fuera de rótulos 3D de pozos/vados, Chicoana y Orán con capilla/galería encalada y adobe aclarado, teja apagada en la Justina, tropa del Norte a escala 0,6 y ranchos de la ribera fuera de rutas y zona de marcha.
   - **Humahuaca (`55c7a5d`, `571e418`, `c5bfee0`):** Q-201…Q-210 reverificados, B-049 (reparto visual de fichas superpuestas y reconocedor agachado), B-058 (desvanecimiento de curvas de nivel en el contexto lejano), B-064 (paredes encaladas con detalle cercano), ajuste de saturación del alba (`vis_flow` 0 fallas) y carga diferida sin fuga de `RefCounted` al salir en modo headless (cierra Q-301).
-- **F7 · Compuerta de QA, benchmarks, capturas antes/después y ejecutable `0.5.0-preview2`:** todas las suites y resoluciones en verde (`ui_qa` 257/0 en 5 resoluciones; `ui_qa_humahuaca` 182/0 y 98/0 ×2; `qa_gate quick integrador` PASA; `vis_flow` 0 fallas; benchmarks dentro de presupuesto: Justina `media` 2,52 ms, Norte `media` 1,77 ms, Humahuaca `media` 1,98 ms). Capturas antes/después en `../qa-visual-r1/{antes,despues}/`.
+- **F7 · Compuerta de QA, benchmarks, capturas antes/después y ejecutable `0.5.0-preview2`:** la compuerta completa (`tools/qa_gate.sh full`, sin pasos omitidos) se corrió sobre `7e896e3` el 2026-11-09 de 17:22 a 17:47 y dio PASA: `ui_qa` 257/0 a 1280×720, 1920×1080 y 2560×1440 (y aparte a 1440×900 y 1024×640); `ui_qa_humahuaca` 182/0 a 1280×720 y 98/0 en las otras cuatro; `vis_flow` 0 fallas; benchmarks dentro de presupuesto (peor de 3 repeticiones: Justina 2,82 ms, Norte 2,17 ms, Humahuaca `media` 2,11 ms). Tres pasos de esa compuerta (`protegidos`, `compartidos`, `higiene`) pasan por la enmienda 8 de `docs/QA_NIVEL2.md`, que el dueño ratificó ese mismo día. Cifras y alcance: `DICTAMEN_QA.md`. Capturas antes/después en `../qa-visual-r1/{antes,despues}/`; evidencia de la verificación en `../qa-visual-r1/f7_verificacion/`.
+
+> **Cómo leer lo que sigue.** Las secciones 1 a 10 son el informe de la entrega anterior (`0.5.0-preview1`, `e0fd223`) y se conservan como historia. Para `0.5.0-preview2` valen esta sección 0, `DICTAMEN_QA.md` y las notas «En `0.5.0-preview2`» de las secciones 7 a 10. También son de la entrega anterior `DIRECCION_DE_ARTE.md`, `REFERENTES_Y_DECISIONES.md`, `HERRAMIENTAS_USADAS.md` y los informes de pista `P1…P6`.
 
 ## 1. Qué juego encontramos
 
@@ -48,7 +50,9 @@ Cadena I → II → III por el botón principal del parte y pantalla final de ca
 
 III negro tras el II (estado filtrado entre niveles); balance del II roto por el relieve real (una ruta pasaba sobre la batería); interfaz del II un 25 % más grande viniendo de la Justina; menú recortado tras el III; puertas de la posta cerradas para la navegación; Ctrl+Z que deshacía órdenes ajenas; arrastre pegado; puntos de control fantasma; `height_at(NaN)` con errores; epílogo mal atribuido (H03); 31 fallas documentadas por la revisión en la nube (32/32 pasan); HUD encendido detrás de la pantalla de misión; error de script al salir con el teclado; aviso de fuga por la carga en hilo del precalentado; textos truncados (16 → 0 en las 14 pantallas auditadas; queda un recorte en el III a 1280×720, Q-304). Lista completa con causa y prueba: `BACKLOG.md` y los informes de pista `P1…P6`.
 
-## 7. Pruebas y dictamen
+## 7. Pruebas y dictamen (de `0.5.0-preview1`)
+
+En `0.5.0-preview2`: las pruebas y el dictamen de esta versión están en `DICTAMEN_QA.md`; lo que sigue describe la certificación de `0.5.0-preview1`.
 
 **Dictamen de QA independiente: APTO COMO CANDIDATO DE PUBLICACIÓN en las plataformas probadas** (Windows 11 x64, 1280×720 y 1440×900; en `1d76157` fue «con limitaciones» por créditos y documentos, ya corregidos). Detalle, cifras, criterios y limitaciones: `DICTAMEN_QA.md`. En corto: 0 fallas en todas las suites (≈ 3 470 comprobaciones), 32/32 en la revisión de la nube, `ui_qa` sin fallas, recorrido completo menú → I → II → III → final dos veces seguidas con perfil limpio por la interfaz real, derrota y reintento en los tres, EXE probado por sus modos automáticos y con teclas reales, 0 errores de script. No se probó: personas reales jugando, audio audible, Jev vivo, otras máquinas.
 
@@ -58,10 +62,13 @@ Capturas antes/después versionadas (livianas) en `docs/equipo/capturas/` (la «
 
 REA (inventario del EXE de preview5: confirmó que el nivel II nunca se había exportado), Godot 4.7.2 por línea de comandos (pruebas headless, capturas con ventana real, exportación), Python+PIL (hojas comparativas), ffmpeg (videos de QA), generador de modelos propio sin Blender (Blender 4.4 no tiene ejecutable en esta PC). Jev/TypeSafe: evaluado, **sin llamadas en vivo** (gastaría créditos del usuario sin autorización). Detalle: `HERRAMIENTAS_USADAS.md`.
 
+En `0.5.0-preview2` se sumaron Blender 4.4.3 por línea de comandos para caballos, personas y casas (F4 y F5, según `docs/CREDITOS.md`) y una consulta en vivo a Jev (`4e1a094`, `docs/JEV.md`).
+
 ## 9. Cómo ejecutarlo y recorrerlo
 
-- Jugar: abrir `PatriaGuemes_0.5.0-preview1.exe` (no requiere instalación). Empezar por **I · La Justina**; al ganar, «Seguir: Humahuaca»; al ganar, «Seguir al capítulo III»; al ganar el III, pantalla final.
+- Jugar: abrir `PatriaGuemes_0.5.0-preview2.exe` (no requiere instalación). Empezar por **I · La Justina**; al ganar, «Seguir: Humahuaca»; al ganar, «Seguir al capítulo III»; al ganar el III, pantalla final.
 - Desde el código: `.tools/godot/Godot_v4.7.2-stable_win64.exe --path patria-guemes`.
+- Para clonar en Windows: `git clone -c core.longpaths=true …` (Q-319: hay rutas versionadas de más de 260 caracteres).
 - Reconstruir el EXE: `python tools/build_release.py --godot <Godot consola> --templates <plantillas 4.7.2> --target windows`.
 - Capturas comparables: `godot --path . --resolution 1440x900 --script tools/captura_tres_niveles.gd -- --out=<carpeta> --tag=<x>`.
 
@@ -74,3 +81,11 @@ REA (inventario del EXE de preview5: confirmó que el nivel II nunca se había e
 - Figuras y casas con texturas PBR cuando haya Blender ejecutable (`create_models.py --only hx_*`).
 - Balance fino del II (quien sigue la guía gana con bronce).
 - Nada se subió a GitHub ni se publicó: falta el OK del usuario para push/release.
+
+En `0.5.0-preview2` esa lista cambió así:
+
+- Cerrados: Q-301 (`571e418`; la compuerta completa no encuentra fugas en ningún registro), Q-304 (`638186a`), Jev en vivo (`4e1a094`) y las figuras y casas hechas con Blender (F4 y F5).
+- Subido: `main` y `origin/main` están en `7e896e3` desde el 2026-11-09 a las 14:38. No hay etiqueta ni Release nuevos.
+- Siguen abiertos: prueba con personas reales y escucha del audio; Q-305 y Q-306; balance fino del II.
+- Resuelto: el dueño ratificó la enmienda 8 de `docs/QA_NIVEL2.md` (`01c77f2`) el 2026-11-09; quedó asentado en la rúbrica y la compuerta se alineó con su texto.
+- Nuevos: tickets Q-308 (error de script en un camino que la interfaz no ofrece), Q-309 (en el I, al llegar al buque la vista puede mostrar solo agua) y Q-319 (clonar en Windows pide `core.longpaths`); el resto, BAJOS, en `DICTAMEN_QA.md`. `README.md` ya está corregido (nombre del ejecutable, resoluciones, Jev en vivo y estado de `main`), también en la copia que viaja junto al EXE; `VERSION.json:6` y `CLAUDE.md:5` siguen viejos (Q-310).

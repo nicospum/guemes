@@ -6,8 +6,8 @@ Proyecto independiente en Godot 4.7.2 (GDScript, Forward+), exportado para Windo
 
 ## Abrir en Windows
 
-1. Extraé el ZIP de Windows en una carpeta propia.
-2. Abrí **PatriaGuemes.exe**. El paquete del juego está embebido en el ejecutable.
+1. Copiá el ejecutable a una carpeta propia (si lo recibiste en un ZIP, extraelo primero).
+2. Abrí **PatriaGuemes_0.5.0-preview2.exe**. El paquete del juego está embebido en el ejecutable. Si lo reconstruís vos, sale como `PatriaGuemes.exe`.
 3. Elegí **I · La Justina** (empezá acá), **II · Humahuaca** (siempre abierto; recomendado tras la Justina) o **III · Sostener el norte** (se abre al ganar la Justina o Humahuaca). Al ganar un capítulo, el botón principal del parte lleva al siguiente.
 
 No hace falta instalar el editor de Godot, Blender, REA, Python ni un MCP para jugar. No hace falta una clave de Jev para completar los escenarios. Los guardados y ajustes se escriben en `%APPDATA%\Godot\app_userdata\Güemes — Juegos de la Patria`, fuera de la carpeta del ejecutable. La instalación de Civilization VII no forma parte del proyecto.
@@ -38,7 +38,7 @@ Los tiempos y tasas de victoria de los recorridos automatizados están en `docs/
 
 Hacia el 1 de marzo de 1817, unas 150 personas al mando de Manuel Eduardo Arias atacaron los depósitos que el ejército de La Serna tenía en Humahuaca, en su retaguardia: una batería, un cuartel y la posta con la pólvora. Güemes conducía desde Salta y no estuvo en el asalto. El nivel recrea esa noche en **tiempo real con pausa**: preparación, aproximación con lluvia, señal, ataque a los tres frentes a la vez y extracción al alba por el vado del este, antes de que llegue un refuerzo que es recurso del juego (en la realidad no hubo refuerzo inmediato). Cinco agrupaciones (las partidas de Rodríguez, Portal y Arias, los reconocedores y el arreo de mulas), un parte de victoria o derrota que enseña, reintento con el mismo mundo, diario, guardado y carga. Cada dato lleva su etiqueta de fuente (● documentado, ◇ razonado, ◆ discutido, ○ sin datos, ▲ diseño) y el epílogo fechado separa «en la realidad» de «en tu partida».
 
-**Estado:** se juega entero desde el menú y desde el EXE de 0.5.0-preview1; la apertura muestra la quebrada y se salta con cualquier tecla; al elegir una partida fuera de la vista la cámara se acerca a ella (segunda pulsación: acercar a 240 m). Límite de diseño conocido: quien sigue la guía gana con bronce; la exigencia está en la plata y el oro (`docs/equipo/REFERENTES_Y_DECISIONES.md`).
+**Estado:** se juega entero desde el menú y desde el EXE de 0.5.0-preview2; la apertura muestra la quebrada y se salta con cualquier tecla; al elegir una partida fuera de la vista la cámara se acerca a ella (segunda pulsación: acercar a 240 m). Límite de diseño conocido: quien sigue la guía gana con bronce; la exigencia está en la plata y el oro (`docs/equipo/REFERENTES_Y_DECISIONES.md`).
 
 **Para empezar:** mirá el **siguiente paso** (abajo): una sola cosa por vez, con su botón y su tecla. Elegí una agrupación con **1 a 5**, mandá a los reconocedores (4) a mirar los frentes (**R**), llevá cada partida a su puesto (**P**), da la señal (**F**) cuando estén en posición y atacá (**T**). Tomados los tres frentes, cargá el arreo (**L**), destruí lo que no entra (**X**) y salí por el vado (**V**). **Espacio** pausa; **F1** explica todo. Teclas completas en `docs/CONTROLES.md` y `docs/humahuaca/CONTROLES.md`.
 
@@ -60,7 +60,7 @@ Las pruebas comprobaron dos estrategias ganadoras distintas, en rondas 10 y 11, 
 4. Rechazá los contraataques (**,**). Mirá la barra de tiempo: la marca roja «sin retorno» es el último momento para cargar.
 5. Si perdés: «Reintentar desde el cruce» te devuelve antes del vado en segundos, con lo ya sondeado; «Reintentar (mismo mapa)» empieza de cero.
 
-Resoluciones con QA de interfaz real (ventana): 1280x720, 1440x900, 1920x1080 y 2560x1440 (renderer Forward+, calidad media). Compatibility y calidad alta no se probaron en esta ronda.
+Resoluciones con QA de interfaz real (ventana): 1024x640, 1280x720, 1440x900, 1920x1080 y 2560x1440 (renderer Forward+, calidad media). Compatibility y calidad alta no se probaron en esta ronda.
 
 ## Controles principales
 
@@ -104,7 +104,7 @@ La matriz histórica separa documento, interpretación, tradición y ficción ju
 
 Jev elige intenciones del adversario entre opciones legales. Las reglas locales controlan movimiento, azar, combate, recursos y victoria. El cliente asíncrono limita la espera a dos segundos, valida estado y respuesta, descarta decisiones viejas y registra la alternativa local de forma explícita.
 
-Para habilitar una clave existente, consultá `docs/CONFIGURAR_JEV_WINDOWS.md` y `tools/configurar_jev.ps1`, incluidos en ambos paquetes. No pegues credenciales en el código ni en el chat. La validación viva sigue pendiente.
+Para habilitar una clave existente, consultá `docs/CONFIGURAR_JEV_WINDOWS.md` y `tools/configurar_jev.ps1`, incluidos en ambos paquetes. No pegues credenciales en el código ni en el chat. La validación en vivo se hizo una sola vez, el 9 de noviembre de 2026 (`docs/JEV.md`); las pruebas automáticas corren sin clave, con la alternativa local.
 
 REA 6.8.0 se utilizó realmente para inspección PE del runtime y del ejecutable final. La ruta de Civilization aportada no era accesible desde el entorno Linux remoto. Las conclusiones de interacción se apoyan en documentación pública oficial; no se presentan como observación de esa instalación.
 
@@ -131,4 +131,4 @@ Con Godot 4.7.2 y sus plantillas de exportación instalados:
 python tools/build_release.py --godot /ruta/a/godot --target windows
 ```
 
-La exportación reproduce el juego con los GLB y WAV incluidos; no requiere Blender ni regenerar los recursos. El código de generación se entrega aparte para editarlos. El repositorio está en GitHub (`nicospum/guemes`): `main` conserva la alfa 0.3.0 con la etiqueta `v0.1.0` intacta, y el nivel II se desarrolla en la rama `humahuaca-r1`. Para el nivel II, las pruebas de datos corren sin ventana: `godot --headless --path . --script tests/test_hx_data.gd`.
+La exportación reproduce el juego con los GLB y WAV incluidos; no requiere Blender ni regenerar los recursos. El código de generación se entrega aparte para editarlos. El repositorio está en GitHub (`nicospum/guemes`): `main` tiene esta versión con los tres capítulos y la etiqueta `v0.1.0` sigue intacta. En Windows conviene clonar con `git clone -c core.longpaths=true …`, porque hay rutas versionadas de más de 260 caracteres. Para el nivel II, las pruebas de datos corren sin ventana: `godot --headless --path . --script tests/test_hx_data.gd`.

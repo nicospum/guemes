@@ -280,7 +280,7 @@ step_protected() {
   if [ -n "$changed" ] && [ "$MODE" = quick ] && [ "$PISTA" != integrador ]; then
     record protegidos FALLA "$(printf '%s\n' "$changed" | wc -l | tr -d ' ') de $n archivos protegidos cambiaron contra $BASE: $(printf '%s' "$changed" | tr '\n' ' ' | cut -c1-300)"
   elif [ -n "$changed" ]; then
-    PROT_OK=1
+    # QA enmienda 8 (ratificada el 9-nov-2026): se informa sin bloquear. PROT_OK queda sin fijar: la regla de ruido del benchmark (P3) sigue valiendo solo si no se tocó nada protegido.
     record protegidos PASA "$(printf '%s\n' "$changed" | wc -l | tr -d ' ') de $n archivos de la base $BASE evolucionaron por el encargo multi-nivel (QA enmienda 8; regresión cubierta por T02 y T04)"
   elif [ "$n" -ne 40 ]; then
     record protegidos AVISO "$n archivos protegidos intactos contra $BASE (la rúbrica T01 cuenta 40; revisar la lista)"
@@ -470,7 +470,7 @@ step_hygiene() {
   if [ "$tags" != "v0.1.0 v0.2.0-alpha v0.3.0-alpha" ]; then bad="$bad etiquetas={$tags} (deben ser v0.1.0 v0.2.0-alpha v0.3.0-alpha, sin agregar ni mover);"; fi
   secret="$(git -C "$SRC" ls-files | grep -E '(^|/)(\.env[^/]*|jev\.cfg|[^/]*\.key)$' | head -n 3 | tr '\n' ' ')"
   if [ -n "$secret" ]; then bad="$bad hay archivos de secretos versionados: $secret;"; fi
-  bin="$(git -C "$SRC" ls-files '*.tif' '*.exe' '*.zip' | head -n 3 | tr '\n' ' ')"
+  bin="$(git -C "$SRC" ls-files '*.tif' '*.exe' '*.zip' '*.blend' | head -n 3 | tr '\n' ' ')"   # QA enmienda 8: los .blend siguen prohibidos en cualquier carpeta, también bajo assets/models/
   if [ -n "$bin" ]; then bad="$bad hay binarios versionados que no van a Git: $bin;"; fi
   blend="$(git -C "$SRC" diff --name-only --diff-filter=A "$BASE" -- '*.blend' '*.glb' ':!assets/models/humahuaca/' ':!assets/models/' | head -n 3 | tr '\n' ' ')"
   if [ -n "$blend" ]; then bad="$bad modelos nuevos fuera de assets/models/: $blend;"; fi
