@@ -83,6 +83,7 @@ func build(game_rules, quality_name = "media"):
  _lighting()
  if justina:
   _build_justina()
+  _ambient_population()
   batch_parent = landmarks_root
   _flush_batches()
   batch_parent = self
@@ -92,6 +93,7 @@ func build(game_rules, quality_name = "media"):
    _coast()
   else:
    _north()
+  _ambient_population()
   _flush_batches()
  route_root = Node3D.new()
  add_child(route_root)
@@ -1525,6 +1527,8 @@ var ship_y0=0.0
 var ship_gun_pos: Array = []
 var smoke_pool: Array = []
 var smoke_next = 0
+var dust_pool: Array = []
+var dust_next = 0
 var splash_pool: Array = []
 var splash_next = 0
 var flash_pool: Array = []
@@ -1618,6 +1622,42 @@ func _build_justina():
  # visual/r1 F5: horneado previo de la tropa de a pie de cada grupo (piel por CPU, tinte y LOD: ~50 ms en total al cargar), así el
  # desmonte en pleno juego no da un tirón.
  for g in M.get("groups",[]):_foot_poses("persona_voluntario_1806",str(g.get("id","")))
+
+## Fase 1: figuras ambientales fuera de reglas, selección y navegación.
+## Son pocas, estáticas y se omiten en calidad baja para conservar el presupuesto.
+func _ambient_population() -> void:
+ var root := Node3D.new()
+ root.name = "PoblacionAmbiental"
+ root.process_mode = Node.PROCESS_MODE_DISABLED
+ add_child(root)
+ var low: bool = quality == "baja"
+ var positions: Array[Vector3] = []
+ var model_names: Array[String] = []
+ if justina:
+  model_names = ["persona_voluntario_1806_lod"]
+  positions = [
+   Vector3(86.0, 0.0, -24.0), Vector3(92.0, 0.0, -18.0),
+   Vector3(101.0, 0.0, -26.0), Vector3(108.0, 0.0, -20.0),
+   Vector3(116.0, 0.0, -30.0), Vector3(122.0, 0.0, -24.0),
+  ]
+ else:
+  model_names = [
+   "persona_arriero_1817_lod", "persona_gaucho_1817_lod",
+   "persona_gaucho_1817_carabina_lod", "persona_realista_1817_lod",
+   "persona_arriero_1817_lod", "persona_gaucho_1817_lod",
+  ]
+  positions = [
+   Vector3(-18.0, 0.0, -12.0), Vector3(-12.0, 0.0, -8.0),
+   Vector3(-6.0, 0.0, -14.0), Vector3(12.0, 0.0, 10.0),
+   Vector3(18.0, 0.0, 14.0), Vector3(24.0, 0.0, 8.0),
+  ]
+ var count := 3 if low else positions.size()
+ for i in range(count):
+  var p := positions[i]
+  p.y = terrain_height(p.x, p.z)
+  var person := _model(model_names[i % model_names.size()], p, root)
+  person.rotation.y = float(i % 3) * 0.8
+  person.scale = Vector3.ONE * (0.52 if justina else NORTE_FIG_SCALE)
 
 func _sample_heightfield():
  hf_nx=int(round(map_w/J_CELL))+1
@@ -2612,6 +2652,21 @@ func _effects_j():
   p.color_ramp=ramp;p.scale_amount_curve=grow;p.scale_amount_min=1.0;p.scale_amount_max=1.8
   p.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
   add_child(p);smoke_pool.append(p)
+ var dust_mat=StandardMaterial3D.new()
+ dust_mat.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
+ dust_mat.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA
+ dust_mat.albedo_color=Color(0.63,0.48,0.31,0.34)
+ var dust_mesh=SphereMesh.new();dust_mesh.radius=0.28;dust_mesh.height=0.56;dust_mesh.radial_segments=6;dust_mesh.rings=3
+ for j in range(8):
+  var d=CPUParticles3D.new()
+  d.one_shot=true;d.emitting=false;d.amount=12;d.lifetime=0.9;d.explosiveness=0.9
+  d.mesh=dust_mesh;d.material_override=dust_mat
+  d.emission_shape=CPUParticles3D.EMISSION_SHAPE_SPHERE;d.emission_sphere_radius=0.35
+  d.spread=45.0;d.initial_velocity_min=0.5;d.initial_velocity_max=1.8;d.gravity=Vector3(0,0.35,0)
+  d.damping_min=0.8;d.damping_max=1.4
+  d.scale_amount_min=0.35;d.scale_amount_max=0.8
+  d.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+  add_child(d);dust_pool.append(d)
  var splash_mat=StandardMaterial3D.new()
  splash_mat.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED;splash_mat.albedo_color=Color(0.92,0.92,0.88,0.85);splash_mat.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA
  var drop=SphereMesh.new();drop.radius=0.22;drop.height=0.44;drop.radial_segments=6;drop.rings=3
@@ -2642,6 +2697,12 @@ func _fire_smoke(pos:Vector3,dir:Vector3,big:bool=true):
  p.global_position=pos;p.direction=dir;p.restart();p.emitting=true
  var fl=flash_pool[flash_next];flash_next=(flash_next+1)%flash_pool.size()
  var n:MeshInstance3D=fl.node;n.global_position=pos+dir*0.8;n.scale=Vector3.ONE*(1.4 if big else 0.9);n.visible=true;fl.life=0.14
+
+func _dust(pos:Vector3,dir:Vector3)->void:
+ if dust_pool.is_empty():return
+ var d:CPUParticles3D=dust_pool[dust_next]
+ dust_next=(dust_next+1)%dust_pool.size()
+ d.global_position=pos;d.direction=dir;d.restart();d.emitting=true
 
 func _splash(pos:Vector3):
  var p:CPUParticles3D=splash_pool[splash_next];splash_next=(splash_next+1)%splash_pool.size()
@@ -3615,6 +3676,24 @@ func _update_group_j(u:Dictionary,delta:float):
  var changed=cur.distance_squared_to(prev)>0.0001 or absf(yaw-float(entry.yaw))>0.002
  entry.pos2=cur;entry.yaw=yaw
  root.position=Vector3(cur.x,_h(cur.x,cur.y),cur.y)
+ if moving and _h(cur.x,cur.y)>level_m+0.25 and not dust_pool.is_empty():
+  var dust_t=float(entry.get("dust_t",0.0))-delta
+  if dust_t<=0.0:
+   dust_t=0.28
+   _dust(root.global_position+Vector3(0,0.28,0),Vector3(-sin(yaw),0,-cos(yaw)))
+  entry["dust_t"]=dust_t
+ else:
+  entry["dust_t"]=0.0
+ if moving and rules.has_method("water_depth_at") and not splash_pool.is_empty():
+  var depth=float(rules.water_depth_at(cur.x,cur.y))
+  var splash_t=float(entry.get("splash_t",0.0))-delta
+  if depth>0.25 and splash_t<=0.0:
+   entry["splash_t"]=0.3
+   _splash(root.global_position+Vector3(0,level_m+0.12,0))
+  else:
+   entry["splash_t"]=maxf(splash_t,0.0)
+ else:
+  entry["splash_t"]=0.0
  root.visible=float(u.strength)>0.0
  # R5: al abordar, las figuras suben a la cubierta (transicion de ~2,5 s); las fichas y aros quedan en la arena para seguir leyendose.
  var bk_t=1.0 if (stage=="boarding" and is_instance_valid(ship) and cur.distance_to(Vector2(float(M.ship.x),float(M.ship.z)))<DECK_REACH) else 0.0

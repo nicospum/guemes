@@ -82,6 +82,9 @@ func _justina() -> void:
 	check(game.mode == "play" and game.rules.state.scenario == "justine", "Justina scene and rules agree")
 	check(game.paused, "Justina starts paused for the first decision")
 	check(game.world.unit_nodes.size() >= 5, "Three groups and two scouts have 3D nodes")
+	var ambient: Node = game.world.find_child("PoblacionAmbiental", true, false)
+	check(ambient != null and ambient.get_child_count() == 6, "Ambient population uses six low-cost figures at medium quality")
+	check(not game.world.unit_nodes.has("ambient_0"), "Ambient population is outside playable unit nodes")
 	# Briefing inicial
 	check(is_instance_valid(game.modal), "Briefing modal opens at the start")
 	var ctxt := _modal_text()
@@ -219,7 +222,10 @@ func _justina() -> void:
 			if b.disabled:
 				check(str(b.get_meta("why", "")) != "", "Blocked action carries a reason: " + a)
 	check(game.action_buttons["board"].disabled and str(game.action_buttons["board"].get_meta("why")).find("Liniers") >= 0, "Board is blocked until Liniers authorises, with the reason")
-	check(game.action_buttons.has("distract_fire") and game.action_buttons.has("retreat_all"), "Global actions are always offered")
+	check(not game.action_buttons.has("distract_fire") and not game.action_buttons.has("board_own"), "Advanced actions start hidden behind Más acciones")
+	game.advanced_actions_open = true
+	game._refresh_actions_j()
+	check(game.action_buttons.has("distract_fire") and game.action_buttons.has("board_own"), "Más acciones reveals advanced and emergency actions")
 	_key(KEY_5)
 	await _frames(2)
 	for a in ["probe", "mark_ford", "recall"]:
@@ -1280,6 +1286,8 @@ func _justina_r1_ui() -> void:
 	game._update_hud()
 	check(str(game.action_buttons["board"].tooltip_text).find("No disponible ahora") >= 0 and str(game.action_buttons["board"].tooltip_text).find("Liniers") >= 0, "D-07: with the tutorial on, the blocked reason lives in the button tooltip (the tray does not change height under the cursor)")
 	game._select_ids(["scout_1"])
+	game.advanced_actions_open = true
+	game._refresh_actions_j()
 	var rb: Button = game.action_buttons["recall"]
 	check(not rb.disabled and str(rb.get_meta("why")).find("desconocida") < 0, "Volver is valid for a live scout (no 'Acción desconocida')")
 	check(game.action_buttons.has("probe_careful") and game.action_buttons.has("mark_ford"), "Scout bar lists careful probe and mark ford")

@@ -68,6 +68,7 @@ var toast_timer = 0.0
 var unit_buttons = {}
 var action_buttons = {}
 var action_box: VBoxContainer
+var advanced_actions_open: bool = false
 var pause_button: Button
 var speed_button: Button
 var selected_label: Label
@@ -102,6 +103,7 @@ const GROUP_IDS = ["guemes","arias","zavala"]
 const SCOUT_IDS = ["scout_1","scout_2"]
 const ALL_ACTORS = ["guemes","arias","zavala","scout_1","scout_2"]
 const ACTION_KEYS = {"move":KEY_V,"board":KEY_N,"muster":KEY_U,"resupply":KEY_J,"signal_liniers":KEY_K,"withdraw":KEY_L,"rally":KEY_Y,"cancel":KEY_X,"probe":KEY_Z,"mark_ford":KEY_H,"recall":KEY_I,"distract_fire":KEY_O,"repel":KEY_COMMA,"evacuate":KEY_PERIOD}
+const advanced_action_ids: Dictionary = {"probe_careful":true,"mark_ford":true,"recall":true,"distract_fire":true,"board_own":true}
 const KEY_LABELS = {"repel":",","evacuate":".","probe_careful":"Mayús+Z","undo":"Ctrl+Z"}
 # Tabla única de teclas de Justina (fuente de verdad; docs/CONTROLES.md la repite y tests/test_integration.gd la contrasta:
 # sin teclas repetidas entre filas ni con ACTION_KEYS, y cada etiqueta debe figurar en el documento).
@@ -2385,6 +2387,7 @@ func _mm_size()->Vector2:
 
 func _build_hud_j():
  _new_ui();unit_buttons={};action_buttons={};stat_bars={};hud_panels=[];roster_buttons={};pace_buttons={};speed_buttons={}
+ advanced_actions_open=false
  left_panel=null;journal_panel=null;journal_last=null;roster_panel=null
  alert_current={};alert_ids_seen={};pause_reason="";pause_alert=[];order_log=[];eta_cache={}
  tut_cam0=camera_target;tut_dist0=camera_distance
@@ -3399,6 +3402,12 @@ func _refresh_actions_j():
  if kind=="group" and not bool(rules.state.advance_authorized):
   var bi=ids.find("board")
   ids.insert(bi+1 if bi>=0 else ids.size(),"board_own")
+ var filtered_ids=[]
+ for candidate in ids:
+  if not advanced_actions_open and advanced_action_ids.has(str(candidate)):
+   continue
+  filtered_ids.append(candidate)
+ ids=filtered_ids
  ids.append("undo")
  # Lo riesgoso va al final y con otro color: no queda pegado a lo de uso común.
  var calm=[];var risky=[]
@@ -3427,9 +3436,23 @@ func _refresh_actions_j():
   action_buttons[act]=b
  reason_label=_label(action_box,"",11,MUTED);reason_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
  reason_label.custom_minimum_size=Vector2(620,30);reason_label.max_lines_visible=2;reason_label.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
+ var advanced_toggle=_button(action_box,"Menos acciones" if advanced_actions_open else "Más acciones",func():
+  advanced_actions_open=not advanced_actions_open
+  _refresh_actions_j()
+  call_deferred("_focus_advanced_toggle"),30)
+ advanced_toggle.tooltip_text="Muestra u oculta acciones técnicas y de emergencia. Las órdenes principales siguen arriba."
+ advanced_toggle.accessibility_description=advanced_toggle.tooltip_text
  # Altura fija: si el texto de ayuda creciera al pasar el mouse, los botones se moverían bajo el cursor y el clic fallaría.
  hover_action=""
  _update_action_states()
+
+func _focus_advanced_toggle() -> void:
+ if not is_instance_valid(action_box):return
+ for candidate in action_box.find_children("*","Button",true,false):
+  var button := candidate as Button
+  if button != null and (button.text == "Más acciones" or button.text == "Menos acciones"):
+   button.grab_focus()
+   return
 
 func _avail(action:String)->Dictionary:
  if action=="retry_now" or action=="open_choice":return {"ok":true,"reason":"Disponible.","cost_text":"","tag":"diseno"}

@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/tools/assets_mvp_lab.gd" id="1_assets_mvp"]
+
+[node name="AssetsMvpLab" type="Node3D"]
+script = ExtResource("1_assets_mvp")
