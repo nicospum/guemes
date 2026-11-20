@@ -1,36 +1,38 @@
-; Juegos de la Patria — Güemes. Godot 4.7.2
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
 config_version=5
 
 [application]
+
 config/name="Güemes — Juegos de la Patria"
+config/description="Tres escenarios de estrategia histórica en 3D: la Justina (1806), Humahuaca (1817) y Sostener el norte (1816–1817). Recreación documentada."
 config/version="0.5.0-preview2"
 run/main_scene="res://scenes/main.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
-config/description="Tres escenarios de estrategia histórica en 3D: la Justina (1806), Humahuaca (1817) y Sostener el norte (1816–1817). Recreación documentada."
 config/icon="res://assets/icon.svg"
 
+[debug]
+
+gdscript/warnings/treat_warnings_as_errors=false
+
 [display]
+
 window/size/viewport_width=1440
 window/size/viewport_height=900
 window/size/window_width_override=1440
 window/size/window_height_override=900
 window/stretch/mode="canvas_items"
-window/size/resizable=true
 window/size/min_width=1024
 window/size/min_height=640
 
 [rendering]
-rendering_device/fallback_to_opengl3=true
-renderer/rendering_method="forward_plus"
+
 renderer/rendering_method.mobile="gl_compatibility"
-renderer/rendering_method.web="gl_compatibility"
-textures/default_filters/use_nearest_mipmap_filter=false
 anti_aliasing/quality/msaa_3d=2
-environment/defaults/default_clear_color=Color(0.08,0.12,0.13,1)
-textures/default_filters/anisotropic_filtering_level=2
-
-[audio]
-driver/enable_input=false
-
-[debug]
-gdscript/warnings/treat_warnings_as_errors=false
+environment/defaults/default_clear_color=Color(0.08, 0.12, 0.13, 1)
