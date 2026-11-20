@@ -274,6 +274,8 @@ func _ready():
  # (las anclas lo reparten) en lugar de barras negras.
  get_window().content_scale_aspect=Window.CONTENT_SCALE_ASPECT_EXPAND
  get_window().size_changed.connect(_fit_ui_scale)
+ get_window().size_changed.connect(_check_portrait)
+ _check_portrait()
  _load_settings()
  _progress_load()
  _make_theme()
@@ -430,14 +432,44 @@ func _rebuild_world():
 
 var forced_seed:int=-1 # -1: fondo del río distinto en cada partida; las pruebas fijan una semilla
 
+# Celular en la web (horizontal): la base 1440x900 deja el texto en ~6 px CSS. Se agranda hasta el alto lógico mínimo que admite cada pantalla; tope 2x.
+func _is_phone_web()->bool:
+ if not (OS.has_feature("web") and DisplayServer.is_touchscreen_available()):return false
+ var sz=Vector2(get_window().size)
+ return minf(sz.x,sz.y)/maxf(DisplayServer.screen_get_scale(),1.0)<700.0
+
+func _mobile_scale()->float:
+ if not _is_phone_web():return 1.0
+ var sz=Vector2(get_window().size)
+ if sz.x<=sz.y:return 1.0
+ var s0=minf(sz.x/1440.0,sz.y/900.0)
+ if s0<=0.0:return 1.0
+ # El menú necesita ~740 px lógicos de alto (con el aviso legal); las pantallas de juego, 640.
+ var alto:=740.0 if mode=="menu" else 640.0
+ return clampf((sz.y/alto)/s0,1.0,2.0)
+
+# En vertical el diseño no cabe: aviso a pantalla completa para girar el celular.
+var portrait_layer:CanvasLayer
+func _check_portrait():
+ var sz=Vector2(get_window().size)
+ var want:bool=_is_phone_web() and sz.y>sz.x
+ if want and portrait_layer==null:
+  portrait_layer=CanvasLayer.new();portrait_layer.layer=100
+  var bg=ColorRect.new();bg.color=Color(0.03,0.03,0.05,0.97);bg.mouse_filter=Control.MOUSE_FILTER_STOP;bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+  var lb=Label.new();lb.text="Girá el celular\npara jugar en horizontal";lb.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;lb.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;lb.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+  lb.add_theme_font_size_override("font_size",110);lb.add_theme_color_override("font_color",Color(0.93,0.88,0.78));lb.set_anchors_preset(Control.PRESET_FULL_RECT)
+  bg.add_child(lb);portrait_layer.add_child(bg);add_child(portrait_layer)
+ elif not want and portrait_layer!=null:
+  portrait_layer.queue_free();portrait_layer=null
+
 # En ventanas menores que la base 1440x900 la interfaz de Justina no se encoge por debajo de 1:1 (a 720p el texto quedaba en ~9 px).
 func _fit_ui_scale():
  var w=get_window()
- var f:=1.0
+ var f:=_mobile_scale()
  if mode=="play" and _is_j():
   var sz=Vector2(w.size)
   var s0=minf(sz.x/1440.0,sz.y/900.0)
-  if s0>0.0 and s0<1.0 and sz.x>=1200.0 and sz.y>=680.0:f=1.0/s0
+  if s0>0.0 and s0<1.0 and sz.x>=1200.0 and sz.y>=680.0:f=maxf(f,1.0/s0)
  if not is_equal_approx(w.content_scale_factor,f):
   w.content_scale_factor=f
   if is_instance_valid(map_widget) and _is_j():_layout_j()
@@ -449,7 +481,7 @@ func _menu():
  # T-003: el modo cambia ANTES de reponer la escala; si no, el size_changed que dispara corre _fit_ui_scale con mode=="play" (Justina) y la vuelve a 1,25.
  jev.invalidate();pending_round=false;mode="menu";paused=true;outcome_shown=false;shake=0.0;flash_alpha=0.0
  pan_pending=false;pan_t=-1.0  # visual/r1 paneo: volver al menú corta el paneo de apertura
- get_window().content_scale_factor=1.0
+ get_window().content_scale_factor=_mobile_scale()
  # T-004: el Norte baja el plano lejano a 400 m; el menú vuelve siempre al de arranque (4000 m) y a la misma óptica.
  if is_instance_valid(camera):camera.far=4000.0;camera.fov=46.0;camera.current=true
  rules.new_game("justine",1806)
